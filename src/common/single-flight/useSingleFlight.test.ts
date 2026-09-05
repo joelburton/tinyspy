@@ -1,9 +1,9 @@
-// cs-unmet
+// cs-blessed-single-flight
 
 /**
  * Tests for useSingleFlight — the "one run at a time" wrapper around an async
- * action (New game's guard; see the hook's docstring for why the guard sits on
- * the handler rather than on the button).
+ * action (the folder's `doc.md` says why the guard sits on the handler rather
+ * than on the control it is pressed from).
  *
  * The behaviors worth pinning are the ones a careless rewrite would break:
  * the drop while in flight, the clear on the FAILURE path (a guard that wedges

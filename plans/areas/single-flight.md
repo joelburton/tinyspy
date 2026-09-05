@@ -4,8 +4,9 @@ The folders it reads: `single-flight`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-05). The folder's `todo.md` was empty at the opening —
-no earlier area handed anything here.
+**Status: CLOSED** (2026-09-05). The folder's `todo.md` was empty at the opening,
+and it is empty at the close — everything found either shipped or went to the
+folder that owns it. Both code files are `cs-blessed-single-flight`.
 
 ## The roster
 
@@ -225,9 +226,22 @@ file as their constant, so they are the same one-line fix).
   (`supabase/sql/common.sql:1011–1021`); `submit_timeout` existing as the
   idempotent everyone-fires-it counter-example; `useConfirmation` being the async
   styled modal, not `window.confirm`.
-- The `useCommonGame` cross-reference in the `catch` comment is loose but not
+- The `useCommonGame` cross-reference in the `catch` comment was loose but not
   wrong: both log and swallow, but `useCommonGame` logs a not-ok envelope nobody
-  asked for, while this logs an unexpected throw. Not raised as a finding.
+  asked for, while this logs an unexpected throw. Not raised as a finding; cut
+  in the closing re-read as decoration, since the three sentences before it
+  already say why the `catch` logs.
+
+## The closing re-read
+
+Two changes, both Joel's call on reading the file whole: **the docstring was
+carrying the narrative** — the New game story, the two caller shapes, who calls
+it — and that is what a folder's `doc.md` is for. The docstring keeps the call
+shape, the two timing facts a caller must know (the gate closes before a
+confirm; it clears in a `finally`), the ref-versus-state note, and the cases it
+is not for; everything else moved to the Design, which the docstring now points
+at. The test file's lede pointed at the docstring for "why the guard sits on the
+handler" and now points at `doc.md`, where that answer went.
 
 ## Predicted test breaks
 
@@ -235,7 +249,9 @@ file as their constant, so they are the same one-line fix).
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed — which is nothing: what this area
+      found is either shipped or filed with `common/menu` (the in-flight menu-row
+      question; the hard-coded `NEW_GAME_ID`)
+- [x] every file on the roster blessed
