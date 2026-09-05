@@ -131,13 +131,16 @@ describe('useSession', () => {
     expect(mockSignOut).not.toHaveBeenCalled()
   })
 
-  it('treats a transient profile-query error as needsClaim (not signOut)', async () => {
-    // Over-permissive on probe errors — same friends-alpha tradeoff as
-    // the old "don't punish on transient blips" behavior. Worst case
-    // the user lands on ClaimHandleScreen and the claim attempt fails
-    // with an explicit "profile already claimed" if they already have
-    // one. Silence the warn so the run is clean.
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('reports a failed profile read as its own state, not as needsClaim', async () => {
+    // A read that fails says nothing about whether this person has claimed a
+    // username, so the hook stops guessing and hands the envelope up; App
+    // gives it the error page. The session survives — the JWT was verified
+    // before the read — and nobody is signed out over a blip.
+    //
+    // The noise this silences is the `[db] … FAULT` line, which is written
+    // even though the probe opts out of the modal (`presentFaults: false`),
+    // and `console.error` is the method a FAULT maps to.
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
     const { result } = renderHook(() => useSession())
@@ -147,9 +150,32 @@ describe('useSession', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.session).toBe(fakeSession)
-    expect(result.current.needsClaim).toBe(true)
+    expect(result.current.probeFailed?.type).toBe('not-ok')
+    expect(result.current.needsClaim).toBe(false)
     expect(mockSignOut).not.toHaveBeenCalled()
-    warnSpy.mockRestore()
+    errorSpy.mockRestore()
+  })
+
+  it('clears the failed state when the retry succeeds', async () => {
+    // What the error page's "Try again" does: `refresh()` re-runs the same
+    // probe, and a second answer replaces the first.
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.probeFailed).not.toBeNull())
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.probeFailed).toBeNull()
+    expect(result.current.needsClaim).toBe(false)
+    expect(result.current.session).toBe(fakeSession)
+    errorSpy.mockRestore()
   })
 
   it('signs out when the stored JWT refers to a deleted user (4xx from getUser)', async () => {

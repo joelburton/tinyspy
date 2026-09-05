@@ -5,19 +5,24 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { db } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
+import type { NotOkEnvelope } from '../supabase/envelope'
 import { setProfile } from './useProfile'
 
 /**
  * Source of truth for "is there a logged-in user, and have they
  * claimed a username yet."
  *
- * Three resolved states (driven by the absence/presence of a
- * common.profiles row for the signed-in user):
+ * Four resolved states (the first three driven by the absence/presence
+ * of a common.profiles row for the signed-in user):
  *
  *   { session: null,      needsClaim: false }  → signed out
  *   { session: <Session>, needsClaim: true  }  → signed in but
  *                                                no profile row yet
  *   { session: <Session>, needsClaim: false }  → signed in + claimed
+ *   { session: <Session>, probeFailed: <envelope> }
+ *                                              → the read failed, so
+ *                                                which of the two
+ *                                                above is unknown
  *
  * The "needs claim" state replaces the old auto-derived-username
  * trigger flow: the auth.users row is created by Supabase Auth at
@@ -49,6 +54,7 @@ export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
   const [hasProfile, setHasProfile] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [probeFailed, setProbeFailed] = useState<NotOkEnvelope | null>(null)
 
   // The four states below are all "nobody is signed in as far as the app is
   // concerned", and the profile store has to be emptied with them or a
@@ -57,6 +63,7 @@ export function useSession() {
     setProfile(null)
     setSession(null)
     setHasProfile(false)
+    setProbeFailed(null)
     setLoading(false)
   }, [])
 
@@ -134,19 +141,21 @@ export function useSession() {
           .from('profiles')
           .select('username, color, can_edit_words')
           .eq('user_id', next.user.id),
+        // `presentFaults: false` because a failed probe becomes the whole page
+        // below, and the modal on top of it would say the same thing twice.
+        { presentFaults: false },
       )
       if (!mountedRef.value) return
       if (res.type === 'not-ok') {
-        // A failed probe assumes the session is valid AND unclaimed, so the
-        // user lands on ClaimHandleScreen. That is over-permissive and always
-        // has been (flagged in the 2026-06-16 review): the honest answer is
-        // "we don't know", and there is no screen for it.
-        //
-        // `readRows` has already logged this and put the modal up, so what is
-        // left is only the guess about where to send them.
+        // Without the row we do not know whether this person has claimed a
+        // username, and both guesses are wrong in a way they can see: the claim
+        // screen asks someone to pick a handle they may already own, and the
+        // app behind the gate would render as a stranger. So the failure is a
+        // state of its own, and `App` gives it the error page.
         setProfile(null)
         setSession(next)
         setHasProfile(false)
+        setProbeFailed(res)
         setLoading(false)
         return
       }
@@ -160,6 +169,7 @@ export function useSession() {
       setProfile(row)
       setSession(next)
       setHasProfile(row !== null)
+      setProbeFailed(null)
       setLoading(false)
     },
     [resolveSignedOut],
@@ -192,7 +202,8 @@ export function useSession() {
 
   return {
     session,
-    needsClaim: session !== null && !hasProfile,
+    needsClaim: session !== null && !hasProfile && probeFailed === null,
+    probeFailed,
     loading,
     refresh,
   }

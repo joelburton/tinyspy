@@ -41,10 +41,15 @@ corrects.
 The profile lookup itself has a shape worth noticing. Zero rows is the answer
 it is there to get, not a failure: no row means unclaimed, and the read is
 written as a list query rather than a single-row one precisely so the ordinary
-first sign-in is not an error. A read that actually fails is another matter.
-The wrapper has already logged it and shown the fault, and the hook is left
-with only a guess about where to send the person; today it sends them to the
-claim screen.
+first sign-in is not an error. A read that actually fails is another matter. It
+leaves nobody able to say which of the two states this person is in, and either
+guess shows: the claim screen would ask someone to pick a handle they may
+already own, and the app behind the gate would greet them as a stranger. So a
+failed read is a state of its own. The hook hands the envelope up, the app puts
+it on the page in place of the route, and the page offers Try again, which
+re-runs the same read. That read is also the one place that asks the wrapper
+not to raise its fault modal: where the page is the message, a modal over it
+says the same sentence twice.
 
 The row's contents are the other half of the job, and they arrive in the same
 read. The username, the player color and the one permission the app has are
@@ -66,11 +71,13 @@ repaints at once with no refetch.
 
 ## Details
 
-- **The three resolved states**, from the two booleans `useSession` returns:
-  `session: null` is signed out; `session` set with `needsClaim: true` is
-  signed in and unclaimed; `session` set with `needsClaim: false` is signed in
-  and claimed. `App` renders `<LoginScreen>`, `<ClaimHandleScreen>` or the app
-  for them, in that order, after `loading` clears.
+- **The four resolved states** `useSession` returns: `session: null` is signed
+  out; `session` set with `needsClaim: true` is signed in and unclaimed;
+  `session` set with `needsClaim: false` is signed in and claimed; and
+  `probeFailed` holding an envelope is "the read failed, so which of those two
+  is unknown". `App` renders `<LoginScreen>`, the error page,
+  `<ClaimHandleScreen>` or the app itself, in that order, after `loading`
+  clears.
 - **The lookup runs on every auth event that carries a session**, the hourly
   token refresh included, not only on sign-in.
 - **`Profile` is three columns** of `common.profiles`: `username`, `color`,

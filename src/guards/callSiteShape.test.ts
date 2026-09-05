@@ -123,6 +123,14 @@ describe('call-site shape', () => {
    * surface. `useGameTimer` is the model — it is silent for the four `FE`
    * codes on purpose, and says so, and shows `PN011`/`PN012` itself.
    *
+   * **Handing the envelope up counts too**, and is the fourth way: a hook that
+   * keeps its `NotOkEnvelope` and returns it has a caller rendering it as a
+   * whole page (`EnvelopeErrorPage`). That is the modal-vs-page rule in
+   * `ErrorPage` — a modal when the page behind it survives, a page when it does
+   * not — and where the page is the presentation, the modal on top of it says
+   * the same sentence twice. `useSession` is the model: the profile read is the
+   * one the app cannot continue without.
+   *
    * File-level, like the scream guard below, and for the same reason: it
    * catches the case that actually happens — an opt-out written without a plan
    * — rather than trying to pair each option with each branch.
@@ -133,7 +141,7 @@ describe('call-site shape', () => {
       .filter((f) => {
         const text = readFileSync(f, 'utf8')
         return /presentFaults:\s*false/.test(text)
-          && !/showFaultModal|reportUnhandled|console\.error/.test(text)
+          && !/showFaultModal|reportUnhandled|console\.error|NotOkEnvelope/.test(text)
       })
     expect(
       offenders,

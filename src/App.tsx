@@ -19,7 +19,8 @@ import { GameInvitations } from './common/invitations/GameInvitations'
 import { ToastHost } from './common/toasts/ToastHost'
 import { FaultModal } from './common/faults/FaultModal'
 import { Loading } from './common/loading/Loading'
-import { ErrorPage } from './common/error-page/ErrorPage'
+import { ErrorPage, EnvelopeErrorPage } from './common/error-page/ErrorPage'
+import { StandardButton } from './common/buttons/StandardButton'
 import { diagnosticsLine } from './common/supabase/dbLog'
 import { TooltipHost } from './common/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/realtime/useRealtimeReconnect'
@@ -68,7 +69,7 @@ import { gametypes } from './gametypes'
  */
 
 export default function App() {
-  const { session, needsClaim, loading, refresh } = useSession()
+  const { session, needsClaim, probeFailed, loading, refresh } = useSession()
   const path = usePath()
   // Reopen the Realtime socket the moment the tab regains focus / the network
   // returns, so a slept-then-resumed session re-establishes presence instead of
@@ -95,6 +96,15 @@ export default function App() {
   if (path === '/font') return <FontPage />
 
   if (!session) return <LoginScreen />
+  // The profile read failed, so whether this person has claimed a username is
+  // unknown — and every route below needs that answer. The page takes the
+  // place of the guess; Try again re-runs the same probe.
+  if (probeFailed) return (
+    <EnvelopeErrorPage
+      envelope={probeFailed}
+      action={<StandardButton name="Try again" weight="primary" onClick={() => void refresh()} />}
+    />
+  )
   // Signed in but no profile row yet — block all app routes until
   // they pick a username. ClaimHandleScreen calls refresh() on
   // success so this gate flips off without a page reload.

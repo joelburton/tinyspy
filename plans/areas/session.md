@@ -4,8 +4,9 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, three worked
-(F-session-1, -7, -8, in one change). Three files `cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, five worked
+(F-session-1, -7, -8 in one change; F-session-2 and -10 in the next). Three
+files `cs-audited-session`.
 
 ## The roster
 
@@ -114,7 +115,7 @@ Tests: fixtures carry the real columns, and two new cases pin the seed and the
 clear (`useSession seeds the profile store`). Full suite 2613 green, `tsc -b`
 and eslint clean.
 
-### F-session-2 · `probe-failure-lands-on-claim-screen` · A failed probe sends the player to pick a username under a fault modal, and the comment excusing it is no longer true
+### WORKED · F-session-2 · `probe-failure-lands-on-claim-screen` · A failed probe sends the player to pick a username under a fault modal, and the comment excusing it is no longer true
 
 `useSession.ts:133–145`: when the profiles read comes back `not-ok`, the hook
 sets `hasProfile = false`, so `needsClaim` is true and `App` renders
@@ -139,6 +140,34 @@ the probe so the page is the one presentation, which is what that option is
 for ("I will show my own faults", `callSiteShape.test.ts:115`).
 
 3. Agree the fourth state, or keep routing a failed probe to the claim screen?
+
+**Resolution (2026-09-05, Joel: "do it").** The hook returns `probeFailed:
+NotOkEnvelope | null` and `needsClaim` is false while it is set; `App` renders
+`<EnvelopeErrorPage>` for it between the login gate and the claim gate, with a
+**Try again** that calls `refresh()`. The probe passes `presentFaults: false`.
+Two cases pin it: the failed read reports its own state, and a successful retry
+clears it (which is also the first test `refresh()` has ever had).
+
+**F-session-10 came with it.** Rewriting that test is what the finding asked
+for, so the leftover `console.warn` spy is gone: the noise is the `[db] FAULT`
+line, written even when the modal is opted out of, so the spy is
+`console.error` and the run is quiet — which it was not before.
+
+**A guard had to change, and it is a rule change worth a look.**
+`callSiteShape.test.ts` → "a file that opts out of presenting shows something
+itself" is file-level and textual, and `useSession` opts out while its
+presentation lives in `App`. Added a fourth way to satisfy it — handing the
+envelope up, detected as `NotOkEnvelope` in the file — with the reasoning in
+its docstring: the modal-vs-page rule in `ErrorPage` says a failure that takes
+the whole route is a PAGE, and a modal over that page repeats it. Verified by
+planting: a file with a bare `presentFaults: false` and none of the four
+markers still fails. **If Joel would rather not widen that guard, the
+alternative is to drop the opt-out and let the modal sit over the error page**
+— which is what the game page does today.
+
+**Left for `game-page`:** `useCommonGame.ts:313–326` keeps the same
+whole-page failure but does NOT opt out, so a failed game load shows the modal
+AND `<EnvelopeErrorPage>`. Same doubling, one area over.
 
 ### F-session-3 · `every-auth-event-reprobes` · `getUser()` and the profile probe run on every auth event, not only on sign-in
 
@@ -277,7 +306,7 @@ Bugs item is struck.
 Fix with F-session-2 and -6: header says what is mocked and why the chain
 collapses to `eq`; test names say the behavior.
 
-### F-session-10 · `warn-spy-silences-nothing` · The probe-error test spies `console.warn` "so the run is clean", and the run is not clean
+### WORKED · F-session-10 · `warn-spy-silences-nothing` · The probe-error test spies `console.warn` "so the run is clean", and the run is not clean
 
 `useSession.test.ts:135` — the `not-ok` branch it exercises has no
 `console.warn` (`useSession.ts:133–145`). The noise on that path is the
@@ -292,6 +321,10 @@ The spy is left over from a hook that warned there. Fix: drop it; if the line
 is unwanted in the run, spy `console.error`, which is the method the FAULT kind
 maps to (`dbLog.ts:50–52`). The four getUser tests spy `warn` correctly — the
 hook does warn on those paths (`useSession.ts:106`, `:115`, `:120`).
+
+**Resolution (2026-09-05).** Done with F-session-2, which rewrote that test:
+the spy is `console.error` and the run is quiet. The four getUser tests keep
+their `warn` spies, which were right all along.
 
 ### F-session-11 · `untested-paths` · `refresh()`, the null-user branch, and all of `useProfile.ts` have no test
 
@@ -326,7 +359,9 @@ or -3 if either rewrites the hook.
 ## Notes
 
 - **Left for `game-page`:** `useCommonGame.ts:573` also argues from
-  "friends-alpha" (F-session-5's fourth).
+  "friends-alpha" (F-session-5's fourth); and `useCommonGame.ts:313–326` shows
+  a whole-page failure as BOTH a modal and an `<EnvelopeErrorPage>`, which is
+  the doubling F-session-2 removed here.
 - **Left for `simple-page`:** `ClaimHandleScreen.tsx:52–54` maps 23503 in its
   docstring; the RPC raises PN018 and the code at `:141` already reads PN018.
 - **Left for whoever owns `docs/common.md`'s claim-flow section:** the
@@ -344,9 +379,10 @@ or -3 if either rewrites the hook.
 
 - ~~`src/guards/orphanedDocstrings.test.ts`~~ — happened as predicted; the row
   went with F-session-7.
-- `src/common/session/useSession.test.ts` — F-session-2 changes the pinned
-  behavior of the probe-error case. (F-session-1 changed the fixtures and the
-  mock-chain comment, as predicted.)
+- ~~`src/common/session/useSession.test.ts`~~ — both halves happened: the
+  fixtures and mock-chain comment (F-session-1), and the probe-error case
+  (F-session-2). **Not predicted:** `src/guards/callSiteShape.test.ts`, whose
+  opt-out rule F-session-2 had to widen.
 - ~~`src/common/account/EditProfileModal.test.tsx`~~ — reached by F-session-1:
   the mock's row shape and the dropped `session` prop.
 - `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses its `common/session`
