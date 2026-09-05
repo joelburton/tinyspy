@@ -7,8 +7,10 @@
  * `club:<handle>` is a ROOM name: every peer must join the identical topic or
  * presence sees nobody, so it can't take the dedup suffix the per-client data
  * channels use. That leaves it exposed to the re-create race described in
- * `channelTeardown.ts`, and this hook is the smallest consumer of
- * the fix — a good place to pin the ORDERING the other three share.
+ * `channelTeardown.ts`, and this hook is the smallest consumer of the fix — a
+ * good place to pin the ORDERING every stable-name room depends on. Those are
+ * the rooms whose peers must all join the identical topic, so they can't take
+ * the per-client dedup suffix; docs/supabase.md's channel registry lists them.
  *
  * The roster projection from a synced channel is exercised end-to-end by
  * `e2e/presence.e2e.ts` (member dots, the abandoned-game heal,

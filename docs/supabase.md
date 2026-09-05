@@ -349,8 +349,9 @@ Four cooperating pieces:
 the `supabase_realtime` publication.** The Realtime server rejects the
 channel's *entire* subscription if any one bound table is unpublished —
 live updates silently die for all tables on that channel, with no error.
-Each game's `schema_test.sql` pins its publication membership, and each
-game's migration adds its tables at the bottom of the file.
+`supabase/tests/common/realtime_publication_test.sql` is the single,
+registry-driven guard for that invariant across every schema, and each game's
+migration adds its tables at the bottom of the file.
 
 **The publication is not the only way live updates die silently.** A channel
 whose tables are all published can still report `SUBSCRIBED` and then deliver

@@ -14,7 +14,7 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/realtime/useRealtimeRefetch.ts` | the subscribe-and-refetch factory every Pattern A hook calls (sixteen call sites: fourteen game hooks, the bee-games factory, HomePage) | `cs-audited-realtime` |
+| `src/common/realtime/useRealtimeRefetch.ts` | the subscribe-and-refetch factory every Pattern A hook calls — every hook that reloads its rows on any event rather than applying the event | `cs-audited-realtime` |
 | `src/common/realtime/useRealtimeRefetch.test.ts` | its contract — mount load, SUBSCRIBED refetch, attach refetch and its filter, event refetch, multi-table fan-in, `id` rebuild, mounted-guard, the ref trick | `cs-audited-realtime` |
 | `src/common/realtime/postgresAttached.ts` | `onPostgresAttached` — the deaf-window closer's filter on the `system` message | `cs-audited-realtime` |
 | `src/common/realtime/postgresAttached.test.ts` | its contract — fires on attach ok, on every re-attach, on nothing else | `cs-audited-realtime` |
@@ -363,7 +363,7 @@ MOCKED MODULE rather than a file to go read, and now says
 Nothing outside this folder was opened for anything else, and no stamps
 moved. Full unit suite green (2650), eslint clean on every folder touched.
 
-### F-realtime-9 · stale-counts-in-test-docstrings · two counts that stopped being true
+### WORKED · F-realtime-9 · stale-counts-in-test-docstrings · two counts that stopped being true
 
 **Where:**
 
@@ -378,7 +378,28 @@ the roster moves. **Recommendation:** name the condition — "the
 factory every Pattern A hook calls", "the ordering every stable-name room
 depends on" — and let the registry carry the list.
 
-### F-realtime-10 · canonical-example-points-at-non-callers · "see `useGame.ts` files" for a function no `useGame.ts` calls
+**Resolution (2026-09-05, Joel: "yes")** — both name a condition now, so a
+new game or a new room joins by definition and no number can rot.
+
+**Measured before rewriting, since a recommendation that names a condition
+still has to be true of the tree:** `useRealtimeRefetch(` has SEVENTEEN call
+sites (codenamesduet ×3, bananagrams ×2, and one each in psychicnum, wordle,
+stackdown, scrabble, waffle, boggle, wordiply, strands, letterboxed, setgame,
+the bee-games factory and HomePage) — exactly the membership list under
+Pattern A at docs/supabase.md:295–309. `channelLeaving(` has EIGHT, matching
+the eight stable rows of that doc's channel registry. Neither four nor three
+was ever close.
+
+**A letter is not a meaning** (Joel, this session: *"i don't think i'd
+remember what 'pattern A' is"*). Both rewrites gloss the label they use —
+Pattern A arrives as "the app's default realtime shape: reload the rows on
+any event rather than applying the event", and "stable-name room" as "the
+rooms whose peers must all join the identical topic, so they can't take the
+per-client dedup suffix". The registry is cited for the list rather than
+copied. This area's own roster row for `useRealtimeRefetch.ts` carried the
+same stale sixteen and now names the condition too.
+
+### WORKED · F-realtime-10 · canonical-example-points-at-non-callers · "see `useGame.ts` files" for a function no `useGame.ts` calls
 
 **Where:** `channelDedup.ts:27` — "See `useGame.ts` files for the canonical
 example." No game's `useGame.ts` calls `channelDedupSuffix`; they call the
@@ -390,7 +411,13 @@ docs/code-conventions.md:207 has the same sentence, pointing at
 **Recommendation:** point at `useRealtimeRefetch.ts:194` — the one place a
 reader will actually find the suffix spent — in both places.
 
-### F-realtime-11 · code-conventions-channel-list-drifted · a second channel list, wrong in three ways
+**Resolution (2026-09-05, Joel: "do all")** — both point at
+`useRealtimeRefetch.ts` now, `channelDedup.ts`'s naming what a reader will
+find there ("where the suffix is spent on the channel every per-game data
+hook opens through it"). docs/code-conventions.md's copy went with
+F-realtime-11's rewrite of the same paragraph.
+
+### WORKED · F-realtime-11 · code-conventions-channel-list-drifted · a second channel list, wrong in three ways
 
 **Where:** docs/code-conventions.md → "Realtime channel names" (lines
 197–207) keeps a five-row channel list beside docs/supabase.md's registry,
@@ -408,7 +435,18 @@ suffix paragraph at `channelDedup.ts`. It is a doc paragraph about this
 folder's two mechanisms, so the fix is this area's; but it is a docs-wide
 file with no owning area, so: (1) fix here, or (2) leave it and note it.
 
-### F-realtime-12 · lost-events-doc-cause-list-omits-attached · the doc's own table forgets the cause it exists for
+**Resolution (2026-09-05, Joel: "do all")** — fixed here. The section keeps
+the naming pattern and the two-kinds-of-name RULE (stable iff peers must
+share the room; suffixed everywhere else) and states each kind's consequence
+— a stable name opens through `channelTeardown.ts`, a suffixed one gives each
+tab its own room. The five-row list is replaced by a pointer to the registry
+in docs/supabase.md, which the surviving prose now names as "every channel in
+the app, in one place". The suffix paragraph points at `channelDedup.ts` for
+the reasoning and `useRealtimeRefetch.ts` for where it is spent, which is
+F-realtime-10's half of the same paragraph. `club-active:<club_handle>:<uuid>`
+appears nowhere in the repo now.
+
+### WORKED · F-realtime-12 · lost-events-doc-cause-list-omits-attached · the doc's own table forgets the cause it exists for
 
 **Where:** docs/realtime-lost-events.md:209 — the `[rt]` table row for
 `refetch #3 (event)` says the causes are "`mount` / `subscribed` / `event`".
@@ -417,7 +455,10 @@ it is the one the document is about; the e2e greps for it by name.
 
 **Recommendation:** add `attached` to the row. One word.
 
-### F-realtime-13 · supabase-md-misplaces-the-publication-guard · "each game's schema_test.sql pins its publication membership"
+**Resolution (2026-09-05, Joel: "do all")** — added, in the factory's own
+order: `mount` / `subscribed` / `attached` / `event`.
+
+### WORKED · F-realtime-13 · supabase-md-misplaces-the-publication-guard · "each game's schema_test.sql pins its publication membership"
 
 **Where:** docs/supabase.md:352. No game's schema test does; the one guard is
 `supabase/tests/common/realtime_publication_test.sql`, whose header says it
@@ -428,6 +469,13 @@ app", and it is the only file under `supabase/tests/` that reads
 **Recommendation:** name the one file. The publication invariant is this
 layer's rule (a missing table kills a channel this folder opens), so the
 sentence is about this area's subject; the file it names is evidence here.
+
+**Resolution (2026-09-05, Joel: "do all")** — the sentence names
+`supabase/tests/common/realtime_publication_test.sql` and calls it what its
+own header calls it: the single, registry-driven guard across every schema.
+The clause about each game's migration adding its tables is untouched — that
+half was true. Two game docs (wordiply, wordwheel) already described the
+`schema_test.sql` → common-guard deferral correctly, so nothing else moved.
 
 ### WORKED · F-realtime-14 · effects-unnamed · non-trivial `useEffect` callbacks in this folder are anonymous
 

@@ -24,7 +24,8 @@ let counter = 0
  * and straight back — hands you the dying instance, whose `.subscribe()`
  * never reaches SUBSCRIBED and which throws on a `.on(...)` after its
  * `.subscribe(...)`. A name that is never reused can never collide.
- * See `useGame.ts` files for the canonical example.
+ * See `useRealtimeRefetch.ts`, where the suffix is spent on the channel
+ * every per-game data hook opens through it.
  *
  * **Only for channels whose name is private.** One carrying presence
  * or broadcast must keep the name its peers know, so it can't take a

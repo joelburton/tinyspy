@@ -196,15 +196,14 @@ This is the general rule for what makes it into the saved default: **style/mode 
 
 ### Realtime channel names
 
-Pattern: `<topic>:<id>:<unique>`, e.g.:
+Pattern: `<topic>:<id>[:<uuid>]`, and there are two kinds of name.
 
-- `game:<game_id>` — the shared cross-cutting channel opened by `useCommonGame`. Stable name (no UUID suffix) because presence + manual-pause broadcasts must merge across every connected client. StrictMode handled by the hook's own `removeChannel` cleanup. Every gametype's `useCommonGame` opens this.
-- `<gametype>:<game_id>:<uuid>` — the per-tab postgres-changes channel each per-game `useGame` opens. UUID suffix sidesteps supabase-js's StrictMode-cache bite; postgres-changes don't need to merge across clients so per-tab rooms are fine.
-- `connections:<game_id>` — connections's stable channel for shared-selection Broadcast events (select / deselect / clear). Stable for the same reason as `game:<game_id>` — broadcast events need to merge across clients.
-- `club-active:<club_handle>:<uuid>` — club active-game pointer
-- `club-chat:<club_handle>:<uuid>` — club chat messages
+- **Stable** — `game:<game_id>`, `connections:<game_id>`, `club:<handle>` — used **iff peers must share the room**, because presence rosters and broadcasts are per-channel-name. A stable name cannot take the suffix below, so it opens through [`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts) instead.
+- **UUID-suffixed** — `<gametype>:<game_id>:<uuid>` — everywhere else, so each tab gets its own room. Postgres-changes deliveries don't need to merge across clients.
 
-The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/codenamesduet/hooks/useGame.ts) for the canonical example.
+Which channel is which is not repeated here: [supabase.md → Channel-name registry](supabase.md#channel-name-registry) is every channel in the app, in one place.
+
+The per-effect-run UUID suffix is mandatory where it applies: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. The suffix and the reasoning behind it live in [`channelDedup.ts`](../src/common/realtime/channelDedup.ts); [`useRealtimeRefetch.ts`](../src/common/realtime/useRealtimeRefetch.ts) is where it is spent.
 
 ### Realtime data hooks — two patterns
 

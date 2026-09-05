@@ -1,12 +1,13 @@
 // cs-audited-realtime
 
 /**
- * Tests for useRealtimeRefetch — the factory four of the per-game
- * data hooks share. The factory is small but its contract is
- * load-bearing: every game's per-row fetch + refetch loop runs
- * through here, and a regression in the SUBSCRIBED-refetch path
- * (or in the mounted-guard handoff) would propagate to every
- * consumer at once.
+ * Tests for useRealtimeRefetch — the factory every Pattern A hook
+ * calls, Pattern A being the app's default realtime shape: reload
+ * the rows on any event rather than applying the event. The factory
+ * is small but its contract is load-bearing: every game's per-row
+ * fetch + refetch loop runs through here, and a regression in the
+ * SUBSCRIBED-refetch path (or in the mounted-guard handoff) would
+ * propagate to every consumer at once.
  *
  * What's covered:
  *   - Initial load runs on mount.

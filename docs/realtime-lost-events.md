@@ -206,7 +206,7 @@ per-hook wiring. Always-on console lines (low-frequency by design):
 | `[rt …] <topic> — system ok: Subscribed to PostgreSQL` | **the poller really carries this channel's subscription** — the all-clear |
 | `[rt …] <topic> — event UPDATE common.games` | a delivered postgres-changes event (payload `errors` surfaced when set) |
 | `[rt …] <topic> — broadcast "manualPause"` | a delivered broadcast |
-| `[rt …] <topic> — refetch #3 (event)` | `useRealtimeRefetch` ran its load, and why (`mount` / `subscribed` / `event`) |
+| `[rt …] <topic> — refetch #3 (event)` | `useRealtimeRefetch` ran its load, and why (`mount` / `subscribed` / `attached` / `event`) |
 | `[rt …] game:<id> — load #2: play_state=playing terminal=false players=2` | what `useCommonGame`'s load actually saw |
 | `[rt …] <topic> — unsubscribing / teardown ok` | deliberate teardown — distinguishes "left" from "went deaf" |
 | `[rt …] <topic> — teardown timed out / teardown FAILED` | a leave that did not complete cleanly, at `warn`; a `timed out` here is the state that wedges a same-named re-join |
