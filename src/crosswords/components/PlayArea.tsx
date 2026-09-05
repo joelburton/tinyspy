@@ -23,6 +23,7 @@ import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { navigate } from '@/common/routing/router'
+import { clubPath } from '@/common/routing/routes'
 import { setScratchpadOpen } from '@/common/scratchpad/scratchpadOpenStore'
 import { writeIpuz } from '../lib/parse/ipuz'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
@@ -867,7 +868,7 @@ type Explained =
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    navigate(`/c/${clubHandle}?new=crosswords_${mode}`)
+    navigate(`${clubPath(clubHandle)}?new=crosswords_${mode}`)
   }, [clubHandle, mode, confirmAction, isTerminal])
 
   // Guards a non-idempotent request from firing twice; see `useSingleFlight`.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { navigate } from '../routing/router'
+import { clubPath } from '../routing/routes'
 import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { onPostgresAttached } from '../realtime/postgresAttached'
@@ -455,7 +456,7 @@ export function useCommonGame(
       ch.on('broadcast', { event: 'suspend' }, () => {
         const handle = clubHandleRef.current
         if (!handle) return
-        navigate(`/c/${handle}`)
+        navigate(clubPath(handle))
       })
 
       // The deaf-window closer: SUBSCRIBED below is only the join ack, and a
@@ -654,7 +655,7 @@ export function useCommonGame(
     const event: SuspendEvent = { type: 'suspend' }
     channel.send({ type: 'broadcast', event: 'suspend', payload: event })
     const handle = clubHandleRef.current
-    if (handle) navigate(`/c/${handle}`)
+    if (handle) navigate(clubPath(handle))
   }, [channel])
 
   // Presence-pause + manual-pause unify into a single `paused`

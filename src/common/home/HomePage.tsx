@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { navigate } from '../routing/router'
+import { clubPath } from '../routing/routes'
 import { SelectionList } from '../lists/SelectionList'
 import { cls } from '../utils/cls'
 import { useTabRing } from '../keyboard/useTabRing'
@@ -227,7 +228,7 @@ export function HomePage({ session }: Props) {
             // empty list never takes focus, so this stays inert until the clubs
             // land.
             autoFocus
-            onActivate={(c) => navigate(`/c/${c.handle}`)}
+            onActivate={(c) => navigate(clubPath(c.handle))}
             // All three no-rows states go INSIDE the frame, which is drawn
             // whether or not there is anything in it (docs/ui.md → Selection
             // lists). The failure line is what the page is left saying behind
@@ -256,7 +257,7 @@ export function HomePage({ session }: Props) {
           On success we go into the new club, which is what you made it for. */}
       {creating && (
         <CreateClubModal
-          onCreated={(handle) => navigate(`/c/${handle}`)}
+          onCreated={(handle) => navigate(clubPath(handle))}
           onCancel={() => setCreating(false)}
         />
       )}

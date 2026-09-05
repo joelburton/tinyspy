@@ -4,16 +4,19 @@ The folders it reads: `routing`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-05, no finding worked yet.**
+**Status: OPEN — audited 2026-09-05. F-routing-8 worked; eight findings left.**
 
 ## The roster
 
-Agreed 2026-09-05 — the six files of `src/common/routing/`, nothing outside it:
+Agreed 2026-09-05 — every file of `src/common/routing/`, nothing outside it
+(`routes.ts` and its test joined the folder while the area was open):
 
 | file | what it is | stamp |
 |---|---|---|
 | `router.ts` | `usePath()` and `navigate()` — the store half | `cs-audited-routing` |
 | `router.test.ts` | its contract | `cs-audited-routing` |
+| `routes.ts` | the two URL shapes, built and matched — WRITTEN by this area (F-routing-8) | `cs-audited-routing` |
+| `routes.test.ts` | its contract | `cs-audited-routing` |
 | `Link.tsx` | `<Link>` — the anchor that routes a plain left-click | `cs-audited-routing` |
 | `Link.test.tsx` | which clicks it keeps, which it hands back | `cs-audited-routing` |
 | `doc.md` | lede at open: "The hash router, and `<Link>`." No Design | (no stamp — markdown) |
@@ -184,6 +187,27 @@ never reaches it. It is a question about where the URL shapes LIVE.
 
 Touches seven files either way (a) goes; churn is not an argument for or
 against.
+
+**RULED (a), 2026-09-05 — done.** `routes.ts` + `routes.test.ts` are the
+folder's third unit: `clubPath`, `gamePath`, `matchClubRoute`, `matchGameRoute`.
+`App.tsx`'s two regexes moved there with their paragraphs; the invitations
+hook's `currentGameIdFromPath` is gone, so the uuid-shaped rule disappeared with
+it and there is one rule for what a game id is. The ten literals are calls.
+
+Two decisions the ruling did not settle, taken while working it:
+
+- **The query stays out.** The two `?new=` sites compose
+  `` `${clubPath(h)}?new=…` `` rather than `routes.ts` growing an option.
+  `router.ts` says query parsing is deliberately the caller's, and the folder
+  owning the `?new=` name on the writing side while ClubPage reads it with a
+  raw `URLSearchParams` would be worse than either whole.
+- **Anchoring unified on `App.tsx`'s.** The invitations matcher was a prefix
+  match; it is now anchored, so `/g/wordle/<id>/extra` stops yielding an id.
+  `App.tsx` already showed the home page for that path, so the two now agree.
+
+`useGameInvitations.test.ts:50` had a comment explaining the id must be
+uuid-shaped for the regex; the regex is gone, so the comment says why the
+fixture is realistic instead.
 
 ### F-routing-9 · handed-back-clicks-print-noise · five `Not implemented: navigation to another Document` lines per run
 

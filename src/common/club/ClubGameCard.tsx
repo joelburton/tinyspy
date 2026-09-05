@@ -2,6 +2,7 @@
 
 import { gametypes } from '@/gametypes'
 import { Link } from '../routing/Link'
+import { gamePath } from '../routing/routes'
 import { friendlyDate } from '../utils/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
 import { ModePill } from '../game-page/ModePill'
@@ -56,7 +57,7 @@ export function ClubGameCard({
 
   return (
     <div className={styles.standalone}>
-      <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
+      <Link to={gamePath(gametype, gameId)} className={styles.link}>
         {/* Orange corner flag: "this is THE current game — join now." */}
         <span className={styles.openFlagActive} aria-hidden="true" />
         <GameLogo gametype={gametype} />

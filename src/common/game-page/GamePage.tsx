@@ -27,6 +27,7 @@ import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
 import { useChatFeedback } from '../chat/useChatFeedback'
 import { navigate } from '../routing/router'
+import { clubPath, gamePath } from '../routing/routes'
 import { ChatButton } from '../page-header/ChatButton'
 import { Chat } from '../chat/Chat'
 import { ScratchpadButton } from '../page-header/ScratchpadButton'
@@ -399,13 +400,13 @@ function GamePageInner({
   // Direct-nav to the club page — the terminal branch. Exposed via ctx so each
   // PlayArea's terminal action row can call it without re-deriving the URL.
   const goToClub = useCallback(() => {
-    if (clubHandle) navigate(`/c/${clubHandle}`)
+    if (clubHandle) navigate(clubPath(clubHandle))
   }, [clubHandle])
   // Jump to another game's page — for a PlayArea that just started a
   // follow-up game (waffle's "New game"). Kept here beside goToClub so
-  // per-game code never touches the router or re-derives URL shapes.
+  // per-game code never touches the router.
   const goToGame = useCallback((gametype: string, gameId: string) => {
-    navigate(`/g/${gametype}/${gameId}`)
+    navigate(gamePath(gametype, gameId))
   }, [])
   // "Back to club" for the menu + ⇧< shortcut. Three shapes:
   //   - TERMINAL: direct navigation, no dialog, no broadcast — the game is
@@ -417,7 +418,7 @@ function GamePageInner({
   //   - MULTIPLAYER mid-game: the suspend-confirm modal.
   const requestBackToClub = useCallback(() => {
     if (!clubHandle) return
-    if (isGameOver) navigate(`/c/${clubHandle}`)
+    if (isGameOver) navigate(clubPath(clubHandle))
     else if (players.length <= 1) sendSuspend()
     else setConfirmingSuspend(true)
   }, [clubHandle, isGameOver, players.length, sendSuspend])
@@ -483,7 +484,7 @@ function GamePageInner({
         e.preventDefault()
         void (async () => {
           if (!isGameOver && !(await confirmAction(NEW_GAME_CONFIRM))) return
-          if (clubHandle) navigate(`/c/${clubHandle}?new=${gametype}`)
+          if (clubHandle) navigate(`${clubPath(clubHandle)}?new=${gametype}`)
         })()
       } else if (e.altKey && e.code === 'Backspace') {
         e.preventDefault()

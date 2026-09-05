@@ -47,8 +47,8 @@ vi.mock('@/gametypes', () => ({
   gametypes: [{ gametype: 'spellingbee_coop', name: 'Test Game' }],
 }))
 
-// A real game id is a hex UUID — the path regex only captures `[0-9a-f-]+`,
-// so the test id must be UUID-shaped or currentGameId won't match it.
+// A real game id is a hex UUID, and the mocked path below is built to look
+// like one so the "already looking at it" comparison reads realistically.
 const GID = '11111111-1111-1111-1111-111111111111'
 
 // Per-table db results. `load()` now runs two queries: game_players (with

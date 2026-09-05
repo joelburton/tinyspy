@@ -11,6 +11,7 @@ import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { cls } from '../utils/cls'
 import { navigate } from '../routing/router'
+import { gamePath } from '../routing/routes'
 import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
 import { useAppShortcuts, isNonGameField } from '../keyboard/useAppShortcuts'
@@ -1147,7 +1148,7 @@ export function ClubPage({ handle, session }: Props) {
               frozen={kbDialogUp}
               fills
               density="packed"
-              onActivate={(g) => navigate(`/g/${g.gametype}/${g.gameId}`)}
+              onActivate={(g) => navigate(gamePath(g.gametype, g.gameId))}
               empty="No games yet."
               renderRow={(g) => (
                 <ClubGameRow
@@ -1200,7 +1201,7 @@ export function ClubPage({ handle, session }: Props) {
             // here is safe regardless of ordering.
             const gametype = activeSetup.gametype
             closeSetup()
-            navigate(`/g/${gametype}/${id}`)
+            navigate(gamePath(gametype, id))
           }}
           onCancel={closeSetup}
         />

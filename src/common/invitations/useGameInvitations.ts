@@ -6,6 +6,7 @@ import { supabase } from '../supabase/supabase'
 import { db as commonDb } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
 import { navigate, usePath } from '../routing/router'
+import { gamePath, matchGameRoute } from '../routing/routes'
 import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
 import { gametypes } from '@/gametypes'
@@ -17,12 +18,6 @@ import {
   type GameInvite,
   type InviteCandidate,
 } from './gameInvites'
-
-/** Pull the game id out of a `/g/<gametype>/<id>` path, else null. */
-function currentGameIdFromPath(path: string): string | null {
-  const m = path.match(/^\/g\/[a-z0-9_]+\/([0-9a-f-]+)/i)
-  return m ? m[1] : null
-}
 
 /**
  * Global game-invitation watcher — mounted once on every authenticated
@@ -60,7 +55,7 @@ export function useGameInvitations(session: Session): {
   join: (invite: GameInvite) => void
 } {
   const selfId = session.user.id
-  const currentGameId = currentGameIdFromPath(usePath())
+  const currentGameId = matchGameRoute(usePath())?.gameId ?? null
   // All surfaced-and-not-yet-acted-on invitations (across pages).
   const [pending, setPending] = useState<GameInvite[]>([])
 
@@ -194,7 +189,7 @@ export function useGameInvitations(session: Session): {
   const join = useCallback((invite: GameInvite) => {
     markInviteSeen(invite.gameId)
     setPending((prev) => prev.filter((i) => i.gameId !== invite.gameId))
-    navigate(`/g/${invite.gametype}/${invite.gameId}`)
+    navigate(gamePath(invite.gametype, invite.gameId))
   }, [])
 
   // Never invite someone to the game they're already looking at. This

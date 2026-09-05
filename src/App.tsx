@@ -25,25 +25,9 @@ import { TooltipHost } from './common/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/keyboard/useBacktickEscape'
 import { usePath } from './common/routing/router'
+import { matchClubRoute, matchGameRoute } from './common/routing/routes'
 import { gametypes } from './gametypes'
 
-
-/** `/c/<handle>`, with or without a trailing slash. */
-const RE_CLUB_ROUTE = /^\/c\/(?<handle>[^/]+)\/?$/
-
-/**
- * `/g/<gametype>/<gameId>`.
- *
- * The gametype allows UNDERSCORES so the sibling-manifest pair strings match
- * (`connections_coop`, `connections_compete`, `psychicnum_coop`, …); without
- * that, opening a sibling game falls through to the home page.
- *
- * The id is matched LOOSELY — anything that is not a slash. Whether a string
- * could name a game is `GamePage`'s question, not this one's: it is where the
- * other "no such game" is answered, so both arrive at the same page instead of
- * a URL-shaped rule here and a row-shaped rule there.
- */
-const RE_GAME_ROUTE = /^\/g\/(?<gametype>[a-z0-9_]+)\/(?<gameId>[^/]+)\/?$/i
 
 /**
  * Top-level shell. Owns the URL → component routing for all paths
@@ -180,12 +164,12 @@ export default function App() {
   // remount its whole subtree.
   const currentPage = () => {
 
-    const { handle } = path.match(RE_CLUB_ROUTE)?.groups ?? {}
+    const club = matchClubRoute(path)
     // Keyed by handle so a club→club navigation REMOUNTS — fresh subscriptions
-    if (handle) return <ClubPage key={handle} handle={handle} session={session} />
+    if (club) return <ClubPage key={club.handle} handle={club.handle} session={session} />
 
-    const { gametype, gameId } = path.match(RE_GAME_ROUTE)?.groups ?? {}
-    if (gametype && gameId) return gamePage(gametype, gameId)
+    const game = matchGameRoute(path)
+    if (game) return gamePage(game.gametype, game.gameId)
 
     if (path === '/') return <HomePage session={session} />
 

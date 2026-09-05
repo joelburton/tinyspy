@@ -19,12 +19,12 @@ import { useSyncExternalStore } from 'react'
  *   re-renders with the new path.
  *
  * Companion `Link.tsx` exports `<Link to=…>`, the JSX half. Why it is a
- * separate file is said there.
+ * separate file is said there. Companion `routes.ts` holds the app's two URL
+ * shapes — it builds a club or game path and recognizes one coming back, so
+ * this file never has to know what a path means.
  *
  * What's NOT here:
  *
- * - Route matching helpers. Callers do their own `path.startsWith('/c/')`
- *   or regex match — flat structure makes this cheap and explicit.
  * - Query/search-param parsing — and NOT for lack of callers. The query is
  *   read by `loadTheme` (`?theme=`) and by ClubPage (`?new=`, once at mount,
  *   then stripped with `navigate(pathname, true)`). Neither wants it

@@ -11,9 +11,10 @@ The app is a single page. Opening a club or a game changes the URL bar and swaps
 what React renders, and the server is never asked for a new document. Something
 has to own that swap — know the current path, announce when it changes, and give
 the rest of the app a way to change it — and this folder is that something. It
-does not know what the paths mean: `App.tsx` matches a path against the handful
-of shapes the app has and mounts the page for it, and every other caller builds
-its destination as a string.
+also knows how the app's URLs are spelled, since there are only two of them and
+both the code that writes one and the code that reads one back are better off
+looking at the same rule. What it does not know is what a path MEANS: `App.tsx`
+takes a matched club handle or game id and decides which page that is.
 
 We wrote it ourselves rather than adopt a routing library because the route
 surface is flat — home, a club, a game, and everything else lands on home.
@@ -60,10 +61,12 @@ that exports a component to export only components, so the component sits in
 `Link.tsx` and the two functions in `router.ts`. A caller that only wants
 `navigate()` also stays clear of the JSX import graph that way.
 
-**The route shapes live in `App.tsx`**, as one regex per shape; the folder
-declines to own them. `/c/<handle>` is a club and `/g/<gametype>/<gameId>` is a
-game, with the gametype in the URL so a game id never has to be looked up
-across schemas.
+**The route shapes live in `routes.ts`** — `/c/<handle>` for a club,
+`/g/<gametype>/<gameId>` for a game, with the gametype in the URL so a game id
+never has to be looked up across schemas. Each shape is a builder and a matcher
+side by side, so a caller sending someone to a game and `App.tsx` recognizing
+one on the way in cannot disagree about what a game id may look like. What each
+path SHOWS is still `App.tsx`'s.
 
 **The server side is one Netlify rule.** `public/_redirects` rewrites every
 path to `index.html` with HTTP 200, so the URL stays as typed; a companion rule
