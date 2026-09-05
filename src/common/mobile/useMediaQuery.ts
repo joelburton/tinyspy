@@ -1,4 +1,4 @@
-// cs-audited-mobile
+// cs-blessed-mobile
 
 import { useCallback, useSyncExternalStore } from 'react'
 

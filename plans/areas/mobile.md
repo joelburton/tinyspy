@@ -4,9 +4,10 @@ The folders it reads: `mobile`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1 through F-mobile-9, F-mobile-11, F-mobile-13.
-Open: F-mobile-10, F-mobile-12.
+**Status: CLOSED** (2026-09-05). Every file `cs-blessed-mobile`. Thirteen findings
+below, and all thirteen are settled: twelve worked, F-mobile-12 closed with no
+change. What is left is the area's two closing steps — the one-sitting re-read,
+and the folder's `doc.md`.
 
 ## The roster
 
@@ -35,6 +36,10 @@ Written by the area (F-mobile-3), and on the roster from here:
 | `useIsMobile.test.ts` | `cs-met-mobile` | its query is `--mobile` |
 | `useIsPhone.test.ts` | `cs-met-mobile` | its query is `--phone` |
 | `useIsCoarsePointer.test.ts` | `cs-met-mobile` | its query is `--touch` |
+| `matchMedia.fake.ts` | `cs-met-mobile` | the shared `matchMedia` stub, whose queries can be flipped |
+| `useMediaQuery.test.ts` | `cs-met-mobile` | the engine's four claims |
+| `useVisualViewport.test.ts` | `cs-met-mobile` | five, one of them the snapshot identity |
+| `layoutWidth.test.ts` | `cs-met-mobile` | three, one of them the redundant-write guard |
 
 At opening, no test file existed for any of these units. Two specs elsewhere
 touch the engine in passing: `menu/Menu.test.tsx` stubs `matchMedia` by hand to
@@ -363,7 +368,7 @@ The reasoning for the numbers themselves was never in these sentences and is
 untouched: the doc's account of why 900px (phones and portrait tablets take one
 treatment) and `useIsMobile`'s pointer to it.
 
-### F-mobile-10 · `tests-owed` · Which tests are worth writing, unit by unit
+### WORKED · F-mobile-10 · `tests-owed` · Which tests are worth writing, unit by unit
 
 Joel at opening: *"we should make some, if they're worthwhile. determine that."*
 Judged per unit; F-mobile-3 is the first and is not repeated here.
@@ -397,6 +402,32 @@ Judged per unit; F-mobile-3 is the first and is not repeated here.
   F-mobile-3 asserts `Q`, `useMediaQuery`'s spec asserts the behavior. A per-hook
   render test would test the engine a second time.
 
+**Done (2026-09-05) — all three written, twelve cases.** Every case was verified
+by planting the break it exists for; three of the plants are recorded below
+because they changed what the case says.
+
+`matchMedia.fake.ts` is the shared stub, and it had to be MORE than a move of
+`Menu.test.tsx`'s: that one fixes `matches` at construction and drops its
+listeners, which is enough to say "we are on a phone" but cannot make a
+subscribed hook re-render — the one behavior `useMediaQuery` exists for. The
+shared fake keeps its listeners and exposes `set(query, matches)` to fire them.
+`Menu.test.tsx` now imports it (40 cases still green) and no longer names the
+`--mobile` condition by hand, since it takes `MOBILE_QUERY`.
+
+**One claim in this finding was wrong, and planting is what showed it.** The
+audit said a fresh-object `getSnapshot` fails only an identity assertion and
+that every value-based case would pass. It does not: React detects the unsettled
+store itself, so ALL FIVE cases die with "Maximum update depth exceeded" plus a
+console line about caching `getSnapshot`. The identity case still earns its place
+— it turns that pile-up into one sentence naming the property that broke — but
+it is not the sole line of defense the audit claimed, and the comment in the file
+says the checked version rather than the assumed one.
+
+`layoutWidth` was written after all, not skipped: the two fakes cost about
+fifteen lines (a `clientWidth` getter spy and a three-method `ResizeObserver`),
+which is cheap enough for the claim they buy. Dropping the `w === last` guard
+fails the redundant-write case and only it.
+
 ### WORKED · F-mobile-11 · `stale-doc-path` · `docs/mobile.md` names the pre-reorg path
 
 `docs/mobile.md → Naming the device classes` says global-data injects "the
@@ -407,7 +438,7 @@ that paragraph (F-mobile-1 or F-mobile-2 both do).
 
 **Done (2026-09-05)**, riding with F-mobile-1 as predicted.
 
-### F-mobile-12 · `hand-rolled-hover-query` · `TooltipHost` reads a device query the way this folder did before it had an engine
+### CLOSED, NO CHANGE · F-mobile-12 · `hand-rolled-hover-query` · `TooltipHost` reads a device query the way this folder did before it had an engine
 
 `tooltips/TooltipHost.tsx:75` reads `window.matchMedia('(hover: hover)')` once,
 inside an effect, with its own jsdom guard, and cites "the useIsMobile
@@ -420,6 +451,20 @@ nothing in CSS asks `(hover: hover)` today) is `common-hosts`'s call, which owns
 `tooltips`; a line in `src/common/tooltips/todo.md` → Soon. Left alone:
 `game-page/PlayAreaMountLog.tsx:73` reads four queries once for a diagnostic
 line, which is a one-shot read on purpose.
+
+**Closed with no change (Joel, 2026-09-05): the behavior is not worth code.**
+The whole cost of reading once is that a device gaining a mouse mid-session
+keeps its tooltips off until the page is refreshed, and nobody plugs a mouse in
+mid-game. Every fix is longer than what is there: the hook version adds an
+import, lifts the value out of the effect, and pulls in `TooltipHost.test.tsx`,
+which relies on the jsdom fallback meaning hover-capable — the opposite of what
+`useMediaQuery` returns with no `matchMedia`.
+
+No `todo.md` line either: a handoff would hand on work we have decided not to
+do. What the file got instead is one clause saying the read is deliberate, and
+the loss of its "the useIsMobile convention" cite — which read as *we meant to
+do this the shared way and didn't*, and is what made this look like an oversight
+in the first place.
 
 ### WORKED · F-mobile-13 · `boolean-hook-names` · A hook that answers yes/no says `is` in its name
 
@@ -491,11 +536,38 @@ the hook and its CSS twin stay a pair. No decision yet.
 - `src/guards/cssTokens.test.ts` / the vocabularies guard — none expected;
   F-mobile-1 removes `@custom-media` lines, which neither guard reads.
 - `common/menu/Menu.test.tsx` — only if F-mobile-10 moves `stubMatchMedia` to a
-  shared helper (an import change, not a behavior change).
+  shared helper (an import change, not a behavior change). It did, and all 40
+  cases stayed green.
+- `src/guards/cssTokens.test.ts` was also wrong about F-mobile-1 in the other
+  direction: branch (b) kept every `@custom-media` line, so there was nothing
+  for either guard to miss.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] **the whole area re-read in one sitting after the last group**
+      (2026-09-05). Four sentences the day's own work had made stale, none of
+      them caught by the fix that caused them:
+      - `breakpoints.css`'s `--mobile` line still carried "Mirrored in
+        useIsMobile.ts" from before the header named all three mirrors — and it
+        was the only line with such a note, so it read as the only mirror.
+      - The tablet comment said the pair is "split by orientation for the
+        occasional per-mode tweak" and then, two sentences later, that nothing
+        reads them. It now says what they are FOR without implying use.
+      - `useIsCoarsePointer` listed "hover-to-reveal" among what a coarse
+        pointer turns off. Tooltips gate on their own `(hover: hover)` read
+        (F-mobile-12), so that sent a reader to the wrong file.
+      - `useIsPhone`'s constant claims to be the copy of `--phone`, but since
+        F-mobile-1 the CSS composes that name from two arms, so the two TEXTS
+        differ and only the resolved conditions match. It says so now.
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`. Five
+      statements, none of them a tour of the files: CSS answers the device
+      question and a hook is the exception; a name lives here once and a test
+      holds the JS copy to it; the three questions are not three sizes of one;
+      a missing FEATURE is guarded and a missing `window` is not; and
+      `--client-width` is here for the viewport rather than for mobile.
+- [x] `todo.md` holds everything still owed — which is nothing. This area
+      deferred no work of its own; what it handed on went to the folders that
+      own it (`floating-panels`, `faults`, `toasts`), and F-mobile-12 was
+      closed rather than handed on.
+- [x] every file on the roster blessed — fifteen `cs-blessed-mobile`, the nine
+      audited files plus the six this area wrote.

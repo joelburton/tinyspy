@@ -70,8 +70,12 @@ export function TooltipHost() {
     // Hover (delegated): entering anything inside a [data-tooltip] schedules
     // its bubble; moving to a target outside one hides. Gated off entirely on
     // touch devices — a tap's synthetic hover would leave a stuck bubble.
-    // jsdom (the vitest env) has no matchMedia — treat as hover-capable, like
-    // useIsMobile treats it as desktop; real browsers always have it.
+    // jsdom (the vitest env) has no matchMedia — treat as hover-capable; real
+    // browsers always have it.
+    //
+    // Asked once, at mount, and deliberately not through `useMediaQuery`: a
+    // device does not gain a mouse mid-session, so there is nothing to
+    // subscribe for.
     const hoverable =
       typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover)').matches
     const onMouseOver = (e: MouseEvent) => {

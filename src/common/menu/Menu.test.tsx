@@ -37,6 +37,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { IconRestart } from '../icons/icons'
+import { installFakeMatchMedia } from '../mobile/matchMedia.fake'
+import { MOBILE_QUERY } from '../mobile/useIsMobile'
 import { Menu } from './Menu'
 import type { MenuSection } from './menuModel'
 
@@ -507,18 +509,9 @@ function withSubmenu(onProfile = () => {}): MenuSection[] {
   ]
 }
 
-/** Point `matchMedia` at a fixed answer for the duration of a test. */
-function stubMatchMedia(matches: boolean) {
-  const mql = {
-    matches,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }
-  Object.defineProperty(window, 'matchMedia', {
-    configurable: true,
-    writable: true,
-    value: () => mql,
-  })
+/** Put the menu on the mobile side of the breakpoint (or off it). */
+function stubMatchMedia(matches: boolean): void {
+  installFakeMatchMedia().set(MOBILE_QUERY, matches)
 }
 
 describe('Menu — submenus (desktop flyout)', () => {

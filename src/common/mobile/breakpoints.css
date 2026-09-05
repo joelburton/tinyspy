@@ -1,4 +1,4 @@
-/* cs-audited-mobile */
+/* cs-blessed-mobile */
 
 /* Shared responsive breakpoints — the single source of truth for the device
  * classes in docs/mobile.md. Injected into every CSS file by PostCSS
@@ -29,7 +29,7 @@
 
 /* The layout-collapse line: below this the two-column play/club layouts fold to
  * a single column (+ the info-column sheet). Covers phones AND portrait tablets
- * — one mobile treatment. 56.25rem = 900px. Mirrored in useIsMobile.ts. */
+ * — one mobile treatment. 56.25rem = 900px. */
 @custom-media --mobile (max-width: 56.25rem);
 
 /* Phones only (portrait OR landscape) — the tightest devices, distinct from
@@ -45,12 +45,12 @@
 @custom-media --phone (--phone-p), (--phone-l);
 
 /* Tablets — roomy touch devices; mostly inherit the desktop layout with less
- * width. Split by orientation for the occasional per-mode tweak. tablet-l is
- * distinguished from desktop by `pointer: coarse` (a landscape tablet is
- * desktop-width but touch).
+ * width. Split by orientation, since a tablet-only tweak would want one mode or
+ * the other; tablet-l is distinguished from desktop by `pointer: coarse` (a
+ * landscape tablet is desktop-width but touch).
  *
- * These two are vocabulary: no stylesheet reads either one today, and they are
- * kept so a tablet-only tweak has a name waiting rather than a hand-written
- * condition. Nothing else here is unread. */
+ * Both are vocabulary — no stylesheet reads either one today. They are kept so
+ * that tweak has a name waiting rather than a hand-written condition, and they
+ * are the only unread names here. */
 @custom-media --tablet-p (min-width: 34.0625rem) and (max-width: 56.25rem) and (orientation: portrait);
 @custom-media --tablet-l (orientation: landscape) and (min-height: 27.5625rem) and (pointer: coarse);

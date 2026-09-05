@@ -1,10 +1,12 @@
-// cs-audited-mobile
+// cs-blessed-mobile
 
 import { useMediaQuery } from './useMediaQuery'
 
 // The JS copy of `--phone` in breakpoints.css; useIsPhone.test.ts asserts the
 // two still say the same thing. The comma is an OR — a narrow width, or a short
-// landscape (a phone on its side, which excludes landscape tablets).
+// landscape (a phone on its side, which excludes landscape tablets). The CSS
+// spells the two arms as `--phone-p` / `--phone-l` and composes them, so the two
+// texts differ; the spec resolves the names before comparing.
 export const PHONE_QUERY =
   '(max-width: 34rem), (orientation: landscape) and (max-height: 27.5rem)'
 

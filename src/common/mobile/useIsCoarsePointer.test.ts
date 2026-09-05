@@ -1,4 +1,4 @@
-// cs-met-mobile
+// cs-blessed-mobile
 
 import { describe, expect, it } from 'vitest'
 import { readCustomMedia } from './readCustomMedia'

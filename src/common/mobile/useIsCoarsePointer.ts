@@ -1,4 +1,4 @@
-// cs-audited-mobile
+// cs-blessed-mobile
 
 import { useMediaQuery } from './useMediaQuery'
 
@@ -10,7 +10,7 @@ export const COARSE_QUERY = '(pointer: coarse)'
  * `true` when the primary pointer is coarse — a touchscreen, phone or tablet.
  *
  * The device has no precise pointer, so anything that needs one is off here:
- * dragging, resizing, hover-to-reveal, a small hit target. Reach for this rather
+ * dragging, resizing, a small hit target. Reach for this rather
  * than `useIsMobile` when the branch is about *how you point* and not how wide
  * the screen is — a touch tablet is desktop-width and still has no mouse
  * (docs/mobile.md → "Input is the primary axis").

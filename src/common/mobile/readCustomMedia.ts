@@ -1,4 +1,4 @@
-// cs-met-mobile
+// cs-blessed-mobile
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
