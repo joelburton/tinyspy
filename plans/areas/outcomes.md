@@ -28,7 +28,7 @@ Two rulings at the opening, both Joel's:
 
 ## Findings
 
-### F-outcomes-1 · `second-spelling` · The file that says "no second spelling" has one, in seven docstrings and a doc
+### RESOLVED · F-outcomes-1 · `second-spelling` · The file that says "no second spelling" has one, in seven docstrings and a doc
 
 `outcomes.ts`'s own docstring: *"**One list, seven words, no second
 spelling**"*, with a parenthetical naming the spelling that was killed
@@ -55,6 +55,20 @@ it writes a `var()` that resolves to nothing.
 
 Worth saying plainly: the docstrings are otherwise excellent — strands' is a
 model of why each row got the bar it got. The words are the only thing wrong.
+
+**Resolution:** all eight rewritten to the real spelling, reasoning untouched —
+only the words moved, and no code changed. `docs/playarea.md` gets more than a
+swap, because its sentence was the one that taught the dead list: it now names
+the type (`TurnOutcome`) and points at the doc that owns the vocabulary,
+instead of enumerating a list of its own that can drift again. `tsc -b` clean,
+all 25 guard files green. Per the sprint's sweep rule, none of these files'
+stamps moved — nothing here was read, only find-and-replaced.
+
+**Found and left: `docs/pdf.md`** says ✓ **good** / ✗ **bad** for its printed
+marks. That is a different subject — the rule about when a printed page may
+spend a hue at all, glossing two drawn glyphs rather than naming values — and
+no code symbol is called either word. Left for `pdf`'s area to decide, since
+"✓ won" is not obviously an improvement on paper.
 
 ### F-outcomes-2 · `two-outcomes` · "outcome" names two different closed lists and neither one says so
 
@@ -175,9 +189,24 @@ docstrings:
   one scale … without a fifth thing competing for attention."*
 
 So the truth is the opposite of the doc's: the four is not "what has been
-needed", it is a deliberate ceiling that two games have already bent a word to
-fit. Whether that ceiling is right is `turn-log`'s call, not this area's —
-but the doc should stop describing it as an accident.
+needed", it is a ceiling that games have bent a word to fit — three of them,
+in fact; setgame does it too, and each cites the last as precedent.
+
+**Joel's ruling, at this finding:** *"why should we even HAVE TurnOutcome?
+ANY OUTCOME CAN BE A TURN OUTCOME. there is no difference between them."* So
+the answer is not to widen the four — it is to **delete the type** and let a
+row take an `Outcome`. The hand-cut four is a second name for a list that
+already exists, and it is what made `warning` unsayable and pushed three games
+onto the nearest word that compiled. Both halves filed as Bugs in
+`src/common/turn-log/todo.md`. strands' `neutral` reading of a spent hint goes
+with them: two readings of one event can't both be right.
+
+Also his, on the wording: **the rows are hint rows, not "help"** — *"'help'
+never shows in turn-logs."* `hint` is the word the repo spends for priced help
+and the one a player sees; `help` is a category name with no surface.
+
+This leaves `docs/outcomes.md`'s paragraph on `TurnOutcome` wrong twice over —
+about why the type is four, and about the mapping it points at.
 
 ### F-outcomes-9 · `design-owed` · The folder's `doc.md` is a pointer, and it owes a Design
 

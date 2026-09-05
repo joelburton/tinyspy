@@ -38,7 +38,7 @@ type Props = {
  * Each row composes the shared atoms: the outcome bar, the guess number, the
  * guess as its five colored letter-squares, and the guesser's identity.
  *   - **outcome bar** — `neutral` for an ordinary guess (a non-winning guess is
- *     progress, not pass/fail), `good` (green) only on the guess that solves it.
+ *     progress, not pass/fail), `won` (green) only on the guess that solves it.
  *   - **`#n`** — the log position. On the board being replayed (team / my own) it's
  *     the shared `<TurnLogNumber>` handle — click it to open that turn on the board;
  *     on an opponent's read-only log (compete) it's a plain muted number.

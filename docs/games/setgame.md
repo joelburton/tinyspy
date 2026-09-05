@@ -405,7 +405,7 @@ to three mini cards, and who — the same components the board draws, at
 `--card-w: 1.9rem`.
 
 **Hints are rows too**, tagged `Hint` and carrying the shared **amber**
-(`partial`) bar rather than the neutral one — help taken, which is stackdown's
+(`near`) bar rather than the neutral one — help taken, which is stackdown's
 precedent for a cheat request. Without the tag a hint's one-to-three cards read
 as a find, which is exactly backwards. A hint row holds what the asker was
 *shown*, so it has one, two or three cards depending on how far up the ladder

@@ -7,10 +7,10 @@ import type { GuessRow } from '../hooks/useBoard'
  * A codenamesduet turn = one clue + its 0..N guesses, rendered as ONE turn-log
  * row — so the per-turn outcome bar needs a single verdict for a turn that can
  * hold several guesses of mixed outcome. Precedence (does this turn advance us?):
- *   - any **assassin** → `bad` (it ends the game — the worst result);
- *   - **only neutrals** → `bad` (a wasted turn is a setback);
- *   - **mixed** agent + neutral → `partial`;
- *   - **all agents** (≥1) → `good`;
+ *   - any **assassin** → `lost` (it ends the game — the worst result);
+ *   - **only neutrals** → `lost` (a wasted turn is a setback);
+ *   - **mixed** agent + neutral → `near`;
+ *   - **all agents** (≥1) → `won`;
  *   - **no guesses** (passed) → `neutral`.
  */
 export function turnOutcome(guesses: GuessRow[]): TurnOutcome {

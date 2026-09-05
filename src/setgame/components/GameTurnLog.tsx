@@ -88,7 +88,7 @@ export function GameTurnLog({
         const index = events.indexOf(event)
         return (
           <tr key={event.id} className={turnLog.turnLogDivider}>
-            {/* `partial` is the shared amber bar, and it is what stackdown
+            {/* `near` is the shared amber bar, and it is what stackdown
                 already flags a logged help request with — a hint is neither a
                 find nor a failure, but it is not NOTHING either, which is what
                 the neutral gray said. */}

@@ -132,14 +132,14 @@ export function GameTurnLog({
 /**
  * The row's bar color.
  *
- * A PLAYED WORD IS `good` — green. Getting a legal word onto this board is the
+ * A PLAYED WORD IS `won` — green. Getting a legal word onto this board is the
  * achievement here: it has to be a real word, fit the twelve letters, cross a
  * side at every step AND start on the letter the last word left you. Unlike a
  * wordle guess (which is one of six tries and usually wrong), landing one is
  * unambiguously progress, so it reads as a success rather than as a neutral
  * event.
  *
- * `partial` (amber) marks help taken, matching psychicnum's reveal rows and the
+ * `near` (amber) marks help taken, matching psychicnum's reveal rows and the
  * amber of the Hint / Spoiler buttons themselves. `neutral` is left for the
  * retreats: in turn-by-turn co-op an undo costs the undoer their turn and is
  * usually made for the next player, so red would misdescribe it.

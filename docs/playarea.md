@@ -369,9 +369,11 @@ consistent without imposing structure:
 - **`<TurnLogBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
   row piece common to most logs. It's *optional* (a game's row needn't include
   it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
-  class), so a game drops it into whatever row it builds. `outcome` is `good` /
-  `bad` / `partial` / `neutral` → the shared `--outcomes-*` palette, so a
-  "bad" turn reads the same everywhere; `rowSpan` lets a multi-row turn have the
+  class), so a game drops it into whatever row it builds. `outcome` is a
+  `TurnOutcome`, today a hand-cut four of the shared outcome vocabulary
+  (`won` / `lost` / `near` / `neutral` — [outcomes.md](outcomes.md)); it picks
+  straight out of the `--outcomes-*` palette, so a lost turn reads the same
+  everywhere. `rowSpan` lets a multi-row turn have the
   bar cover the whole turn (codenamesduet). The bar is a real `<span>`, not a
   styled empty cell (**an empty table cell collapses — its `width` is ignored —
   and has no content box to paint**); a zero-height `::before` spacer reserves the

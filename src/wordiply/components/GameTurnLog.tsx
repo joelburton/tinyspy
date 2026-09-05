@@ -41,9 +41,9 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  * done client-side. `wordiply.guesses` is the turn log — see its table header.
  *
  * Row anatomy, using the shared atoms:
- *   - **outcome bar** — `good` for an accepted guess; `bad` for a structural
+ *   - **outcome bar** — `won` for an accepted guess; `lost` for a structural
  *     reject (a rules error, and in turn-by-turn coop it cost the caller their
- *     go); `partial` (amber) for a dictionary miss, which is a near-miss rather
+ *     go); `near` (amber) for a dictionary miss, which is a near-miss rather
  *     than a wrong move — the list may be at fault, or it was a typo.
  *   - **the word** — the row's headline, so it takes the slack-absorbing
  *     `turnLog.main` column. Definable only when it's a real word: looking up

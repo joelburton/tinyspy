@@ -35,12 +35,12 @@ type Props = {
  * How each submission paints its outcome bar, in the shared four-value
  * vocabulary (`TurnOutcome`). The mapping is the point:
  *
- *   - **good** — a theme word or the spangram. The thing you came for.
- *   - **partial** — a valid non-theme word. Real progress (it moves the hint
- *     bar) but not the goal, which is exactly what `partial` means elsewhere.
- *   - **bad** — too short, not a word, already counted. All three are misfires.
+ *   - **won** — a theme word or the spangram. The thing you came for.
+ *   - **near** — a valid non-theme word. Real progress (it moves the hint bar)
+ *     but not the goal, which is exactly what `near` says elsewhere.
+ *   - **lost** — too short, not a word, already counted. All three are misfires.
  *
- * A duplicate lands on `bad` rather than `neutral` because it EARNED NOTHING:
+ * A duplicate lands on `lost` rather than `neutral` because it EARNED NOTHING:
  * being generous about it in the log would misreport the hint economy.
  */
 const OUTCOME: Record<GuessResult, TurnOutcome> = {
@@ -56,9 +56,9 @@ const OUTCOME: Record<GuessResult, TurnOutcome> = {
  * A spent hint is `neutral` — the fourth value, and the only row in this log
  * that uses it.
  *
- * It is not `bad` (nothing missed), not `partial` (that means "progress toward
+ * It is not `lost` (nothing missed), not `near` (that means "progress toward
  * the goal", and a hint is the opposite: you SPENT the progress you'd banked),
- * and certainly not `good`. `neutral` says "this happened and it isn't scored",
+ * and certainly not `won`. `neutral` says "this happened and it isn't scored",
  * which is exactly right — and it keeps the four bar colors reading as one
  * scale, where an eye running the log still sorts finds from misses without a
  * fifth thing competing for attention.
