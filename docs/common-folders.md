@@ -98,6 +98,97 @@ The rules that have bitten before:
   shared if a fourth game grew a rank ladder). Count is not the test; whether
   the family can be NAMED is.
 
+## Every folder carries a `doc.md` and a `todo.md`
+
+Both names are fixed, and the folder supplies the identity. That is the same
+rule the rest of the folder runs on: **the name states the kind.** `Chat.tsx`
+is a component because it is leading-cap, `useClubChat.ts` is a hook because it
+is `useX`, `chatUnread.ts` is lib because it is lowercase — and `doc.md` is the
+doc because it is called `doc.md`. A file named `chat.md` would instead read as
+a module named chat, which in a folder full of modules named chat is the one
+thing it is not.
+
+The shape of both files is fixed too, because they are written one folder at a
+time over months and a format that is merely described drifts.
+[`src/guards/folderDocs.test.ts`](../src/guards/folderDocs.test.ts) enforces
+what is mechanical about it.
+
+### `doc.md` — three fixed elements, then freedom
+
+```markdown
+# chat
+
+The club chat panel, end to end: the panel, its data, and the unread mark.
+It belongs to no page — ClubPage and GamePage both mount it.
+
+## Design
+
+...why it is shaped this way...
+
+## <anything else>
+```
+
+- **The H1 is the folder name**, always. This is what pays for the fixed
+  filename: the file is anonymous in a tab bar, so it says its name on line 1.
+- **The lede is unlabeled prose, at most three sentences.** No heading above
+  it, so it cannot quietly grow into a section. Write it for someone who has
+  never opened the folder.
+- **`## Design` is required**, even when it is four lines. It answers *why is
+  it like this* — the decisions, the seams, and the rules a reader must not
+  break. It is **not** a tour of the files; the files have docstrings.
+- After that, any sections you like.
+
+**What does not go in**, which is the half that actually stops the drift:
+
+- **No archaeology.** How it used to work is not useful (CLAUDE.md).
+- **Nothing that belongs in a docstring.** Per-function detail lives in the
+  file, where it is read.
+- **No todo items.** They have a file, one folder over.
+- **No restating a canonical doc** — cite it. Where `docs/mobile.md` owns the
+  subject, the lede says so and the folder's doc stays short.
+
+### `todo.md` — four fixed sections, in a ramp of certainty
+
+```markdown
+# chat — todo
+
+## Bugs
+
+## Soon
+
+## Someday
+
+## Maybe
+```
+
+The reason `docs/deferred.md` became a sink is that an item's kind was a matter
+of tone. Here the kind is **where the item sits**, so classifying costs nothing
+and re-classifying is a move up the file:
+
+| section | what belongs there |
+|---|---|
+| `Bugs` | wrong today. What is wrong, and how to see it |
+| `Soon` | should change, and nothing is blocking it |
+| `Someday` | deliberately not now. Probably yes, eventually |
+| `Maybe` | an idea. May never happen |
+
+- **All four headings are always present, empty or not.** The skeleton exists
+  so that adding the first item is one line rather than a guess at the
+  structure — which is how ad-hoc files drift apart in the first place.
+- **The order is a ramp of certainty**, so an item that firms up moves *up* the
+  file. That is the whole re-classification mechanism.
+- **`Bugs`, not `Broken`** — deliberately. `plans/app-audit.md` §21 gives
+  "broken" a specific meaning while that sprint runs, and reusing it here would
+  blur the one word that currently has a sharp edge.
+- **One bullet per item**, first sentence is the whole item, detail after. If
+  it came from an audit, end it with the finding id — `(F-chat-4)` — which ties
+  the file to the area records without inventing a second system.
+- **A done item is deleted**, not struck through.
+
+**`docs/deferred.md` narrows rather than migrates.** It keeps what crosses
+folders; a folder-scoped item moves to that folder's `todo.md` when the folder's
+area is audited. No sweep.
+
 ## `src/common/`
 
 | folder | what it is |

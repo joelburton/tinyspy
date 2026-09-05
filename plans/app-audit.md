@@ -961,7 +961,7 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 6c | ~~**z-index, on its own**~~ **DONE 2026-08-21** | Eight tokens in `base.css`, low to high: `infoSheet` 40 · `panel` 500 · `popover` 1500 · `chatPanel` / `scratchpad` 10000 · `celebration` 10001 · `toast` / `tooltip` 12000, with four derivations (`calc(… ± 1)`) replacing the four off-by-one literals. **No painted pixel moved.** `<FloatingPanel zIndex>` is now a `string` taking `var(…)`, so the order has one home. The guard walks ALL of `src/` for this vocabulary — 0–10 is local layering, above is a tier — plus a second half that fails on a numeric `zIndex` in TypeScript. Three literals held back as decisions, filed in §7. `code-conventions.md` + `ui.md` updated in the same commit, per the rule below |
 | 7 | **the areas** | All the remaining reading, run **area by area** — the process is §21. The plan keeps the ORDER (below); each area's audit and notes live in `plans/areas/<area>.md`. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
-| 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); this doc goes |
+| 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); **all of `plans/areas/` goes** — the area files are an artifact of this sprint, and each area's durable half moved into its folder's `doc.md` at its close (§21); this doc goes |
 
 **Steps 8, 9 and 10 were folded into 7** on 2026-08-22, and their numbers are
 **retired rather than reused** — so a reference to "step 9" written before that
@@ -2301,6 +2301,26 @@ eleven findings that six group passes had not — most of them the area's own
 recorded faults recurring in prose the area had written that week. The
 findings it raises are recorded in the area file like any others and worked
 before the area closes.
+
+**An area's OTHER last step is harvesting its folder's `doc.md`** (Joel,
+2026-09-04). Before the area closes, everything durable and important it learned
+has to be somewhere that outlives it — the folder's
+[`doc.md`](../docs/common-folders.md#every-folder-carries-a-docmd-and-a-todomd),
+or a docstring or comment in the code, whichever is the better home. **Check for
+it at the close**, as a step, not as a habit.
+
+The two files are not the same kind of thing, and that is the point:
+
+| | `plans/areas/<area>.md` | `src/<folder>/doc.md` |
+|---|---|---|
+| lives | while this sprint runs | forever |
+| holds | the working record — findings, what was tried, what changed and why, the whole account of the work | what a reader needs to understand the folder |
+| archaeology | **welcome.** "This used to be X, and here is what that cost" is exactly what helps the next sitting in the same area | **banned**, like everywhere else |
+
+**Area files are an artifact of this sprint, and step 12 deletes them all**
+along with the stamps and this document. So an area file is not a hiding place:
+anything written there that should survive the sprint has to be moved out
+before the area closes, and the close is the last moment anyone will be looking.
 
 **Claude does not decide that we are moving on.** Finishing a step is not
 permission to start the next one — and that includes the sprint's own setup,
