@@ -65,6 +65,11 @@ alias). Worse, `'../db'` from a game folder IS an import — of that game's own
 `db.ts` — so the example teaches the wrong handle. Fix: show the two real
 spellings.
 
+**Resolved 2026-09-05 (Joel: "do next").** The docstring shows
+`'../supabase/db'` for a common caller and `'@/common/supabase/db'` with the
+`commonDb` alias for a game, and says outright that a game's `'../db'` is its
+own handle.
+
 ## F-supabase-2 · `not-ok-called-refusal` · Ten places call a not-ok envelope a "refusal"
 
 `NotOkEnv`'s docstring ("The refusal arm on its own", "renders a refusal"),
@@ -150,6 +155,11 @@ docs/realtime-lost-events.md write `common/lib/supabase/postgresAttached.ts` /
 `realtimeDiag.ts`, which live in `realtime/` — two more one-word path fixes,
 same edit if Joel says so.
 
+**Resolved 2026-09-05 (Joel: "do next").** The five link texts in
+docs/supabase.md and docs/envelopes.md now read `src/common/supabase/…`. The
+two `realtime/` mentions in docs/deferred.md and docs/realtime-lost-events.md
+were left for the realtime area, as proposed.
+
 ## F-supabase-7 · `dbresult-test-spy-hygiene` · Console spies leak between tests, and three tests explain it instead of fixing it
 
 `dbResult.test.ts` spies on `console.warn` and `console.error` per test and
@@ -216,6 +226,10 @@ what was read. No stamps moved; `tsc -b` is the check.
 `dbResult.test.ts`, above `runRpc — one shape, always`: "the plan's rule is
 that one shape travels all the way through." The plan is the closed error
 sprint; the rule is docs/envelopes.md's. Fix: cite the doc.
+
+**Resolved 2026-09-05 (Joel: "do next").** The comment states the rule
+("every key is present on every envelope") and cites docs/envelopes.md → The
+keys.
 
 ## Notes
 

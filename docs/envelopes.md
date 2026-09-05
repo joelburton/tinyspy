@@ -35,7 +35,7 @@ touches a raw response:
 
 | direction | wrapper | where |
 |---|---|---|
-| frontend → RPC | `runRpc` | `src/common/lib/supabase/dbResult.ts` |
+| frontend → RPC | `runRpc` | `src/common/supabase/dbResult.ts` |
 | frontend → table read | `readRows` | same |
 | frontend → edge function | `runEdgeFn` | same |
 | edge function → RPC | `runRpc` | `supabase/functions/_shared/dbResult.ts` |
@@ -1038,7 +1038,7 @@ never ran.
 
 The builders are in `supabase/functions/_shared/envelope.ts`, typed against the
 same `Envelope` the frontend uses. That type lives in its own module
-(`src/common/lib/supabase/envelope.ts`) precisely so Deno can import it —
+(`src/common/supabase/envelope.ts`) precisely so Deno can import it —
 `dbResult.ts` reaches the browser client and cannot cross. The builders write
 every key out rather than spreading a shared constant, so a new key is a compile
 error there too.
@@ -1139,7 +1139,7 @@ draft made the fault test "is there an envelope", which put the faults we *did*
 anticipate on the same side as the ones nobody ever thought about.
 
 **Where the envelope comes from when the server didn't send one.** `runRpc`,
-`runEdgeFn` and `readRows` in `src/common/lib/supabase/dbResult.ts` each hand
+`runEdgeFn` and `readRows` in `src/common/supabase/dbResult.ts` each hand
 back an `Envelope`, building one in the same shape when the call errored, never
 completed, or answered with something unreadable. So a call site has one thing
 to read no matter what happened, and a **read** — which never authors a `not-ok`

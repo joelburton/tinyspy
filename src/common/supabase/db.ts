@@ -7,7 +7,7 @@ import { supabase } from './supabase'
  *
  * Usage from inside `src/common/`:
  *
- *     import { db } from '../db'
+ *     import { db } from '../supabase/db'
  *
  *     const { data } = await db.from('profiles').select('username')...
  *     await db.rpc('some_common_rpc', { ... })
@@ -18,9 +18,9 @@ import { supabase } from './supabase'
  * Realtime channels, keep using `supabase` directly (those aren't
  * schema-scoped).
  *
- * Cross-feature components/hooks that need to address `common`
- * tables from inside a game folder can import this as
- * `import { db as commonDb } from '../../common/supabase/db'` to alias around
- * a same-named `db` from the local feature.
+ * A game folder has a `db` of its own, bound to the game's schema, and its
+ * `'../db'` is that one. Game code that needs `common` tables imports this
+ * handle through the alias and renames it clear of the local one:
+ * `import { db as commonDb } from '@/common/supabase/db'`.
  */
 export const db = supabase.schema('common')

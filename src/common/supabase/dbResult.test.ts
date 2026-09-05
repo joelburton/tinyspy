@@ -350,9 +350,10 @@ describe('readRows', () => {
   })
 })
 
-// Nothing is stripped between the wire and the caller: the plan's rule is that
-// one shape travels all the way through rather than each layer deciding which
-// fields the next one deserves.
+// Nothing is stripped between the wire and the caller: every key is present on
+// every envelope (docs/envelopes.md → The keys), so one shape travels all the
+// way through rather than each layer deciding which fields the next one
+// deserves.
 describe('runRpc — one shape, always', () => {
   it('keeps dbcode and detail on an ok result', async () => {
     const r = await runRpc<{ n: number }>(

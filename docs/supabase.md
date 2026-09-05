@@ -16,7 +16,7 @@ links to:
 ## The client
 
 One typed client for the whole app —
-[`src/common/lib/supabase/supabase.ts`](../src/common/supabase/supabase.ts):
+[`src/common/supabase/supabase.ts`](../src/common/supabase/supabase.ts):
 
 - Created once with the **publishable key** and the generated `Database`
   type (`npm run types:gen` after any schema change). There is no
@@ -41,7 +41,7 @@ reaches each through a **pre-bound handle**:
 
 - Every game folder has a one-line `src/<game>/db.ts`:
   `export const db = supabase.schema('<game>')`.
-- The common layer has [`src/common/db.ts`](../src/common/supabase/db.ts); game
+- The common layer has [`src/common/supabase/db.ts`](../src/common/supabase/db.ts); game
   code that needs common tables imports it as `commonDb` to alias around
   its own `db`.
 - Auth, Edge Functions, and Realtime channels use the raw `supabase`
