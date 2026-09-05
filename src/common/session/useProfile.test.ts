@@ -1,4 +1,4 @@
-// cs-audited-session
+// cs-blessed-session
 
 /**
  * Tests for the profile store — the one slot every page reads the signed-in

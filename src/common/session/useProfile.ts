@@ -1,4 +1,4 @@
-// cs-audited-session
+// cs-blessed-session
 
 import { useSyncExternalStore } from 'react'
 

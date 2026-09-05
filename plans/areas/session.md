@@ -4,9 +4,9 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, eleven worked. Open:
-**F-session-12** (the `mountedRef` parameter). Four files `cs-audited-session`,
-one of them written by the area.
+**Status: CLOSED 2026-09-05** (Joel: "bless files in this area and close it") —
+twelve findings, all twelve worked, and four files `cs-blessed-session`, one of
+them written by the area.
 
 ## The roster
 
@@ -16,12 +16,12 @@ the files and audit.") — every file of `src/common/session/`:
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/session/useSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `loading`, `refresh` | `cs-audited-session` |
-| `src/common/session/useSession.test.ts` | its contract, nine cases | `cs-audited-session` |
-| `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `setProfile`, `setProfileColor` (`useCurrentProfile` deleted by F-session-1) | `cs-audited-session` |
-| `src/common/session/useProfile.test.ts` | **written by this area** (F-session-11): the store's four cases — one value to every reader, cleared for every reader, a saved color repainting the rest of the row intact, and a color save with nothing to save it into | `cs-audited-session` |
-| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `DESIGNS_OWED`. **Its lede, its store paragraphs and two Details bullets were rewritten with F-session-1** — what still describes today's hook is the auth half, which F-session-2 and -3 will reach. Re-read it when they settle | (no stamp — markdown) |
-| `src/common/session/todo.md` | one item under Bugs, handed in from an earlier read; re-derived below as F-session-7 and F-session-8 | (no stamp — markdown) |
+| `src/common/session/useSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `probeFailed`, `loading`, `refresh` (`probeFailed` added by F-session-2) | `cs-blessed-session` |
+| `src/common/session/useSession.test.ts` | its contract — a case per state, per getUser failure class, and per "same user again" | `cs-blessed-session` |
+| `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `setProfile`, `setProfileColor` (`useCurrentProfile` deleted by F-session-1) | `cs-blessed-session` |
+| `src/common/session/useProfile.test.ts` | **written by this area** (F-session-11): the store's four cases — one value to every reader, cleared for every reader, a saved color repainting the rest of the row intact, and a color save with nothing to save it into | `cs-blessed-session` |
+| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `DESIGNS_OWED`. rewritten again as each finding landed, and read end to end at the close | (no stamp — markdown) |
+| `src/common/session/todo.md` | empty at the close: its one item was F-session-7 and F-session-8, both worked | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
 
@@ -430,7 +430,7 @@ and `refresh()` flips `needsClaim` off when it finds the row a claim just
 wrote. The second is the case `refresh()` exists for, and the first test of it
 that is about a claim rather than a retry.
 
-### F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
+### WORKED · F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
 
 `useSession.ts:56` threads `mountedRef` through as an argument; the effect
 builds the real one and `refresh` builds a throwaway `{ value: true }` that
@@ -439,9 +439,16 @@ anyway. `App` never unmounts, so nothing is broken; the parameter exists only
 to let one caller bypass the check. Fix: one `useRef` for the hook's life, read
 inside `probeProfile`, no parameter.
 
-**Still open after F-session-3**, which offered to fold it in and was told "do
-f3" — one finding. The hook now has a `probedFor` ref beside the mounted flag,
-so the fix is the same shape as something already there.
+**Resolution (2026-09-05, Joel: "ok").** One `mounted` ref for the hook's
+life, beside `probedFor`; `probeProfile` reads it and takes no parameter, and
+both callers now get the same guarantee. It is **raised in the effect body as
+well as lowered in the cleanup**: lowering only in cleanup would mean a re-run
+effect subscribes and then refuses to act on anything it hears — a guard that
+becomes a trap. The effect's deps are stable `useCallback`s today, so this
+never fires; it costs one line and removes the trap.
+
+Not directly tested: `App` never unmounts, so there is no honest case to write
+short of driving a slow probe across an unmount.
 
 ## Notes
 
@@ -477,7 +484,30 @@ so the fix is the same shape as something already there.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (2026-09-05; re-read once the shape findings land)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-05).
+  Six things needed fixing and were fixed in that pass:
+  - `useSession.ts` called `resolveSignedOut`'s call sites "the four states
+    below" while the docstring above called something else "four resolved
+    states" — two different fours, one page apart. Now "the four places that
+    end in nobody being signed in".
+  - `refresh()`'s comment still named only the claim screen; the error page's
+    Try again is the second caller.
+  - `doc.md`'s lede still said "the three states `App` gates on".
+  - `doc.md` still carried one piece of archaeology of its own — an
+    unclassified failure "once left people stranded" — now written as what it
+    does.
+  - `doc.md` said a wasted render is corrected by "a reload"; since
+    F-session-3 it is the next auth event.
+  - `doc.md`'s tests bullet knew only `useSession.test.ts`.
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (2026-09-05), and re-read against the code once every finding had landed
+- [x] `todo.md` holds everything still owed — which is nothing; its one item was
+  F-session-7 and -8, both worked
+- [x] every file on the roster blessed — four files `cs-blessed-session`
+  (2026-09-05, Joel: "bless files in this area and close it")
+
+**Two decisions taken without a ruling, both flagged when they were made** —
+either can be reversed and neither is load-bearing:
+
+1. `PN491` keeps its registry entry with nothing raising it (F-session-1).
+2. `callSiteShape`'s opt-out guard gained a fourth way to be satisfied
+   (F-session-2).

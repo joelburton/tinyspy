@@ -1,4 +1,4 @@
-// cs-audited-session
+// cs-blessed-session
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -53,9 +53,14 @@ export function useSession() {
   // auth event tries again rather than inheriting the failure.
   const probedFor = useRef<string | null>(null)
 
-  // The four states below are all "nobody is signed in as far as the app is
-  // concerned", and the profile store has to be emptied with them or a
-  // signed-out tab keeps showing the last user's name and color.
+  // Whether this hook is still on screen. Every probe writes state after two
+  // awaits, and one caller (`refresh`) is a button press rather than an event,
+  // so the flag belongs to the hook rather than to whoever calls the probe.
+  const mounted = useRef(true)
+
+  // The four places that end in "nobody is signed in as far as the app is
+  // concerned". The profile store has to be emptied with them, or a signed-out
+  // tab keeps showing the last user's name and color.
   const resolveSignedOut = useCallback(() => {
     probedFor.current = null
     setProfile(null)
@@ -69,16 +74,16 @@ export function useSession() {
   // gate; what it contains seeds the profile store, so this is the only read
   // of that row the app makes. A point lookup on the primary key.
   const probeProfile = useCallback(
-    async (next: Session | null, mountedRef: { value: boolean }) => {
+    async (next: Session | null) => {
       if (!next) {
-        if (mountedRef.value) resolveSignedOut()
+        if (mounted.current) resolveSignedOut()
         return
       }
 
       // Ask the server who this token belongs to before trusting it; the
       // docstring says why a stored JWT can be stale.
       const { data: userRes, error: userErr } = await supabase.auth.getUser()
-      if (!mountedRef.value) return
+      if (!mounted.current) return
       if (userErr) {
         // SIGN OUT unless the failure is provably transient — that way round,
         // because a stale token's errors do not all carry a status: an expired
@@ -99,7 +104,7 @@ export function useSession() {
         if (!transient) {
           console.warn('stored session is invalid — signing out', userErr)
           await supabase.auth.signOut()
-          if (!mountedRef.value) return
+          if (!mounted.current) return
           resolveSignedOut()
           return
         }
@@ -111,7 +116,7 @@ export function useSession() {
         // 401 if it does.
         console.warn('auth.getUser() returned no user — signing out')
         await supabase.auth.signOut()
-        if (!mountedRef.value) return
+        if (!mounted.current) return
         resolveSignedOut()
         return
       }
@@ -125,7 +130,7 @@ export function useSession() {
         // below, and the modal on top of it would say the same thing twice.
         { presentFaults: false },
       )
-      if (!mountedRef.value) return
+      if (!mounted.current) return
       if (res.type === 'not-ok') {
         // Without the row we do not know whether this person has claimed a
         // username, and both guesses are wrong in a way they can see: the claim
@@ -158,11 +163,14 @@ export function useSession() {
   )
 
   useEffect(function subscribeToAuthState() {
-    const mountedRef = { value: true }
+    // Raised here as well as lowered in the cleanup below, so a re-subscribe
+    // restores it. Lowering it in cleanup alone would leave a re-run effect
+    // listening to events it then refuses to act on.
+    mounted.current = true
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'SIGNED_OUT' || !next) {
-        if (!mountedRef.value) return
+        if (!mounted.current) return
         resolveSignedOut()
         return
       }
@@ -174,25 +182,24 @@ export function useSession() {
       // we already have an answer for needs no round trips, only their fresher
       // token in state.
       if (next.user.id === probedFor.current) {
-        if (mountedRef.value) setSession(next)
+        if (mounted.current) setSession(next)
         return
       }
-      probeProfile(next, mountedRef)
+      probeProfile(next)
     })
 
     return () => {
-      mountedRef.value = false
+      mounted.current = false
       sub.subscription.unsubscribe()
     }
   }, [probeProfile, resolveSignedOut])
 
-  // Public refresh — call after a successful claim_username to
-  // flip needsClaim → false without re-authenticating. It probes
-  // unconditionally: the user is the same one, which is precisely the case the
-  // event handler above skips, and the row is what changed.
+  // Public refresh — the claim screen's "I just claimed" and the error page's
+  // "Try again". It probes unconditionally: the user is the same one, which is
+  // precisely the case the event handler above skips, and what changed is the
+  // row (or the weather).
   const refresh = useCallback(async () => {
-    const mountedRef = { value: true }
-    await probeProfile(session, mountedRef)
+    await probeProfile(session)
   }, [probeProfile, session])
 
   return {

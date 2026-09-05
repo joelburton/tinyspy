@@ -1,9 +1,9 @@
 # session
 
 Who is signed in, whether they have a username yet, and what their profile
-says. One hook turns Supabase Auth's session into the three states `App` gates
-on, filling a store with the profile row it read on the way; the other hands
-that profile to anything on the page that asks for it.
+says. One hook turns Supabase Auth's session into the states `App` gates every
+route on, filling a store with the profile row it read on the way; the other
+hands that profile to anything on the page that asks for it.
 
 ## Design
 
@@ -30,13 +30,13 @@ re-verify it on load, so a token can outlive the user it names: a local
 deleting an account in prod does the same. The hook therefore asks the server
 who the token belongs to before asking about a profile. If the server says the
 user is gone, or the token cannot be refreshed, the hook signs out, and the
-next render is the login screen. The rule is written the strict way round, sign
-out unless the failure is provably transient, because a failed refresh does not
-always arrive with a status code, and treating an unclassified failure as fine
-once left people stranded on the claim screen with a token nobody could claim
-with. Transient means a retryable fetch error or a 5xx: the server was
-unreachable or unwell, which says nothing about the user, and signing everyone
-out each time Supabase hiccups would be worse than one render that a reload
+next render is the login screen. The rule is written the strict way round — sign
+out unless the failure is provably transient — because a failed refresh does
+not always arrive with a status code, and an unclassified failure treated as
+fine strands someone on the claim screen holding a token nobody can claim with.
+Transient means a retryable fetch error or a 5xx: the server was unreachable or
+unwell, which says nothing about the user, and signing everyone out each time
+Supabase hiccups would be worse than one wasted render that the next event
 corrects.
 
 The profile lookup itself has a shape worth noticing. Zero rows is the answer
@@ -99,4 +99,6 @@ repaints at once with no refetch.
 - **The tests mock the auth client, not the network.** `useSession.test.ts`
   captures the callback the hook registers with `onAuthStateChange` and fires
   the events by hand, and collapses the query chain to its terminal call, so a
-  case is one event plus one canned answer.
+  case is one event plus one canned answer. The store's own cases need none of
+  that: `useProfile.test.ts` drives it directly and watches two readers at
+  once.

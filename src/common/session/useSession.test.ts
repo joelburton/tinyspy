@@ -1,4 +1,4 @@
-// cs-audited-session
+// cs-blessed-session
 
 /**
  * Tests for useSession — the states `App` gates on, and what the hook asks the
