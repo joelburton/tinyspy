@@ -980,6 +980,28 @@ This matches the directory: `supabase/functions/codenamesduet-suggest-clue/index
 
 ## Known gotchas
 
+### `window` is always there; a browser FEATURE may not be
+
+This app is a Vite SPA with no server render, and jsdom (the vitest environment)
+provides a `window` too. So **`typeof window !== 'undefined'` guards a case that
+cannot happen** — and each one costs a reader a moment deciding whether this file
+is somehow special.
+
+What genuinely goes missing is a feature ON `window`, and that check stays:
+`window.matchMedia` (absent in jsdom — every test depends on the desktop-first
+default that produces), `window.visualViewport` (absent in older browsers and
+jsdom), `ResizeObserver`. Guard the feature, name the environment it's missing
+from, and use `window` itself bare.
+
+`useSyncExternalStore`'s third argument is the same phantom in another costume:
+React requires it, nothing here renders on a server, so it never runs — say that
+where one is passed rather than calling it the SSR case.
+
+Several folders still carry the old guards, mostly supplying a fallback value
+(`floating-panels` defaults a missing `innerWidth` to `1024`), so removing one
+changes what an expression returns and is a per-folder decision rather than a
+sweep.
+
 ### A game's stylesheet ships in its lazy chunk
 
 The core stylesheets and the theme chain are loaded once from `main.tsx`; every *game's* `theme.css` ships in that game's lazy chunk, which is why a game file rendered outside `PlayArea` — setgame's `SetupForm`, crosswords' two picker modals — imports its game's `theme.css` itself. An undefined custom property invalidates the whole declaration, silently. **Palette, polarity and theme are eager and global; only a game's brand anchors are lazy.**

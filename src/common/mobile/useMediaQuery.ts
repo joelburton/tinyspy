@@ -41,6 +41,8 @@ export function useMediaQuery(query: string): boolean {
     if (typeof window.matchMedia !== 'function') return false
     return window.matchMedia(query).matches
   }, [query])
-  // Desktop-first: with no window (SSR/test snapshot), assume the query is unmet.
+  // The third argument is what a server render would read. Nothing renders this
+  // on a server, so it never runs; it says `false` to match the desktop-first
+  // default the jsdom path gives.
   return useSyncExternalStore(subscribe, getSnapshot, () => false)
 }

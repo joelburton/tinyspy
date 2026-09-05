@@ -5,8 +5,8 @@ The folders it reads: `mobile`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1 through F-mobile-7, F-mobile-11, F-mobile-13.
-Open: F-mobile-8, F-mobile-9, F-mobile-10, F-mobile-12.
+below; worked so far: F-mobile-1 through F-mobile-8, F-mobile-11, F-mobile-13.
+Open: F-mobile-9, F-mobile-10, F-mobile-12.
 
 ## The roster
 
@@ -297,7 +297,7 @@ fine, but its block was the whole file's explanation sitting on a private alias,
 so the explanation moved to the hook and the type kept two `//` field notes —
 per the repo rule that a field note is a comment, not a docstring.
 
-### F-mobile-8 · `window-guards` · Two files in one folder disagree on whether `window` can be missing
+### WORKED · F-mobile-8 · `window-guards` · Two files in one folder disagree on whether `window` can be missing
 
 `useVisualViewport.ts` writes `typeof window !== 'undefined'` three times and
 its docstring names SSR; `useMediaQuery.ts` reads `window.matchMedia` bare. The
@@ -312,6 +312,35 @@ feature-absence checks and one comment saying which environments they are for.
 Small, but it is exactly the kind of drift a folder's Design should settle in
 one sentence: "these run in a browser or jsdom; a missing FEATURE is guarded, a
 missing `window` is not."
+
+**Done (2026-09-05).** The three guards are gone from `useVisualViewport`;
+`window` is read bare and the `visualViewport` fallback keeps its own branch,
+with one comment naming what is actually absent and where. Both files' third
+`useSyncExternalStore` argument now says what it is — what a server render would
+read, which never runs — instead of calling it the SSR case.
+
+**Bigger than the folder, which the audit had not measured.** The repo has 15
+`typeof window` guards and only 3 were here. So the rule is written where the
+other twelve can inherit it: `docs/code-conventions.md` → Known gotchas,
+"`window` is always there; a browser FEATURE may not be" — which also covers the
+`useSyncExternalStore` third argument, since it is the same phantom in another
+costume.
+
+The other twelve are handed off rather than swept, because each is a decision
+and not a conformance edit:
+
+- **`floating-panels` (6)** — `FloatingPanel` and `useDraggablePanel` guard
+  `innerWidth`/`innerHeight` and supply fallbacks (`1024`/`768`, or the rect's
+  own size), so dropping a guard changes what the expression returns. A line in
+  that folder's `todo.md` → Soon.
+- **`faults` (1) and `toasts` (1)** — the identical line installing a
+  `window.pupfault` / `window.puptoast` dev helper. The guard is phantom, but
+  the question worth asking with the file open is whether the helper should
+  install unconditionally or only under `import.meta.env.DEV`. A line in each
+  folder's `todo.md` → Soon.
+- **`supabase.ts` (1)** — left alone deliberately: it is
+  `!import.meta.env.DEV || typeof window === 'undefined'` guarding a dev-only
+  config branch, belt-and-braces rather than a phantom SSR case.
 
 ### F-mobile-9 · `first-pass-thresholds` · A to-do lives in a file header
 

@@ -22,6 +22,14 @@
 - **Two e2e specs were red waiting on this folder** on 2026-09-02:
   `page-no-scroll` and `anagram-finder`. Re-check before assuming.
 
+- **Six `typeof window` guards for a case that cannot happen.**
+  `FloatingPanel.tsx` (2) and `useDraggablePanel.ts` (4) read `innerWidth` /
+  `innerHeight` behind a no-window check — but this is an SPA with no server
+  render and jsdom has a `window` (docs/code-conventions.md → Known gotchas).
+  Not a sweep: each supplies a FALLBACK (`1024`/`768`, or the rect's own size),
+  so dropping the guard changes what the expression returns, and whether any
+  test leans on those numbers wants checking with the file open.
+
 ## Someday
 
 - **A companion's MINIMUM SIZE is still eyeballed.** Seven pairs, none

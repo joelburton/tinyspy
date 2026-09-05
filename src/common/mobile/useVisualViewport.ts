@@ -15,15 +15,17 @@ type ViewportMetrics = {
 // global, so one shared cache is correct.
 let cache: ViewportMetrics = { height: 0, offsetTop: 0 }
 
+// `window` is always there — this is an SPA, and jsdom has one. What can be
+// missing is `visualViewport` itself (old browsers, jsdom), and that is the
+// branch below: fall back to the layout viewport and subscribe to nothing.
 function currentMetrics(): ViewportMetrics {
-  const vv = typeof window !== 'undefined' ? window.visualViewport : null
+  const vv = window.visualViewport
   if (vv) return { height: vv.height, offsetTop: vv.offsetTop }
-  const height = typeof window !== 'undefined' ? window.innerHeight : 0
-  return { height, offsetTop: 0 }
+  return { height: window.innerHeight, offsetTop: 0 }
 }
 
 function subscribe(callback: () => void): () => void {
-  const vv = typeof window !== 'undefined' ? window.visualViewport : null
+  const vv = window.visualViewport
   if (!vv) return () => {}
   // resize fires on keyboard show/hide + rotation; scroll fires when iOS shifts
   // the visible region (offsetTop changes) to keep a focused field on-screen.
@@ -41,6 +43,8 @@ function getSnapshot(): ViewportMetrics {
   return cache
 }
 
+// What a server render would read. Nothing renders this on a server, so it never
+// runs; React requires the argument, and the cache is the honest answer.
 function getServerSnapshot(): ViewportMetrics {
   return cache
 }
