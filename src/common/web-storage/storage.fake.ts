@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-web-storage
 
 /**
  * A Storage-shaped stand-in for tests, plus a switch that makes it throw.

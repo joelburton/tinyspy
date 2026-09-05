@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-web-storage
 
 /**
  * Read and write `localStorage` / `sessionStorage` without the app falling over
