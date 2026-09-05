@@ -277,6 +277,44 @@ describe('useSession', () => {
     warnSpy.mockRestore()
   })
 
+  it('signs out on a 200 that carries no user', async () => {
+    // Not in the supabase-js contract, but the app's answer if it ever happens
+    // is the same as a 401's: this token names nobody.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockSignOut).toHaveBeenCalledTimes(1)
+    expect(result.current.session).toBeNull()
+    expect(result.current.needsClaim).toBe(false)
+    expect(mockProfileRows).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('flips needsClaim off when refresh() finds the row a claim just wrote', async () => {
+    // What <ClaimHandleScreen> calls on success: the user is the same, so no
+    // auth event fires and nothing else would notice the new row.
+    mockProfileRows.mockResolvedValueOnce({ data: [], error: null })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.needsClaim).toBe(true))
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.needsClaim).toBe(false)
+    expect(result.current.session).toBe(fakeSession)
+  })
+
   it('clears state on a SIGNED_OUT event without re-querying the profile', async () => {
     const { result } = renderHook(() => useSession())
 

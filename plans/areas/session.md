@@ -4,9 +4,9 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, ten worked. Open:
-**F-session-11** (what is still untested) and **F-session-12** (the
-`mountedRef` parameter). Three files `cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, eleven worked. Open:
+**F-session-12** (the `mountedRef` parameter). Four files `cs-audited-session`,
+one of them written by the area.
 
 ## The roster
 
@@ -18,7 +18,8 @@ the files and audit.") — every file of `src/common/session/`:
 |---|---|---|
 | `src/common/session/useSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `loading`, `refresh` | `cs-audited-session` |
 | `src/common/session/useSession.test.ts` | its contract, nine cases | `cs-audited-session` |
-| `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `useCurrentProfile`, `setProfileColor`. No test file | `cs-audited-session` |
+| `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `setProfile`, `setProfileColor` (`useCurrentProfile` deleted by F-session-1) | `cs-audited-session` |
+| `src/common/session/useProfile.test.ts` | **written by this area** (F-session-11): the store's four cases — one value to every reader, cleared for every reader, a saved color repainting the rest of the row intact, and a color save with nothing to save it into | `cs-audited-session` |
 | `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `DESIGNS_OWED`. **Its lede, its store paragraphs and two Details bullets were rewritten with F-session-1** — what still describes today's hook is the auth half, which F-session-2 and -3 will reach. Re-read it when they settle | (no stamp — markdown) |
 | `src/common/session/todo.md` | one item under Bugs, handed in from an earlier read; re-derived below as F-session-7 and F-session-8 | (no stamp — markdown) |
 
@@ -396,7 +397,7 @@ hook does warn on those paths (`useSession.ts:106`, `:115`, `:120`).
 the spy is `console.error` and the run is quiet. The four getUser tests keep
 their `warn` spies, which were right all along.
 
-### F-session-11 · `untested-paths` · `refresh()`, the null-user branch, and all of `useProfile.ts` have no test
+### WORKED · F-session-11 · `untested-paths` · `refresh()`, the null-user branch, and all of `useProfile.ts` have no test
 
 - `refresh()` is the one export `ClaimHandleScreen` depends on
   (`App.tsx:102`), and no case calls it.
@@ -415,6 +416,19 @@ the store's cases go there instead.
 untested branches, and added two cases pinning the seed and the clear. What is
 still untested: `refresh()`, the 200-with-`user: null` branch, and
 `setProfileColor` reaching two subscribers.
+
+**Resolution (2026-09-05, Joel: "then do f11").** `useProfile.test.ts` is
+written — the store gets its own file, as a unit should. Its four cases are one
+value reaching two readers with no parent in common, the clear reaching them
+both, a saved color repainting everywhere with the rest of the row intact, and
+a color save with no profile to save it into. That last one is why
+`setProfileColor`'s `if (current)` exists, and nothing had ever exercised it —
+`EditProfileModal.test.tsx` mocks the whole module away.
+
+`useSession.test.ts` gains the two branches: a 200 carrying no user signs out,
+and `refresh()` flips `needsClaim` off when it finds the row a claim just
+wrote. The second is the case `refresh()` exists for, and the first test of it
+that is about a claim rather than a retry.
 
 ### F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
 
