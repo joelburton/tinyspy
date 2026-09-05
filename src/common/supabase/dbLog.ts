@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-supabase
 
 import { logStamp } from '../utils/logStamp'
 import type { Severity } from './envelope'

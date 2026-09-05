@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-supabase
 
 /**
  * THE ENVELOPE, WRITTEN IN DENO — the same shape `common.ok_envelope` and

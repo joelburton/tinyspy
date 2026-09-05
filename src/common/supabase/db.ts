@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-supabase
 
 import { supabase } from './supabase'
 

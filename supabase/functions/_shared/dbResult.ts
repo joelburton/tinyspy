@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-supabase
 
 /**
  * **CALLING AN RPC FROM DENO** — the inbound half of the envelope, the twin of

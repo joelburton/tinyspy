@@ -211,7 +211,7 @@ will list the other as a dependency whichever goes first.
 | 6  | `mobile` | `mobile` | **CLOSED 2026-09-05.** the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
 | 7  | `routing` | `routing` | **CLOSED 2026-09-05.** the router, `usePath`, and the app's two URL shapes |
 |    | **The data path and the boot** | | |
-| 8  | `supabase` | `supabase` | the client, the wrappers, the envelope. It reaches `faults` for the fault sink; the sink's function is read here and its modal waits for `common-hosts` |
+| 8  | `supabase` | `supabase` · `functions/_shared/envelope.ts` + `dbResult.ts` | **OPEN 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. It reaches `faults` for the fault sink, which is `common-hosts`' to read |
 | 9  | `session` | `session` | who is signed in, and their profile |
 | 10 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
 | 11 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
