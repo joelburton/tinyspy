@@ -1,6 +1,17 @@
 // cs-audited-boot
 
-/** Top of the React application. */
+/**
+ * Top of the React application, and an ORDER more than a file.
+ *
+ * Each line is where it is because of what runs after it: the width tracker
+ * publishes the token board sizing reads, the stale-chunk listener has to be
+ * up before the first dynamic import, and the theme's stylesheet is awaited so
+ * the first paint is not one frame of undefined tokens. A line moved is a
+ * reason lost.
+ *
+ * The `try` below and the root's `onUncaughtError` are two halves of one
+ * promise — never a blank page. See `panic.ts`.
+ */
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -14,7 +25,7 @@ import './common/core-css/patterns/page.css'
 import './common/core-css/patterns/segmented.css'
 import './common/core-css/utilities.css'             // tiny utilities: muted, etc
 
-import App from './App.tsx'
+import App from './App'
 import { loadTheme } from './common/themes/loadTheme'
 import { trackLayoutWidth } from './common/mobile/layoutWidth'
 import { reloadOnStaleChunk } from './common/boot/reloadOnStaleChunk'
@@ -25,8 +36,8 @@ import { onUncaughtRender, showPanic } from './common/boot/panic'
 trackLayoutWidth()
 
 // A tab that outlives a deploy references lazy chunks the new deploy deleted;
-// reload once to pick up the current build (see the helper's docstring).
-// Registered BEFORE the await below, which is itself a dynamic import.
+// reload once to pick up the current build. First, because the await below is
+// itself a dynamic import — see `reloadOnStaleChunk`.
 reloadOnStaleChunk()
 
 try {

@@ -5,12 +5,16 @@ import { readStored, writeStored } from '../web-storage/storage'
 /**
  * Reload the page when a code-split chunk fails to load — stale-deploy recovery.
  *
- * Every game's PlayArea / SetupForm / Help ships in a lazily-imported chunk
- * named by content hash (the sibling-manifest + code-splitting pattern,
- * docs/common.md). Netlify deploys are atomic: publishing a new build deletes
- * the previous build's hashed assets. So a tab opened before a deploy that
- * lazy-loads its first game *after* it asks for a chunk that no longer exists —
- * the import rejects, nothing catches it, and React unmounts to a blank page.
+ * Every game's PlayArea / SetupForm / Help ships in its own lazily-imported
+ * chunk named by content hash (docs/common.md → Code-splitting). Netlify
+ * deploys are atomic: publishing a new build deletes the previous build's
+ * hashed assets. So a tab opened before a deploy, opening its first game after
+ * one, asks for a chunk that is no longer there.
+ *
+ * Without this, that failure is just an error: under the play surface it paints
+ * PlayAreaErrorBoundary's card, and anywhere else — a SetupForm, a Help modal —
+ * it reaches `panic.ts`'s last-resort screen. Both tell someone that a deploy
+ * happened, which is not theirs to read about.
  *
  * Vite's build wraps every dynamic import in a preload helper that dispatches
  * `vite:preloadError` on window when the chunk (or one of its CSS/JS deps)
@@ -20,9 +24,9 @@ import { readStored, writeStored } from '../web-storage/storage'
  *
  * The sessionStorage guard caps this at one reload per minute per tab: when
  * chunks are failing for a real reason (an outage, not a stale deploy), the
- * second failure is allowed to throw — landing in PlayAreaErrorBoundary's
- * card rather than spinning a reload loop. A browser that blocks site data
- * gets no recovery at all rather than an uncounted one; see `reloadedRecently`.
+ * second failure is allowed to throw — landing on one of those two screens
+ * rather than spinning a reload loop. A browser that blocks site data gets no
+ * recovery at all rather than an uncounted one; see `reloadedRecently`.
  */
 
 const GUARD_KEY = 'puzpuzpuz:stale-chunk:reloadedAt'
@@ -55,6 +59,10 @@ function rememberReload(): void {
   writeStored('session', GUARD_KEY, String(Date.now()))
 }
 
+/**
+ * Start listening for failed chunk loads. Call once at boot, BEFORE the first
+ * dynamic import — `main.tsx` awaits the theme chain, which is one.
+ */
 export function reloadOnStaleChunk() {
   window.addEventListener('vite:preloadError', (event) => {
     if (reloadedRecently()) return // let it throw

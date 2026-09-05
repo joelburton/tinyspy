@@ -5,9 +5,10 @@ The folders it reads: `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts`
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
-change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
-no change, F-boot-5 to -9 worked, three prose findings open.
+**Status: OPEN, every finding resolved** — audited 2026-09-05, twelve
+findings: F-boot-1 and -4 closed with no change, F-boot-3 handed to
+`game-page`, the other nine worked. What stands between here and the close is
+the whole-area re-read, `boot/doc.md`'s Design, and Joel's word.
 
 ## The roster
 
@@ -455,7 +456,8 @@ list that omits them is accurate rather than silent about something.
 One correction to the finding: it cites the hosts as `:195–225`, which stops
 at `FaultModal`. The range is `:195–229` — `TooltipHost` is in it, and the two
 root-mounted popups belong to that part of the story too.
-### F-boot-10 · `stale-blank-page-story` · `reloadOnStaleChunk.ts`'s docstring describes the app before `panic.ts`, and the exported function has none
+
+### WORKED · F-boot-10 · `stale-blank-page-story` · `reloadOnStaleChunk.ts`'s docstring describes the app before `panic.ts`, and the exported function has none
 
 - `:12–13` — "the import rejects, nothing catches it, and React unmounts to a
   blank page." Since `panic.ts`, nothing unmounts to a blank page: a chunk
@@ -478,7 +480,28 @@ root-mounted popups belong to that part of the story too.
 One rewrite, with F-boot-1 and -2 settled first so the counter's rule is
 written once.
 
-### F-boot-11 · `docs-common-stale-boot-lines` · `docs/common.md`'s folder layout names a path that does not exist, under a paragraph saying it inlines no tree
+12. Take the draft?
+13. `main.tsx:27–29` carries the before-the-await rule the function docstring
+    would own — trim it here, or leave `main.tsx` to F-boot-12?
+
+**Resolution (2026-09-05, Joel: "12: ok / 13: do it")** — all five points, plus
+the call site.
+
+The blank-page story is gone: the failure is now described as what it actually
+produces, which is one of two screens depending on whether the chunk was under
+the play surface. The pointer is `docs/common.md → Code-splitting`, not the
+sibling-manifest pattern (that one is coop/compete variants, `:40–46`). The
+sentence that did not parse is rewritten. The guard paragraph says "one of
+those two screens" rather than naming only the boundary, and
+`reloadOnStaleChunk.test.ts`'s docstring, which repeated the same half-truth,
+says the same thing now.
+
+The export has a docstring, and it owns the calling rule: once at boot, before
+the first dynamic import, because `main.tsx` awaits the theme chain and that is
+one. `main.tsx`'s comment keeps the local fact — this call goes first, and why
+— and points at the helper for the rest (13).
+
+### WORKED · F-boot-11 · `docs-common-stale-boot-lines` · `docs/common.md`'s folder layout names a path that does not exist, under a paragraph saying it inlines no tree
 
 `docs/common.md:549–552` — "paints the plain-DOM last-resort screen in
 `common/lib/util/panic.ts`"; it is `common/boot/panic.ts`. The `common/` lines
@@ -494,7 +517,21 @@ renders the popups"; it is headless (`GameInvitations.tsx:64` returns null)
 and `ToastHost` renders them, as `App.tsx:210–214` says. A sentence about the
 invitations component → `common-hosts` (Notes).
 
-### F-boot-12 · `main-docstring-and-suffix` · `main.tsx`'s docstring is one line for a file that is entirely an order, and one import carries a suffix
+**Resolution (2026-09-05, Joel: "fix both")** — `common/lib/util/panic.ts`
+became `common/boot/panic.ts`; the three `common/` sub-lines went (`db.ts` and
+`theme.css` are both gone from the tree, verified, and `components/ hooks/
+lib/ pdf/` predates the reorg), leaving one `common/` line and the pointer the
+paragraph below already promised. That paragraph itself said
+`common/{components,hooks,lib}`, so it now says `common/`. The `App.tsx` line
+describes the file as F-boot-9 left it: the gates, then the route table, then
+the root-mounted singletons.
+
+**Still absent from that tree, and NOT added** — it lists every top-level
+entry of `src/` except `shared/`, `guards/` and `test-setup.ts`. Adding rows
+is past what this finding names, and `shared/` in particular is a `docs`
+question about what the layout section is for. Left for whoever rules on it.
+
+### WORKED · F-boot-12 · `main-docstring-and-suffix` · `main.tsx`'s docstring is one line for a file that is entirely an order, and one import carries a suffix
 
 - `:3` — "Top of the React application." The file's content is a SEQUENCE —
   width tracker, stale-chunk listener, theme, root — and every reason is
@@ -504,6 +541,16 @@ invitations component → `common-hosts` (Notes).
   in `src/`. Drop the suffix.
 
 The CSS import comments (`:8–15`) are `corecss`'s words and are not touched.
+
+**Resolution (2026-09-05, Joel: "fix both")** — the docstring says the file is
+an order, and why each line sits where it does: the width tracker publishes
+the token board sizing reads, the stale-chunk listener has to be up before the
+first dynamic import, the theme is awaited so the first paint is not a frame
+of undefined tokens. It closes on the `try` and the root's `onUncaughtError`
+being two halves of one promise, never a blank page.
+
+The suffix is dropped — `import App from './App'`. Verified by a real build,
+not just `tsc`: the extension resolution is Vite's, not TypeScript's.
 
 ## Notes
 

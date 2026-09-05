@@ -9,7 +9,8 @@ import { reloadOnStaleChunk } from './reloadOnStaleChunk'
  * The stale-deploy recovery contract: the first `vite:preloadError` reloads
  * (and swallows the import error), but a second failure inside the guard
  * window does NOT — it must fall through and throw, so a genuine outage lands
- * in PlayAreaErrorBoundary's card instead of a reload loop.
+ * on the boundary's card or the panic screen instead of spinning a reload
+ * loop.
  *
  * Reloading is what this module does, so `location` is stubbed throughout; see
  * `reload.fake.ts`.
