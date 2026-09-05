@@ -269,6 +269,83 @@ builder takes its row type from `word-list`), but common must not reach down
 into a family only some games have. Worth a guard once the folders exist. The
 per-folder rulings are in the §5 tables, marked RULED.
 
+**Process rulings (Joel, 2026-09-04, end of the day).**
+
+- **Imports go through an alias.** The codemod emits `@/common/<folder>/…`
+  and `@/shared/<folder>/…` instead of climbing `../../../`. One `paths`
+  entry in tsconfig and one `resolve.alias` in vite make it resolve. A
+  code-style change riding on the move, taken on Claude's recommendation.
+- **One commit for the move itself.** The codemod, the guard-path pass and
+  the mock-path pass land together; a half-moved tree between commits is not
+  a concern worth splitting for.
+- **docs/common-folders.md is updated IN the move commit** — it describes the
+  layout and would be false the moment the move lands. The big general docs
+  (ui.md, playarea.md, common.md) are decomposed LATER, not in the move.
+- **Each folder's own `.md` is written when its area is audited**, not at
+  move time. Writing them all from the current giants would copy the giants'
+  problems into thirty places.
+- **The dissolved areas' files are not deleted — their contents move into the
+  new areas.** `plans/areas/hooks.md`, `utils.md`, `shared-game-chrome.md`:
+  every finding, note and carry-forward re-files under the new area that owns
+  the file it's about. Timing is Claude's choice: RIGHT AFTER the move, as its
+  own step, alongside the areas-table rewrite below — so the move commit stays
+  mechanical and the re-filing can be reviewed on its own.
+- **The areas table in app-audit.md is rewritten after the move**, as its own
+  step.
+- **The move has its own roster file**:
+  [common-restructure-roster.md](common-restructure-roster.md), one row per
+  file, grouped by destination, generated from §5 so it can be checked off.
+
+**The last process rulings (Joel, 2026-09-04, closing the design).**
+
+- **Prose paths**: the codemod rewrites path-shaped mentions in `src/`
+  comments and docstrings and in docs/common-folders.md in the move commit;
+  the rest of docs/ and the closed area files wait for the decomposition, and
+  common-folders.md says so.
+- **Alias scope**: alias any import that leaves its top-level folder
+  (`@/common/…`, `@/shared/…`, `@/<game>/…`); relative within it.
+- **The common-never-imports-shared guard ships in the move commit.**
+- **docs/common-folders.md keeps its name** for now.
+- **Closed areas' records (`deep`, `game-lib`) stay as history**, with one
+  line at the top saying their paths predate the move.
+- **The move is NOT an area.** It runs outside the audit process, soon, with
+  this plan and the roster as its record.
+- **The codemod is a throwaway** script; the roster is the durable mapping.
+- **Next session starts the move.** Read the roster first.
+
+**Running the move without permission prompts (Joel, 2026-09-04).** The
+scripted move will take a long time, and Joel does not want to sit through
+an hour of approving mechanical steps: *"i don't want to babysit this for an
+hour just to be an auto-bot for permission stuff that could be solved by how
+you do it."* Stop for a real concern; never stop for a prompt the method could
+have avoided. What prompts, from `.claude/settings.local.json`:
+
+- **`rm -rf` is an ASK rule.** Never use it. Emptied folders are removed with
+  `git mv` (which leaves nothing behind) or `rmdir`; a stray file with
+  `git rm`.
+- **A Bash call whose working directory can't be proven prompts**, because
+  `Read(**/.env*)` is denied and the checker must prove the command reads no
+  such path. So: **no `cd <root>` prefix in ANY spelling** — the
+  `2>/dev/null;` variant slipped past the hook for a whole session on
+  2026-09-04. The cwd already persists. Absolute paths when a path is needed.
+- **File edits go through Edit/Write, never `perl -pi` / `sed -i` / a
+  `python3` heredoc** — those are Bash and each distinct one is its own
+  approval.
+- **Batch the mechanical work into ONE script run, not hundreds of calls.**
+  One node script does every `git mv` and every import rewrite (via
+  `child_process` and `fs` on explicit `src/**` paths), so the whole move is
+  one Bash invocation. If that single call prompts, it prompts once.
+- **Allowlisted and safe to lean on**: `git …`, `npx tsc *`, `npx vitest *`,
+  `npx vite *`, `npx eslint *`, `npm run *`, `node scripts/cs-stamp.mjs …`.
+- **Never touch `.env`-shaped paths**, including via globs a script expands
+  (`src/**` is fine; a repo-root `**` is not).
+
+**An idea noted for later, not for now (Joel).** Each feature folder could
+carry its own small `todo` file, separate from its doc — the app-wide
+docs/deferred.md has become a sink for almost everything, and per-feature
+todos split out are easier to read. Not part of this reorg; recorded so the
+plan remembers it.
+
 **How to verify the move** (agreed 2026-09-04): `tsc -b` first (it resolves
 every import in the project, not just the ones a test reaches), then the full
 vitest run (the path-coupled guards and any `vi.mock()` path the codemod
@@ -402,7 +479,63 @@ pdf stays together; move-flash is common. Still flagged:
 7. ~~Whether a feature folder gets type subfolders~~ — RULED 2026-09-04: no.
    Joel took §3's recommendation; the naming convention does the job.
 
-## 7. What happens to this file
+## 7. How the move runs — the handoff (written 2026-09-04, for the session that does it)
+
+The design is closed. This section is the opening instruction for whichever
+session performs the move, so it can start without re-deriving anything.
+
+**Read first, in this order:** §4 (every ruling, the process rules, and
+"Running the move without permission prompts"), then
+[common-restructure-roster.md](common-restructure-roster.md), then §5 only if
+a roster row needs its reasoning. Do NOT re-open the classification: a file's
+destination is what the roster says. **If a file, an import shape, or a path
+mention turns up that the roster and the rulings don't cover, STOP and ask.**
+That is the one kind of question this section can't answer in advance.
+
+**The steps, in order.** Each is one commit's worth of work at most, and the
+first four are ONE commit (Joel: one commit for the move itself).
+
+1. **The alias.** `paths: { "@/*": ["./src/*"] }` in the tsconfig the app
+   builds with, and the matching `resolve.alias` in vite.config. Confirm
+   `tsc -b` and vitest resolve `@/` before anything moves (vitest reads vite's
+   config, so one alias serves both — verify rather than assume).
+2. **The codemod — one script, one run.** A throwaway node script in the
+   scratchpad that, over explicit `src/**` paths only: (a) `git mv`s every
+   roster row to its destination, creating `src/shared/` and the new folders;
+   (b) rewrites every `import`/`export … from` and every `vi.mock('…')` path
+   to the alias form per the alias-scope ruling — alias when the target is
+   outside the importer's top-level folder, relative within it; (c) rewrites
+   path-shaped mentions in `src/` comments and docstrings; (d) removes the
+   emptied old folders with `rmdir`, never `rm -rf`. Print what it did.
+3. **The checks, in the agreed order:** `npx tsc -b` → `npx vitest run` →
+   `npx vite build` → restart the dev server → ONE e2e. Work the failures;
+   the expected kinds are stale `vi.mock` paths the codemod missed, the twelve
+   path-coupled guards in `src/guards/`, and the `theme.css`-per-lazy-chunk
+   rule if a CSS import changed chunks. **Verify each guard still bites after
+   it is re-pathed** (plant a break, watch it fail, unplant).
+4. **The guard for "common never imports shared"** — a new test in
+   `src/guards/` that reads every import under `src/common/` and fails on any
+   `@/shared/` (or relative path into `src/shared/`). Plant a break to prove
+   it, then remove the break.
+5. **docs/common-folders.md rewritten** to describe the new layout — both
+   `common/` and `shared/`, the one-way import rule, the alias scope, and a
+   line saying the rest of docs/ still cites pre-move paths until the
+   decomposition. Same commit as 1–4.
+6. **Then, as their own commits, after the move lands:** the dissolved areas'
+   contents re-filed into the new areas (`hooks.md`, `utils.md`,
+   `shared-game-chrome.md` → whichever new area owns each finding's file);
+   the areas table in app-audit.md rewritten; a "paths predate the move" line
+   atop `deep.md` and `game-lib.md`; and the banner at the top of THIS file
+   and the roster flipped from "does not describe the app" to "describes the
+   app as of the move commit", pending §8.
+
+**What is mechanical and what is not.** Steps 1–5 are specification-driven:
+the roster and the rulings decide everything, and the work is script-and-
+verify. Step 6 has judgment in it — re-filing a finding means reading it and
+deciding which folder owns it now, and the areas table is the sprint's spec —
+so it wants a careful read or a second pair of eyes, not a batch pass.
+
+## 8. What happens to this file
 
 If the idea is agreed, this becomes a real plan with a roster and replaces
 docs/common-folders.md when it ships, at which point the plan is deleted. If
