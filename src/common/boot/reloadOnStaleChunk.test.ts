@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-boot
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reloadOnStaleChunk } from './reloadOnStaleChunk'

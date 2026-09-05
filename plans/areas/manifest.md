@@ -1,6 +1,6 @@
 # Area: manifest
 
-The folders it reads: `manifest`. The process is
+The folders it reads: `manifest` · `gametypes.ts`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 

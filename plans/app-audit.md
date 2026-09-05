@@ -243,8 +243,9 @@ one row names it. That is the test two earlier gaps failed (chat's files and
 the game scaffolding were on no roster until something needed to be *filed*),
 and keying to folders makes it answerable by looking rather than remembering.
 **An area may span two or three tiny sibling folders** when they are one
-subject, because a one-file area helps nobody. What never happens is the
-reverse: no folder is named by two rows.
+subject, because a one-file area helps nobody. The reverse happens once:
+`themes` is named by two rows, because `loadTheme.ts` is `boot`'s and both
+rows say so — still answerable by looking.
 
 **The order is by depth, decided 2026-09-05** from the folder-level import
 graph (who imports whom across `common/` and `shared/`, and which folders the
@@ -271,10 +272,10 @@ will list the other as a dependency whichever goes first.
 |    | **The data path and the boot** | | |
 | 8  | `supabase` | `supabase` · `functions/_shared/envelope.ts` + `dbResult.ts` | **CLOSED 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. The fault sink it reaches is `common-hosts`' to read |
 | 9  | `session` | `session` | **CLOSED 2026-09-05.** who is signed in, and their profile |
-| 10 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
+| 10 | `boot` | `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts` | mounting, the theme load, the session gate, panic, the stale-chunk reload. The two root files were added at the opening (Joel, 2026-09-05), and `loadTheme.ts` with them: it STAYS in `common/themes/` and is audited here, so `themes` is the one folder two rows name |
 | 11 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
 |    | **The look, before anything renders** | | |
-| 12 | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns, and the theme chain |
+| 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | the stylesheets every page loads and none owns, and the theme chain |
 | 13 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
 |    | **The people** | | |
 | 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
@@ -287,7 +288,6 @@ will list the other as a dependency whichever goes first.
 | 19 | `floating-panels` | `floating-panels` | the machinery and shared look of every window-like thing that floats over the page. Not the instances |
 | 20 | `menu` | `menu` | the one menu, its store, and what a game puts in it |
 | 21 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **the question is what earns a mount at the root.** Two defensible rules — *wide*: mounted once at the root, driven by a store, because what triggers it is elsewhere (six things qualify); *narrow*: renders other people's content (the three hosts; `GameInvitations` is headless; `EditProfileModal` and `WordEditDialog` are instances that merely live at the root). Either is fine once written down; the narrow one has to say where the other two go. Also to decide: whether the stores come with the components |
-| 22 | `root-files` | `main.tsx` · `App.tsx` · `gametypes.ts` | the three files in no folder; the shell holds the route table and what hangs off the root, and is not split. After the hosts, because `App.tsx` is mostly what hangs off the root |
 |    | **The feedback system** | | |
 | 23 | `feedback` | `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `turn-log`) | A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-system.md](feedback-system.md) is what it is, [feedback-design.md](feedback-design.md) is the target. `FailureLine` and its stylesheet sit in the folder and were not on the earlier sixteen-file roster — settle that at the opening |
 |    | **Page furniture** | | |
@@ -302,7 +302,7 @@ will list the other as a dependency whichever goes first.
 | 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
 |    | **The game shell** — needed by games and nothing else | | |
-| 33 | `manifest` | `manifest` | the registry and the manifest contract every game fills in |
+| 33 | `manifest` | `manifest` · `gametypes.ts` | the registry and the manifest contract every game fills in. `gametypes.ts` is the registry's list, the one file allowed to import every game; it was `root-files`' until that row folded into this one (Joel, 2026-09-05), once `boot` had taken the other two root files |
 | 34 | `game-page` | `game-page` | the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them |
 | 35 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, and the bordered panel its readouts wear |
 | 36 | `timer` | `timer` | the game clock |
@@ -333,10 +333,11 @@ user to make them consistent for. **The exclusion covers findings ABOUT them,
 not just the files** — a finding about when those routes render is a finding
 about those routes.
 
-**The three root files are the one case where "keyed to folders" needs a row
-of its own.** `App.tsx` is a shell — the route table and what hangs off the
-root — and it does not get split into per-page pieces; the boot/routing line is
-a scope line for the audit, not one the code owes anyone.
+**The three root files are in no folder, so a row names each by file.**
+`main.tsx` and `App.tsx` are `boot`'s and `gametypes.ts` is `manifest`'s.
+`App.tsx` is a shell — the route table and what hangs off the root — and it
+does not get split into per-page pieces; the boot/routing line is a scope line
+for the audit, not one the code owes anyone.
 
 ## 4. The area process — stamps, areas, and what "broken" means
 
