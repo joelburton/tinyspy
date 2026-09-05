@@ -4,7 +4,9 @@ The folders it reads: `outcomes`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** — roster agreed 2026-09-05, audited the same day.
+**Status: CLOSED 2026-09-05** — opened, audited, worked and closed the same
+day. Nine findings, all settled: six worked here, two filed as work for other
+folders, one closed by correcting a doc that stays off the roster.
 
 ## The roster
 
@@ -12,7 +14,7 @@ Three files, the whole of `src/common/outcomes/`:
 
 | file | stamp |
 |---|---|
-| `outcomes.ts` | `cs-met-outcomes` |
+| `outcomes.ts` | `cs-blessed-outcomes` |
 | `doc.md` | *(markdown — no stamp)* |
 | `todo.md` | *(markdown — no stamp; empty at the opening)* |
 
@@ -28,7 +30,7 @@ Two rulings at the opening, both Joel's:
 
 ## Findings
 
-### RESOLVED · F-outcomes-1 · `second-spelling` · The file that says "no second spelling" has one, in seven docstrings and a doc
+### RESOLVED · F-outcomes-1 · `second-spelling` · The file that says "no second spelling" has one, in six docstrings and two docs
 
 `outcomes.ts`'s own docstring: *"**One list, seven words, no second
 spelling**"*, with a parenthetical naming the spelling that was killed
@@ -47,6 +49,7 @@ DESCRIBES the wrong one, so nothing is broken and nothing fails:
 | `src/codenamesduet/lib/turnOutcome.ts` | `bad` / `partial` / `good` |
 | `src/setgame/components/GameTurnLog.tsx` | *"`partial` is the shared amber bar"* |
 | `docs/playarea.md` → the turn log | *"`outcome` is `good` / `bad` / `partial` / `neutral` → the shared `--outcomes-*` palette"* |
+| `docs/games/setgame.md` | the amber hint bar, *"(`partial`)"* |
 
 The doc row is the worst of them, because it is not a slip: it TEACHES the
 dead spelling as the vocabulary, and the tokens it promises
@@ -122,7 +125,7 @@ following it ships three missing cells and the guard fails on a step the doc
 never told them to take. `wash`, `bar` and `terminalFrame` all postdate the
 prose.
 
-### RESOLVED · F-outcomes-4 · `hand-cut-subsets` · A subset of `Outcome` is retyped by hand a dozen times, and the repo already has the right idiom
+### RESOLVED · F-outcomes-4 · `hand-cut-subsets` · A subset of `Outcome` is retyped by hand wherever one is wanted, and the repo already has the right idiom
 
 `connections/lib/evaluate.ts` does it properly:
 
@@ -133,7 +136,7 @@ export type GuessOutcome = Extract<Outcome, 'won' | 'near' | 'lost'>
 Nowhere else does. The hand-cut ones, none of which break if `Outcome`
 renames a member:
 
-- `common/turn-log/TurnLog.tsx` — `export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'`, the one with consumers in six games
+- `common/turn-log/TurnLog.tsx` — `export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'`, the one imported by other games: codenamesduet, stackdown, letterboxed, strands, scrabble
 - `common/feedback/localPills.ts` — `type OutcomeTone = 'won' | 'lost' | 'neutral'`
 - `common/terminal/terminalCopy.ts` — `tone: 'won' | 'lost' | 'neutral'`
 - `waffle` · `wordle` · `connections` · `psychicnum` — `gameOver: 'won' | 'lost' | 'neutral' | null`, twice each (`Board` and `BoardCol`)
@@ -175,7 +178,7 @@ for `terminalPill`. It is `import type`, so nothing survives to runtime and no
 cycle exists in either direction, but it is a real edge in the wrong direction
 and the `feedback` area should see it rather than discover it.
 
-### F-outcomes-5 · `union-not-tied-to-palette` · Nothing makes an eighth outcome get a color
+### RESOLVED · F-outcomes-5 · `union-not-tied-to-palette` · Nothing makes an eighth outcome get a color
 
 `cssTokens.test.ts` hard-codes its families:
 
@@ -191,8 +194,14 @@ rot and no such reading, so adding a word to `Outcome` compiles, passes every
 guard, and renders with no color.
 
 **Guards are not part of the audit** (Joel's ruling at the `web-storage`
-opening), so this is recorded for a ruling rather than fixed on sight — but
+opening), so this was recorded for a ruling rather than fixed on sight — but
 the precedent for the fix is eleven files away.
+
+**Resolution:** fixed here, on Joel's ruling. `families` is now read out of the
+`Outcome` union, the same way `raiseCodes.test.ts` reads it, with a docstring
+saying what a hand-written list would let through. **Verified by planting** an
+eighth member: the guard names all seven missing cells and the theme file to
+write them in, then passes again once the plant is removed.
 
 ### RESOLVED · F-outcomes-6 · `provisional-is-daylight-only` · A per-theme fact is written as a property of the palette
 
@@ -212,28 +221,30 @@ its href is `../src/common/outcomes/outcomes.ts`. The link guard checks the
 target, so it passes; only a reader is misled. Same sentence, both halves
 visible at once.
 
-### F-outcomes-8 · `turn-outcome-four` · The four-value log vocabulary is already pinching, and the doc says it isn't
+### RESOLVED · F-outcomes-8 · `turn-outcome-four` · The four-value log vocabulary is already pinching, and the doc says it isn't
 
 `docs/outcomes.md` on `TurnOutcome`: *"That type lists four because four are
 what the games have needed so far, not because a rule keeps the others out.
 Nothing stops a log row being `warning` or `noted`; widen the type when a game
 wants one."*
 
-Two games already want one and took `near` instead, both saying so in their
-docstrings:
+Four games already want a fifth word, and each of them bent an existing one
+instead — saying so, at length, in a docstring:
 
-- **letterboxed** paints hint and spoiler rows `near`, described as *"help
-  taken, matching psychicnum's reveal rows and the amber of the Hint / Spoiler
-  buttons themselves."* Help taken is `warning` by `docs/outcomes.md`'s own
+- **stackdown**, **letterboxed** and **setgame** all paint a hint row `near`.
+  letterboxed describes it as *"help taken, matching psychicnum's reveal rows
+  and the amber of the Hint / Spoiler buttons themselves"*, and setgame's
+  comment cites stackdown. But a hint is `warning` by `docs/outcomes.md`'s own
   definition — *"Help you asked for … amber for the same reason its button
   is."*
-- **strands** paints a spent hint `neutral` and argues the fourth value into
-  the job at length, closing with *"it keeps the four bar colors reading as
-  one scale … without a fifth thing competing for attention."*
+- **strands** goes the other way, paints a spent hint `neutral`, and argues the
+  fourth value into the job, closing with *"it keeps the four bar colors
+  reading as one scale … without a fifth thing competing for attention."*
 
 So the truth is the opposite of the doc's: the four is not "what has been
-needed", it is a ceiling that games have bent a word to fit — three of them,
-in fact; setgame does it too, and each cites the last as precedent.
+needed", it is a ceiling that four games have worked around — three of them
+onto one word, the fourth onto a different one, which is what a missing word
+looks like from the outside.
 
 **Joel's ruling, at this finding:** *"why should we even HAVE TurnOutcome?
 ANY OUTCOME CAN BE A TURN OUTCOME. there is no difference between them."* So
@@ -251,14 +262,30 @@ and the one a player sees; `help` is a category name with no surface.
 This leaves `docs/outcomes.md`'s paragraph on `TurnOutcome` wrong twice over —
 about why the type is four, and about the mapping it points at.
 
-### F-outcomes-9 · `design-owed` · The folder's `doc.md` is a pointer, and it owes a Design
+### RESOLVED · F-outcomes-9 · `design-owed` · The folder's `doc.md` is a pointer, and it owes a Design
 
 `src/common/outcomes/doc.md` is one sentence that forwards to
 `docs/outcomes.md`, and `common/outcomes` is on `DESIGNS_OWED` in
 `src/guards/folderDocs.test.ts`. What only the FOLDER can say — and what no
 file in it says today — is why a vocabulary gets a folder of its own with a
 single type in it, and what the boundary is between the vocabulary and the
-things that consume it.
+things that consume it. Its list of six is also missing `error`, which
+`outcomes.ts` argues at length is a full member.
+
+**Resolution:** Design written on those three subjects and nothing else — why
+a vocabulary earns a folder, the unusually sharp boundary (the folder owns the
+WORDS: not the colors, not the text, not which word a situation picks, and so
+no logic and no local test), and the rule this area established that a subset
+is `Extract`ed and declared with its consumer rather than collected here. The
+`Extract` rule closes with the test a subset has to pass: the terminal three
+are genuinely narrower because `near` and `warning` judge a move and a finished
+game has none, while "how a turn reads" was never narrower at all.
+
+Nothing in it recites `outcomes.ts` or `docs/outcomes.md`; the lede points at
+the canonical doc and the Design cites the type for the words' own reasoning.
+Row deleted from `DESIGNS_OWED`, and the guard verified from both sides — it
+fails on a Design while the row stands, and on a row-less folder with no
+Design.
 
 ## Notes
 
@@ -272,21 +299,29 @@ things that consume it.
   from its neighbors in a sentence, one type, one spelling in code, and two
   independent guards already pinning it to the SQL and to the palette. Every
   finding here is about prose that drifted away from it, not about the list.
-- **`raiseCodes.test.ts` reads the union and `cssTokens.test.ts` does not** —
-  the same repo, the same folder, two answers to the same question. Worth
-  carrying into whichever area owns guards, if one ever does.
+- **Both guards read the union now** (F-outcomes-5), so the vocabulary has no
+  hand-written copy of itself left anywhere in `src/guards/`.
 - **Dependencies listed and left:** `common/themes/{daylight,midnight}.css`
-  (the `--outcomes-*` bucket, `corecss`'s), `common/turn-log/TurnLog.tsx`
-  (`TurnOutcome`, `turn-log`'s), `common/feedback/localPills.ts` and
-  `common/terminal/terminalCopy.ts` (`feedback`'s and `terminal`'s).
+  (the `--outcomes-*` bucket, `corecss`'s) and `common/turn-log/TurnLog.tsx`
+  (`TurnOutcome`, `turn-log`'s, with two Bugs filed against it).
+  `common/terminal/terminalCopy.ts` and `common/feedback/localPills.ts` were
+  not left — this area edited both for F-outcomes-4, without moving their
+  stamps.
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+**None predicted, and none happened.** Everything this area changed was either
+prose or a type-level narrowing that already held at every call site, so no
+spec asserted the old shape. The two guards it did touch were verified by
+planting instead: an eighth outcome for the palette rectangle, and the
+`DESIGNS_OWED` row put back with the Design in place.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — the one open item is the `status.terminal_cause` rename
+- [x] every file on the roster blessed, or its stamp says why not —
+      `outcomes.ts` is `cs-blessed-outcomes`; the two markdown files take no
+      stamp

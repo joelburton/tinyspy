@@ -80,7 +80,7 @@ const DESIGNS_OWED: string[] = [
   'common/game-page', 'common/home', 'common/info-sheet',
   'common/invitations', 'common/keyboard', 'common/lists', 'common/loading',
   'common/manifest', 'common/members', 'common/menu', 'common/mobile',
-  'common/move-flash', 'common/outcomes', 'common/page-header',
+  'common/move-flash', 'common/page-header',
   'common/pause-suspend', 'common/pdf', 'common/realtime', 'common/reveal',
   'common/routing', 'common/scratchpad', 'common/session', 'common/setup-form',
   'common/single-flight', 'common/supabase', 'common/terminal', 'common/text',

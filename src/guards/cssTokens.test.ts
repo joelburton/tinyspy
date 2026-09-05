@@ -376,6 +376,28 @@ describe('the color families are complete rectangles', () => {
    * family was designed from, and its siblings derive from IT rather than from
    * each other, so no formula silently inherits another's tweak.
    */
+
+  /**
+   * The outcome families, read out of the type rather than retyped here.
+   *
+   * A hand-written list would let a new outcome ship with no color at all: the
+   * type would compile, this rectangle would still be complete for the seven
+   * it knew about, and the eighth would resolve to nothing in both themes and
+   * all seven roles. The word is the one thing a new outcome cannot do
+   * without, so the list has to come from where the words are authored.
+   */
+  const outcomeFamilies = (): string[] => {
+    const src = readFileSync(join(SRC, 'common/outcomes/outcomes.ts'), 'utf8')
+    // Up to the next blank line, or the end of the file — the union is the last
+    // thing in its module, and requiring a trailing blank line would make this
+    // fail for a reason that has nothing to do with color.
+    const decl = src.match(/export type Outcome\s*=([\s\S]*?)(?:\n\s*\n|$)/)
+    expect(decl, 'couldn\'t find `export type Outcome` in common/outcomes/outcomes.ts').toBeTruthy()
+    const families = [...decl![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!)
+    expect(families.length, 'the Outcome union parsed as empty').toBeGreaterThan(0)
+    return families
+  }
+
   const BUCKETS = [
     {
       bucket: 'button',
@@ -392,7 +414,7 @@ describe('the color families are complete rectangles', () => {
     },
     {
       bucket: 'outcomes',
-      families: ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'],
+      families: outcomeFamilies(),
       variants: [
         'base-color',
         'ink-color',

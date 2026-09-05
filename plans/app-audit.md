@@ -52,6 +52,23 @@ choice rather than a case for a second hook. One thing found and left:
 `chatOpenStore.test.ts` is the last hand-rolled storage fake, a line in
 `src/common/chat/todo.md`.
 
+**`outcomes` is closed** (2026-09-05): `outcomes.ts` is `cs-blessed-outcomes`,
+and all nine findings are settled — six worked, two filed as work other folders
+own, one closed by correcting a doc that stayed off the roster. The vocabulary
+itself held up; what had drifted was every sentence about it. The file claiming
+"no second spelling" had one — `good` / `bad` / `partial` for `won` / `lost` /
+`near`, in six docstrings and two docs, all of which wrote the right string in
+the code beside the wrong word. The palette had grown from four roles to seven
+without the prose noticing, so the recipe for adding an outcome told a reader to
+ship three missing cells. And one concept — how a finished game reads — was
+retyped by hand in twelve places under three spellings; it is `TerminalOutcome`
+now, `Extract`ed from the list so a rename breaks it instead of leaving it
+behind, and the rule that a subset lives with its consumer is written in the
+folder's `doc.md`. Two things found and handed on, both to `turn-log`:
+`TurnOutcome` is a second name for `Outcome` with three words missing, and the
+missing `warning` is why four games work around it to log a hint row. One thing
+found and left for `pdf`: its printed ✓/✗ marks are still glossed `good` / `bad`.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -147,7 +164,7 @@ will list the other as a dependency whichever goes first.
 | 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
 | 2  | `icons` | `icons` | **CLOSED 2026-09-04.** the glyph registry — every glyph, under the name of what it means |
 | 3  | `web-storage` | `web-storage` | **CLOSED 2026-09-05.** storage that cannot throw, and the sticky-choice hook |
-| 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
+| 4  | `outcomes` | `outcomes` | **CLOSED 2026-09-05.** the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | the guard every submit wraps |
 | 6  | `mobile` | `mobile` | the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
 | 7  | `routing` | `routing` | the router and `usePath` |
