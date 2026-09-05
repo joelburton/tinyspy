@@ -21,9 +21,7 @@
  * `--phone` in useIsPhone.ts, `--touch` in useIsCoarsePointer.ts. `var()` and
  * custom-media aren't reachable from matchMedia, so each of those hooks writes
  * its condition out again; each one's spec reads this file and asserts the two
- * still match, so changing a value here fails that spec until the hook follows.
- *
- * Thresholds are a first pass — tune against real devices. */
+ * still match, so changing a value here fails that spec until the hook follows. */
 
 /* Touch device (phone OR tablet) — the signal for "no precise pointer": disable
  * dragging, favor bigger tap targets. NOT width-based; a touch tablet is touch. */

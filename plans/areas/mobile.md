@@ -5,8 +5,8 @@ The folders it reads: `mobile`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1 through F-mobile-8, F-mobile-11, F-mobile-13.
-Open: F-mobile-9, F-mobile-10, F-mobile-12.
+below; worked so far: F-mobile-1 through F-mobile-9, F-mobile-11, F-mobile-13.
+Open: F-mobile-10, F-mobile-12.
 
 ## The roster
 
@@ -342,7 +342,7 @@ and not a conformance edit:
   `!import.meta.env.DEV || typeof window === 'undefined'` guarding a dev-only
   config branch, belt-and-braces rather than a phantom SSR case.
 
-### F-mobile-9 · `first-pass-thresholds` · A to-do lives in a file header
+### WORKED · F-mobile-9 · `first-pass-thresholds` · A to-do lives in a file header
 
 `breakpoints.css` ends its header with *"Thresholds are a first pass — tune
 against real devices"*, and `docs/mobile.md` says *"a starting proposal — tune
@@ -352,6 +352,16 @@ sentences go; or tuning is still owed, and it is a `todo.md` → Someday line
 with the device it is waiting on, not a header caveat. (`useIsMobile`'s "(see
 docs/mobile.md)" and the doc's own description of the 900px choice are the
 reasoning; the caveat adds nothing to it.)
+
+**Ruled (Joel, 2026-09-05): decided.** Both sentences are gone, and no `todo.md`
+line replaces them — nothing is owed. The stylesheet's header now ends on the
+mirrors and their specs; `docs/mobile.md` says the thresholds are settled and
+names what settled them (the mobile pass, the phone-viewport e2e specs, the
+gallery), so the next reader gets the standing rather than a caution to weigh.
+
+The reasoning for the numbers themselves was never in these sentences and is
+untouched: the doc's account of why 900px (phones and portrait tablets take one
+treatment) and `useIsMobile`'s pointer to it.
 
 ### F-mobile-10 · `tests-owed` · Which tests are worth writing, unit by unit
 

@@ -76,8 +76,8 @@ behaviors, layout collapse, phone-tight tweaks). `--phone-p` / `--phone-l` earn
 their keep by composing `--phone`, and are there for a tweak that wants one
 orientation only. The two tablet classes are vocabulary — nothing reads them
 today; they exist so a tablet-only tweak has a name waiting rather than a
-hand-written condition. The thresholds above are a **starting proposal — tune
-against real devices.**
+hand-written condition. The thresholds above are **settled** — they have been
+through the whole mobile pass, the phone-viewport e2e specs and the gallery.
 
 **Mechanism (wired up):** `postcss-custom-media` + `@csstools/postcss-global-data`,
 configured in [`postcss.config.js`](../postcss.config.js) — global-data injects
