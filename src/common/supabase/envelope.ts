@@ -115,7 +115,7 @@ export type Envelope<T = unknown> =
       //
       //     'letters'   the message belongs under that field
       //     '_'         deliberately not about one field — the form's own line
-      //     null        the raise didn't say; a SQL-side guard catches it
+      //     null        the raise didn't say; `raiseCodes.test.ts` fails it
       //
       // `'_'` is a real value rather than a stand-in for nothing, and always
       // exactly one field: docs/envelopes.md → The keys. Every form reads it as
@@ -140,4 +140,4 @@ export type Envelope<T = unknown> =
  * message plus a diagnostics line" is the thing this replaced: nothing could say
  * which callers were supposed to build one, because the rule did not exist.
  */
-export type NotOkEnv = Extract<Envelope<unknown>, { type: 'not-ok' }>
+export type NotOkEnvelope = Extract<Envelope<unknown>, { type: 'not-ok' }>

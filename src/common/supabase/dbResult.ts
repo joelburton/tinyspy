@@ -7,7 +7,7 @@ import {
 } from './dbEnvelope'
 import { logDb, type DbLogKind, type TransportFacts } from './dbLog'
 import type { Outcome } from '../outcomes/outcomes'
-import type { Envelope, NotOkEnv, Severity } from './envelope'
+import type { Envelope, NotOkEnvelope, Severity } from './envelope'
 
 /**
  * **The server-result wrappers.** Classification and the three wrappers —
@@ -171,7 +171,7 @@ function envelopeForDbError(
   environmentalDetail: string | undefined,
   fallback: string,
   extra?: string,
-): NotOkEnv {
+): NotOkEnvelope {
   const situation = situationFor(settled.statusText)
   if (situation) return environmentalEnvelope(situation, environmentalDetail)
   if (nothingAnswered(settled.status)) return nothingReachedUs(environmentalDetail)

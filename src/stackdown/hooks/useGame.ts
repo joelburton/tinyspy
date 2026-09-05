@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { Tile } from '../lib/board'
@@ -127,7 +127,7 @@ export function useGame(gameId: string): {
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: NotOkEnv | null
+  failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<StackdownGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
@@ -139,7 +139,7 @@ export function useGame(gameId: string): {
   // back onto the board during the round-trip. Pruned in `load()`.
   const [pendingRemoved, setPendingRemoved] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnv | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
   // Apply a word event to the local in-progress word. Idempotent (append
   // skips a tile already in the word, retract/clear are slice/empty,

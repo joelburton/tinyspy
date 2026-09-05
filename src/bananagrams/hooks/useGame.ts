@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { Member } from '@/common/members/member'
 
 /** Cross-game vocabulary: a player in a bananagrams game is just a
@@ -39,7 +39,7 @@ export type Player = Member
 export function useGame(gameId: string, userId: string) {
   const [initialBoard, setInitialBoard] = useState<string | null>(null)
   const [tiles, setTiles] = useState('')
-  const [failure, setFailure] = useState<NotOkEnv | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const seeded = useRef(false)
 
   useRealtimeRefetch({

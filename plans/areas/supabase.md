@@ -94,6 +94,16 @@ truthfully that nothing checks it and the form's default is what catches it.
 `common.sql`'s stamp stays where it is either way; the edit is to two comment
 lines.
 
+**Resolved 2026-09-05 — (a), Joel's ruling ("do it").** A new `it` in
+`raiseCodes.test.ts`, `names a column on every form-validation raise`: every
+SQL raise whose `using` carries `hint = 'form-validation'` must also carry
+`column =`. SQL only, because the Deno `formValidation` builder takes the field
+as a required argument. Passed on day one (all 24 such raises carry one) and
+went red when one was planted without it. Both comments now name that file;
+the `plans/areas/forms.md` cite in the same `common.sql` paragraph became
+docs/envelopes.md → The keys. `raiseCodes.test.ts` is `cs-unmet` under the
+guards area; a forward fix, stamp untouched.
+
 ## F-supabase-4 · `envelopeerrorpage-ghost` · Two docstrings name a component that does not exist
 
 `dbEnvelope.ts` (`envAndTransportToDiagFields`) and `dbLog.ts` (`DiagFields`)
@@ -187,6 +197,12 @@ The type is `Envelope`; every neighbor spells it out — `faultEnvelope`,
 "environment" two lines from `environmentalEnvelope`. Rename to
 `NotOkEnvelope`: 69 mentions across 24 files, a mechanical sweep with no
 stamps moving.
+
+**Resolved 2026-09-05 — renamed, Joel's ruling ("do it").** Every code
+mention, plus docs/envelopes.md (a type name is a claim about this folder's
+file) and plans/error-system.md (so a grep of the closed sprint's record still
+lands). The old spelling survives only in this file's findings, which record
+what was read. No stamps moved; `tsc -b` is the check.
 
 ## F-supabase-14 · `plan-cited-from-code` · A spec cites "the plan"
 

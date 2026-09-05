@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { Link } from '../routing/Link'
 import { diagnosticsLine } from '../supabase/dbLog'
 import { cls } from '../utils/cls'
-import type { NotOkEnv } from '../supabase/envelope'
+import type { NotOkEnvelope } from '../supabase/envelope'
 import styles from './ErrorPage.module.css'
 
 type Props = {
@@ -36,7 +36,7 @@ type Props = {
  * anything else), and a not-ok that reached a whole-page dead end is a fault
  * whatever raised it.
  */
-export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOkEnv; action?: ReactNode }) {
+export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOkEnvelope; action?: ReactNode }) {
   return (
     <ErrorPage
       message={envelope.message}

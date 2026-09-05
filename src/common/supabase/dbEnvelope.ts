@@ -2,7 +2,7 @@
 
 import { showFaultModal } from '../faults/faultStore'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'
-import type { Envelope, NotOkEnv } from './envelope'
+import type { Envelope, NotOkEnvelope } from './envelope'
 
 /**
  * **Building an envelope for a failure that never had one, and presenting it.**
@@ -246,7 +246,7 @@ export function faultEnvelope(
   fallback: string,
   extra: string | undefined,
   ourCode: string,
-): NotOkEnv {
+): NotOkEnvelope {
   // Postgres's HINT is folded into `detail` rather than dropped. Our own raises
   // use HINT as an inter-function channel and never forward it — but a RAW
   // fault's hint is Postgres talking, and it is frequently the most useful
@@ -290,7 +290,7 @@ export function faultEnvelope(
 export function environmentalEnvelope(
   situation: { code: string; text: string },
   detail?: string,
-): NotOkEnv {
+): NotOkEnvelope {
   return {
     type: 'not-ok',
     data: null,
@@ -333,7 +333,7 @@ function clampDetail(detail: string | undefined): string | null {
  * differently, and the value is ambient — reading it here is reading it at the
  * same moment either way.
  */
-export function nothingReachedUs(detail?: string): NotOkEnv {
+export function nothingReachedUs(detail?: string): NotOkEnvelope {
   const offline = typeof navigator !== 'undefined' && !navigator.onLine
   const { offline: OFFLINE, unreachable: UNREACHABLE } = NO_ANSWER_TO_CODE_AND_TEXT
   return environmentalEnvelope(offline ? OFFLINE : UNREACHABLE, detail)
@@ -419,7 +419,7 @@ export type DbCallOptions = {
  */
 export function reportDbFault(
   transport: TransportFacts,
-  envelope: NotOkEnv,
+  envelope: NotOkEnvelope,
   opts?: DbCallOptions,
 ): void {
   const diagnostics = logDb('FAULT', envAndTransportToDiagFields(transport, envelope), envelope.message)

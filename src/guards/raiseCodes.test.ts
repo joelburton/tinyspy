@@ -150,6 +150,30 @@ describe('the raise codes', () => {
     expect(wrong, 'a hint outside the vocabulary lands in the envelope verbatim').toEqual([])
   })
 
+  // A form-validation says WHICH FIELD in COLUMN, and `'_'` is the spelling for
+  // "not one field" (docs/envelopes.md → The keys). A raise that writes neither
+  // is not caught by anything downstream: `get stacked diagnostics` hands the
+  // handler '' for a missing column, the envelope carries `field: null`, and
+  // every form reads that as its own line via `?? FORM_ERROR_KEYNAME`. The
+  // message lands somewhere plausible and nobody notices it is the wrong place.
+  //
+  // SQL only. The Deno builder takes the field as a required argument, so it
+  // cannot be left out there.
+  it('names a column on every form-validation raise', () => {
+    const columnless: string[] = []
+    for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join(SQL_DIR, file), 'utf8')
+      for (const m of sql.matchAll(/raise exception\s[\s\S]*?\busing\b([\s\S]*?);/g)) {
+        const using = m[1]!
+        if (!/hint\s*=\s*'form-validation'/.test(using)) continue
+        if (/\bcolumn\s*=/.test(using)) continue
+        const code = using.match(/errcode\s*=\s*'([^']*)'/)
+        columnless.push(`${file}: ${code ? code[1] : '(no errcode)'}`)
+      }
+    }
+    expect(columnless, "a form-validation with no COLUMN — say the field, or '_' for none").toEqual([])
+  })
+
   // A `not-ok` says how bad it is in HINT and how it READS in CONSTRAINT, and
   // the second is easy to write and lose: `get stacked diagnostics` only gives
   // you the fields you ask for, so a handler that doesn't request

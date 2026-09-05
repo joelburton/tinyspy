@@ -5,7 +5,7 @@ import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { supabase } from '@/common/supabase/supabase'
 import { type DbError } from '@/common/supabase/dbEnvelope'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { FoundWordsGame, FoundWordsWord, FoundWordRow } from './foundWords'
 
 /** The schema names of the found-words rank-ladder games — whatever
@@ -68,7 +68,7 @@ export function makeFoundWordsGame(schema: GameSchema) {
     rowsLoaded: boolean
     /** Set when a read FAILED, which is not the same as the game being absent.
      *  The surface renders this instead of "Game not found." */
-    failure: NotOkEnv | null
+    failure: NotOkEnvelope | null
   } {
     const [game, setGame] = useState<FoundWordsGame | null>(null)
     const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
@@ -79,8 +79,8 @@ export function makeFoundWordsGame(schema: GameSchema) {
     // the found list refetches on every event, so its failure should clear the
     // moment one works. One shared slot would let a successful refetch erase a
     // header failure that is still true.
-    const [headerFailure, setHeaderFailure] = useState<NotOkEnv | null>(null)
-    const [rowsFailure, setRowsFailure] = useState<NotOkEnv | null>(null)
+    const [headerFailure, setHeaderFailure] = useState<NotOkEnvelope | null>(null)
+    const [rowsFailure, setRowsFailure] = useState<NotOkEnvelope | null>(null)
 
     // The immutable header (letters + both word lists) — fetched once per game.
     // `loading` gates the PlayArea render, so it flips here.

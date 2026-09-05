@@ -6,7 +6,7 @@ import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
 import { onPostgresAttached } from '@/common/realtime/postgresAttached'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
 import { db } from '../db'
 import type { Database } from '@/types/db'
@@ -169,7 +169,7 @@ export function useGame(
    * the modal is an escalation, not a replacement: this is what remains once
    * the fault modal is dismissed).
    */
-  failure: NotOkEnv | null
+  failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
@@ -178,7 +178,7 @@ export function useGame(
     () => new Map(),
   )
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnv | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)

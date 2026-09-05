@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { KeyLabel } from '../lib/labels'
@@ -86,7 +86,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const peerKey =
     revealPeer && fetchedFor === `${gameId}:${userId}` ? fetchedPeerKey : null
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnv | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
   useRealtimeRefetch({
     tables: [

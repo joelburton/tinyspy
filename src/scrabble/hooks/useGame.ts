@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnv } from '@/common/supabase/envelope'
+import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { Cell } from '../lib/board'
 
@@ -76,13 +76,13 @@ export function useGame(gameId: string): {
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
-  failure: NotOkEnv | null
+  failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<ScrabbleGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [plays, setPlays] = useState<PlayRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnv | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
   // Subscribe to the base tables (games / players / plays); `load` reads the
   // VIEWS (games_state / players_state) so the bag stays a count and a compete

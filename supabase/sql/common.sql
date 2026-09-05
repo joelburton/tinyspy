@@ -62,14 +62,14 @@ grant usage on schema common to authenticated;
 --
 --   column = 'letters'   the message belongs under that field
 --   column = '_'         deliberately not about one field — the form's own line
---   (no column)          an oversight; the guard in serverErrorKeys.test.ts fails it
+--   (no column)          an oversight; the guard in src/guards/raiseCodes.test.ts fails it
 --
 -- The marker exists because `get stacked diagnostics` cannot return null for
 -- COLUMN — an absent one arrives as ''. Without '_', "the author decided this
 -- isn't about a field" and "the author forgot" would be the same value, and
 -- neither the guard nor a reader could tell them apart. '_' also travels
 -- unchanged all the way to the form's error object as its form-level key
--- (plans/areas/forms.md), so one string serves all three layers.
+-- (docs/envelopes.md → The keys), so one string serves all three layers.
 --
 -- `when others` rather than `when sqlstate …` because WHEN SQLSTATE accepts
 -- only a literal code — no patterns, no variables. Anything not ours is
