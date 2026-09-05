@@ -17,14 +17,19 @@ still open or still process.
 
 ## Where to start
 
-**Every file is `cs-unmet`** (2026-09-05). The three areas that had closed —
-`deep`, `utils`, `game-lib` — are gone from the table below with their
-blessings; Joel: *"it's super-easy for me to rebless things when we go into an
-area where i've already seen the files."*
+**Every file was `cs-unmet`** on 2026-09-05, when the sprint restarted. The
+three areas that had closed — `deep`, `utils`, `game-lib` — went from the table
+below with their blessings; Joel: *"it's super-easy for me to rebless things
+when we go into an area where i've already seen the files."*
 
-**`utils` is next** — the order is by depth now (§3), and it is the folder
-thirty others and every game read. It opens the way every area opens: **list
-the files and STOP** (§4), and its first read is `src/common/utils/todo.md`.
+**`utils` is closed** (2026-09-04): ten files `cs-blessed-utils`, eight
+findings worked or closed, and a shared `shuffle` written where nine hand-rolled
+Fisher–Yates loops had been — those nine callers are a line in seven games'
+`todo.md`, to convert as each area opens.
+
+**`icons` is next by the order** (§3, by depth). It opens the way every area
+opens: **list the files and STOP** (§4), and its first read is
+`src/common/icons/todo.md`.
 
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
@@ -118,8 +123,8 @@ will list the other as a dependency whichever goes first.
 | #  | area | the folders it reads | what it is |
 |----|---|---|---|
 | | **Foundations** — read by nearly everything, reading nothing | | |
-| 1  | `utils` | `utils` | **NEXT.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
-| 2  | `icons` | `icons` | the glyph registry |
+| 1  | `utils` | `utils` | **CLOSED 2026-09-04.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
+| 2  | `icons` | `icons` | **NEXT.** the glyph registry |
 | 3  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
 | 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | the guard every submit wraps |

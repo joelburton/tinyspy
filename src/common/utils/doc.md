@@ -17,7 +17,8 @@ it has a contract worth pinning.
   [where a new file goes](../../../docs/common-folders.md#where-does-a-new-file-go):
   count is not the test.
 - **A util the edge functions import carries no imports at all.** Deno reaches
-  into this folder by relative path with an explicit `.ts` (`mulberry32`), so
+  into this folder by relative path with an explicit `.ts` (`mulberry32`
+  today, and `shuffle` is written to the same rule for the same reason), so
   such a file cannot use the `@/` alias, React or the DOM. `linkify` is `.tsx`
   and browser-only, which is fine; it is simply not one Deno can load.
 - **Randomness is seeded where the sequence must repeat, and `Math.random()`

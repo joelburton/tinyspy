@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-blessed-utils
 
 /**
  * Render an ISO timestamp as a "friendly" relative date — the short form a

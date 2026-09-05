@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-blessed-utils
 
 /**
  * Tiny class-name combiner. Hand-rolled rather than clsx/classnames

@@ -4,14 +4,13 @@ The folders it reads: `utils`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-04). Roster agreed, every file stamped
-`cs-met-utils`, lede + Design written, findings recorded. F-utils-1
-(`shuffle-six-copies`) worked — the util and its test ship, and its nine
-callers are a line in each game's `todo.md`. F-utils-2 (`linkify-home`) closed
-on Joel's ruling; F-utils-3 through F-utils-8 worked, F-utils-5 on branch (a)
-(the docstring tells the truth, the three lines stay as they are). **Every
-finding is now worked or closed**; what the area still owes is the closing
-list at the bottom.
+**Status: CLOSED** (2026-09-04). Every roster file is `cs-blessed-utils`, the
+closing list at the bottom is done, and `doc.md` holds what outlives this file.
+Every finding is worked or closed: F-utils-1 (`shuffle-six-copies`) shipped the
+util and its test, and its nine callers are a line in each game's `todo.md`;
+F-utils-2 (`linkify-home`) closed on Joel's ruling that both helpers are
+general; F-utils-3, -4, -6, -7 and -8 worked; F-utils-5 took branch (a) — the
+docstring tells the truth and the three log lines stay as they are.
 
 ## The roster
 
@@ -19,14 +18,14 @@ list at the bottom.
 
 | file | what it is | stamp |
 |---|---|---|
-| `cls.ts` | class-name combiner | `cs-met-utils` |
-| `friendlyDate.ts` + `.test.ts` | relative-date ladder for the club page's game list | `cs-met-utils` |
-| `linkify.tsx` + `.test.tsx` | URLs in a run of text become `<a>`s | `cs-met-utils` |
-| `logStamp.ts` | the `HH:MM:SS.mmm` console stamp | `cs-met-utils` |
-| `mulberry32.ts` + `.test.ts` | the seedable random-number generator | `cs-met-utils` |
-| `shuffle.ts` + `.test.ts` | Fisher–Yates, a copy back, optional seeded rng — written by this area (F-utils-1) | `cs-met-utils` |
+| `cls.ts` | class-name combiner | `cs-blessed-utils` |
+| `friendlyDate.ts` + `.test.ts` | relative-date ladder for the club page's game list | `cs-blessed-utils` |
+| `linkify.tsx` + `.test.tsx` | URLs in a run of text become `<a>`s | `cs-blessed-utils` |
+| `logStamp.ts` | the `HH:MM:SS.mmm` console stamp | `cs-blessed-utils` |
+| `mulberry32.ts` + `.test.ts` | the seedable random-number generator | `cs-blessed-utils` |
+| `shuffle.ts` + `.test.ts` | Fisher–Yates, a copy back, optional seeded rng — written by this area (F-utils-1) | `cs-blessed-utils` |
 | `doc.md` | lede + Design, written at the opening | — |
-| `todo.md` | empty in all four sections at the opening | — |
+| `todo.md` | empty in all four sections, at the opening and at the close | — |
 
 No CSS, no hooks, no component. Dependents are not on the roster: `cls` alone
 is imported by 116 files, and Deno reaches `mulberry32` by relative path.
@@ -35,7 +34,7 @@ is imported by 116 files, and Deno reaches `mulberry32` by relative path.
 up in the tree (callers, named files, the seed formula, the `>>> 0`
 normalization, the `[rpc]` line), the docstring-marker pass (`/**` only on a
 file, type or function), the naming rules, and the folder's own tests + eslint
-(24 tests, both green at the opening).
+(24 tests at the opening, 28 at the close, green each time).
 
 ## Findings
 
@@ -240,7 +239,16 @@ the answer to "what would converging the three cost" if that is ever revisited
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — one thing
+      found: `doc.md`'s Deno bullet named only `mulberry32`, and `shuffle` was
+      written import-free for exactly that reason. The bullet names both now.
+      Nothing else had drifted; the folder is small enough that a claim and
+      its subject sit on the same screen.
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file.
+      `utils`' own `todo.md` stays empty in all four sections — the folder is
+      owed nothing. What this area produced for others is the nine `shuffle`
+      lines, in the seven games' `todo.md`.
+- [x] every file on the roster blessed, or its stamp says why not — all ten
+      code files `cs-blessed-utils`; `doc.md` and `todo.md` take no stamp
+      (markdown is outside the stamper's scope)

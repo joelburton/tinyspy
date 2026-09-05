@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-blessed-utils
 
 /**
  * `HH:MM:SS.mmm` wall-clock stamp — **what the three console diagnostic

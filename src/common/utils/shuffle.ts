@@ -1,4 +1,4 @@
-// cs-met-utils
+// cs-blessed-utils
 
 /**
  * Put the items in a random order. You get a NEW array back and the one you
