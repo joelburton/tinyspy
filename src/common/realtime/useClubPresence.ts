@@ -1,6 +1,6 @@
 // cs-audited-realtime
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from './channelTeardown'
@@ -29,6 +29,13 @@ export type ClubPresenceEntry = { userId: string; gameId: string | null }
  *   - **GamePage** passes `viewingGameId = <gameId>` and ignores the
  *     roster — it's here only to ANNOUNCE that a player is viewing
  *     that game, so the club page can see them.
+ *
+ * The roster ALWAYS contains this client, from the first render: a
+ * caller mounted with a handle is in the orbit by definition — this
+ * hook is the thing announcing it — so nothing here waits on the
+ * server's first sync to know it. That is what keeps the club page
+ * from painting the viewer's own member dot hollow for the length of
+ * a round-trip.
  *
  * The channel name is the bare `club:<handle>` (no per-tab dedup
  * suffix): presence rosters are per-channel-name, so everyone must
@@ -111,6 +118,19 @@ export function useClubPresence(
   }, [clubHandle, selfId, viewingGameId])
 
   // Derived, not setState'd in the effect: with no club we simply
-  // report an empty roster (the effect never subscribes).
-  return clubHandle ? roster : []
+  // report an empty roster (the effect never subscribes), and with one
+  // we merge ourselves in ahead of the first `presence sync`.
+  //
+  // Memoized because a caller keys work off the ARRAY'S IDENTITY, not
+  // just its contents. ClubPage, seeing nobody in the club's current
+  // game, waits 2.5s before clearing that game's `is_current_view` flag
+  // — a grace period for a viewer the roster hasn't heard about yet —
+  // and starts the wait over each time the roster changes. A fresh array
+  // on every render would read as a change and postpone that write
+  // forever. Once the sync reports us, `roster` itself is the answer.
+  return useMemo(() => {
+    if (!clubHandle) return []
+    if (roster.some((e) => e.userId === selfId)) return roster
+    return [{ userId: selfId, gameId: viewingGameId }, ...roster]
+  }, [clubHandle, roster, selfId, viewingGameId])
 }

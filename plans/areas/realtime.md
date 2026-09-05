@@ -4,7 +4,8 @@ The folders it reads: `realtime`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — read 2026-09-05, findings recorded, none worked.**
+**Status: OPEN — read 2026-09-05; findings recorded and worked one at a time,
+each heading saying whether it is.**
 
 ## The roster
 
@@ -61,7 +62,7 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
 
 Shape findings first, prose findings after, so the prose is written once.
 
-### F-realtime-1 · self-dot-absent-on-first-paint · the club page paints its own member hollow until the first presence sync
+### WORKED · F-realtime-1 · self-dot-absent-on-first-paint · the club page paints its own member hollow until the first presence sync
 
 **Where:** `useClubPresence.ts:43,82,115`; the report is docs/deferred.md:84
 ("BUG — my own member dot reads as absent on the first paint of a club
@@ -89,6 +90,37 @@ pins the roster (`e2e/presence.e2e.ts`) gains a case: the viewer's own dot is
 filled on first paint. The deferred.md entry then comes out (it is a fixed
 bug, not a deferral). Points for Joel: (1) work it here, or (2) move it to
 `realtime/todo.md → Bugs` and leave it.
+
+**Resolution (2026-09-05, Joel: "1.")** — done, as the hook change + an e2e
+case + the deferred.md entry removed.
+
+- **`useClubPresence.ts`** returns a memoized merge: with a handle, self is
+  prepended unless the roster already names that `userId`, so once the sync
+  lands `roster` itself is handed back. Memoized because the identity is a
+  caller dependency — `ClubPage`'s heal has `presence` in its deps and
+  restarts a 2.5s timer whenever it changes, so a fresh array per render
+  would push that timer out indefinitely. That was not in the finding; it
+  turned up on writing the return.
+- **`useClubPresence.test.ts`** gains a second describe. The fake channel now
+  records the `presence sync` handler and takes a `sync(state)` seam, which
+  makes the DEFAULT fake the pre-sync window — the exact thing the club page
+  paints in. Six cases: self before any sync, self carrying `viewingGameId`,
+  no club → empty, self alongside a peer the sync did report, self exactly
+  once when the sync reports us, and a stable identity across a rerender.
+  Planted: with the merge removed three fail, with the `useMemo` removed the
+  identity case fails.
+- **`e2e/presence.e2e.ts`** gains "member dots: your own is filled before the
+  channel answers" — `page.routeWebSocket` accepts the realtime socket and
+  answers nothing, so no sync can land, and Alice's own dot must still be
+  filled while Bob's stays hollow. **Unrun** (e2e runs when the area closes);
+  it is also the suite's first `routeWebSocket`, so treat it as unproven
+  until then.
+- **docs/deferred.md** loses the BUG entry, and the profile-probe entry above
+  it loses its closing "closely related to the entry below" sentence, which
+  had nothing left to point at.
+
+Green: `tsc -b`, `eslint` on the folder and the spec, and vitest over
+`realtime`, `club`, `page-header` and `guards` (332 tests).
 
 ### F-realtime-2 · setup-presence-untested · `useClubSetupPresence` has no unit test
 
@@ -323,9 +355,9 @@ sentence is about this area's subject; the file it names is evidence here.
 
 *(written when the area starts changing things)*
 
-- F-realtime-1: `useClubPresence.test.ts` asserts nothing about the roster's
-  contents, so it stays green; `e2e/presence.e2e.ts` gains a case rather than
-  losing one.
+- F-realtime-1 (worked): held. The teardown-gate cases never read the roster,
+  so they stayed green while the file gained roster cases of its own, and
+  `e2e/presence.e2e.ts` gained a case rather than losing one.
 - F-realtime-6: `useRealtimeRefetch.test.ts` mocks `channelDedupSuffix` to
   `'test-suffix'` and asserts channel NAMES, not log lines — green.
   `e2e/realtime-deaf-window.e2e.ts:95–97` matches `wordwheel:<id>` by

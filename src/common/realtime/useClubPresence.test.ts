@@ -1,7 +1,8 @@
 // cs-audited-realtime
 
 /**
- * Tests for useClubPresence — specifically the stable-name teardown gate.
+ * Tests for useClubPresence — the stable-name teardown gate, and the one
+ * roster claim that needs no server: self is always in it.
  *
  * `club:<handle>` is a ROOM name: every peer must join the identical topic or
  * presence sees nobody, so it can't take the dedup suffix the per-client data
@@ -9,12 +10,15 @@
  * `lib/supabase/channelTeardown.ts`, and this hook is the smallest consumer of
  * the fix — a good place to pin the ORDERING the other three share.
  *
- * The roster projection itself is exercised end-to-end by `e2e/presence.e2e.ts`
- * (member dots, the abandoned-game heal, pause-on-disconnect) with two real
- * browsers, which is the only way to test presence honestly.
+ * The roster projection from a synced channel is exercised end-to-end by
+ * `e2e/presence.e2e.ts` (member dots, the abandoned-game heal,
+ * pause-on-disconnect) with two real browsers, which is the only way to test
+ * presence honestly. What CAN be pinned here is the pre-sync answer: the fake
+ * channel below never syncs, which is exactly the window the club page paints
+ * in on its first render.
  */
 
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const channel = vi.fn()
@@ -26,17 +30,39 @@ vi.mock('../supabase/supabase', () => ({
 import { useClubPresence } from './useClubPresence'
 import { __resetChannelTeardowns } from './channelTeardown'
 
-/** A chainable fake channel, shaped like realtime-js's (incl. `topic`). */
+type PresenceState = Record<
+  string,
+  Array<{ user_id?: string; game_id?: string | null }>
+>
+
+/** A chainable fake channel, shaped like realtime-js's (incl. `topic`).
+ *  Never syncs on its own — `sync()` is the seam a test uses to play the
+ *  server's roster back, so the default state is the pre-sync window. */
 function fakeChannel(name: string) {
+  let onSync: (() => void) | undefined
+  let presence: PresenceState = {}
   const ch: Record<string, unknown> = {
     topic: `realtime:${name}`,
-    on: () => ch,
+    on: (_event: string, _filter: unknown, cb: () => void) => {
+      onSync = cb
+      return ch
+    },
     subscribe: () => ch,
     track: vi.fn(),
     untrack: vi.fn(),
-    presenceState: () => ({}),
+    presenceState: () => presence,
+    sync: (state: PresenceState) => {
+      presence = state
+      onSync?.()
+    },
   }
   return ch
+}
+
+/** The channel the hook joined most recently. */
+function lastChannel() {
+  const { value } = channel.mock.results[channel.mock.results.length - 1]
+  return value as { sync: (state: PresenceState) => void }
 }
 
 beforeEach(() => {
@@ -101,5 +127,55 @@ describe('useClubPresence — stable-name teardown gate', () => {
     renderHook(() => useClubPresence('cl2', null, 'u1'))
     expect(channel).toHaveBeenCalledTimes(2)
     expect(channel).toHaveBeenLastCalledWith('club:cl2', expect.anything())
+  })
+})
+
+describe('useClubPresence — self is in the roster', () => {
+  it('from the first render, before any sync has landed', () => {
+    const { result } = renderHook(() => useClubPresence('cl1', null, 'u1'))
+    expect(result.current).toEqual([{ userId: 'u1', gameId: null }])
+  })
+
+  it('carrying the location the caller announced', () => {
+    const { result } = renderHook(() => useClubPresence('cl1', 'g9', 'u1'))
+    expect(result.current).toEqual([{ userId: 'u1', gameId: 'g9' }])
+  })
+
+  it('but not with no club — that caller has no orbit to be in', () => {
+    const { result } = renderHook(() => useClubPresence(null, null, 'u1'))
+    expect(result.current).toEqual([])
+    expect(channel).not.toHaveBeenCalled()
+  })
+
+  it('alongside a peer, when the sync has not reported us yet', () => {
+    const { result } = renderHook(() => useClubPresence('cl1', null, 'u1'))
+    act(() => lastChannel().sync({ u2: [{ user_id: 'u2', game_id: 'g9' }] }))
+    expect(result.current).toEqual([
+      { userId: 'u1', gameId: null },
+      { userId: 'u2', gameId: 'g9' },
+    ])
+  })
+
+  it('exactly once, when the sync does report us', () => {
+    const { result } = renderHook(() => useClubPresence('cl1', null, 'u1'))
+    act(() =>
+      lastChannel().sync({
+        u1: [{ user_id: 'u1', game_id: null }],
+        u2: [{ user_id: 'u2', game_id: 'g9' }],
+      }),
+    )
+    expect(result.current).toEqual([
+      { userId: 'u1', gameId: null },
+      { userId: 'u2', gameId: 'g9' },
+    ])
+  })
+
+  it('without a new array each render — the identity is a caller dependency', () => {
+    const { result, rerender } = renderHook(() =>
+      useClubPresence('cl1', null, 'u1'),
+    )
+    const first = result.current
+    rerender()
+    expect(result.current).toBe(first)
   })
 })

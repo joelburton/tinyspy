@@ -40,6 +40,35 @@ test.describe('club presence', () => {
     await ctxA.close()
   })
 
+  test('member dots: your own is filled before the channel answers', async ({
+    browser,
+  }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+
+    // Accept the realtime socket and answer nothing on it, so no presence
+    // sync can ever land: the page stays in the window between mount and
+    // the server's first roster, which is the window it paints its first
+    // render in. Alice is present in it regardless — she is the one looking.
+    await page.routeWebSocket(/realtime\/v1\/websocket/, () => {})
+    await page.goto(`/c/${club.handle}`)
+
+    await expect(
+      page.getByTitle('In the club').filter({ hasText: alice.username }),
+    ).toBeVisible()
+    // Bob's presence is something only the server can report, so his dot
+    // stays hollow — "present" here is a claim about self, not about everyone.
+    await expect(
+      page.getByTitle('Away').filter({ hasText: bob.username }),
+    ).toBeVisible()
+
+    await ctx.close()
+  })
+
   test('heal: an abandoned current game is cleared on the club page', async ({
     browser,
   }) => {
