@@ -41,16 +41,22 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**`game-lib` is READ THROUGH and ready to close** —
-[plans/areas/game-lib.md](areas/game-lib.md), the non-visual half of the game
-shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04. **All 37 files are
-`cs-blessed-game-lib`**, and **48 findings are settled with none open** — 46
-statused in the area file, two (`F-game-lib-24`, `-25`) moved to `bananagrams`
-with the files they were about. What it leaves behind, all filed where it will
-be read: `F-game-lib-11`'s leaderboard adoption in four game areas,
-`F-game-lib-44`'s nineteen dead doc citations in `scrabble`, and
-`F-game-lib-46`'s untested trie-growth path in
-[docs/deferred.md](../docs/deferred.md) → Common / architecture.
+**`game-lib` is READ THROUGH, with NINE findings open from its closing
+re-audit** — [plans/areas/game-lib.md](areas/game-lib.md), the non-visual half
+of the game shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04, and **all
+37 files are `cs-blessed-game-lib`**. Then the whole area was read again in one
+sitting, at Joel's ask, and that pass found what the group passes had not:
+`F-game-lib-49` … `-57` — a dead manifest field (`timerMode`), three claims
+sibling findings had already disproved, a doc cite to the wrong file, five
+counts written that week and already drifted, and a question about history in
+docstrings. **57 IDs issued, 48 settled** — 55 statused in the area file, two
+(`F-game-lib-24`, `-25`) moved to `bananagrams` with the files they were about.
+What it leaves behind, all filed where it will be read: `F-game-lib-11`'s
+leaderboard adoption in four game areas, `F-game-lib-44`'s nineteen dead doc
+citations in `scrabble`, and `F-game-lib-46`'s untested trie-growth path in
+[docs/deferred.md](../docs/deferred.md) → Common / architecture. **The lesson
+for every area after it: re-read the area whole after its last group**, since
+each group's fixes were verified against that group and not against the rest.
 
 **It also produced a new area, and that area is next.** Auditing group D showed
 that the feedback pills are one vocabulary spread over six areas, with the

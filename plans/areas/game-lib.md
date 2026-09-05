@@ -14,24 +14,29 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH, ready to close.** Opened 2026-09-03 by listing the files
-and stopping (§21); Joel agreed the list — *"that matches the files i'd expect"*
-— and then asked for it in groups, *"so we don't have to do them all as one big
-audit"*, the way `deep` ran in passes. All six ran, in order, between 2026-09-03
-and 2026-09-04, and Joel has read every file. **Nothing in the area is
-outstanding; closing it is a decision, not a task.**
+**Status: READ THROUGH; re-audited at the close, NINE FINDINGS OPEN.** Opened
+2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
+*"that matches the files i'd expect"* — and then asked for it in groups, *"so we
+don't have to do them all as one big audit"*, the way `deep` ran in passes. All
+six ran, in order, between 2026-09-03 and 2026-09-04, and Joel has read every
+file. Then, at his ask, **the whole area was read again in one sitting**
+("The closing re-audit", below), and that pass found nine things the group
+passes had not — most of them the area's own faults recurring in prose the area
+wrote. **Those nine are what stands between the area and closing.**
 
 **Where the stamps stand (2026-09-04)** — **all 37 files are
 `cs-blessed-game-lib`.** Nothing is `cs-met`, `cs-audited` or `cs-fixed`: every
-file has been read by Claude and by Joel, and every finding is settled. **The
-area is ready to close.**
+file has been read by Claude and by Joel. The stamp records that he read the
+file; the open findings are changes wanted in files he has read, which the
+stamp was never a claim about.
 
-**Forty-eight IDs issued, and every one is settled.** Two of them —
+**Fifty-seven IDs issued; forty-eight settled, nine open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
-files they were about, so **46 carry a heading in this file**:
+files they were about, so **55 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
+| **OPEN** | **9** | `F-game-lib-49` … `-57`, the closing re-audit's — one dead manifest field, three stale claims, one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, and a heading of fold-ins |
 | RESOLVED | 42 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register) |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
@@ -2694,6 +2699,210 @@ files**.
   `policy.ts`; the rest are scrabble tests. The docstring's "handy at boundaries
   — inner loops walk `children` themselves" describes the real usage.
 - **No British spelling and no roster count** in the four files.
+
+## The closing re-audit — the whole area read again, 2026-09-04
+
+Joel, after group F: *"we just finished going through the game-lib area. please
+audit this area to find any remaining things."* All 37 files read fresh in one
+sitting rather than by group, and every citation, count and named symbol in them
+checked against the tree — doc headings, components and hooks, SQL functions and
+views, callers. **No logic bug.** What it found is nine findings, and most of
+them are the area's own recorded faults recurring in prose the area wrote this
+week: a count that has already drifted, a claim a sibling finding had disproved,
+a citation to a doc that no longer holds the phrase. The lesson is the one
+`F-game-lib-3` recorded — *re-read the file after a count fix* — applied one
+level up: **re-read the AREA after the last group**, because each group's fixes
+were verified against that group and not against the whole.
+
+**Every file stays `cs-blessed-game-lib`.** The stamp records that Joel read
+the file, and that is still true; what is open is a list of things to change in
+files he has read, which the stamp was never a claim about.
+
+### What was checked and held — verified, not assumed
+
+- **Every `docs/` citation resolves to a real heading** except the one in
+  `F-game-lib-53`: ui.md's "GamePage header", "GamePage menu", "Feedback pill"
+  (and its dismiss modes), "Player identity = a colored disc"; connections.md
+  "Timer"; code-conventions.md "Per-game player counts" and "Feedback naming";
+  pdf.md "Setup rows"; envelopes.md "But the surface still shows it";
+  states.md "paused"; common.md's "removable in three actions"; scrabble.md §12.
+- **Every named component, hook, function and constant exists** —
+  `PageHeaderStatusSlot`, `PageHeaderPlayersStrip`, `ScratchpadButton`,
+  `GameScratchpadCompanion`, `RankBar`, `DictBandField`, `SetupTimerSection`,
+  `SetupCoopStyleSection`, `TurnStatusLine`, `TooltipHost`, `colorVarFor`,
+  `FORM_ERROR_KEYNAME`, `drawSetup`, `crosswords/lib/cursor.ts`'s `moveCursor`,
+  `guards/setupRows.test.ts` with its `NOT_A_ROW` entries,
+  `guards/schemaExposure.e2e.test.ts`.
+- **The SQL claims hold**: `PN486` is `common.sql`'s race code; both
+  `_rank_idx` functions use `(score * 60) / (total * 7)`; 15 game files call
+  `require_player_count_max`; 17 files define `end_game` (sixteen games plus
+  `common`); both `games_state` views exist; `common.games` has `started_at`
+  and no `created_at`.
+- **The roster claims hold**: the four status lead words are the only ones any
+  `labelFor` passes to `outcome()`; exactly five manifests read `row.setup` in
+  `labelFor`, the five `CommonGameListRow.setup` names; `dictLabel` has the
+  three manifest callers `statusLabel.ts` names (wordle's goes through
+  `answerSourceLabel`); `buildRevealWords` and `buildDisplayRows` each have the
+  three word-hunt callers; `offerEndInCompete` has one caller; twelve gametypes
+  declare `[1, 6]`.
+- **The shell claims hold**: the three shortcuts `gameMenu.ts` advertises match
+  docs/keyboard-shortcuts.md; `GamePage` resets the info sheet on mount and
+  hides the overlay's End when a manifest omits `endGame`; `InfoSheet` is
+  `display: contents` on desktop; `perPlayerInCompete` is read where
+  `gameManifest.ts` says. `gameMenu.test.ts`'s cite of `GamePage.tsx:491-493`
+  and `gameManifest.test.ts`'s of `StartGameRow.tsx:50` are both accurate today.
+- **No British spelling** in the 37 files. The `puzpuzpuz:` storage-key prefix
+  in `gameInvites.ts` is the app's own brand prefix, used by two other keys.
+
+### F-game-lib-49 · `timer-mode-has-no-reader` · An optional manifest field nothing sets and nothing reads
+
+`gameManifest.ts` — `GameManifest.timerMode`: *"Per-gametype baseline timer.
+Optional; default is no timer. When set, every game of this gametype runs with
+it."*
+
+`grep -rn timerMode src` outside that file returns **nothing**. No manifest
+declares it and no code reads it — the shell's timer is `setup.timer`, which
+`useCommonGame` hands to `useGameTimer` (`useCommonGame.ts:705`), exactly as the
+docstring's second sentence describes for "when the manifest omits it". So the
+field is dead, and its first two sentences describe a behavior no code
+implements. The `TimerMode` type below it is fine — it is the shape of
+`setup.timer` and IS consumed.
+
+A dead optional field in the contract every game implements is the strongest
+kind of false docstring: a sixteenth-game author reads it, sets it, and nothing
+happens. **Recommendation: delete the field and its comment.** A removal, so it
+is Joel's call rather than done.
+
+### F-game-lib-50 · `menu-says-end-rpc-may-not-exist` · The claim F-game-lib-3 disproved, one file over
+
+`gameMenu.ts` — `offerEndInCompete`'s comment: *"Opt-in per game, because most
+races genuinely have no whole-table stop (the RPC won't exist)."*
+
+`F-game-lib-3` measured the opposite in this same group's sibling: **all
+sixteen game schemas define `end_game`** (17 definers with `common.sql`). The
+opt-in is real and its reason is the one the next sentence of `gameManifest.ts`
+gives — ending and conceding are different acts — but the parenthetical
+justifies it with a fact that is false for every game. `F-game-lib-3` fixed the
+sentence in `manifestRpcs.ts` and did not grep for its twin.
+
+### F-game-lib-51 · `dispatcher-test-still-says-error-collapse` · The shape F-game-lib-3 struck from the source is still in the test
+
+`manifestRpcs.test.ts:9-10`: *"What remains is the `{ data, error }` →
+`{ error? }` collapse for `submit_timeout` and `end_game`."*
+
+There is no `{ error? }` anywhere in this path — `makeRpcDispatcher` returns the
+envelope, which is the exact claim `F-game-lib-3` removed from
+`manifestRpcs.ts`'s docstring. That finding's resolution then recorded
+*"Checked and still true: everything in `manifestRpcs.test.ts`"*, which was
+wrong about line 9. The test's other claims (sixteen definitions, `runEdgeFn`
+tested in `dbResult.test.ts`) do hold.
+
+### F-game-lib-52 · `trie-test-cites-section-seven-of-nothing` · A section number whose document was deleted
+
+`trie.test.ts:49` — the test title ends *"(§7 guard)"*. That was a section of
+`docs/scrabble-ai.md`, which `F-game-lib-44` established no longer exists.
+`docs/games/scrabble.md`, where `-44` redirected the module's citation, has a
+§7 — *"Frontend (`src/scrabble/`)"* — that says nothing about ratings or a
+guard. `-44` fixed the two citations in `trie.ts` and did not read the test
+file's titles.
+
+### F-game-lib-53 · `duplicate-write-cited-to-wrong-doc` · Three comments send the reader to a doc that does not use the phrase
+
+Three field comments cite *"the duplicate-write discipline; see docs/states.md"*:
+`gameManifest.ts` on `GameManifest.labelFor` and on `CommonGameListRow.status`,
+and `gamePageCtx.ts` on `GamePageCtx.status`.
+
+`grep -rn duplicate-write docs/` finds the phrase in **one** file,
+`docs/common.md:444` — the `common.update_state` row, which is where the
+discipline is defined (every state-affecting RPC re-writes `play_state` +
+`status` so the club listing needs no second query). `states.md:161` describes
+the `status` column but never under that name, so a reader following the cite
+searches the wrong doc for a phrase it does not contain.
+
+### F-game-lib-54 · `counts-written-this-week-already-drift` · The area's signature fault, in prose the area wrote
+
+Five claims written between 2026-09-03 and 09-04, re-counted at the close:
+
+| claim | where | measured 2026-09-04 |
+|---|---|---|
+| *"its 103 imports erase at runtime"* / *"its 103 importers"* | `memberList.ts:11`, `terminalOutcomeVerb.ts:14` | **122 files** import `members/member`; 103 was the count of `Member` NAME imports at the split, not of files, and it has moved anyway |
+| *"All thirteen of these were a coop/compete pair"* (`intro`) | `setupForm.ts:140` | 8 manifest files, **16 entries** — thirteen matches neither |
+| *"ten PlayArea tests name End/Concede"* | `gameMenu.test.ts:19` | **11** |
+| three readers of `orderSelfFirst` named | `memberList.ts:19-22` | **four** — `scrabble/components/InfoCol.tsx` is unnamed |
+| *"[1, 6] is the shape connections / psychicnum / spellingbee all use"* | `gameManifest.test.ts:31` | their COOP halves only; each has a `[2, 6]` compete twin |
+
+`member.ts` says *"over a hundred files"* and is fine — that is the shape the
+rest should take. **Recommendation:** the rule, not the number, as
+`F-game-lib-5` and `-6` did: "over a hundred", "every one of these was a pair",
+"most PlayArea tests", and name the fourth reader or say "every list of people".
+
+### F-game-lib-55 · `history-in-docstrings` · Twenty lines in eleven files say how it used to be
+
+CLAUDE.md → Educational priority: *"do not make purely archaeological comments
+or docs; 'how it used to work' is not useful."* Grepped for the phrasing
+("used to", "no longer", "byte-identical", "extracted from", "the old", "before
+the split") across the 37 files:
+
+| file | the sentence |
+|---|---|
+| `terminalOutcomeVerb.ts:30-36` | *"This used to compute `'won' \| 'quit' \| 'lost'` and then immediately re-split…"* — a dated Joel quote and a plan cite |
+| `terminalOutcomeVerb.test.ts:10-11` | *"the old pair computed … and then re-split"* |
+| `menu.ts:19-22` | *"These eight names spent a long time in the file that was then `lib/games.ts` and is now…"* |
+| `menu.ts:129-130`, `:140-141` | *"the shell no longer injects a common Help / Back-to-club section"*; *"the same logic the old shell menu item ran"* |
+| `gameMenu.ts:8-9` | *"Every game owns its own menu now (the shell no longer injects a common section…"* |
+| `manifestRpcs.ts:18-23` | *"What used to live here as well were three START-GAME adapters, and they are gone…"* — a whole paragraph |
+| `setupForm.ts:23`, `:140-143`, `:157-160` | *"the same seam `lib/games.ts` had before the split"* (a file that no longer exists by that name); *"All thirteen of these were… and it goes"*; *"as this used to"* |
+| `gameInvites.ts:10` | *"but we no longer drag people into the game"* |
+| `foundWords.ts:6-7` · `foundWordsLeaderboard.ts:5-6` · `rankLadder.ts:6` · `timerLabel.ts:19-20` | *"extracted here from the two games' byte-identical … copies"*, four times over |
+| `trie.ts:5-6` | *"Extracted from the boggle solver (its original home…"* |
+| `pause.test.ts:30` | *"the Member shape now requires it"* |
+
+Some of these carry a reason that survives — trie-not-DAWG, one-function-not-two,
+why the intro is a plain string — and the reason should stay. The wrapper is
+history: *"byte-identical copies"* says nothing about today's code, and a
+reader of `setupForm.ts` cannot find `lib/games.ts`. Every one of these sits in
+a file Joel blessed, and the group A and C comment passes (`F-game-lib-13`,
+`-26`) read past them, so this is a **question** rather than a fix: is "why
+this is shared" history he wants kept? If not: keep the reason, drop the "used
+to".
+
+### F-game-lib-56 · `docstrings-cite-the-area-file` · Four docstrings this area wrote point at this file
+
+`gamePageCtx.ts:24`, `menu.ts:22`, `setupForm.ts:24-25`,
+`terminalOutcomeVerb.ts:36` each cite `plans/areas/game-lib.md → F-game-lib-n`
+(a fifth, `components/text/RichMessage.tsx:19`, is outside the roster).
+
+CLAUDE.md → Plans: *"When a plan's work ships, its durable knowledge moves into
+`docs/` and the plan is deleted"*, and the 2026-09-02 restart deleted three
+area files outright. So each of these is a citation with a stated expiry. The
+repo has **57** such `plans/` cites in `src/`, so the convention is the plan's
+question for step 12 — redirect them to `docs/` as the knowledge lands there —
+and not this area's to settle. Filed here because this area added four of them
+in two days, and the step-12 sweep needs the list.
+
+### F-game-lib-57 · `five-small-fold-ins` · Formatting and one duplicate docstring, in one heading
+
+- `foundWordsDisplayRows.ts` ends on a blank line — the residue `F-game-lib-3`
+  trimmed from `manifestRpcs.ts`, in the one other file that has it.
+- `gameManifest.ts:164` is a bare blank line inside `numberOfPlayers`'s comment,
+  so the field's note reads as two blocks where every sibling paragraph-breaks
+  with a `//` line.
+- `pause.test.ts:36-54` is a second `/**` on the `describe` that restates both
+  the file docstring at `:7-23` and `pause.ts`'s own — the thing `F-game-lib-39`
+  said neither group E test would do.
+- `gameMenu.test.ts:11` cites `GamePage.tsx:491-493` by line — accurate today,
+  against this file's own rule that a citation names the symbol.
+- `gameMenu.ts:46` and `menu.ts:114` say *"crossplay's menu"* meaning the
+  ported source app, while **CrossPlay** is this repo's brand for crosswords —
+  a reader here has no way to tell the two apart.
+
+### One more note for the plan — `pageMenuStore.ts`
+
+**`lib/menu/pageMenuStore.ts` is `cs-unmet` and on no area's roster.** `menu.ts`
+names it as *"the open/closed state … next door"*, and the only mentions in
+`plans/` are prose — this file's `F-game-lib-43` table and `common-hosts.md:109`.
+Fourth instance of the gap after `utils`, `feedback` and `components/icons.ts`;
+§7's coverage is the plan's business.
 
 ## Predicted test breaks
 
