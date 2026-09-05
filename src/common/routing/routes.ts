@@ -1,4 +1,4 @@
-// cs-audited-routing
+// cs-blessed-routing
 
 /**
  * The app's URL shapes, in one place: the two paths anything links to, and the

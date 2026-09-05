@@ -90,6 +90,27 @@ not be, which is `docs/code-conventions.md` → Known gotchas. Handed on: six
 `typeof window` guards in `floating-panels` that supply fallback values, and one
 each in `faults` and `toasts` that install a dev helper.
 
+**`routing` is closed** (2026-09-05): six files `cs-blessed-routing`, nine
+findings worked, and the folder grew a third unit. The `/g/<gametype>/<gameId>`
+shape was matched in two files and built in seven, and the two matchers disagreed
+about what a game id may be — `App.tsx` matched it loosely on purpose while the
+invitations hook required a uuid; `routes.ts` now holds both shapes as a builder
+and a matcher side by side, so the code writing a link and the code recognizing
+one read the same rule. `<Link>` lost a branch that could never run: a
+non-primary button fires `auxclick`, not `click`, so the middle-click
+fall-through was always the browser's doing and the check plus the test that
+pinned it with a synthetic event are gone. Everything else was prose that had
+stopped being true as the router moved twice — the folder index called it a hash
+router when it is path-based, three docs carried a line count and a route count,
+and `docs/common.md` put `<Link>` inside `router.ts`. Counts went; conditions
+stayed. Two things the area's reading turned up elsewhere and fixed rather than
+deferred: `docs/common.md` and `gameManifest.ts` both described the pre-reorg
+`lib/` layout, the latter including a paragraph arguing a placement inside a
+folder that no longer exists. Nothing handed on; `todo.md` is empty. **The
+closing re-read earned its place again** — six more findings, every one a
+sentence describing a two-file folder after `routes.ts` made it three, including
+a Design paragraph contradicting the one directly above it.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -188,7 +209,7 @@ will list the other as a dependency whichever goes first.
 | 4  | `outcomes` | `outcomes` | **CLOSED 2026-09-05.** the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
 | 5  | `single-flight` | `single-flight` | **CLOSED 2026-09-05.** the guard every submit wraps |
 | 6  | `mobile` | `mobile` | **CLOSED 2026-09-05.** the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
-| 7  | `routing` | `routing` | the router and `usePath` |
+| 7  | `routing` | `routing` | **CLOSED 2026-09-05.** the router, `usePath`, and the app's two URL shapes |
 |    | **The data path and the boot** | | |
 | 8  | `supabase` | `supabase` | the client, the wrappers, the envelope. It reaches `faults` for the fault sink; the sink's function is read here and its modal waits for `common-hosts` |
 | 9  | `session` | `session` | who is signed in, and their profile |

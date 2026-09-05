@@ -4,8 +4,8 @@ The folders it reads: `routing`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-05, all nine findings worked, re-read done.
-The files are NOT blessed yet.**
+**Status: CLOSED 2026-09-05** — nine findings worked, the re-read done, six
+files `cs-blessed-routing`.
 
 ## The roster
 
@@ -14,12 +14,12 @@ Agreed 2026-09-05 — every file of `src/common/routing/`, nothing outside it
 
 | file | what it is | stamp |
 |---|---|---|
-| `router.ts` | `usePath()` and `navigate()` — the store half | `cs-audited-routing` |
-| `router.test.ts` | its contract | `cs-audited-routing` |
-| `routes.ts` | the two URL shapes, built and matched — WRITTEN by this area (F-routing-8) | `cs-audited-routing` |
-| `routes.test.ts` | its contract | `cs-audited-routing` |
-| `Link.tsx` | `<Link>` — the anchor that routes a plain left-click | `cs-audited-routing` |
-| `Link.test.tsx` | which clicks it keeps, which it hands back | `cs-audited-routing` |
+| `router.ts` | `usePath()` and `navigate()` — the store half | `cs-blessed-routing` |
+| `router.test.ts` | its contract | `cs-blessed-routing` |
+| `routes.ts` | the two URL shapes, built and matched — WRITTEN by this area (F-routing-8) | `cs-blessed-routing` |
+| `routes.test.ts` | its contract | `cs-blessed-routing` |
+| `Link.tsx` | `<Link>` — the anchor that routes a plain left-click | `cs-blessed-routing` |
+| `Link.test.tsx` | which clicks it keeps, which it hands back | `cs-blessed-routing` |
 | `doc.md` | lede at open: "The hash router, and `<Link>`." No Design | (no stamp — markdown) |
 | `todo.md` | empty under all four headings at open | (no stamp — markdown) |
 
@@ -329,8 +329,8 @@ uuid-shaped for it, which now says why the fixture is realistic instead.
 
 - [x] the whole area re-read in one sitting after the last group
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not
 
 ### What the re-read caught
 
