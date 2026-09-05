@@ -8,9 +8,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 `cs-met-utils`, lede + Design written, findings recorded. F-utils-1
 (`shuffle-six-copies`) worked — the util and its test ship, and its nine
 callers are a line in each game's `todo.md`. F-utils-2 (`linkify-home`) closed
-on Joel's ruling; F-utils-3, -4, -6, -7 and -8 worked. **F-utils-5
-(`db-line-stamp-position`) is the one left** — it is a choice between two
-branches, not a docstring fix, and waits on Joel.
+on Joel's ruling; F-utils-3 through F-utils-8 worked, F-utils-5 on branch (a)
+(the docstring tells the truth, the three lines stay as they are). **Every
+finding is now worked or closed**; what the area still owes is the closing
+list at the bottom.
 
 ## The roster
 
@@ -158,6 +159,14 @@ in each owning `todo.md`, or as a sweep on Joel's word.
 `docs/envelopes.md` names the `[db]` line throughout, so (b) touches docs too.
 Predicted spec breaks for (b) are listed below.
 
+**WORKED (2026-09-04), Joel: branch (a).** `logStamp`'s docstring prints the
+three real lines, says the stamp is what is shared, and names the reason `[db]`
+differs: its stamp is the first field of the string `dbLog` also returns, which
+the fault modal and `<ErrorPage>` render under the message — inside the bracket
+it would be console-only and a screenshot of the modal would carry no time.
+That reason is why (b) was not taken; the three lines stay as they are and no
+other area is owed anything.
+
 ### F-utils-6 · `policy-test-seed-claim` · `mulberry32`'s docstring says `policy.test.ts` puts the seed in the test name; it does not
 
 The claim holds for `scrabble/lib/suggest.test.ts` (`random soup board, seed
@@ -219,9 +228,11 @@ gone; the "Doesn't tick" contract stays.
 
 ## Predicted test breaks
 
-None from anything recorded above as it stands. If F-utils-5 takes branch (b)
-and the `[db]` line moves its stamp inside the bracket, the specs that pin the
-prefix are: `common/supabase/dbResult.test.ts`, `common/supabase/dbFetch.test.ts`,
+None, and none happened: the folder's suite ran green after every finding
+(24 tests at the opening, 28 with `shuffle.test.ts`). F-utils-5 took branch (a)
+and no line moved, so the list below never came into play. Kept because it is
+the answer to "what would converging the three cost" if that is ever revisited
+— the specs that pin the `[db]` prefix are: `common/supabase/dbResult.test.ts`, `common/supabase/dbFetch.test.ts`,
 `common/faults/faultStore.test.ts`, `guards/callSiteShape.test.ts`,
 `guards/noRawServerMessage.test.ts`, and `waffle/components/PlayArea.test.tsx`
 (the realtime pair, `realtimeDiag.test.ts` and `channelTeardown.test.ts`, pin
