@@ -159,6 +159,9 @@ export function useRealtimeRefetch({
     .join('|')
 
   useEffect(function realtimeRefetchEffect() {
+    // Both the channel's name and the topic its refetch lines log under, so a
+    // channel's console trail reads as one channel.
+    const name = `${channelPrefix}:${id}:${channelDedupSuffix()}`
     let mounted = true
     // Monotonic generation for out-of-order protection. This effect fires
     // OVERLAPPING loads (immediate + on-SUBSCRIBED + one per realtime event),
@@ -175,7 +178,7 @@ export function useRealtimeRefetch({
     // confirmation / a delivered event) — see docs/realtime-lost-events.md.
     function refetch(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
       const myGen = ++generation
-      rtLog(`${channelPrefix}:${id}`, `refetch #${myGen} (${cause})`)
+      rtLog(name, `refetch #${myGen} (${cause})`)
       // `mounted()` now means "still mounted AND still the newest load."
       const isCurrent = () => mounted && myGen === generation
       // Fire-and-forget. The caller's load handles its own guard + setState;
@@ -191,9 +194,7 @@ export function useRealtimeRefetch({
     // after reconnect).
     refetch('mount')
 
-    let chain = supabase.channel(
-      `${channelPrefix}:${id}:${channelDedupSuffix()}`,
-    )
+    let chain = supabase.channel(name)
     for (const t of tableList) {
       chain = chain.on(
         'postgres_changes',

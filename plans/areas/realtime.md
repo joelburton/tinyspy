@@ -252,7 +252,7 @@ from '@supabase/supabase-js'`, and the ref is `useRef<RealtimeChannel |
 null>`. Every file in the folder that names a channel type now names the same
 one.
 
-### F-realtime-6 · refetch-log-topic-lacks-suffix · one channel's trail is written under two topic strings
+### WORKED · F-realtime-6 · refetch-log-topic-lacks-suffix · one channel's trail is written under two topic strings
 
 **Where:** `useRealtimeRefetch.ts:178` logs `refetch #N (cause)` under
 `${channelPrefix}:${id}`; the channel it belongs to is named
@@ -266,6 +266,13 @@ topic. The e2e survives it only because it matches by `includes`.
 **Recommendation:** build the name once (`const name = …`) and pass it to
 both `supabase.channel` and `rtLog`. No behavior changes; the console lines
 line up.
+
+**Resolution (2026-09-05, Joel: "do it")** — done. `const name` at the top of
+`realtimeRefetchEffect` is spent twice, by `rtLog` and by `supabase.channel`,
+with a comment saying why one spelling matters. Console text only: nothing
+else in the file describes the topic, `channelPrefix`'s docstring already
+said the suffix is part of the full name, and the seventy tests in the folder
+did not move.
 
 ### F-realtime-7 · deaf-window-explained-four-times · the two-phase-subscribe story has four homes in one folder
 
@@ -441,10 +448,11 @@ left anonymous in the folder.
 - F-realtime-1 (worked): held. The teardown-gate cases never read the roster,
   so they stayed green while the file gained roster cases of its own, and
   `e2e/presence.e2e.ts` gained a case rather than losing one.
-- F-realtime-6: `useRealtimeRefetch.test.ts` mocks `channelDedupSuffix` to
-  `'test-suffix'` and asserts channel NAMES, not log lines — green.
-  `e2e/realtime-deaf-window.e2e.ts:95–97` matches `wordwheel:<id>` by
-  `includes`, so a suffixed topic still matches.
+- F-realtime-6 (worked): held. `useRealtimeRefetch.test.ts` mocks
+  `channelDedupSuffix` to `'test-suffix'` and asserts channel NAMES, not log
+  lines — green. `e2e/realtime-deaf-window.e2e.ts:95–97` matches
+  `wordwheel:<id>` by `includes`, so the suffixed topic still matches (unrun,
+  like every e2e until the area closes).
 - F-realtime-2 (worked): held — nothing existed to break. `useClubPresence`'s
   own cases moved onto the shared fake unchanged and stayed green.
 - F-realtime-3/4/5 (worked): held — nothing reads the deleted `catch`, the
