@@ -315,9 +315,10 @@ from everyone else.
 Only this file was rewritten with the move, along with every markdown LINK
 target that pointed into `src/common/`. **Prose mentions of an old path
 elsewhere in `docs/` were deliberately left alone** — they are corrected as
-each doc is decomposed (plans/common-restructure.md §4). So a sentence naming
-`common/lib/game/…` is stale, not a second layout; a link that resolves is
-current.
+each area of the app audit harvests its folder's `doc.md`. So a sentence
+naming `common/lib/game/…` is stale, not a second layout; a link that resolves
+is current. Where a file went is in git: `git log --follow` on the new path
+finds its history under the old one.
 
 ## How this was applied (for the next reorg)
 
