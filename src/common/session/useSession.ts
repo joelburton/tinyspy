@@ -1,6 +1,6 @@
 // cs-audited-session
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { db } from '../supabase/db'
@@ -56,10 +56,15 @@ export function useSession() {
   const [loading, setLoading] = useState(true)
   const [probeFailed, setProbeFailed] = useState<NotOkEnvelope | null>(null)
 
+  // Who the probe has an answer for. A failed probe leaves it null, so the next
+  // auth event tries again rather than inheriting the failure.
+  const probedFor = useRef<string | null>(null)
+
   // The four states below are all "nobody is signed in as far as the app is
   // concerned", and the profile store has to be emptied with them or a
   // signed-out tab keeps showing the last user's name and color.
   const resolveSignedOut = useCallback(() => {
+    probedFor.current = null
     setProfile(null)
     setSession(null)
     setHasProfile(false)
@@ -152,6 +157,7 @@ export function useSession() {
         // screen asks someone to pick a handle they may already own, and the
         // app behind the gate would render as a stranger. So the failure is a
         // state of its own, and `App` gives it the error page.
+        probedFor.current = null
         setProfile(null)
         setSession(next)
         setHasProfile(false)
@@ -164,6 +170,7 @@ export function useSession() {
       // the read does not ask PostgREST for a single row — that would make the
       // ordinary first-sign-in case an error.
       const row = res.data[0] ?? null
+      probedFor.current = next.user.id
       // Seeded before `loading` clears, so the first render of the account menu
       // already has a username rather than a placeholder.
       setProfile(row)
@@ -184,6 +191,17 @@ export function useSession() {
         resolveSignedOut()
         return
       }
+      // An event carrying a session rarely means a NEW user. auth-js emits
+      // TOKEN_REFRESHED on every refresh, SIGNED_IN again when a tab regains
+      // focus or another tab signs in, and USER_UPDATED on a profile change in
+      // auth — and its own docs say to compare the user rather than trust the
+      // event name. So the probe is keyed on who, not on which event: someone
+      // we already have an answer for needs no round trips, only their fresher
+      // token in state.
+      if (next.user.id === probedFor.current) {
+        if (mountedRef.value) setSession(next)
+        return
+      }
       probeProfile(next, mountedRef)
     })
 
@@ -194,7 +212,9 @@ export function useSession() {
   }, [probeProfile, resolveSignedOut])
 
   // Public refresh — call after a successful claim_username to
-  // flip needsClaim → false without re-authenticating.
+  // flip needsClaim → false without re-authenticating. It probes
+  // unconditionally: the user is the same one, which is precisely the case the
+  // event handler above skips, and the row is what changed.
   const refresh = useCallback(async () => {
     const mountedRef = { value: true }
     await probeProfile(session, mountedRef)

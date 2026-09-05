@@ -4,9 +4,10 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, five worked
-(F-session-1, -7, -8 in one change; F-session-2 and -10 in the next). Three
-files `cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, six worked
+(F-session-1, -7, -8 in one change; F-session-2 and -10 in the next;
+F-session-3 alone). The three shape findings are done, so the prose ones can be
+written once. Three files `cs-audited-session`.
 
 ## The roster
 
@@ -169,7 +170,7 @@ alternative is to drop the opt-out and let the modal sit over the error page**
 whole-page failure but does NOT opt out, so a failed game load shows the modal
 AND `<EnvelopeErrorPage>`. Same doubling, one area over.
 
-### F-session-3 · `every-auth-event-reprobes` · `getUser()` and the profile probe run on every auth event, not only on sign-in
+### WORKED · F-session-3 · `every-auth-event-reprobes` · `getUser()` and the profile probe run on every auth event, not only on sign-in
 
 `useSession.ts:160–169` calls `probeProfile` for every event that carries a
 session. `onAuthStateChange` fires `TOKEN_REFRESHED` on every hourly refresh
@@ -188,6 +189,33 @@ re-seed the store hourly.
 `TOKEN_REFRESHED` and `USER_UPDATED` only `setSession(next)`.
 
 4. Agree, or keep re-probing on every event?
+
+**The recommendation was wrong, and re-verifying caught it.** An
+`INITIAL_SESSION`/`SIGNED_IN` allowlist does not hold: auth-js's own docs, in
+the installed copy (`GoTrueClient.js:3330–3331`), say of `SIGNED_IN` — "Avoid
+making assumptions as to when this event is fired, this may occur even when the
+user is already signed in … This event can fire very frequently depending on
+the number of tabs open" — and `:4006` emits it when a session is recovered
+from storage. An allowlist would still re-probe on tab focus, and would have to
+track the library's event set forever.
+
+**Resolution (2026-09-05, Joel: "do f3").** Keyed on WHO instead: a
+`probedFor` ref holds the user id the probe answered for, and an event carrying
+that same id only calls `setSession(next)` — the fresher token still reaches
+every page, and `getUser()` and the profiles read are both skipped. A different
+id (or none yet) probes. This is what the library tells callers to do, and it
+covers TOKEN_REFRESHED, repeat SIGNED_INs, USER_UPDATED and multi-tab noise
+under one rule. A failed probe records nobody, so the next event retries rather
+than inheriting the failure. `refresh()` bypasses the check by construction —
+it calls the probe directly — which is right: after a claim the user is the
+same and the ROW is what changed.
+
+Three cases pin it: the same user's later event re-reads nothing but still
+lands the new session object; a different user re-probes; a failed probe is
+retried by the next event.
+
+**F-session-12 was NOT folded in** — point 3 was not ruled on, and "do f3"
+named one finding. `probeProfile` still takes `mountedRef` as a parameter.
 
 ### F-session-4 · `stale-23503-story` · The stale-JWT case is described as a 23503 at claim time; the RPC raises PN018 and the claim screen reads that
 
@@ -349,12 +377,15 @@ still untested: `refresh()`, the 200-with-`user: null` branch, and
 ### F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
 
 `useSession.ts:56` threads `mountedRef` through as an argument; the effect
-builds the real one (`:158`) and `refresh` builds a throwaway `{ value: true }`
-(`:180`) that nothing ever sets false, so a refresh resolving after unmount
-writes state anyway. `App` never unmounts, so nothing is broken; the parameter
-exists only to let one caller bypass the check. Fix: one `useRef` for the
-hook's life, read inside `probeProfile`, no parameter. Folds into F-session-1
-or -3 if either rewrites the hook.
+builds the real one and `refresh` builds a throwaway `{ value: true }` that
+nothing ever sets false, so a refresh resolving after unmount writes state
+anyway. `App` never unmounts, so nothing is broken; the parameter exists only
+to let one caller bypass the check. Fix: one `useRef` for the hook's life, read
+inside `probeProfile`, no parameter.
+
+**Still open after F-session-3**, which offered to fold it in and was told "do
+f3" — one finding. The hook now has a `probedFor` ref beside the mounted flag,
+so the fix is the same shape as something already there.
 
 ## Notes
 

@@ -299,6 +299,68 @@ describe('useSession', () => {
   })
 })
 
+describe('useSession probes per user, not per event', () => {
+  // auth-js fires TOKEN_REFRESHED hourly and SIGNED_IN again on tab focus, and
+  // says as much in its own docs. What the hook asks the server is therefore
+  // keyed on WHO the event carries.
+  const sameUserAgain = { user: { id: fakeSession.user.id } } as unknown as Session
+
+  it('takes the fresher session without re-reading anything', async () => {
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockGetUser).toHaveBeenCalledTimes(1)
+    expect(mockProfileRows).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await authCb?.('TOKEN_REFRESHED', sameUserAgain)
+    })
+
+    expect(mockGetUser).toHaveBeenCalledTimes(1)
+    expect(mockProfileRows).toHaveBeenCalledTimes(1)
+    // The new token still lands: it is the session object every page holds.
+    expect(result.current.session).toBe(sameUserAgain)
+  })
+
+  it('probes again when the event carries a different user', async () => {
+    const otherUser = { user: { id: 'bee22222-2222-2222-2222-222222222222' } } as unknown as Session
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    await act(async () => {
+      await authCb?.('SIGNED_IN', otherUser)
+    })
+
+    await waitFor(() => expect(result.current.session).toBe(otherUser))
+    expect(mockProfileRows).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries after a failed probe, rather than treating the user as answered', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockProfileRows.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.probeFailed).not.toBeNull())
+
+    await act(async () => {
+      await authCb?.('TOKEN_REFRESHED', sameUserAgain)
+    })
+
+    await waitFor(() => expect(result.current.probeFailed).toBeNull())
+    expect(mockProfileRows).toHaveBeenCalledTimes(2)
+    errorSpy.mockRestore()
+  })
+})
+
 describe('useSession seeds the profile store', () => {
   // The probe is the app's ONE read of the profiles row: what it finds is what
   // `useProfile` hands every page, so these two cases are the whole contract

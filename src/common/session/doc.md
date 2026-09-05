@@ -15,12 +15,13 @@ screen and the `claim_username` RPC writes it. So a signed-in user can be one
 of two things, and the app has to know which before it renders anything: someone
 who has claimed and gets the home page, or someone who has not and gets the
 claim screen and nothing else. `useSession` exists to answer that. It subscribes
-to the auth client's state changes, and for every session it sees it looks up
-the profiles row for that user. Three resolved states come out: no session, a
-session with no row, a session with one. A fourth, `loading`, covers the moment
-before the first answer, and the app shows a spinner rather than guessing.
-When the claim screen succeeds it calls `refresh()`, which re-runs the lookup so
-the gate flips without a sign-out or a reload.
+to the auth client's state changes, and the first time it sees a given user it
+looks up their profiles row. Three resolved states come out: no session, a
+session with no row, a session with one — and a fourth when the lookup itself
+fails, because then nobody can say which of the middle two is true. `loading`
+covers the moment before the first answer, and the app shows a spinner rather
+than guessing. When the claim screen succeeds it calls `refresh()`, which
+re-runs the lookup so the gate flips without a sign-out or a reload.
 
 The lookup does not trust the stored JWT first. What is in `localStorage` is
 whatever the browser cached at sign-in, and the client library does not
@@ -78,8 +79,13 @@ repaints at once with no refetch.
   is unknown". `App` renders `<LoginScreen>`, the error page,
   `<ClaimHandleScreen>` or the app itself, in that order, after `loading`
   clears.
-- **The lookup runs on every auth event that carries a session**, the hourly
-  token refresh included, not only on sign-in.
+- **The lookup runs once per user, not once per event.** The auth client fires
+  an event on every token refresh, and again when a tab regains focus or
+  another tab signs in; its own documentation says the event name does not tell
+  you whether the person changed. So the hook remembers which user id it has an
+  answer for, and an event about that same person only updates the stored
+  session — no round trips. A lookup that failed records nobody, so the next
+  event tries again.
 - **`Profile` is three columns** of `common.profiles`: `username`, `color`,
   `can_edit_words`. Add a column when a consumer arrives. `can_edit_words` has
   no UI for granting it; it is set by hand in SQL and gates the dictionary
