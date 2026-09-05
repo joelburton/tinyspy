@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
@@ -72,7 +73,7 @@ export function BoardCol({
   myTurnJustStarted: boolean
   /** The game is finished, and how it ended — the board's permanent band takes
    *  that outcome's gray. Null while it's live. */
-  gameOver: 'won' | 'lost' | 'neutral' | null
+  gameOver: TerminalOutcome | null
   /** Swaps recorded for the board on show — the CAUSE the attention flash reads,
    *  so a re-dealt or revealed board doesn't light up. See `<Board>`. */
   moveCount: number

@@ -6,6 +6,7 @@ import type { Category, CategoryRank } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { GuessOutcome } from '../lib/evaluate'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
@@ -107,7 +108,7 @@ type Props = {
   /** The game's outcome once it is over — the board wears the frame in that
    *  tone. `'neutral'` also covers a player who is out of a compete race while
    *  the others play on: their board is inert even though the game isn't. */
-  gameOver?: 'won' | 'lost' | 'neutral' | null
+  gameOver?: TerminalOutcome | null
   /** ATTENTION, the server's move marker: the guess log's length. A band
    *  arriving is only news when a MOVE put it there — `replay_board` deletes the
    *  guesses, so a restart drops this instead of advancing it and the re-dealt

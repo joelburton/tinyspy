@@ -11,6 +11,7 @@ import { cls } from '@/common/utils/cls'
 import { outOfRacePill, terminalPill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/turn-log/turnCopy'
 import { ActorDot } from '@/common/turn-log/ActorMention'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
@@ -744,7 +745,7 @@ function buildOver({
   verdict: string
   verdictNode?: ReactNode
   message: string
-  tone: 'won' | 'lost' | 'neutral'
+  tone: TerminalOutcome
 } {
   const outcome = (status?.outcome as string | undefined) ?? ''
   if (game.mode === 'coop') {

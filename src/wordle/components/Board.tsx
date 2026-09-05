@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '@/common/game-page/PlayArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
@@ -51,7 +52,7 @@ type Props = {
   /** The game is finished, and how it ended — the board takes a band in that
    *  outcome's gray (neutral for a game merely ended), null while it's live. The
    *  same mark waffle wears; see plans/tile-feedback.md. */
-  gameOver?: 'won' | 'lost' | 'neutral' | null
+  gameOver?: TerminalOutcome | null
   /** A teammate holds the move (turn-order coop): dim the whole board. */
   notMyTurn?: boolean
   /** True for a beat at the moment the turn becomes mine — flash the frame. */

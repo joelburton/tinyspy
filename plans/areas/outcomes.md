@@ -122,7 +122,7 @@ following it ships three missing cells and the guard fails on a step the doc
 never told them to take. `wash`, `bar` and `terminalFrame` all postdate the
 prose.
 
-### F-outcomes-4 · `hand-cut-subsets` · A subset of `Outcome` is retyped by hand a dozen times, and the repo already has the right idiom
+### RESOLVED · F-outcomes-4 · `hand-cut-subsets` · A subset of `Outcome` is retyped by hand a dozen times, and the repo already has the right idiom
 
 `connections/lib/evaluate.ts` does it properly:
 
@@ -143,6 +143,37 @@ renames a member:
 **None of those files is on this roster.** What this area can settle is the
 RULE — a subset of the vocabulary is written as `Extract<Outcome, …>`, never
 retyped — and hand each conversion to the owning folder's `todo.md`.
+
+**Joel's rulings:**
+
+- **The terminal three is real**, unlike `TurnOutcome`'s four: *"`OutcomeTone`
+  is valid limited to those three."* A finished game is won, lost, or neither,
+  and that is a genuine closed set rather than a ceiling nobody revisited.
+- **It is called `TerminalOutcome`.** `OutcomeTone` says the same thing twice
+  — an outcome IS a tone — and omits the only part that distinguishes it,
+  which is that the game is over.
+- **stackdown's `WordFlash` stays hardcoded** as `'won' | 'lost'`. Its flash
+  has no neutral and is not a terminal verdict; it is two states of a letter
+  slot, not a member of this family.
+- **It lives in `common/terminal/terminalCopy.ts`**, beside the `TerminalCopy`
+  whose `tone` it is, rather than in the vocabulary file.
+- **The whole sweep runs in this area**, not as `todo.md` lines for five other
+  folders.
+
+**Resolution:** `TerminalOutcome` declared in `terminalCopy.ts` as
+`Extract<Outcome, 'won' | 'lost' | 'neutral'>`; twelve hand-cut sites now name
+it — `TerminalCopy.tone`, `terminalPill`'s parameter (the private
+`OutcomeTone` deleted), eight `gameOver` props across four games' `Board` and
+`BoardCol`, and boggle's and scrabble's local `buildOver` return types, both of
+which are a `TerminalCopy` with a `verdictNode` added. `tsc -b` clean, 2586
+tests green, lint clean. Per the sweep rule the eleven consumer files keep
+their stamps.
+
+**One thing this cost, said plainly:** `feedback` now imports from `terminal`,
+which sits above it in the folder depth order — `localPills.ts` needs the type
+for `terminalPill`. It is `import type`, so nothing survives to runtime and no
+cycle exists in either direction, but it is a real edge in the wrong direction
+and the `feedback` area should see it rather than discover it.
 
 ### F-outcomes-5 · `union-not-tied-to-palette` · Nothing makes an eighth outcome get a color
 

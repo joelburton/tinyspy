@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalCopy, TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
@@ -135,7 +135,7 @@ export function BoardCol({
   /** Who decided each tile, for the identity dot — null outside coop. */
   decidedBy: ReadonlyMap<string, Pick<Member, 'username' | 'color'> | undefined> | null
   /** The game is finished, and how — bands the board in that outcome's gray. */
-  gameOver: 'won' | 'lost' | 'neutral' | null
+  gameOver: TerminalOutcome | null
   /** Turn-order coop: a teammate holds the move, so the board dims. */
   notMyTurn: boolean
   /** True for a beat as the turn becomes mine — the frame flashes. */

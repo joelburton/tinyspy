@@ -13,6 +13,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
@@ -635,7 +636,7 @@ function buildOver({
    *  `verdict` carries the plain-text twin for anything that needs a string. */
   verdictNode?: ReactNode
   message: string
-  tone: 'won' | 'lost' | 'neutral'
+  tone: TerminalOutcome
 } {
   const statusOutcome = status?.outcome as string | undefined
   const isTarget = statusOutcome === 'target'

@@ -5,7 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalCopy, TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
@@ -129,7 +129,7 @@ export function BoardCol({
   /** True for a beat as the turn arrives (the shared your-turn flash). */
   myTurnJustStarted: boolean
   /** The tone of the game-over frame, or null while the board is live. */
-  gameOver: 'won' | 'lost' | 'neutral' | null
+  gameOver: TerminalOutcome | null
   /** Return to the live board (the banner click / ✕). */
   onExitViewing: () => void
 

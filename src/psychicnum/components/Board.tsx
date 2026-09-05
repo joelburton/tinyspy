@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -46,7 +47,7 @@ type Props = {
   inFlightWord?: string | null
   /** The game is finished, and how it ended — the board takes a band in that
    *  outcome's gray (neutral for a game merely ended). Null while it's live. */
-  gameOver?: 'won' | 'lost' | 'neutral' | null
+  gameOver?: TerminalOutcome | null
   /** A teammate holds the move (turn-order coop): dim the whole board. */
   notMyTurn?: boolean
   /** True for a beat at the moment the turn becomes mine — flash the frame. */

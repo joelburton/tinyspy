@@ -3,6 +3,7 @@
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { useEffect, useCallback, useState } from 'react'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
@@ -128,7 +129,7 @@ export function BoardCol({
   // ── Board-scope marks ──
   /** The game is finished, and how — bands the board, and withdraws the keyboard
    *  (there is no move left to make). Null while live. */
-  gameOver: 'won' | 'lost' | 'neutral' | null
+  gameOver: TerminalOutcome | null
   /** Turn-order coop: a teammate holds the move, so the board dims. */
   notMyTurn: boolean
   /** True for a beat as the turn becomes mine — the frame flashes yellow. */

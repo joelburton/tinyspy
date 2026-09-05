@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes/outcomes'
+import type { TerminalOutcome } from '../terminal/terminalCopy'
 import type { GenericFeedbackMsg } from './genericFeedback'
 
 /**
@@ -34,9 +35,6 @@ import type { GenericFeedbackMsg } from './genericFeedback'
  * keystroke.
  */
 
-/** A game's terminal outcome tone (`TerminalCopy.tone` / `over.tone`). */
-type OutcomeTone = 'won' | 'lost' | 'neutral'
-
 /**
  * Own-move / transient local pill: **outline + sticky**. The one builder for
  * every "here's what your last action did" message — a soft reject, an RPC
@@ -57,7 +55,7 @@ export function stickyPill(tone: Outcome, text: string): GenericFeedbackMsg {
  * spellingbee's "● alice won at Genius" leads with the winner's identity dot,
  * the same way peer feedback does elsewhere.
  */
-export function terminalPill(tone: OutcomeTone, text: ReactNode): GenericFeedbackMsg {
+export function terminalPill(tone: TerminalOutcome, text: ReactNode): GenericFeedbackMsg {
   return {
     tone,
     text,

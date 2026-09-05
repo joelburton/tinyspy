@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { tileColor } from '@/shared/wordle-style/tileColor'
+import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { useCoarsePointer } from '@/common/mobile/useCoarsePointer'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
@@ -73,7 +74,7 @@ type Props = {
    *  outcome's gray (neutral for a game that was simply ended). Null while it is
    *  still live. Permanent, unlike the two transient dims above: it says "this is
    *  a record, not a position". */
-  gameOver?: 'won' | 'lost' | 'neutral' | null
+  gameOver?: TerminalOutcome | null
   /** How many swaps the server has recorded for the board on show (the replay
    *  log's length — everyone's in coop, mine in compete). It is the CAUSE the
    *  attention flash reads: a board that changed while this number stood still
