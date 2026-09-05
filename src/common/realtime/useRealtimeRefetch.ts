@@ -80,12 +80,9 @@ type Config = {
  *      "reconnect dropped events" gap that postgres-changes alone
  *      leaves open.
  *   3b. **Refetch again when the postgres_changes attach is
- *      confirmed.** SUBSCRIBED is only the join ack; events
- *      committed before the server's "Subscribed to PostgreSQL"
- *      confirmation are dropped, so the SUBSCRIBED refetch can be
- *      the last thing a deaf-window client ever learns. The
- *      attach-time refetch closes that window. See
- *      lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+ *      confirmed.** The SUBSCRIBED refetch runs before the server
+ *      is really watching the table, so it cannot be the last word
+ *      — see `onPostgresAttached` in `postgresAttached.ts`.
  *   4. **Per-effect UUID-suffixed channel name.** Sidesteps
  *      supabase-js's name-cache + StrictMode double-mount
  *      collision. See `channelDedup.ts` for the rationale.

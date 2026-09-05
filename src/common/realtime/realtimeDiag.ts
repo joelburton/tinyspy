@@ -11,23 +11,13 @@ import { readStored } from '../web-storage/storage'
  * page has quietly stopped updating; what the trail is FOR is the lost-event
  * failure mode in docs/realtime-lost-events.md.
  *
- * ─── Why this exists ──────────────────────────────────────────────────
- * A channel can report `SUBSCRIBED` and then never deliver a single
- * `postgres_changes` event. The client-side mechanism (verified against
- * realtime-js 2.108.1): `SUBSCRIBED` fires on the **join ack** — the server
- * accepted the topic and assigned ids to the postgres_changes bindings. But
- * wiring those bindings into the WAL poller is a SECOND, asynchronous phase
- * on the server, and its outcome arrives later as a separate `system`
- * message on the channel:
- *
- *     { extension: 'postgres_changes', status: 'ok',
- *       message: 'Subscribed to PostgreSQL' }        ← events will flow
- *     { …, status: 'error', message: '…' }           ← they never will
- *
- * Nothing in the app listened for that message, and every subscribe
- * callback checked only `SUBSCRIBED` — so a deaf channel, an errored
- * channel, and a healthy one all looked identical in a real browser.
- * This module makes the difference visible in the console.
+ * ─── What it makes visible ────────────────────────────────────────────
+ * A deaf channel, an errored one and a healthy one look identical to the
+ * app: every subscribe callback checks `SUBSCRIBED`, and all three report
+ * it. What tells them apart is the server's later `system` message —
+ * `onPostgresAttached` is where that message is explained and why a hook
+ * acts on it. These lines are where the difference is legible in a real
+ * browser.
  *
  * ─── How it's wired ───────────────────────────────────────────────────
  * `supabase.ts` wraps the client's `channel()` factory with
@@ -95,11 +85,9 @@ export function rtVerbose(): boolean {
 
 /**
  * **The server's `system` message**, which is how a channel reports on its
- * postgres_changes subscription AFTER the join ack:
- *
- *     { extension: 'postgres_changes', status: 'ok',
- *       message: 'Subscribed to PostgreSQL' }    ← events will flow
- *     { …, status: 'error', message: '…' }       ← they never will
+ * postgres_changes subscription AFTER the join ack: `status: 'ok'` means
+ * events will flow, `'error'` that they never will. What that report is worth
+ * to a hook is `onPostgresAttached`'s subject.
  *
  * Named here rather than at each reader because two things read it and they
  * are the two that must not fail together: `onPostgresAttached` closes the
@@ -132,7 +120,6 @@ export function bareName(topic: string): string {
  * Called from the patched `supabase.channel()` factory, so it runs before
  * any `.on()` / `.subscribe()` the owning hook performs. Returns the same
  * channel (the factory's callers chain off it).
- *
  */
 export function instrumentChannel(ch: RealtimeChannel): RealtimeChannel {
   // Deliberately wrap-the-public-API, not reach-into-internals: `.on()`,

@@ -216,9 +216,8 @@ describe('useRealtimeRefetch', () => {
       }),
     )
     expect(load).toHaveBeenCalledTimes(1)
-    // The server's "Subscribed to PostgreSQL" system message — proof the
-    // WAL poller carries this channel's subscription. Events committed
-    // before it are dropped, so this refetch is what closes the window.
+    // The server's "Subscribed to PostgreSQL" system message; the refetch it
+    // provokes is the one `onPostgresAttached` exists for.
     act(() => systemCb!({ status: 'ok', extension: 'postgres_changes' }))
     expect(load).toHaveBeenCalledTimes(2)
   })

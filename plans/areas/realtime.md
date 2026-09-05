@@ -274,7 +274,7 @@ else in the file describes the topic, `channelPrefix`'s docstring already
 said the suffix is part of the full name, and the seventy tests in the folder
 did not move.
 
-### F-realtime-7 · deaf-window-explained-four-times · the two-phase-subscribe story has four homes in one folder
+### WORKED · F-realtime-7 · deaf-window-explained-four-times · the two-phase-subscribe story has four homes in one folder
 
 **Where:** the "SUBSCRIBED is only the join ack; attaching to the WAL poller is
 a second phase; events committed between are dropped" explanation is written
@@ -295,6 +295,30 @@ example; 3b becomes "refetch again when the attach is confirmed — see
 empty ` *` line closing `instrumentChannel`'s docstring) while that file is
 open.
 
+**Resolution (2026-09-05, Joel: "1. i'll take your rec")** — `postgresAttached.ts`
+is the home and keeps its telling word for word; the others are down to their
+own job plus a pointer.
+
+- `realtimeDiag.ts`'s module docstring: "Why this exists" (18 lines, mechanism
+  + annotated payload) → "What it makes visible" (7), which says the three
+  channel states are indistinguishable to the app and sends the reader to
+  `onPostgresAttached` for what the `system` message means.
+- `SystemPayload`: keeps the wire shape, `status: 'ok'` vs `'error'` in one
+  sentence, and the two-readers-that-must-not-fail-together paragraph; the
+  annotated example — its second printing twenty lines below the first — is
+  gone.
+- Point 3b in `useRealtimeRefetch.ts`: seven lines → four, one sentence and
+  the pointer.
+- The nit at `instrumentChannel`'s docstring: gone.
+
+**A fifth copy, not in the finding:** `useRealtimeRefetch.test.ts:219–221`
+told the same story to explain one `act()`. Now it names the message being
+fired and points at the helper. Found while checking what remained — the
+grep for "join ack" / "Subscribed to PostgreSQL" / "WAL poller" over the
+folder is what a re-read should repeat.
+
+Net −17 lines of docstring; `tsc -b`, eslint and 338 tests green.
+
 ### F-realtime-8 · stale-lib-supabase-paths · comments still write the pre-reorg path
 
 **Where:** the folder was `common/lib/supabase/` before the restructure.
@@ -302,7 +326,7 @@ Sites that still say so, by file:
 
 | file | sites |
 |---|---|
-| `src/common/realtime/useRealtimeRefetch.ts` | 1 (line 88) |
+| ~~`src/common/realtime/useRealtimeRefetch.ts`~~ | its one site went with F-realtime-7's rewrite of point 3b |
 | `src/common/realtime/useRealtimeRefetch.test.ts` | 1 (line 63) |
 | `src/common/realtime/useClubPresence.ts` | 1 (line 95) |
 | `src/common/realtime/useClubPresence.test.ts` | 1 (line 9) |
