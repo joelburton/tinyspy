@@ -15,7 +15,9 @@ import { useCallback, useSyncExternalStore } from 'react'
  * snapshot renders the desktop layout). Real browsers always have `matchMedia`.
  *
  * Uses `useSyncExternalStore`, so a cross-query resize re-renders WITHOUT a
- * setState-in-effect — clean under the repo's lint rule (see docs/code-conventions).
+ * setState-in-effect — which the repo lints against
+ * (`react-hooks/set-state-in-effect`). That is a property of THIS file; the
+ * device hooks just call it.
  *
  * NOTE for callers: matchMedia can't read a `@custom-media` name from
  * breakpoints.css, so each device hook writes its condition out again in JS —

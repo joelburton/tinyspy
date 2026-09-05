@@ -25,9 +25,7 @@ export const COARSE_QUERY = '(pointer: coarse)'
  * (react-draggable `preventDefault`s the header touchstart, killing the
  * synthesized click on the X — remove the drag binding and the X works).
  *
- * Re-renders on a pointer change (e.g. plugging a mouse into a tablet) via the
- * shared `useMediaQuery` engine — no setState-in-effect, so it's clean under the
- * repo's lint rule.
+ * Re-renders on a pointer change — e.g. plugging a mouse into a tablet.
  */
 export function useIsCoarsePointer(): boolean {
   return useMediaQuery(COARSE_QUERY)

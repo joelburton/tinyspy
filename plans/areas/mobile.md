@@ -5,8 +5,8 @@ The folders it reads: `mobile`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1, F-mobile-3, F-mobile-4, F-mobile-11,
-F-mobile-13, and the doc + stylesheet halves of F-mobile-2.
+below; worked so far: F-mobile-1, F-mobile-2, F-mobile-3, F-mobile-4,
+F-mobile-5, F-mobile-11, F-mobile-13.
 
 ## The roster
 
@@ -85,7 +85,7 @@ Two doc errors fell out of the same paragraph and are fixed with it: the
 most-read of the three), and the sentence beneath it called the four arms "for
 the occasional per-mode tweak" as though they were in use.
 
-### F-mobile-2 · `mirror-count` · "The JS side keeps its own copy of the `--mobile` line" — it keeps three
+### WORKED · F-mobile-2 · `mirror-count` · "The JS side keeps its own copy of the `--mobile` line" — it keeps three
 
 `breakpoints.css` (header NOTE) and `docs/mobile.md` (end of "Naming the device
 classes") both say the JS mirror is `useIsMobile.ts`, singular. Three hooks
@@ -112,10 +112,11 @@ holds them, and `MOBILE_QUERY`'s docstring no longer claims there is no build
 step. **The doc half went with F-mobile-1**, which rewrote that paragraph:
 `docs/mobile.md` now names all three mirrors and says a spec holds each pair.
 
-**Left: `useIsMobile`'s HOOK docstring**, which still describes itself against
-`@media (max-width: 56.25rem)` overrides rather than against the `--mobile`
-name — the last place the raw literal stands in for the name. One sentence,
-and F-mobile-7 opens that file anyway.
+**The last piece — `useIsMobile`'s HOOK docstring, which described itself
+against `@media (max-width: 56.25rem)` overrides — went with F-mobile-5**, which
+was editing that paragraph when F-mobile-4 made the sentence false outright: no
+stylesheet writes that literal any more. It says `@media (--mobile)`.
+**F-mobile-2 is done.**
 
 ### WORKED · F-mobile-3 · `sync-by-test` · "Kept in sync by hand" is written five times and nothing checks it
 
@@ -187,7 +188,7 @@ are prose in comments), so the stylesheet header's "any module can write
 `@media (--phone)`" and the doc's "everywhere" are now simply true. Emitted CSS
 unchanged, by the same build diff F-mobile-1 used.
 
-### F-mobile-5 · `three-pastes` · The lint-rule sentence is pasted into three files, and its pointer is wrong
+### WORKED · F-mobile-5 · `three-pastes` · The lint-rule sentence is pasted into three files, and its pointer is wrong
 
 *"Re-renders … via the shared `useMediaQuery` engine — no setState-in-effect,
 so it's clean under the repo's lint rule"* appears near-verbatim in
@@ -202,6 +203,32 @@ hit is an unrelated code sample). The rule is `eslint-plugin-react-hooks`'s
 `set-state-in-effect`, enabled by `eslint.config.js`; the pointer should go
 there or nowhere. `info-sheet/useInfoSheet.ts` carries the same "the repo lints
 against setState-in-effect" claim with no pointer — noted for that area.
+
+**Done (2026-09-05).** The sentence survives once, in `useMediaQuery`, where the
+property is the file's own; it names `react-hooks/set-state-in-effect` instead
+of a doc that never discussed it, and says outright that the device hooks just
+call it. `useIsMobile` and `useIsCoarsePointer` lost their copies.
+
+**`useInfoSheet`'s copy stays, and nothing is owed to that area.** It is not the
+same kind of sentence: it explains why the code in front of the reader adjusts
+state during render rather than in an effect — a comment doing its job, on the
+line where the choice is visible.
+
+Two things confirmed while working it, since both had been asserted rather than
+checked:
+
+- The rule is really on — `eslint --print-config` on `useMediaQuery.ts` resolves
+  `react-hooks/set-state-in-effect` and `set-state-in-render`, through
+  `reactHooks.configs.flat.recommended` in `eslint.config.js`.
+- `docs/code-conventions.md` still names neither rule. Whether it should — one
+  home for "derive during render, don't setState in an effect", so `useInfoSheet`
+  and the next site can cite it — is open, and is a doc ADDITION rather than
+  anything this finding removes.
+
+Also fixed here, because this change falsified it: `useIsMobile`'s docstring
+called itself the companion to the `@media (max-width: 56.25rem)` overrides.
+After F-mobile-4 no stylesheet writes that literal at all — it says
+`@media (--mobile)` now, which was the last piece of F-mobile-2.
 
 ### F-mobile-6 · `caller-story-in-hook` · The hooks tell their callers' stories, and one tells the wrong one
 
