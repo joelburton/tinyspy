@@ -341,7 +341,7 @@ function GamePageInner({
   // "~" opens the word-lookup dialog (the hook owns + returns that
   // dialog; we render it below).
   const lookupDialog = useAppShortcuts()
-  const accountSection = useAccountMenuSection(session)
+  const accountSection = useAccountMenuSection()
 
   // Which mobile page is showing (see infoSheetStore for why it's a store and
   // not state). Both are false-y on desktop, where the info column is inline.

@@ -192,7 +192,7 @@ export function ClubPage({ handle, session }: Props) {
   // dialog; we render it below). Same hook the GamePage uses. Declared
   // above the loading early returns so the hook order stays stable.
   const lookupDialog = useAppShortcuts()
-  const accountSection = useAccountMenuSection(session)
+  const accountSection = useAccountMenuSection()
 
   const presentUserIds = useMemo(
     () => new Set(presence.map((e) => e.userId)),

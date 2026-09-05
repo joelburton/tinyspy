@@ -64,7 +64,6 @@ const KNOWN: string[] = [
   'src/common/anagram-finder/AnagramDialog.tsx › Values',
   'src/common/game-page/GamePage.tsx › PEER_PILL_MS',
   'src/common/scratchpad/useScratchpad.ts › SavedPad',
-  'src/common/session/useProfile.ts › useCurrentProfile',
   // → connections
   'src/connections/components/BoardCol.tsx › GuessAnswer',
   // → crosswords

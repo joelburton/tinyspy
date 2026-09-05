@@ -16,12 +16,11 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Session } from '@supabase/supabase-js'
 
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 vi.mock('../session/useProfile', () => ({
-  useProfile: () => ({ user_id: 'u1', username: 'joel', color: '#c0392b' }),
+  useProfile: () => ({ username: 'joel', color: '#c0392b', can_edit_words: false }),
   setProfileColor: vi.fn(),
 }))
 
@@ -29,10 +28,9 @@ import { EditProfileModal } from './EditProfileModal'
 import { errorUnder } from '../fields/errorUnder'
 
 const MESSAGE = 'The server said this exact thing.'
-const SESSION = { user: { id: 'u1' } } as Session
 
 function draw(onSaved = vi.fn()) {
-  const view = render(<EditProfileModal session={SESSION} onSaved={onSaved} onCancel={() => {}} />)
+  const view = render(<EditProfileModal onSaved={onSaved} onCancel={() => {}} />)
   return { ...view, onSaved }
 }
 

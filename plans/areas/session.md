@@ -4,8 +4,8 @@ The folders it reads: `session`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN and AUDITED 2026-09-05** — twelve findings, none worked yet.
-Three files `cs-audited-session`.
+**Status: OPEN and AUDITED 2026-09-05** — twelve findings, three worked
+(F-session-1, -7, -8, in one change). Three files `cs-audited-session`.
 
 ## The roster
 
@@ -18,7 +18,7 @@ the files and audit.") — every file of `src/common/session/`:
 | `src/common/session/useSession.ts` | the auth-state hook `App` gates on: `session`, `needsClaim`, `loading`, `refresh` | `cs-audited-session` |
 | `src/common/session/useSession.test.ts` | its contract, nine cases | `cs-audited-session` |
 | `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `useCurrentProfile`, `setProfileColor`. No test file | `cs-audited-session` |
-| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked, so it describes today's two hooks and two reads; its row is off `DESIGNS_OWED`. Re-read it when F-session-1 to -3 settle | (no stamp — markdown) |
+| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `DESIGNS_OWED`. **Its lede, its store paragraphs and two Details bullets were rewritten with F-session-1** — what still describes today's hook is the auth half, which F-session-2 and -3 will reach. Re-read it when they settle | (no stamp — markdown) |
 | `src/common/session/todo.md` | one item under Bugs, handed in from an earlier read; re-derived below as F-session-7 and F-session-8 | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
@@ -47,7 +47,7 @@ and a lot of prose describing how things used to be.
 
 Shape changes first (F-session-1 to -3), so prose is not written twice.
 
-### F-session-1 · `one-row-read-twice-two-hooks` · The profile row is read twice at boot, by two hooks whose names do not say how they differ
+### WORKED · F-session-1 · `one-row-read-twice-two-hooks` · The profile row is read twice at boot, by two hooks whose names do not say how they differ
 
 `useSession.probeProfile` reads `profiles.select('user_id').eq('user_id', …)`
 (`useSession.ts:129`) to learn whether a row exists. Then, the moment
@@ -87,6 +87,32 @@ Numbered points to rule on:
 2. If merged: does `useProfile.ts` keep its name with the store inside it, or
    does the store move into `useSession.ts` and `useProfile.ts` become the
    hook file only?
+
+**Resolution (2026-09-05, Joel: "do it").** Merged, and the store stayed in
+`useProfile.ts`. The probe now selects `username, color, can_edit_words` and
+calls `setProfile(row ?? null)` before `loading` clears; `ensureLoaded` and
+`useCurrentProfile` are gone, and `useProfile()` is arg-free and
+subscribe-only. Three things came with it:
+
+- **The store is now emptied on every signed-out path**, which nothing did
+  before — a signed-out tab kept the last user's name and color until a
+  different user signed in. The four identical clear-everything bodies became
+  one `resolveSignedOut`.
+- **`session` stopped being an argument anywhere it was only there for the
+  lookup**: `useAccountMenuSection()` and `<EditProfileModal>` both dropped it,
+  which reached `App.tsx`, `ClubPage`, `GamePage`, `HomePage` and the modal's
+  test. Mechanical and type-checked.
+- **`PN491` lost its only raiser** and is now reserved-but-unraised. With one
+  read there is no window in which a row exists for the probe and not for the
+  load; zero rows means unclaimed, and the claim screen is where a vanished row
+  gets its real answer (re-claim, or PN018). The registry entry stays, with its
+  comment rewritten to say so; `doc.md`'s bullet about it is gone. **Joel has
+  not ruled on deleting the entry** — it was point 1 of the two offered, and
+  "do it" answered the merge, so the reversible half was taken.
+
+Tests: fixtures carry the real columns, and two new cases pin the seed and the
+clear (`useSession seeds the profile store`). Full suite 2613 green, `tsc -b`
+and eslint clean.
 
 ### F-session-2 · `probe-failure-lands-on-claim-screen` · A failed probe sends the player to pick a username under a fault modal, and the comment excusing it is no longer true
 
@@ -198,9 +224,13 @@ it the history above; what it needs to say is the three states, what
 `refresh()` is for, and the getUser-first rule.
 
 Depends on F-session-1 to -3: whichever way those go, this prose is rewritten
-once, after.
+once, after. **The `useProfile.ts` half is done** — F-session-1 rewrote that
+file, so every line listed above for it is gone and the two wrong claims with
+them (`doc.md` and `dbEnvelope.ts`'s PN491 comment were corrected in the same
+change). What remains is `useSession.ts`: its 37-line docstring and the four
+inline blocks.
 
-### F-session-7 · `orphaned-set-profile-color-docstring` · `setProfileColor`'s docstring sits above `useCurrentProfile`
+### WORKED · F-session-7 · `orphaned-set-profile-color-docstring` · `setProfileColor`'s docstring sits above `useCurrentProfile`
 
 `useProfile.ts:131–136` documents "Reflect a just-saved color across every
 consumer in the tab" and is immediately followed by a second `/** … */` for
@@ -214,7 +244,12 @@ Fix: move the docstring onto `setProfileColor`; its row leaves the allowlist
 as the mechanical consequence. While there: "every reader (and any other
 reader)" says reader twice.
 
-### F-session-8 · `todo-silent-fetch-is-stale` · The `todo.md` Bugs item's first half — "a failed profile fetch is SILENT" — is no longer true
+**Resolution (2026-09-05).** Fell out of F-session-1: `useCurrentProfile` was
+deleted, so the docstring sits on `setProfileColor` with nothing between them,
+and the allowlist row went in the same change (the guard fails from both sides
+— a stale row is a failure). The doubled "reader" is gone too.
+
+### WORKED · F-session-8 · `todo-silent-fetch-is-stale` · The `todo.md` Bugs item's first half — "a failed profile fetch is SILENT" — is no longer true
 
 Re-derived as the item asked. Both failure paths in `ensureLoaded` present:
 a `not-ok` read has already been logged and shown by `readRows`
@@ -222,6 +257,10 @@ a `not-ok` read has already been logged and shown by `readRows`
 `PN491` fault of its own (`useProfile.ts:97–110`, `dbEnvelope.ts:221`). Fix:
 strike that half from `todo.md`; F-session-7 is the half that remains, and
 leaves too when worked.
+
+**Resolution (2026-09-05).** Both halves went with F-session-1 — the fetch it
+described no longer exists, and F-session-7 was fixed — so the whole `todo.md`
+Bugs item is struck.
 
 ### F-session-9 · `test-prose-stale` · The test file's header and comments describe a hook that is not this one
 
@@ -269,6 +308,11 @@ Fix after F-session-1 settles the shape: `useProfile.test.ts` for the store,
 two more cases in `useSession.test.ts`. If the store moves under `useSession`,
 the store's cases go there instead.
 
+**Smaller after F-session-1**, which deleted the load path and its four
+untested branches, and added two cases pinning the seed and the clear. What is
+still untested: `refresh()`, the 200-with-`user: null` branch, and
+`setProfileColor` reaching two subscribers.
+
 ### F-session-12 · `refresh-throwaway-mountedref` · `probeProfile` takes a mounted flag as a parameter so `refresh` can pass one that is never cleared
 
 `useSession.ts:56` threads `mountedRef` through as an argument; the effect
@@ -298,15 +342,13 @@ or -3 if either rewrites the hook.
 
 ## Predicted test breaks
 
-- `src/guards/orphanedDocstrings.test.ts` — its allowlist row for
-  `useCurrentProfile` goes stale the moment F-session-7 is worked; the row is
-  removed in the same change.
+- ~~`src/guards/orphanedDocstrings.test.ts`~~ — happened as predicted; the row
+  went with F-session-7.
 - `src/common/session/useSession.test.ts` — F-session-2 changes the pinned
-  behavior of the probe-error case; F-session-1 and -3 change what the mocked
-  chain must return.
-- `src/common/account/EditProfileModal.test.tsx` — mocks
-  `'../session/useProfile'` by path and export name; a rename or a signature
-  change under F-session-1 reaches it.
+  behavior of the probe-error case. (F-session-1 changed the fixtures and the
+  mock-chain comment, as predicted.)
+- ~~`src/common/account/EditProfileModal.test.tsx`~~ — reached by F-session-1:
+  the mock's row shape and the dropped `session` prop.
 - `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses its `common/session`
   row when the Design is written, at the close.
 

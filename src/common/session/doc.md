@@ -2,8 +2,8 @@
 
 Who is signed in, whether they have a username yet, and what their profile
 says. One hook turns Supabase Auth's session into the three states `App` gates
-on; the other holds the signed-in user's profile row in a store every page can
-read.
+on, filling a store with the profile row it read on the way; the other hands
+that profile to anything on the page that asks for it.
 
 ## Design
 
@@ -46,31 +46,23 @@ The wrapper has already logged it and shown the fault, and the hook is left
 with only a guess about where to send the person; today it sends them to the
 claim screen.
 
-The second hook is about the row's contents rather than its existence. The
-username, the player color and the one permission the app has are read by
-several things that do not share a parent, the account menu on every page and
-the home page greeting among them, and the color is editable in place. So the
-profile lives in a module-level store rather than in any component, and the
-hooks subscribe to it with React's external-store hook. There is one signed-in
-user per tab, so one slot is the right number. The store loads once per user id
-and a remount or a token refresh is a no-op against the cached value, which is
-why the menu row does not flicker on navigation. A saved color is pushed into
-the store directly, after the RPC has persisted it, so every reader repaints at
-once with no refetch. Two hooks read the store: one takes the session and makes
-sure the row is loaded, the other only subscribes, for components too far from
-the page shell to have a session in hand.
+The row's contents are the other half of the job, and they arrive in the same
+read. The username, the player color and the one permission the app has are
+wanted by things that do not share a parent — the account menu on every page,
+the home page greeting, a definition popover several layers deep — and the
+color is editable in place. So the lookup reads the whole row rather than only
+asking whether one exists, and hands what it found to a module-level store.
+`useProfile` subscribes to that store and takes no arguments, which is what
+lets a component far from the page shell read the profile without a session in
+hand. There is one signed-in user per tab, so one slot is the right number.
 
-A profile that goes missing after the session said it was there is a distinct
-event, and the store treats it as one. The row is keyed by the user id, the
-read policy hides nothing, and every consumer renders only after `useSession`
-saw a row, so zero rows here can only mean the row was deleted under a live
-tab. That is the same condition the claim RPC reports when it runs into a token
-whose user is gone, reached by another door. It is reported as a fault that
-tells the player to refresh, because refreshing re-probes, finds no profile and
-routes them to the claim screen, which is the one place that can either
-re-claim or sign them out. Either kind of failure clears the load marker first,
-so a later mount retries instead of leaving the menu showing a placeholder for
-the rest of the session.
+Two things follow from the store being filled by the lookup rather than by its
+readers. The value is there before the first page mounts, so no menu row starts
+life showing a placeholder and no navigation refetches anything; and every path
+that ends signed out empties the store on the way, so a tab that has signed out
+is not still showing the last person's name and color. A saved color is pushed
+into the store directly, after the RPC has persisted it, so every reader
+repaints at once with no refetch.
 
 ## Details
 
@@ -85,15 +77,12 @@ the rest of the session.
   `can_edit_words`. Add a column when a consumer arrives. `can_edit_words` has
   no UI for granting it; it is set by hand in SQL and gates the dictionary
   editing entry points.
-- **The subscribe-only hook depends on the other having run.** The account
-  menu calls the loading hook on every page, so the store is warm before
-  `DefinitionView` asks; a cold store reads as "no permission", which is the
-  safe reading.
-- **The missing-row fault is `PN491`**, the code reserved for a signed-in user
-  with no profile row; it is the frontend's own, raised without a server
-  round trip.
+- **An empty store reads as "signed out or unclaimed"**, which every consumer
+  renders as the absence it is — no username, no color, no dictionary editing
+  link. That is the safe reading, and it is also the true one: the store is
+  empty exactly when there is no claimed profile.
 - **The profiles read policy is `for select to authenticated using (true)`**,
-  so both lookups are a point read on the primary key with nothing to filter.
+  so the lookup is a point read on the primary key with nothing to filter.
 - **The tests mock the auth client, not the network.** `useSession.test.ts`
   captures the callback the hook registers with `onAuthStateChange` and fires
   the events by hand, and collapses the query chain to its terminal call, so a

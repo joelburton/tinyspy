@@ -209,15 +209,16 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
     code: 'PN490',
     text: 'BUG: a database error arrived with no SQLSTATE',
   },
-  // A signed-in session whose profile row is gone — `useProfile` reads zero
-  // rows for its own `user_id`. Reachable in ordinary use, unlike the shape
-  // bugs above: a `db:reset` under a live tab, or an account deleted
-  // mid-session, which is `claim_username`'s PN018 arriving by another door.
+  // A signed-in session whose profile row is gone. Nothing raises it today:
+  // the session probe is the one read of that row, and zero rows there means
+  // "not claimed yet", which routes to the claim screen — where a `db:reset`
+  // under a live tab re-claims, and an account deleted mid-session gets
+  // `claim_username`'s PN018. The code stays reserved for a reader that can
+  // tell a vanished row from an unclaimed one.
   //
-  // Its `text` is the code's MEANING, not the sentence the player reads: that
-  // hook words its own ("Your profile is no longer on the server. Please
-  // refresh."), the same way `unhandledAnswer`'s text is prefixed at its call
-  // site rather than shown as it stands here.
+  // Its `text` is the code's MEANING, not a sentence for a player, the same
+  // way `unhandledAnswer`'s text is prefixed at its call site rather than
+  // shown as it stands here.
   noProfileRow: {
     code: 'PN491',
     text: 'BUG: signed in with no profile row',

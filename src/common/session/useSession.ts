@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { db } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
+import { setProfile } from './useProfile'
 
 /**
  * Source of truth for "is there a logged-in user, and have they
@@ -49,17 +50,23 @@ export function useSession() {
   const [hasProfile, setHasProfile] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Probe whether the signed-in user has claimed a username (i.e.
-  // a profiles row exists). RLS on profiles is public-read, so this
-  // is a single point-lookup with no FK indirection.
+  // The four states below are all "nobody is signed in as far as the app is
+  // concerned", and the profile store has to be emptied with them or a
+  // signed-out tab keeps showing the last user's name and color.
+  const resolveSignedOut = useCallback(() => {
+    setProfile(null)
+    setSession(null)
+    setHasProfile(false)
+    setLoading(false)
+  }, [])
+
+  // Read the signed-in user's profiles row. Whether it exists is the claim
+  // gate; what it contains seeds the profile store, so this is the only read
+  // of that row the app makes. A point lookup on the primary key.
   const probeProfile = useCallback(
     async (next: Session | null, mountedRef: { value: boolean }) => {
       if (!next) {
-        if (mountedRef.value) {
-          setSession(null)
-          setHasProfile(false)
-          setLoading(false)
-        }
+        if (mountedRef.value) resolveSignedOut()
         return
       }
 
@@ -106,9 +113,7 @@ export function useSession() {
           console.warn('stored session is invalid — signing out', userErr)
           await supabase.auth.signOut()
           if (!mountedRef.value) return
-          setSession(null)
-          setHasProfile(false)
-          setLoading(false)
+          resolveSignedOut()
           return
         }
         // Transient (5xx / retryable network). Log and proceed permissively.
@@ -120,14 +125,15 @@ export function useSession() {
         console.warn('auth.getUser() returned no user — signing out')
         await supabase.auth.signOut()
         if (!mountedRef.value) return
-        setSession(null)
-        setHasProfile(false)
-        setLoading(false)
+        resolveSignedOut()
         return
       }
 
       const res = await readRows(
-        db.from('profiles').select('user_id').eq('user_id', next.user.id),
+        db
+          .from('profiles')
+          .select('username, color, can_edit_words')
+          .eq('user_id', next.user.id),
       )
       if (!mountedRef.value) return
       if (res.type === 'not-ok') {
@@ -138,6 +144,7 @@ export function useSession() {
         //
         // `readRows` has already logged this and put the modal up, so what is
         // left is only the guess about where to send them.
+        setProfile(null)
         setSession(next)
         setHasProfile(false)
         setLoading(false)
@@ -145,13 +152,17 @@ export function useSession() {
       }
       // ZERO ROWS is the answer this probe exists to get: no profile means the
       // user has not claimed a username yet. It is not a failure, which is why
-      // the read no longer asks PostgREST for a single row — that would make
-      // the ordinary first-sign-in case an error.
+      // the read does not ask PostgREST for a single row — that would make the
+      // ordinary first-sign-in case an error.
+      const row = res.data[0] ?? null
+      // Seeded before `loading` clears, so the first render of the account menu
+      // already has a username rather than a placeholder.
+      setProfile(row)
       setSession(next)
-      setHasProfile(res.data.length > 0)
+      setHasProfile(row !== null)
       setLoading(false)
     },
-    [],
+    [resolveSignedOut],
   )
 
   useEffect(function subscribeToAuthState() {
@@ -160,9 +171,7 @@ export function useSession() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'SIGNED_OUT' || !next) {
         if (!mountedRef.value) return
-        setSession(null)
-        setHasProfile(false)
-        setLoading(false)
+        resolveSignedOut()
         return
       }
       probeProfile(next, mountedRef)
@@ -172,7 +181,7 @@ export function useSession() {
       mountedRef.value = false
       sub.subscription.unsubscribe()
     }
-  }, [probeProfile])
+  }, [probeProfile, resolveSignedOut])
 
   // Public refresh — call after a successful claim_username to
   // flip needsClaim → false without re-authenticating.

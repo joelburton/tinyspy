@@ -42,7 +42,8 @@ vi.mock('../supabase/supabase', () => ({
       getUser: mockGetUser,
     },
     // The hook's query is `supabase.schema('common').from('profiles')
-    //   .select('user_id').eq('user_id', X)` — we collapse the whole chain
+    //   .select('username, color, can_edit_words').eq('user_id', X)` — we
+    // collapse the whole chain
     // (including schema()) to its terminal mock so we don't have to model
     // each intermediate method's return value. `eq()` IS the terminal now:
     // the query is awaited directly, since zero rows is a real answer here
@@ -58,10 +59,14 @@ vi.mock('../supabase/supabase', () => ({
 }))
 
 import { useSession } from './useSession'
+import { useProfile } from './useProfile'
 
 const fakeSession = {
   user: { id: 'ada11111-1111-1111-1111-111111111111' },
 } as unknown as Session
+
+/** What the probe reads — the whole profile, since it seeds the store too. */
+const PROFILE_ROW = { username: 'ada', color: '#c0392b', can_edit_words: false }
 
 /** Captures the callback the hook subscribes with so tests can fire events. */
 let authCb: ((event: string, session: Session | null) => void) | null = null
@@ -73,7 +78,7 @@ beforeEach(() => {
     return { data: { subscription: { unsubscribe: vi.fn() } } }
   })
   mockSignOut.mockResolvedValue({ error: null })
-  mockProfileRows.mockResolvedValue({ data: [{ user_id: fakeSession.user.id }], error: null })
+  mockProfileRows.mockResolvedValue({ data: [PROFILE_ROW], error: null })
   // Default: getUser confirms the stored session is valid. The
   // tests that exercise the "JWT outlived the user" path override
   // this with mockGetUser.mockResolvedValueOnce({...}).
@@ -265,5 +270,35 @@ describe('useSession', () => {
     expect(result.current.needsClaim).toBe(false)
     // The SIGNED_OUT branch short-circuits before the verify query.
     expect(mockProfileRows).not.toHaveBeenCalled()
+  })
+})
+
+describe('useSession seeds the profile store', () => {
+  // The probe is the app's ONE read of the profiles row: what it finds is what
+  // `useProfile` hands every page, so these two cases are the whole contract
+  // between the hook and the store.
+  it('fills the store from the probed row, before loading clears', async () => {
+    const { result } = renderHook(() => ({ session: useSession(), profile: useProfile() }))
+
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.session.loading).toBe(false))
+    expect(result.current.profile).toEqual(PROFILE_ROW)
+  })
+
+  it('empties the store on SIGNED_OUT, so the next user sees nobody', async () => {
+    const { result } = renderHook(() => ({ session: useSession(), profile: useProfile() }))
+
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+    await waitFor(() => expect(result.current.profile).toEqual(PROFILE_ROW))
+
+    await act(async () => {
+      authCb?.('SIGNED_OUT', null)
+    })
+    expect(result.current.profile).toBeNull()
   })
 })

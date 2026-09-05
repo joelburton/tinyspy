@@ -59,7 +59,7 @@ type Props = {
  * solo space without an `eq('created_by', …)` filter.
  */
 export function HomePage({ session }: Props) {
-  const profile = useProfile(session)
+  const profile = useProfile()
   const username = profile?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
   // Three states, because an empty list means something different in each and
@@ -155,7 +155,7 @@ export function HomePage({ session }: Props) {
   const clubsRef = useRef<HTMLDivElement>(null)
   useTabRing([clubsRef])
 
-  const accountSection = useAccountMenuSection(session)
+  const accountSection = useAccountMenuSection()
 
   // `?` opens the menu and `~` opens word-lookup, as on every other real page.
   // `chat: false` — chat is club-scoped and no panel is mounted here, so binding

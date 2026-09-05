@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useDefinition, type WordMeta } from './useDefinition'
-import { useCurrentProfile } from '../session/useProfile'
+import { useProfile } from '../session/useProfile'
 import { setWordEdit } from './wordEditStore'
 import { parseDefinition } from './parseDefinition'
 import styles from './DefinitionView.module.css'
@@ -47,7 +47,7 @@ type Props = {
  */
 export function DefinitionView({ word, onNavigate }: Props) {
   const { result, loading, error } = useDefinition(word)
-  const canEdit = useCurrentProfile()?.can_edit_words ?? false
+  const canEdit = useProfile()?.can_edit_words ?? false
 
   if (!word) return null
 

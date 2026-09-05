@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
 import { StandardForm } from '../forms/StandardForm'
@@ -17,7 +16,6 @@ import { ColorField } from '../fields/ColorField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  session: Session
   /** Save succeeded — the parent closes the dialog. */
   onSaved: () => void
   /** Cancel / Esc / X — the parent closes the dialog. */
@@ -48,8 +46,8 @@ type Values = { new_color: string }
  *  whole answer and the only thing a branch can assert about it. */
 type ColorAnswer = { result: 'saved' }
 
-export function EditProfileModal({ session, onSaved, onCancel }: Props) {
-  const profile = useProfile(session)
+export function EditProfileModal({ onSaved, onCancel }: Props) {
+  const profile = useProfile()
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 

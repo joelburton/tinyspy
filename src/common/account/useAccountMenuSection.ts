@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { useProfile } from '../session/useProfile'
 import { supabase } from '../supabase/supabase'
 import { setEditProfileOpen } from './editProfileStore'
@@ -30,12 +29,11 @@ import type { MenuSection } from '../menu/menuModel'
  * separation `docs/ui.md` records for the old UserMenu, kept by nesting instead
  * of by a second menu.
  *
- * @param session The signed-in session (for the profile lookup).
  * @returns One `MenuSection` holding one submenu row. Spread it at the END of a
  *          page's `sections` array.
  */
-export function useAccountMenuSection(session: Session): MenuSection {
-  const profile = useProfile(session)
+export function useAccountMenuSection(): MenuSection {
+  const profile = useProfile()
   const username = profile?.username
   const color = profile?.color
 

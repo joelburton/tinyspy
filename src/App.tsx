@@ -184,7 +184,6 @@ export default function App() {
 
       {editingProfile && (
         <EditProfileModal
-          session={session}
           onSaved={() => setEditProfileOpen(false)}
           onCancel={() => setEditProfileOpen(false)}
         />
