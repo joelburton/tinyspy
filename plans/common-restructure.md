@@ -96,8 +96,9 @@ family is spread across four or five type folders today:
 **Eight buttons in `components/buttons/` are used by exactly one game**:
 EndTurn (codenamesduet); Peel, WordCheck, ZoomFit (bananagrams); Exchange,
 Pass, SharePreview, SubmitWithScore (scrabble). They are there because the
-folder's rule is "every purpose button". That is the catch-all effect of a
-by-type rule, in miniature.
+folder's rule is "every purpose button". Claude first read that as a catch-all
+in miniature; Joel ruled the opposite (§4): a button is a look, not logic, so
+the folder is right to hold them all.
 
 **The `game/` folders confirm goal 3.** `components/game/` has about 25 files at
 its root, `hooks/game/` 15, `lib/game/` 20. Inside them are recognizable
@@ -150,11 +151,15 @@ ladder. A corollary: **generic primitives are common regardless of importer
 count** (`useArrowHistory` has one user today and is still a generic input
 helper), and **game mechanics are shared regardless of importer count**.
 
-**A "shared" thing with ONE user is not shared — it belongs to the game.** The
-eight single-game buttons above, `StrikeMarks` (connections only) and
-`DeviceBlockNotice` (bananagrams only) should probably move into their game's
-folder rather than into `shared/`. The mechanism some of them ride on
-(`StandardButton`, the manifest's device gate) stays common.
+**A "shared" thing with ONE user is not shared — it belongs to the game.**
+`StrikeMarks` (connections only) should move into connections rather than into
+`shared/`. The rule has one deliberate exception, ruled below: the purpose
+buttons stay together in one folder whoever uses them, because a button is a
+look (an icon, a default name, a tone) and not logic — all of them wrap
+`StandardButton` and none calls a hook, reads a store or touches an RPC. And a
+one-user MECHANISM is still common: `DeviceBlockNotice` and
+`useGameHasKeyboard` are the manifest's device and keyboard gates, which
+bananagrams happens to be the only game to trip today.
 
 **Don't recreate components/hooks/lib inside a feature folder.** It reproduces
 the current problem one level down, and the naming convention already carries
@@ -185,24 +190,85 @@ the repo's self-checks were written against it. The move is therefore a codemod
 + a guard-path pass + a mock-path pass, and each guard is worth planting a break
 in afterward to prove it still bites.
 
-## 4. What has to be decided before this becomes a plan
+## 4. Rulings so far (Joel, 2026-09-04)
 
-1. **The common/shared rule**, in one sentence, so a newcomer can place a file
-   without asking. §3 proposes "shell or generic primitive → common; a named
-   game-mechanic family → shared; one user → the game".
-2. **The middle band.** Roughly 40 modules are imported by four to thirteen
-   games. Each needs a call under rule 1. (The session produced a first-pass
-   classification in conversation; it is not recorded here because none of it
-   is agreed.)
-3. **The feature list** — what is big enough to be a folder, and what happens
+Not everything is decided, and it doesn't need to be yet. These are the calls
+made on the first-pass classification; they are the taste the rest gets
+measured against.
+
+**The rule.** Shell furniture or a generic primitive is **common**, whatever
+its importer count. A family of games that can be named is **shared**. One
+user means the file belongs to that game — except buttons (below).
+
+**Clearly shared — the families.**
+
+- found-words (spellingbee, wordwheel, boggle): `makeFoundWordsGame`,
+  `foundWords`, `foundWordsDisplayRows`, `foundWordsLeaderboard`, `rankLadder`,
+  `revealWords`, `RankBar`, `Stats`, `WordList`'s helpers `useWordListFilter`
+  + `useRecentlyFound`, `groupTiles`, `wordListBody`, `wordSections`,
+  `wordColumns`, the typedWord + foundWordsPlayArea stylesheets
+- grid-and-drag (bananagrams, scrabble): `gridCursor` + its stylesheet,
+  `useBoardCursorKeys`, `useDragGesture`, the dragGhost stylesheet
+- hidden-target color (waffle, wordle): `tileColor`, `pdf/tiles`
+- move-flash (connections, psychicnum, waffle, wordle): `useTurnStartFlash`,
+  `useMoveCausedChange`, `feedbackTiming`
+- dictionary trie (boggle, scrabble): `trie`
+- on-screen keyboard (wordle, wordiply): `GuessKeyboard`
+
+**Clearly common, and how it folders.**
+
+- **Both info-column readouts are common**, not shared: the turn log (TurnLog,
+  TurnLogActor, ActorMention, useHistoryViewer, useTurnLogPlayerPicker,
+  turnCopy, TurnStatusLine, the historyViewer stylesheet) AND `WordList`.
+  Sixty percent of games use one and forty the other; neither is a family.
+- **Buttons stay together in one folder**, including the eight used by one
+  game each (EndTurn; Peel, WordCheck, ZoomFit; Exchange, Pass, SharePreview,
+  SubmitWithScore) and the ones that name a mechanic (Hint, Spoiler, AI).
+  They are a look, not logic — see §3.
+- **Icons are their own folder**, separate from buttons.
+- **Small primitives are each their own folder**, not one "primitives" bucket:
+  toasts, tooltips, text (Dot, RichMessage), lists (SelectionList,
+  SimpleScrollableList, FilterSelect), loading-and-errs.
+- **Setup and the fields stay together.** SetupCoopStyleSection,
+  SetupNextPuzzleSection and ManualBoardField go with the other fields,
+  something like `common/fields/`, not with the feature each configures.
+- **Scratchpad is its own feature, in common** — it will reach more games over
+  time, which makes it common rather than shared.
+- **The pages for the palette and the font specimen** go in a dev-tools
+  folder (`devtools/` or `design-tools/`), not among app features.
+- Util, routing, themes, patterns, the root CSS, branding and the test helpers
+  are common and become separate folders; the exact split is not decided.
+- The rest of the first-pass common list stands as proposed: auth + session,
+  home, club, account, chat, page header + menu, floating panels, feedback,
+  definitions, the game-page shell, invitations, info sheet, terminal, entry,
+  supabase, members, the input and ui primitives, the pdf core (frame,
+  columns, turnLog). `mulberry32` is a generic primitive and is common even
+  though only boggle and scrabble seed boards on the client.
+
+**Belongs to one game**: `StrikeMarks` → connections; the orphan
+`infoPanel.module.css` (nothing imports it) is bananagrams' or nobody's.
+
+## 5. Still open
+
+1. **Reveal straddles the line.** `RevealButton` + `useSolutionReveal` serve ten
+   games and are common by the rule; `revealWords` serves only found-words.
+   Split across common and shared, or keep all of reveal together?
+2. **`useWordSubmit`** (boggle, spellingbee, wordwheel, wordiply) — three
+   found-words games plus one that isn't, and it is a submit MECHANISM rather
+   than a mechanic. Shared beside found-words, or common entry?
+3. **Where a family's PDF helper lives** — beside the family it prints, or in
+   one `pdf/` folder as today.
+4. **Grid-and-drag versus the keyboard-nav plan.** `useBoardCursorKeys` and
+   `gridCursor` are shared by two games today, but
+   plans/keyboard-nav-plan.md would extend arrow navigation to five. Classify
+   by today, or by that plan?
+5. **The feature list** — what is big enough to be a folder, and what happens
    to a one-file feature (its own folder anyway, or folded into a parent).
-4. **Where a family's PDF helper lives** — with the family, or in one `pdf/`
-   folder as today.
-5. **The docs boundary** — which docs split, and whether `docs/games/` moves.
-6. **Whether a feature folder gets type subfolders.** Open by Joel's own
+6. **The docs boundary** — which docs split, and whether `docs/games/` moves.
+7. **Whether a feature folder gets type subfolders.** Open by Joel's own
    statement; §3 argues no.
 
-## 5. What happens to this file
+## 6. What happens to this file
 
 If the idea is agreed, this becomes a real plan with a roster and replaces
 docs/common-folders.md when it ships, at which point the plan is deleted. If
