@@ -22,11 +22,9 @@ still open or still process.
 blessings; Joel: *"it's super-easy for me to rebless things when we go into an
 area where i've already seen the files."*
 
-**`feedback` is next**, and it opens the way every area opens: **list the
-files and STOP** (§4). Read [feedback-system.md](feedback-system.md) for what
-the system is today and [feedback-design.md](feedback-design.md) for the target
-it builds to; `src/common/feedback/todo.md` holds the two findings that arrived
-with the files.
+**`utils` is next** — the order is by depth now (§3), and it is the folder
+thirty others and every game read. It opens the way every area opens: **list
+the files and STOP** (§4), and its first read is `src/common/utils/todo.md`.
 
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
@@ -105,65 +103,85 @@ and keying to folders makes it answerable by looking rather than remembering.
 subject, because a one-file area helps nobody. What never happens is the
 reverse: no folder is named by two rows.
 
-**The order below is a grouping order, not a considered one** (Joel,
-2026-09-04). Every folder has a `doc.md` lede now; reading the sixty end to end
-is the cheap way to decide the real order, and reordering the table is a small
-edit. Only the first row is decided.
+**The order is by depth, decided 2026-09-05** from the folder-level import
+graph (who imports whom across `common/` and `shared/`, and which folders the
+games and the root files reach). Two rules, Joel's: **deep-down things
+earlier**, so the app is felt coming together from its fundamental parts; and
+**what everything needs before what only games need**, so `turn-log` and
+`info-sheet` come after `routing` and `boot`. Within a tier, the folder more
+things read goes first. Two calls the graph could not make on its own:
+`feedback` sits mid-depth (six folders under it, twelve and every game above
+it), so it runs once its dependencies are read rather than first as
+originally decided; and `manifest` and `game-page` import each other, so one
+will list the other as a dependency whichever goes first.
 
 | #  | area | the folders it reads | what it is |
 |----|---|---|---|
-| 1  | `feedback` | `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `turn-log`) | **NEXT.** A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-system.md](feedback-system.md) is what it is, [feedback-design.md](feedback-design.md) is the target. `FailureLine` and its stylesheet sit in the folder and were not on the earlier sixteen-file roster — settle that at the opening |
-| 2  | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns, and the theme chain |
-| 3  | `mobile` | `mobile` | the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
-| 4  | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |
-| 5  | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
-| 6  | `session` | `session` | who is signed in, and their profile |
-| 7  | `single-flight` | `single-flight` | the guard every submit wraps |
-| 8  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
-| 9  | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
-| 10 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md#selection-lists) is the canonical one |
-| 11 | `buttons` | `buttons` · `icons` | the button taxonomy and the glyphs they wear |
-| 12 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
-| 13 | `pdf` | `pdf` | printing a board — the frame, the columns, the marks. [docs/pdf.md](../docs/pdf.md) is already its doc |
-| 14 | `floating-panels` | `floating-panels` | the machinery and shared look of every window-like thing that floats over the page. Not the instances |
-| 15 | `forms` | `forms` · `fields` | the design language of forms: the frame, the state, and every field — including the three only a setup form renders |
-| 16 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share |
-| 17 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
-| 18 | `menu` | `menu` | the one menu, its store, and what a game puts in it |
-| 19 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
-| 20 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **the question is what earns a mount at the root.** Two defensible rules — *wide*: mounted once at the root, driven by a store, because what triggers it is elsewhere (six things qualify); *narrow*: renders other people's content (the three hosts; `GameInvitations` is headless; `EditProfileModal` and `WordEditDialog` are instances that merely live at the root). Either is fine once written down; the narrow one has to say where the other two go. Also to decide: whether the stores come with the components |
-| 21 | `homepage` | `home` | the landing page after login |
-| 22 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
-| 23 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
-| 24 | `account` | `account` | your own menu and profile editing |
-| 25 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
-| 26 | `scratchpad` | `scratchpad` | the shared notes panel |
-| 27 | `game-page` | `game-page` | the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points |
-| 28 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, and the bordered panel its readouts wear |
-| 29 | `turn-log` | `turn-log` | the chronological history readout and its viewer. `turnCopy` is here but `feedback` owns its words |
-| 30 | `word-list` | `word-list` | the alphabetical finds readout — common, not a family's: it takes its rows as a prop |
-| 31 | `word-entry` | `word-entry` | the typed-word box and its row. No `<input>`; keystrokes come off the window |
-| 32 | `terminal` | `terminal` | what shows when a game ends. `terminalCopy` is here but `feedback` owns its words |
-| 33 | `pause-suspend` | `pause-suspend` | pausing, presence-pause, suspend |
-| 34 | `timer` | `timer` | the game clock |
-| 35 | `reveal` | `reveal` | showing the answer after the end — and [the reveal-solution taxonomy](../docs/deferred.md) it has to build |
-| 36 | `move-flash` | `move-flash` | flashing the tiles a move changed. **Read [tile-feedback.md](tile-feedback.md) here**, not only per game — this is the mechanism that pass is about |
-| 37 | `manifest` | `manifest` | the registry and the manifest contract every game fills in |
-| 38 | `supabase` | `supabase` | the client, the wrappers, the envelope |
-| 39 | `routing` | `routing` | the router and `usePath` |
-| 40 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
-| 41 | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
-| 42 | `utils` | `utils` | the small general helpers that belong to no page, no game and no subsystem |
-| 43 | `bee-games` | `shared/bee-games` | what spellingbee and wordwheel share and nothing else does. **The name is a placeholder** |
-| 44 | `board-cursor` | `shared/board-cursor` | arrows move a cursor over a board. [keyboard-nav-plan.md](keyboard-nav-plan.md) would add five games to it |
+| | **Foundations** — read by nearly everything, reading nothing | | |
+| 1  | `utils` | `utils` | **NEXT.** The small general helpers that belong to no page, no game and no subsystem; thirty folders and every game import them |
+| 2  | `icons` | `icons` | the glyph registry |
+| 3  | `web-storage` | `web-storage` | storage that cannot throw, and the sticky-choice hook |
+| 4  | `outcomes` | `outcomes` | the outcome vocabulary — [docs/outcomes.md](../docs/outcomes.md) |
+| 5  | `single-flight` | `single-flight` | the guard every submit wraps |
+| 6  | `mobile` | `mobile` | the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here |
+| 7  | `routing` | `routing` | the router and `usePath` |
+| | **The look, before anything renders** | | |
+| 8  | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns, and the theme chain |
+| 9  | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
+| | **The data path and the boot** | | |
+| 10 | `supabase` | `supabase` | the client, the wrappers, the envelope. It reaches `faults` for the fault sink; the sink's function is read here and its modal waits for `common-hosts` |
+| 11 | `session` | `session` | who is signed in, and their profile |
+| 12 | `boot` | `boot` | mounting, the session gate, panic, the stale-chunk reload |
+| 13 | `realtime` | `realtime` | presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided |
+| | **The people** | | |
+| 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
+| | **The controls everyone touches** | | |
+| 15 | `buttons` | `buttons` | the button taxonomy |
+| 16 | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |
+| 17 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md#selection-lists) is the canonical one |
+| 18 | `forms` | `forms` · `fields` | the design language of forms: the frame, the state, and every field — including the three only a setup form renders |
+| | **Floating things and the root hosts** | | |
+| 19 | `floating-panels` | `floating-panels` | the machinery and shared look of every window-like thing that floats over the page. Not the instances |
+| 20 | `menu` | `menu` | the one menu, its store, and what a game puts in it |
+| 21 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **the question is what earns a mount at the root.** Two defensible rules — *wide*: mounted once at the root, driven by a store, because what triggers it is elsewhere (six things qualify); *narrow*: renders other people's content (the three hosts; `GameInvitations` is headless; `EditProfileModal` and `WordEditDialog` are instances that merely live at the root). Either is fine once written down; the narrow one has to say where the other two go. Also to decide: whether the stores come with the components |
+| 22 | `root-files` | `main.tsx` · `App.tsx` · `gametypes.ts` | the three files in no folder; the shell holds the route table and what hangs off the root, and is not split. After the hosts, because `App.tsx` is mostly what hangs off the root |
+| | **The feedback system** | | |
+| 23 | `feedback` | `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `turn-log`) | A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-system.md](feedback-system.md) is what it is, [feedback-design.md](feedback-design.md) is the target. `FailureLine` and its stylesheet sit in the folder and were not on the earlier sixteen-file roster — settle that at the opening |
+| | **Page furniture** | | |
+| 24 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
+| 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
+| 26 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
+| 27 | `scratchpad` | `scratchpad` | the shared notes panel |
+| 28 | `account` | `account` | your own menu and profile editing |
+| | **The pages** | | |
+| 29 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
+| 30 | `homepage` | `home` | the landing page after login |
+| 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
+| 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
+| | **The game shell** — needed by games and nothing else | | |
+| 33 | `manifest` | `manifest` | the registry and the manifest contract every game fills in |
+| 34 | `game-page` | `game-page` | the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them |
+| 35 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, and the bordered panel its readouts wear |
+| 36 | `timer` | `timer` | the game clock |
+| 37 | `pause-suspend` | `pause-suspend` | pausing, presence-pause, suspend |
+| 38 | `turn-log` | `turn-log` | the chronological history readout and its viewer. `turnCopy` is here but `feedback` owns its words |
+| 39 | `word-list` | `word-list` | the alphabetical finds readout — common, not a family's: it takes its rows as a prop |
+| 40 | `word-entry` | `word-entry` | the typed-word box and its row. No `<input>`; keystrokes come off the window |
+| 41 | `terminal` | `terminal` | what shows when a game ends. `terminalCopy` is here but `feedback` owns its words |
+| 42 | `reveal` | `reveal` | showing the answer after the end — and [the reveal-solution taxonomy](../docs/deferred.md) it has to build |
+| 43 | `move-flash` | `move-flash` | flashing the tiles a move changed. **Read [tile-feedback.md](tile-feedback.md) here**, not only per game — this is the mechanism that pass is about |
+| 44 | `pdf` | `pdf` | printing a board — the frame, the columns, the marks. [docs/pdf.md](../docs/pdf.md) is already its doc |
+| | **The shared families** | | |
 | 45 | `dict-trie` | `shared/dict-trie` | the shared dictionary trie |
-| 46 | `grid-and-drag` | `shared/grid-and-drag` | dragging a tile to the right place on the grid |
-| 47 | `onscreen-keyboard` | `shared/onscreen-keyboard` | the on-screen QWERTY |
-| 48 | `rank-ladder` | `shared/rank-ladder` | the Start..Genius ladder, its bar and its stat grid |
-| 49 | `word-hunt` | `shared/word-hunt` | find-words-on-a-board games |
-| 50 | `wordle-style` | `shared/wordle-style` | the per-letter color codes of the hidden-target games, on screen and on paper |
-| 51 | `main.tsx` · `App.tsx` · `gametypes.ts` | the three root files | in no folder; the shell holds the route table and what hangs off the root, and is not split |
-| 52 | per game, one area each | `src/<game>/` | **Sixteen areas**, keyed by CODENAME. Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md). `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+| 46 | `rank-ladder` | `shared/rank-ladder` | the Start..Genius ladder, its bar and its stat grid |
+| 47 | `board-cursor` | `shared/board-cursor` | arrows move a cursor over a board. [keyboard-nav-plan.md](keyboard-nav-plan.md) would add five games to it |
+| 48 | `wordle-style` | `shared/wordle-style` | the per-letter color codes of the hidden-target games, on screen and on paper |
+| 49 | `onscreen-keyboard` | `shared/onscreen-keyboard` | the on-screen QWERTY |
+| 50 | `grid-and-drag` | `shared/grid-and-drag` | dragging a tile to the right place on the grid |
+| 51 | `bee-games` | `shared/bee-games` | what spellingbee and wordwheel share and nothing else does. **The name is a placeholder** |
+| 52 | `word-hunt` | `shared/word-hunt` | find-words-on-a-board games |
+| | **The games** | | |
+| 53 | per game, one area each | `src/<game>/` | **Sixteen areas**, keyed by CODENAME. Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md). `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
 
 **`common/devtools` is on no row, deliberately.** `/palette` and `/font` are
 ABSOLUTELY EXCLUDED (Joel, 2026-09-02: *"Do not read them, do not edit them, do
@@ -268,10 +286,15 @@ never a number that will be reused.
 ### Areas
 
 An area is a loose unit of reading — a folder, a page, a game.
-`plans/areas/<area>.md` is created when the area OPENS and holds its audit
-(findings, each with its resolution), its predicted test breaks, and its
-working notes. **The plan holds the order** (§3); the area file holds
-everything else while the area is open.
+`plans/areas/<area>.md` exists for every area from the start, as a skeleton
+(Joel, 2026-09-05: *"this gives us a place to drop things — for example, if
+we forward-fix an area, we'll already have a place to put that"*), and holds
+its audit (findings, each with its resolution), its predicted test breaks,
+and its notes — the things worth remembering about an area that are neither a
+finding nor owed work. **The plan holds the order** (§3); the area file holds
+the reading; the folder's `todo.md` and `doc.md` hold what outlives the
+sprint, and a note here never stands in for either. A skeleton is not an open
+area: opening is still "list the files and STOP".
 
 **AREAS ARE REFERRED TO BY NAME, NEVER BY POSITION** (Joel): *"the ordinal
 numbers of the areas will move as we go through them. Do not put this kind of
@@ -495,7 +518,6 @@ a whole app to look at rather than one screen. The failure this prevents:
 
 ## 7. Open
 
-- **The real order of §3.** Read the sixty ledes; reorder the table.
 - **A guard has to tell bespoke-BY-INTENT from bespoke-by-laziness** (Joel).
   The vocabularies exist to answer *"are we going crazy-stupid with bespoke
   numbers?"* and *"before I make up a value, should I check whether it fits a
