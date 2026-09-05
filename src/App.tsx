@@ -124,6 +124,10 @@ export default function App() {
     const gametype = urlGametype.toLowerCase()
     const gameManifest = gametypes.find((g) => g.gametype === gametype)
 
+    // A gametype the registry has never heard of is a different thing from a
+    // game that isn't there, and the two wear different screens on purpose: an
+    // error page here, and GamePage's calmer "no game here" card for a game id
+    // that is malformed or names no row.
     if (!gameManifest)
       return (
         <ErrorPage

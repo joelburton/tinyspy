@@ -37,23 +37,11 @@ function rememberTheme(theme: ThemeName | null): void {
   else removeStored('local', STORAGE_KEY)
 }
 
-/**
- * The URL wins over the stored choice, so a link can always override a sticky
- * one — and an explicit `?theme=daylight` clears the stored value rather than
- * merely losing to it, which is the only way back out of the spike without
- * opening devtools.
- */
-function chosenTheme(): ThemeName {
-  const fromUrl = new URLSearchParams(window.location.search).get('theme')
-  if (fromUrl === 'midnight') {
-    rememberTheme('midnight')
-    return 'midnight'
-  }
-  if (fromUrl === 'daylight') {
-    rememberTheme(null)
-    return 'daylight'
-  }
-  return storedTheme() ?? 'daylight'
+/** `?theme=` when it names a real theme, and null for anything else — an
+ *  absent parameter, a typo, or a theme we do not have. */
+function themeFromUrl(): ThemeName | null {
+  const value = new URLSearchParams(window.location.search).get('theme')
+  return value === 'midnight' || value === 'daylight' ? value : null
 }
 
 /**
@@ -66,7 +54,12 @@ function chosenTheme(): ThemeName {
  */
 
 export async function loadTheme(): Promise<ThemeName> {
-  const theme = chosenTheme()
+  const fromUrl = themeFromUrl()
+  // The URL wins over the stored choice, so a link can always override a sticky
+  // one — and `?theme=daylight` CLEARS the stored value rather than merely
+  // losing to it, which is the only way back out of the spike without devtools.
+  if (fromUrl) rememberTheme(fromUrl === 'midnight' ? fromUrl : null)
+  const theme = fromUrl ?? storedTheme() ?? 'daylight'
   if (theme === 'midnight') {
     await Promise.all([import('./dark-mode.css'), import('./midnight.css')])
   } else {

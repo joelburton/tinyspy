@@ -6,7 +6,8 @@ The folders it reads: `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts`
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
-change, F-boot-2 worked, F-boot-3 handed to `game-page`, the other nine open.
+change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
+no change, F-boot-5 worked, the other seven open.
 
 ## The roster
 
@@ -207,7 +208,7 @@ Two things the re-verification added:
 `PlayAreaErrorBoundary.tsx`'s stale docstring (from F-boot-2) went into the
 same `todo.md` in this change.
 
-### F-boot-4 · `unknown-gametype-is-a-fault` · A mistyped gametype gets an ErrorPage logged as a FAULT; a mistyped game id gets a card and a debug line
+### CLOSED, NO CHANGE · F-boot-4 · `unknown-gametype-is-a-fault` · A mistyped gametype gets an ErrorPage logged as a FAULT; a mistyped game id gets a card and a debug line
 
 `App.tsx:127–142`: no manifest for the URL's gametype → `<ErrorPage>` with
 `diagnosticsLine('FAULT', { call: 'GET /g/<gametype>', severity: 'fault',
@@ -233,6 +234,26 @@ opens first; until then `App` imports it from `game-page`.
 6. Home for the shared page: `game-page` exports it now, or wait for
    `simple-page` (`error-page`)?
 
+**Resolution (2026-09-05, Joel: "no, this division is intentional and good")**
+— no change, and the split is a decision rather than drift: a gametype that is
+not in the registry is a different thing from a game that is not there, and
+the two screens say so. Question 6 falls with it — no page is shared, so
+`noSuchGamePage` stays private to `GamePage.tsx` and `App` keeps its
+`ErrorPage`. The ruling is recorded as a comment above `App.tsx`'s
+`if (!gameManifest)` branch, so the next area to read either file does not
+re-find it. It went there rather than `common/game-page/doc.md`: that folder is
+still on `DESIGNS_OWED`, a rationale is Design material, and writing one there
+now would both claim a Design `game-page` has not written and fail the guard
+from the other side.
+
+What the reading turned up and remains true: there are THREE routes to a game
+URL with nothing behind it, not two — an unknown gametype (`App.tsx:127–142`),
+an id that is not uuid-shaped (`GamePage.tsx:225`), and an id with no row
+(`:227`, `:525`) — and the last two share `noSuchGamePage` while the first
+does not. `App.tsx:119–122`'s comment ("reported as a fault — which it
+isn't") is about the case-mismatch instance it normalizes away, not about
+this ruling.
+
 ### F-boot-5 · `chosen-theme-writes` · `chosenTheme()` persists and clears the stored choice, and its name says read
 
 `loadTheme.ts:46–57`: `chosenTheme` reads `?theme=` and, on either value,
@@ -254,6 +275,14 @@ const theme = fromUrl ?? storedTheme() ?? 'daylight'
 than merely loses — moves onto `loadTheme`, which is where a reader is.
 
 7. Agree?
+
+**Resolution (2026-09-05, Joel: "7. yes")** — done. `chosenTheme` is gone;
+`themeFromUrl()` parses and only parses, and `loadTheme` does the three steps
+itself, with the write on a line of its own. `chosenTheme`'s docstring — the
+URL wins, and `?theme=daylight` clears rather than merely loses — is now the
+comment over that write. All three helpers were already private to the file
+and `loadTheme` has one caller (`main.tsx:36`), so nothing outside moved;
+`docs/ui.md:547–556` names the chain, never this function.
 
 ### F-boot-6 · `load-theme-untested` · `loadTheme.ts` has no test, and its comments argue three rules nothing pins
 
