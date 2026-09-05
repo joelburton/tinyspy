@@ -14,9 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, SIX FINDINGS OPEN** (ten
-were; `F-game-lib-49` … `-52` are resolved, `-58` was found resolving `-49`).
-Opened
+**Status: READ THROUGH; re-audited at the close, FIVE FINDINGS OPEN** (ten
+were; `F-game-lib-49` … `-54` are resolved; `-58` was found resolving `-49`
+and `-59` resolving `-54`). Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -32,14 +32,14 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-eight IDs issued; fifty-two settled, six open.** Two of them —
+**Fifty-nine IDs issued; fifty-four settled, five open.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
-files they were about, so **56 carry a heading in this file**:
+files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **6** | `F-game-lib-53` … `-58`, the closing re-audit's — one wrong doc cite, five drifted counts, a history-in-docstrings question, a plan-cite note, a heading of fold-ins, and the stale manifest table in docs/common.md |
-| RESOLVED | 46 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-52` from the re-audit |
+| **OPEN** | **5** | `F-game-lib-55` … `-59`, the closing re-audit's — a history-in-docstrings question, a plan-cite note, a heading of fold-ins, the stale manifest table in docs/common.md, and the roster count "sixteen" written a dozen times |
+| RESOLVED | 48 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-54` from the re-audit |
 | CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -2852,7 +2852,7 @@ already states the guard's reason in full and `trie.ts`'s "Rated terminals"
 paragraph is the reference, so nothing was lost — the cite had been pointing at
 nothing since `-44`. No other line in the file names the dead doc.
 
-### F-game-lib-53 · `duplicate-write-cited-to-wrong-doc` · Three comments send the reader to a doc that does not use the phrase
+### RESOLVED 2026-09-04 — F-game-lib-53 · `duplicate-write-cited-to-wrong-doc` · Three comments send the reader to a doc that does not use the phrase
 
 Three field comments cite *"the duplicate-write discipline; see docs/states.md"*:
 `gameManifest.ts` on `GameManifest.labelFor` and on `CommonGameListRow.status`,
@@ -2865,7 +2865,15 @@ discipline is defined (every state-affecting RPC re-writes `play_state` +
 the `status` column but never under that name, so a reader following the cite
 searches the wrong doc for a phrase it does not contain.
 
-### F-game-lib-54 · `counts-written-this-week-already-drift` · The area's signature fault, in prose the area wrote
+#### Resolved 2026-09-04 — all three point at the row that defines it
+
+Joel: *"fix."* Each cite now reads `docs/common.md → \`common.update_state\``,
+the RPC-table row where the discipline is stated and where its one real rule
+lives (`status` MERGES, it does not replace). No `docs/states.md` cite for the
+phrase remains in the area; the states doc is still cited where it is right,
+for `play_state` and for "paused".
+
+### RESOLVED 2026-09-04 — F-game-lib-54 · `counts-written-this-week-already-drift` · The area's signature fault, in prose the area wrote
 
 Five claims written between 2026-09-03 and 09-04, re-counted at the close:
 
@@ -2881,6 +2889,33 @@ Five claims written between 2026-09-03 and 09-04, re-counted at the close:
 rest should take. **Recommendation:** the rule, not the number, as
 `F-game-lib-5` and `-6` did: "over a hundred", "every one of these was a pair",
 "most PlayArea tests", and name the fourth reader or say "every list of people".
+
+#### Resolved 2026-09-04 — descriptions, and the rule widened
+
+Joel, shown the table: *"i suspect most things showing numbers are going to
+just be pointlessly stale. where possible, a description is better than a
+number."* Then *"do it."* That widens the roster rule from `F-game-lib-5` to
+every count: **the default is the description, and a number has to earn its
+place** (an enum's arity, a fixed constant).
+
+All five sites, plus a sixth in the same test file that the table missed
+(`gameManifest.test.ts:71`, *"twelve gametypes declare [1, 6]"*, accurate
+today and gone anyway):
+
+| was | now |
+|---|---|
+| "its 103 imports / importers" (two files) | "its imports — well over a hundred files" |
+| "All thirteen of these were a coop/compete pair … and it goes" | "Every intro is a fixed sentence per mode and none reads live setup state" |
+| "ten PlayArea tests name End/Concede" | "most PlayArea tests" |
+| three named readers of `orderSelfFirst` | the three, described, plus "any game rendering its own roster" — the fourth was scrabble's InfoCol |
+| "[1, 6] is the shape connections / psychicnum / spellingbee all use" | "the house default — the coop shape of most gametypes" |
+| "twelve gametypes declare [1, 6]" | "most coop gametypes declare [1, 6]" |
+
+`tsc -b` clean; `src/common/lib` + `src/guards` **567/567 in 58 files**.
+
+**What the grep for the fix turned up: the roster count "sixteen" is written
+in the area twelve times**, by groups A–E while they were correcting "ten" and
+"fifteen" — `F-game-lib-59`.
 
 ### F-game-lib-55 · `history-in-docstrings` · Twenty lines in eleven files say how it used to be
 
@@ -2969,6 +3004,38 @@ comments are the reference — and keep only what the doc adds that the source
 cannot (the removability rule, the variants paragraph). Filed rather than done:
 it is a doc rewrite, and docs/common.md is the architecture doc, not this
 area's file.
+
+### F-game-lib-59 · `sixteen-written-a-dozen-times` · The roster count the area banned, written by the area while banning it
+
+Found by `F-game-lib-54`'s closing grep. `F-game-lib-3`, `-4` and `-35` each
+found a stale roster count ("ten", "fifteen", "thirteen") and `-35` resolved
+by saying *"the count should go rather than be corrected"* — "every game". The
+other two corrected the number to sixteen, and groups A–E then wrote "sixteen"
+into fresh prose as they went. Twelve sites in seven files:
+
+| file | line | the phrase |
+|---|---|---|
+| `gamePageCtx.ts` | 21 | *"the sixteen manifests and the club surfaces"* |
+| `gameManifest.ts` | 48 | *"One shape, sixteen schemas"* |
+| `gameManifest.ts` | 168–171 | *"15 games pass their cap … all sixteen agree … four games declare `[2, 6]`"* — three counts in one comment |
+| `gameManifest.ts` | 197 | *"All sixteen answer this way now"* |
+| `manifestRpcs.ts` | 13–14, 22, 36, 54 | *"the sixteen games would otherwise write the same closure sixteen times over"*; *"before all sixteen games were"*; *"all sixteen schemas define both"*; *"across all sixteen games"* |
+| `manifestRpcs.test.ts` | 11 | *"ONE frontend path over sixteen SQL definitions"* |
+| `menu.ts` | 53 | *"it reads in all sixteen games afterwards"* |
+
+Every one is true today and every one expires with the seventeenth game — and
+`F-game-lib-3`'s own table shows what a stale one costs: a reader trusts "ten"
+and concludes six games are missing. The two that carry an argument keep it
+without the number: "one frontend path over every game's SQL definition" and
+"three counts in one comment" become "every game passes its cap".
+
+**Recommendation:** "every game" / "every schema" / "all of them" at each
+site, per the rule `F-game-lib-54` widened. `gameManifest.ts:168-171` is the
+one worth care — its "15 pass the cap, codenamesduet checks inline, four
+declare a compete min with no server check" is a real finding (`F-game-lib-5`)
+and should survive as "every game caps on the server; codenamesduet checks
+exactly-2 inline; the games that declare a compete minimum of 2 without a
+server check are listed in docs/features.md → Player counts".
 
 ### One more note for the plan — `pageMenuStore.ts`
 

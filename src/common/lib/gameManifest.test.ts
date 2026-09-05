@@ -28,7 +28,7 @@ describe('playerCountFits', () => {
   })
 
   it('returns true for counts inside a bounded range, false outside', () => {
-    // [1, 6] is the shape connections / psychicnum / spellingbee all use.
+    // [1, 6] is the house default — the coop shape of most gametypes.
     expect(playerCountFits([1, 6], 1)).toBe(true)
     expect(playerCountFits([1, 6], 3)).toBe(true)
     expect(playerCountFits([1, 6], 6)).toBe(true)
@@ -68,7 +68,7 @@ describe('playerCountShort', () => {
 
   it('singularizes "player" when the exact count is 1', () => {
     // The same branch `playerCountLabel` has its own test for, and reachable
-    // the same way: twelve gametypes declare [1, 6], so a [1, 1] is one
+    // the same way: most coop gametypes declare [1, 6], so a [1, 1] is one
     // manifest edit away from rendering "1 players" on a real Start button.
     expect(playerCountShort([1, 1])).toBe('1 player')
   })

@@ -218,7 +218,7 @@ export type GameManifest = {
   // row to the matching manifest's labelFor. The state-transition
   // RPCs are responsible for writing whatever the gametype's
   // labelFor needs into `common.games.status` (jsonb) — the
-  // duplicate-write discipline; see docs/states.md.
+  // duplicate-write discipline; see docs/common.md → `common.update_state`.
   labelFor: (row: CommonGameListRow) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
@@ -276,8 +276,9 @@ export type CommonGameListRow = {
   play_state: string
   is_terminal: boolean
   // HOW IT IS GOING — the gametype's own progress payload, rewritten by each
-  // state-transition RPC as the game is played (docs/states.md → the
-  // duplicate-write discipline). Per-gametype shape, so a label casts it.
+  // state-transition RPC as the game is played (the duplicate-write
+  // discipline — docs/common.md → `common.update_state`). Per-gametype shape,
+  // so a label casts it.
   status: Record<string, unknown> | null
   // HOW IT WAS SET UP — the setup blob frozen at creation and never written
   // again.

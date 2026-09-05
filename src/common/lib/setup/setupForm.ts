@@ -137,10 +137,9 @@ export type GameSetupForm = {
   //
   // **A plain string, not a function of mode**, because a manifest is already
   // per-mode: `spellingbeeCoopGame` and `spellingbeeCompeteGame` are separate
-  // objects. All thirteen of these were a coop/compete pair of fixed sentences,
-  // written as two branches of a ternary or as two copies of the form; none
-  // read live setup state. So the branch was the sibling-manifest pattern
-  // spelled out by hand, and it goes.
+  // objects. Every intro is a fixed sentence per mode and none reads live
+  // setup state, so a mode branch inside the form would be the sibling-manifest
+  // pattern spelled out by hand.
   //
   // Optional: a game with nothing to say leaves it off. It sits beside
   // `shortDescription`'s job one size up — that is the Start button's ~30

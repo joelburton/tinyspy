@@ -16,10 +16,9 @@ import type { MenuItem } from '../menu/menu'
  * position and not just membership.
  *
  * That case is also the one nothing else covers. `buildGameMenu`'s output is
- * asserted through the games — ten PlayArea tests name End/Concede, and
- * crosswords pins its whole id order — but `offerEndInCompete` has exactly one
- * caller (bananagrams), whose own test hands `setGameSections` a `vi.fn()` it
- * never reads.
+ * asserted through the games — most PlayArea tests name End/Concede, and
+ * crosswords pins its whole id order — but `offerEndInCompete`'s one caller
+ * (bananagrams) hands `setGameSections` a `vi.fn()` its own test never reads.
  */
 
 const menu = { openHelp: vi.fn(), requestBackToClub: vi.fn() }

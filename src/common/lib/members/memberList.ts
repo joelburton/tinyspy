@@ -8,8 +8,9 @@
  * They live beside `member.ts` because what they know about is identity, not
  * gameplay — nothing here is aware of a board, a turn or a channel. Keeping
  * them out of `member.ts` itself is deliberate: that module is TYPES ONLY so
- * its 103 imports erase at runtime, and a value module cannot make that promise
- * (see `terminalOutcomeVerb.ts`, split out for the same reason).
+ * its imports — well over a hundred files — erase at runtime, and a value
+ * module cannot make that promise (see `terminalOutcomeVerb.ts`, split out for
+ * the same reason).
  */
 
 /**
@@ -17,11 +18,10 @@
  * by username.
  *
  * "You, then the others" is the order every list of people in a game is read
- * in: the progress strip (`components/game/OpponentStrip`), the turn log's
- * whose-turns filter (`hooks/game/useTurnLogPlayerPicker`) and the word list's
- * whose-words filter (`hooks/game/useWordListFilter`). Sorting alphabetically
- * after the viewer means the rest of the list stays put as scores change —
- * a strip that reorders itself mid-game is unreadable.
+ * in — the progress strip, the turn log's whose-turns filter, the word list's
+ * whose-words filter, and any game rendering its own roster. Sorting
+ * alphabetically after the viewer means the rest of the list stays put as
+ * scores change — a strip that reorders itself mid-game is unreadable.
  *
  * Returns a new array; does not mutate the input.
  */

@@ -11,9 +11,10 @@ import type { GamePlayer } from './member'
  * keeps its own separator and value, which genuinely differ; the verb is the
  * part that must not.
  *
- * Kept OUT of `member.ts` deliberately. That file is types-only so its 103
- * importers erase at runtime, and this is a value — putting it there would give
- * every one of those imports a runtime half it does not want.
+ * Kept OUT of `member.ts` deliberately. That file is types-only so its
+ * importers — well over a hundred files — erase at runtime, and this is a
+ * value: putting it there would give every one of those imports a runtime half
+ * it does not want.
  */
 
 /**
