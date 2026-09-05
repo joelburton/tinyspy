@@ -14,15 +14,27 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: OPEN.** Opened 2026-09-03 by listing the files and stopping (§21); Joel
-agreed the list — *"that matches the files i'd expect"* — and then asked for it
-in groups, *"so we don't have to do them all as one big audit"*, the way `deep`
-ran in passes. The six groups are below.
+**Status: READ THROUGH, ready to close.** Opened 2026-09-03 by listing the files
+and stopping (§21); Joel agreed the list — *"that matches the files i'd expect"*
+— and then asked for it in groups, *"so we don't have to do them all as one big
+audit"*, the way `deep` ran in passes. All six ran, in order, between 2026-09-03
+and 2026-09-04, and Joel has read every file. **Nothing in the area is
+outstanding; closing it is a decision, not a task.**
 
-**Where the stamps stand (2026-09-04)** — 37 files: **33 `cs-blessed-game-lib`**
-— every file of groups A through E, Joel having read the last three on
-2026-09-04 — and **4 `cs-audited-game-lib`**, which is group F, audited below
-with five findings open. **Nothing in this area is unread any more.**
+**Where the stamps stand (2026-09-04)** — **all 37 files are
+`cs-blessed-game-lib`.** Nothing is `cs-met`, `cs-audited` or `cs-fixed`: every
+file has been read by Claude and by Joel, and every finding is settled. **The
+area is ready to close.**
+
+**Forty-eight IDs issued, and every one is settled.** Two of them —
+`F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
+files they were about, so **46 carry a heading in this file**:
+
+| status | count | which |
+|---|---|---|
+| RESOLVED | 42 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register) |
+| CLOSED, no change | 2 | `F-game-lib-29` and `-36`, both on Joel's ruling |
+| MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
 **Group E's three test files are blessed** — `gameMenu.test.ts`,
 `gameInvites.test.ts`, `pause.test.ts`. Joel, 2026-09-04: *"go ahead and bless
@@ -206,12 +218,15 @@ the audit found the loose file was `peers.ts`, which was not about this seam or
 any other in `lib/game/`, and moving it out left the rest coherent. It stays
 this area's file at its new path.
 
-### F · The two pure algorithms — 4 files, 249 lines — **audited 2026-09-04**
+### F · The two pure algorithms — 4 files, 249 lines in → **310 lines out** — **audited + fixed 2026-09-04**
 
-| file | lines |
-|---|---|
-| `trie.ts` + `.test.ts` | 93 + 58 |
-| `gridCursor.ts` + `.test.ts` | 47 + 51 |
+| file | lines in | lines now |
+|---|---|---|
+| `trie.ts` + `.test.ts` | 93 + 58 | 101 + 85 |
+| `gridCursor.ts` + `.test.ts` | 47 + 51 | 58 + 66 |
+
+The growth is docstrings, one guard line (`F-game-lib-45`) and the case that
+pins it. No file was added or moved.
 
 Pure math shared by exactly two games each (`trie`: boggle + scrabble;
 `gridCursor`: bananagrams + scrabble), both fully tested, neither touching the
@@ -1066,8 +1081,8 @@ one test from `F-game-lib-9`:
 
 With the five on the opening roster — `gameManifest.ts`, `gameManifest.test.ts`,
 `gametypes.ts`, `manifestRpcs.ts`, `manifestRpcs.test.ts` — that is the twelve
-files at `cs-audited-game-lib`. Two of the originals were renamed by
-`F-game-lib-12`; none was deleted.
+files group A left at `cs-audited-game-lib` (all twelve are `cs-blessed` now).
+Two of the originals were renamed by `F-game-lib-12`; none was deleted.
 
 ### RESOLVED 2026-09-03 — F-game-lib-15 · `boggle-is-the-third-hive-game` · Two shared modules widened for a game the extraction stopped short of
 
@@ -1936,8 +1951,9 @@ where the rest of the finding went:
 leaves the `lib/game/` line, and the `members/` block now reads "the values that
 read them" — the terminal verb, and the two operations on a list.
 
-**The file keeps its `cs-audited-game-lib` stamp.** A rename is not a creation:
-this is the same file, at a name that describes it.
+**The file kept its stamp across the move** — `cs-audited-game-lib` then,
+`cs-blessed-game-lib` since Joel read it. A rename is not a creation: this is
+the same file, at a name that describes it.
 
 ### RESOLVED 2026-09-04 — F-game-lib-35 · `info-sheet-says-thirteen-games` · Thirteen is sixteen, and the count should go rather than be corrected
 
@@ -2423,6 +2439,13 @@ two games each, both fully tested, neither touching the shell", and every clause
 of that is true. It is also why this group was read last and why that was right:
 nothing in it constrains anything else.
 
+**All five findings settled the same day** (`F-game-lib-44` … `-48`), and the
+group's one code change is `F-game-lib-45`'s guard line. Two of the five were
+worth more for what verifying them turned up than for the fix: `-44` found
+nineteen dead citations next door in `scrabble`, and `-45` found that
+`policy.ts`'s odd-looking guard was load-bearing and stopped being so once the
+contract was tightened. All four files are `cs-blessed-game-lib`.
+
 ### RESOLVED 2026-09-04 — F-game-lib-44 · `trie-cites-two-deleted-docs` · Both of this file's outside references are gone
 
 `trie.ts` sends the reader to two documents, and **neither exists**:
@@ -2711,9 +2734,24 @@ no runtime behavior to stand in for, so nothing mocks it.
 
 **That held.** No spec named the old path, and no test broke.
 
-**Where the area's suite stands now:** Vitest **2574/2574 in 272 files** — the
-seven cases `F-game-lib-37` added, on top of the 2567/271 that the group E
-prose fixes ran against. `tsc -b` clean; ESLint clean on every file this group
-touched, with the `useWordSubmit` warning above still standing and still
-`hooks`'s. **`vite build` has not been re-run since the split** — say so rather
-than inherit its result, since nothing group E did could plausibly move it.
+**After group E:** Vitest **2574/2574 in 272 files** — the seven cases
+`F-game-lib-37` added, on top of the 2567/271 that the group E prose fixes ran
+against. `tsc -b` clean; ESLint clean on every file that group touched, with the
+`useWordSubmit` warning above still standing and still `hooks`'s.
+
+### Group F's one behavior change — predicted, and what happened
+
+**Predicted: nothing, and the prediction was checkable rather than hopeful.**
+`F-game-lib-45` made `walkWord('')` return `-1` where it had returned `0`, in a
+module boggle and scrabble both depend on. Two facts bounded it: boggle's solver
+never calls `walkWord` at all (only its tests do — the solver walks `children`
+itself, one letter at a time), and scrabble's one production caller,
+`policy.ts:104`, already read `node > 0`, which excludes both the old return and
+the new one.
+
+**That held.** Nothing broke, and the suite grew by exactly the case that pins
+the new contract: **2575/2575 in 272 files**, `tsc -b` clean.
+
+**`vite build` has not been re-run since the split.** Said rather than inherited,
+because nothing groups E or F did could plausibly move it — no import graph
+changed after the `memberList` rename, and every other edit was prose.

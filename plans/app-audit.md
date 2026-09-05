@@ -41,18 +41,25 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**`game-lib` is OPEN and part-done** — [plans/areas/game-lib.md](areas/game-lib.md),
-the non-visual half of the game shell (§7 row 3). It runs in six groups; **A, B, C
-and D are audited, fixed and blessed**, and 29 findings are all statused with none
-open. **Groups E and F are unread — 11 files at `cs-met-game-lib`**, which is where
-a session picks up.
+**`game-lib` is READ THROUGH and ready to close** —
+[plans/areas/game-lib.md](areas/game-lib.md), the non-visual half of the game
+shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04. **All 37 files are
+`cs-blessed-game-lib`**, and **48 findings are settled with none open** — 46
+statused in the area file, two (`F-game-lib-24`, `-25`) moved to `bananagrams`
+with the files they were about. What it leaves behind, all filed where it will
+be read: `F-game-lib-11`'s leaderboard adoption in four game areas,
+`F-game-lib-44`'s nineteen dead doc citations in `scrabble`, and
+`F-game-lib-46`'s untested trie-growth path in
+[docs/deferred.md](../docs/deferred.md) → Common / architecture.
 
-**It also produced a new area.** Auditing group D showed that the feedback pills
-are one vocabulary spread over six areas, with the component at the end of every
-path (`GenericFeedbackPill`) owned by none of them. `feedback` is now §7 row 4 and
-runs straight after this one, having taken sixteen files with it
-([plans/areas/feedback.md](areas/feedback.md), and
-[feedback-system.md](feedback-system.md) for what the system is today).
+**It also produced a new area, and that area is next.** Auditing group D showed
+that the feedback pills are one vocabulary spread over six areas, with the
+component at the end of every path (`GenericFeedbackPill`) owned by none of them.
+`feedback` is §7 row 4 and **runs straight after this one**, having taken sixteen
+files with it. Read [feedback-system.md](feedback-system.md) for what the system
+is today and [feedback-design.md](feedback-design.md) for the target it builds
+to; [plans/areas/feedback.md](areas/feedback.md) is the area itself, which opens
+the way every area opens — list the files and stop.
 
 - **§21** is the process — the stamps, what opening an area means, and what
   "broken" is allowed to mean while this runs. Read it before doing anything.
