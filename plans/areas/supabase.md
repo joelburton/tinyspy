@@ -114,6 +114,13 @@ exists is seven callers of `diagnosticsLine` outside the folder — `App.tsx`,
 `PlayAreaErrorBoundary`. Fix: name the condition ("a surface that renders a
 failure it did not itself log") rather than a file, or name `ErrorPage`.
 
+**Withdrawn 2026-09-05 — the finding was wrong.** `EnvelopeErrorPage` is an
+export of `common/error-page/ErrorPage.tsx`, not a file, and the audit grepped
+for a file. It does exactly what both docstrings say: builds the `[db]` line
+during render and converts `dbcode` and `detail` with `?? undefined`. No other
+surface outside the folder converts an envelope field that way, so "the only
+other place" is true too. Nothing to fix; the docstrings stand.
+
 ## F-supabase-5 · `stale-counts-in-prose` · Six counts and tallies that have rotted or will
 
 - `OUR_BUG_TO_CODE_AND_TEXT`'s docstring: "four carry it in their text" —
