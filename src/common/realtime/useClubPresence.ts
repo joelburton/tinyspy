@@ -58,7 +58,7 @@ export function useClubPresence(
   // location change is handled by unmount-then-remount (ClubPage's
   // cleanup untracks; GamePage's mount tracks the new game), not by
   // re-tracking in place — which keeps this hook a plain subscribe.
-  useEffect(() => {
+  useEffect(function subscribeToClubPresence() {
     if (!clubHandle) return // no subscription; the hook returns [] below
     const room = `club:${clubHandle}`
     let canceled = false
@@ -108,11 +108,7 @@ export function useClubPresence(
     return () => {
       canceled = true
       if (!ch) return // torn down before our turn to join came round
-      try {
-        void ch.untrack()
-      } catch {
-        // channel may already be closed
-      }
+      void ch.untrack()
       void releaseChannel(ch)
     }
   }, [clubHandle, selfId, viewingGameId])

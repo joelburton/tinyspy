@@ -24,7 +24,7 @@ import { supabase } from '../supabase/supabase'
  * for anything this doesn't recover.)
  */
 export function useRealtimeReconnect(): void {
-  useEffect(() => {
+  useEffect(function reconnectOnReturn() {
     const reconnectIfDown = () => {
       if (!supabase.realtime.isConnected()) supabase.realtime.connect()
     }

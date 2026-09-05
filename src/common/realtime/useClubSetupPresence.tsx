@@ -1,6 +1,7 @@
 // cs-audited-realtime
 
 import { useEffect, useRef } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from './channelTeardown'
 import { MODE_LABEL } from '../manifest/gameManifest'
@@ -51,7 +52,7 @@ export function useClubSetupPresence({
    */
   announce: { brand: string; mode: 'coop' | 'compete'; username: string } | null
 }): void {
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const channelRef = useRef<RealtimeChannel | null>(null)
   const subscribedRef = useRef(false)
   // The invite-toast ids we currently own, so we can drop the ones whose setter
   // has left on the next sync (mirrors the game-invite reconcile).
@@ -63,7 +64,7 @@ export function useClubSetupPresence({
   })
 
   // Subscribe once per club: peers' setup presence → toasts.
-  useEffect(() => {
+  useEffect(function subscribeToSetupPresence() {
     if (!clubHandle) return
     const room = `club-setup:${clubHandle}`
     let canceled = false
@@ -141,11 +142,11 @@ export function useClubSetupPresence({
   const brand = announce?.brand ?? null
   const mode = announce?.mode ?? null
   const username = announce?.username ?? null
-  useEffect(() => {
+  useEffect(function announceMySetup() {
     const ch = channelRef.current
     if (!ch || !subscribedRef.current) return // the SUBSCRIBED callback handles the initial track
     if (brand && mode) {
-      void ch.track({ user_id: selfId, username: username ?? 'Someone', brand, mode })
+      void ch.track({ user_id: selfId, username, brand, mode })
     } else {
       void ch.untrack()
     }

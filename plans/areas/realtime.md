@@ -177,7 +177,7 @@ Not covered: the `?? 'Someone'` / `?? 'game'` wire fallbacks at `:96–97` — a
 peer whose payload is missing a field — which F-realtime-4 keeps and is the
 finding to fold a case into if it is worked.
 
-### F-realtime-3 · untrack-try-catch-is-dead · a `try` around an async call catches nothing
+### WORKED · F-realtime-3 · untrack-try-catch-is-dead · a `try` around an async call catches nothing
 
 **Where:** `useClubPresence.ts:104–108`:
 
@@ -200,7 +200,20 @@ one-line comment, or drop the guard entirely and let `releaseChannel`'s
 teardown be the only thing that speaks. Either way the comment stops
 describing a `throw`.
 
-### F-realtime-4 · someone-default-is-dead · a `?? 'Someone'` that can never fire
+**Resolution (2026-09-05, Joel: "do all")** — the guard is gone; the line is
+`void ch.untrack()`, the way `useClubSetupPresence.tsx:151` already wrote it.
+
+No `.catch()` either, and reading the library is what settled that. For a
+presence push, `untrack` → `send` returns a promise that only ever RESOLVES —
+`'ok'` / `'error'` / `'timed out'` (`RealtimeChannel.js:555–563`), so trouble
+comes back as a value and there is no rejection to swallow. The one real
+throw is the adapter's "tried to push … before joining"
+(`phoenix/channelAdapter.js:46–53`), which this hook cannot reach: `join()`
+always calls `subscribe()`, and the cleanup returns early when `join()` never
+ran. `releaseChannel` follows on the next line and removes the channel
+whatever untrack did.
+
+### WORKED · F-realtime-4 · someone-default-is-dead · a `?? 'Someone'` that can never fire
 
 **Where:** `useClubSetupPresence.tsx:148`:
 `void ch.track({ user_id: selfId, username: username ?? 'Someone', brand, mode })`.
@@ -214,7 +227,17 @@ wire shape, where every field is optional.
 
 **Recommendation:** delete the fallback; `username` is a string there.
 
-### F-realtime-5 · channel-ref-type-drift · one hook types its channel differently from every sibling
+**Resolution (2026-09-05, Joel: "do all")** — deleted. The announce payload
+now carries `username` as it arrived.
+
+TypeScript still types that local `string | null`, because `brand && mode`
+narrows those two consts and not a third — so the deletion does not turn the
+runtime guarantee into a compile-time one. It does not need to: a payload
+without a username is precisely what the RECEIVER's `?? 'Someone'` at `:97`
+is for, and the sender inventing the same word first is what made the
+fallback unreadable as a decision.
+
+### WORKED · F-realtime-5 · channel-ref-type-drift · one hook types its channel differently from every sibling
 
 **Where:** `useClubSetupPresence.tsx:54` —
 `useRef<ReturnType<typeof supabase.channel> | null>`. `useClubPresence.ts:4`,
@@ -223,6 +246,11 @@ import `RealtimeChannel` from `@supabase/supabase-js` for the same thing.
 
 **Recommendation:** import the type like the siblings do. Accidental drift,
 not a deliberate difference.
+
+**Resolution (2026-09-05, Joel: "do all")** — `import type { RealtimeChannel }
+from '@supabase/supabase-js'`, and the ref is `useRef<RealtimeChannel |
+null>`. Every file in the folder that names a channel type now names the same
+one.
 
 ### F-realtime-6 · refetch-log-topic-lacks-suffix · one channel's trail is written under two topic strings
 
@@ -353,6 +381,27 @@ app", and it is the only file under `supabase/tests/` that reads
 layer's rule (a missing table kills a channel this folder opens), so the
 sentence is about this area's subject; the file it names is evidence here.
 
+### WORKED · F-realtime-14 · effects-unnamed · non-trivial `useEffect` callbacks in this folder are anonymous
+
+**Where:** raised by Joel, 2026-09-05, against `useClubPresence.ts:54` — the
+subscribe effect, the largest in the folder. docs/code-conventions.md:30 and
+its hook-callback rule: a non-trivial `useEffect` callback takes a named
+function expression, so stack traces, the DevTools Hooks panel and prose all
+have something to say other than "the third effect".
+
+**Recommendation:** name every non-trivial one in the folder. Points for
+Joel: (1) sweep them here, or (2) leave them and note it.
+
+**Resolution (2026-09-05, Joel: "1 do these now")** — swept. The folder's four
+non-trivial effects are `subscribeToClubPresence`
+(`useClubPresence.ts`), `subscribeToSetupPresence` and `announceMySetup`
+(`useClubSetupPresence.tsx`), and `reconnectOnReturn`
+(`useRealtimeReconnect.ts`). `useRealtimeRefetch.ts:161`'s
+`realtimeRefetchEffect` was already named — the anonymous callback in that
+file is its one-line `loadRef.current = load` ref-sync, which the rule
+exempts, as is `useClubSetupPresence.tsx:62`'s. Those two are all that is
+left anonymous in the folder.
+
 ## Notes
 
 - **Listed and left, `game-page` / `pause-suspend`:** docs/deferred.md:241
@@ -398,6 +447,8 @@ sentence is about this area's subject; the file it names is evidence here.
   `includes`, so a suffixed topic still matches.
 - F-realtime-2 (worked): held — nothing existed to break. `useClubPresence`'s
   own cases moved onto the shared fake unchanged and stayed green.
+- F-realtime-3/4/5 (worked): held — nothing reads the deleted `catch`, the
+  deleted fallback or the ref's type. All three files' tests stayed green.
 - F-realtime-8/9/10: comments and docstrings only; `americanSpelling` and
   `csStamps` are the guards that read them, neither cares.
 
