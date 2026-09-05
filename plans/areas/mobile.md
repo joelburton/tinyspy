@@ -5,8 +5,8 @@ The folders it reads: `mobile`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-05). Roster agreed; every file read. Thirteen findings
-below; worked so far: F-mobile-1, F-mobile-3, F-mobile-11, F-mobile-13, and the
-doc + stylesheet halves of F-mobile-2.
+below; worked so far: F-mobile-1, F-mobile-3, F-mobile-4, F-mobile-11,
+F-mobile-13, and the doc + stylesheet halves of F-mobile-2.
 
 ## The roster
 
@@ -164,7 +164,7 @@ owns is `docs/mobile.md`'s copy of the same undercount, and
 `useIsMobile`'s hook-level docstring (its CONSTANT's docstring, the one that
 said the reverse of the truth about a build step, is rewritten).
 
-### F-mobile-4 · `raw-breakpoint` · One stylesheet writes the collapse line longhand
+### WORKED · F-mobile-4 · `raw-breakpoint` · One stylesheet writes the collapse line longhand
 
 `common/lists/FilterSelect.module.css:152` writes `@media (max-width: 56.25rem)`
 with a comment saying it is the shared line, instead of `@media (--mobile)`. It
@@ -174,6 +174,18 @@ letterboxed's unrelated `34rem` board cap). The file header's "any module can
 write `@media (--phone)`" and `docs/mobile.md`'s "used as `@media (--mobile)`
 everywhere" are both one file from true. Owned by `lists`: a line in
 `src/common/lists/todo.md` → Soon.
+
+**Done (2026-09-05) — fixed in place, not handed off.** Joel: a forward fix in
+another folder is normal, and a two-line conformance edit with no decision in it
+does not need that folder's area to be open. The rule broken was this folder's
+vocabulary, not `lists`' design.
+
+The query is `@media (--mobile)`, and the comment above it dropped the sentence
+explaining what `56.25rem` is — the name says it. No raw device condition is
+left in any stylesheet outside this folder (the two remaining `56.25rem` hits
+are prose in comments), so the stylesheet header's "any module can write
+`@media (--phone)`" and the doc's "everywhere" are now simply true. Emitted CSS
+unchanged, by the same build diff F-mobile-1 used.
 
 ### F-mobile-5 · `three-pastes` · The lint-rule sentence is pasted into three files, and its pointer is wrong
 

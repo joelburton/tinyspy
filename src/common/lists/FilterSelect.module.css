@@ -144,12 +144,12 @@
 
 /* ─── Touch ───────────────────────────────────────────────────
  *
- * 56.25rem is the app's shared desktop→mobile line (docs/mobile.md). Below it
- * the options grow to roughly a 44px tap target with a legible 1rem label —
- * the thing a native picker gives you for free and the reason not to ship a
- * cramped custom list on a phone. The TRIGGER stays small: it lives in a tight
- * heading row, and growing it would reflow the panel. */
-@media (max-width: 56.25rem) {
+ * Below the shared desktop→mobile line the options grow to roughly a 44px tap
+ * target with a legible 1rem label — the thing a native picker gives you for
+ * free and the reason not to ship a cramped custom list on a phone. The TRIGGER
+ * stays small: it lives in a tight heading row, and growing it would reflow the
+ * panel. */
+@media (--mobile) {
 /* @@ */   .popover {
     padding: 0.25rem;
     max-width: min(18rem, 80vw);

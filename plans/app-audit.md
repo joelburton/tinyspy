@@ -392,8 +392,18 @@ its two SQL files, and `docs/games/<game>.md`.
 re-deriving what earlier areas already handed it.
 
 **An area is committed before the next one opens.** Several commits inside one
-area is normal; **no commit spans two areas.** The one exception: a sweep
-caused by this area's rename ships with this area.
+area is normal; what may not share a commit is two areas' WORK — you finish and
+commit one area before starting the next, so the history reads area by area.
+
+**This is not a fence around an area's files.** A fix this area's reading turned
+up in another folder is normal and ships with the area that found it — a sweep
+caused by this area's rename, a call site that has to move with a renamed
+export, a two-line conformance edit where this area owns the rule being broken.
+None of that opens the other folder's area: what an area owns is its FINDINGS,
+not a claim on every file it touches. The handoff to a `todo.md` is for work
+with a DECISION in it — a call site to restructure, a shape to choose — which
+the folder's own area should make with its files open. (Joel, 2026-09-05:
+making every single-line change in four folders its own commit is dumb.)
 
 **An area's last two steps, as steps and not as habits:**
 
