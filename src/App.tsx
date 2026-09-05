@@ -31,41 +31,41 @@ import { gametypes } from './gametypes'
 
 
 /**
- * Top-level shell. Owns the URL → component routing for all paths
- * the app understands:
+ * The app's one shell: what the whole window shows, for every URL.
  *
- *   /                          →  HomePage (your clubs, and the button that
- *                                  opens <CreateClubModal> over them)
- *   /c/<handle>                →  ClubPage
- *   /g/<gametype>/<gameId>     →  <GamePage> wrapping the manifest's
- *                                  PlayArea via render-prop. Lazy-loaded.
- *   <anything else>            →  HomePage  (treated as "go home"
- *                                  rather than a 404 screen)
+ * **The gates run first, in this order, each returning instead of routing** —
+ * until the session question is settled there is no point asking what the URL
+ * says:
  *
- * Why the gametype is in the URL: with more than one registered
- * game, `/g/<id>` alone wouldn't tell us which schema to look the
- * id up in. Embedding the gametype keeps the route purely
- * structural — no cross-schema id resolution, no soft-FK lookup.
+ *   loading       →  <Loading>             the session answer hasn't arrived
+ *   signed out    →  <LoginScreen>
+ *   probe failed  →  <EnvelopeErrorPage>   the profile read failed, so whether
+ *                                          this person has claimed a username
+ *                                          is unknown; Try again re-runs it
+ *   unclaimed     →  <ClaimHandleScreen>   signed in, no profile row yet
  *
- * **Game route shape**: `<GamePage>` is the shell mounted at the
- * route level. PlayArea is the gametype-specific play surface
- * mounted as GamePage's render-prop child:
+ * **Then the route → page table:**
  *
- *     <GamePage gameId session gametype>
- *       {(ctx) => <manifest.PlayArea {...ctx} />}
- *     </GamePage>
+ *   /                       →  HomePage
+ *   /c/<handle>             →  ClubPage, keyed by handle
+ *   /g/<gametype>/<gameId>  →  GamePage, keyed by gameId, with the manifest's
+ *                              lazily-imported PlayArea as its render-prop
+ *                              child; the boundary, the Suspense and the two
+ *                              mount logs are supplied here (common/game-page)
+ *   anything else           →  HomePage, plus a console line — "go home" beats
+ *                              a 404 screen for a link that used to work
  *
- * GamePage owns the cross-cutting render (header, PauseBoundary,
- * chat); PlayArea owns the game-specific render. The render-prop
- * passes GamePageCtx (session, gameId, members, timer) into PlayArea.
+ * The route SHAPES are routes.ts's, including why the gametype sits in the
+ * URL; what each one shows is this file's.
  *
- * The whole GamePage is keyed by gameId so navigation between
- * games forces a remount — clean state slate, no stale subscriptions.
- *
- * The Suspense fallback inside the GamePage render-prop handles
- * the brief moment between "navigated to /g/<gametype>/<id>" and
- * "the game's JS chunk arrived." Subsequent in-session navigations
- * to that game are cached.
+ * **Last, what hangs off the root** rather than off the page that opens it.
+ * EditProfileModal and WordEditDialog, because a <FloatingPanel> is positioned
+ * from its static flow position and lands wrong inside a page's column.
+ * GameInvitations + ToastHost, mounted after the gates so invites pop on every
+ * real page and never on the login or claim screens. FaultModal, the one
+ * fault-modal host. TooltipHost, the delegated hover-bubble renderer. Each is
+ * a singleton whose state crosses subtrees, which is why none of them lives in
+ * a page.
  */
 
 export default function App() {

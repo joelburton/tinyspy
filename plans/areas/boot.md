@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** — audited 2026-09-05, twelve findings; F-boot-1 closed with no
 change, F-boot-2 worked, F-boot-3 handed to `game-page`, F-boot-4 closed with
-no change, F-boot-5 to -8 worked, the four prose findings open.
+no change, F-boot-5 to -9 worked, three prose findings open.
 
 ## The roster
 
@@ -414,7 +414,7 @@ that is the trap.
 Verified by planting: dropping the `reload` override from the stub fails four
 of the eight cases across the two files.
 
-### F-boot-9 · `app-docstring-half-the-file` · App's docstring describes the route table and nothing else the file does, and parts of what it does say are stale
+### WORKED · F-boot-9 · `app-docstring-half-the-file` · App's docstring describes the route table and nothing else the file does, and parts of what it does say are stale
 
 `App.tsx:33–69` opens "Owns the URL → component routing for all paths the app
 understands" and lists routes. The file also renders the gates IN ORDER before
@@ -435,6 +435,26 @@ route → page table; what hangs off the root and why it is here rather than in
 a page. The game-route paragraph becomes a sentence and a pointer to
 `game-page`. The dev-page line in the code is not touched.
 
+11. Take the draft, or adjust it first?
+
+**Resolution (2026-09-05, Joel: "11 ok")** — rewritten in the three parts. The
+gates now lead, in the order they run and with what each returns; the route →
+page table follows; and the root-mounted singletons come last, each with the
+reason it is there rather than in the page that opens it.
+
+What left the docstring: the gametype-in-the-URL paragraph (it is
+`routing/doc.md:64–66`'s, and that doc draws the line itself — "What each path
+SHOWS is still `App.tsx`'s"), the `<CreateClubModal>` aside (mounted by
+`HomePage.tsx:259`), the `members` field that never existed, and the code
+sketch — the game route is one table entry and a pointer now, so it cannot go
+stale on `game-page`'s props the way the sketch had.
+
+The dev pages are neither named nor counted. They are not gates, so a gate
+list that omits them is accurate rather than silent about something.
+
+One correction to the finding: it cites the hosts as `:195–225`, which stops
+at `FaultModal`. The range is `:195–229` — `TooltipHost` is in it, and the two
+root-mounted popups belong to that part of the story too.
 ### F-boot-10 · `stale-blank-page-story` · `reloadOnStaleChunk.ts`'s docstring describes the app before `panic.ts`, and the exported function has none
 
 - `:12–13` — "the import rejects, nothing catches it, and React unmounts to a
