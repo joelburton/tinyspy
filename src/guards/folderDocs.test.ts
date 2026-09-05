@@ -19,9 +19,10 @@ import { describe, expect, it } from 'vitest'
  *   - a `todo.md` exists, and carries the four fixed headings in their fixed
  *     order — **all four, empty or not.** The skeleton is the point: adding the
  *     first item to a folder should be one line, not a guess at the structure;
- *   - a `doc.md`, where one exists, opens with its folder's name, has exactly
- *     one `## Design`, and spends at most three sentences before the first
- *     heading.
+ *   - a `doc.md` exists, opens with its folder's name, and spends one to three
+ *     sentences before the first heading;
+ *   - it has exactly one `## Design` — once the folder has left
+ *     `DESIGNS_OWED`, which is what tracks the half an area writes.
  *
  * What is NOT mechanical and is nobody's guard: whether the lede is any good,
  * whether Design explains the design, and whether an item is in the right one
@@ -54,16 +55,24 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
 }
 
 /**
- * Folders with no `doc.md` yet — the same shrinking allowlist the vocabulary
- * and css-class guards use: a listed folder is silent, an unlisted one fails,
- * and a listed folder that HAS a doc has to leave the list.
+ * Folders whose `doc.md` has a lede but no `## Design` yet — the same shrinking
+ * allowlist the vocabulary and css-class guards use: a listed folder is silent,
+ * an unlisted one fails, and a listed folder that HAS a Design has to leave.
  *
- * It starts as every folder, which is honest: none is written. Each area
- * deletes its own line when it writes its doc, so the length of this list is
- * how much of the tree is still undocumented — a progress marker that cannot
- * drift, because it is the test.
+ * **It tracks the Design, not the file**, and that distinction is the whole
+ * point of the list. Every folder got a `doc.md` the day the format landed,
+ * because a one-line lede is enough to navigate a tree by and Joel wanted them
+ * for ordering the sprint. If this list tracked the FILE it would have emptied
+ * that same day, leaving sixty docs that look finished and a green guard over
+ * work nobody has done.
+ *
+ * So it starts as every folder, which is honest: a lede says what a folder is,
+ * and none of them yet says why it is that way. Each area deletes its own line
+ * when it writes its Design, and the length of this list is how much of the
+ * tree is still undescribed — a progress marker that cannot drift, because it
+ * is the test.
  */
-const DOCS_OWED: string[] = [
+const DESIGNS_OWED: string[] = [
   'common/account', 'common/anagram-finder', 'common/auth', 'common/boot',
   'common/branding', 'common/buttons', 'common/chat', 'common/club',
   'common/core-css', 'common/definitions', 'common/error-page', 'common/faults',
@@ -133,50 +142,53 @@ describe('every feature folder', () => {
     ).toEqual([])
   })
 
-  it('has a doc.md, or is on the owed list', () => {
-    const undocumented = featureFolders()
+  it('has a doc.md', () => {
+    const missing = featureFolders()
       .filter((f) => !existsSync(join(f.dir, 'doc.md')))
       .map((f) => `${f.top}/${f.name}`)
-
-    const unlisted = undocumented.filter((f) => !DOCS_OWED.includes(f))
     expect(
-      unlisted,
-      'A feature folder with no doc.md and no row on DOCS_OWED. A new folder ' +
-        'needs one or the other — being new is not an exemption.\n\n' + unlisted.join('\n'),
-    ).toEqual([])
-
-    const stale = DOCS_OWED.filter((f) => !undocumented.includes(f))
-    expect(
-      stale,
-      'These folders are on DOCS_OWED but have a doc.md now — delete their ' +
-        `rows:\n${stale.join('\n')}`,
+      missing,
+      'A feature folder with no doc.md. Being new is not an exemption — write ' +
+        'the H1 and a one-sentence lede, and put the folder on DESIGNS_OWED ' +
+        'until its area writes the Design.\n\n' + missing.join('\n'),
     ).toEqual([])
   })
 
-  it('has a doc.md in shape, where one exists', () => {
+  it('has a doc.md in shape', () => {
     const wrong: string[] = []
     for (const f of featureFolders()) {
       const path = join(f.dir, 'doc.md')
-      if (!existsSync(path)) continue
+      if (!existsSync(path)) continue // the test above reports it
+      const key = `${f.top}/${f.name}`
       const src = readFileSync(path, 'utf8')
+
       const first = src.split('\n')[0]
       if (first !== `# ${f.name}`) {
-        wrong.push(`${f.top}/${f.name}/doc.md  →  first line is "${first}", not "# ${f.name}"`)
+        wrong.push(`${key}/doc.md  →  first line is "${first}", not "# ${f.name}"`)
       }
-      const design = headings(src).filter((h) => h === 'Design').length
-      if (design !== 1) {
-        wrong.push(`${f.top}/${f.name}/doc.md  →  ${design} "## Design" sections, want exactly 1`)
-      }
+
       const sentences = ledeSentences(src)
       if (sentences < 1 || sentences > 3) {
-        wrong.push(`${f.top}/${f.name}/doc.md  →  lede is ${sentences} sentences, want 1–3`)
+        wrong.push(`${key}/doc.md  →  lede is ${sentences} sentences, want 1–3`)
+      }
+
+      // The Design is what an area writes; until then the folder says so on
+      // DESIGNS_OWED rather than carrying an empty heading that reads as done.
+      const design = headings(src).filter((h) => h === 'Design').length
+      const owed = DESIGNS_OWED.includes(key)
+      if (!owed && design !== 1) {
+        wrong.push(`${key}/doc.md  →  ${design} "## Design" sections, want exactly 1`)
+      }
+      if (owed && design > 0) {
+        wrong.push(`${key}/doc.md  →  has a "## Design" but is still on DESIGNS_OWED — delete its row`)
       }
     }
     expect(
       wrong,
       'A doc.md that has drifted from the three fixed elements: the H1 is the ' +
         'folder name, the lede is 1–3 unlabeled sentences, and `## Design` is ' +
-        'required exactly once. Everything after that is free.\n\n' + wrong.join('\n'),
+        'required exactly once once the folder leaves DESIGNS_OWED. Everything ' +
+        'after that is free.\n\n' + wrong.join('\n'),
     ).toEqual([])
   })
 })

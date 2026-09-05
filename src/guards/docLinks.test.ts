@@ -22,9 +22,12 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = process.cwd()
 
-/** Markdown we own: `docs/` (reference), `plans/` (in-progress work), and the
- *  two root files. Plans link into docs and vice versa, so both trees are
- *  checked — a plan with a dangling link is still a dangling link. */
+/** Markdown we own: `docs/` (reference), `plans/` (in-progress work), `src/`
+ *  (every feature folder's `doc.md` and `todo.md`, plus `src/guards/README.md`)
+ *  and the two root files. All of it is checked because all of it cross-links —
+ *  a plan with a dangling link is still a dangling link, and a folder's doc
+ *  citing the canonical doc it defers to is the case most likely to rot, since
+ *  it is written once and never opened again. */
 function markdownFiles(): string[] {
   const out: string[] = []
   const walk = (dir: string) => {
@@ -36,6 +39,7 @@ function markdownFiles(): string[] {
   }
   walk(join(ROOT, 'docs'))
   walk(join(ROOT, 'plans'))
+  walk(join(ROOT, 'src'))
   for (const f of ['CLAUDE.md', 'README.md']) {
     const p = join(ROOT, f)
     if (existsSync(p)) out.push(p)
