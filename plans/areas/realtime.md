@@ -319,7 +319,7 @@ folder is what a re-read should repeat.
 
 Net −17 lines of docstring; `tsc -b`, eslint and 338 tests green.
 
-### F-realtime-8 · stale-lib-supabase-paths · comments still write the pre-reorg path
+### WORKED · F-realtime-8 · stale-lib-supabase-paths · comments still write the pre-reorg path
 
 **Where:** the folder was `common/lib/supabase/` before the restructure.
 Sites that still say so, by file:
@@ -345,6 +345,23 @@ their stamps. The `faultStore.ts` pair is the same kind of sweep for a
 sibling's file; include or leave, Joel's call. Every site becomes the bare
 module name (`postgresAttached.ts`, `channelTeardown.ts`) the way the
 folder's own newer comments already write it.
+
+**Resolution (2026-09-05, Joel: "fix all")** — every site in the repo, the
+fourteen outside and the `faultStore.ts` pair included. `grep -rn
+"lib/supabase"` over `src/`, `docs/`, `e2e/`, `supabase/` and `scripts/`
+returns nothing; what is left is in `plans/`, which is the record of the move
+rather than a pointer to follow.
+
+Code comments take the bare module name (`postgresAttached.ts`,
+`channelTeardown.ts`, `dbEnvelope.ts`). The two docs keep a path, since a doc
+is read away from the tree — `common/realtime/…`, and
+realtime-lost-events.md's markdown link already resolved correctly, so only
+its label was wrong. `useClubChat.test.ts:13` was the odd one: it named a
+MOCKED MODULE rather than a file to go read, and now says
+`../supabase/supabase`, which is what `vi.mock` is actually given at `:86`.
+
+Nothing outside this folder was opened for anything else, and no stamps
+moved. Full unit suite green (2650), eslint clean on every folder touched.
 
 ### F-realtime-9 · stale-counts-in-test-docstrings · two counts that stopped being true
 
@@ -455,9 +472,10 @@ left anonymous in the folder.
   `realtimeDiag.ts` to wrap the channel factory; `realtimeDiag.ts` imports
   only `utils` and `web-storage`. The hooks and `channelTeardown` import
   `supabase.ts` — one direction each.
-- **`useClubChat.test.ts:13`** says its mock replaces `../lib/supabase`; the
-  mock is of `../supabase/supabase`. `session` recorded the same line in
-  `useSession.test.ts`. Counted in F-realtime-8's sweep table.
+- **`useClubChat.test.ts:13`** said its mock replaces `../lib/supabase` when
+  the mock is of `../supabase/supabase`; fixed with F-realtime-8's sweep.
+  `session` recorded the same line in `useSession.test.ts`, which is already
+  correct in the tree.
 - **ESLint is clean on the folder** (`npx eslint src/common/realtime`, no
   output), so none of the deliberate `exhaustive-deps` choices is a warning.
 - **Owed by every area from `mobile`, checked:** no boolean-returning hook

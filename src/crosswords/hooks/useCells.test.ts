@@ -116,7 +116,7 @@ function buildMocks() {
   mockChannel.mockImplementation(() => {
     const chain: Record<string, unknown> = {
       // Only the CDC binding is captured — the hook also binds 'system'
-      // (the deaf-window closer, lib/supabase/postgresAttached.ts), which
+      // (the deaf-window closer, postgresAttached.ts), which
       // must not clobber the handler under test.
       on: (event: string, _opts: unknown, handler: (p: { new: CellRow }) => void) => {
         if (event === 'postgres_changes') cdcHandler = handler

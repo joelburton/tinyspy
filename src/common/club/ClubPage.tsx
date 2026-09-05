@@ -481,7 +481,7 @@ export function ClubPage({ handle, session }: Props) {
       // window gets the dying instance back, which would never reach
       // SUBSCRIBED and would silently cost the peers their suspend broadcast.
       // Already in an async function here, so the gate is a plain await.
-      // See lib/supabase/channelTeardown.ts.
+      // See channelTeardown.ts.
       await (channelLeaving(`game:${gameId}`) ?? Promise.resolve())
       const ch = supabase.channel(`game:${gameId}`)
       // The broadcast is friendliness, not correctness (peers handle a
@@ -798,8 +798,8 @@ export function ClubPage({ handle, session }: Props) {
       )
     // Deaf-window closer: reload once the postgres_changes attach is
     // confirmed — SUBSCRIBED below is only the join ack, and an event
-    // committed before the attach is dropped. See
-    // lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+    // committed before the attach is dropped. See postgresAttached.ts
+    // + docs/realtime-lost-events.md.
     onPostgresAttached(channel, () => loadGames())
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') loadGames()

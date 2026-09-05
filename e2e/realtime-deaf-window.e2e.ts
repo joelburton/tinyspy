@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
 
 /**
  * THE DEAF-WINDOW REGRESSION TESTS — two layers guarding the attach-time
- * refetch (lib/supabase/postgresAttached.ts) that closes the lost-event
+ * refetch (postgresAttached.ts) that closes the lost-event
  * window of docs/realtime-lost-events.md:
  *
  *   1. A DETERMINISTIC wiring guard: plain page load, assert the factory's

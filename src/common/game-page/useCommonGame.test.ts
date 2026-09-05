@@ -121,7 +121,7 @@ function buildChannel() {
       } else if (kind === 'presence') {
         handlers[`presence:${filterOrEvent.event}`] = handler
       } else if (kind === 'system') {
-        // The deaf-window closer's binding (lib/supabase/postgresAttached.ts).
+        // The deaf-window closer's binding (postgresAttached.ts).
         handlers['system'] = handler
       }
       return this
@@ -549,7 +549,7 @@ describe('useCommonGame — deaf-window closer', () => {
   // The postgres_changes attach confirmation must re-run load(): SUBSCRIBED
   // is only the join ack, and a common.games write landing before the WAL
   // poller carries the subscription is dropped — the attach-time re-read is
-  // what closes that window (lib/supabase/postgresAttached.ts +
+  // what closes that window (postgresAttached.ts +
   // docs/realtime-lost-events.md; pinned end-to-end by
   // e2e/realtime-deaf-window.e2e.ts).
   it('re-loads when the postgres_changes attach is confirmed', async () => {

@@ -120,7 +120,7 @@ export function useClubSetupPresence({
     // Stable ROOM name — a remount inside the previous mount's leave
     // round-trip would otherwise be handed the dying channel (and could be
     // rejected server-side as a duplicate join). Nothing pending is the fast
-    // path. See lib/supabase/channelTeardown.ts.
+    // path. See channelTeardown.ts.
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()

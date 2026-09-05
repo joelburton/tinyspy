@@ -60,7 +60,7 @@ type StatusCallback = (status: string) => void
 let handlersByTable: Record<string, () => void> = {}
 let statusCb: StatusCallback | null = null
 /** The `.on('system', ...)` handler — the deaf-window closer's
- *  input (see lib/supabase/postgresAttached.ts). Tests feed it
+ *  input (see postgresAttached.ts). Tests feed it
  *  attach-confirmation payloads. */
 let systemCb: ((payload: Record<string, unknown>) => void) | null = null
 /** Names of channels that have been created (in order) — lets

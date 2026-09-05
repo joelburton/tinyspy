@@ -11,7 +11,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * as a blocking MODAL, not a pill — room to be read, impossible to miss, and
  * "did a box pop up?" is answerable down a phone line.
  *
- * Nothing decides here. `reportDbFault` (lib/supabase/dbEnvelope.ts) picks the
+ * Nothing decides here. `reportDbFault` (dbEnvelope.ts) picks the
  * words and writes the `[db]` line, then calls `showFaultModal` — including for
  * every call site's `else` scream, which reaches it through `reportUnhandled`.
  *
@@ -53,7 +53,7 @@ function emit(): void {
 
 /** Put a fault on screen: queue it for the modal, and nothing else. It decides
  *  nothing and logs nothing — a caller that needs the words chosen and the
- *  `[db]` line written wants `reportDbFault` (lib/supabase/dbEnvelope.ts), which
+ *  `[db]` line written wants `reportDbFault` (dbEnvelope.ts), which
  *  does both and then calls this. Drops the fault (UI-only — the `[db]` line
  *  already fired) when the queue is full. */
 export function showFaultModal(fault: FaultEntry): void {

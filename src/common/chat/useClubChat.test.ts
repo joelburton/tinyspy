@@ -10,7 +10,7 @@
  * Mocking strategy
  * ----------------
  * Same shape as useSession.test.ts:
- *   - vi.mock replaces `../lib/supabase` with hand-built spies.
+ *   - vi.mock replaces `../supabase/supabase` with hand-built spies.
  *   - The supabase.channel() chain (.on().on().subscribe()) is
  *     mocked so tests can capture the INSERT handler and the
  *     SUBSCRIBED-status callback, then fire them manually to

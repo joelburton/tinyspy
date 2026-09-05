@@ -7,7 +7,7 @@
  * `club:<handle>` is a ROOM name: every peer must join the identical topic or
  * presence sees nobody, so it can't take the dedup suffix the per-client data
  * channels use. That leaves it exposed to the re-create race described in
- * `lib/supabase/channelTeardown.ts`, and this hook is the smallest consumer of
+ * `channelTeardown.ts`, and this hook is the smallest consumer of
  * the fix — a good place to pin the ORDERING the other three share.
  *
  * The roster projection from a synced channel is exercised end-to-end by

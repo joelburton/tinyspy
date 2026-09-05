@@ -356,7 +356,7 @@ export function useGame(
 
       // Deaf-window closer: re-read once the postgres_changes attach is
       // confirmed — a move committed between SUBSCRIBED (the join ack) and
-      // the attach is dropped. See lib/supabase/postgresAttached.ts +
+      // the attach is dropped. See postgresAttached.ts +
       // docs/realtime-lost-events.md.
       onPostgresAttached(ch, () => load())
       // SUBSCRIBED fires on initial subscribe AND on every reconnect,

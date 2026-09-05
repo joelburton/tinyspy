@@ -183,7 +183,7 @@ on screen suggesting a problem.
 the WAL poller really carries this channel's subscription, so a re-read at
 that moment closes the window: anything committed during the gap is picked up
 by the refetch, and everything after it arrives as events. The helper is
-[`common/lib/supabase/postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)
+[`common/realtime/postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)
 (`onPostgresAttached(channel, cb)`), and every postgres_changes consumer
 wires it in next to its SUBSCRIBED refetch: the `useRealtimeRefetch` factory
 (all pattern-A game hooks), `useCommonGame`, the ClubPage games list,
@@ -196,7 +196,7 @@ below flipped from red to green on exactly this change.
 
 Every Realtime channel in the app is instrumented centrally — `supabase.ts`
 wraps the `supabase.channel()` factory with
-`common/lib/supabase/realtimeDiag.ts`, so all sixteen games' data channels,
+`common/realtime/realtimeDiag.ts`, so all sixteen games' data channels,
 the game/club rooms, chat, presence, and scratchpad are covered without
 per-hook wiring. Always-on console lines (low-frequency by design):
 

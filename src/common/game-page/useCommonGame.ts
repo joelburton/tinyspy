@@ -397,7 +397,7 @@ export function useCommonGame(
     // club↔game navigation) would be handed the dying channel back, whose
     // .subscribe() never reaches SUBSCRIBED. `channelLeaving` waits it out;
     // nothing pending is the fast path, so a first mount joins on the spot.
-    // Full mechanism: lib/supabase/channelTeardown.ts.
+    // Full mechanism: channelTeardown.ts.
     const room = `game:${gameId}`
     let canceled = false
 
@@ -464,7 +464,7 @@ export function useCommonGame(
       // carries this channel's subscription is dropped — for THIS channel
       // that's a game ending invisibly (the exact bug the pinned repro spec
       // demonstrates). Re-read once the attach is confirmed. See
-      // lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+      // postgresAttached.ts + docs/realtime-lost-events.md.
       onPostgresAttached(ch, () => void load())
 
       // Presence: dedupe to user_ids so multiple tabs of the same

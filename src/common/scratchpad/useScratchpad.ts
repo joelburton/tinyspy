@@ -155,7 +155,7 @@ export function useScratchpad(
       }
       // Deaf-window closer: re-read once the postgres_changes attach is
       // confirmed — a pad write committed between SUBSCRIBED (the join ack)
-      // and the attach is dropped. See lib/supabase/postgresAttached.ts +
+      // and the attach is dropped. See postgresAttached.ts +
       // docs/realtime-lost-events.md.
       onPostgresAttached(ch, () => void load())
       ch.subscribe((status) => {
@@ -167,7 +167,7 @@ export function useScratchpad(
     // Stable ROOM name (the shared pad's lock broadcasts need every peer on
     // the same topic), so a fast close→reopen inside the previous mount's
     // leave round-trip would otherwise be handed the dying channel. Nothing
-    // pending is the fast path. See lib/supabase/channelTeardown.ts.
+    // pending is the fast path. See channelTeardown.ts.
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()
