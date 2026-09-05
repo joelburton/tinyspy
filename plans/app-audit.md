@@ -41,12 +41,12 @@ passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
 [docs/deferred.md](../docs/deferred.md) → Common / architecture, because
 `src/guards/` is on no area's roster.
 
-**`game-lib` is READ THROUGH, RE-AUDITED, and ready to close — nothing
-open** — [plans/areas/game-lib.md](areas/game-lib.md), the non-visual half
-of the game shell (§7 row 3). All six groups ran, 2026-09-03 → 09-04, and **all
-37 files are `cs-blessed-game-lib`**. Then the whole area was read again in one
-sitting, at Joel's ask, and that pass found what the group passes had not, all
-of it worked the same day:
+**`game-lib` is CLOSED** (2026-09-04) — [plans/areas/game-lib.md](areas/game-lib.md),
+the non-visual half of the game shell (§7 row 3). All six groups ran,
+2026-09-03 → 09-04, and **all 37 files are `cs-blessed-game-lib`**. Then the
+whole area was read again in one sitting, at Joel's ask, and that pass found
+what the group passes had not, all of it worked the same day and the area
+closed on it:
 `F-game-lib-49` … `-59` — a dead manifest field (`timerMode`, deleted), three
 claims sibling findings had already disproved, a doc cite to the wrong file,
 five counts written that week and already drifted, the roster count "sixteen"
@@ -2202,6 +2202,16 @@ later by reading, not at the moment the area opens.
 **An area is committed before the next one opens.** Several commits inside one
 area is normal and expected; **no commit spans two areas.** The exception is the
 one above: a sweep caused by this area's rename ships with this area.
+
+**An area's last step is a re-read of the whole area in one sitting, after its
+last group** (added 2026-09-04, from `game-lib`'s close). Each group's fixes
+are verified against that group and not against the rest, so a claim one
+group disproved can still stand in a sibling file, and a count one group
+corrected gets re-written by the next. `game-lib`'s closing re-read found
+eleven findings that six group passes had not — most of them the area's own
+recorded faults recurring in prose the area had written that week. The
+findings it raises are recorded in the area file like any others and worked
+before the area closes.
 
 **Claude does not decide that we are moving on.** Finishing a step is not
 permission to start the next one — and that includes the sprint's own setup,

@@ -14,9 +14,12 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH, RE-AUDITED, and READY TO CLOSE AGAIN — nothing
-open.** The closing re-audit raised eleven findings (`F-game-lib-49` … `-59`)
-and every one is resolved or closed as of 2026-09-04. Opened
+**Status: CLOSED 2026-09-04. All 37 files at `cs-blessed-game-lib`** — the
+roster agreed at the opening, less the six that left for `feedback`, plus the
+nine this area wrote, every stamp set by Joel, which is the exit criterion and
+his alone. Closed on his word (*"close the game-lib area"*) after the closing
+re-audit's eleven findings (`F-game-lib-49` … `-59`) were all resolved or
+closed the same day. Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -24,8 +27,8 @@ six ran, in order, between 2026-09-03 and 2026-09-04, and Joel has read every
 file. Then, at his ask, **the whole area was read again in one sitting**
 ("The closing re-audit", below), and that pass found nine things the group
 passes had not — most of them the area's own faults recurring in prose the area
-wrote. They were worked one at a time the same day, and **closing the area is
-once more a decision, not a task.**
+wrote. They were worked one at a time the same day, and the area closed on
+them.
 
 **Where the stamps stand (2026-09-04)** — **all 37 files are
 `cs-blessed-game-lib`.** Nothing is `cs-met`, `cs-audited` or `cs-fixed`: every
