@@ -10,9 +10,9 @@ function asArray(node: ReactNode): ReactNode[] {
 }
 
 function isAnchor(
-  n: ReactNode,
-): n is ReactElement<{ href: string; children: string }> {
-  return isValidElement(n) && n.type === 'a'
+  node: ReactNode,
+): node is ReactElement<{ href: string; children: string }> {
+  return isValidElement(node) && node.type === 'a'
 }
 
 describe('linkify', () => {

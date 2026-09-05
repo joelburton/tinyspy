@@ -1,8 +1,9 @@
 // cs-met-utils
 
 /**
- * Render an ISO timestamp as a "friendly" relative date for the
- * club-page game list and other glance-at surfaces.
+ * Render an ISO timestamp as a "friendly" relative date — the short form a
+ * glance-at list wants, where a full date would be more than the eye needs.
+ * The club page's game list is what reads it.
  *
  *     < 60 sec ago                "Just now"
  *     1–59 min ago                "12 min ago"
@@ -26,8 +27,7 @@
  * realtime postgres-change, a navigation, etc.). For game cards
  * on ClubPage that's frequent enough — the friends interacting
  * with the club page see freshness updates without a dedicated
- * timer. If a future surface needs ticking, layer a 1Hz interval
- * + setState on top.
+ * timer.
  *
  * Future-timestamp safety: clock skew between client and server
  * can produce a `then` slightly in the future. Treated as "Just
@@ -69,17 +69,11 @@ export function friendlyDate(iso: string, now: Date = new Date()): string {
 /** Number of calendar days between `then` and `now` in local time —
  *  same day: 0, yesterday: 1. Compares local midnights rather than
  *  subtracting 24-hour windows, which is the distinction the whole
- *  format ladder rests on.
- *
- *  Rounded, not floored, because two local midnights are 23 or 25
- *  hours apart across a daylight-saving change, so the quotient is
- *  not an integer on those days — `floor` would call a two-day-old
- *  game "Yesterday" the Monday after the clocks go forward.
- *
- *  `then` is always in the past here: `friendlyDate` answers "Just
- *  now" below a minute, and that covers every negative delta, so a
- *  future timestamp never reaches this. */
+ *  format ladder rests on. */
 function calendarDayDiff(then: Date, now: Date): number {
+  // `then` is always in the past here: `friendlyDate` answers "Just now" below
+  // a minute, and that covers every negative delta, so a future timestamp
+  // never reaches this.
   const thenMidnight = new Date(
     then.getFullYear(),
     then.getMonth(),
@@ -91,6 +85,10 @@ function calendarDayDiff(then: Date, now: Date): number {
     now.getDate(),
   ).getTime()
   const dayMs = 24 * 60 * 60 * 1000
+  // Rounded, not floored: two local midnights are 23 or 25 hours apart across
+  // a daylight-saving change, so the quotient isn't an integer on those days,
+  // and `floor` would call a two-day-old game "Yesterday" the Monday after the
+  // clocks go forward.
   return Math.round((nowMidnight - thenMidnight) / dayMs)
 }
 

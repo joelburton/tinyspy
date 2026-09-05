@@ -19,26 +19,27 @@ const TRAIL_RE = /[.,!?;:)\]}>]+$/
  * Trailing punctuation is split off the URL and re-emitted as text, so
  * "see https://example.com." links the address and not the period. The cost is
  * a URL that really ends in one of those characters — a closing paren is the
- * plausible case — loses it; one caller, and no message has hit it.
+ * plausible case — links to the address without it.
  *
  * Only `http:` and `https:` are recognized. That is also what stops a
  * `javascript:` URL typed into chat from becoming an anchor, which matters
  * because the input here is another player's text.
  *
- * Pure, and exported for its own unit test.
+ * Pure — it reads its argument and nothing else, so calling it during a render
+ * is safe.
  */
 export function linkify(text: string): ReactNode {
   const parts: ReactNode[] = []
   let last = 0
   let key = 0
-  for (const m of text.matchAll(URL_RE)) {
-    const start = m.index!
+  for (const match of text.matchAll(URL_RE)) {
+    const start = match.index!
     if (start > last) parts.push(text.slice(last, start))
-    let url = m[0]
+    let url = match[0]
     let trail = ''
-    const tm = url.match(TRAIL_RE)
-    if (tm) {
-      trail = tm[0]
+    const trailMatch = url.match(TRAIL_RE)
+    if (trailMatch) {
+      trail = trailMatch[0]
       url = url.slice(0, -trail.length)
     }
     parts.push(
@@ -47,7 +48,7 @@ export function linkify(text: string): ReactNode {
       </a>,
     )
     if (trail) parts.push(trail)
-    last = start + m[0].length
+    last = start + match[0].length
   }
   if (last < text.length) parts.push(text.slice(last))
   return parts.length === 0 ? text : parts

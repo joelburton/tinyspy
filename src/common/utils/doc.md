@@ -10,9 +10,10 @@ it has a contract worth pinning.
 
 - **The test for belonging here is what a helper knows, not who calls it.** A
   util names no club, game, chat or player, and imports nothing from the rest
-  of `src/`. `friendlyDate` has two callers and both are the club page, but it
-  knows nothing about clubs; a helper that has to know its feature belongs in
-  that feature's folder. This is the same principle as
+  of `src/`. `friendlyDate` has two callers and both are the club page, and
+  `linkify`'s one caller is chat, but neither knows anything about clubs or
+  chat — a friendly date and a clickable URL are general; a helper that has to
+  know its feature belongs in that feature's folder. This is the same principle as
   [where a new file goes](../../../docs/common-folders.md#where-does-a-new-file-go):
   count is not the test.
 - **A util the edge functions import carries no imports at all.** Deno reaches

@@ -15,7 +15,7 @@
  * unusable where the sequence must repeat. Three kinds of caller need that:
  *
  *   - **Tests.** Put the seed in the test name and a failure reproduces
- *     verbatim (scrabble's `suggest.test.ts`, `policy.test.ts`).
+ *     verbatim (scrabble's `suggest.test.ts`).
  *   - **Boards generated from a stored seed** — boggle's `rollBoard`, the
  *     stackdown board script. The seed is the board, so the roll must repeat.
  *   - **Idempotent server work**, which is the subtle one and has nothing to do

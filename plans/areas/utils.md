@@ -6,8 +6,11 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN** (2026-09-04). Roster agreed, every file stamped
 `cs-met-utils`, lede + Design written, findings recorded. F-utils-1
-(`shuffle-six-copies`) worked — the util and its test ship; its nine callers
-do not, and that half is still open. F-utils-2 through F-utils-8 untouched.
+(`shuffle-six-copies`) worked — the util and its test ship, and its nine
+callers are a line in each game's `todo.md`. F-utils-2 (`linkify-home`) closed
+on Joel's ruling; F-utils-3, -4, -6, -7 and -8 worked. **F-utils-5
+(`db-line-stamp-position`) is the one left** — it is a choice between two
+branches, not a docstring fix, and waits on Joel.
 
 ## The roster
 
@@ -98,6 +101,10 @@ chat's idea. The alternative is `common/chat/linkify.tsx` and
 **Recommendation:** keep both; the docstrings' first line names the job, and
 the caller is mentioned as the caller, not the purpose. Joel decides.
 
+**CLOSED (2026-09-04), Joel: both belong here — they are general utilities.**
+Nothing moves. `doc.md`'s Design bullet on what a helper knows now names
+`linkify` beside `friendlyDate`, so the ruling has a durable home.
+
 ### F-utils-3 · `linkify-docstring` · Two claims in `linkify`'s docstring are wrong or unverifiable
 
 - "Pure, and exported for its own unit test" — it is exported because
@@ -106,6 +113,11 @@ the caller is mentioned as the caller, not the purpose. Joel decides.
   (`ChatBody.tsx:137`); "no message has hit it" is a claim about prod data
   that nothing in the tree can check, and it stays in the file after it stops
   being true. Say the trade-off and stop.
+
+**WORKED (2026-09-04).** The export line is now "Pure — it reads its argument
+and nothing else, so calling it during a render is safe", which is what a
+caller needs to know; the trailing-punctuation paragraph ends at the cost
+("links to the address without it") with no claim about prod.
 
 ### F-utils-4 · `calendar-day-diff-rationale` · `calendarDayDiff`'s docstring carries the why-of-the-implementation
 
@@ -117,6 +129,11 @@ model) a paragraph that explains why the implementation is what it is sits on
 the line it defends as `//`, and the docstring keeps the contract: local
 midnights compared, same day 0, yesterday 1. The DST test's comment already
 says the rounding argument well; the body's `//` can be the short version.
+
+**WORKED (2026-09-04).** `calendarDayDiff`'s docstring is the contract alone
+(local midnights, same day 0, yesterday 1). The DST argument sits as `//` on
+the `Math.round` it defends, and "`then` is always in the past here" opens the
+body, above the midnights it licenses.
 
 ### F-utils-5 · `db-line-stamp-position` · The three stamped channels do not share one line shape, and `logStamp`'s docstring says they do
 
@@ -150,12 +167,16 @@ caller in that docstring checks out: boggle's `rollBoard`, the stackdown
 board script, the edge function's `(version, seat)` seed and its `>>> 0`, and
 the `policy.ts` formula the test file quotes.
 
+**WORKED (2026-09-04).** The tests bullet cites `suggest.test.ts` alone.
+
 ### F-utils-7 · `terse-match-names` · `m`, `tm`, `n`
 
 `linkify.tsx` walks matches as `m` and the trailing-punctuation match as
 `tm`; `linkify.test.tsx`'s `isAnchor` takes `n`. Locals, so the "no
 single-letter helpers" rule does not strictly apply; a quibble, and cheap:
 `match`, `trailMatch`, `node`.
+
+**WORKED (2026-09-04).** All three renamed.
 
 ### F-utils-8 · `friendly-date-docstring` · Two lines in `friendlyDate`'s docstring describe surfaces that do not exist
 
@@ -165,6 +186,11 @@ single-letter helpers" rule does not strictly apply; a quibble, and cheap:
 - "If a future surface needs ticking, layer a 1Hz interval + setState on top"
   — advice for work nobody has asked for; the "Doesn't tick" contract above it
   is the part a caller needs.
+
+**WORKED (2026-09-04).** The lede leads with the job ("the short form a
+glance-at list wants, where a full date would be more than the eye needs") and
+names the club page's game list as the caller, singular. The ticking advice is
+gone; the "Doesn't tick" contract stays.
 
 ## Notes
 
