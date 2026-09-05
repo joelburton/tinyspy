@@ -10,8 +10,8 @@
  *     endGame:       makeRpcDispatcher(db, 'end_game'),
  *
  * `GameManifest` wants a `(gameId) => Promise<Envelope<GameStopResult>>` thunk
- * for each, and the sixteen games would otherwise write the same closure
- * sixteen times over. **It converts nothing and decides nothing** — `runRpc`
+ * for each, and every game would otherwise write the same closure by hand.
+ * **It converts nothing and decides nothing** — `runRpc`
  * already returns the envelope, so this only binds the client and the function
  * name and turns `target_game` into a positional argument.
  *
@@ -30,7 +30,7 @@ import type { GameStopResult } from '../gameManifest'
  *
  * **Generic over the ONE function name being called**, so a call site only has
  * to prove its client can call *that* function rather than every name this
- * module might use. No game needs the narrowing today — all sixteen schemas
+ * module might use. No game needs the narrowing today — every schema
  * define both `submit_timeout` and `end_game`, bananagrams included, which also
  * has per-player concede rather than instead of `end_game`. It is kept because
  * a per-call constraint costs nothing and is the honest requirement.

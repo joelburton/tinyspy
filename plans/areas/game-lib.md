@@ -14,9 +14,9 @@ of files were on no area's roster at all: `deep` listed them out as "names every
 game" (`deep.md:160`, `:161`) and nothing picked them up — the identical gap that
 created `utils` one folder over.
 
-**Status: READ THROUGH; re-audited at the close, ONE FINDING OPEN** (ten
-were; `F-game-lib-49` … `-58` are resolved or closed; `-59`, found resolving
-`-54`, is the last). Opened
+**Status: READ THROUGH, RE-AUDITED, and READY TO CLOSE AGAIN — nothing
+open.** The closing re-audit raised eleven findings (`F-game-lib-49` … `-59`)
+and every one is resolved or closed as of 2026-09-04. Opened
 2026-09-03 by listing the files and stopping (§21); Joel agreed the list —
 *"that matches the files i'd expect"* — and then asked for it in groups, *"so we
 don't have to do them all as one big audit"*, the way `deep` ran in passes. All
@@ -24,7 +24,8 @@ six ran, in order, between 2026-09-03 and 2026-09-04, and Joel has read every
 file. Then, at his ask, **the whole area was read again in one sitting**
 ("The closing re-audit", below), and that pass found nine things the group
 passes had not — most of them the area's own faults recurring in prose the area
-wrote. **Those nine are what stands between the area and closing.**
+wrote. They were worked one at a time the same day, and **closing the area is
+once more a decision, not a task.**
 
 **Where the stamps stand (2026-09-04)** — **all 37 files are
 `cs-blessed-game-lib`.** Nothing is `cs-met`, `cs-audited` or `cs-fixed`: every
@@ -32,14 +33,13 @@ file has been read by Claude and by Joel. The stamp records that he read the
 file; the open findings are changes wanted in files he has read, which the
 stamp was never a claim about.
 
-**Fifty-nine IDs issued; fifty-eight settled, one open.** Two of them —
+**Fifty-nine IDs issued, and every one is settled.** Two of them —
 `F-game-lib-24` and `-25` — moved to [bananagrams.md](bananagrams.md) with the
 files they were about, so **57 carry a heading in this file**:
 
 | status | count | which |
 |---|---|---|
-| **OPEN** | **1** | `F-game-lib-59`, the closing re-audit's last — the roster count "sixteen" written ten times |
-| RESOLVED | 51 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55`, `-57`, `-58` from the re-audit |
+| RESOLVED | 52 | includes the two that are resolved by being handed on: `F-game-lib-11` (its remaining half filed in four game areas) and `-46` (deferred to the app's standing register), and `-49` … `-55`, `-57` … `-59` from the closing re-audit |
 | CLOSED, no change | 3 | `F-game-lib-29` and `-36` on Joel's ruling; `-56`, whose sweep is step 12's and now has a row in §7 → "Carried forward" |
 | MOVED to `feedback` | 2 | `F-game-lib-27`, `-28` — open there as `F-feedback-1`, `-2` |
 
@@ -3086,7 +3086,7 @@ rest rather than a roster that would rot.
 Nothing in the doc's surrounding prose (the removability rule, the variants
 paragraph, the ESLint derivation) needed touching; all three still hold.
 
-### F-game-lib-59 · `sixteen-written-a-dozen-times` · The roster count the area banned, written by the area while banning it
+### RESOLVED 2026-09-04 — F-game-lib-59 · `sixteen-written-a-dozen-times` · The roster count the area banned, written by the area while banning it
 
 Found by `F-game-lib-54`'s closing grep. `F-game-lib-3`, `-4` and `-35` each
 found a stale roster count ("ten", "fifteen", "thirteen") and `-35` resolved
@@ -3118,6 +3118,23 @@ declare a compete min with no server check" is a real finding (`F-game-lib-5`)
 and should survive as "every game caps on the server; codenamesduet checks
 exactly-2 inline; the games that declare a compete minimum of 2 without a
 server check are listed in docs/features.md → Player counts".
+
+#### Resolved 2026-09-04 — "every game", and the area is back to zero open
+
+Joel: *"do it, then commit."* All ten sites. The `numberOfPlayers` comment
+kept its finding as a description — every game caps on the server, by the
+shared helper or codenamesduet's inline check, and every cap agrees; some
+games declare a compete `[2, …]` with no server check; features.md lists
+which — so the next reader learns the same thing without a number to
+recount. Two history phrases that `F-game-lib-55`'s grep had not matched
+("the adapters … are gone", in `gameManifest.ts` and `manifestRpcs.test.ts`)
+were in the same sentences and went too.
+
+`grep -i "sixteen\|fifteen\|15 games\|four games\|are gone"` over the roster
+returns nothing. `tsc -b` clean; `src/common/lib` + `src/guards` **567/567 in
+58 files**. The area's roster count survives in exactly one place, the SQL
+measurement in `F-game-lib-3`'s table, which is a record of what was found and
+is meant to age.
 
 ### One more note for the plan — `pageMenuStore.ts`
 

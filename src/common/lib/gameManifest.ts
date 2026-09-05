@@ -45,8 +45,8 @@ export const MODE_LABEL: Record<'coop' | 'compete', string> = {
 }
 
 /**
- * **What every game's `create_game` puts in `data`.** One shape, sixteen
- * schemas: `result` names the answer, `id` is the game to go to.
+ * **What every game's `create_game` puts in `data`.** One shape, every
+ * schema: `result` names the answer, `id` is the game to go to.
  */
 export type CreatedGame = { result: 'created'; id: string }
 
@@ -165,13 +165,13 @@ export type GameManifest = {
   //
   // MUST AGREE with the member-count check in this gametype's `create_game`
   // RPC — no automated sync, just paired cross-reference comments. The MAX
-  // half is honest: 15 games pass their cap to
-  // `common.require_player_count_max` and codenamesduet checks exactly-2
-  // inline, and all sixteen agree with this field today. **The compete
-  // MINIMUM is not** — four games declare `[2, 6]` with no server check, so
-  // drift there fails silently rather than loudly. See docs/features.md →
-  // Player counts for which, and docs/code-conventions.md → "Per-game player
-  // counts."
+  // half is honest: every game caps on the server (a cap passed to
+  // `common.require_player_count_max`, or codenamesduet's inline exactly-2)
+  // and every cap agrees with this field. **The compete MINIMUM is not** —
+  // some games declare a compete `[2, …]` with no server check, so drift
+  // there fails silently rather than loudly. docs/features.md → Player counts
+  // lists which, beside the cap each `create_game` enforces; the rule is
+  // docs/code-conventions.md → "Per-game player counts."
   numberOfPlayers: [number, number]
 
   // The gametype-specific play surface. Mounted inside
@@ -194,10 +194,9 @@ export type GameManifest = {
   //
   // Returns the ENVELOPE, so a validation that names a column can reach the
   // box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup
-  // body hands each field its own. **All sixteen answer this way now** — the
-  // adapters that made an unconverted RPC's `{ data, error }` look like an
-  // envelope are gone, so there is no second shape to allow for. Server-side
-  // validation is the trust boundary — the FE-collected setup is not trusted.
+  // body hands each field its own. **Every game answers this way**, so there
+  // is no second shape to allow for. Server-side validation is the trust
+  // boundary — the FE-collected setup is not trusted.
   //
   // Lives on the manifest so common code (ClubPage,
   // SetupGameModal) can iterate `gametypes` without importing

@@ -49,7 +49,7 @@ type MenuItemBase = {
   // don't have (TooltipHost gates hover off there — a tap's synthetic hover
   // leaves a stuck bubble). The menu already spells those same actions out in
   // words, so showing each one's glyph beside its name teaches the association
-  // once, at the point of need, and it reads in all sixteen games afterwards.
+  // once, at the point of need, and it reads in every game afterwards.
   // It costs no board space and nothing per interaction, which is why it beats
   // both a Help-page legend and a tap-to-reveal on the buttons themselves.
   //

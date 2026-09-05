@@ -18,7 +18,7 @@ import type { MenuApi } from './menu/menu'
  * **Its own module because its readers are its own.** Every file that imports
  * it is a game's own component, bar `gameManifest.ts` itself — which needs the
  * type only to say `PlayArea: ComponentType<GamePageCtx>`. `GameManifest`'s
- * readers are the other population: the sixteen manifests and the club surfaces
+ * readers are the other population: every game's manifest and the club surfaces
  * that list them, and at the split exactly one file imported both. Declaring a
  * game and playing one are different moments with different audiences
  * (plans/areas/game-lib.md → `F-game-lib-12`).
