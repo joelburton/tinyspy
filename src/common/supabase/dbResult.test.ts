@@ -216,7 +216,7 @@ describe('_isEnvelope', () => {
     expect(_isEnvelope({ type: 'not-ok', severity: 'fault', dbcode: 'PN012' })).toBe(true)
   })
 
-  // **A refusal with no code cannot be one of ours**: SQL writes the SQLSTATE
+  // **A not-ok with no code cannot be one of ours**: SQL writes the SQLSTATE
   // unconditionally, Deno's builders require it, and `edgeFnTransport` names every
   // failure it forwards. So the strictness costs no real answer, and what it
   // catches is a hand-built shape that would otherwise travel unidentifiable
@@ -869,7 +869,7 @@ describe('reportUnhandled', () => {
   })
 
   it('leaves the status blank for a not-ok, whose HTTP status it cannot know', () => {
-    // A raw fault arrived 4xx and a declared refusal arrived 200; the envelope
+    // A raw fault arrived 4xx and a handler-built not-ok arrived 200; the envelope
     // carries neither. Printing 200 for a not-ok would state a fact this layer
     // does not have — so the field is left off, and this is the one [db] line
     // where a blank status= means "not known here".

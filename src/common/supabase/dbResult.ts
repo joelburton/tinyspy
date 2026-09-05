@@ -189,7 +189,7 @@ function envelopeForDbError(
  * **A `not-ok` must name a `dbcode`**, and that is now a thing this can insist
  * on rather than hope for: SQL writes the SQLSTATE unconditionally, Deno's
  * builders take the code as a required argument, and `edgeFnTransport` names every
- * failure it forwards. So a refusal with no code is not a refusal we can have
+ * failure it forwards. So a not-ok with no code is not one we can have
  * produced — it is a hand-built shape, and the loud answer is the right one.
  * An `ok` is unaffected: it carries a code only when a raise wrote one.
  */

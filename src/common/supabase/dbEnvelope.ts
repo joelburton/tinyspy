@@ -450,8 +450,8 @@ export function reportDbFault(
 export function reportUnhandled(call: string, answer: Envelope): void {
   const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
   // **`status` is claimed only where it is known.** An `ok` arrived 200 on
-  // every transport, so it says so. A `not-ok` may have arrived 200 (a declared
-  // refusal) or 4xx (a raw fault), and the envelope does not carry which: the
+  // every transport, so it says so. A `not-ok` may have arrived 200 (one a
+  // handler built) or 4xx (a raw fault), and the envelope does not carry which: the
   // wrapper knew, and logged it on the call's own `[db]` line one line up, but
   // that fact stops at the wrapper's `return`. So it is left off rather than
   // guessed — the one line where a blank `status=` means "not known here"

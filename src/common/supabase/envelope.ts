@@ -129,11 +129,11 @@ export type Envelope<T = unknown> =
     }
 
 /**
- * **The refusal arm on its own** — what a call site holds once it has narrowed.
+ * **The not-ok arm on its own** — what a call site holds once it has narrowed.
  *
  * Named because two kinds of state keep one: a hook that must remember a failed
  * READ (which is not the same as a game being absent — both leave `game` null,
- * and only this tells them apart), and any surface that renders a refusal after
+ * and only this tells them apart), and any surface that renders a not-ok after
  * the branch that identified it.
  *
  * It is the whole envelope, not a projection of it. A second shape carrying "the

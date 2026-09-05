@@ -29,10 +29,10 @@
  * the rest — keep calling `supabase.rpc(...)` directly and keep signalling
  * failure by `throw`, which the handler's `crash(FN, e)` turns into a fault at
  * the edge. Those calls sit inside pure helpers rather than the request
- * handler, they have no refusal to relay and no player sentence, and giving
+ * handler, they have no not-ok to relay and no player sentence, and giving
  * them envelopes would push branching into every board builder to gain nothing
  * (docs/envelopes.md → How edge functions RECEIVE one). A `readRows` twin earns
- * its place the day one of them needs to relay a refusal.
+ * its place the day one of them needs to relay a not-ok.
  */
 
 import { faultEnvelope, isEnvelope } from './envelope.ts'
@@ -54,11 +54,11 @@ type RpcReply = {
  *       db.schema('codenamesduet').rpc('get_clue_context', { target_game }),
  *       'get_clue_context',
  *     )
- *     if (res.type === 'not-ok') return json(res)   // relay the refusal
+ *     if (res.type === 'not-ok') return json(res)   // relay the not-ok
  *     const ctx = res.data                          // carry on
  *
  * That one `not-ok` branch covers three different failures — the RPC's own
- * refusal, a transport failure, an unreadable answer — which is the point of
+ * not-ok, a transport failure, an unreadable answer — which is the point of
  * handing back an envelope rather than a `Response`: the call site does not
  * have to know which happened to do the right thing with it.
  *
@@ -83,7 +83,7 @@ export async function runRpc<T>(call: PromiseLike<RpcReply>, rpcName: string): P
   const ms = Date.now() - started
 
   if (settled.error) {
-    // NOTHING RAN. Not a refusal — a refusal arrives as a 200 carrying an
+    // NOTHING RAN. Not a `not-ok` — that arrives as a 200 carrying an
     // envelope — but a revoked grant, an unreachable PostgREST, a signature
     // that no longer matches. The RPC's name rides in the message because the
     // fault modal shows it and "which call" is the first thing anyone asks.

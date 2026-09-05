@@ -68,8 +68,9 @@ export const ok = <T>(data: T): Response =>
   } satisfies Envelope<T>)
 
 /**
- * A refusal the PLAYER caused and can fix, routed to the field it is about —
- * the form puts the sentence under that control and turns it red.
+ * A form-validation: a not-ok the PLAYER caused and can fix, routed to the
+ * field it is about — the form puts the sentence under that control and turns
+ * it red.
  *
  * For a board-builder that means the narrow class the setup form cannot rule
  * out from the values alone: whether a board actually EXISTS at the chosen
@@ -125,9 +126,10 @@ export const faultEnvelope = <T = unknown>(
   } satisfies Envelope<T>)
 
 /**
- * A refusal nothing the player did explains: a value the form cannot produce, a
- * response shape that shouldn't exist, an environment that isn't there. Raises
- * the fault modal, and `detail` is the line the console audience reads.
+ * A fault: a not-ok nothing the player did explains — a value the form cannot
+ * produce, a response shape that shouldn't exist, an environment that isn't
+ * there. Raises the fault modal, and `detail` is the line the console audience
+ * reads.
  */
 export const fault = (dbcode: string, message: string, detail?: string): Response =>
   json(faultEnvelope(dbcode, message, detail))

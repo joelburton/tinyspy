@@ -83,6 +83,19 @@ refusal, which is an `ok`. Fix: say not-ok, or the severity. NOT in scope:
 are about HTTP and the socket, not the envelope — and the player sentence
 `'The server refused the request.'`, which is text.
 
+**Resolved 2026-09-05 (Joel: "do next").** Every noun use for the envelope now
+says not-ok, or names the severity where the docstring is the builder's:
+`NotOkEnvelope`'s docstring (two), `_isEnvelope` (one), `reportUnhandled` and
+its spec ("one a handler built" / "a handler-built not-ok"), the `_isEnvelope`
+spec, the Deno `runRpc` docstring and its NOTHING RAN comment (five), and the
+Deno `formValidation` and `fault` ledes ("A form-validation: a not-ok…", "A
+fault: a not-ok…"). Left as they were, all about the socket or an edge
+function answering with no envelope: "refused connection", "the function's own
+refusal" / "function refused" in `dbEnvelope.ts`'s transport facts, "our own
+function refusing" in `envelopeForEdgeFnTransport`, the `edgeFnRefusedCodeless`
+key and the two specs named for it, "an outside service down or refusing us",
+and `envelope.ts`'s "refuses an `ok_envelope`", which is a verb about a guard.
+
 ## F-supabase-3 · `stale-guard-claims` · Two comments name a guard that no longer exists
 
 `envelope.ts`, on `field`: "`null` — the raise didn't say; a SQL-side guard
