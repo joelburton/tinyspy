@@ -259,6 +259,16 @@ it is common and goes wherever `WordList` goes.)
   `utils`, and gains one area per feature folder and per shared family. Several
   areas so far had to be split into groups because they were unwieldy anyway.
 
+**Shape rulings from the markup passes (Joel, 2026-09-04).** `src/shared/` IS
+a top-level sibling of `src/common/`, as goal 1 proposed. A feature folder
+gets NO type subfolders — no components/ hooks/ lib/ inside it; leading-cap,
+`useX` and lowercase names carry that distinction. **A common thing NEVER
+imports from a shared thing.** The direction is one way: a game imports from
+both, and shared may import from common (it does today — `word-hunt`'s row
+builder takes its row type from `word-list`), but common must not reach down
+into a family only some games have. Worth a guard once the folders exist. The
+per-folder rulings are in the §5 tables, marked RULED.
+
 **How to verify the move** (agreed 2026-09-04): `tsc -b` first (it resolves
 every import in the project, not just the ones a test reaches), then the full
 vitest run (the path-coupled guards and any `vi.mock()` path the codemod
@@ -283,55 +293,66 @@ Written so Joel can edit the tables in place rather than rule file by file.
 | `session` | who is signed in, their profile | useSession, useProfile | |
 | `auth` | the pre-app screens | LoginScreen, ClaimHandleScreen | |
 | `home` | the landing page | HomePage | |
-| `club` | the club room and everything on it | ClubPage, ClubGameCard, ClubGameRow, CreateClubModal, EditClubModal, StartGameRow, ModeFilter, GametypeFilter, useClubRoster, ClubHelpCompanion, friendlyDate | friendlyDate has only club callers today; could stay in `util` |
+| `club` | the club room and everything on it | ClubPage, ClubGameCard, ClubGameRow, ClubGameDeleteButton, CreateClubModal, EditClubModal, StartGameRow, ModeFilter, GametypeFilter, useClubRoster, ClubHelpCompanion | RULED: ClubGameDeleteButton stays here, not in `buttons` — it is the card's hover trash can with its own two-step confirmation, not a purpose button |
 | `account` | your own menu and profile editing | EditProfileModal, ColorChoiceList, editProfileStore, useAccountMenuSection | |
-| `chat` | the club chat panel end to end | Chat, ChatBody, useClubChat, useChatFeedback, chatOpenStore, chatUnread, linkify | linkify's only caller is ChatBody. ChatButton: see `page-header` |
-| `scratchpad` | the shared notes panel | GameScratchpadCompanion, useScratchpad, scratchpadOpenStore | ScratchpadButton: see `page-header` |
-| `page-header` | the top strip and the marks in it | PageHeader, PageHeaderButton, PageHeaderMenu, PageHeaderPlayersStrip, PageHeaderStatusSlot, ChatButton, ScratchpadButton | today's rule keeps the chat and scratchpad marks here, not in their features (flag 2). PauseButton is also a header mark but stays in `buttons` per the ruling |
+| `chat` | the club chat panel end to end | Chat, ChatBody, useClubChat, useChatFeedback, chatOpenStore, chatUnread | its header mark is in `page-header` |
+| `scratchpad` | the shared notes panel | GameScratchpadCompanion, useScratchpad, scratchpadOpenStore | its header mark is in `page-header` |
+| `page-header` | the top strip and the marks in it | PageHeader, PageHeaderButton, PageHeaderMenu, PageHeaderPlayersStrip, PageHeaderStatusSlot, ChatButton, ScratchpadButton | RULED: the chat and scratchpad marks stay here — they are styled for the header, not for their features. PauseButton is also a header mark but stays in `buttons` |
 | `menu` | the one menu, its store, and what a game puts in it | Menu, menu, pageMenuStore, gameMenu | gameMenu assembles a game's header menu; it could go to `game-page` instead |
-| `forms` | every field, the form frame, and the setup dialog with its sections | Field, TextField, SelectField, RadioRow, DictBandField, ManualBoardField, StandardForm, formState, fieldContract, SetupGameModal, SetupSection, PlayersSection, SetupTimerSection, SetupCoopStyleSection, SetupNextPuzzleSection, setupForm, setupRows, difficulty, fieldNames | one folder for fields and setup per the ruling; Joel said `fields`, the audit area is `forms` (flag 1). The largest common folder, about 50 files |
+| `fields` | every field — the repo of fields, whoever renders them today | Field, fieldProps, fieldContract, field.module.css, errorUnder, TextField, SelectField, RadioRow, CheckboxField, CheckboxListField, NumberField, DateField, ColorField, ReadOnlyField, PlayersField, DictBandField, ManualBoardField, groupTiles | RULED: ALL fields live here, including the three only a setup form renders today. groupTiles comes with ManualBoardField, whose helper it is |
+| `forms` | the form frame and what every form shares that isn't a field | StandardForm, formState | |
+| `setup-form` | the start-a-game dialog, its sections, and its data | SetupGameModal, SetupDisclosure, SetupSection, PlayersSection, SetupTimerSection, SetupCoopStyleSection, SetupNextPuzzleSection, setupForm, setupRows, difficulty, fieldNames | setupRows is the setup RECAP the info column and PDF share, which is setup's data even though the dialog doesn't draw it |
 | `floating-panels` | the shell every floating thing rides on | FloatingPanel, Dialog, NormalModal, BlockingModal, ConfirmationBlockingModal, AcknowledgeBlockingModal, Companion, useDraggablePanel, useFocusTrap, usePanelEscape, useConfirmation, useAcknowledge | |
 | `feedback` | the pill and its local/global state | GenericFeedbackPill, FailureLine, useLocalFeedback, useGlobalFeedback, useDismissLocalFeedbackOnKey, genericFeedback, genericPills, localPills | the `feedback` audit area's roster, minus turnCopy, placed in `turn-log` |
-| `faults` | the last-resort screens and sink | FaultModal, faultStore, panic, reloadOnStaleChunk | panic and reloadOnStaleChunk are called only from main.tsx |
+| `faults` | the fault sink and its modal | FaultModal, faultStore | |
+| `boot` | what main.tsx runs before React mounts | panic, reloadOnStaleChunk | RULED name (Joel had said "main"; "boot" names the job). main.tsx also calls loadTheme and layoutWidth, but those are features it happens to start, so they stay in `themes` and `mobile` |
 | `toasts` | the bottom-right stack | Toast, ToastHost, toastStore | |
 | `tooltips` | the tooltip host | TooltipHost | one file |
-| `text` | inline rich text | Dot, RichMessage | |
+| `text` | inline rich text | RichMessage | Dot moved to `members` (Joel asked; its docstring calls it the "this color is this player" marker, which is member identity) |
 | `lists` | pick-one and scrolling lists | SelectionList, SimpleScrollableList, FilterSelect, test/filterSelect | |
-| `loading-and-errs` | the stand-in pages | Loading, ErrorPage | name kept from today; `page-fallbacks` if a job name is wanted |
-| `definitions` | click-a-word lookup and dictionary curation | DefinitionPopover, DefinitionView, WordLookupDialog, AnagramDialog, WordEditDialog, useDefinition, useDefinePopover, parseDefinition, wordEditStore | |
+| `loading` | the stand-in while a page loads | Loading | RULED: its own folder despite one file |
+| `error-page` | the stand-in when a page can't render | ErrorPage | RULED: its own folder despite one file |
+| `definitions` | click-a-word lookup and dictionary curation | DefinitionPopover, DefinitionView, WordLookupDialog, WordEditDialog, useDefinition, useDefinePopover, parseDefinition, wordEditStore | |
+| `anagram-finder` | the anagram dialog | AnagramDialog | RULED: its own folder; the name matches its e2e spec |
 | `buttons` | every purpose button and the base | StandardButton, EndGameButton, RevealButton, HintButton, PeelButton, PauseButton, … | all 27, per the ruling |
 | `icons` | the inline SVG set | icons | one file |
 | `branding` | the app and per-game logos | PuzpuzpuzLogo, PuzpuzpuzWordmark, GameLogo, homeTitle.png, puzpuzpuz.svg | |
 | `devtools` | pages that ship for the author, not for players | PalettePage, palette, FontPage, fontSpecimen | out of every audit; Joel's name for the folder |
 | `manifest` | what a game declares | gameManifest, statusLabel, manifestRpcs | the contract; stays at a dead-obvious top-level path. `src/gametypes.ts` stays where it is |
-| `game-page` | the live game's page and what it hands down | GamePage, gamePageCtx, useCommonGame, useStandardGameActions, PlayAreaErrorBoundary, PlayAreaMountLog, PlayArea.module.css, GameHelpCompanion, ModePill, OpponentStrip, DeviceBlockNotice, useGameHasKeyboard, useGameTimer, timerLabel | the timer is two files and could be its own folder |
-| `pause` | pausing, presence-pause, suspend | PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal, pause | PauseButton stays in `buttons` |
-| `info-sheet` | the mobile info sheet and its switch | InfoSheet, useInfoSheet, infoSheetStore, InfoSwitchButton, MobileStatusBar | |
-| `turn-log` | the chronological history readout and its viewer | TurnLog, TurnLogActor, ActorMention, historyViewer.module.css, useHistoryViewer, useTurnLogPlayerPicker, TurnStatusLine, turnCopy, pdf/turnLog | turnCopy is claimed by the `feedback` area; it says whose turn it is, which reads as turn-log |
-| `word-list` | the alphabetical finds readout | WordList, useWordListFilter, useRecentlyFound, infoPanel.module.css | common per the ruling. Its display-row and leaderboard helpers are in `found-words`, so this folder imports from shared (flag 3) |
-| `terminal` | what shows when a game ends | TerminalActionRow, LocalTerminalRow, terminalCopy, CelebrationBlockingModal, useCelebration, terminalOutcomeVerb, outcomes | outcomes is the vocabulary; it could sit in `manifest` instead |
-| `reveal` | showing the answer after the end | useSolutionReveal | RevealButton stays in `buttons`; revealWords is open item 1 in §6 |
-| `entry` | the typed-move box and its row | EntryBox, EntryRow, MoveRow | useWordSubmit is open item 2 in §6 |
+| `game-page` | the live game's page and what it hands down | GamePage, gamePageCtx, useCommonGame, useStandardGameActions, PlayAreaErrorBoundary, PlayAreaMountLog, PlayArea.module.css, GameHelpCompanion, ModePill, DeviceBlockNotice, useGameHasKeyboard | |
+| `timer` | the game clock | useGameTimer, timerLabel | RULED: its own folder. SetupTimerSection stays in `setup-form` |
+| `pause-suspend` | pausing, presence-pause, suspend | PauseBoundary, PauseOverlay, SuspendConfirmationBlockingModal, pause | RULED: one folder, named for both. PauseButton stays in `buttons` |
+| `info-sheet` | the info column: its mobile sheet, its switch, and the chrome its panels share | InfoSheet, useInfoSheet, infoSheetStore, InfoSwitchButton, MobileStatusBar, OpponentStrip, infoPanel.module.css | OpponentStrip is imported by thirteen InfoCols and nothing else (verified). infoPanel.module.css is the info column's bordered panel, worn by the turn log, the word list and bananagrams's hand — Joel's guess was right. Since it now holds column-wide things, `info-col` may be the truer name |
+| `turn-log` | the chronological history readout and its viewer | TurnLog, TurnLogActor, ActorMention, historyViewer.module.css, useHistoryViewer, useTurnLogPlayerPicker, TurnStatusLine, turnCopy | turnCopy is claimed by the `feedback` area; it says whose turn it is, which reads as turn-log. Its PDF half is in `pdf` |
+| `word-list` | the alphabetical finds readout | WordList, useWordListFilter, useRecentlyFound | common per the ruling. It takes its rows as a prop; the game's PlayArea builds them with `word-hunt`'s buildDisplayRows, so nothing here imports from shared |
+| `terminal` | what shows when a game ends | TerminalActionRow, LocalTerminalRow, terminalCopy, CelebrationBlockingModal, useCelebration, terminalOutcomeVerb | |
+| `outcomes` | the outcome vocabulary — won · lost · near · warning · neutral · noted | outcomes | RULED: not terminal's. Read by boards, the pills, the feedback layer and dbResult; docs/outcomes.md is already its doc, which is the case for a folder of its own |
+| `reveal` | showing the answer after the end | useSolutionReveal | RevealButton stays in `buttons`. RULED: revealWords stays in `word-hunt` — it is specific to those games, so reveal is split between common and shared on purpose |
+| `word-entry` | the typed-word box and its row: no `<input>`, keystrokes read off the window | EntryBox, EntryRow, MoveRow, useArrowHistory | RULED name (psychicnum types a number through it, and that's fine). useArrowHistory is EntryBox's own up/down recall, layered on by EntryRow and wired nowhere else, so it lives here rather than in `keyboard`. useWordSubmit is in `word-hunt` |
 | `invitations` | game invitations | GameInvitations, useGameInvitations, gameInvites | |
-| `members` | who someone is, and their color | member, memberList, memberColor, test/gamePlayers | |
-| `keyboard` | key capture, tab rings, shortcuts | useCaptureKeys, useSwallowTab, useTabRing, useGlobalKeyHandler, useAppShortcuts, useBacktickEscape, useArrowHistory, keyboardHandoff | |
-| `device` | what kind of screen and pointer this is | useIsMobile, useMediaQuery, usePhone, useCoarsePointer, useVisualViewport, layoutWidth, breakpoints.css | breakpoints.css could stay with `core-css` (flag 4) |
-| `storage` | web storage, wrapped | storage, storage.fake, useStickyChoice | |
-| `util` | the residue: helpers with no feature | cls, logStamp, mulberry32, useSingleFlight, useFlash | kept deliberately tiny (flag 4) |
+| `members` | who someone is, their color, and the disc that shows it | member, memberList, memberColor, Dot, test/gamePlayers | Dot in from `text` |
+| `keyboard` | key capture, tab rings, shortcuts | useCaptureKeys, useSwallowTab, useTabRing, useGlobalKeyHandler, useAppShortcuts, useBacktickEscape, keyboardHandoff | useArrowHistory moved to `word-entry` — Joel's guess was right, its docstring says it applies to the EntryBox games and only them |
+| `mobile` | the desktop-versus-mobile machinery: the breakpoint, the device hooks, the viewport | useIsMobile, useMediaQuery, usePhone, useCoarsePointer, useVisualViewport, layoutWidth, breakpoints.css | RULED name. Every file here cites docs/mobile.md, and useMediaQuery calls itself "the engine behind the device hooks", so the name is truer than it first looks. docs/mobile.md becomes its doc |
+| `web-storage` | localStorage and sessionStorage, wrapped so a browser that blocks them can't throw | storage, storage.fake, useStickyChoice | `web-storage`, not `localstorage`: the wrapper covers sessionStorage too, and "Web Storage" is the spec's name for the pair |
+| `utils` | simple logic helpers with no feature | cls, logStamp, mulberry32, friendlyDate, linkify | RULED: kept, for plain functions only — no hooks. friendlyDate in from `club`, linkify in from `chat` |
+| `single-flight` | one run of an async action at a time — a second click while the first is in flight is dropped, not queued | useSingleFlight | Joel asked what it is. It's the guard every game's submit and action handlers wrap, so a double-click can't double-fire an RPC. No feature owns it, and it isn't plain logic, so it gets a one-file folder like `tooltips` and `icons` do |
+| `move-flash` | flashing the tiles a move changed | useTurnStartFlash, useMoveCausedChange, feedbackTiming, useFlash | RULED common, up from shared: only four games use it today because the tile-feedback pass paused for the audit, and it's meant for more. useFlash (a transient hot set of ids that clears itself) is the mechanism under it, in from the old `util` |
 | `core-css` | the stylesheets every page loads | base.css, fixed.css, utilities.css, patterns/badge.css, patterns/focus-ring.css, … | the `corecss` audit area |
 | `themes` | the theme files and loader | daylight.css, light-mode.css, dark-mode.css, midnight.css, loadTheme | |
-| `pdf` | the printable frame and shared pieces | frame, columns, marks, tiles, wordColumns, wordListBody, wordSections | open item 3 in §6: tiles and the word helpers could ride with their family instead |
+| `pdf` | everything about printing a board | frame, columns, marks, tiles, turnLog, wordColumns, wordListBody, wordSections | RULED: all of pdf stays together, including the helpers that print one family's readout |
 
 ### Shared
 
 | folder | what it is | sampling | notes |
 |---|---|---|---|
-| `found-words` | find-many-words games: spellingbee, wordwheel, boggle | makeFoundWordsGame, foundWords, foundWordsDisplayRows, foundWordsLeaderboard, rankLadder, RankBar, Stats, groupTiles, revealWords, typedWord.module.css, foundWordsPlayArea.module.css | the biggest family. groupTiles is used by ManualBoardField in `forms`, so common imports shared there too (flag 3) |
-| `grid-and-drag` | tiles moved on a grid with a cursor: bananagrams, scrabble | gridCursor, gridCursor.module.css, useBoardCursorKeys, useDragGesture, dragGhost.module.css | open item 4 in §6 if the keyboard-nav plan widens it |
-| `color-feedback` | hidden-target color feedback: waffle, wordle | tileColor, pdf/tiles | two files |
-| `move-flash` | flashing the tile a move changed: connections, psychicnum, waffle, wordle | useTurnStartFlash, useMoveCausedChange, feedbackTiming | |
-| `dictionary-trie` | the flat trie behind boggle's solver and scrabble's suggester | trie | one file |
-| `guess-keyboard` | the on-screen QWERTY: wordle, wordiply | GuessKeyboard | one file plus its stylesheet |
+| `rank-ladder` | the Start..Genius ladder, its bar and its stat grid | rankLadder, RankBar, Stats | Joel asked for a breakup so the bar can serve games that aren't pure found-words. The docstrings split the old family in three: this is the part with no data model behind it, so any game with a ladder can take it |
+| `bee-games` | what the spellingbee / wordwheel pair share and nothing else does: the data model, the game factory, the compete leaderboard, the typed-word look | foundWords, makeFoundWordsGame, foundWordsLeaderboard, typedWord.module.css, foundWordsPlayArea.module.css | every file's docstring says "spellingbee + wordwheel" and its importers agree. `bee-games` is a placeholder name — the repo calls them "the found-words rank-ladder games", which is too long for a folder |
+| `word-hunt` | find-words-on-a-board games: spellingbee, wordwheel, boggle, wordiply | foundWordsDisplayRows, revealWords, useWordSubmit | "word-hunt" is the docstrings' own word (revealWords: "the three word-hunt games"). useWordSubmit lands here, out of `entry`: wordiply is a word-finding game too (docs/features.md → "Word-finding as core play"), so all four of its users are in this family |
+| `board-cursor` | arrows move a cursor over a board: bananagrams and scrabble today, the five keyboard-nav games if that plan lands | useBoardCursorKeys, gridCursor, gridCursor.module.css | RULED: split from the drag files. useBoardCursorKeys is the keyboard every board-cursor game reuses (the window listener and the keep-typing-off-the-board guards); gridCursor is the axis-cursor math only the letter-grid games use, and the plan's five would add a plain stepper beside it |
+| `grid-and-drag` | dragging a tile to the right place on the grid: bananagrams, scrabble | useDragGesture, dragGhost.module.css | RULED name and contents |
+| `wordle-style` | the per-letter color codes of the hidden-target games: wordle, waffle | tileColor | RULED: no pdf here. Named for the family: the repo already says "Wordle-style" in a dozen places and names the tokens `wordle-green` / `wordle-yellow` / `wordle-gray`. One file |
+| `dict-trie` | the flat trie behind boggle's solver and scrabble's suggester | trie | one file |
+| `onscreen-keyboard` | the on-screen QWERTY: wordle, wordiply | GuessKeyboard | RULED name. One file plus its stylesheet |
 
 ### Belongs to a game
 
@@ -345,36 +366,41 @@ they sit in `game-page`.
 
 ### Flags on the list (numbered for Joel to answer by number)
 
-1. **`forms` versus `fields`** as the one folder's name.
-2. **The header-marks rule.** ChatButton, ScratchpadButton and PauseButton each
-   belong to a feature but live where they're drawn. Keep that, or move them
-   home?
-3. **Two common-imports-shared edges**: `word-list` uses found-words helpers,
-   and `forms` uses groupTiles. Either the helpers move up to common, or the
-   direction is allowed.
-4. **`util` and `device` are the two folders that don't name a feature.**
-   `util` is kept to five files on purpose. If the target is zero type-ish
-   folders, useSingleFlight and useFlash need homes.
+Settled by the first markup pass (2026-09-04): the fields/forms/setup-form
+split; the header marks stay in `page-header`; `utils` is plain logic only;
+pdf stays together; move-flash is common. Still flagged:
+
+1. ~~Three setup-only fields~~ — RULED: `fields` is the repo of fields; all of
+   them live there.
+2. ~~One common-imports-shared edge remains~~ — WITHDRAWN 2026-09-04: there is
+   no such edge. `WordList` takes its rows as a prop; the game's own PlayArea
+   calls `buildDisplayRows` and hands the result over, so every import runs
+   game → shared or game → common. Nothing in the proposed `common/` imports
+   from the proposed `shared/`.
+3. ~~`device`~~ — RULED: renamed `mobile`; it is a feature after all.
+4. ~~Claude's names~~ — RULED 2026-09-04: `boot`, `bee-games`,
+   `single-flight`, `info-sheet` (not `info-col`) and `web-storage` all stand.
 
 ## 6. Still open
 
-1. **Reveal straddles the line.** `RevealButton` + `useSolutionReveal` serve ten
-   games and are common by the rule; `revealWords` serves only found-words.
-   Split across common and shared, or keep all of reveal together?
-2. **`useWordSubmit`** (boggle, spellingbee, wordwheel, wordiply) — three
-   found-words games plus one that isn't, and it is a submit MECHANISM rather
-   than a mechanic. Shared beside found-words, or common entry?
-3. **Where a family's PDF helper lives** — beside the family it prints, or in
-   one `pdf/` folder as today.
-4. **Grid-and-drag versus the keyboard-nav plan.** `useBoardCursorKeys` and
-   `gridCursor` are shared by two games today, but
-   plans/keyboard-nav-plan.md would extend arrow navigation to five. Classify
-   by today, or by that plan?
+1. ~~Reveal straddles the line~~ — RULED 2026-09-04: split. `useSolutionReveal`
+   is common (`reveal`); `revealWords` is specific to the word-hunt games and
+   stays in `word-hunt`.
+2. ~~`useWordSubmit`~~ — placed in `word-hunt` (§5): all four of its users are
+   word-finding games by docs/features.md's own grouping.
+3. ~~Where a family's PDF helper lives~~ — RULED 2026-09-04: all of pdf stays
+   in one `pdf/` folder.
+4. ~~Grid-and-drag versus the keyboard-nav plan~~ — RULED 2026-09-04: split
+   into `board-cursor` (the keyboard + cursor math) and `grid-and-drag` (the
+   drag pair). Not because of the plan: the keyboard and the drag were two
+   jobs in one folder already. Both shared.
 5. **The feature list** — what is big enough to be a folder, and what happens
    to a one-file feature (its own folder anyway, or folded into a parent).
-6. **The docs boundary** — which docs split, and whether `docs/games/` moves.
-7. **Whether a feature folder gets type subfolders.** Open by Joel's own
-   statement; §3 argues no.
+6. **The docs boundary** — which docs split. (~~whether `docs/games/` moves~~ —
+   RULED 2026-09-04: not now. It may be smart later, but it is not part of
+   this reorg.)
+7. ~~Whether a feature folder gets type subfolders~~ — RULED 2026-09-04: no.
+   Joel took §3's recommendation; the naming convention does the job.
 
 ## 7. What happens to this file
 
