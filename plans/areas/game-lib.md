@@ -1,5 +1,13 @@
 # Area: game-lib
 
+> **Every path in this file predates the restructure** of 2026-09-04
+> ([common-restructure.md](../common-restructure.md)). It is kept as the record
+> of what this area read and decided, not as a map of the tree: `lib/game/` no
+> longer exists, and its 31 files are spread across a dozen feature folders and
+> five shared families. The area is CLOSED, all 37 files blessed; the paths are
+> history. A `cs-blessed-game-lib` stamp on a file in, say, `common/timer/`
+> means this area read it — not that `timer` is closed.
+
 An area of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; **the plan holds the order** (§7 → "The areas, in order"), this file holds
 everything else.

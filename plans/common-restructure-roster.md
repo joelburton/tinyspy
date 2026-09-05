@@ -1,16 +1,18 @@
-# The `src/common/` move roster — every file and where it goes
+# The `src/common/` move roster — every file and where it went
 
-> # ⚠️ THIS FILE DOES NOT DESCRIBE THE APP
+> # ✅ EVERY MOVE BELOW HAS HAPPENED, in commit `c2f9baf2`
 >
 > Companion to [common-restructure.md](common-restructure.md), which holds the
-> reasoning and the rulings. **None of these moves has happened.** Every path
-> on the left exists today under `src/common/`; every folder in a heading is
-> proposed. Generated from the §5 tables of the plan, one row per file, so the
-> move can be checked off file by file and nothing is guessed at codemod time.
+> reasoning and the rulings. **The paths on the LEFT no longer exist** — they
+> are where each file lived before 2026-09-04. The heading above each block is
+> where it lives now, with the three exceptions listed under this box.
 >
-> A file's test and its `.module.css` always travel with it — they share a
-> stem, and the stem is what decides the destination. Headings are the NEW
-> folder; `shared/` is the proposed top-level sibling of `common/`.
+> This is the durable mapping: the codemod was a throwaway, and this is what
+> answers "where did that file go?" for anyone reading a pre-move doc, commit
+> or area record.
+>
+> A file's test and its `.module.css` traveled with it — they share a stem, and
+> the stem is what decided the destination.
 
 Generated 2026-09-04. Regenerate rather than hand-edit when a ruling changes.
 

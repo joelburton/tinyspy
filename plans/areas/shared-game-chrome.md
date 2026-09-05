@@ -1,4 +1,17 @@
-# Area: shared-game-chrome
+# Area: shared-game-chrome — DISSOLVED 2026-09-04
+
+> **This area no longer exists, and it never opened.**
+> `common/components/game/` was dissolved by the restructure
+> ([common-restructure.md](../common-restructure.md)) into the folders its 66
+> files belong to — `game-page`, `info-sheet`, `turn-log`, `word-list`,
+> `word-entry`, `terminal`, `pause-suspend`, `timer`, `reveal`, `move-flash`,
+> `invitations`, `lists`. **Every path below is a pre-move path.**
+>
+> It had no roster and no findings. Its one live item — **the contract-slot
+> guard, checked per mount point** — went to [game-page.md](game-page.md), which
+> owns the mount points, along with the `GamePage` feedback-slot note below.
+> `StrikeMarks` was never really its own: it moved into `src/connections/`,
+> its only importer.
 
 An area of app-audit's step 7. The process is
 [app-audit.md](../app-audit.md) §21; **the plan holds the order** (§7 → "The

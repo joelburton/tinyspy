@@ -1,5 +1,20 @@
 # Area: deep
 
+> **Every path in this file predates the restructure** of 2026-09-04
+> ([common-restructure.md](../common-restructure.md)). It is kept as the record
+> of what this area read and decided, not as a map of the tree: `lib/supabase/`
+> is `common/supabase/` now, `lib/routing/` is `common/routing/`, and the boot
+> helpers are `common/boot/`. The area is CLOSED; the paths are history.
+>
+> **One thing here is still live.** `App.tsx` is `cs-fixed-deep`, not blessed —
+> Joel declined until the hooks it calls are read (2026-09-02), and those five
+> hooks now sit in five areas: [session](session.md) (`useSession`),
+> [realtime](realtime.md) (`useRealtimeReconnect`),
+> [keyboard](keyboard.md) (`useBacktickEscape`), [account](account.md)
+> (`useEditProfileOpen`) and [definitions](definitions.md) (`useWordEdit`).
+> `usePath` is this area's and is blessed. Re-filed here from
+> [hooks.md](hooks.md) when that area dissolved.
+
 An area of app-audit's step 7, and the one that ran first under the 2026-09-02
 restart. The process is [app-audit.md](../app-audit.md) §21; **the plan holds the
 order** (§7 → "The areas, in order"), this file holds everything else.

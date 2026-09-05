@@ -1,4 +1,20 @@
-# Area: hooks
+# Area: hooks — DISSOLVED 2026-09-04
+
+> **This area no longer exists, and it never opened.** `src/common/hooks/` was
+> dissolved by the restructure ([common-restructure.md](../common-restructure.md)):
+> a hook now lives in the folder of the thing it is about, so there is no
+> folder left for this area to be named after. **Every path below is a pre-move
+> path.**
+>
+> Its six notes are re-filed under the folders that took the hooks they name —
+> each is marked `RE-FILED` below with its destination, and the text is kept
+> here so nothing is lost in the move.
+>
+> **Its opening question is answered.** It asked whether `hooks/game/` (43% of
+> the lines) should split off to the game shell. The restructure split the whole
+> folder by subject rather than by shape, which is what that question was
+> reaching for; the precedent it had already set — *the subject's owner takes
+> its hooks* — is now the layout rather than a policy.
 
 An area of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; **the plan holds the order** (§7 → "The areas, in order"), this file holds
@@ -99,14 +115,21 @@ the area.
 
 ### Already waiting for this area
 
-**1. `App.tsx` cannot be blessed until this area runs** (Joel, 2026-09-02). It
+**1. RE-FILED to [deep.md](deep.md)** — App.tsx is the file it is about, and it
+is still `cs-fixed-deep` for exactly this reason. The five hooks that gate it now
+sit in five areas: `session`, `realtime`, `keyboard`, `account`, `definitions`.
+
+**`App.tsx` cannot be blessed until this area runs** (Joel, 2026-09-02). It
 is `cs-fixed-deep` and audited — the boot pass took it — but six of its lines are
 hook calls, and four of those hooks are this area's: `useSession`,
 `useRealtimeReconnect`, `useBacktickEscape`, plus the two store reads
 (`useEditProfileOpen`, `useWordEdit`) that decide what hangs off the root.
 `usePath` is `deep`'s and is blessed already.
 
-**2. Five hooks are already named by `homepage`'s dependency read** (2026-08-26,
+**2. RE-FILED to [session.md](session.md) (useProfile ×2), [keyboard.md](keyboard.md)
+(useTabRing, useAppShortcuts) and [account.md](account.md) (useAccountMenuSection).**
+
+**Five hooks are already named by `homepage`'s dependency read** (2026-08-26,
 in an audit since deleted; the findings themselves are gone but the files are
 not): `useProfile` — a failed profile fetch is SILENT; `useTabRing` — its
 on-screen test is false for a `position: fixed` element, and it is the mechanism
@@ -116,24 +139,34 @@ on-screen test is false for a `position: fixed` element, and it is the mechanism
 replaced; and an orphaned docstring in `useProfile` sitting above the wrong
 function. Re-derive rather than trust: these were read a week ago.
 
-**3. `useAppShortcuts` returns JSX, and three pages must remember to render it.**
+**3. RE-FILED to [keyboard.md](keyboard.md)** — the mounting half stays in
+[common-hosts.md](common-hosts.md) → note 1.
+
+**`useAppShortcuts` returns JSX, and three pages must remember to render it.**
 Raised by `deep`; the substance is in
 [common-hosts.md](common-hosts.md) → note 1, because the fix is a mounting
 question. What is THIS area's: the hook binds at two scopes — `~` and `⌥\`` are
 global, `/` chat is page-dependent (`chat: false` on HomePage) — and a hook that
 takes an option to turn off one of its three bindings is a hook doing two jobs.
 
-**4. `useDefinePopover` is called at sixteen sites**, each holding its own
+**4. RE-FILED to [definitions.md](definitions.md).**
+
+**`useDefinePopover` is called at sixteen sites**, each holding its own
 `{ word, rect }`. Whether that stays is
 [common-hosts.md](common-hosts.md) → note 3's question (`TooltipHost` shows a
 root-mounted anchored host works); the HOOK's shape is this area's.
 
-**5. Four of `ui/`'s hooks were read by an audit that no longer exists** —
+**5. RE-FILED to [floating-panels.md](floating-panels.md)** — all four hooks are in
+`common/floating-panels/` now.
+
+**Four of `ui/`'s hooks were read by an audit that no longer exists** —
 `useDraggablePanel`, `useFocusTrap`, `useConfirmation`, `useAcknowledge` were
 read as machinery by the first `floating-panels` audit. That audit is deleted, so
 they come back unread; its forward-pointing items are in §7 → "Carried forward".
 
-**6. `useStickyChoice.test.ts` should adopt `storage.fake.ts`, and drop its guard
+**6. RE-FILED to [web-storage.md](web-storage.md).**
+
+**`useStickyChoice.test.ts` should adopt `storage.fake.ts`, and drop its guard
 exemption** — from `utils`, 2026-09-03.
 
 jsdom in this project ships **no `localStorage` at all**: `window.localStorage`

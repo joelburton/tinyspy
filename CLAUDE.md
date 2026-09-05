@@ -21,7 +21,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 |---|---|
 | [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) |
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, known gotchas |
-| [docs/common-folders.md](docs/common-folders.md) | How `src/common/` is organized; where a new shared file goes |
+| [docs/common-folders.md](docs/common-folders.md) | How `src/common/` and `src/shared/` are organized — the shell vs a family of games, the one-way import rule, the `@/` alias, and where a new file goes |
 | [docs/common.md](docs/common.md) | The architecture layer: clubs/profiles/games schema, the game RPCs, RLS, routing + the FE shell/registry, the word list + dictionary curation |
 | [docs/supabase.md](docs/supabase.md) | How the app talks to Supabase: the client, schema exposure, query + Realtime conventions, RPC/RLS/edge-function conventions, the divergence register |
 | [docs/envelopes.md](docs/envelopes.md) | **The one shape every RPC and edge function answers in** — ok / not-ok, severity, who writes the player's sentence, how SQL and Deno build one. Canonical; outranks supabase.md and error-system.md where they disagree |
@@ -101,6 +101,7 @@ area, not a pass waiting its turn.
 | [plans/dark-mode.md](plans/dark-mode.md) | **Not scheduled** — what the midnight spike proved: the CSS system CAN carry a dark theme, what it would still cost, and the one thing not solved (depth on a dark page). Reachable today behind `?theme=midnight` |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-system.md](plans/error-system.md) | **DONE — the results/rejections/faults sprint**, 157 of 157 roster entries converted (2026-09-01), and the deletion it ends with has happened: `errorCopy.ts`, `serverError.ts`, `callRpc.ts` and `serverErrorKeys.test.ts` are gone and `callSiteShape.test.ts` is a hard assertion. The SHAPE lives in [docs/envelopes.md](docs/envelopes.md), which outranks this file; what the plan still owns is the per-area record of how the conversion went — the roster, and what each area's conversion turned up |
+| [plans/common-restructure.md](plans/common-restructure.md) | **SHIPPED 2026-09-04** — the `src/common/` restructure: feature folders, `src/shared/` for named game families, the `@/` alias, and the rule that common never imports shared. [docs/common-folders.md](docs/common-folders.md) is the doc for what the tree IS; this holds how it was decided and what the move turned up (§7a). Still live: the per-folder `.md` files and the decomposition of the big docs. Its companion [roster](plans/common-restructure-roster.md) is the durable where-did-that-file-go mapping |
 | [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind app-audit.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
 | plans/css-system-outdated-dont-read.md | **DO NOT READ.** The superseded first draft of the CSS sprint, much of whose model failed. Listed here only so its presence in `plans/` isn't mistaken for an oversight. Open it if — and only if — Joel says to |
 

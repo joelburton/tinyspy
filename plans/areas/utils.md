@@ -1,4 +1,16 @@
-# Area: utils
+# Area: utils — DISSOLVED 2026-09-04, having CLOSED first
+
+> **Every path in this file predates the restructure** of 2026-09-04
+> ([common-restructure.md](../common-restructure.md)). `src/common/lib/util/`
+> no longer exists: its files are `common/utils/`, `common/boot/`,
+> `common/web-storage/`, `common/keyboard/` and `common/mobile/`.
+>
+> This area **closed on 2026-09-03 with all 22 findings resolved**, so it
+> dissolves as history rather than as work — nothing was re-filed. Its one
+> forward-pointing item, `F-utils-7` (the tab-ring successor in `ChatBody` and
+> `GameScratchpadCompanion`), already pointed at `floating-panels` and still
+> does. The unread remainder of `web-storage` — `useStickyChoice` and its test —
+> is [web-storage.md](web-storage.md)'s.
 
 An area of app-audit's step 7. The process is [app-audit.md](../app-audit.md)
 §21; **the plan holds the order** (§7 → "The areas, in order"), this file holds

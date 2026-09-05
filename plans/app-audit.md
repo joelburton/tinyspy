@@ -31,8 +31,9 @@ loses its story; how something was discovered is `css-philosophy.md`'s.
 
 **`deep` is read through** — [plans/areas/deep.md](areas/deep.md), six passes
 over 35 files, 39 findings, nothing open. Thirty-nine of its files are
-`cs-blessed-deep`; `App.tsx` is the one held back, on purpose, until `hooks`
-runs, and it sits at `cs-fixed-deep`.
+`cs-blessed-deep`; `App.tsx` is the one held back, on purpose, until the five areas
+holding the hooks it calls have run (§7 → the dissolved areas), and it sits at
+`cs-fixed-deep`.
 
 **`utils` is CLOSED** (2026-09-03) — [plans/areas/utils.md](areas/utils.md), two
 passes over twelve files, 22 findings, none open, all twelve `cs-blessed-utils`.
@@ -401,7 +402,7 @@ The contrast is exactly today's `FilterSelect`: the club page overrides six of
 the component's seven decisions for one instance (a caller disagreeing with a
 component), where the scoped form is `.infoCol { --space-2: …; --font-size-2: … }`
 (a surface stating its own density, once). Which also settles what to do at the
-**`shared-game-chrome`** area — the component should state the ROOMY default and
+**`lists`** area, where `FilterSelect` now lives — the component should state the ROOMY default and
 the info column should tighten it, rather than the reverse, which is what leaves
 the club page undoing six values.
 
@@ -412,7 +413,9 @@ Two things the split needs to be usable:
   surfaces; `FilterSelect` lives there and its contested consumer is the club
   page — while `<PageHeader>` is locked and GamePage carries it. §14's roster
   files work by folder, which is how `<ModePill>` got filed under
-  **`shared-game-chrome`** when it belongs to **`club-page`**.
+  **`shared-game-chrome`** when it belongs to **`club-page`**. (That area dissolved
+  in the 2026-09-04 restructure; `<ModePill>` sits in `game-page` now, and the
+  point still stands — a folder is not an owner.)
 - **The line runs INSIDE boardCol.** A board's contents are tuned; the furniture
   around them is justified — the board frame, the history ring, the game-over
   frame, `dimNotYourTurn`, the below-board feedback slot, the your-turn flash.
@@ -425,7 +428,8 @@ answer "how much may this vary"; the vocabulary answers "what may never vary".
 
 The area order already obeys this, which is some evidence the model is real
 rather than invented: `homepage`, `floating-panels` and `club-page` are locked
-surfaces, `shared-game-chrome` is justified's shared half, and the per-game areas
+surfaces, the game-shell areas (rows 30–39) are
+justified's shared half, and the per-game areas
 are tuned plus justified's per-game half.
 
 ## 6.6 The vocabularies
@@ -743,20 +747,20 @@ plus justified's per-game half.)
 | `club-page` | The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides one side. GamePage answers the same question with the InfoSheet |
 | ~~`floating-panels`~~ | ~~**`FloatingPanel`'s titlebar wears the HOVER gray at rest.**~~ **DONE 2026-08-25** — `--floatingPanel-titlebar-color`, its own token in both themes, starting at the value it inherited so nothing repaints. The two can now diverge, which was the whole ask |
 | ~~here~~ → `crosswords` | ~~**A dialog riding the popover tier.**~~ **MOVED 2026-08-24** to the `crosswords` row below, where the tier change can be seen by the area that owns the game. Kept as a line so its disappearance is not read as an oversight |
-| `shared-game-chrome` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
+| `grid-and-drag` | **The two drag ghosts disagree** — bananagrams 1000, scrabble 100, and `dragGhost.module.css` says the split is unintended. Both are `position: fixed`, so they are two tiers apart against everything else: scrabble's paints BELOW an open dialog, bananagrams's above. Nobody drags mid-dialog, which is why it has never shown. Neither takes a token until they agree |
 | `the first game area` | `CelebrationBlockingModal`'s `.title` is an `<h2>` at `1.5rem` — h1's size, where h2 is `1.25rem`. May be earned; should be a decision |
 | `the first game area` | `CelebrationBlockingModal`'s `.button:focus-visible` re-declares the shared ring. Nothing about that dialog should change a button's ring |
 | ~~`floating-panels` + `shared-game-chrome`~~ | ~~**Nine `.body` classes want real names.**~~ **DONE 2026-08-25** (the first `floating-panels` audit). They were not one thing: a shell content region, two layout stacks, four paragraphs of PROSE, and one disclosure section that has nothing to do with panels. Split rather than renamed — `FloatingPanel` keeps `.body`, the rest took names for what they hold. Two strays folded in: `SetupGameModal.bodyReserve` and `.cluePanel` |
-| `shared-game-chrome` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
-| `shared-game-chrome` | **Click-to-define repeats a four-part activation bundle at 14 surfaces, and two of them have already reinvented the same helper** — `WordList.wordActivation` and wordle's `defineProps`, both returning `{ className, title: 'Click to define', data-word, onClick }`. Promote the PROPS, not the element: `definableProps(word, define)`. **NOT a component** — the definable thing is not always a word (wordle's is a five-square tile row, wordiply's a `<DimmedBaseWord>` with styled parts), and `useDefinePopover` holds its state per SURFACE, so a per-word component would need `define` passed to each one or a context. A helper constrains no markup and leaves wordle's documented departure standing (colored blocks can't take an underline, so its hover cue is a ring). **Two real drifts it would settle:** `data-word` is the e2e handle convention and wordle's and letterboxed's spreads omit it, so those words can't be selected the standard way; and all fourteen pass a native `title` where the app uses `data-tooltip` + `TooltipHost` — the same opt-out, fourteen times. Raised 2026-08-26 auditing `AnagramDialog`, which was the one surface missing `.definable` entirely and so had no hover cue at all |
-| `shared-game-chrome` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
+| `lists` | `FilterSelect`'s club-page override INVERTS: the component states the roomy default, the info column tightens it. Today the club page undoes six of its seven decisions one at a time |
+| `definitions` | **Click-to-define repeats a four-part activation bundle at 14 surfaces, and two of them have already reinvented the same helper** — `WordList.wordActivation` and wordle's `defineProps`, both returning `{ className, title: 'Click to define', data-word, onClick }`. Promote the PROPS, not the element: `definableProps(word, define)`. **NOT a component** — the definable thing is not always a word (wordle's is a five-square tile row, wordiply's a `<DimmedBaseWord>` with styled parts), and `useDefinePopover` holds its state per SURFACE, so a per-word component would need `define` passed to each one or a context. A helper constrains no markup and leaves wordle's documented departure standing (colored blocks can't take an underline, so its hover cue is a ring). **Two real drifts it would settle:** `data-word` is the e2e handle convention and wordle's and letterboxed's spreads omit it, so those words can't be selected the standard way; and all fourteen pass a native `title` where the app uses `data-tooltip` + `TooltipHost` — the same opt-out, fourteen times. Raised 2026-08-26 auditing `AnagramDialog`, which was the one surface missing `.definable` entirely and so had no hover cue at all |
+| `turn-log` | `<TurnLog>`'s `headerAction` is optional in name only — all eleven call sites pass it, so the bare-`<h3>` arm is dead. Make it required |
 | `codenamesduet` | **`CluePanel` needs a name that says what it is** (the first `floating-panels` audit, `cluepanel-clue-for-what`). Joel: *"'CluePanel' is a terrible name: CLUE FOR WHAT?"* — and the first answer was wrong, which is the part worth carrying: it is NOT the AI suggester. It is the below-board clue strip — the giver's form, the guesser's clue display, the Pass button — and it is **not a floating panel at all**, so neither `Panel` nor `Modal` belongs in whatever it becomes. The AI panel that shared its file is already split out as `CodenamesduetAISuggestCompanion`. Joel, 2026-08-25: *"change it back to CluePanel; we'll consider a better name when we work on it"* |
 | **each surface, as its area comes up** | **A floating panel's MINIMUM SIZE is still eyeballed** (the first `floating-panels` audit, `viewport-margins-unchosen`, part C). Seven pairs remain, all on COMPANIONS — which is the one family where a floor is real, since they are the only floating panels you can drag shut. Five distinct widths (240 / 260 / 280 / 300 / 320) and five heights (140 / 180 / 200 / 220 / 240), none derived: `Chat` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion` per-game · `GameScratchpadCompanion` 240×200 · `CrosswordsNoteCompanion` 300×200 · `CrosswordsExplainCompanion` 320×220 · `CodenamesduetAISuggestCompanion` 240×140. **The rule to apply is written down** (§20 → the resize table): the number should come from what the BODY needs — "the titlebar, the composer and four messages" — not from what looked about right. Two strays also survive on floating panels nobody can resize, `BlockingModal` and `SetupGameModal`, each `minWidth: 320`; those are not floors at all and below ~336px they force the panel wider than the screen. Joel, 2026-08-25: *"ignore for now; as we get to these individually in areas, we can figure out"* |
 | `crosswords` | **`CrosswordsNumberJumpBlockingModal` is a blocking modal that isn't built as one** (the first `floating-panels` audit, `numberjump-tier`). A hand-rolled `position: fixed` box with its own scrim, riding `--z-index-popover`, so a menu can open over it. `<BlockingModal>` now exists and is what it wants — the shell brings the backdrop, the focus trap, immovability and content-fit height. Punted here rather than converted in `floating-panels` (Joel, 2026-08-24) because the conversion MOVES ITS TIER, and a behavior change to a game's modal should be seen by the area that owns the game |
 | `crosswords` | **The header's marks are not evenly separated, and the CSS says they are** (the first `homepage` audit, `unequal-mark-separation`). One `gap: 0.375rem` for the whole slot, then each mark adds its own padding INSIDE its box — the menu trigger `0.25rem`, the chat bubble `PageHeaderButton`'s `0.3rem` plus `.bubble`'s own, the status slot none — so every visible separation differs and none of them is the declared number. Owned here because this is the page where EVERY mark can be on the strip at once; home has one and the club page three. `--spacer` cannot claim `0.375rem` until this settles what the separation should be |
 | `scrabble` | **The AI suggest-a-move box is the fifth SelectionList site and did not fit.** It is five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a growable height would shift the setup disclosure and the Moves log below it — so the frame, the surface and the row padding would all arrive as a visible redesign, roughly doubling the box. Three options, written up in `docs/games/scrabble.md` → Deferred: leave it bespoke (as crosswords' clue lists are), give `<SelectionList>` a frameless compact form, or redesign the box and redo the height arithmetic. Closed out of the `homepage` area 2026-08-24 |
 | `scrabble` | **`ScrabbleBlankPickerBlockingModal`'s overlay at `z-index: 50`** — a full-screen `position: fixed` modal parked BELOW the panel tier, so an open chat or menu paints over it. Long-recorded as the ladder's known anomaly; it wants a look, not a reflex bump |
-| **an audit of its own** | **Four files export MORE THAN ONE component**, so "the filename is the component" — the rule that files and components share a name — is false in four places: `common/components/game/lists/TurnLog.tsx` (`TurnLog`, `TurnLogBar`, `TurnLogNumber`), `common/components/game/lists/ActorMention.tsx` (`ActorTag`, `ActorDot`), `common/components/game/PlayAreaMountLog.tsx` (`PlayAreaSlotLog`, `PlayAreaReadyLog`), and `setgame/components/Card.tsx` (`Card`, `CardDefs`). **This is not cosmetic — it is how a rename went wrong.** `CluePanel.tsx` held the below-board clue strip AND the AI suggestion panel; a table built by scanning files for `<FloatingPanel>` and labeling rows by basename attached the wrong name, F27 inherited it, and the rename sweep acted on it — putting `CodenamesduetAISuggestModal` on a component that is not AI, not a suggester and not a modal. Found 2026-08-25 while answering "aren't the filenames the same as the component names?"; that file is split, the other four are not. Three of them are `shared-game-chrome`'s, and `TurnLog`'s three look like a real family rather than an accident, which is why this wants an audit rather than a sweep |
+| **an audit of its own** | **Four files export MORE THAN ONE component**, so "the filename is the component" — the rule that files and components share a name — is false in four places: `common/components/game/lists/TurnLog.tsx` (`TurnLog`, `TurnLogBar`, `TurnLogNumber`), `common/components/game/lists/ActorMention.tsx` (`ActorTag`, `ActorDot`), `common/components/game/PlayAreaMountLog.tsx` (`PlayAreaSlotLog`, `PlayAreaReadyLog`), and `setgame/components/Card.tsx` (`Card`, `CardDefs`). **This is not cosmetic — it is how a rename went wrong.** `CluePanel.tsx` held the below-board clue strip AND the AI suggestion panel; a table built by scanning files for `<FloatingPanel>` and labeling rows by basename attached the wrong name, F27 inherited it, and the rename sweep acted on it — putting `CodenamesduetAISuggestModal` on a component that is not AI, not a suggester and not a modal. Found 2026-08-25 while answering "aren't the filenames the same as the component names?"; that file is split, the other four are not. Two of them are `turn-log`'s and one is `game-page`'s, and `TurnLog`'s three look like a real family rather than an accident, which is why this wants an audit rather than a sweep |
 | **each surface** | **Ten consumer modules style `<Dot>` as a bare `.dot`.** The qualified form already exists in half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`, `bonusDot`) |
 | **shuffle games** | `<ShuffleButton>` should never take focus at all — game stuff doesn't. Its `:focus { outline: none }` says a click leaves no ring, then `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is removing the tab stop, not restyling the ring |
 | **the area that takes `base.css`** | **Six chrome shadow levels nobody chose.** They were preserved from what the component modules already held and given names, which is what made them look like a system. Measured 2026-08-22: five of the six have exactly ONE reader (`popover` alone has four: Menu ×2, FilterSelect, DefinitionPopover), so §7's own rule — a value with one reader belongs in its class as a number — disqualifies most of them; three share a geometry (`0 8px 24px`) and differ only in opacity (18 / 12 / 8%); and they are not a ladder — `toast` is the TOPMOST z-layer and blurs 16 where `dialog` blurs 48. The names also lead with the KIND where §5's grammar is bucket-first, and `notice` invents a category for a single component called `DeviceBlockNotice` (global, it would be `--deviceBlockNotice-shadow`). Decide the count and the names there |
@@ -859,7 +863,7 @@ plus justified's per-game half.)
 
   psychicnum sets `--cols` inline on the parent (`Board.tsx:131`) rather than in
   a CSS file; it inherits, so it counts. **The guard lands at the
-  `shared-game-chrome` area**, when this CSS is open anyway.
+  `game-page` area**, which owns the mount points, when this CSS is open anyway.
 - **Not every token is a design decision.** Six kinds, and two aren't tokens in
   spirit: a **contract slot** is a blank a game fills in (`--tile-bg-color`,
   `--grid-gap`), and **local math** is arithmetic (`--cols`, `--side`). Neither
@@ -886,7 +890,7 @@ plus justified's per-game half.)
 |---|---|
 | `no unnamed colors` | sharpens into a LOCATION rule: a hex appears only in a theme file or a game's `brand.css` |
 | rectangular families | a test per bucket that every member carries every variant |
-| contract slots | new, **at the `shared-game-chrome` area**: every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
+| contract slots | new, **at the `game-page` area** (inherited when `shared-game-chrome` dissolved — it owns the mount points): every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
 | `no dead tokens` | **the hazard.** Reserved cells look dead. `palette.ts` / `PalettePage.tsx` is written to BE the reader that keeps them alive — verify that mechanism before relying on it |
 | `:global()` | **SHIPPED 2026-08-21.** A `:global()` subject with no local ancestor styles every surface; the module it sits in gives it no scope. Verified by planting all three cases |
 | class defined ≠ referenced | both directions; neither a bare global string nor `styles.typo` fails loudly |
@@ -998,23 +1002,104 @@ this area read", and neither answers "who owns this folder". The reliable test
 is the one both of these failed — pick a file at random and ask which row of
 this table names it.
 
-| #  | area | what it is |
-|----|---|---|
-| 1  | `deep` | **NEW 2026-09-02, and it runs FIRST.** The boot path and the data path — the files every page and every game sits on and none of them owns: `main.tsx`, `App.tsx`'s boot half, the router, the Supabase client and the envelope wrappers, the realtime plumbing, the fault sink. **The membership rule is "it names no game and no page"** (below). Read before `homepage` so the theoretically-simple page is not read on top of a layer nobody has understood. **Opened 2026-09-02 at 31 files** (`plans/areas/deep.md`) |
-| 2  | `utils` | **NEW 2026-09-02**, created while resolving `deep`'s two storage findings and scheduled directly after it. `src/common/lib/util/` — the small general helpers belonging to no page, no game and no subsystem. `deep` set them aside as "picked up by whichever area uses them", which was wrong in the ordinary way: a helper with ten callers across six areas has no such area. It also inherits the **shared storage helper + its guard** (`plans/areas/utils.md`) |
-| 3  | `game-lib` | **NEW 2026-09-03.** The non-visual half of the game shell: the registry, the manifest contract, and the game logic every game shares — `common/lib/game/` (31 files), `common/lib/gameManifest.ts` + test, and `src/gametypes.ts`. `deep` listed every one of these out as "names every game" (`plans/areas/deep.md:160`, `:161`) and nothing picked them up — the same gap that created `utils` one folder over. It also carries **the `gameManifest.ts` split** (below). Placed here rather than beside the other game scaffolding because `gameManifest.ts` is imported by 233 files: split it late and it re-touches areas already blessed (`plans/areas/game-lib.md`) |
-| 4  | `feedback` | **NEW 2026-09-04**, and the only area created by a DESIGN problem rather than a directory. Joel, after reading the system through: *"this whole area feels poorly designed and **very** poorly named. this isn't something we can fix with individual findings, but with a clear design-review and very refactored code."* Everything between an envelope and a player reading words — what a message IS, who owns a slot, how one reaches React. **14 files, ~1,120 lines**, taken from four places: six from `game-lib`, six from `hooks`, `turnCopy.tsx` from `shared-game-chrome`, and `GenericFeedbackPill` — which **no area's roster had ever named**, and which is the end of every path in the system. That spread is the argument: six areas shared one vocabulary and none could see it whole. Runs straight after `game-lib`, which is where it was found. The envelope layer below it is OUT (blessed under `deep`, and coherent). Read [feedback-system.md](feedback-system.md) first — it documents the system as it stands (`plans/areas/feedback.md`) |
-| 5  | `hooks` | **NEW 2026-09-02**, created when Joel declined to bless `App.tsx`: *"not blessing until we get to all the hooks in the hooks area."* `src/common/hooks/` — 87 files, 12,177 lines, which `deep` set aside as the same kind of thing that would have doubled it. **The first question at its opening is whether it stays ONE area**: `hooks/game/` is 43% of the lines and answers to `shared-game-chrome`, and taking it out leaves ~6,900 lines of genuinely cross-cutting hooks. **Placed here provisionally** — it is coupled to `common-hosts` in both directions (`useAppShortcuts`, `useDefinePopover`), so it could as easily run before it (`plans/areas/hooks.md`) |
-| 6  | `common-hosts` | **NEW 2026-09-02**, out of `deep`'s question about `App.tsx` having no seam where §7 splits it. The answer: **`App.tsx` does not get split** — it is a shell, and a shell holds the route table and what hangs off the root — and the root-mounted components become an area. `GameInvitations`, `ToastHost`, `FaultModal`, `TooltipHost`, with `EditProfileModal` and `WordEditDialog` an open question at the opening. **The question it exists to answer is what earns a mount at the root**, since six things sit there for differing reasons and two more sit a level down for none (`plans/areas/common-hosts.md`) |
-| 7  | `corecss` | **NEW 2026-09-02**, created while resolving `deep`'s first finding. The core stylesheets — the ones every page and every game loads and none of them owns: `fixed.css`, `base.css`, `patterns/*.css`, `utilities.css`, `breakpoints.css`, and the themes. It runs directly after `deep` on the same argument `deep` was created on: reading a page on top of a stylesheet nobody has read means auditing the same questions once per page. **`/palette` and `/font` are not in it, or in anything** (`plans/areas/corecss.md`) |
-| 8  | `homepage` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). It was audited once, 2026-08-22 → 08-26, and that file was deleted — the machinery underneath it moved too far. Everything that audit found and did not do survives in "Carried forward" above. The landing page after login: your clubs, and the button that opens `<CreateClubModal>` over them (`plans/areas/homepage.md`) |
-| 9  | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-24 → 08-26 and that file deleted. The machinery and shared look of every window-like thing that floats over the page — the shell, the blocking modal, the confirmation and the acknowledgment, the drag hook, the focus trap. **Not the instances**, and since 2026-08-24 **not the forms either**. Two red e2e specs are known to be waiting for it, `page-no-scroll` and `anagram-finder` (`plans/areas/floating-panels.md`) |
-| 10  | `forms` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart); audited once 2026-08-25 → 08-26 and that file deleted. Split out of the area above 2026-08-24. The design language of forms: the shared field components, the setup scaffolding, and **the question the homepage could not answer — are a form's buttons really different from action buttons?** Seven hand-written Cancels say the taxonomy has a hole (F44). Split because a floating panel and a form share a container and nothing else; keeping them together meant one area holding two vocabularies |
-| 10 | `simple-page` | **NEW.** The pages that are not home, club or game: `LoginScreen`, `ClaimHandleScreen`, `ErrorPage`, `Loading`. (`CreateClubPage` was on this roster; F36 took it on 2026-08-26 and it is a modal now.) **The roster's test is "does `App` render it directly?"**, which is better than "is it routable": it catches `ErrorPage` and `Loading`, both of which stand in for a page AND appear inside one (`ClubPage:719`, `:726`, `PlayAreaErrorBoundary:47`) — which is exactly what the shell decision has to cover |
-| 11 | `club-page` | Absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers listed in "Why 6 stopped" |
-| 12 | `chat` | **NEW 2026-09-03**, created when `utils` needed somewhere to file a chat item and found that nothing claimed chat. The club chat panel end to end: `components/chat/` (`Chat`, `ChatBody`), `lib/chat/` (the open-state and unread stores), `hooks/chat/` (`useClubChat`, `useChatFeedback`) — **10 files, 1,529 lines**. It is not `club-page`'s, which is the discovery: `<Chat>` is mounted by `ClubPage.tsx:1179` AND `GamePage.tsx:713`, so it belongs to a page no more than the header does. Placed between its two hosts. `ChatButton` stays in `page-header` (docs/common-folders.md → a mark in the strip is the strip's) (`plans/areas/chat.md`) |
-| 13 | `shared-game-chrome` | `common/components/game/` — 66 files, 7,190 lines, 258 rules, and every game sits on it. **The visual half of the game shell**, of which `game-lib` is the other half; the third piece, `common/hooks/game/`, is `hooks`'s question to answer at its own opening. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
-| 14 | per game, one area each | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md), which is read per area rather than run as a sprint. `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+**Rekeyed 2026-09-04, by the restructure** ([common-restructure.md](common-restructure.md)).
+`src/common/` is feature folders now and the families live in `src/shared/`, so
+**the table is keyed to folders**: pick any file, read its folder, and exactly
+one row below names it. That is the test the two 2026-09-03 gaps failed, and
+this is what makes it answerable by looking rather than by remembering.
+
+Three areas dissolved into it. **`hooks`** and **`shared-game-chrome`** were
+named for `common/hooks/` and `common/components/game/`, two folders that no
+longer exist; their contents are re-filed under the folders that took their
+files, and `hooks`'s opening question — does `hooks/game/` answer to the game
+shell? — is answered by the tree itself. **`utils`** closed before the move, so
+it dissolves as history rather than as work.
+
+**An area may span two or three tiny sibling folders** when they are one
+subject (`simple-page` takes `auth` + `loading` + `error-page`), because a
+one-file area helps nobody. What never happens is the reverse: no folder is
+named by two rows.
+
+| #  | area | the folders it reads | state |
+|----|---|---|---|
+| 1  | `deep` | `supabase` · `routing` · `boot` · part of `realtime`, `faults`, `themes`, `mobile`, `utils`; `main.tsx`, `App.tsx` | **CLOSED** — 39 blessed |
+| 2  | `utils` | `utils` · `outcomes` · part of `web-storage`, `keyboard` | **CLOSED** — 12 blessed |
+| 3  | `game-lib` | `manifest`, and the non-visual half of a dozen folders and five families | **CLOSED** — 37 blessed |
+| 4  | `feedback` | `feedback` (14 of 16) · `terminalCopy` · `turnCopy` | **NEXT** — 16 files `cs-met` |
+| 5  | `corecss` | `core-css` · `themes` | the stylesheets every page loads and none owns |
+| 6  | `mobile` | `mobile` | the one desktop→mobile breakpoint, the device hooks, the viewport. `breakpoints.css` lives here now, not with the core stylesheets |
+| 7  | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |
+| 8  | `realtime` | `realtime` | the 7 files `deep` left: presence, and the two subscribe hooks |
+| 9  | `session` | `session` | who is signed in, and their profile |
+| 10 | `single-flight` | `single-flight` | the guard every submit wraps |
+| 11 | `web-storage` | `web-storage` | the 2 files `utils` left |
+| 12 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
+| 13 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md) is the canonical one |
+| 14 | `buttons` | `buttons` · `icons` | the button taxonomy, all 33 of them, and the glyphs they wear. **Carries F44** (seven hand-written Cancels), handed over by `forms` |
+| 15 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files themselves live in `src/<game>/`, so that stays one sweep at the end |
+| 16 | `pdf` | `pdf` | printing a board — the frame, the columns, the marks. [docs/pdf.md](../docs/pdf.md) is already its doc |
+| 17 | `floating-panels` | `floating-panels` | **RE-AUDITED FROM SCRATCH** (§21 → the 2026-09-02 restart). The machinery and shared look of every window-like thing that floats over the page. Not the instances. Two red e2e specs wait for it, `page-no-scroll` and `anagram-finder`. Four of its hooks were read by the deleted audit and come back unread |
+| 18 | `forms` | `forms` · `fields` | **RE-AUDITED FROM SCRATCH.** The design language of forms: the frame, the state, and every field — including the three only a setup form renders |
+| 19 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share |
+| 20 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
+| 21 | `menu` | `menu` | the one menu, its store, and what a game puts in it |
+| 22 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
+| 23 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **the question is what earns a mount at the root.** Four things sit there; `EditProfileModal` and `WordEditDialog` sit a level down for no stated reason, and settling that is this area's, not `account`'s or `definitions`' |
+| 24 | `homepage` | `home` | **RE-AUDITED FROM SCRATCH.** The landing page after login |
+| 25 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
+| 26 | `club-page` | `club` | absorbs the punted viewport-fit chain, the `.frame` rename, `<ModePill>` reading the shared `.badge`, and the leftovers in "Why 6 stopped" |
+| 27 | `account` | `account` | your own menu and profile editing |
+| 28 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it |
+| 29 | `scratchpad` | `scratchpad` | the shared notes panel |
+| 30 | `game-page` | `game-page` | the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate |
+| 31 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, and the bordered panel its readouts wear |
+| 32 | `turn-log` | `turn-log` | the chronological history readout and its viewer. `turnCopy` is here but `feedback` owns its words |
+| 33 | `word-list` | `word-list` | the alphabetical finds readout — common, not a family's: it takes its rows as a prop |
+| 34 | `word-entry` | `word-entry` | the typed-word box and its row. No `<input>`; keystrokes come off the window |
+| 35 | `terminal` | `terminal` | what shows when a game ends. `terminalCopy` is here but `feedback` owns its words |
+| 36 | `pause-suspend` | `pause-suspend` | pausing, presence-pause, suspend |
+| 37 | `timer` | `timer` | the game clock |
+| 38 | `reveal` | `reveal` | showing the answer after the end — and [the reveal-solution taxonomy](../docs/deferred.md) it has to build |
+| 39 | `move-flash` | `move-flash` | flashing the tiles a move changed. **Read [tile-feedback.md](tile-feedback.md) here**, not only per game — this is the mechanism that pass is about |
+| 40 | `bee-games` | `shared/bee-games` | what spellingbee and wordwheel share and nothing else does. **The name is a placeholder** (§5 of the restructure plan) |
+| 41 | `board-cursor` | `shared/board-cursor` | arrows move a cursor over a board. [keyboard-nav-plan.md](keyboard-nav-plan.md) would add five games to it |
+| 42 | `dict-trie` | `shared/dict-trie` | **CLOSED** under `game-lib` — 2 of 2 blessed |
+| 43 | `grid-and-drag` | `shared/grid-and-drag` | dragging a tile to the right place on the grid |
+| 44 | `onscreen-keyboard` | `shared/onscreen-keyboard` | the on-screen QWERTY |
+| 45 | `rank-ladder` | `shared/rank-ladder` | the Start..Genius ladder, its bar and its stat grid |
+| 46 | `word-hunt` | `shared/word-hunt` | find-words-on-a-board games |
+| 47 | `wordle-style` | `shared/wordle-style` | the per-letter color codes of the hidden-target games, on screen and on paper |
+| 48 | per game, one area each | `src/<game>/` | **Sixteen areas, and each has its file already** (`plans/areas/<game>.md`, keyed by CODENAME). Two passes back to back: the audit — React, SQL and CSS together — then the **tile-feedback** pass against [tile-feedback.md](tile-feedback.md). `psychicnum` first, as the control: the deliberately minimal toy, so what it settles is about the shape of a game area rather than about the game |
+
+**`common/devtools` is on no row, deliberately** — `/palette` and `/font` are
+ABSOLUTELY EXCLUDED (below), and giving them a folder did not give them an area.
+
+**Rows 5–47 are unread unless the state column says otherwise.** The blessed
+counts above are per-FOLDER, and most folders are partly blessed: a stamp keeps
+the area name that set it, so `cs-blessed-game-lib` on a file in `common/timer`
+means `game-lib` read it, not that `timer` is closed.
+
+#### Where the three dissolved areas went (2026-09-04)
+
+Their files are kept, not deleted — each says at the top that it is dissolved
+and where its subject now lives.
+
+- **`hooks`** (`plans/areas/hooks.md`) was `src/common/hooks/`, 81 files after
+  `feedback` and `chat` took theirs. It never opened, so it had no roster and no
+  findings — six notes, re-filed under the folders that took the hooks they name.
+  **Its opening question is answered by the tree**: it asked whether
+  `hooks/game/` should split off to the game shell, and the restructure split it
+  by subject rather than by shape, which is the answer that question was reaching
+  for. The precedent it set — *the subject's owner takes its hooks* — is now the
+  layout, not a policy.
+- **`shared-game-chrome`** (`plans/areas/shared-game-chrome.md`) was
+  `common/components/game/`, 66 files. Never opened, no roster. Its subject is
+  rows 30–39, and its one live item — the **contract-slot guard**, checked per
+  mount point (§9, §10) — goes to `game-page`, which owns the mount points.
+- **`utils`** (`plans/areas/utils.md`) CLOSED on 2026-09-03 with all 22 findings
+  resolved, so it dissolves as history rather than as work. Its one forward item
+  (`F-utils-7`, the tab-ring successor in `ChatBody` + `GameScratchpadCompanion`)
+  already points at `floating-panels` and still does.
 
 #### `deep` — the rule, and what it is not (Joel, 2026-09-02)
 
@@ -1080,6 +1165,10 @@ closed on exactly this rule: a finding about when those routes render is a findi
 about those routes.
 
 #### `game-lib` — why the scaffolding is read before the first game (2026-09-03)
+
+**Written before the restructure**: the four places below are pre-move paths and
+two of the three owners no longer exist. The reasoning is what this records —
+why the scaffolding is read before the first game — and that still holds.
 
 Joel, on the games running last: *"i don't want the first game area to have 200
 dependencies just because its the first game, and brings all the game
@@ -1169,7 +1258,7 @@ this step:
 
 | record against | what |
 |---|---|
-| `shared-game-chrome` | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
+| `grid-and-drag` | The two drag ghosts disagree — bananagrams 1000, scrabble 100 — and `dragGhost.module.css` says the split is unintended. Two tiers apart, so naming them cannot paper over it |
 | `scrabble` | `ScrabbleBlankPickerBlockingModal`'s full-screen overlay at `z-index: 50`, below the 500 panel tier. Already the known anomaly in the ladder doc; it wants a look, not a reflex bump |
 | `club-page` | The ladder doc files the account `Menu` under in-board controls (10–100) and again under popovers (1500). It ships at 1500; the doc's first row is the stale one |
 
@@ -1190,7 +1279,7 @@ Left for the `club-page` area: the two-line row (§7's named-patterns list),
 `ClubGameCard`'s `.wrapper` / `.card` names — after the conversion the wrapper
 IS the row and the card is its inner box, so both names describe the previous
 arrangement — `FilterSelect`'s club-page override (which inverts at
-`shared-game-chrome`: the component states the roomy default, the info column
+`lists`: the component states the roomy default, the info column
 tightens it), the filters rendered twice for desktop and mobile, and the
 two-column fold.
 
@@ -1871,7 +1960,7 @@ given a specific meaning.
   button in `panels/`. If general chrome needs a home later, we re-create it then.
 
 Implicated component names, on the rename roster (Open item 4), NOT decided here:
-`infoPanel.module.css` (22) — the last one left, and `shared-game-chrome`'s.
+`infoPanel.module.css` (22) — the last one left, and `info-sheet`'s.
 
 Consumer docstrings that still say "panel" loosely get fixed as each area is
 audited, not in a sweep.
@@ -1955,7 +2044,7 @@ same argument sixteen times.
    `FloatingPanel`, `useDraggablePanel`, `BlockingModal`, `Menu`.
 
    **Not in scope:** `infoPanel.module.css` still carries "Panel" as a kind. A
-   filename rather than a component, and `shared-game-chrome`'s.
+   filename rather than a component, and `info-sheet`'s.
 
 ## 21. The area process — stamps, areas, and what "broken" means
 

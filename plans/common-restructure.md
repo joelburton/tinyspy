@@ -1,19 +1,20 @@
-# Restructuring `src/common/` — an idea, not a plan yet
+# Restructuring `src/common/` — SHIPPED 2026-09-04
 
-> # ⚠️ THIS FILE DOES NOT DESCRIBE THE APP
+> # ✅ THIS DESCRIBES THE APP, as of commit `c2f9baf2`
 >
-> **Nothing below exists.** There is no `src/shared/`, there are no feature
-> folders, and no doc has moved out of `docs/`. `src/common/` is laid out
-> exactly as [docs/common-folders.md](../docs/common-folders.md) says, and that
-> doc stays authoritative until this idea is agreed, scheduled and shipped.
+> **The move happened.** `src/shared/` exists, `src/common/` is feature folders,
+> the `@/` alias resolves, and `common` never imports `shared`.
+> [docs/common-folders.md](../docs/common-folders.md) is the doc for the layout
+> and is authoritative for what the tree IS; this plan is the record of how it
+> was decided and what the move turned up (§7a).
 >
-> This is a **conversation record**: Joel's goals, restated so we both read them
-> the same way, plus Claude's reflections on them. It is not queued behind
-> app-audit, it has no area, and no other doc or plan should cite it as a
-> target. If you arrived here from a search, treat everything past this box as
-> hypothetical.
+> **Two things below are still forward-looking**, and are marked where they
+> appear: the per-folder `.md` files (written when each area is audited, not at
+> move time), and the decomposition of the big docs. Goal 4 in §1 is therefore
+> the one goal not yet delivered.
 
-Written 2026-09-04 from a session that was explicitly exploration only.
+Written 2026-09-04 from a session that was explicitly exploration only; the
+move ran the same day.
 
 **A word about the word "feature".** In this file a *feature* is a unit of the
 app's own code — chat, the info sheet, setup, the turn log — the thing a folder
