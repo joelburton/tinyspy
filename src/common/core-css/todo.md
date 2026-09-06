@@ -6,17 +6,16 @@
 
 ## Someday
 
-- **Six chrome shadow levels nobody chose.** They were preserved from what the
-  component modules already held and given names, which is what made them look
-  like a system. Five of the six have exactly ONE reader (`popover` alone has
-  four: Menu ×2, FilterSelect, DefinitionPopover), so the rule that a value
-  with one reader belongs in its class as a number disqualifies most of them;
-  three share a geometry (`0 8px 24px`) and differ only in opacity (18 / 12 /
-  8%); and they are not a ladder — `toast` is the TOPMOST layer and blurs 16
-  where `dialog` blurs 48. The names also lead with the KIND where the grammar
-  is bucket-first, and `notice` invents a category for one component
-  (`DeviceBlockNotice`; global, it would be `--deviceBlockNotice-shadow`).
-  Decide the count and the names.
+- **The chrome shadow names, which nobody chose.** The five `--shadow-*` were
+  preserved from what the component modules already held and then given names,
+  which is what made them look like a system. Two things are wrong with the
+  set as named. They are not a ladder: `toast` sits on the topmost layer and
+  blurs the least of the four chrome ones. And the names lead with the KIND
+  where the grammar is bucket-first, so `notice` invents a category for a
+  single component — written correctly it is `--deviceBlockNotice-shadow`.
+  Also worth settling while renaming: `popover`, `panel` and `notice` are one
+  geometry (`0 8px 24px`) at three opacities, which is either a deliberate
+  three-step or an accident nobody has looked at. Decide the names.
 - **Should `:hover` be gated to pointer devices, app-wide?** A touch device
   applies `:hover` when you tap and leaves it applied until you tap elsewhere,
   so on a phone a tapped row or button stays in its hover look indefinitely.

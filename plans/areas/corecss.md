@@ -621,7 +621,7 @@ satisfy `italic` from an oblique face when the family has no italic, so
 becomes "either spelling reaches the slant dial"; if they differ, "use
 `oblique`" is a line in six folders' `todo.md`. The count goes either way.
 
-### F-corecss-18 · `six-shadows-are-five` · The todo item about chrome shadows describes tokens that are not there
+### WORKED · F-corecss-18 · `six-shadows-are-five` · The todo item about chrome shadows describes tokens that are not there
 
 `core-css/todo.md` Someday: "Six chrome shadow levels… `toast` is the
 TOPMOST layer and blurs 16 where `dialog` blurs 48… `popover` alone has four
@@ -630,8 +630,25 @@ TOPMOST layer and blurs 16 where `dialog` blurs 48… `popover` alone has four
 popover has three reader files. The item's question — decide the count and
 the names — is still open and still this folder's; its evidence has rotted.
 
-**Recommendation:** rewrite the item against the tree (five tokens, three
-sharing `0 8px 24px`, four with one reader) when the area works its todo.md.
+**Resolution (2026-09-05)** — the item is rewritten against the tree. There
+are five `--shadow-*`, not six; there is no `--shadow-dialog` to compare
+`toast` against; and `popover` has three reader files, not four (the old count
+counted Menu's two rules as two readers).
+
+**The reader counts are gone from it entirely, and so is what they were
+arguing for.** The item reasoned from "a value with one reader belongs in its
+class as a number" toward deleting most of the tokens. Joel, 2026-09-05: a
+token with one reader is the seam a THEME reaches through — "it allows us to
+change a color in themes by only changing a token" — so a reader count is not
+an argument for inlining a value. Shadows are the sharpest case:
+`stackdown/theme.css:64` already overrides its own shadows under
+`html[data-theme='midnight']`, because a shadow on a dark page needs a
+different alpha. **Do not propose deleting a token for having few readers.**
+
+What survives is the naming question, which is real and still this folder's:
+the set is not a ladder, and `notice` invents a category for one component
+(`--deviceBlockNotice-shadow` written correctly). The three-at-one-geometry
+observation stays as something to settle while renaming.
 
 ### WORKED with F-corecss-11 · F-corecss-19 · `card-readers-listed-wrong` · `.card`'s comment lists who wears it, and misses most of them
 
