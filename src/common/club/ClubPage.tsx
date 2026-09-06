@@ -59,15 +59,22 @@ import type { Member } from '../members/member'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /**
- * Display shape for one game in the club's games list. Built from
- * a common.games row plus the dispatched `labelFor` output. The
- * card component reads this verbatim; ClubPage's classify-into-
- * sections logic also reads `isTerminal` to assign the right
- * state for CSS treatment.
+ * Display shape for one game in the club's games list: the fields of a
+ * common.games row this page renders, plus the manifest of the gametype it
+ * belongs to. ClubPage's classify-into-sections logic also reads `isTerminal`
+ * to assign the right state for CSS treatment.
+ *
+ * Anything about the GAMETYPE is reached through `manifest` rather than copied
+ * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
+ * is the exception because it isn't a field at all: it's `labelFor(row)`, a
+ * call that needs the game as well as the gametype.
  */
 type ListedGame = {
   gameId: string
-  gametype: string
+  /** The gametype's manifest, resolved once when the row is built — a gametype
+   *  this FE doesn't know never becomes a `ListedGame`, so everything
+   *  downstream takes it as given instead of looking it up again. */
+  manifest: GameManifest
   title: string
   /** `common.games.last_active_at` — last status/progress write (or the
    *  end time). The card dates + the list orders by this, so a long-
@@ -75,12 +82,6 @@ type ListedGame = {
   lastActiveAt: string
   isTerminal: boolean
   statusLabel: string
-  /** The manifest's `baseGametype` + `name` (its brand), copied onto the row
-   *  where the manifest is already in hand. The "Your games" gametype filter
-   *  groups by the family and labels by the brand, so a coop/compete sibling
-   *  pair is ONE choice in its dropdown. */
-  baseGametype: string
-  brand: string
 }
 
 /** What `common.unset_current_view` puts in `data` when it cleared the pointer.
@@ -757,13 +758,11 @@ export function ClubPage({ handle, session }: Props) {
         }
         listed.push({
           gameId: r.id,
-          gametype: r.gametype,
+          manifest,
           title: r.title,
           lastActiveAt: r.last_active_at,
           isTerminal: r.is_terminal,
           statusLabel: manifest.labelFor(listRow),
-          baseGametype: manifest.baseGametype,
-          brand: manifest.name,
         })
       }
       setActiveGameId(currentId)
@@ -868,7 +867,7 @@ export function ClubPage({ handle, session }: Props) {
   // coop/compete siblings onto their shared baseGametype), ordered by brand
   // to match the alphabetical-by-brand start list.
   const gametypeOptions: GametypeOption[] = [
-    ...new Map(allGames.map((g) => [g.baseGametype, g.brand])).entries(),
+    ...new Map(allGames.map((g) => [g.manifest.baseGametype, g.manifest.name])).entries(),
   ]
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label))
@@ -882,7 +881,7 @@ export function ClubPage({ handle, session }: Props) {
     ? gametypeFilter
     : 'all'
   const visibleGames = allGames.filter(
-    (g) => selectedGametype === 'all' || g.baseGametype === selectedGametype,
+    (g) => selectedGametype === 'all' || g.manifest.baseGametype === selectedGametype,
   )
 
   // While one of our dialogs is up it owns Enter and the arrows, and the list
@@ -1053,7 +1052,7 @@ export function ClubPage({ handle, session }: Props) {
                     own component with its own box (docs/ui.md → Selection lists). */}
                 <ClubGameCard
                   gameId={activeGame.gameId}
-                  gametype={activeGame.gametype}
+                  manifest={activeGame.manifest}
                   title={activeGame.title}
                   statusLabel={activeGame.statusLabel}
                   lastActiveAt={activeGame.lastActiveAt}
@@ -1148,11 +1147,11 @@ export function ClubPage({ handle, session }: Props) {
               frozen={kbDialogUp}
               fills
               density="packed"
-              onActivate={(g) => navigate(gamePath(g.gametype, g.gameId))}
+              onActivate={(g) => navigate(gamePath(g.manifest.gametype, g.gameId))}
               empty="No games yet."
               renderRow={(g) => (
                 <ClubGameRow
-                  gametype={g.gametype}
+                  manifest={g.manifest}
                   title={g.title}
                   statusLabel={g.statusLabel}
                   lastActiveAt={g.lastActiveAt}

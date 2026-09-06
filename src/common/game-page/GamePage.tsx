@@ -610,7 +610,7 @@ function GamePageInner({
         }
       >
         <PageHeaderMenu
-          logo={<GameLogo gametype={gametype} />}
+          logo={<GameLogo manifest={manifest} />}
           sections={sections}
           label="Game menu"
           // The game menu sits over boards that read window keydowns for play

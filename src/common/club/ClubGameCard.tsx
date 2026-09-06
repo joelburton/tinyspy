@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { gametypes } from '@/gametypes'
+import type { GameManifest } from '../manifest/gameManifest'
 import { Link } from '../routing/Link'
 import { gamePath } from '../routing/routes'
 import { friendlyDate } from '../utils/friendlyDate'
@@ -12,8 +12,9 @@ import styles from './ClubGameCard.module.css'
 type Props = {
   /** The id of this game (drives the routing target). */
   gameId: string
-  /** The gametype — drives both the routing target and the logo. */
-  gametype: string
+  /** The gametype's manifest — drives the routing target, the logo and the
+   *  mode pill. ClubPage has it in hand for every row it builds. */
+  manifest: GameManifest
   /** Algorithmic per-game title from `common.games.title`. Optional because the
    *  lookup map may not have populated by first render. */
   title?: string
@@ -45,28 +46,25 @@ type Props = {
  */
 export function ClubGameCard({
   gameId,
-  gametype,
+  manifest,
   title,
   statusLabel,
   lastActiveAt,
   onDelete,
   soloClub,
 }: Props) {
-  const manifest = gametypes.find((g) => g.gametype === gametype)
   const dateLabel = friendlyDate(lastActiveAt)
 
   return (
     <div className={styles.standalone}>
-      <Link to={gamePath(gametype, gameId)} className={styles.link}>
+      <Link to={gamePath(manifest.gametype, gameId)} className={styles.link}>
         {/* Orange corner flag: "this is THE current game — join now." */}
         <span className={styles.openFlagActive} aria-hidden="true" />
-        <GameLogo gametype={gametype} />
+        <GameLogo manifest={manifest} />
         <div className={styles.content}>
           <div className={styles.titleRow}>
             {title && <span className={styles.gameTitle}>{title}</span>}
-            {manifest && (
-              <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-            )}
+            <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
           </div>
           <div className={styles.meta}>
             <span>{statusLabel}</span>

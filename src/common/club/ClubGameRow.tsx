@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { gametypes } from '@/gametypes'
+import type { GameManifest } from '../manifest/gameManifest'
 import { cls } from '../utils/cls'
 import { friendlyDate } from '../utils/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
@@ -11,8 +11,9 @@ import styles from './ClubGameRow.module.css'
 export type ClubGameState = 'active' | 'suspended' | 'completed'
 
 type Props = {
-  /** The gametype — drives the logo and the mode pill. */
-  gametype: string
+  /** The gametype's manifest — drives the logo and the mode pill. ClubPage has
+   *  it in hand for every row it builds. */
+  manifest: GameManifest
   /** Algorithmic per-game title from `common.games.title`. Optional because the
    *  lookup map may not have populated by first render. */
   title?: string
@@ -51,7 +52,7 @@ type Props = {
  * this pass (docs/ui.md → Selection lists).
  */
 export function ClubGameRow({
-  gametype,
+  manifest,
   title,
   statusLabel,
   lastActiveAt,
@@ -59,7 +60,6 @@ export function ClubGameRow({
   soloClub,
   onDelete,
 }: Props) {
-  const manifest = gametypes.find((g) => g.gametype === gametype)
   // Friendly relative date — see friendlyDate.ts. Doesn't tick; re-renders when
   // ClubPage refetches via realtime, which is often enough for a game list.
   const dateLabel = friendlyDate(lastActiveAt)
@@ -81,13 +81,11 @@ export function ClubGameRow({
           aria-hidden="true"
         />
       )}
-      <GameLogo gametype={gametype} />
+      <GameLogo manifest={manifest} />
       <div className={styles.content}>
         <div className={styles.titleRow}>
           {title && <span className={styles.gameTitle}>{title}</span>}
-          {manifest && (
-            <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-          )}
+          <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
         </div>
         <div className={styles.meta}>
           <span>{statusLabel}</span>

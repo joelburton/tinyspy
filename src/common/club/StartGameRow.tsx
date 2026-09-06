@@ -36,7 +36,7 @@ type Props = {
 export function StartGameRow({ game, soloClub }: Props) {
   return (
     <>
-      <GameLogo gametype={game.gametype} />
+      <GameLogo manifest={game} />
       <span className={styles.content}>
         <span className={styles.titleRow}>
           <span className={styles.gametypeName}>{game.name}</span>

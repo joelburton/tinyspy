@@ -1,10 +1,13 @@
 // cs-audited-branding
 
-import { gametypes } from '@/gametypes'
+import type { GameManifest } from '../manifest/gameManifest'
 import styles from './GameLogo.module.css'
 
 type Props = {
-  gametype: string
+  /** The game whose logo to draw. Every caller already holds the manifest —
+   *  taking the gametype string instead would mean looking it up a second
+   *  time, and carrying a not-found branch none of them can reach. */
+  manifest: GameManifest
 }
 
 /**
@@ -27,9 +30,7 @@ type Props = {
  * menu of other gametypes + an explicit return-to-club row. Not
  * built yet; the click is single-purpose for now.
  */
-export function GameLogo({ gametype }: Props) {
-  const manifest = gametypes.find((g) => g.gametype === gametype)
-  if (!manifest) return null
+export function GameLogo({ manifest }: Props) {
   return (
     <img
       src={manifest.logoUrl}

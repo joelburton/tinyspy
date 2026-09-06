@@ -42,7 +42,7 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every source file of
 Recorded 2026-09-05 from one read of the six files, every claim re-checked
 against the tree. Shape findings first, prose after. No prefix means OPEN.
 
-### F-branding-1 · `manifest-looked-up-twice` · `GameLogo` re-finds a manifest every caller already holds
+### WORKED · F-branding-1 · `manifest-looked-up-twice` · `GameLogo` re-finds a manifest every caller already holds
 
 `GameLogo` takes a gametype string and does
 `gametypes.find((g) => g.gametype === gametype)`, with an `if (!manifest)
@@ -60,6 +60,43 @@ area's: the registry lookup is hand-written in eight files
 (`App.tsx`, three in `club/`, `useGameInvitations.ts`, this one); whether
 `manifest` should export a `manifestFor(gametype)` is that folder's decision
 with its files open, and is a line for `manifest/todo.md`.
+
+**Resolution (2026-09-05, Joel: "1.")** — recommendation 1 taken; the four
+call sites came with it, since the prop's type change breaks them at
+typecheck. `GameLogo` now takes `manifest: GameManifest`, and the `find` and
+the unreachable `if (!manifest) return null` are gone. `GamePage` passes the
+prop it already had (it was unwrapping it to `manifest.gametype` on line 238
+and having the logo resolve it back); `StartGameRow` passes its `game`.
+`ClubGameCard` and `ClubGameRow` hold `GameManifest | undefined` from their
+own `find`, so they were first written as `{manifest && <GameLogo …>}`. Joel
+asked whether there would ever not be a manifest: no — `ClubPage.tsx:748–749`
+drops an unknown gametype (`if (!manifest) continue`) before a row exists, so
+that guard and the identical one their `<ModePill>` already sat under are both
+unreachable. They were briefly given one `if (!manifest) return null` after
+the lookup instead, rendering logo and pill unguarded with no assertion
+(Joel: "just leave them unguarded (not assertion needed)") — superseded a step
+later by the `ListedGame` change below, which removes the lookup itself.
+
+Recommendations 3 and 4 NOT taken: `GamePage`'s prop docstring is untouched,
+and the eight hand-written registry lookups stay a `manifest` decision.
+`tsc -b` clean, eslint clean, guards 26/270 green.
+
+**`ListedGame` went with it (2026-09-05, Joel: "drop the todo and just do
+it").** The early return above was the interim; the lookup is gone from both
+row components instead. `ClubPage`'s `ListedGame` copied `baseGametype` and
+`brand` off the manifest, computed `statusLabel` from it, then handed the
+gametype STRING down to be re-resolved — Joel: *"it includes some things on
+the manifest for a gametype, but also wants to include manifest itself."* It
+now carries `gameId · manifest · title · lastActiveAt · isTerminal ·
+statusLabel`: the game's own fields plus the gametype it belongs to, with
+`statusLabel` the exception because `labelFor(row)` is a call, not a field.
+Seven sites in `ClubPage.tsx` (the type, the `listed.push`, the two "Your
+games" filter reads, and three props/nav), and both row components lose their
+`@/gametypes` import, their `find` and their branch — `ClubGameRow` loses
+`gametype` entirely, `ClubGameCard` reads `manifest.gametype` for `gamePath`.
+The fully-flattened alternative (`logoUrl` / `mode` / `aiOpponent` copied on
+too, `<GameLogo>` back to loose `src`/`alt` props so "the logo's alt is the
+game's name" stops being one decision) was weighed and left.
 
 ### F-branding-2 · `dead-color-on-an-img` · `GameLogo.module.css` sets a color no logo can read, and says why in a sentence that is false
 
