@@ -47,8 +47,11 @@ is still a named button.
   verdict, the ✕ that removes an item, and the ✕ that closes a surface stay
   adjacent across the marks/shell line, because those three are only legible
   against each other.
-- **The one thing another file may take from Lucide is the `LucideIcon` type**,
-  which is how a menu row and a button agree on what an icon is.
+- **The registry exports its own type for "a glyph from here"**, which is how a
+  menu row and a button agree on what an icon is. Lucide's own type is the
+  wrong one to reach for: this file defines components as well as aliasing
+  them, and a surface typed against Lucide's shape would refuse the ones it
+  defines.
 - **What is not an icon stays out.** A board's own artwork (a wheel, a card, a
   letter grid) is drawn where the board lives, and a mark Lucide draws wrong for
   our purpose is hand-drawn beside the single control that needs it. The

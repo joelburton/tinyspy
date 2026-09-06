@@ -74,7 +74,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  */
 const DESIGNS_OWED: string[] = [
   'common/account', 'common/anagram-finder', 'common/auth',
-  'common/buttons', 'common/chat', 'common/club',
+  'common/chat', 'common/club',
   'common/definitions', 'common/error-page', 'common/faults',
   'common/feedback', 'common/fields', 'common/floating-panels', 'common/forms',
   'common/game-page', 'common/home', 'common/info-sheet',

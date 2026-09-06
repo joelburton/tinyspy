@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10, -11 and -20. Closed by F-buttons-20
+F-buttons-1 through -5, -7, -8, -10, -11, -12 and -20. Closed by F-buttons-20
 without work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
 row, and Joel chose `buttons` first.
 
@@ -25,31 +25,31 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/buttons/StandardButton.tsx` | the one `<button>` — weight × tone × name/label/tooltip; every purpose button composes it | `cs-audited-buttons` |
+| `src/common/buttons/StandardButton.tsx` | the one `<button>` — weight × tone × label/show/tooltip; every purpose button composes it | `cs-audited-buttons` |
 | `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-audited-buttons` |
-| `src/common/buttons/StandardButton.test.tsx` | the three rules that keep `name` / `label` / `tooltip` three things | `cs-audited-buttons` |
+| `src/common/buttons/StandardButton.test.tsx` | the rules that keep `label` / `show` / `tooltip` three things | `cs-audited-buttons` |
 | `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-audited-buttons` |
 | `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-audited-buttons` |
 | `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a drawn glyph | `cs-audited-buttons` |
 | `src/common/buttons/FormSubmitButton.tsx` | **written by this area** (F-buttons-20) — a form or dialog's commit, Cancel's partner: it owns `type="submit"` + the emphasis, and defaults no words | `cs-audited-buttons` |
-| `src/common/buttons/ClearButton.tsx` | wipe the pending selection — eraser, neutral | `cs-audited-buttons` |
+| `src/common/buttons/ClearButton.tsx` | wipe the pending selection — the eraser on a plain outline | `cs-audited-buttons` |
 | `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-audited-buttons` |
 | `src/common/buttons/CloseButton.module.css` | its stylesheet (24 lines) | `cs-audited-buttons` |
 | `src/common/buttons/ConcedeGameButton.tsx` | one player quitting a compete race — distinct from End | `cs-audited-buttons` |
-| `src/common/buttons/DeleteButton.tsx` | backspace — remove the last typed character; the glyph bumped to 22 | `cs-audited-buttons` |
+| `src/common/buttons/DeleteButton.tsx` | backspace — remove the last typed character; the glyph scaled up, since it reads small | `cs-audited-buttons` |
 | `src/common/buttons/EndGameButton.tsx` | the manual "we're done" for solo / coop — destructive red, the crossed-out stop sign | `cs-audited-buttons` |
 | `src/common/buttons/EndTurnButton.tsx` | hand play on — the octagon at primary weight | `cs-audited-buttons` |
-| `src/common/buttons/ExchangeButton.tsx` | scrabble's swap — two-way arrows, normal tone, "Swap" | `cs-audited-buttons` |
+| `src/common/buttons/ExchangeButton.tsx` | scrabble's swap — two-way arrows, the accent blue, "Swap" | `cs-audited-buttons` |
 | `src/common/buttons/HelpButton.tsx` | icon-only "?" that opens a game's rules on top of the setup dialog | `cs-audited-buttons` |
 | `src/common/buttons/HintButton.tsx` | ask for a clue — amber | `cs-audited-buttons` |
-| `src/common/buttons/NewGameButton.tsx` | a fresh game with the same setup — normal tone, "New game" | `cs-audited-buttons` |
+| `src/common/buttons/NewGameButton.tsx` | a fresh game with the same setup — the accent blue, "New game" | `cs-audited-buttons` |
 | `src/common/buttons/PassButton.tsx` | skip your turn, de-emphasized — the octagon at secondary weight | `cs-audited-buttons` |
 | `src/common/buttons/PauseButton.tsx` | pause / unpause, aware of manual vs presence pause | `cs-audited-buttons` |
 | `src/common/buttons/PauseButton.module.css` | its stylesheet (18 lines) | `cs-audited-buttons` |
 | `src/common/buttons/PeelButton.tsx` | bananagrams' primary move — the banana, primary weight | `cs-audited-buttons` |
-| `src/common/buttons/RestartButton.tsx` | start this board over — normal tone, "Restart" | `cs-audited-buttons` |
+| `src/common/buttons/RestartButton.tsx` | start this board over — the accent blue, "Restart" | `cs-audited-buttons` |
 | `src/common/buttons/RevealButton.tsx` | uncover the whole hidden answer of a finished game — destructive red, boxed eye | `cs-audited-buttons` |
-| `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — icon-only, normal tone | `cs-audited-buttons` |
+| `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — a blue outline, drawn as a glyph | `cs-audited-buttons` |
 | `src/common/buttons/ShuffleButton.tsx` | shuffle the tile set — its own component with its own stylesheet | `cs-audited-buttons` |
 | `src/common/buttons/ShuffleButton.module.css` | its stylesheet (73 lines) | `cs-audited-buttons` |
 | `src/common/buttons/SpoilerButton.tsx` | hand over one hidden item mid-game — amber, the bare eye; the rung above Hint | `cs-audited-buttons` |
@@ -57,10 +57,10 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/SubmitWithScore.tsx` | scrabble's submit carrying the staged play's score; a raw `<button>`, not a `StandardButton` | `cs-audited-buttons` |
 | `src/common/buttons/SubmitWithScore.module.css` | its stylesheet (26 lines) | `cs-audited-buttons` |
 | `src/common/buttons/TrashButton.tsx` | destroy this thing — destructive by default so it looks irreversible before the press | `cs-audited-buttons` |
-| `src/common/buttons/WordCheckButton.tsx` | check my own work — info tone, not Hint's amber | `cs-audited-buttons` |
+| `src/common/buttons/WordCheckButton.tsx` | check my own work — the accent blue, deliberately not Hint's amber | `cs-audited-buttons` |
 | `src/common/buttons/ZoomFitButton.tsx` | frame the whole board — icon-only, the shared square box | `cs-audited-buttons` |
-| `src/common/buttons/doc.md` | a two-sentence lede; Design owed | (no stamp — markdown) |
-| `src/common/buttons/todo.md` | five Soon items handed in by earlier areas; the area's first read once it opens | (no stamp — markdown) |
+| `src/common/buttons/doc.md` | the lede + the Design (written by this area; `common/buttons` is off `DESIGNS_OWED`) | (no stamp — markdown) |
+| `src/common/buttons/todo.md` | the Soon items handed in by earlier areas, plus what this area filed; the area's first read once it opens | (no stamp — markdown) |
 
 **Evidence, not roster** (to settle at the opening): `docs/buttons.html` —
 the rendered button tone grid, the twin of the theme's BUTTON block, which the
@@ -549,7 +549,7 @@ and this sets the line box its `inline-block` span sits on. Whether that still
 does anything inside a 35px flex-centered pill cannot be settled by reading, so
 it went to `buttons/todo.md` for a browser.
 
-### F-buttons-12 · `doc-lede-overclaims` · `doc.md` says every button here is built from `StandardButton`
+### WORKED · F-buttons-12 · `doc-lede-overclaims` · `doc.md` says every button here is built from `StandardButton`
 
 "Every purpose button in the app, and the `StandardButton` they are built
 from." Three are not: `ShuffleButton` (its own `<button>` and module),
@@ -559,6 +559,39 @@ borrowing the module's classes). The Design is owed regardless.
 **Recommendation:** rewrite the lede when the Design is written; the Design
 should say what the folder holds — a look, not logic — and name the three
 that stand apart and why.
+
+**Resolution (2026-09-06, Joel: "i'll take your rec. fix it.")** — the Design
+is written and `common/buttons` is off `DESIGNS_OWED`. Patching two sentences
+was never worth doing separately: the lede had gone stale twice over (the three
+exceptions, and "a default name, a tone" naming axes this area removed today),
+and it was going to be replaced.
+
+**The ruling F-buttons-13 was waiting on is now made, by the Design taking the
+job:** this folder's `doc.md` owns how a button is BUILT — the one general
+component, label vs `show` vs tooltip, weight × tone, defaults as default
+parameters — and `docs/ui.md` keeps the taxonomy around it: what kinds of
+control the app has, which glyph means what, when a button is offered at all.
+The lede says so in its first sentence and links there, so F-buttons-13 rewrites
+those two sections against a boundary rather than choosing one.
+
+Written as narrative, not a tour of the files: the Design argues from "a button
+here carries no logic" to why the folder is organized by control rather than by
+caller, and the `## Details` bullets hold the specifics (default parameters,
+`...rest` last, the focus suppression, the commit/Cancel pair, the missing-hover
+disabled tell). The three that stand apart are named with the reason each does,
+and `SubmitWithScore` is called the interesting one — the exception that shows
+where the boundary is.
+
+**Guard verified by planting**, per the rule that a `doc.md` cannot take a
+rationale while its folder is on the list: with the row still present and the
+Design written, `folderDocs.test.ts` fails; removing the row turns it green.
+
+**One more line this area had made false**, fixed here for the same reason as
+the others: `common/icons/doc.md` said the one thing another file may take from
+lucide is the `LucideIcon` type. Since `IconBack` became a component of ours and
+the registry grew `AppIcon`, that is exactly the type a surface must NOT reach
+for. The icons folder is closed and blessed; this is a correction to a sentence
+this area broke, not a re-opening.
 
 ### F-buttons-13 · `ui-md-button-sections` · `docs/ui.md`'s two button sections describe the world before `StandardButton`
 
