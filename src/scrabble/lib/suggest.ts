@@ -19,7 +19,10 @@
 
 import { BLANK, BOARD_SIZE, CENTER, cellIndex, inBounds, type Cell } from './board.ts'
 import type { Placement } from './play.ts'
-import type { Trie } from '@/shared/dict-trie/trie.ts'
+// Relative, not `@/`: this module is on the Deno import graph
+// (scrabble-suggest-move / scrabble-ai-move → here) and Deno cannot resolve
+// the alias.
+import type { Trie } from '../../shared/dict-trie/trie.ts'
 
 /** The game's two dictionary difficulty bands, straight off `scrabble.games`
  *  (`dict_2` / `dict_3plus` — server-only columns, fetched through the

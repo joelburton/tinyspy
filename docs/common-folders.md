@@ -71,6 +71,17 @@ reaching `common/supabase/` writes `../supabase/db`. Root files (`main.tsx`,
 `App.tsx`, `gametypes.ts`) stay relative — they are in no top-level folder and
 never climb `../`, which is the thing the alias exists to kill.
 
+**Except where Deno compiles the file too.** Edge functions import game logic
+out of `src/` — boggle's solver, scrabble's move generator, the shared trie —
+so those modules are read by two runtimes, and Deno resolves neither the alias
+(it is a tsconfig + Vite fact, nothing more) nor an extensionless path. A file
+on an edge function's import graph therefore writes **relative paths with the
+`.ts` extension**, all the way down. Getting it wrong kills the worker at boot,
+which means the function answers nothing and says so only in the edge runtime's
+log: `tsc`, `deno check` and the unit suite all pass, because Vite resolves what
+Deno cannot. `src/guards/edgeFunctionImports.test.ts` walks every function's
+graph and is what actually holds the line.
+
 ## Where does a new file go?
 
 Read the folder's stated job below and match the file's **job**, not its shape.

@@ -31,11 +31,12 @@
  * 32-bit number, since 6×6 = 36 tiles overflows 32 bits.
  */
 
-// The flat trie moved to common (scrabble's move suggester shares it); keep
-// `./solver` as boggle's one-stop import surface. `.ts` extensions because
-// this module is on the Deno import graph (boggle-build-board → here).
-import type { Trie } from '@/shared/dict-trie/trie.ts'
-export { buildTrie } from '@/shared/dict-trie/trie.ts'
+// The flat trie lives in shared (scrabble's move suggester uses it too); keep
+// `./solver` as boggle's one-stop import surface. Relative and `.ts`-suffixed
+// because this module is on the Deno import graph (boggle-build-board → here),
+// and Deno resolves neither the `@/` alias nor an extensionless path.
+import type { Trie } from '../../shared/dict-trie/trie.ts'
+export { buildTrie } from '../../shared/dict-trie/trie.ts'
 export type { Trie }
 
 /** Multiface tiles, encoded in board strings as a digit. Each occupies one tile

@@ -64,7 +64,15 @@ async function restart(page: Page) {
  * zero-match locator makes `isEnabled()`/`click()` auto-wait to the timeout.
  */
 async function revealIfOffered(page: Page) {
-  const rowBtn = page.getByRole('button', { name: /^Reveal/ })
+  // Never a board tile. psychicnum's and connections' tiles are buttons whose
+  // accessible name is the word on them, so a board that rolls "revealed"
+  // matches this too — and being disabled, it would send the helper down the
+  // menu path in silence rather than failing. The name can't be pinned exactly
+  // here (each game calls its control something different, and stackdown's says
+  // just "Reveal"), so the board is what gets excluded.
+  const rowBtn = page
+    .getByRole('button', { name: /^Reveal/ })
+    .and(page.locator(':not([data-tile])'))
   if (await rowBtn.count()) {
     if (await rowBtn.first().isEnabled()) await rowBtn.first().click()
     return
