@@ -248,6 +248,10 @@ const VOCABULARIES: Vocabulary[] = [
       // guard's side: an area converts a value and deletes it from its row, the
       // row goes when the file is clean, and the day the object is empty the
       // vocabulary is fully in force.
+      // The h1–h4 margins, OFF THE RAMP by decision, not unconverted: each
+      // heading's margin is a ratio of its own size, which a rem step cannot
+      // express. A heading's spacing is decided at h1–h4 in base.css, the same
+      // place its size is — see this vocabulary's `fix` line and font-size's.
       'src/common/core-css/base.css': ['1rem', '1.25rem', '1.15rem'],
       'src/common/account/ColorChoiceList.module.css': ['0.5rem'],
       'src/common/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
@@ -346,6 +350,13 @@ const VOCABULARIES: Vocabulary[] = [
     // replace. The ramp is for absolute sizes.
     allowed: /^(\d*\.?\d+(em|%)|inherit|initial|unset|revert)$/,
     pending: {
+      // h1–h4's sizes are OFF THE RAMP by decision, which the `fix` line below
+      // states outright: a heading's size is decided at h1–h4 in base.css.
+      // `max(16px,` and `1em)` are not values — they are the two halves of the
+      // iOS focus-zoom floor (`font-size: max(16px, 1em)`, docs/mobile.md →
+      // Decisions #3) as `extract` sees them, which cannot look inside a
+      // `max()`. No token can express that floor; three other files on this
+      // list carry the same pair.
       'src/common/core-css/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
       'src/common/buttons/ShuffleButton.module.css': ['32px'],
       'src/common/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
