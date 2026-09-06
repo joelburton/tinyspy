@@ -14,9 +14,9 @@
  * the two files can be read side by side. A role missing here would
  * resolve to nothing rather than to a plausible light value — which is
  * why the chain loads ONE theme rather than layering midnight over
- * daylight (§3: the base must load because a theme asked for it).
+ * daylight — the base must load because a theme asked for it.
  *
- * ── SPEAKING FROM LIGHT MODE (§4) ────────────────────────────────
+ * ── SPEAKING FROM LIGHT MODE ─────────────────────────────────────
  * The house language is light-mode's: a hover "dims down". In this
  * file every one of those runs the other way, and each formula says so
  * rather than silently flipping a sign — the author translates once,
@@ -36,7 +36,9 @@
      what is under it, so the page's own lightness is the ceiling on
      how much a shadow can ever say: at L* 5.5 the most a shadow could
      ever do, taken all the way to pure black, was a step of 5.5, and
-     here it is 18.9. Daylight's is 26.
+     here it is 18.9. The number to beat is not daylight's ceiling —
+     white has almost all of one — but the step daylight's shadows
+     actually make, which is 26.
 
      So this is a page chosen against a number rather than by eye: high
      enough that a shadow can carry roughly three quarters of what it
@@ -347,19 +349,19 @@
 /* @@ */   --tile-selected-edge-color:  #ffffff;
 
   /* ══ BOARD ══════════════════════════════════════════════════════
-     The ground a game piece casts its shadow onto — and on a dark page
-     it has to be a real color, because a shadow is a contrast between
-     a piece and what is behind it, and an alpha black over #121212 has
-     18 units to work in rather than 250. Measured before this existed:
-     the tile shadow moved the page by 5 of 255, which is to say the
-     depth cue every board leans on was simply absent.
+     The ground a game piece casts its shadow onto. On a dark page it
+     has to be a real color: a shadow is a contrast between a piece and
+     what is behind it, and it can only darken, so how dark the ground
+     already is caps what the shadow can ever say. The page block above
+     gives the headroom this page was chosen for; the measurements per
+     candidate ground are in plans/dark-mode.md.
 
      TRANSPARENT for now, so the hued page can be judged on its own.
      The tile-hued ground that was here — `#776951`, one rung above the
-     tile ramp — WORKED: it took the stackdown tile's shadow from a
-     step of 5 to 33 out of 255. It is parked rather than deleted,
-     because it is still the strongest answer to the depth question and
-     a slate page does not replace it (plans/dark-mode.md).
+     tile ramp — WORKED, and was rejected anyway as the GENERAL answer:
+     a floating board is real design intent for several games, and
+     forcing a ground on all of them is a bad trade sixteen times over.
+     It stays available per game where a board wants one.
 
      Two things it taught while it was in:
 

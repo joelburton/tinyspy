@@ -42,7 +42,7 @@
  * NO `width: 100%`. It looks load-bearing — `body` is a grid that centers its
  * child — but the child it centers is `#root`, which is `width: 100%` itself,
  * and a block-level flex container fills its containing block regardless.
- * Measured: identical with and without (F27 `width-100-undeclared`). */
+ * Measured: identical with and without. */
 /* @@ */ .pageHeaderAndMainArea {
   display: flex;
   flex-direction: column;
@@ -65,7 +65,7 @@
  *
  * `margin-inline: auto` is the app's ONLY horizontal centering that does
  * anything. `body` says it centers, and cannot: the child it would center is
- * `#root` at `width: 100%` (F31 `centering-said-4x`). */
+ * `#root` at `width: 100%`. */
 /* @@ */ .pageMain {
   min-height: 0;
   max-width: var(--pageMain-width);

@@ -249,7 +249,7 @@ its four custom-media names, `FloatingPanel.module.css`'s ratios,
 `MODE_LABEL`, `<RadioRow>`, `<FilterSelect>`, `ModeFilter` +
 `useStickyChoice`, and all eight `docs/*.md` headings cited.
 
-### F-corecss-6 · `plan-citations-in-durable-files` · Six citations of the plan or a finding
+### WORKED · F-corecss-6 · `plan-citations-in-durable-files` · Six citations of the plan or a finding
 
 Banned by the no-cite rule for every file that outlives the sprint:
 `page.css:45` "F27 `width-100-undeclared`", `page.css:68` "F31
@@ -258,6 +258,22 @@ Banned by the no-cite rule for every file that outlives the sprint:
 "(§4)". Each becomes the reason itself or the owning doc — the two `page.css`
 ones already state their reason in the sentence before the tag, so the tag
 just goes; the font ones point at `docs/ui.md` → The typeface.
+
+**Resolution (2026-09-05, Joel: "do it")** — all six. Four were tags that
+carried nothing: both `page.css` ones state their reason in the sentence
+before, and `midnight.css:19` was a section rule with a number stapled on
+(the dashes were re-padded so the comment box still squares up).
+`midnight.css:17`'s parenthetical held a real explanation, so it kept the
+words and lost the `§3:`. The two `§22`s now point at `docs/ui.md` → The
+typeface, which is the doc that owns the decision they defer to.
+
+Swept after: no `§`, no `F<n>`, no `app-audit` and no `areas/` reference
+remains anywhere in the twelve stylesheets.
+
+**`midnight.css`'s three citations of `plans/dark-mode.md` were held back for
+a ruling and then allowed** — see F-corecss-15's resolution. A plan that is
+the standing record of a spike is a destination; the no-cite rule is about
+this sprint's own plan, which gets deleted when it ships.
 
 ### WORKED · F-corecss-7 · `flash-durations-kept-in-step-by-hand` · Two files disagree about how they agree
 
@@ -414,7 +430,7 @@ theme; `loadTheme.ts`'s `ThemeName` is `'daylight' | 'midnight'`.
 file that exists and does. The rule both files state (a theme declares its
 chain; this file is never an unconditional default) is right and stays.
 
-### F-corecss-15 · `midnight-board-numbers-predate-the-slate` · The BOARD block measures against a page that is no longer the page
+### WORKED · F-corecss-15 · `midnight-board-numbers-predate-the-slate` · The BOARD block measures against a page that is no longer the page
 
 `midnight.css:352–355`: "an alpha black over #121212 has 18 units to work in
 rather than 250. Measured before this existed: the tile shadow moved the page
@@ -423,6 +439,32 @@ a shadow has room — the PAGE block (lines 34–46) explains that and gives the
 number. The BOARD block's figures describe the page before the slate, and
 `plans/dark-mode.md` is where that measurement belongs if it belongs
 anywhere.
+
+**Resolution (2026-09-05, Joel: "i'll go with your rec")** — and this also
+settles the question F-corecss-6 left open: **`midnight.css` MAY cite
+`plans/dark-mode.md`.** That plan is not work in flight — it is the standing
+record of the spike this file IS — so it is a destination, not a sprint
+citation. The three citations stay.
+
+With that settled, the BOARD block loses its numbers rather than
+re-measuring them. `plans/dark-mode.md` §3 already holds the correct version
+in more detail than a comment can — five candidate grounds with L*, the step
+a 30% black makes, and the ceiling. The block keeps the rules, which do not
+rot: a ground must sit outside the range of the pieces standing on it, and a
+ground makes shadow alpha a theme's business.
+
+Also corrected in the same block: it called the tan ground "parked… still
+the strongest answer to the depth question." The plan concluded something
+different — tried, then rejected as the GENERAL answer, because a floating
+board is real design intent for several games, and available per game where
+a board wants one. The comment now says that.
+
+And one found next door in the PAGE block, same subject, comment only:
+"Daylight's is 26" followed a sentence about the CEILING, where daylight's
+ceiling is 98 — the 26 is the step a 30% black actually makes on `#fafafa`,
+the other column of the plan's table. The comparison is the useful one, so
+the sentence now says which measure it is switching to rather than reading
+as a wrong ceiling.
 
 ### F-corecss-16 · `badge-cites-mode-pills` · The pattern that says a badge is not a pill points at a section called "Mode pills"
 

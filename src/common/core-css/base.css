@@ -52,7 +52,8 @@
  *
  * The file is built by `scripts/subset-font.py` and committed. It carries the
  * Latin range plus `→ ← ≥ ≈ ≠`, and a symbol outside that set is a question
- * for the area that wants it, not something to add here quietly (§22).
+ * for the area that wants it, not something to add here quietly
+ * (docs/ui.md → The typeface).
  *
  * DIGITS ARE TABULAR — all ten advance identically, so a score or a timer
  * changing costs zero pixels, with no CSS from us. `font-variant-numeric:
@@ -593,7 +594,8 @@
      visit where it never arrives. RESTING WIDTH IS 100% for now: this face
      sets narrower than SF Pro and 110% measured indistinguishable from it, but
      that tune waits until we have used it a while — and until the areas
-     already converted can be re-checked against it (§22). */
+     already converted can be re-checked against it
+     (docs/ui.md → The typeface). */
   font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
   color: var(--page-text-color);
 }
