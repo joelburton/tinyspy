@@ -4,10 +4,12 @@
  * utilities.css — the global classes that are ADJUSTMENTS.
  *
  * `.muted` is the clearest case: it says "quieter than its neighbor"
- * and names nothing. A class that names a THING gets its own file in
- * patterns/ instead — the button did, and the list did after it. The
- * default is a new file per pattern: too many files merge easily, one
- * long file has to be read through (docs/code-conventions.md → Patterns).
+ * and names nothing. A class that names a THING goes somewhere it can
+ * be found by that name — patterns/ for the badge, the segmented
+ * control, the heading row; the component's own module when the thing
+ * has one, which is where the button and the list ended up. The default
+ * is a new file per pattern: too many files merge easily, one long file
+ * has to be read through (docs/code-conventions.md → Patterns).
  *
  * Everything here is unscoped, which is why the set stays small.
  *

@@ -214,7 +214,7 @@ wearing the page's prefix, so `page.css:10`'s reservation now holds without
 an exception. (The `-surface-` family is a different question and stays with
 F-corecss-2: it names a background, not a component.)
 
-### F-corecss-5 · `stale-file-and-class-citations` · Six pointers at things that moved or never existed
+### WORKED · F-corecss-5 · `stale-file-and-class-citations` · Six pointers at things that moved or never existed
 
 | where | says | the tree |
 |---|---|---|
@@ -224,6 +224,22 @@ F-corecss-2: it names a background, not a component.)
 | `daylight.css:579` | the selected width "lives in standards.css" | `base.css` |
 | `daylight.css:29` | a game's brand anchors are in "that game's brand.css" | every game's file is `theme.css` |
 | `focus-ring.css:34` | `<SelectionList>`'s `.cursor` is in `common/components/lists/` | `common/lists/` |
+
+**Resolution (2026-09-05, Joel: "do 1 and 2")** — all six fixed. Five were
+name swaps, each target confirmed against the tree first: `.primary` /
+`.secondary` in `buttons/StandardButton.module.css` (twice — `base.css` and
+the daylight slot comment), `base.css` for the selected tile width (where
+`--tile-edge-width` and `--tile-selected-edge-width` do sit side by side, so
+only the filename was wrong), `theme.css` for a game's brand anchors, and
+`common/lists/` for the cursor.
+
+The sixth needed a rewrite rather than a swap. `utilities.css`'s lede used
+the button and the list as proof of the rule "a class that names a THING
+gets its own file in patterns/", and both had since moved to their
+components — the two examples had come to contradict the sentence they were
+supporting. The rule is right and `patterns/` demonstrates it five times, so
+it keeps the rule and states both homes: patterns/ for a thing with no
+component of its own, the component's module when it has one.
 
 Every other path and symbol the sixteen files name was checked and holds:
 `tileColor.ts`, `feedbackTiming.ts`, `layoutWidth.ts`, `breakpoints.css` and

@@ -26,7 +26,7 @@
  *
  * Not here: member and wordle colors (fixed.css — exempt from
  * theming), anything that is not a color (base.css), and a game's
- * brand anchors (that game's brand.css).
+ * brand anchors (that game's theme.css).
  * ============================================================ */
 
 /* @@ */ :root {
@@ -235,7 +235,7 @@
   /* The two TREATMENT SLOTS — contract slots, not design decisions.
      `.primary` and `.secondary` must paint without knowing their
      family, so they read a slot; a toned button re-sets the slot on
-     its own element (ActionButton.module.css).
+     its own element (buttons/StandardButton.module.css).
 
      DEFAULTED HERE rather than in the `.primary` / `.secondary` rules,
      and that placement is load-bearing: a rule that set these itself
@@ -575,8 +575,8 @@
      every tile — so it reads as "this tile has a slightly heavier
      version of its own border" rather than as a mark. Black belongs to
      nothing else on a board, which is what makes it legible on all of
-     them. (The WIDTH is the selected channel; it lives in
-     standards.css beside the resting width it is tuned against.) */
+     them. (The WIDTH is the selected channel; it lives in base.css
+     beside the resting width it is tuned against.) */
 /* @@ */   --tile-selected-edge-color:  #000000;
 
   /* ══ BOARD ══════════════════════════════════════════════════════

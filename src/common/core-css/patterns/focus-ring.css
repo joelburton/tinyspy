@@ -31,7 +31,7 @@
 
 /* THE KEYBOARD CURSOR — the ring on the row a focused list is pointing at —
  * used to live here as `.kb-cursor`. It is now `<SelectionList>`'s own
- * `.cursor` (common/components/lists/), because only that component can put it
+ * `.cursor` (common/lists/), because only that component can put it
  * on a row, and a global class let three pages each remember to.
  *
  * ⚠️ A CURSOR IS NOT A SELECTED STATE. `ColorChoiceList.swatchActive` draws

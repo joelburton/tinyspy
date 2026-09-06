@@ -808,9 +808,9 @@ input:focus,
  * that apology. It also made a blanket hover impossible: a hover that is right
  * for Submit is a lie on a codenamesduet tile, where the old accent-blue read as
  * a real reveal. So the app's most-clicked control was inert under the pointer
- * while a dialog's button was not. Chrome is opt-in now (`.button` in
- * utilities.css, plus `.tile` / `.key` for the game pieces), and the hover lands
- * with it.
+ * while a dialog's button was not. Chrome is opt-in now (`.primary` /
+ * `.secondary` in buttons/StandardButton.module.css, plus `.tile` / `.key` for
+ * the game pieces), and the hover lands with it.
  *
  * Two of these declarations look like chrome and aren't — they overrule browser
  * defaults that any reset has to overrule:
