@@ -479,7 +479,7 @@ about dark-mode.css is now present tense, the file having existed all along.
 The rule both files state — a theme declares its chain, neither file is ever
 an unconditional default — is untouched.
 
-### F-corecss-13 · `wordle-converged-and-an-unscheduled-rename` · Two sentences in fixed.css about wordle
+### WORKED · F-corecss-13 · `wordle-converged-and-an-unscheduled-rename` · Two sentences in fixed.css about wordle
 
 `fixed.css:60` — the palette is shared by "waffle today, wordle as it
 converges". Wordle has converged: `wordle/theme.css`, `Board.module.css`,
@@ -491,10 +491,21 @@ it: not `src/wordle/todo.md`, not `docs/games/wordle.md`, not
 `docs/ui.md` → The buckets now argues the `wordle-*` name is RIGHT ("wordle
 green is a phrase people say").
 
-**Recommendation:** the first sentence names both readers as current. For
-the second, Joel rules: the rename is off (drop the sentence, the doc's
-argument stands), or on (a line in the owning folder's `todo.md` — the
-tokens are declared here but the readers are `wordle-style`'s family).
+**Resolution (2026-09-05, Joel: "1", then "ok, do 2")** — the first sentence
+is fixed:
+the palette is "shared by the letter-coloring games — wordle and waffle", no
+"as it converges". Verified: all four wordle files read it
+(`theme.css`, `Board.module.css`, `GameTurnLog.module.css`, `lib/colors.ts`),
+as do `shared/wordle-style/tileColor.ts` and the on-screen keyboard.
+
+**The rename is OFF.** The comment reserved a `wordle-vocabulary` rename that
+nothing scheduled — not `src/wordle/todo.md`, not `docs/games/wordle.md`, not
+`plans/areas/wordle.md` — while `docs/ui.md` → The buckets argued the
+opposite, that naming this one family for its colors is deliberate and right.
+The sentence is replaced by that argument in short: the names read at speed
+because "wordle green" is a phrase people say, the prefix keeps it honest
+under any theme, and it separates these from a player's identity color, where
+plain `green` is taken. Nothing is owed in any todo.md.
 
 ### WORKED with F-corecss-12 · F-corecss-14 · `imaginary-themes-as-loaders` · light-mode.css and dark-mode.css cite themes that do not exist
 

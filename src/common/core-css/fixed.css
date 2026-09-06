@@ -56,7 +56,7 @@
 
   /* ══ WORDLE ═════════════════════════════════════════════════════
      The per-letter feedback palette shared by the letter-coloring
-     games (waffle today, wordle as it converges). The server computes
+     games — wordle and waffle. The server computes
      the feedback (it holds the secret); the FE only paints it, mapping
      each code to a class via shared/wordle-style/tileColor.ts. Shared
      rather than per-game because the recognizable green/yellow/gray is
@@ -85,9 +85,13 @@
      recorded here as hexes rather than mixed, because these values are
      frozen by familiarity rather than derived from a base.
 
-     NOTE — the wordle-vocabulary rename is scheduled for wordle's own
-     pass, so these names are UNCHANGED here on
-     purpose. Renaming them now would spend the same call sites twice. */
+     NAMED FOR THE COLORS, not for what they mean, and that is the one
+     family where it is right: "wordle green" is a phrase people say,
+     so it reads at speed where `-correct-` would need translating. The
+     prefix is what keeps it honest — a pink-mode wordle still has a
+     wordle green — and it separates these from a player's identity
+     color, where plain `green` is already taken (docs/ui.md → The
+     buckets). */
 /* @@ */   --wordle-green-fill-color:   #66a45f;  /* right letter, right spot */
 /* @@ */   --wordle-yellow-fill-color:  #bd9f35;  /* in the word, wrong spot */
 /* @@ */   --wordle-gray-fill-color:    #8b8f91;  /* not in the word */
