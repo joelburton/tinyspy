@@ -4,27 +4,214 @@ The folders it reads: `branding`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: NOT OPENED.**
+**Status: OPEN (2026-09-05).** Roster stamped `cs-audited-branding`; every
+file read in one sitting; findings below.
 
 ## The roster
 
-*(agreed with Joel when the area opens — list the files and STOP)*
+Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every source file of
+`src/common/branding/`:
+
+| file | what it is | stamp |
+|---|---|---|
+| `src/common/branding/GameLogo.tsx` | a game's 32px square logo, looked up from the registry by gametype string; rendered in the game header's menu trigger and in three club-list rows | `cs-audited-branding` |
+| `src/common/branding/GameLogo.module.css` | `.logo` — block, 32×32, `flex-shrink: 0`, and a `color` nothing reads | `cs-audited-branding` |
+| `src/common/branding/PuzpuzpuzLogo.tsx` | the app's 32px "P" mark, the menu trigger on home and the club page | `cs-audited-branding` |
+| `src/common/branding/PuzpuzpuzLogo.module.css` | `.logo` — the same three declarations as GameLogo's, minus the color | `cs-audited-branding` |
+| `src/common/branding/PuzpuzpuzWordmark.tsx` | the wide raster wordmark atop the login and home cards | `cs-audited-branding` |
+| `src/common/branding/PuzpuzpuzWordmark.module.css` | `.wordmark` — full width, intrinsic aspect, a spacer below | `cs-audited-branding` |
+| `src/common/branding/doc.md` | a one-sentence lede; Design owed | (no stamp — markdown) |
+| `src/common/branding/todo.md` | empty at the open | (no stamp — markdown) |
+
+**Decided at the opening, and why:**
+
+- **`puzpuzpuz.svg` and `homeTitle.png` are in the folder and not on the
+  roster.** An asset has nowhere to carry a stamp, and the plan reserves the
+  asset pass (baked color in the 17 logos, the near-whites in the wordmark
+  and favicon) for step 11 at the end. What this area CAN say about them is
+  which file is the master, which is F-branding-6.
+- **The 17 per-game `logo.svg` files stay out**, per the areas table. Read
+  as evidence for F-branding-2 (none uses `currentColor`), not stamped.
+- **Evidence, not roster:** `page-header/PageHeaderMenu.tsx` and
+  `menu/Menu.tsx` (what actually wraps a logo), the four call sites in
+  `club/` and `game-page/`, `home/HomePage.module.css`, `index.html` and
+  `scripts/generate-icons.sh` (the favicon lineage), `docs/ui.md`.
 
 ## Findings
 
-*(`F-branding-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+Recorded 2026-09-05 from one read of the six files, every claim re-checked
+against the tree. Shape findings first, prose after. No prefix means OPEN.
+
+### F-branding-1 · `manifest-looked-up-twice` · `GameLogo` re-finds a manifest every caller already holds
+
+`GameLogo` takes a gametype string and does
+`gametypes.find((g) => g.gametype === gametype)`, with an `if (!manifest)
+return null` branch. All four callers already have the manifest in hand:
+`GamePage` takes it as a prop (its docstring argues exactly this — "a second
+lookup here could only fail in a way the first one already ruled out");
+`ClubGameCard` and `ClubGameRow` each run the same `find` a few lines above
+the `<GameLogo>` they render; `StartGameRow`'s prop IS a `GameManifest`. So
+the component does a lookup nobody needs and carries a null branch nothing
+can reach.
+
+**Recommendation:** take the manifest — `<GameLogo manifest={…} />` — and
+drop the branch. Four call sites, each one-line. Separately and NOT this
+area's: the registry lookup is hand-written in eight files
+(`App.tsx`, three in `club/`, `useGameInvitations.ts`, this one); whether
+`manifest` should export a `manifestFor(gametype)` is that folder's decision
+with its files open, and is a line for `manifest/todo.md`.
+
+### F-branding-2 · `dead-color-on-an-img` · `GameLogo.module.css` sets a color no logo can read, and says why in a sentence that is false
+
+`.logo { color: var(--page-text-color) }` under a comment: "the SVG uses
+`currentColor` for stroke/fill so the icon inherits the wrapping link's
+color". Zero of the sixteen `src/<game>/logo.svg` files contain
+`currentColor` — every one is baked color, which is what step 11's asset
+pass is about — and an SVG loaded through `<img src>` cannot see the
+document's CSS at all, so `currentColor` would not reach it even if a logo
+used it. The declaration is dead and the comment describes an asset format
+the app has never had. `PuzpuzpuzLogo.module.css` is the same rule without
+the color, which is the correct one.
+
+**Recommendation:** delete the declaration and the sentence. Nothing moves:
+the property has no effect on an `<img>`.
+
+### F-branding-3 · `logo-docstrings-describe-an-older-header` · Both logo components explain click semantics that no longer exist
+
+`GameLogo`'s docstring: the parent "wraps this component in a `<Link>`
+(terminal) or `<a>` (non-terminal with intercept)" with a suspend-confirm on
+click, and "Future: this is where the 'switch to another game' dropdown will
+land — Joel's design has the logo expand into a menu … Not built yet". The
+menu IS built: `<PageHeaderMenu>` wraps the logo in `<Menu>`'s trigger
+`<button>`, adds the chevron, and the game menu carries Back to club
+(`menu/gameMenu.ts`). There is no `<Link>` and no intercept on the logo. It
+also says the logo is "the leftmost element of the GamePage header" — it is
+also the first thing in three club-list rows (`ClubGameCard`, `ClubGameRow`,
+`StartGameRow`), which is what its stylesheet's `flex-shrink: 0` is for; that
+stylesheet in turn names "the StartGameButtons cards", a component that does
+not exist (the rows above do).
+
+`PuzpuzpuzLogo`'s docstring has the same shape one step less stale: "the
+click semantics (open the club menu) live on the `<Menu>` wrapper at the call
+site — see ClubPage", when the wrapper is `<PageHeaderMenu>` and the home
+page is a second call site.
+
+**Recommendation:** rewrite both. What each should say: what it renders
+(a 32px `<img>`), where it appears, that the click belongs to whatever wraps
+it (today `<PageHeaderMenu>` on the headers, a `<Link>` row in the club
+lists), and the one real design constraint the two share — they render the
+same bare 32×32 image so the two menu triggers are interchangeable.
+
+### F-branding-4 · `32px-in-six-places` · The logo's size is a number written six times and a contract derived from it by hand
+
+`32px` is written as CSS width and height in both logo stylesheets, as
+`width={32} height={32}` attributes in both components, and the header's
+height contract — `--pageHeader-height: 2.5rem` — is explained in `base.css`
+and `PageHeader.tsx` as "a 32px logo plus 0.25rem of padding each side".
+Each logo stylesheet says it is "sized to match" the other. So one number,
+chosen once, is kept in step by two comments and a sentence.
+
+The attributes are not the CSS's twin: they are the intrinsic-size hint a
+browser uses to reserve the box before the image loads, which is layout
+stability (docs/ui.md → Layout stability) and stays whatever else changes.
+
+**Recommendation, Joel's call:** (a) one token the two stylesheets read
+and the header contract composes from — `--pageHeader-height: calc(<the
+logo size> + 2 * 0.25rem)` — so the arithmetic stops being prose; or (b)
+leave the number, and have each stylesheet's comment point at the contract
+rather than at the other stylesheet. (a) is the shape `--game-header-bottom`
+already takes for the same reason.
+
+### WORKED · F-branding-5 · `wordmark-margin-is-spacer-1` · The one vocabulary literal in the folder
+
+`PuzpuzpuzWordmark.module.css`: `margin: 0 auto 1.5rem`. `1.5rem` is
+`--spacer-1` exactly, so it converts silently under §5 and its `pending` row
+comes off `guards/vocabularies.test.ts`. Done at the audit; nothing moves.
+
+### F-branding-6 · `one-mark-two-masters` · The "P" mark is two byte-identical files, and each is documented as the source
+
+`src/common/branding/puzpuzpuz.svg` and `public/favicon.svg` are identical
+(`cmp` says so). `PuzpuzpuzLogo.tsx` says "source SVG is at
+`src/common/branding/puzpuzpuz.svg`"; `scripts/generate-icons.sh` says
+`public/favicon.svg` is "the single source of truth for the mark" and builds
+every touch icon from it. Two masters agree today by nobody having edited
+either; the day one is retouched, the header and the home-screen icon
+diverge with no test to say so.
+
+**Recommendation, Joel's call:** one file. The two workable shapes: the
+component imports `public/favicon.svg`'s bytes is not one of them (a
+`public/` asset is served by path, unhashed, and is not on the module
+graph), so either the script reads the branding copy, or the branding copy
+goes and the component points at `/favicon.svg` by URL and accepts an
+unhashed asset. The first keeps the app's asset hashing and moves one line
+in the script. Step 11's asset pass then has one file to touch.
+
+### F-branding-7 · `rounded-square-is-painted-corners` · The mark's docstring describes a shape the SVG does not have
+
+`PuzpuzpuzLogo.tsx`: "a white 'P' on its own rounded indigo square". The
+SVG's ground is a plain square path (`M0 0 … 1254 1254 … Z`, four straight
+sides) and the rounding is a separate near-white path (`#FAFAFC`) painted
+OVER the corners — the one `generate-icons.sh` strips as "the favicon's own
+painted corners" before making the full-bleed touch icons. That is why the
+plan's step 11 lists the mark among the "near-whites that fail on a dark
+page": on anything but a white ground the corners show as pale squares.
+
+**Recommendation:** say so in the docstring, in a sentence — it is the one
+fact about this asset a future dark theme needs, and the touch-icon script
+already depends on it. Comment-only; the fix to the asset is step 11's.
+
+### F-branding-8 · `homeTitle-named-for-a-use` · The wordmark's file is named for the page it first sat on
+
+`homeTitle.png` renders through `<PuzpuzpuzWordmark>`, on the login screen
+as well as home, and the docstring has to explain that "source is
+`homeTitle.png`". The component, the class and the alt text all say
+wordmark; the file says home title.
+
+**Recommendation:** `git mv` to `puzpuzpuz-wordmark.png` and change the one
+import. A rename is what a whole-repo read is for (§4 → Renaming is the
+point).
+
+### F-branding-9 · `ui-md-describes-a-placeholder` · docs/ui.md still describes the mark as a placeholder at its pre-reorg path
+
+`docs/ui.md` → ClubPage header: "`<PuzpuzpuzLogo />` — a generic placeholder
+SVG at `src/common/puzpuzpuz.svg`, the same 4-dot-grid the per-game logos
+use. Wrapped by `<Menu>` exactly like the game logo." Three things: the path
+is pre-reorg (`src/common/branding/puzpuzpuz.svg`); it is not a placeholder
+or a dot grid, it is the "P" mark; and the wrapper is `<PageHeaderMenu>`.
+A sentence about this area's file, so a forward fix here.
 
 ## Notes
 
-*(things worth remembering about this area that are neither a finding nor
-owed work — a forward-fix made from another area, a question for the opening,
-a dependency listed and left. Anything durable goes to the folder's `doc.md`
-or `todo.md` instead; a note here never stands in for either)*
+- **The `alt` texts stay** (`manifest.name`, "PuzPuzPuz"): existing ARIA is
+  kept, not extended.
+- **No tests in the folder, and none owed after F-branding-1**: three
+  presentational components, and the one branch (`GameLogo`'s null) goes
+  with the lookup.
+- **The wordmark's squeeze is handled by its host, correctly.**
+  `docs/ui.md` → Page-height says the wordmark "absorbs the squeeze by
+  getting shorter" unless something says otherwise; `HomePage.module.css`
+  says otherwise (`.card > *:not(.clubsSection) { flex-shrink: 0 }`), and
+  the login card does not fill, so it cannot squeeze. Verified, no finding.
+- **Verified and holding:** the raster is 840×216 and renders at ~416px
+  inside a 480px card with 2rem padding, as its docstring says; both
+  `?url` / default-import explanations are right; `docs/ui.md` → GamePage
+  header's "the logo is a menu trigger" is current.
+- **Left for `page-header`:** `PageHeader.tsx:33`'s "arithmetic nobody had
+  written down" is the same archaeology corecss removed from `docs/ui.md`.
+- **Left for `manifest`:** the hand-written registry lookup in eight files
+  (F-branding-1).
+- **Owed by every area from `mobile`, checked here:** no hooks; `window` is
+  not referenced.
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- `src/guards/vocabularies.test.ts` — F-branding-5's row is deleted in the
+  same edit as the conversion (done; green).
+- `src/guards/cssTokens.test.ts` — F-branding-2 removes a READER of
+  `--page-text-color`, which has many others; F-branding-4 (a) would add a
+  token and must add its readers in the same commit.
+- No component test names these components; `e2e/` — none predicted.
+  F-branding-8 changes an asset path only Vite resolves.
 
 ## Closing
 

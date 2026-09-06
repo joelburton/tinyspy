@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-branding
 
 import puzpuzpuzLogo from './puzpuzpuz.svg?url'
 import styles from './PuzpuzpuzLogo.module.css'

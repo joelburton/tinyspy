@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-branding
 
 import homeTitle from './homeTitle.png'
 import styles from './PuzpuzpuzWordmark.module.css'

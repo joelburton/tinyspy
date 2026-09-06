@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-branding */
 
 /* The big PuzPuzPuz wordmark image. A wide, short PNG shipped at 2x, so we only
  * constrain the width and let the height follow its intrinsic aspect ratio.
@@ -8,5 +8,5 @@
   display: block;
   width: 100%;
   height: auto;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto var(--spacer-1);
 }

@@ -255,7 +255,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/core-css/base.css': ['1rem', '1.25rem', '1.15rem'],
       'src/common/account/ColorChoiceList.module.css': ['0.5rem'],
       'src/common/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
-      'src/common/branding/PuzpuzpuzWordmark.module.css': ['1.5rem'],
       'src/common/buttons/SubmitWithScore.module.css': ['0.5rem'],
       'src/common/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
       // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it

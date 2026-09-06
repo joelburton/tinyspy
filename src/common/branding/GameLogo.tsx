@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-branding
 
 import { gametypes } from '@/gametypes'
 import styles from './GameLogo.module.css'

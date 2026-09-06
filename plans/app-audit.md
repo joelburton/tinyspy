@@ -349,7 +349,7 @@ will list the other as a dependency whichever goes first.
 | 11 | `realtime` | `realtime` | **CLOSED 2026-09-05.** presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided — and this one decided the CLUB orbit only: the roster that pauses a game is tracked in `game-page`, so `pause-suspend` inherits nothing from here |
 |    | **The look, before anything renders** | | |
 | 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | **PAUSED 2026-09-05, one step from closed.** Every finding worked, the re-read done, both Designs written; the roster stays `cs-audited-corecss` until Joel blesses it, which waits until areas that rely on these stylesheets have closed — a base rule is judged from the surfaces that wear it. The stylesheets every page loads and none owns, and the theme chain |
-| 13 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
+| 13 | `branding` | `branding` | **OPEN 2026-09-05** — six files `cs-audited-branding`, nine findings in `areas/branding.md`. The app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
 |    | **The people** | | |
 | 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
 |    | **The controls everyone touches** | | |
