@@ -270,9 +270,9 @@
      How long the two transient marks last. Shared, because "how long
      news stays on screen" is a property of the vocabulary rather than
      of a game — and because a player who learns the beat in one game
-     should read it in the next. The JS that adds and removes the
-     classes reads the same numbers from
-     common/move-flash/feedbackTiming.ts; keep the two in step.
+     should read it in the next. The JS that removes the classes waits
+     at least this long, and sometimes longer; the rule and the twin
+     constants are in common/move-flash/feedbackTiming.ts.
 
      The tile flash is SHORT: solid for most of it, then a short tail
      fading out, so the eye is caught and then handed back the true

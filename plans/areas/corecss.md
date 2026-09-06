@@ -243,7 +243,7 @@ Banned by the no-cite rule for every file that outlives the sprint:
 ones already state their reason in the sentence before the tag, so the tag
 just goes; the font ones point at `docs/ui.md` → The typeface.
 
-### F-corecss-7 · `flash-durations-kept-in-step-by-hand` · Two files disagree about how they agree
+### WORKED · F-corecss-7 · `flash-durations-kept-in-step-by-hand` · Two files disagree about how they agree
 
 `base.css:274–275`: the JS "reads the same numbers from
 `feedbackTiming.ts`; keep the two in step." `feedbackTiming.ts` says
@@ -254,9 +254,17 @@ a rule the other file deliberately breaks. And "kept in step by hand" is the
 shape `mobile` fixed for the breakpoints: the hook exports its value and a
 spec holds it to the stylesheet.
 
-**Recommendation:** base.css gets one sentence and a pointer (the rule lives
-in `feedbackTiming.ts`); a spec that reads the two tokens out of base.css
-and asserts JS ≥ CSS is a line in `common/move-flash/todo.md`.
+**Resolution (2026-09-05, Joel: "just do 1. we don't need a test for it.")**
+— base.css's sentence now says the JS waits at least this long and sometimes
+longer, and points at `feedbackTiming.ts` for the rule and the constants. No
+spec: the enforcing test was offered and declined, so nothing is owed
+anywhere for it — do not re-file it.
+
+Verified while working it: neither token is overridden by any game's
+`theme.css`. Each is declared once in base.css and read once in
+`PlayArea.module.css`, and the two JS constants have four consumers (the
+waffle, connections and psychicnum boards, and `useTurnStartFlash`), so the
+pairing is exactly two-to-two and nothing else can drift into it.
 
 ### F-corecss-8 · `scroll-region-utility` · The folder's one Soon item
 
