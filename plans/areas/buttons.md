@@ -5,10 +5,11 @@ The folders it reads: `buttons`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
-stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 through
-F-buttons-5 worked, plus F-buttons-20 (raised by Joel, not by the read: the
-`label`/`show` vocabulary). Opened out of §3's order: `members` is the next row,
-and Joel chose `buttons` first.
+stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
+(raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
+F-buttons-1 through -5, -7 and -20. Closed by F-buttons-20 without work of
+their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
+row, and Joel chose `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
 area:** a purpose button's docstring answers *when do I reach for this* and
@@ -352,7 +353,7 @@ defect in seven.
 `.icon-only`, the pre-module global name. That is a paused area's file, and the
 same call as F-buttons-14 — it rides with that one.
 
-### F-buttons-6 · `base-docstring-drift` · `StandardButton.tsx`'s own docstrings disagree with the file
+### CLOSED, NO CHANGE · F-buttons-6 · `base-docstring-drift` · `StandardButton.tsx`'s own docstrings disagree with the file
 
 - `ButtonTone`: "`caution` = orange (Hint / Reveal)" — Reveal is
   `destructive`, and its docstring argues why.
@@ -382,7 +383,20 @@ registry now exports `AppIcon` for exactly this, and the menu reads it. So the
 open decision is smaller than it was: whether `ButtonIcon` should simply BE
 `AppIcon`, leaving one name for what a glyph is.
 
-### F-buttons-7 · `module-header-contradicts-close` · The stylesheet's list of what is NOT a standard button includes one that is
+**Closed 2026-09-06 with no work of its own: F-buttons-20 rewrote the file and
+every item went with it.** The tone example is gone (F-buttons-3 had already
+taken the tone out of docstrings, and this docstring is the vocabulary's
+definition, so it keeps the tones and drops the button names). "The six axes"
+is now "the axes below", which cannot miscount. `ButtonIcon`'s widening states
+its true reason — `IconBack` is the registry's own component, not an alias.
+The `**null means "don't"**` passage that carried the formatting slip no longer
+exists, because `null` no longer means anything. And `const Icon = icon ??
+undefined` is now `const Icon = icon`: the alias survives because JSX needs a
+capitalized identifier, which is a real reason where the `?? undefined` was
+not. **The one item still open is the last paragraph above** — whether
+`ButtonIcon` should just BE `AppIcon`.
+
+### WORKED · F-buttons-7 · `module-header-contradicts-close` · The stylesheet's list of what is NOT a standard button includes one that is
 
 `StandardButton.module.css` lines 12–16: "NOT standard buttons, and none of
 them come through here: … the ✕ dismiss glyphs — deliberately borderless, and
@@ -400,6 +414,26 @@ component docstring's list, which is right); replace the §7 citation with the
 rule itself (a pattern with structure lives in a component + its module) or a
 pointer to `docs/code-conventions.md` → Patterns; cut the archaeology.
 
+**Resolution (2026-09-06, Joel: "got ahead and fix the prose for this")** —
+prose only; no selector or declaration moved, and the rendered app is
+byte-identical.
+
+The dismiss came off the NOT list, and the list gained one short line saying
+where it actually lives (`<CloseButton>`, which composes these classes) rather
+than a second copy of the component's own sentence — the F-buttons-3 lesson
+applied to itself. The §7 citation became the rule it was pointing at, since a
+citation is the part that rots and the rule is one sentence.
+
+Both pieces of archaeology were protecting something, so both were restated
+forward rather than deleted: the `font-weight` note now says why the weight is
+declared on the base (one treatment at two scales, not two treatments) instead
+of what `.button-small` used to declare, and the hover note says the wash is
+the button's own family "rather than one shared gray" instead of what it used
+to be. Neither needed F-buttons-18 to settle anything.
+
+The fourth item on the finding — `ActionButton.module.css`'s tone classes
+"came with them" — was already gone, deleted by F-buttons-4.
+
 ### F-buttons-8 · `end-turn-prose` · `EndTurnButton` describes a mechanism the module contradicts
 
 "Primary is the filled-accent look, so it ignores semantic tone — the accent
@@ -412,7 +446,7 @@ flag, red …)" — the flag is Concede's; End took the crossed-out stop sign, a
 **Recommendation:** say it is `primary` in the default `normal` tone because
 it is the row's main move, and name End's glyph correctly or not at all.
 
-### F-buttons-9 · `cancel-type-button` · `CancelButton` tells callers to pass what the base already sets
+### CLOSED, NO CHANGE · F-buttons-9 · `cancel-type-button` · `CancelButton` tells callers to pass what the base already sets
 
 "Inside a `<form>`, pass `type="button"`: it is not the submit."
 `StandardButton` emits `type="button"` unless a caller overrides it, and no
@@ -421,6 +455,13 @@ true note is the inverse (the commit passes `type="submit"`), and the base's
 comment already says that.
 
 **Recommendation:** delete the sentence.
+
+**Closed 2026-09-06 with no work of its own:** F-buttons-20 deleted it, and
+better than deletion — the sentence existed because a form's commit had no
+component of its own, so Cancel's docstring was the only place to say anything
+about the pair. `<FormSubmitButton>` now owns `type="submit"`, so neither
+button asks a caller for it and Cancel's docstring points at its partner
+instead.
 
 ### F-buttons-10 · `submit-with-score-prose` · Both `SubmitWithScore` files credit a class that paints nothing
 

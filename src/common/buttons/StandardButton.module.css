@@ -11,16 +11,16 @@
  *
  * NOT standard buttons, and none of them come through here: a game piece
  * (`.tile`), a keycap (`.key`), a segmented choice (patterns/segmented.css), a
- * page-header mark (`<PageHeaderButton>`), the board's round `ShuffleButton`,
- * and the ✕ dismiss glyphs — deliberately borderless, and they may not end up
- * sharing the hover either.
+ * page-header mark (`<PageHeaderButton>`), and the board's round
+ * `ShuffleButton`. A ✕ dismiss is NOT on that list — see `<CloseButton>`, which
+ * composes these classes like anything else.
  *
- * WHY THIS IS A MODULE AND NOT A PATTERN. §7's table puts "a pattern with
- * structure or behavior" in *a React component + its module*, and the boundary
- * rule under it says a shared stylesheet with many consumers and no component is
- * a component waiting to be written. `<StandardButton>` is that component, so
- * nobody writes these class names by hand and they stop
- * being public — one component, one stylesheet, tone classes included.
+ * WHY THIS IS A MODULE AND NOT A PATTERN. A pattern with structure or behavior
+ * belongs in a React component plus its module, and a shared stylesheet with
+ * many consumers and no component is a component waiting to be written.
+ * `<StandardButton>` is that component, so nobody writes these class names by
+ * hand and they stop being public — one component, one stylesheet, tone
+ * classes included.
  *
  * FLAT — color only, no motion, no shadow. Not conservatism: it is the
  * load-bearing half of "depth belongs to game pieces, not chrome". If a
@@ -42,9 +42,9 @@
    a `.link-button` or a list row IS the surrounding prose and should go bold
    inside bold text. A standard button is not prose, so it takes back
    everything except the SIZE (Joel, 2026-08-25: *"a button happening in a
-   paragraph of bold text shouldn't get bold"*). It was also incoherent as it
-   stood: the old `.button-small` declared `font-weight: 500` while its
-   full-size sibling inherited whatever was around it.
+   paragraph of bold text shouldn't get bold"*). Weight is stated here rather
+   than left to `.small`, so the two sizes are one treatment at two scales
+   instead of two treatments.
 
    `font-size: 1em` is a no-op declaration and is written anyway. It says out
    loud that a standard button tracks its container's size — an info-column
@@ -190,9 +190,9 @@
 }
 
 /* Hover changes the BACKGROUND and nothing else, to a faint wash of the
-   button's OWN family — where this used to be one gray for every family. A tint
-   of itself reads as the button getting more engaged; gray reads as it going
-   duller, which is the wrong direction for a hover. 8% over white is enough:
+   button's OWN family rather than one shared gray. A tint of itself reads as
+   the button getting more engaged; gray reads as it going duller, which is the
+   wrong direction for a hover. 8% over white is enough:
    what the eye catches is white becoming a color at all, not how much color. */
 /* @@ */ .secondary:hover:not(:disabled) {
   background: var(--button-slot-secondary-hover-color);
