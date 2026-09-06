@@ -80,6 +80,12 @@ the boundary is.
   emphasis but defaults no words (it is Save here, Start there, Create, Find);
   the Cancel packages the word and the quiet outline and is the one button with
   no glyph of its own.
+- **Small is one prop, not a font-size.** `small` brings the whole small
+  treatment — type, weight, padding, and a smaller square for a glyph drawn
+  alone — because those move together; a caller writing its own font-size gets
+  a button whose padding no longer fits it. A control that is a link, a
+  trigger or a list row rather than a button is not covered by this and takes
+  the type ramp's own small step.
 - **The stylesheet is the module beside the component**, and there are no global
   button classes to compose. A surface that needs a different box re-points the
   size token in its own class rather than reaching for a selector here.

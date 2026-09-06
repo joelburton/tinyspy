@@ -20,26 +20,13 @@
   Its `:focus { outline: none }` says a click leaves no ring, then
   `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is
   removing the tab stop, not restyling the ring.
-- **Figure out small buttons.** Ten controls make themselves small by hand.
-  Three write the same `0.8rem` and differ only in padding
-  (`FilterSelect.closedSelect`, `DefinitionView.editLink`,
-  `GameScratchpadCompanion.takeOver`); four more sizes exist that nothing
-  names — `0.9rem` three times (the club filters' mode option, crosswords'
-  controls, scrabble's suggest row), `0.95rem` (`Menu.item`), `1.05rem`
-  (wordiply's reveal word, BIGGER), and `1.1rem` / `1.2rem` on the two
-  hand-rolled dismiss ✕s (`GenericFeedbackPill`, `Toast`). None is on the
-  font-size ramp, and the ramp's middle step (`--font-size-2`, 0.85rem) has no
-  callers among them while an unnamed 0.9rem has three. Four of the ten are
-  games' (crosswords, scrabble, wordiply, waffle), so this decides a rule and
-  each game applies it. Also: **the plus in "+ New club" is a typed `+`
-  character, not a glyph** — the last glyph-shaped affordance not in the icon
-  registry.
-- **docs/ui.md → "What a `<button>` is" describes classes that were renamed.**
-  It writes `.button`, `.button-small` and `cls('button', 'secondary',
-  'button-small')`; the classes are `.standardButton`, `.small` and
-  `.iconOnly` in `StandardButton.module.css`, composed by `<StandardButton>`
-  rather than by hand. The file references in that section are already
-  correct; the class story is this folder's to rewrite.
+- **The plus in "+ New club" is a typed `+` character, not a glyph** — the
+  last glyph-shaped affordance not in the icon registry. (Carried over from the
+  small-buttons item, which is settled: see the folder's doc. A small BUTTON
+  takes the `small` prop, which brings type, padding and the icon box together;
+  the controls that write a small size by hand are links, triggers and list
+  rows, so each is its own folder's to settle. Notes are filed with crosswords
+  and scrabble, the two games holding one.)
 
 ## Someday
 

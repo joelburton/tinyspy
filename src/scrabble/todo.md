@@ -37,6 +37,13 @@
 - `<ShuffleButton>` should never take focus at all — game stuff doesn't. The
   fix is removing the tab stop, not restyling the ring
   (`src/common/buttons/todo.md`).
+- **The info column picks a font size off the ramp, twice.**
+  `InfoCol.module.css` writes `font-size: 0.9rem` on its heading and on
+  `.suggestRow`, where the ramp's small step is `0.85rem` — 0.8px apart at the
+  browser's default root, so it reads as a guess rather than a choice. The
+  suggest row is a list row that IS the control rather than a general button,
+  so the shared button's `small` treatment does not reach it; this is only
+  about which size it means to be.
 
 ## Someday
 

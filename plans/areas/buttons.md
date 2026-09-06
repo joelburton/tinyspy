@@ -7,10 +7,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 through -14, -17 and -20. Closed with no
+F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18 and -20. Closed with no
 change: F-buttons-6, -9 and -16 (absorbed by the F-buttons-20 rewrite) and
-F-buttons-15 (`buttons.html` ruled out of scope). Still open: F-buttons-18 and
--19. Opened out of §3's order: `members` is the next row, and Joel chose
+F-buttons-15 (`buttons.html` ruled out of scope). Still open: F-buttons-19. Opened out of §3's order: `members` is the next row, and Joel chose
 `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
@@ -789,7 +788,7 @@ And one this area wrote itself today: `FormSubmitButton` said its packaged props
 "used to be retyped at each of them", which is the same fault a few hours old. It
 now says what it packages.
 
-### F-buttons-18 · `small-buttons` · Ten controls make themselves small by hand (from `todo.md`)
+### WORKED · F-buttons-18 · `small-buttons` · Ten controls make themselves small by hand (from `todo.md`)
 
 The todo item, re-judged: still true and still a decision. Three write
 `0.8rem` and differ only in padding; four more sizes exist that nothing names;
@@ -799,6 +798,40 @@ Also from the item: the `+` in "+ New club" is a typed character, not a glyph.
 **Recommendation:** decide the rule here — is `.small` the one small size,
 and does a text-only small button take it? — then each folder applies it at
 its pass. Not this area's edit beyond the rule and `StandardButton`'s part.
+
+**Resolution (2026-09-06, Joel: "otherwise, standardbuttons should have the same
+treatment when .small. the other things you listed aren't buttons, are they?
+links and filter drop down glpyhs and such? drop a note in crosswords todo to
+examine these when we get there. and one for scrabble todo when we get there.")**
+— and the second sentence is the finding's real answer.
+
+**They are all `<button>` elements, and almost none of them is a button.** By
+the taxonomy's own rule — a kind is what a control IS, not what element it is
+built from — `DefinitionView.editLink` is a textlink, `FilterSelect`'s closed
+select is a trigger, scrabble's suggest row is a list row that IS the control,
+and crosswords' control bar is a documented exemption whose ON state is a game
+color. So the shared button's small treatment never reached them and was never
+going to; what they actually share is only that each picked a size off the type
+ramp. The finding was framed as "ten controls should adopt `.small`" and the
+honest version is "one rule for buttons, and a separate question about the ramp
+for everything else".
+
+**The arithmetic killed the rest of it.** Nothing sets a root font-size, so rem
+is the browser's 16px: `0.8rem` is 12.8px, `0.85rem` 13.6px, `0.9rem` 14.4px.
+Joel: *"`.85rem` and `.9rem` is the same thing, effectively. what's that going
+to be, ~1px diff?"* — 0.8px each way, 1.6px across the whole spread. Three
+values separated by less than a pixel were never three decisions.
+
+What shipped: the rule stated in the folder's Design (`small` is one prop that
+brings type, weight, padding and the smaller glyph square together, because
+those move together; a link, trigger or list row is not covered and takes the
+ramp's small step), and a note in `crosswords/todo.md` and `scrabble/todo.md`
+for the two games holding a `0.9rem`, each carrying the sub-pixel fact so
+neither has to re-derive it. `buttons/todo.md`'s small-buttons item is settled
+and gone; the `+` in "+ New club" survives it as its own line.
+
+Also cleared from `buttons/todo.md`: the item asking for the `docs/ui.md`
+class story to be rewritten, which F-buttons-13 did.
 
 ### F-buttons-19 · `disabled-utility` · One look for a disabled control (from `todo.md`)
 
