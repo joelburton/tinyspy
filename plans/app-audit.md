@@ -231,6 +231,17 @@ this area's own fixes, including an invitation in the new fake that read the
 three deliberate hand-built doubles as oversights. `todo.md` carries two
 cosmetic items.
 
+**`corecss` is paused, one step from closed** (2026-09-05): nineteen audit
+findings worked, the closing re-read's eleven worked, `core-css/doc.md` and
+`themes/doc.md` written and off `DESIGNS_OWED`. Its roster stays
+`cs-audited-corecss` because the last step is Joel's read, and Joel: *"i can't
+really review these files and bless them until we've complete some areas that
+rely on corecss."* A base rule is best judged from the surfaces that wear it,
+so the blessing comes after those areas, and `branding` opens next as usual.
+Three decisions it left are `todo.md` items, not open work: the hand-written
+`--game-chrome-height` (core-css), the `.card` name collision (core-css), and
+GamePage's own wrapper class (game-page).
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -337,7 +348,7 @@ will list the other as a dependency whichever goes first.
 | 10 | `boot` | `boot` · `main.tsx` · `App.tsx` · `themes/loadTheme.ts` | **CLOSED 2026-09-05.** mounting, the theme load, the session gate, panic, the stale-chunk reload. The two root files were added at the opening (Joel, 2026-09-05), and `loadTheme.ts` with them: it STAYS in `common/themes/` and is audited here, so `themes` is the one folder two rows name |
 | 11 | `realtime` | `realtime` | **CLOSED 2026-09-05.** presence, reconnect, the subscribe hooks. Presence is what pauses a game and the pause boundary that reads it is `pause-suspend`'s; whichever opens second inherits what the first decided — and this one decided the CLUB orbit only: the roster that pauses a game is tracked in `game-page`, so `pause-suspend` inherits nothing from here |
 |    | **The look, before anything renders** | | |
-| 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | the stylesheets every page loads and none owns, and the theme chain |
+| 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | **PAUSED 2026-09-05, one step from closed.** Every finding worked, the re-read done, both Designs written; the roster stays `cs-audited-corecss` until Joel blesses it, which waits until areas that rely on these stylesheets have closed — a base rule is judged from the surfaces that wear it. The stylesheets every page loads and none owns, and the theme chain |
 | 13 | `branding` | `branding` | the app logo, the wordmark, and the `<GameLogo>` that renders a game's. **Not step 11's asset pass** — the 17 logo files live in `src/<game>/`, so that stays one sweep at the end |
 |    | **The people** | | |
 | 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |

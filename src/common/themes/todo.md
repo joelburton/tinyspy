@@ -26,11 +26,12 @@
   | a pill's tint at 18% | `noted` + `error` at 8% | five families mix one way and two the other; preserved rather than normalized |
   | an outcome's `wash` | a pill's `tint` | two answers to one question at two strengths — deciding which survives moves pixels |
 
-- **`--chrome-disabled-opacity` ships as an EFFECT rather than a per-family
-  color**, and a game piece has no `disabled` at all — every unclickable piece
+- **A per-family `disabled` cell is not owed.** `--chrome-disabled-opacity`
+  in `base.css` ships the disabled look as an EFFECT rather than a color per
+  family, and a game piece has no `disabled` at all — every unclickable piece
   shows a state instead, and setgame overrides the global dim because dimming
-  a card "reads as a different card". Drop it from the vocabulary; invent it
-  if ever needed.
+  a card "reads as a different card". Keep the cell out of the button
+  families; invent it if ever needed.
 
 ## Maybe
 

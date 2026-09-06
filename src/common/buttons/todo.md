@@ -31,6 +31,12 @@
   each game applies it. Also: **the plus in "+ New club" is a typed `+`
   character, not a glyph** — the last glyph-shaped affordance not in the icon
   registry.
+- **docs/ui.md → "What a `<button>` is" describes classes that were renamed.**
+  It writes `.button`, `.button-small` and `cls('button', 'secondary',
+  'button-small')`; the classes are `.standardButton`, `.small` and
+  `.iconOnly` in `StandardButton.module.css`, composed by `<StandardButton>`
+  rather than by hand. The file references in that section are already
+  correct; the class story is this folder's to rewrite.
 
 ## Someday
 

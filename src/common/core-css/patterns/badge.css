@@ -12,7 +12,7 @@
  * One pattern, one file (docs/code-conventions.md → Patterns).
  * ============================================================ */
 
-/* THE SHAPE, and it paints no color — the same split `.button` makes. The
+/* THE SHAPE, and it paints no color — the same split `.standardButton` makes. The
    border is `currentColor`, so a caller sets `color` alone and the outline
    follows it. That is what lets one class carry a teal mode badge, a purple
    one and the Solo badge without knowing about any of them.

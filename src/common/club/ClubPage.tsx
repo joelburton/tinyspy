@@ -1129,10 +1129,10 @@ export function ClubPage({ handle, session }: Props) {
             </div>
             {/* Fixed-size frame with internal scroll. The frame has
                 flex: 1 inside the column, which has its own flex: 1
-                inside the body, which is bounded by the .frame's
-                calc(100vh - body padding) height. Each step of the
-                flex chain needs min-height: 0 so overflow-y: auto
-                actually kicks in. */}
+                inside the body, which is bounded by the shared
+                `.pageHeaderAndMainArea`'s calc(100svh - body padding)
+                height. Each step of the flex chain needs min-height: 0
+                so overflow-y: auto actually kicks in. */}
             {/* The page's other KEYBOARD tab stop — same contract as the start
                 list: focus the container, arrows move, Enter opens.
 

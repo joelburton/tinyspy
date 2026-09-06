@@ -579,7 +579,7 @@ const VOCABULARIES: Vocabulary[] = [
     // Those compete only with their siblings, so they are not on the ladder
     // and do not want a name. The cut is 10 because the app has a clean gap
     // there: everything local today is ≤ 10 and everything page-level is
-    // ≥ 40, which is what makes a number the honest test. If something ever
+    // ≥ 1000, which is what makes a number the honest test. If something ever
     // needs 11 locally, that is the conversation, not a quiet edit here.
     allowed: /^([0-9]|10|auto|inherit|initial|unset|revert)$/,
     root: '.',
@@ -591,12 +591,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/scrabble/components/BoardCol.module.css': ['100'], //        drag ghost → shared-game-chrome
     },
     fix:
-      'Page-level layers read a token from base.css → THE Z- LAYERS, which is ' +
-      'the ladder being migrated to (`--z-companion`, `--z-modal-normal`, …); ' +
-      'the `--z-index-*` block above it is the one being retired, a rung at a ' +
-      'time, as each component\'s area is audited. A tier on neither is a ' +
-      'question for Joel: inventing a number between two named ones is how a ' +
-      'menu ends up behind a backdrop.',
+      'Page-level layers read a token from base.css → THE Z- LAYERS ' +
+      '(`--z-companion`, `--z-modal-normal`, …). A tier that is not on the ' +
+      'ladder is a question for Joel: inventing a number between two named ' +
+      'ones is how a menu ends up behind a backdrop.',
   },
 ]
 

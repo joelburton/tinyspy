@@ -29,8 +29,8 @@
 
    IT CARRIES THE SURFACE AND NOTHING ELSE. No width and no centering: how wide
    a page's content is, and where it sits, is the PAGEMAIN's business
-   (patterns/page.css). Bundling the two here is what let one class stand in
-   for a page on five screens and made "a card" mean four different things. */
+   (patterns/page.css). A card that also fixed a width would be standing in for
+   a page, and "a card" would stop meaning one thing. */
 /* @@ */ .card {
   background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);

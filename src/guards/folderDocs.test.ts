@@ -75,7 +75,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
 const DESIGNS_OWED: string[] = [
   'common/account', 'common/anagram-finder', 'common/auth',
   'common/branding', 'common/buttons', 'common/chat', 'common/club',
-  'common/core-css', 'common/definitions', 'common/error-page', 'common/faults',
+  'common/definitions', 'common/error-page', 'common/faults',
   'common/feedback', 'common/fields', 'common/floating-panels', 'common/forms',
   'common/game-page', 'common/home', 'common/info-sheet',
   'common/invitations', 'common/keyboard', 'common/lists', 'common/loading',
@@ -84,7 +84,7 @@ const DESIGNS_OWED: string[] = [
   'common/pause-suspend', 'common/pdf', 'common/reveal',
   'common/scratchpad', 'common/setup-form',
   'common/terminal', 'common/text',
-  'common/themes', 'common/timer', 'common/toasts', 'common/tooltips',
+  'common/timer', 'common/toasts', 'common/tooltips',
   'common/turn-log', 'common/word-entry',
   'common/word-list',
   'shared/bee-games', 'shared/board-cursor', 'shared/dict-trie',

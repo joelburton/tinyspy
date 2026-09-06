@@ -40,8 +40,8 @@
  * buys.
  *
  * WIDTH IS THE ONE THAT EARNED IT. A word on a psychicnum or connections tile
- * has to fit a width the board fixes, and until now the only lever was making
- * the text smaller — worst exactly where it hurts most, on a phone.
+ * has to fit a width the board fixes, and without a width dial the only lever
+ * is making the text smaller — worst exactly where it hurts most, on a phone.
  *
  * GRADE IS INK WITHOUT WIDTH: every glyph keeps its exact advance, so text can
  * darken or lighten with nothing on the page moving. That is the correct fix
@@ -97,7 +97,7 @@
      the ends into semicircles, so a wide box becomes a stadium (a circle with
      a flat middle) and a square one becomes a circle. `999px` is the usual way
      to say "past half, whatever the height turns out to be"; the browser
-     clamps it. Readers: the badge, a round icon button, a counter chip.
+     clamps it. For anything that should read as a lozenge or a circle.
      Distinct from `50%`, which is half of EACH axis and so ellipses a wide
      box instead of capping it. */
   --radius-round:  999px;
@@ -106,12 +106,13 @@
      A vocabulary is a short, closed list of the values a surface may
      write for one kind of measurement, so that a number in a rule is
      a CHOICE FROM A LIST rather than a fresh decision nobody will
-     remember making. The radii above are one; these are the rest.
+     remember making. The radii above are one in the same sense, older
+     than the list.
 
-     docs/ui.md → The non-color vocabularies names eight. Seven are here, because a
-     distance, a duration and a weight of line are the same in daylight
-     and midnight. The eighth is the text grays, which is color and
-     therefore lives in the theme.
+     docs/ui.md → The non-color vocabularies names eight. Seven are the
+     ones below, because a distance, a duration and a weight of line are
+     the same in daylight and midnight. The eighth is the text grays,
+     which is color and therefore lives in the theme.
 
      THEY ARE NOT APPLIED IN A SWEEP. A surface converts when its area
      is audited; until then the app writes the same literals it always
@@ -255,8 +256,8 @@
      disabled button still gets a tooltip".
 
      It applies to CONTROLS. A game piece has no disabled state at all:
-     measured across all sixteen games, every unclickable piece shows
-     what HAPPENED to it instead, and setgame overrides the global dim
+     measured across every game, every unclickable piece shows what
+     HAPPENED to it instead, and setgame overrides the global dim
      because dimming a card "reads as a different card". */
 /* @@ */   --chrome-disabled-opacity:  0.75;
 
@@ -338,14 +339,16 @@
      piece has thickness; these say a surface is in front of another
      surface.
 
-     Only values four or more places already agreed on are shared here.
-     Where a component's shadow is close-but-not-equal it keeps its own
-     local token and a note, because collapsing on similarity is how
-     you silently restyle a surface nobody was looking at. The three
-     near-misses of `popover` below are exactly that: the notice is
-     deliberately fainter, the floating panel lighter than a menu, and
-     a toast heavier and tighter. Each is one edit away from joining
-     the family if someone decides they should. */
+     Five, and NOT A LADDER: three share one geometry at three alphas
+     (the notice deliberately fainter than a menu, the floating panel
+     between), and the toast, on the topmost layer, is heavier and
+     tighter than any of them. Whether that is a system or an accident,
+     and what the five should be called, is the folder's todo.md.
+
+     A component whose shadow is close to one of these but not equal
+     keeps its own, in its own file, with a note — collapsing on
+     similarity is how you silently restyle a surface nobody was
+     looking at. */
 /* @@ */   --shadow-popover:     0 8px 24px rgb(0 0 0 / 18%);
 /* @@ */   --shadow-notice:      0 8px 24px rgb(0 0 0 / 8%);
 /* @@ */   --shadow-panel:       0 8px 24px rgb(0 0 0 / 12%);
@@ -541,13 +544,14 @@
 /* @@ */   --page-padding-y:  0.5rem;
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from
-     100svh so it fills to the bottom without overflowing. Comprises
-     the body padding (0.5rem top + 0.5rem bottom = 1rem), the GamePage
-     header (~2.25rem intrinsic content height + its 0.5rem
-     padding-bottom + the 1px rule), and the 1rem gap between the
-     header and the play area ≈ 4.8rem, set a hair higher to stay off
-     the bottom edge. Centralized so a header/padding change moves one
-     number, not several. See docs/ui.md → "Page-height fits the
+     100svh so it fills to the bottom without overflowing. What it
+     stands for: the body's vertical padding (2 × --page-padding-y),
+     the header's box (--pageHeader-height, plus its 0.5rem
+     padding-bottom and the 1px rule under it), and GamePage's 1rem gap
+     between the header and the play surface. Written as one number
+     rather than composed from those tokens — unlike --game-header-bottom
+     below, which says why it composes — so a header or padding change
+     moves this by hand. See docs/ui.md → "Page-height fits the
      viewport". */
 /* @@ */   --game-chrome-height:  5rem;
 
@@ -608,8 +612,8 @@
  * spare, and the tight padding only earns its keep on a phone.
  * `--phone` is the union breakpoint (portrait + landscape phones) from
  * src/common/mobile/breakpoints.css. Feeds through everything keyed off the
- * tokens: body padding, each game's --avail-w board math, and the
- * club/card frame heights.
+ * tokens: body padding, each game's --avail-w board math, and the page
+ * bound in patterns/page.css.
  *
  * It sits here because a device override belongs in the same file as the
  * rule it overrides, directly under it — so a pattern and its phone
@@ -829,8 +833,9 @@ textarea:focus {
   border-radius: var(--radius-md);
 }
 
-/* Stays on the ELEMENT, not on `.button`: a disabled game piece, keycap or list
-   row should fade and refuse the pointer exactly as a disabled button does. */
+/* Stays on the ELEMENT, not on `.standardButton`: a disabled game piece, keycap
+   or list row should fade and refuse the pointer exactly as a disabled button
+   does. */
 /* @@ */ button:disabled {
   opacity: var(--chrome-disabled-opacity);
   cursor: not-allowed;

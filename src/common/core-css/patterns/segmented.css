@@ -27,11 +27,11 @@
    buttons with a gap between them read as independent toggles you could press
    several of — which is exactly what these aren't.
 
-   THE SEGMENTS ARE NOT `.button`s. `.button` gives every element its own border
-   and its own radius, which doesn't restyle a segmented control, it dismantles
-   it (docs/ui.md → the fourteen kinds). The frame owns the border and the
-   rounding, the segments own nothing but their fill — the same division the
-   item list makes with its rows.
+   THE SEGMENTS ARE NOT `.standardButton`s. That class gives every element its
+   own border and its own radius, which doesn't restyle a segmented control, it
+   dismantles it (docs/ui.md → the fourteen kinds). The frame owns the border
+   and the rounding, the segments own nothing but their fill — the same division
+   a SelectionList makes with its rows.
 
    `overflow: hidden` is what rounds the ends: the first and last segments are
    square and get clipped to the frame's radius, so the corners stay clean

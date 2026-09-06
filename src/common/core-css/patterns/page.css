@@ -13,18 +13,14 @@
  *
  * THE RULE: the page is bounded, and a designated part INSIDE it scrolls.
  * Never the document.
- *
- * Before this, three pages wrote near-identical copies of the wrapper under
- * the name `.frame` (which already means "a rectangle drawn around a board"
- * elsewhere), and three more had no page structure at all — they rendered a
- * bare `.card` and let it stand in for the page.
  * ============================================================ */
 
 /* The element holding the pageHeader and the pageMain.
  *
  * A long, unglamorous name on purpose (Joel, 2026-08-23): it is a highly
  * specific thing, not easily explained, and rarely written. What it must NOT
- * be called is `.page` — that is `<body>` — or `.frame`, which is taken.
+ * be called is `.page` — that is `<body>` — or `.frame`, which elsewhere
+ * means a rectangle drawn around a board.
  *
  * It exists because React cannot render `<body>`. Three of the four things it
  * does are really the page's (the bound, the width, the centering) and only
@@ -33,9 +29,8 @@
  * the React tree. Keeping it costs nothing, so we keep it.
  *
  * `height`, not `max-height`: the page fills the viewport whatever its content
- * (Joel, 2026-08-23 — the homepage used to shrink to its card and now behaves
- * like the club page). The empty room ends up INSIDE the pageMain rather than
- * below it.
+ * (Joel, 2026-08-23), so a short page like the homepage behaves like the club
+ * page. The empty room ends up INSIDE the pageMain rather than below it.
  *
  * `svh`, not `vh`, for the mobile-Safari reason documented on `body`.
  *

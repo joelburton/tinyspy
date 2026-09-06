@@ -16,6 +16,15 @@
   Also worth settling while renaming: `popover`, `panel` and `notice` are one
   geometry (`0 8px 24px`) at three opacities, which is either a deliberate
   three-step or an accident nobody has looked at. Decide the names.
+- **`--game-chrome-height` is a hand-written 5rem against a sum of 5rem + 1px.**
+  It stands for the body's vertical padding, the header's box
+  (`--pageHeader-height` + its padding-bottom + the 1px rule) and GamePage's
+  1rem gap, but is not composed from them, so a header or padding change
+  moves it by hand — and at the phone breakpoint, where the padding halves,
+  the number is over by 0.5rem while `PlayArea.module.css` trims a pixel the
+  other way. Benign today: the play surface is a flex item and gives the
+  pixel. Decide: compose it from the tokens the way `--game-header-bottom`
+  does, or keep the number and say so.
 - **Should `:hover` be gated to pointer devices, app-wide?** A touch device
   applies `:hover` when you tap and leaves it applied until you tap elsewhere,
   so on a phone a tapped row or button stays in its hover look indefinitely.
@@ -27,8 +36,12 @@
   nowhere. The header's marks are where it first bites (their background
   would carry both hover and press); the header may take it as a local rule
   first. Not decided.
-- **`.card` names two different things.** Global `.card` is the page card; a
-  list row's inner box was also called `.card`.
+- **`.card` names two different things.** Global `.card` is the bordered
+  section of a page; four module stylesheets also declare a local `.card`
+  that is not it — a popover's box, a device notice's box, setgame's playing
+  card, crosswords' jump dialog. A module class shadows nothing, so this
+  costs no pixel; it costs a reader who greps `.card`. Decide whether the
+  global one should say what it is for, or whether the collision is fine.
 - **Padding on the spacer ramp?** `--spacer-*` governs `gap` and `margin`;
   padding is parked, not excluded. The room inside a box tends to run smaller
   and today's tuples are fitted to their box, so paddings stay ad hoc and the
@@ -55,7 +68,7 @@
   vocabularies are rem or unitless; the one em vocabulary that exists is
   `letter-spacing`, and nobody thought that odd, because a ratio to the type
   is a good thing to name. The inventory forks: em spacing *between* things
-  (`button.css`'s icon-to-label gutter, `gap: 0.4em`, and one former sibling),
+  (`StandardButton.module.css`'s icon-to-label gutter, `gap: 0.4em`),
   and em *sizing to* the type — about ten and growing: `--dot-size` at 0.6 /
   0.65 / 0.7em across four files, `--filter-select-dot: 0.65em`, the entry
   caret at `1.15em`, `StrikeMarks` at `1.05em`, `SetupNextPuzzleSection`'s

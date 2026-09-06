@@ -713,16 +713,17 @@ uses. The rest of the grammar:
 | `outcomes-*` | how a move or a game went — the seven families, one per outcome ([outcomes.md](outcomes.md) has what each word means) |
 | `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
 | `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
-| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / link / caret / badge / definable / floating-control |
+| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / caret / link / definable / floating-control |
 | `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |
-| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor. The **history** frame around an earlier board, the **your-move** frame, and scrabble's **preview** (a possible move — history that hasn't happened yet) are all here |
+| `mark-*` | what a surface wears TEMPORARILY to say something about itself ([tile-feedback.md](../plans/tile-feedback.md) is the board-feedback design). The attention yellow and the grid cursor are in the theme; the three dims and the two flash durations sit in `base.css` under the same prefix, because a dim is depth and a duration is not a color |
 | `member-*` | player identity, one per value of `common.profiles.color`: eight colors, each with a paired border. Already chosen, will not change, and have **no relationship to any other color** — a green player is not the winning green. Exempt from theming (`fixed.css`) |
 | `flex-color-*` | the app's two flexible colors, teal and purple — loosely the co-op and compete labels, but a pair that means nothing, so a badge has two ways to differ (see [Mode badges](#mode-badges)). **Fully built out and flexible for one-off cases**, so a rare need doesn't mint a new color |
 | `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder. The ramp has **no semantic meaning** and is fine to reuse for game-ish things (the scrabble rack uses a very dark tile); **the numbers ARE the meaning** — stackdown reads stack depth off them |
 | `wordle-*` | the letter-judgment palette, shared by wordle and waffle. Exempt from theming (`fixed.css`) |
+| `board-*`, `timer-*`, `ink-*`, `entry-*`, `print-*` | the small ones: the ground a piece casts its shadow onto, the stopped clock, ink named for the ground it sits on (`-onDark` / `-onLight`), the entry row's illegal character, and paper — the one role no theme may flip |
 | per-game | **brand** colors, in that game's own `theme.css`. **NOT the same as any family**: spellingbee's honey is a different yellow from `outcomes-near`, `near` is not used in spellingbee, and the honey is not used elsewhere |
 
 **There are two cursors, and they are independent names.** The chrome one
@@ -755,8 +756,8 @@ stylesheet.
 ### A family is a complete grid
 
 A family is a set of MEMBERS that each carry the same set of VARIANTS. The
-variant list differs per family — the tile ramp's two look nothing like the chrome
-tones' five — but **within one family it is the same list for every member,
+variant list differs per family — the tile ramp's two look nothing like a button
+family's eight — but **within one family it is the same list for every member,
 always.** A member missing a variant means the family isn't one.
 
 That includes cells nothing consumes yet. A family picked at one sitting is picked
@@ -1414,7 +1415,7 @@ working, the extraction point is the third game that wants a shake.
 
 Tile colors come from **one warm (slightly-yellow) family** in
 [`common/themes/daylight.css`](../src/common/themes/daylight.css) — five shades on a hand-tuned
-lightness ramp (lightest → darkest), each with a matching `-border`, plus two
+lightness ramp (lightest → darkest), each with a matching `-edge`, plus two
 extras. **Default to this ramp for any game's tiles**; diverge only with a real
 reason (below).
 
@@ -1422,8 +1423,8 @@ reason (below).
 |---|---|
 | `--tile-1-fill-color` … `--tile-5-fill-color` (+ `-edge-color`) | the ramp, lightest → darkest |
 | `--tile-3-fill-color` = `--tile-slot-fill-color` | **the normal tile** — what most games use at rest |
-| `--tile-spent-fill-color` (+ `-edge-color`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
-| `--mark-attention-tile-color` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
+| `--tile-spent-fill-color` (+ `-edge-color`) | a darker shade **past** the ramp, for a tile out of play (e.g. a scrabble rack tile already on the board) |
+| `--mark-attention-tile-color` | the **opaque** yellow a tile wears for the beat of an attention flash — for that beat the tile simply IS yellow, and the fade hands the state color straight back. Not a blend: on a green tile a blend comes out sickly rather than urgent |
 | `--mark-gridCursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
 
 **Who uses what:** most games take `--tile-3-fill-color` via the shared `.tile`'s `--tile-slot-fill-color`
@@ -1437,9 +1438,9 @@ for its hexes + an accent-yellow center. If a game's tiles are always meaning-co
 (wordle), that's the reason to skip the ramp — otherwise reach for it.
 
 The ramp is **hand-tuned, not algorithmic** — a deliberate choice so an individual
-shade can be nudged. When a new theme lands (dark mode …), it supplies a fresh ramp
-tuned against its background (borders derive as "a darker shade of the fill", which
-inverts cleanly); the semantic token names make it a one-file swap.
+shade can be nudged, and because it does not derive from one anchor (hue holds
+while chroma rises as it darkens). A theme supplies a fresh ramp tuned against its
+background, edges included; the semantic token names make it a one-file swap.
 
 **The decided tile — a permanent result fill.** A tile is *decided* once its
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
@@ -1566,13 +1567,12 @@ assembling the same skeleton by hand is how they drifted apart before.
 - **Both slots always render**, even when the right one is empty. One shape for
   three pages, and putting something on the right later is adding a child rather
   than restructuring a header.
-- **The height is a contract**, `--pageHeader-height` in `base.css`. All three
-  were `2.5rem` by arithmetic nobody had written down — a 32px logo plus the
-  menu trigger's `0.25rem` of padding each side — while `--game-header-bottom`
-  hard-coded that same `2.5rem` to position the mobile `<InfoSheet>` under this
-  rule. Two places agreeing by coincidence is how the sheet ends up riding 4px
-  over the rule at one viewport, which happened once already. Both now read the
-  token.
+- **The height is a contract**, `--pageHeader-height` in `base.css`: what the
+  strip's tallest child needs — a 32px logo plus the menu trigger's `0.25rem`
+  of padding each side. The header reads it, and so does
+  `--game-header-bottom`, which positions the mobile `<InfoSheet>` under this
+  rule; two places agreeing by coincidence instead is how the sheet ends up
+  riding 4px over the rule at one viewport.
 - **The left slot takes `flex: 1` and `min-width: 0`** — that's the room a
   `<PageHeaderStatusSlot>` has to render a feedback pill or the players strip into, and
   the `min-width` is what lets it ellipsize instead of widening the strip.
@@ -1593,10 +1593,10 @@ its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
 - **Joined, not a row of buttons.** The shape is the message: the options are
   mutually exclusive, so they share one border and touch. Separate buttons with
   a gap read as independent toggles you could press several of.
-- **The segments are not `.button`s.** `.button` gives every element its own
-  border and radius, which doesn't restyle a segmented control, it dismantles
-  it. The frame owns the border and the rounding; a segment owns only its fill —
-  the same division a SelectionList makes with its rows.
+- **The segments are not `.standardButton`s.** That class gives every element
+  its own border and radius, which doesn't restyle a segmented control, it
+  dismantles it. The frame owns the border and the rounding; a segment owns
+  only its fill — the same division a SelectionList makes with its rows.
 - **Its children are its segments**, no class per option. A caller wanting
   full-width segments (the mobile tab bar) sets `flex: 1` on them from its own
   module.
@@ -1622,10 +1622,10 @@ takes no class to be the right size.
 | `h3` | a **section** heading — "Your clubs", "Start a new game", the info column's panels | `1.15rem` | `1.15rem` |
 | `h4` | a **subsection** inside prose — a game's Help | `1rem` | `1rem` |
 
-Declared rather than left to the browser because the default mattered: until
-2026-08-21 the space between a page's section heading and the list under it
-*was* the UA's `margin-block: 1em` — a number nobody chose, load-bearing on the
-homepage and the club page, and different from the number the info column used.
+Declared rather than left to the browser because the default matters: the space
+between a page's section heading and the list under it is load-bearing on the
+homepage and the club page, and left undeclared it is the UA's
+`margin-block: 1em` — a number nobody chose.
 
 **These sizes are for non-game pages.** A game's info column is the packed
 surface, so it steps its headings down and drops the margin —
@@ -1674,10 +1674,6 @@ Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
   explicit answer: ellipsis, or dropping a whole clause the way the word list
   hides `· Longest: 7` on mobile. Prefer dropping a clause when the heading is
   made of facts; `Score: 11…` loses a number.
-
-Converted so far: the homepage. Still to come: the club page's two, and
-`infoPanel.headerRow` (the turn log + word list) — where the turn log's dead
-`headerAction` branch goes at the same time.
 
 ## Selection lists
 
@@ -1815,7 +1811,7 @@ color, cursor and a radius, and nothing else. Chrome is opt-in:
 
 ```
 button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-.button                   a general button's SHAPE (patterns/button.css) — padding, border width, radius. Paints nothing.
+.button                   a general button's SHAPE (buttons/StandardButton.module.css) — padding, border width, radius. Paints nothing.
   .primary                the filled treatment    ┐ exactly one of these, always
   .secondary              the outline treatment   ┘ × the five families
 .tile                     a game piece (each board's module)
@@ -1961,7 +1957,7 @@ The cost of the exemption, since it isn't zero: their hover colors are hand-pick
 rather than derived from a tone, so a future theme has two extra places to visit.
 
 **A smaller button is a SIZE, not a kind** — the global `.button-small`
-(`utilities.css`): `0.8rem` at weight 500 in `0.25rem 0.6rem` of padding, the
+(`buttons/StandardButton.module.css`): `0.8rem` at weight 500 in `0.25rem 0.6rem` of padding, the
 extra weight being what holds a 0.8rem label together rather than a separate
 choice. It composes with any tone and either treatment, so the homepage's
 "+ New club" is `cls('button', 'secondary', 'button-small')`. It carries no

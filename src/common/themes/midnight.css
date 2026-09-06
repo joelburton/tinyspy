@@ -268,14 +268,13 @@
 
   /* ══ PILL ═══════════════════════════════════════════════════════
      Every border still aliases an outcome ink; every tint still mixes
-     from a base. THE INK CELL EARNS ITSELF HERE — added the same day
-     as this spike, one value in seven cells, and that value is
-     `--page-text-color`, which is near-white in this theme and
-     near-black in daylight. A pill dropped into midnight comes out
-     with light words in a colored outline without one further edit.
-     Had the ink stayed an inheritance, it would have worked by luck;
-     as a cell it works by design, and can be tuned per tone the day a
-     wash gets dark enough to need it. */
+     from a base. THE INK CELL EARNS ITSELF HERE — one value in seven
+     cells, and that value is `--page-text-color`, which is near-white
+     in this theme and near-black in daylight. A pill dropped into
+     midnight comes out with light words in a colored outline without
+     one further edit. Were the ink an inheritance, it would work by
+     luck; as a cell it works by design, and can be tuned per tone the
+     day a wash gets dark enough to need it. */
 /* @@ */   --pill-won-color:      var(--outcomes-won-ink-color);
 /* @@ */   --pill-lost-color:     var(--outcomes-lost-ink-color);
 /* @@ */   --pill-near-color:     var(--outcomes-near-ink-color);
@@ -306,17 +305,16 @@
      this is twelve fresh values in the same shape: one material
      getting thicker, starting from a warm wood rather than an ivory.
 
-     ⚠️ THE DIRECTION IS THE CONTRACT, and this file got it backwards
-     once. `1` IS THE LIGHTEST AND `5` IS THE DARKEST, in every theme —
-     the numbers are an ordinal, and every consumer reads them as one.
-     The first version of this ramp ran the other way, because it
-     preserved "how far each shade sits from the page" rather than "how
-     dark each shade is", and those two agree in daylight and are
-     opposites here.
+     ⚠️ THE DIRECTION IS THE CONTRACT. `1` IS THE LIGHTEST AND `5` IS
+     THE DARKEST, in every theme — the numbers are an ordinal, and every
+     consumer reads them as one. The trap is that "how far each shade
+     sits from the page" and "how dark each shade is" agree in daylight
+     and are opposites here, so a ramp built to preserve the first runs
+     backwards.
 
-     Stackdown is what exposed it. It maps covering-depth onto the
+     Stackdown is what makes it visible. It maps covering-depth onto the
      ramp — the exposed tile is 1, the buried ones 2, 3, 4 — so an
-     inverted ramp lit the BOTTOM of the stack and left the top in
+     inverted ramp lights the BOTTOM of the stack and leaves the top in
      shadow, which is not how anything works. Deeper means less light
      reaches it, and that is a fact about lighting rather than about the
      page, so it does not flip with the theme.
@@ -398,8 +396,7 @@
      any judgment; here, near-white on the dark cap and near-black on
      any judgment. Both readings are "the ink flips when you try a
      letter", which is the thing a player actually learns. Pin the
-     judged ink to white and midnight loses it entirely — which is what
-     it did until this tier existed. */
+     judged ink to white and midnight loses it entirely. */
 /* @@ */   --wordle-green-ink-color:   var(--ink-onLight-color);
 /* @@ */   --wordle-yellow-ink-color:  var(--ink-onLight-color);
 /* @@ */   --wordle-gray-ink-color:    var(--ink-onLight-color);

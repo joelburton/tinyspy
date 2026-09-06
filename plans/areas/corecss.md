@@ -4,8 +4,15 @@ The folders it reads: `core-css` · `themes`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-05).** Roster stamped `cs-audited-corecss`; every
-file read in one sitting; findings below.
+**Status: PAUSED (2026-09-05, Joel: "i can't really review these files and
+bless them until we've complete some areas that rely on corecss").** Roster
+stamped `cs-audited-corecss` and stays so; every file read in one sitting;
+findings below. All nineteen audit findings worked, the closing re-read done
+(eleven more, below), both `doc.md` Designs written and off `DESIGNS_OWED`.
+The one thing left is the blessing, and it waits until the areas that read
+these stylesheets have closed — a base rule is best judged from the surfaces
+that wear it. Nothing here is owed before then; the next area opens as
+usual.
 
 ## The roster
 
@@ -705,8 +712,159 @@ club-page sentence is true. A reader list in a comment is a count in
 disguise; the sentence that matters is the one after it (the card carries
 the surface and nothing else).
 
+## The closing re-read
+
+All sixteen files read again in one sitting on 2026-09-05, after the last
+group, with every claim re-checked against the tree — including the earlier
+greps, two of which had anchored on a line start and missed every rule that
+carries a `/* @@ */` marker. Eleven findings, all comment- or doc-only, all
+worked in the same sitting. The same two faults the area recorded kept
+recurring: a sentence describing a state that a later edit had changed, and a
+count written for five outcome families after two more had been added.
+
+### WORKED · F-corecss-20 · `chrome-depth-predates-the-hoist` · The CHROME depth block describes shadows that are no longer local
+
+`base.css` → Depth in CHROME said "only values four or more places already
+agreed on are shared here", and that the notice, the floating panel and the
+toast are near-misses of `popover` that "keep their own local token" — while
+declaring all three as global `--shadow-*` tokens directly below. The
+paragraph describes the state before the five were hoisted out of their
+modules (which is how `todo.md`'s naming item says they got here). Rewritten:
+five, not a ladder, three at one geometry, the toast heavier and tighter, the
+naming question in `todo.md`; a close-but-not-equal shadow still stays in its
+component with a note, which is the rule `docs/ui.md` → Every color has a
+NAME states. The reader-count rule is gone with it, per F-corecss-18's ruling.
+
+### WORKED · F-corecss-21 · `classes-under-their-old-names` · Six citations of classes that do not exist
+
+`.button` in `base.css` (the disabled rule), `badge.css`, `heading.css` and
+`segmented.css`; `.page-header` in `heading.css` twice. No global `.button`
+exists (F-corecss-5 fixed one citation and missed these), the chrome class is
+`.standardButton` in `buttons/StandardButton.module.css`, and the header's
+module class is `.header` behind `<PageHeader>`. Each now names the real thing,
+or the thing rather than a class. Two `docs/ui.md` sentences about this
+area's files went with them: "`.button` … (patterns/button.css)" and "the
+global `.button-small` (`utilities.css`)" now point at
+`buttons/StandardButton.module.css`. The rest of that section's class story —
+`.button`, `.button-small`, `cls('button', …)` for what is `.standardButton`,
+`.small`, `.iconOnly` — is `buttons`' to rewrite, and is a line in its
+`todo.md`.
+
+### WORKED · F-corecss-22 · `game-chrome-height-sum` · The token's arithmetic was written against a header that no longer exists
+
+`--game-chrome-height`'s comment summed "the GamePage header (~2.25rem
+intrinsic content height + its 0.5rem padding-bottom + the 1px rule)" to
+"≈ 4.8rem, set a hair higher" — but the header is the `--pageHeader-height`
+contract at 2.5rem (content-box), so the true sum on desktop is body padding
+1rem + 2.5rem + 0.5rem + 1px + GamePage's 1rem gap = **5rem + 1px**, and the
+token is 5rem. `PlayArea.module.css:89` already records it "rounds ~1px short
+at phone width" and trims a pixel there. The comment now states the
+composition in today's terms and says the number is written by hand where
+`--game-header-bottom` composes. **The value is not moved** — a pixel is
+Joel's, and the flex column absorbs the 1px today. Whether to compose it from
+the tokens is the same decision as GamePage wearing `.pageHeaderAndMainArea`,
+filed in `game-page/todo.md`.
+
+### WORKED · F-corecss-23 · `counts-from-five-families` · Three counts written when outcomes had five families
+
+`daylight.css`: EDGE "derives exactly, for all five" (seven); TERMINALFRAME
+"four hues plus the achromatic neutral" (six); VIEW "a dead gray and four dark
+outcome tints". `noted` and `error` made it seven and the prose around them
+was written first. Fixed, the third as "the dark outcome tints".
+
+### WORKED · F-corecss-24 · `archaeology-second-pass` · Eleven passages F-corecss-11 did not reach
+
+`page.css`: the lede's "before this, three pages wrote … `.frame` … three more
+had no page structure" (and its `.frame` claim was half wrong — `.frame` is
+still the club page's width holder and the game page's wrapper, and the
+history viewer's rectangle), plus "the homepage used to shrink to its card".
+`daylight.css`: the pill block's "it got there by promoting the two the pill
+used to own", "no pixel moved", TERMINALFRAME's before/after byte table for
+hexes that no longer exist, "not the amber it used to be", GAMELIST's "the
+overload these tokens used to commit", TILE's "it was called `disabled`", and
+the placeholder's "arrived at the identical recipe independently".
+`midnight.css`: "this file got it backwards once … the first version",
+"added the same day as this spike", "which is what it did until this tier
+existed". `utilities.css`: "on five screens … four different things".
+`base.css`: "until now the only lever". Each keeps its rule and loses its
+history; the ramp-direction warning in midnight is now a present-tense
+description of the trap rather than a confession.
+
+### WORKED · F-corecss-25 · `radius-round-readers` · A reader list, and wrong
+
+`--radius-round`'s comment: "Readers: the badge, a round icon button, a
+counter chip." The badge is the only reader; `ShuffleButton` and `ChatButton`
+write `999px` by hand (a `buttons` / `page-header` conversion, already the
+vocabulary guard's business) and no counter chip reads it. Now says what
+wears it, per F-corecss-10's ruling on reader lists.
+
+### WORKED · F-corecss-26 · `vocabulary-count-radii` · base.css counts to nine and calls it eight
+
+"The radii above are one; these are the rest … names eight. Seven are here."
+Radii + the seven listed is eight in `base.css`, plus the text grays is nine;
+`docs/ui.md` → The non-color vocabularies lists eight and the radii are not
+among them. `base.css` now says the radii are a vocabulary in the same sense,
+older than the list, and that seven of the doc's eight are the ones below.
+
+### WORKED · F-corecss-27 · `ui-md-twins-drifted` · The doc sections that twin these files had drifted from them
+
+`docs/ui.md`, sentences about this area's files, fixed here under the
+forward-fix ruling: the `chrome-*` bucket listed a `badge` token that does
+not exist; the `mark-*` bucket claimed the history and preview frames, which
+are `view-*` (and the row above it said so); "the chrome tones' five" for a
+button family's eight; the tile ramp's "matching `-border`" for `-edge`,
+`spent` glossed "disabled", the attention tile described as a **translucent
+overlay** where `daylight.css` says it is opaque on purpose, and "borders
+derive … inverts cleanly" against a ramp the theme says is hand-tuned; the
+segmented section's `.button`; the heading levels' "until 2026-08-21 … was the
+UA's"; the page-header contract's "all three were 2.5rem by arithmetic nobody
+had written down … both now read the token"; and "Converted so far: the
+homepage. Still to come: the club page's two" — the club page's two wear
+`.heading-with-controls` today. That roster is gone; the one conversion still
+owed (`infoPanel.headerRow`) is a line in `info-sheet/todo.md`. Five buckets
+the table did not list (`board-*`, `timer-*`, `ink-*`, `entry-*`, `print-*`)
+got one row.
+
+### WORKED · F-corecss-28 · `stale-outside-the-area` · Five sentences elsewhere about this area's files
+
+`guards/vocabularies.test.ts` z-index: "everything page-level is ≥ 40" (it
+is ≥ 1000) and a `fix` text about "the `--z-index-*` block above it being
+retired" (gone since F-corecss-11 recorded its deletion). `ClubPage.tsx`: a
+comment bounding the games list by "the `.frame`'s calc(100vh …)" — it is
+`.pageHeaderAndMainArea`'s, in `svh`. `docs/common.md`: two link texts
+spelling `src/common/fixed.css` and `src/common/base.css`. `core-css/todo.md`:
+`button.css` for `StandardButton.module.css`. `themes/todo.md`: the disabled
+item read as "drop `--chrome-disabled-opacity`" when it means "no per-family
+disabled cell"; reworded.
+
+### WORKED · F-corecss-29 · `quiet-primary-unread-claim` · "Nothing reads the primary trio today" is false
+
+`StandardButton.module.css`'s `.quiet` re-sets all four primary slots to the
+quiet trio, so `tone="quiet"` + primary resolves them. Whether any call site
+renders one is a different claim and not the family's business; the sentence
+now says the family is full whether or not any button is filled with it.
+
+### WORKED · F-corecss-30 · `card-item-re-evidenced` · The `.card` todo item's evidence was gone
+
+`core-css/todo.md` said "a list row's inner box was also called `.card`";
+nothing in `common/lists/` declares one. Four module stylesheets do
+(`DefinitionPopover`, `DeviceBlockNotice`, setgame's `Card`, crosswords'
+number-jump modal). The item is rewritten against the tree and stays a
+decision — whether the global one should say what it is for. **Joel's to
+delete if the collision is fine.**
+
+**Handed on from the re-read:** `game-page/todo.md` — GamePage's wrapper is
+its own `.frame`, the one page not wearing `.pageHeaderAndMainArea`;
+`buttons/todo.md` — the `docs/ui.md` class story; `info-sheet/todo.md` —
+`infoPanel.headerRow` is the heading pattern by hand.
+
 ## Notes
 
+- **`--game-chrome-height` is 5rem against a 5rem + 1px sum on desktop**
+  (F-corecss-22). Benign today — the play surface is a flex item and gives
+  the pixel — and not moved. Filed in `core-css/todo.md` (Joel, 2026-09-05:
+  "add them as todos, or they'll be forgotten"): compose it, or keep the
+  hand-written number and say so.
 - **Verified and holding, so no finding:** `--button-success-*` has no
   consumer (the one `'success'` in `ClubPage.tsx` is a toast tone);
   `--page-text-strong-color` and `-label-color` are unread and on
@@ -752,7 +910,10 @@ the surface and nothing else).
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+      (2026-09-05, eleven findings, all worked)
+- [x] both folders' `doc.md` Design written; both rows off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [ ] every file on the roster blessed, or its stamp says why not — **only
+      Joel's word sets `cs-blessed-corecss`**. PAUSED 2026-09-05: the
+      blessing waits until areas that rely on corecss have closed

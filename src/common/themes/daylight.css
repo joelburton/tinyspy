@@ -86,9 +86,9 @@
 /* @@ */   --field-strong-edge-color:      #b0b0b0;
 /* @@ */   --field-muted-ink-color:        #555555;
   /* A PLACEHOLDER's ink — the muted text taken half-way to the field's
-     own background, so a hint is visibly not data. Two setup forms
-     (boggle's and letterboxed's board inputs) arrived at the identical
-     recipe independently, which is what promoted it here. */
+     own background, so a hint is visibly not data. A token because two
+     setup forms wrote the identical recipe apart, which is what
+     recurrence means. */
 /* @@ */   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
   /* ══ BUTTON ═════════════════════════════════════════════════════
@@ -172,7 +172,7 @@
      kept a considered 0.124 of distance so a destructive action could
      never read as a loss. The distance was retired knowingly — a
      terminal frame and a Delete button are never in the same
-     sightline. (Parked in 'todo.md: it should read
+     sightline. (Parked in this folder's todo.md: it should read
      differently, and 0.037 is not "differently".)
 
      Tried and rejected: lost's own #ef5350. At lightness 0.654 and hue
@@ -210,11 +210,11 @@
      for its VOLUME rather than its purpose, because "cancel" made
      every non-cancel that wanted this look like a misuse.
 
-     A FULL FAMILY, exactly like the other four. Nothing reads the
-     primary trio today, and that is not a fact about the family — the
-     dialog Cancel that made quiet famous wants the outline because
-     SECONDARY is the right treatment there, which says nothing about
-     whether a quiet button can be filled. It can.
+     A FULL FAMILY, exactly like the other four, whether or not any
+     button is filled with it today — the dialog Cancel that made quiet
+     famous wants the outline because SECONDARY is the right treatment
+     there, which says nothing about whether a quiet button can be
+     filled. It can.
 
      Material Gray 800, the same ramp normal (Blue 700), success (Green
      800) and destructive (Red 900) are picked from. DARK for a gray:
@@ -350,7 +350,7 @@
 /* @@ */   --outcomes-noted-ink-color:     var(--outcomes-noted-base-color);   /* base −0 L */
 /* @@ */   --outcomes-error-ink-color:     var(--outcomes-error-base-color);   /* base −0 L */
 
-  /* EDGE — the only outcome tier that derives exactly, for all five.
+  /* EDGE — the only outcome tier that derives exactly, for all seven.
      84% of base on the gamma-encoded sRGB bytes, which is the step
      psychicnum arrived at by eye and computed locally before this tier
      existed. In sRGB and NOT oklab, deliberately: the same 16% done in
@@ -408,7 +408,7 @@
      other.
 
      ONE FAMILY, picked together: oklch lightness 0.45 at chroma 0.105,
-     four hues plus the achromatic neutral. They must not become the
+     six hues plus the achromatic neutral. They must not become the
      fills — green and red at strength mean a TILE's state, and a
      board-sized bar of either would shout an outcome the pill has
      already stated quietly. These sit dark, at half the chroma.
@@ -422,21 +422,13 @@
      rule drawn round a finished thing rather than as a state anyone
      chose. It is also the one a game with no verdict wears.
 
-     DERIVED OFF BASE, live, and the family moves slightly because of
-     it. The recorded hexes these replace were computed off each
-     family's INK hue, in a different oklab implementation, so pointing
-     them at base costs a few bytes each — measured:
-
-       won      75,134,75  →  75,134,77
-       lost    135,57,51   → 134,58,54
-       near    121,73,0    → 119,74,0
-       warning 132,63,20   → 122,72,0   ← the one you can see
-
-     warning moves most because it is the family whose ink is furthest
-     from its own base: 21.5° of hue (base 69.6°, ink 48.1°), because
-     Material's ramps rotate as they darken. Taking the hue from base
-     is the deliberate trade — every cell derives from the anchor, and
-     no tier is quietly anchored to a sibling.
+     DERIVED OFF BASE, live — and off BASE rather than off ink, which
+     is a visible choice for one family. warning's ink sits 21.5° of hue
+     from its own base (base 69.6°, ink 48.1°), because Material's ramps
+     rotate as they darken, so a band taken from its ink would be
+     browner than this one. Taking the hue from base is the deliberate
+     trade — every cell derives from the anchor, and no tier is quietly
+     anchored to a sibling.
 
      near GAMUT-MAPS on the way out: oklch(0.45 0.105 73.5°) is outside
      sRGB, so the browser lands it at a lower chroma. That is the
@@ -463,17 +455,14 @@
      won game and a board showing one are the same message arriving in
      two places; them diverging would be the bug.
 
-     It got there by promoting the two the pill used to own. `info` was
-     news that a board could not express, and became the outcome
-     `noted` once "a turn that counts without being a verdict" turned
-     out to be a thing a turn log wants to say. `error` was a fault the
-     pill reported and a board never did, and became an outcome for the
-     same reason: a move can break rather than lose.
+     The two tones that look least like a board's — `noted` and `error`
+     — are outcomes for a reason each: a turn log wants to say "a turn
+     that counts without being a verdict", and a move can break rather
+     than lose.
 
-     THREE CELLS, and `ink` is the new one. Every tone's ink is the
-     page's own text color today — a pill has always been read as black
-     words inside a colored outline, and nothing about that is changing
-     here. It becomes a CELL rather than an inheritance for two reasons.
+     THREE CELLS. Every tone's ink is the page's own text color today —
+     a pill is read as black words inside a colored outline. It is a
+     CELL rather than an inheritance for two reasons.
 
      One: it is the pill's third real channel, and leaving it unnamed
      meant the family looked like it had two. A pill paints a border, a
@@ -484,7 +473,7 @@
      enough that black reads on all seven today, but a family whose
      tint darkens — or a dark theme, where the whole question inverts —
      needs a per-tone answer, and the place to put it should already
-     exist. Seven cells now, one value, no pixel moved.
+     exist. Seven cells, one value.
 
      THE TINTS ARE THE IRREGULAR PART. Five mix at 18% and two at 8%,
      which is what ships today and is preserved here rather than
@@ -544,11 +533,11 @@
      a future theme supplies a new ramp against its background.
 
      `spent` is a darker shade beyond the depth ramp, for a tile that
-     is out of play (a scrabble rack tile already on the board). It was
-     called `disabled`, which is a word a game piece does not get:
-     measured across all sixteen games, every unclickable piece shows a
-     STATE instead, and setgame overrides the global dim because
-     dimming a card "reads as a different card". */
+     is out of play (a scrabble rack tile already on the board). Not
+     `disabled`, which is a word a game piece does not get: measured
+     across every game, every unclickable piece shows a STATE instead,
+     and setgame overrides the global dim because dimming a card "reads
+     as a different card". */
 /* @@ */   --tile-1-fill-color:      #faf7ef;   --tile-1-edge-color:      #ead8ae;
 /* @@ */   --tile-2-fill-color:      #f6efdf;   --tile-2-edge-color:      #e5d09e;
 /* @@ */   --tile-3-fill-color:      #f2e8ce;   --tile-3-edge-color:      #e1c88e;  /* NORMAL */
@@ -679,14 +668,13 @@
 
      HISTORY — you are viewing a past turn. BLUE, and it has to stay
      clearly blue: it wears the same frame as game-over, whose faces
-     are a dead gray and four dark outcome tints, and the color is the
+     are a dead gray and the dark outcome tints, and the color is the
      ONLY thing telling a player "you can leave this" from "this game
      is finished". A gray-blue read as a paler cousin of the gray one.
      Not an outcome color either: reviewing a pass or a rejected word
-     is no success, so green would mislead — and not the amber it used
-     to be, because amber now means "attention" and history is the one
-     mark you asked for yourself. Muted rather than the button blue,
-     which belongs to controls.
+     is no success, so green would mislead — and not amber, which means
+     "attention", where history is the one mark you asked for yourself.
+     Muted rather than the button blue, which belongs to controls.
 
      SHARE PREVIEW — a coop teammate is "showing a move" (scrabble):
      history that hasn't happened yet. Its own token, initialized to
@@ -747,8 +735,7 @@
      `suspended` and `current` are states.md's words, not ours: current
      = "at least one club member is viewing its GamePage right now",
      suspended = "a non-current, non-terminal game". It explicitly
-     forbids 'active' for the view-state/play-state overload these
-     tokens used to commit.
+     forbids 'active', which overloads view-state and play-state.
 
      No neutral cell yet, deliberately: the reserve-every-cell policy
      is for the color FAMILIES, and nothing lists a manually-ended game

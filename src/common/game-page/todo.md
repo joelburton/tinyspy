@@ -41,5 +41,12 @@
 - The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
   concern; whatever that redesign decides about slot ownership lands as a
   change this folder applies.
+- **The game page is the one page not wearing `.pageHeaderAndMainArea`.**
+  Its wrapper is its own `.frame` — a flex column with the same 1rem gap and
+  no height bound, because the play surface bounds itself off
+  `--game-chrome-height` instead. Whether it should take the shared pattern
+  (`core-css/patterns/page.css`) and let the bound come from there is a
+  layout decision for this folder; a header or padding change moves both
+  numbers by hand today.
 
 ## Maybe
