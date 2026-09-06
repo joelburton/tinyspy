@@ -222,8 +222,9 @@ const VOCABULARIES: Vocabulary[] = [
     // Gap and margin, in every spelling each has. PADDING IS DELIBERATELY
     // ABSENT — core-css/todo.md: whether the room inside a box
     // belongs on the same ramp as the space between boxes is undecided, and
-    // today's paddings are often a tuple fitted to one box (`.item-row`'s
-    // says so in list.css). Parked, not excluded; it rejoins this list.
+    // today's paddings are often a tuple fitted to one box (the selection
+    // row's says so in lists/SelectionList.module.css). Parked, not excluded;
+    // it rejoins this list.
     properties: [
       'gap',
       'row-gap',
@@ -255,8 +256,8 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
       // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it
       // is the mark gap, and the number you see is that plus each mark's own
-      // padding — see the file, and F43 (`unequal-mark-separation`). If a second
-      // site ever wants it, it earns a ramp step then.
+      // padding, so equal-looking gaps would need unequal numbers — see the
+      // file. If a second site ever wants it, it earns a ramp step then.
       'src/common/page-header/PageHeader.module.css': ['0.375rem'],
       // The icon-and-label gap is `em` BY DESIGN, not unconverted: it tracks the
       // button's own text so the glyph, the label and the space between them stay
@@ -330,8 +331,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/text/RichMessage.module.css': ['0.25rem'],
       'src/common/toasts/Toast.module.css': ['0.7rem'],
       'src/common/toasts/ToastHost.module.css': ['0.6rem'],
-            'src/common/core-css/patterns/heading.css': ['0.5rem'],
-      'src/common/core-css/utilities.css': ['1rem', '1.5rem'],
     },
     fix:
       'Use `--spacer-1` … `-5` (1.5 · 1 · 0.75 · 0.5 · 0.25rem), remembering ' +
@@ -385,9 +384,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
       'src/common/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/core-css/patterns/badge.css': ['0.7rem'],
-            'src/common/core-css/patterns/segmented.css': ['0.8rem'],
-      'src/common/core-css/utilities.css': ['0.9rem', '0.85rem'],
-      // `.helpText` is the global `.muted` carved out under a name that says
+      'src/common/core-css/patterns/segmented.css': ['0.8rem'],
+      'src/common/core-css/utilities.css': ['0.9rem'],
+      // `.help` is the global `.muted` carved out under a name that says
       // what it is, at the SAME values — a rename must not move a pixel. So its
       // 0.9rem is `.muted`'s 0.9rem, listed here, and the two convert together
       // or not at all (the ramp has 1 / 0.85 / 0.75 and no step for it).
@@ -497,7 +496,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/game-page/PlayArea.module.css': ['80ms'],
       'src/shared/rank-ladder/RankBar.module.css': ['80ms'],
       'src/common/menu/Menu.module.css': ['100ms', '80ms'],
-      'src/common/core-css/patterns/segmented.css': ['100ms'],
     },
     fix:
       'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
@@ -530,7 +528,6 @@ const VOCABULARIES: Vocabulary[] = [
     extract: /\d*\.?\d+(?:px|rem|em)\b/g,
     allowed: /^0(px|rem|em)?$/,
     pending: {
-      'src/common/core-css/base.css': ['1px'],
       'src/common/account/ColorChoiceList.module.css': ['1px'],
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
       'src/common/chat/ChatBody.module.css': ['1px'],
@@ -555,9 +552,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],
       'src/common/toasts/Toast.module.css': ['1px', '4px'],
-      'src/common/core-css/patterns/badge.css': ['1px'],
-            'src/common/core-css/patterns/segmented.css': ['1px'],
-      'src/common/core-css/utilities.css': ['1px'],
     },
     fix:
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +

@@ -33,9 +33,8 @@
   nowhere. The header's marks are where it first bites (their background
   would carry both hover and press); the header may take it as a local rule
   first. Not decided.
-- **`.card` and `.actions` each name two different things.** Global `.card` is
-  the page card; a list row's inner box was also called `.card`. Global
-  `.actions` is a COLUMN of buttons; `.modalActions` is an end-aligned ROW.
+- **`.card` names two different things.** Global `.card` is the page card; a
+  list row's inner box was also called `.card`.
 - **Padding on the spacer ramp?** `--spacer-*` governs `gap` and `margin`;
   padding is parked, not excluded. The room inside a box tends to run smaller
   and today's tuples are fitted to their box, so paddings stay ad hoc and the

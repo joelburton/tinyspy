@@ -771,7 +771,7 @@ input,
   font: inherit;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--field-edge-color);
+  border: var(--border-width-line) solid var(--field-edge-color);
   background: var(--field-fill-color);
   color: inherit;
 }

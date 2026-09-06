@@ -61,33 +61,50 @@ means OPEN.
 
 `guards/vocabularies.test.ts` keeps a `pending` row per file for every literal
 not yet converted, and the a/b/c rule says a value converts when its area is
-audited. This is that area, and its own five stylesheets hold fourteen rows:
+audited. This is that area, and at the audit its own five stylesheets held
+**thirteen** rows (the audit first wrote fourteen; the rows are
+`vocabularies.test.ts:250, 333, 334, 350, 387, 388, 389, 426, 500, 533, 558,
+559, 560`).
+
+**Pass one — every exact match — is worked.** Seven declarations converted,
+six rows deleted, no pixel moved:
+
+| file | property | literal | token |
+|---|---|---|---|
+| `base.css` | `border` | `1px` (field edge) | `--border-width-line` |
+| `badge.css` | `border` | `1px` | `--border-width-line` |
+| `segmented.css` | `border` + `border-left` | `1px` ×2 | `--border-width-line` |
+| `utilities.css` | `border` | `1px` (`.card`) | `--border-width-line` |
+| `heading.css` | `gap` | `0.5rem` | `--spacer-4` |
+| `segmented.css` | `transition` | `100ms` | `--transition-duration-paint` |
+| `utilities.css` | `margin-top` | `1rem` (`.error`) | `--spacer-2` |
+
+What is left, and each of the four is Joel's — the font ramp has three steps
+and this area's own files want 0.7, 0.8, 0.9 and 1.4:
 
 | file | vocabulary | literal(s) | the a/b/c question |
 |---|---|---|---|
-| `base.css` | spacer | `1rem`, `1.25rem`, `1.15rem` — the h1–h4 margins | h2/h3/h4 use `margin-block` equal to their own font-size, which is a RATIO (`1em`) written as a rem; (b) `--spacer-2` / off-ramp, or (c) `1em` with the reason |
-| `base.css` | font-size | `1.5rem`, `1.25rem`, `1.15rem`, `1rem` — h1–h4; `max(16px, 1em)` — the touch floor | base.css:146 says the headings are "not on this ramp: they are sized by h1–h4 below" — already a (c), so the row should say so the way the `0.375rem` row does, or the levels get tokens (`--font-size-h1`…) |
-| `base.css` | border-width | `1px` — the field border | (b) `--border-width-line`, the token three lines below it declares |
-| `heading.css` | spacer | `0.5rem` — the gap | (b) `--spacer-4`, which is exactly this value |
-| `utilities.css` | spacer | `1rem`, `1.5rem` — `.actions` gap + margin | moot if F-corecss-3 deletes `.actions` |
-| `utilities.css` | font-size | `0.9rem` (`.muted`), `0.85rem` (`.divider`) | `0.85` is `--font-size-2`; `0.9` is between `-1` and `-2` — (a) a step, (b) fit to `-2`, or (c) |
-| `utilities.css` | border-width | `1px` — `.card` | (b) `--border-width-line` |
-| `badge.css` | font-size | `0.7rem` | off-ramp below `-3` (0.75); (a) `--font-size-4` or (b) `-3` |
-| `badge.css` | line-height | `1.4` | between `-1` (1.5) and `-2` (1.25); badge.css says it is "a single line that should occupy exactly its own height", which is `-3`'s stated meaning (1) — (b), and see whether the lozenge changes height |
-| `badge.css` | border-width | `1px` | (b) `--border-width-line` |
-| `segmented.css` | font-size | `0.8rem` | between `-2` and `-3`; (a)/(b) |
-| `segmented.css` | transition-duration | `100ms` | (b) `--transition-duration-paint`, which is 100ms and is for exactly this ("a color settling instead of jumping") |
-| `segmented.css` | border-width | `1px` ×2 | (b) `--border-width-line` |
+| `base.css` | spacer | `1rem`, `1.25rem`, `1.15rem` — the h1–h4 margins | h2/h3/h4 use `margin-block` equal to their own font-size, which is a RATIO (`1em`) written as a rem; h1's `1rem` against a `1.5rem` font is not a ratio and is an exact `--spacer-2`. Note the spacer `allowed` regex rejects `em`, so a (c) that writes `1em` needs the guard widened |
+| `base.css` | font-size | `1.5rem`, `1.25rem`, `1.15rem`, `1rem` — h1–h4; `max(16px, 1em)` — the touch floor | the ramp's own `fix` text already says "Headings are not on this ramp — their sizes are decided by h1–h4 in base.css", so the exemption is stated and only the row has not caught up. Separately, `max(16px,` / `1em)` are artifacts of an extractor that cannot see inside `max()`: the touch floor is `docs/mobile.md` → Decisions #3 and can never be a ramp token. Four files carry the same pair |
+| `utilities.css` | font-size | `0.9rem` (`.muted`) | not a one-off: **26 declarations in 18 files against `--font-size-2`'s 21**, and the guard binds `.muted`'s to `setup-form`'s `.help` (the row comment still calls it `.helpText`) with `fields/field.module.css` writing the same value. That is the ramp missing its most-written step, not a nudge to `-2`, and it wants its own presentation |
+| `badge.css` | font-size | `0.7rem` | off-ramp below `-3` (0.75); (a) `--font-size-4` or (b) `-3`. Four sites app-wide |
+| `badge.css` | line-height | `1.4` | between `-1` (1.5) and `-2` (1.25). `--line-height-3`'s own comment in `base.css` defines it as "a single line that should occupy exactly its own height", which is what a lozenge is (badge.css itself says nothing about line-height) — but (b) is not free: at `0.7rem` the line box goes 15.7px → 11.2px and the lozenge shrinks |
+| `segmented.css` | font-size | `0.8rem` | between `-2` and `-3`; (a)/(b). Twelve sites app-wide |
 
-The (b) cells with an exact match — five `1px`s, the `0.5rem` gap, the
-`100ms` — move no pixel and are the mechanical half. The rest are decisions
-(one per row, named above), and each is Joel's: the font ramp has three steps
-and this area's own files want 0.7, 0.8, 0.9 and 1.4.
+**Recommendation for what remains:** present the four off-ramp values one at
+a time with an (a)/(b) render each, `0.9rem` separately from the other three
+because it is a ramp question rather than a class's. The two `base.css`
+heading rows are not decisions — they are a stated (c) that wants a row
+comment in the shape of the `0.375rem` one.
 
-**Recommendation:** work it in two passes. Pass one converts every exact
-match and deletes those entries from the guard rows. Pass two presents the
-off-ramp values one at a time, each with what the (a) and (b) renders look
-like.
+**Pass one WORKED (2026-09-05, Joel: "do pass one now")** — the seven
+conversions above, with the `heading.css` spacer row, the `segmented.css`
+transition row and all four border-width rows deleted from the guard in the
+same edit. Thirteen rows → seven. All 26 guard files green (270 tests).
+`utilities.css`'s spacer row survived this pass — `.error`'s `1rem` converted
+but `.actions` still wrote `1rem` and `1.5rem` — and then went with
+F-corecss-3, which also emptied `.divider`'s `0.85rem` out of the font-size
+row. Six rows stand.
 
 ### F-corecss-2 · `default-bg-color-rename` · The rename the folder's own `todo.md` has carried since 2026-08-22, never built
 
@@ -117,7 +134,7 @@ family (`--default-bg-border-color`, `--default-bg-hover-color`) or the one?
 The doc lists the hover gray as a deliberately unnamed exception, which
 argues for the one.
 
-### F-corecss-3 · `dead-utility-classes` · `.actions` and `.divider` have no reader
+### WORKED · F-corecss-3 · `dead-utility-classes` · `.actions` and `.divider` have no reader
 
 Verified by grepping every `.tsx` for the class as a `className` string or a
 `cls('…')` argument: nothing passes `actions` or `divider`. The earlier loose
@@ -128,8 +145,50 @@ records. The global half of that item is dead; deleting it settles the item
 for `.actions`. `.error` has one reader (`ChatBody`); `.link-button` four;
 `.muted` nineteen; `.definable` fifteen.
 
-**Recommendation:** delete `.actions` and `.divider` and their comments;
-strike the `.actions` half of the todo item.
+**Resolution (2026-09-05, Joel: "do f3")** — both rules and their comments
+deleted from `utilities.css`. Re-verified first: no `className` string, no
+`cls()` argument and no test selector anywhere reaches either class, and
+`--page-divider-color` keeps fourteen other readers, so `.divider`'s
+departure strands no token.
+
+Four sentences went false with them and were fixed in the same edit:
+
+- `core-css/todo.md` — the item is now `.card` alone.
+- `floating-panels/modalActions.module.css` — the paragraph distinguishing
+  itself from "the GLOBAL `.actions` utility" is gone; nothing to
+  distinguish from now. (It also cited `theme.css`, a file that has not held
+  these classes since the reorg.)
+- `docs/common.md` and `docs/ui.md` — both listed `.actions` among the
+  universal utilities and both named `common/theme.css`. Now
+  `common/core-css/utilities.css`, and `.definable` takes the slot, which is
+  what the list was actually missing.
+
+The deletion also finished two of the rows F-corecss-1 left open:
+`utilities.css`'s spacer row is deleted (`.error`'s `1rem` had already
+converted, so nothing was left) and its font-size row is down to
+`['0.9rem']`. Thirteen rows → six. Guards green (26 files, 270 tests).
+
+`docs/ui.md` → Dialog buttons said "each dialog owns a small `.actions` /
+`.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem`".
+That is about per-dialog MODULE classes rather than the global one, so it was
+first left for `floating-panels` — wrongly (Joel, 2026-09-05: "if we know
+that there's a problem in another area, we should lean toward fixing it
+NOW"). Verified and fixed here: every dialog in the repo applies
+`actionRow.modalActions` (`EditClubModal`, `CreateClubModal`,
+`BlockingModal`, `SetupGameModal`, `WordEditDialog`, `EditProfileModal`) and
+no dialog owns a local action row; the only surviving `.buttonRow` is
+`ClaimHandleScreen`'s, which is a screen. The sentence now names the shared
+rule and keeps both numbers, which the shared rule does carry.
+
+Four one-line staleness items in `guards/vocabularies.test.ts`, recorded at
+the audit as "found outside and left", were swept under the same ruling: the
+`.helpText` row comment (the class is `.help`), the F43 citation at the
+`0.375rem` row (a finding ID in a durable file — now the reason itself), the
+`list.css` pointer in the spacer docstring (the example lives in
+`lists/SelectionList.module.css`), and one stray indent. Left deliberately:
+the `0.6rem` row comment's "the retired list.css pattern's row gap", which
+names the file as retired and is recording where a value came from, not
+sending anyone to read it.
 
 ### F-corecss-4 · `pageHeader-two-spellings` · One component, two token spellings
 
@@ -377,11 +436,10 @@ the surface and nothing else).
   `--page-text-strong-color` (`#000000`, decided outright).
 - **All four guards green at the open** (`cssTokens`, `vocabularies`,
   `csStamps`, `folderDocs`), so anything red after this area is this area's.
-- **Found outside the area and left, both one-line sweeps:**
-  `guards/vocabularies.test.ts:258` cites "F43 (`unequal-mark-separation`)" in
-  a comment (a finding ID in a durable file; the row is `page-header`'s), and
-  `:226` and `:303` name `list.css`, a file that is now
-  `lists/SelectionList.module.css`.
+- **Found outside the area and swept with F-corecss-3**, once the ruling was
+  that a known problem gets fixed where it is found: the F43 citation and the
+  `list.css` pointer in `guards/vocabularies.test.ts`, plus the `.helpText`
+  name and a stray indent. See that finding's resolution.
 - **Left for `game-page`:** `GamePage.tsx:169` renders its not-found page as
   a `.card.pageMain` (the home of that page is already on that folder's
   list); the `<ModePill>` rename if F-corecss-16 is worked.

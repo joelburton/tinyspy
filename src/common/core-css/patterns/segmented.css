@@ -39,7 +39,7 @@
 /* @@ */ .segmented {
   display: inline-flex;
   align-self: flex-start;
-  border: 1px solid var(--field-edge-color);
+  border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -58,12 +58,12 @@
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 100ms ease;
+  transition: background-color var(--transition-duration-paint) ease;
 }
 
 /* One hairline between segments, and none at the ends — the frame closes those. */
 /* @@ */ .segmented > * + * {
-  border-left: 1px solid var(--field-edge-color);
+  border-left: var(--border-width-line) solid var(--field-edge-color);
 }
 
 /* THE CHOSEN ONE reads off `aria-pressed`, which the markup already carries for

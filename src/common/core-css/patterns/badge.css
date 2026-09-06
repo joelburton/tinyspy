@@ -38,7 +38,7 @@
   font-weight: 700;
   line-height: 1.4;
   padding: 0.05rem 0.4rem;
-  border: 1px solid currentColor;
+  border: var(--border-width-line) solid currentColor;
   border-radius: var(--radius-round);
   /* The badge rides beside text of a different size (a club name, a game
      title), so it centers on the line box rather than sitting on the

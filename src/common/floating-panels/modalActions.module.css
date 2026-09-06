@@ -12,9 +12,6 @@
  * `actionRow.modalActions`. Replaces the per-dialog `.actions` blocks that had
  * each re-stated this with slightly different gaps / margins / button widths.
  *
- * Distinct from the GLOBAL `.actions` utility in theme.css (a vertical stack);
- * this is the horizontal dialog footer.
- *
  * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
  * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
 /* @@ */ .modalActions {
