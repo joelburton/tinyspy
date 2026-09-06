@@ -4,23 +4,399 @@ The folders it reads: `buttons`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: NOT OPENED.**
+**Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
+stamped `cs-audited-buttons`; nineteen findings recorded, none worked. Opened
+out of §3's order: `members` is the next row, and Joel chose `buttons` first.
 
 ## The roster
 
-*(agreed with Joel when the area opens — list the files and STOP)*
+Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
+`StandardButton` and the purpose buttons built on it.
+
+| file | what it is | stamp |
+|---|---|---|
+| `src/common/buttons/StandardButton.tsx` | the one `<button>` — weight × tone × name/label/tooltip; every purpose button composes it | `cs-audited-buttons` |
+| `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-audited-buttons` |
+| `src/common/buttons/StandardButton.test.tsx` | the three rules that keep `name` / `label` / `tooltip` three things | `cs-audited-buttons` |
+| `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-audited-buttons` |
+| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; filled at terminal, outline elsewhere; a `compact` form | `cs-audited-buttons` |
+| `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a glyph | `cs-audited-buttons` |
+| `src/common/buttons/ClearButton.tsx` | wipe the pending selection — eraser, neutral | `cs-audited-buttons` |
+| `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-audited-buttons` |
+| `src/common/buttons/CloseButton.module.css` | its stylesheet (24 lines) | `cs-audited-buttons` |
+| `src/common/buttons/ConcedeGameButton.tsx` | one player quitting a compete race — distinct from End | `cs-audited-buttons` |
+| `src/common/buttons/DeleteButton.tsx` | backspace — remove the last typed character; the glyph bumped to 22 | `cs-audited-buttons` |
+| `src/common/buttons/EndGameButton.tsx` | the manual "we're done" for solo / coop — destructive red, the crossed-out stop sign | `cs-audited-buttons` |
+| `src/common/buttons/EndTurnButton.tsx` | hand play on — the octagon at primary weight | `cs-audited-buttons` |
+| `src/common/buttons/ExchangeButton.tsx` | scrabble's swap — two-way arrows, normal tone, "Swap" | `cs-audited-buttons` |
+| `src/common/buttons/HelpButton.tsx` | icon-only "?" that opens a game's rules on top of the setup dialog | `cs-audited-buttons` |
+| `src/common/buttons/HintButton.tsx` | ask for a clue — amber | `cs-audited-buttons` |
+| `src/common/buttons/NewGameButton.tsx` | a fresh game with the same setup — normal tone, "New game" | `cs-audited-buttons` |
+| `src/common/buttons/PassButton.tsx` | skip your turn, de-emphasized — the octagon at secondary weight | `cs-audited-buttons` |
+| `src/common/buttons/PauseButton.tsx` | pause / unpause, aware of manual vs presence pause | `cs-audited-buttons` |
+| `src/common/buttons/PauseButton.module.css` | its stylesheet (18 lines) | `cs-audited-buttons` |
+| `src/common/buttons/PeelButton.tsx` | bananagrams' primary move — the banana, primary weight | `cs-audited-buttons` |
+| `src/common/buttons/RestartButton.tsx` | start this board over — normal tone, "Restart" | `cs-audited-buttons` |
+| `src/common/buttons/RevealButton.tsx` | uncover the whole hidden answer of a finished game — destructive red, boxed eye | `cs-audited-buttons` |
+| `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — icon-only, normal tone | `cs-audited-buttons` |
+| `src/common/buttons/ShuffleButton.tsx` | shuffle the tile set — its own component with its own stylesheet | `cs-audited-buttons` |
+| `src/common/buttons/ShuffleButton.module.css` | its stylesheet (73 lines) | `cs-audited-buttons` |
+| `src/common/buttons/SpoilerButton.tsx` | hand over one hidden item mid-game — amber, the bare eye; the rung above Hint | `cs-audited-buttons` |
+| `src/common/buttons/SubmitButton.tsx` | send my move — the up triangle at primary weight; "deliberately thin" | `cs-audited-buttons` |
+| `src/common/buttons/SubmitWithScore.tsx` | scrabble's submit carrying the staged play's score; a raw `<button>`, not a `StandardButton` | `cs-audited-buttons` |
+| `src/common/buttons/SubmitWithScore.module.css` | its stylesheet (26 lines) | `cs-audited-buttons` |
+| `src/common/buttons/TrashButton.tsx` | destroy this thing — destructive by default so it looks irreversible before the press | `cs-audited-buttons` |
+| `src/common/buttons/WordCheckButton.tsx` | check my own work — info tone, not Hint's amber | `cs-audited-buttons` |
+| `src/common/buttons/ZoomFitButton.tsx` | frame the whole board — icon-only, the shared square box | `cs-audited-buttons` |
+| `src/common/buttons/doc.md` | a two-sentence lede; Design owed | (no stamp — markdown) |
+| `src/common/buttons/todo.md` | five Soon items handed in by earlier areas; the area's first read once it opens | (no stamp — markdown) |
+
+**Evidence, not roster** (to settle at the opening): `docs/buttons.html` —
+the rendered button tone grid, the twin of the theme's BUTTON block, which the
+stylesheet outranks; `docs/ui.md` → the button taxonomy and "What a `<button>`
+is" (which `todo.md` already says is stale); `themes/daylight.css` → BUTTON,
+which is `corecss`'s and paused; and the call sites — sixty-five files outside
+the folder import from it.
 
 ## Findings
 
-*(`F-buttons-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+Recorded 2026-09-05 from one read of the thirty-three files, every claim
+re-checked against the tree. The folder's `todo.md` was read first; its five
+items reappear below re-judged (F-buttons-3, -11, -13, -18, -19). Shape and
+behavior first, then the theme and the docs, then prose. No prefix means OPEN.
+
+### F-buttons-1 · `back-to-club-never-icon-only` · `<BackToClubButton label={null}>` draws text anyway
+
+`BackToClubButton` computes what it draws as
+`label ?? (compact ? 'Club' : undefined)`. `??` treats `null` like
+`undefined`, so `label={null}` — the one value `StandardButton` defines as
+"draw no text" — becomes `'Club'` when `compact` is set and `undefined`
+(which draws the full name, "Back to club") when it is not. The button cannot
+be icon-only from any call site.
+
+Who asks for it: ten info columns render `<BackToClubButton label={null}>`
+(boggle, letterboxed, setgame, spellingbee, strands, waffle, wordiply, wordle,
+wordwheel; crosswords with `compact` too), and ten games pass
+`backLabel={null}` through `<TerminalActionRow>`, whose prop docstring
+promises "pass `null` for the icon-only square". `docs/ui.md` → Terminal
+results says the same ("most games pass `iconOnly` so the row survives a
+~22rem column"). Every one of those draws "‹ Club" or "‹ Back to club" today.
+
+**Recommendation:** write the `undefined`/`null` split out, the way the base
+does — `label === undefined ? (compact ? 'Club' : undefined) : label` — and
+let the base's `aria-label` rule stand for the icon-only case (the explicit
+`aria-label={name}` stays for the compact case, where "Club" is drawn but the
+control is called "Back to club"). Then look at the terminal rows in the
+gallery: they have never rendered as designed, so the design should be seen
+before it ships.
+
+### F-buttons-2 · `variant-is-weight` · One axis, two props
+
+`BackToClubButton` takes `variant?: 'primary' | 'secondary'` and passes it as
+`weight`. Its `Props` is `PurposeButtonProps & {…}`, so `weight` is still
+accepted and rides in `...rest`, which spreads AFTER `weight={variant}` and
+wins. Two props name one axis, and only this purpose button renames it. Three
+callers pass `variant="primary"` (`TerminalActionRow`, `DeviceBlockNotice`,
+crosswords' terminal strip).
+
+**Recommendation:** drop `variant`; take `weight` with the default
+`'secondary'` like every sibling, and change the three callers.
+
+### F-buttons-3 · `tones-that-do-not-exist` · Seven docstrings name a tone the type has never had
+
+`ButtonTone` is `quiet | normal | caution | destructive | success`. The
+docstrings say: `warning` (AIButton, HintButton, PassButton, SpoilerButton —
+each passes `caution`), `neutral` (ClearButton — passes nothing, so `normal`),
+`info` (WordCheckButton — passes `normal`), and "the `error` red"
+(ConcedeGameButton — passes `destructive`). HintButton adds that it is "the
+same amber as a `warning` feedback pill", and `daylight.css` → CAUTION says
+the opposite at length: the button orange is deliberately NOT the outcome
+orange (hue 48° against 70°). The todo's PassButton item is this finding, one
+file of seven.
+
+**Recommendation:** name the tone the code passes, in every file, and delete
+the pill comparison. The same sentence lives in scrabble's `Controls.tsx`
+docstring and `docs/games/scrabble.md` ("`warning` tone") — a sweep, since
+this folder owns the vocabulary.
+
+### F-buttons-4 · `ghost-action-button` · `ActionButton` is gone and still named across the tree
+
+There is no `ActionButton` in the tree. Inside the folder it is named by
+`BackToClubButton` ("`aria-hidden` inside `ActionButton`"), `HelpButton` ("a
+thin wrapper over `ActionButton`"), `SubmitWithScore` ("the `ActionButton`
+family") and `StandardButton.module.css` ("`ActionButton.module.css`'s tone
+classes came with them"). Outside: `codenamesduet/CluePanel.tsx:374`,
+`menu/menuModel.ts:59`, `tooltips/TooltipHost.tsx:26`,
+`definitions/WordEditDialog.module.css:49`, `docs/deferred.md:121` (which also
+names `theme.css`), and `docs/ui.md` six times (F-buttons-13).
+`devtools/PalettePage.tsx:49` names it too and is out of bounds.
+
+**Recommendation:** `StandardButton` wherever the sentence survives the
+substitution; where the sentence only existed to say "it's an ActionButton",
+delete it. The `docs/ui.md` hits fold into F-buttons-13.
+
+### F-buttons-5 · `renamed-props-in-prose` · Docstrings name props and classes that were renamed under them
+
+- `SubmitButton`: "`iconOnly` for the no-text form" — the prop is
+  `label={null}`. `docs/ui.md:209` says "most games pass `iconOnly`".
+- `DeleteButton`: "bumped to 22 (vs the default 18)" and "`.icon-only`'s
+  fixed box" — it is `iconScale = 1.2` and `.iconOnly`, and the parameter
+  comment below the docstring already says the current thing, so the
+  docstring is a stale second copy.
+- `ZoomFitButton`: "the shared `.icon-only` box", "Default aria-label", and
+  "pass `label={false ? null : undefined}` for a labeled form" — an expression
+  that always evaluates to `null`. The sentence wanted "pass `label` to draw
+  one".
+- `HelpButton`: "`label` becomes the aria-label + tooltip" — `name` does.
+- `RevealButton`: "pass `label` … pass `revealedLabel` with it" — the props
+  are `name` and `revealedName`, and all nine callers pass `revealedName`. Its
+  opening list of what it uncovers reads as complete and names six games;
+  ten render it.
+- `PauseButton`: "docs/ui.md → the button taxonomy" — no heading by that
+  name; the section is "What a `<button>` is: the fourteen kinds".
+
+**Recommendation:** fix each sentence to the current name; delete
+DeleteButton's docstring sentence in favor of the comment that is right.
+
+### F-buttons-6 · `base-docstring-drift` · `StandardButton.tsx`'s own docstrings disagree with the file
+
+- `ButtonTone`: "`caution` = orange (Hint / Reveal)" — Reveal is
+  `destructive`, and its docstring argues why.
+- `StandardButtonProps`: "the six axes" — nine props follow (`name`,
+  `label`, `icon`, `tooltip`, `weight`, `tone`, `small`, `fullWidth`,
+  `iconScale`). The sentence predates `fullWidth` and `iconScale`.
+- `ButtonIcon`: widened past Lucide's type "so a button can supply its own
+  drawing … the pause bars are drawn inline". The pause bars are
+  `PauseButton`'s, which is a `<PageHeaderButton>` and never passes through
+  `StandardButton`; no caller of `StandardButton` supplies a non-Lucide glyph,
+  and nothing outside the file imports `ButtonIcon`.
+- Line 36: the bold closes on one line and the sentence's period opens the
+  next (`**null means "don't"**` / `*.`), a formatting slip.
+- `const Icon = icon ?? undefined` exists only so `{Icon && …}` sees
+  `undefined`; `{icon && <icon …>}` would read the same. Trivial.
+
+**Recommendation:** fix the tone example and the count (or drop the count —
+"the axes below"), and give `ButtonIcon` a true reason or narrow it to
+`LucideIcon` — a decision, since the type is exported and unread.
+
+### F-buttons-7 · `module-header-contradicts-close` · The stylesheet's list of what is NOT a standard button includes one that is
+
+`StandardButton.module.css` lines 12–16: "NOT standard buttons, and none of
+them come through here: … the ✕ dismiss glyphs — deliberately borderless, and
+they may not end up sharing the hover either." `CloseButton` IS a
+`StandardButton` — `StandardButton.tsx:128` says so ("A ✕ dismiss IS this
+button … packaged as `<CloseButton>`"), and `CloseButton.module.css` keeps the
+hover wash on purpose ("that is the affordance"). The same header cites "§7's
+table" — a plan section in a durable file, which the no-cite rule forbids —
+and carries two pieces of archaeology ("`ActionButton.module.css`'s tone
+classes came with them"; "the old `.button-small` declared `font-weight:
+500`").
+
+**Recommendation:** take the dismiss off the NOT list (it belongs on the
+component docstring's list, which is right); replace the §7 citation with the
+rule itself (a pattern with structure lives in a component + its module) or a
+pointer to `docs/code-conventions.md` → Patterns; cut the archaeology.
+
+### F-buttons-8 · `end-turn-prose` · `EndTurnButton` describes a mechanism the module contradicts
+
+"Primary is the filled-accent look, so it ignores semantic tone — the accent
+fill stands in for the no-valence 'info' read." Both treatments take all
+five tones; that is the tones section's whole point, and `ButtonWeight`'s
+docstring says "both take any tone". And "Distinct from `EndGameButton` (the
+flag, red …)" — the flag is Concede's; End took the crossed-out stop sign, as
+`EndGameButton`'s own docstring says.
+
+**Recommendation:** say it is `primary` in the default `normal` tone because
+it is the row's main move, and name End's glyph correctly or not at all.
+
+### F-buttons-9 · `cancel-type-button` · `CancelButton` tells callers to pass what the base already sets
+
+"Inside a `<form>`, pass `type="button"`: it is not the submit."
+`StandardButton` emits `type="button"` unless a caller overrides it, and no
+`CancelButton` caller passes `type` at all. The instruction is a no-op; the
+true note is the inverse (the commit passes `type="submit"`), and the base's
+comment already says that.
+
+**Recommendation:** delete the sentence.
+
+### F-buttons-10 · `submit-with-score-prose` · Both `SubmitWithScore` files credit a class that paints nothing
+
+`SubmitWithScore.module.css`: "The `.button` class provides the primary accent
+fill / padding / radius". In that module `.button` is layout only (flex,
+gap, a fixed width); the chrome comes from `sb.standardButton sb.primary
+sb.normal` in the component. The component's docstring says "the filled
+`.button`" and "the `ActionButton` family" (F-buttons-4). The deferred item in
+`docs/games/scrabble.md` is real and stays scrabble's.
+
+**Recommendation:** say what each class does; keep the deferral where it is.
+
+### F-buttons-11 · `shuffle-stylesheet-claims` · `ShuffleButton.module.css` describes a button it is not
+
+- "fill most of the 44px pill" — `.shuffle` is 35px.
+- `font-size: 32px` with "the .glyph span inherits this" — the glyph is
+  `<IconShuffle size={24}>`, sized by attribute; the font-size sets the span's
+  line box and nothing visible.
+- A commented-out `background:` line under `:hover`, and a `background 120ms`
+  transition with no background change to animate.
+- "Lifted from spellingbee's original .iconAction button" — archaeology.
+- The focus comment counts "nine call sites"; seven files render it, one
+  each. The component docstring names three games.
+- OPEN question, not a claim: it lifts `translateY(-1px)` on hover with no
+  shadow. `docs/ui.md` gives a general button color only and a float over a
+  board its shadow; this has neither a shadow to lift nor a color change, so
+  the lift is a twitch by the file's own standard.
+- The todo's focus item is Joel's ruling of 2026-08-21 and stands: the fix is
+  removing the tab stop, at the seven call sites' passes, not restyling the
+  ring here.
+
+**Recommendation:** correct the numbers and the font-size claim (or delete
+the declaration if it is dead — verify in a browser first), delete the dead
+line and the dead transition half, cut the archaeology. The hover lift is a
+decision to present on its own.
+
+### F-buttons-12 · `doc-lede-overclaims` · `doc.md` says every button here is built from `StandardButton`
+
+"Every purpose button in the app, and the `StandardButton` they are built
+from." Three are not: `ShuffleButton` (its own `<button>` and module),
+`PauseButton` (a `<PageHeaderButton>`), `SubmitWithScore` (a raw `<button>`
+borrowing the module's classes). The Design is owed regardless.
+
+**Recommendation:** rewrite the lede when the Design is written; the Design
+should say what the folder holds — a look, not logic — and name the three
+that stand apart and why.
+
+### F-buttons-13 · `ui-md-button-sections` · `docs/ui.md`'s two button sections describe the world before `StandardButton`
+
+"What a `<button>` is: the fourteen kinds" (1806–1980) and "Button
+iconography" (1982–2225) still say: `.button` / `.button-small` /
+`.icon-button` are global classes in `theme.css`; a call site writes
+`cls('button', 'secondary', 'button-small')`; a semantic button composes from
+`ActionButton`'s two axes; buttons live in `common/components/buttons/` and
+the host in `common/components/tooltips/`; "Hint / Reveal = `caution`";
+`.button-small` is `0.8rem` in `0.25rem 0.6rem` (the module's `.small` is
+`0.85em` in `0.25rem 0.5rem`); most games pass `iconOnly` (line 209). The
+todo's last item names the class story; the drift is the whole of both
+sections. What is still right and worth keeping: the fourteen kinds and their
+four feedback families, the "color only" rule, the menu-is-the-legend
+argument, the four exempt glyphs, long-press, the End/Concede split, the
+disabled-tooltip rule.
+
+**Recommendation:** rewrite both sections against the module and the
+component — one place says how a button is built (this folder's `doc.md`
+Design, most likely) and `docs/ui.md` keeps the taxonomy and the rules and
+points at it. A decision on which file owns the class story comes first.
+
+### F-buttons-14 · `theme-tone-map-is-wrong` · `daylight.css`'s BUTTON header assigns buttons to the wrong families
+
+`themes/daylight.css:97–101` (corecss's file, paused): "quiet — Cancel, Back
+to club, Pause" — `BackToClubButton` is `normal` in both weights and its
+docstring argues exactly that; `PauseButton` is a `<PageHeaderButton>` with no
+tone. "destructive — Delete" — `DeleteButton` (backspace) is `normal`;
+`TrashButton` is the destructive one. And "success — RESERVED — no consumer
+today", twice: `PauseButton.module.css` reads
+`--button-success-primary-color` for the resume face.
+
+**Recommendation:** a conformance edit to five lines of a paused area's file
+— this folder owns the tone vocabulary, so it ships with this area — or a
+line in `core-css/todo.md` if Joel would rather the paused area not move.
+
+### F-buttons-15 · `buttons-html-behind` · The rendered grid no longer shows what ships
+
+`docs/buttons.html` says it is "THE RENDERED REFERENCE for
+`src/common/theme.css` → CHROME" — no such file; the block is
+`themes/daylight.css` → BUTTON. It renders four cells per family where the
+theme has eight (no press step), says "only the four -primary values are
+CHOSEN" for five families, glosses caution as "outcome-warning's fill" (the
+theme says the opposite), and its "today" swatches carry hexes that do not
+ship (`#ef6c00` caution, `#8e1b2e` destructive, `#b0b0b0` quiet).
+`daylight.css` says "if it and this file disagree, this file wins", and
+`CLAUDE.md` and `docs/ui.md:1835` both call the page "the twin of `theme.css`
+→ CHROME". It was kept on the argument that a picture cannot drift silently
+into prose; it drifted.
+
+**Recommendation:** a decision — regenerate it against `daylight.css` (all
+five families, all eight cells, the real derivation) or delete it and let the
+stylesheet be the reference. If kept, `CLAUDE.md`'s row and `ui.md`'s
+sentence get the right file name.
+
+### F-buttons-16 · `test-prose` · The spec carries a finding ID, two counts, and a test that does not test its title
+
+`StandardButton.test.tsx`: "the F9 case" is a finding number from a deleted
+audit in a durable file; "146 call sites draw no text, and 457 test selectors
+find buttons by name" are counts that were true one day; and "supply their
+own name, and stay overridable on every axis" renders `<RestartButton />` and
+checks the name only.
+
+**Recommendation:** name the rule instead of the finding (a Cancel is a
+standard button with no glyph); say "many" or nothing; either override an
+axis in the test (`<RestartButton name="Start over" />` is found by the new
+name) or retitle it.
+
+### F-buttons-17 · `archaeology` · "How it used to work" in six docstrings
+
+`BackToClubButton` ("rendered a raw `<button className="secondary">` until
+2026-08-18, which is how it ended up quiet-gray"), `TrashButton` ("used to be
+a neutral gray `×` that only turned red once you had already clicked"),
+`EndGameButton` ("the flag it used to share with Concede"),
+`ConcedeGameButton` ("(2026-08-03)"), `StandardButton.module.css` and
+`ShuffleButton.module.css` (F-buttons-7, -11). CLAUDE.md: "how it used to
+work" is not useful. Each is protecting a rule that can be stated forward —
+Trash is red BEFORE the press; End and Concede differ by glyph because
+bananagrams shows both.
+
+**Recommendation:** keep the rule, cut the history, in each.
+
+### F-buttons-18 · `small-buttons` · Ten controls make themselves small by hand (from `todo.md`)
+
+The todo item, re-judged: still true and still a decision. Three write
+`0.8rem` and differ only in padding; four more sizes exist that nothing names;
+the ramp's middle step has no callers among them. Four of the ten are games'.
+Also from the item: the `+` in "+ New club" is a typed character, not a glyph.
+
+**Recommendation:** decide the rule here — is `.small` the one small size,
+and does a text-only small button take it? — then each folder applies it at
+its pass. Not this area's edit beyond the rule and `StandardButton`'s part.
+
+### F-buttons-19 · `disabled-utility` · One look for a disabled control (from `todo.md`)
+
+The todo item, re-judged: nine `cursor: not-allowed` sites today (the item
+says eleven), with the opacity still spread across values; `ShuffleButton`'s
+`0.45` is this folder's one. `StandardButton` has no disabled rule at all —
+`docs/ui.md` says a disabled general button's tell is the missing hover, and
+the module delivers that by `:not(:disabled)` on every hover rule, so the
+base is consistent and the others are not.
+
+**Recommendation:** decide whether disabled is a utility (`--opacity-2`,
+`not-allowed`) every control composes or a rule the base states; the
+non-button sites are their folders'.
 
 ## Notes
 
-*(things worth remembering about this area that are neither a finding nor
-owed work — a forward-fix made from another area, a question for the opening,
-a dependency listed and left. Anything durable goes to the folder's `doc.md`
-or `todo.md` instead; a note here never stands in for either)*
+- **Seen, not audited — a guard with a stale allowlist.**
+  `src/guards/cssTokens.test.ts:353` allows `common/components/buttons/`, a
+  pre-reorg path; the test still passes because `StandardButton.tsx` composes
+  module classes (`styles[weight]`), which the regex never matches, so the
+  allowlist has no reader. Guards are outside the audit; noted so the path is
+  fixed the next time the guard is edited for a real reason.
+- **`vocabularies.test.ts` holds eight pending literals in this folder**, six
+  of them `ShuffleButton.module.css`'s (`999px`, `32px`, `1`, `0.45`, `120ms`,
+  `1px`), plus `SubmitWithScore`'s `0.5rem` gap and `StandardButton`'s `0.4em`
+  gap. F-buttons-11 touches the `32px`; the rest are the a/b/c rule's to
+  decide when the module is converted.
+- **Evidence read, off the roster:** `themes/daylight.css` → BUTTON (corecss,
+  paused — F-buttons-14), `core-css/base.css:270` (`--iconButton-size:
+  2.05rem`, which every claim about it matched), `docs/ui.md` 1806–2241
+  (F-buttons-13), `docs/buttons.html` (F-buttons-15),
+  `terminal/TerminalActionRow.tsx`, `page-header/PageHeaderButton.tsx`,
+  `reveal/useSolutionReveal.test.ts`, the crosswords terminal strip, and the
+  caller lists for every purpose button (in the roster's descriptions).
+- **Claims that checked out and are worth not re-checking:** `RevealButton`'s
+  six clear-win games are exactly the six `alreadyShown` callers; `.titlebar
+  .close` exists in `FloatingPanel.module.css` at two classes as
+  `CloseButton.module.css` says; `modalActions.module.css` is the one reader
+  of `data-icon-only`; `useCommonGame` forces `paused` false at `ended_at`;
+  `GamePageCtx.goToGame` exists; the setup dialog's Start label is the span
+  the `label` docstring describes.
 
 ## Predicted test breaks
 
