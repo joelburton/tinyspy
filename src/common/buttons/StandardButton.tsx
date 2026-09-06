@@ -24,10 +24,9 @@ export type ButtonTone = 'quiet' | 'normal' | 'caution' | 'destructive' | 'succe
  *
  * Every call site says this out loud, and that is the whole point: reading
  * `<RestartButton show="icon" />` you know what appears without opening
- * `RestartButton`. Before this prop each button carried its own default and
- * three of them disagreed, so a bare `<HelpButton />` drew nothing while a bare
- * `<RestartButton />` drew a word — the same call-site shape meaning opposite
- * things.
+ * `RestartButton`. No component defaults it, deliberately — a default here
+ * means two call sites that look alike draw different things, and you cannot
+ * tell which without leaving the file you are reading.
  *
  * It is separate from `label`, which carries the WORDS. Form and text are two
  * decisions and a button can want any pair of them: `show="label"` with a

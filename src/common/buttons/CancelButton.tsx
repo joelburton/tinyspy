@@ -16,8 +16,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * documented as "a dialog's Cancel", which a bare outline defaults to anyway.
  * No new paint, just the packaging.
  *
- * Every call site passes `show="label"`, because this is the one button with no
- * glyph of its own — a Cancel is the word and nothing else.
+ * Pass `show="label"`: this is the one button with no glyph of its own, and a
+ * Cancel is the word and nothing else.
  */
 export function CancelButton({
   label = 'Cancel',

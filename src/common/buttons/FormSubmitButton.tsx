@@ -13,11 +13,11 @@ import { StandardButton, type StandardButtonProps } from './StandardButton'
  * row's emphasis. Both live here now, so a call site says what its button is
  * called and nothing else.
  *
- * Every call site passes `show="label"`, like its Cancel partner: a dialog's
- * commit is read as the word — "Save" needs no picture — and a footer where
- * only one of two buttons carries a glyph reads as lopsided. `show` is not
- * defaulted here for the same reason it is defaulted nowhere: the call site
- * saying what it draws is the point.
+ * Pass `show="label"`, like its Cancel partner: a dialog's commit is read as
+ * the word — "Save" needs no picture — and a footer where only one of two
+ * buttons carries a glyph reads as lopsided. `show` is not defaulted here for
+ * the same reason it is defaulted nowhere: the call site saying what it draws
+ * is the point.
  */
 export function FormSubmitButton(props: StandardButtonProps) {
   return <StandardButton type="submit" weight="primary" {...props} />

@@ -23,7 +23,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * it.
  *
  * Games that want a noun pass `label="Reveal answer"` and `revealedLabel="Hide
- * answer"` together, so both faces read the same way; nearly every game does.
+ * answer"` together, so both faces read the same way.
  * Both default, so the plain `<RevealButton revealed={…} onClick={toggle} />`
  * is still the shape.
  *

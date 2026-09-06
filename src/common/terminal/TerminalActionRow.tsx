@@ -17,9 +17,9 @@ type Props = {
   children?: ReactNode
   /** What the Back-to-Club button DRAWS — passed straight through as its
    *  `show`, and required here for the same reason it is required there: a row
-   *  that doesn't say is a row you have to open a file to read. Every game's
-   *  terminal row passes `"icon"` today, because the row is four controls wide
-   *  in a ~22rem column. The button is called "Back to club" either way. */
+   *  that doesn't say is a row you have to open a file to read. A terminal row
+   *  runs up to four controls wide in a ~22rem column, so `"icon"` is the one
+   *  that fits. The button is called "Back to club" either way. */
   backShow: ButtonShow
 }
 

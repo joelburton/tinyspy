@@ -1,8 +1,8 @@
 /* cs-audited-buttons */
 
-/* The standard ⟲ shuffle control: an icon-only pill, shared across spellingbee,
- * Connections, and bananagrams so "reshuffle my tiles" looks the same everywhere.
- * Lifted from spellingbee's original .iconAction button onto neutral theme tokens.
+/* The standard ⟲ shuffle control: an icon-only pill, worn by every game where a
+ * player can reorder tiles of their own, so "reshuffle my tiles" looks the same
+ * everywhere.
  *
  * The glyph rotates on hover via the inner .glyph span (rotating the button
  * itself would spin the whole pill, which reads as a twitch). */
@@ -14,8 +14,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Big glyph: the ⟲ reads as tiny at small sizes, so fill most of the
-   * 44px pill (the .glyph span inherits this). */
+  /* The ⟲ reads as tiny at small sizes, so it is drawn large for the pill. The
+   * glyph's own size comes from the component (`<IconShuffle size={24}>`); what
+   * this sets is the line box the .glyph span sits on. */
   font-size: 32px;
   border-radius: 999px;
   border: 1px solid var(--page-surface-border-color);
@@ -25,11 +26,10 @@
   background: var(--chrome-floatingControl-fill-color);
   color: var(--page-text-color);
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease;
+  transition: transform 120ms ease;
 }
 
 /* @@ */ .shuffle:hover:not(:disabled) {
-  /*background: color-mix(in oklab, var(--page-surface-hover-color) 85%, transparent);*/
   transform: translateY(-1px);
 }
 
@@ -50,9 +50,8 @@
    keyboard, which is the case that shouldn't exist here: ⌥Z is the shuffle,
    and tabbing to the control is not how anyone reaches it.
 
-   Left as-is for now. Fix it where the shuffle games get their pass, not here
-   — it is nine call sites and the right change is removing the tab stop, not
-   restyling the ring. */
+   Left as-is for now. Fix it where the shuffle games get their pass, not here:
+   the right change is removing the tab stop, not restyling the ring. */
 /* @@ */ .shuffle:focus {
   outline: none;
 }

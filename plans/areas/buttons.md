@@ -7,8 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 and -20. Closed by F-buttons-20 without
-work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
+F-buttons-1 through -5, -7, -8, -10, -11 and -20. Closed by F-buttons-20
+without work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
 row, and Joel chose `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
@@ -501,7 +501,7 @@ The deferral in `docs/games/scrabble.md` (a shared prop, or scrabble keeps a
 shape of its own) stays scrabble's, untouched — the component's `className`
 comment already points at it, correctly.
 
-### F-buttons-11 · `shuffle-stylesheet-claims` · `ShuffleButton.module.css` describes a button it is not
+### WORKED · F-buttons-11 · `shuffle-stylesheet-claims` · `ShuffleButton.module.css` describes a button it is not
 
 - "fill most of the 44px pill" — `.shuffle` is 35px.
 - `font-size: 32px` with "the .glyph span inherits this" — the glyph is
@@ -524,6 +524,30 @@ comment already points at it, correctly.
 the declaration if it is dead — verify in a browser first), delete the dead
 line and the dead transition half, cut the archaeology. The hover lift is a
 decision to present on its own.
+
+**Resolution (2026-09-06, Joel: "whatever we do now for hover is fine.
+otherwise, take your recs.")** — the hover lift stays exactly as it is; nothing
+about it moved. Deleted: the commented-out `background:` under `:hover`, and
+the `background 120ms` half of the transition, which had nothing left to
+animate once that line was the only background change. Cut: the "lifted from
+spellingbee's original `.iconAction`" archaeology.
+
+**The counts came OUT rather than being corrected** — Joel, mid-turn, on the
+"nine call sites" I had just changed to "seven": *"don't put stuff in comments
+unless it's really needed. who cares how many sites use it? this just become
+stale."* So the focus note names no number, the header says "every game where a
+player can reorder tiles of their own" instead of listing three games, and the
+same sweep went back over the census-style sentences this area itself wrote
+earlier today: six docstrings said "Every call site passes `show=…`" where
+"Pass `show=…`" is both shorter and un-rottable, `TerminalActionRow` said
+"every game's terminal row passes `icon` today", and `ButtonShow`'s docstring
+explained the world before the prop existed — archaeology as well as a count.
+
+**The `font-size: 32px` was NOT deleted, and its comment now says what is
+true:** the glyph's size comes from the component (`<IconShuffle size={24}>`),
+and this sets the line box its `inline-block` span sits on. Whether that still
+does anything inside a 35px flex-centered pill cannot be settled by reading, so
+it went to `buttons/todo.md` for a browser.
 
 ### F-buttons-12 · `doc-lede-overclaims` · `doc.md` says every button here is built from `StandardButton`
 

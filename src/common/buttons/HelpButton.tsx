@@ -9,9 +9,9 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * which stays open behind it; the in-game menu's Help item is the other route
  * and does not.
  *
- * Every call site passes `show="icon"`: the ? is universally read, and the
- * surfaces that carry it — a setup dialog's footer, a game's chrome — have no
- * room for a word. The label survives as the hover bubble.
+ * Pass `show="icon"`: the ? is universally read, and the surfaces that carry
+ * it — a setup dialog's footer, a game's chrome — have no room for a word. The
+ * label survives as the hover bubble.
  */
 export function HelpButton({ label = 'Help', icon = IconHelp, ...rest }: PurposeButtonProps) {
   return <StandardButton label={label} icon={icon} {...rest} />

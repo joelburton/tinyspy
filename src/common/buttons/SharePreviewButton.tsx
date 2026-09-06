@@ -9,9 +9,9 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * scrabble's "show a move" is the first user.
  *
  * A blue outline rather than the filled primary: it is a helpful side action,
- * not the main move, and it matches the Swap button beside it. Its call site
- * passes `show="icon"` — the share glyph reads on its own, and the label
- * becomes the hover bubble.
+ * not the main move, and it matches the Swap button beside it. Pass
+ * `show="icon"` — the share glyph reads on its own, and the label becomes the
+ * hover bubble.
  */
 export function SharePreviewButton({
   label = 'Show move',
