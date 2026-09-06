@@ -164,7 +164,7 @@ TWO call sites, `ClubPage.tsx:943` ("Club menu") and `HomePage.tsx:172`
 ("Main menu"). The "Future: the logo expands into a menu" paragraph is gone —
 that menu is what wraps it.
 
-### F-branding-4 · `32px-in-six-places` · The logo's size is a number written six times and a contract derived from it by hand
+### WORKED · F-branding-4 · `32px-in-six-places` · The logo's size is a number written six times and a contract derived from it by hand
 
 `32px` is written as CSS width and height in both logo stylesheets, as
 `width={32} height={32}` attributes in both components, and the header's
@@ -183,6 +183,29 @@ logo size> + 2 * 0.25rem)` — so the arithmetic stops being prose; or (b)
 leave the number, and have each stylesheet's comment point at the contract
 rather than at the other stylesheet. (a) is the shape `--game-header-bottom`
 already takes for the same reason.
+
+**Resolution (2026-09-05, Joel: "a")** — `--logo-size: 32px` added to
+`base.css`'s `:root` beside the header tokens (the file's naming convention
+exactly: `--iconButton-size`, `--floatingPanel-titlebar-height`), read by both
+logo stylesheets, and `--pageHeader-height` is now
+`calc(var(--logo-size) + 2 * 0.25rem)` — the same 40px it was written as.
+Both stylesheet comments now name the shared edge and the composition instead
+of pointing at each other.
+
+Three things the fix could NOT reach, each recorded where it belongs:
+the `width={32} height={32}` ATTRIBUTES stay literal because no variable
+reaches an HTML attribute, and the new token's comment says why that is
+correct rather than a compromise (they are the intrinsic-size hint, which is
+layout stability); the `0.25rem` is `Menu.module.css:39`'s trigger padding
+with no token of its own, so that term is still two files agreeing, and the
+token's comment says so; and `PageHeader.tsx:32–34`'s "arithmetic nobody had
+written down" is past-tense archaeology already owed to `page-header`, so it
+was left alone — it is still true as history.
+
+**`base.css` moved after `corecss`'s closing re-read**, which is paused
+awaiting Joel's blessing. The new token carries a `/* @@ */` marker like every
+other, so it is in the unblessed state by construction; base.css's marker
+count goes 85 → 86.
 
 ### WORKED · F-branding-5 · `wordmark-margin-is-spacer-1` · The one vocabulary literal in the folder
 

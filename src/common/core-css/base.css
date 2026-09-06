@@ -577,13 +577,24 @@
     var(--page-padding-y) + var(--pageHeader-height) + 0.5rem + 1px
   );
 
+  /* The square edge of the app's marks — a game's logo and the puzpuzpuz "P".
+     Both wear it, so the two menu triggers stay interchangeable, and the
+     header's height composes from it below. The components also state 32 as
+     `width`/`height` ATTRIBUTES, which no variable can reach: those are the
+     intrinsic-size hint that reserves the box before the image loads
+     (docs/ui.md → "Layout stability"), a different job that stays put. */
+/* @@ */   --logo-size: 32px;
+
   /* The page header's height, read by <PageHeader> and by the sheet
      offset above. A REAL contract between two files, not a description:
-     the value is what the header's tallest child needs (the menu trigger —
-     a 32px logo plus 0.25rem of padding each side). Change this and both
-     readers move together; change the trigger and this is the one number
-     to update. */
-/* @@ */   --pageHeader-height: 2.5rem;
+     the value is what the header's tallest child needs — the menu trigger,
+     which is a logo plus 0.25rem of padding each side. COMPOSED from the
+     logo rather than written as the 2.5rem it comes to, so growing the mark
+     grows the strip instead of overflowing a strip that has no give (see
+     PageHeader.module.css, which fixes the height). The padding is
+     Menu.module.css's own and has no token, so that one term is still a
+     number two files agree on. */
+/* @@ */   --pageHeader-height: calc(var(--logo-size) + 2 * 0.25rem);
 
   /* A FLOATING PANEL's titlebar height, and the one number that sizes the strip.
      The title's type and the ✕ derive from it rather than carrying tokens of

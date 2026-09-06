@@ -1,6 +1,8 @@
 /* cs-audited-branding */
 
-/* The square game-logo image, sized at 32×32 in the header.
+/* The square game-logo image. `--logo-size` is the shared edge — the
+ * puzpuzpuz mark wears it too, and the page header's height composes
+ * from it (base.css).
  *
  * `display: block` strips the inline-image baseline gap; the
  * parent flex row aligns everything via `align-items: center`.
@@ -8,8 +10,8 @@
 
 /* @@ */ .logo {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: var(--logo-size);
+  height: var(--logo-size);
   /* Keep the logo at its intrinsic 32px inside the club's game
    * rows — without this, the default flex-shrink: 1 compresses
    * the image when the row is narrow. */

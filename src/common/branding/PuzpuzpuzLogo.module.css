@@ -1,15 +1,16 @@
 /* cs-audited-branding */
 
-/* The puzpuzpuz menu logo: the "P" mark, sized at 32×32 to match GameLogo so the
- * two header trigger shapes stay interchangeable. The mark supplies its own
- * rounded-square tile, so there's no frame here — just the image.
+/* The puzpuzpuz menu logo: the "P" mark. `--logo-size` is the shared edge — a
+ * game's logo wears it too, which is what keeps the two header triggers
+ * interchangeable, and the header's height composes from it (base.css). The
+ * mark supplies its own tile, so there's no frame here — just the image.
  *
  * `display: block` strips the inline-image baseline gap; the parent flex row
  * aligns everything via `align-items: center`. */
 
 /* @@ */ .logo {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: var(--logo-size);
+  height: var(--logo-size);
   flex-shrink: 0; /* hold 32px inside flex rows — don't let it compress */
 }
