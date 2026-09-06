@@ -9,8 +9,8 @@
   not a conversion. The rule it carries is general: **"pill" means the
   FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge.
   (`ModePill.tsx` sits in `game-page` today; all its render sites are club
-  surfaces, and a folder is not an owner.) docs/ui.md's "Mode pills" heading
-  goes with it.
+  surfaces, and a folder is not an owner.) The doc half is done — docs/ui.md
+  now says "Mode badges" — so what is left is the component and its file.
 - **The `=` solo-handle convention is still tested in the FE** — `soloClub`
   in `ClubPage.tsx` and `modeSuffix` in `SetupGameModal.tsx`.
   `common.clubs.is_solo` (a generated column) carries it, and the homepage

@@ -553,7 +553,7 @@ the other column of the plan's table. The comparison is the useful one, so
 the sentence now says which measure it is switching to rather than reading
 as a wrong ceiling.
 
-### F-corecss-16 · `badge-cites-mode-pills` · The pattern that says a badge is not a pill points at a section called "Mode pills"
+### WORKED · F-corecss-16 · `badge-cites-mode-pills` · The pattern that says a badge is not a pill points at a section called "Mode pills"
 
 `badge.css:10` cites `docs/ui.md` → Mode pills, and `badge.css:26–29` is
 the argument that a badge and a pill are two roles with two shapes. The
@@ -562,10 +562,28 @@ thing the section describes is rendered by `<ModePill>` with `cls('badge',
 names, and the pattern file is the one that defines the other name as
 something else.
 
-**Recommendation:** the doc heading and the component follow the pattern —
-"Mode badges", `<ModeBadge>`. The heading is a forward fix (a sentence about
-this area's pattern); the component rename is a line in
-`common/game-page/todo.md`.
+**Resolution (2026-09-05, Joel: "1.")** — the doc heading is now "Mode
+badges", so `badge.css` no longer cites a section that contradicts it.
+
+**Correction to the finding:** the component rename does NOT need filing in
+`common/game-page/todo.md`. It is already filed, and better —
+`common/club/todo.md` Soon has carried it, with the general rule ("pill"
+means the FEEDBACK pill and nothing else) and the note that `game-page` holds
+the file only by accident, since every render site is a club surface and a
+folder is not an owner. That item now says the doc half is done and only the
+component is left.
+
+More than a heading, in the end: the section's body used "pill" eight times
+for the lozenge, so renaming the heading alone would have left the doc
+arguing with itself inside one section. Body converted with it. The four
+`#mode-pills` anchors — two in `ui.md`, one each in `docs/games/psychicnum.md`
+and `docs/games/connections.md` — move to `#mode-badges`, as do the citations
+in `badge.css` (×2) and `ModePill.tsx`'s docstring. Nothing named `Mode pills`
+remains in the repo.
+
+The component keeps its name until `club` renames it, so the doc reads "a
+small colored badge via `<ModePill>`" — the section says in one clause why,
+and points at the todo that owns it.
 
 ### F-corecss-17 · `italic-count-and-oblique-claim` · A rule nobody follows, and a count that is off
 

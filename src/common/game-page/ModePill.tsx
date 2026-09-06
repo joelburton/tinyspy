@@ -29,7 +29,7 @@ type Props = {
  * Because the name no longer carries "(coop)" / "(compete)", a coop +
  * compete sibling pair reads as the same name distinguished by pill.
  *
- * See docs/ui.md → "Mode pills".
+ * See docs/ui.md → "Mode badges".
  */
 export function ModePill({ mode, soloClub = false, aiOpponent = false }: Props) {
   if (soloClub) {
