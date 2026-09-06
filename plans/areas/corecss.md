@@ -266,7 +266,7 @@ Verified while working it: neither token is overridden by any game's
 waffle, connections and psychicnum boards, and `useTurnStartFlash`), so the
 pairing is exactly two-to-two and nothing else can drift into it.
 
-### F-corecss-8 · `scroll-region-utility` · The folder's one Soon item
+### WORKED · F-corecss-8 · `scroll-region-utility` · The folder's one Soon item
 
 `core-css/todo.md` Soon: a utility for the box that scrolls inside a fixed
 parent — `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto`, written by
@@ -275,10 +275,29 @@ Building it here with no readers puts a global class in `utilities.css` that
 nothing wears until each area converts — the same "live and unread" state
 the tokens sit in, minus a guard that would notice.
 
-**Recommendation:** Joel's call — build it now as `.scroll-region` with the
-three declarations and a docstring naming the condition, and add "convert
-to `.scroll-region`" to the todo of each folder that writes the triple; or
-leave the item where it is.
+**Resolution (2026-09-05, Joel: "i'll take your rec")** — the item is
+deleted, and the utility is not built. Its premise did not survive counting.
+Four rules in the repo write the full triple, and two of them are a game's
+tuned surface:
+
+| rule | |
+|---|---|
+| `chat/ChatBody.module.css` `.messages` | shell |
+| `floating-panels/FloatingPanel.module.css` `.body` | shell |
+| `bananagrams/PlayerBoard.module.css` `.hand` | tuned |
+| `crosswords/ClueLists.module.css` `.list` | tuned |
+
+"Dozens of sites" came from counting the ingredients apart — and they
+measure different things. `min-height: 0` is the ordinary let-a-flex-child-
+shrink fix and appears all over columns that never scroll; it co-occurs with
+`overflow-y: auto` in five rules, four of which add the `flex`. (The item's
+recorded 48 and 22 are 62 and 16 today, which is what a count in a durable
+file does.)
+
+Two shell readers is not a pattern worth a global name, and the folder's own
+rule — a value with one or two readers belongs in its class as a number —
+disqualifies it. Building it would also have put an unworn class in
+`utilities.css`, which is the state this audit flags elsewhere.
 
 ### F-corecss-9 · `marker-placement-and-cosmetics` · Three markers sit mid-selector, plus two whitespace nits
 

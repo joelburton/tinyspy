@@ -4,11 +4,6 @@
 
 ## Soon
 
-- **Scroll region** — a utility for the box that scrolls inside a fixed
-  parent: `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto`. Written
-  by hand at dozens of sites (48 `min-height: 0`, 22 `overflow-y: auto` when
-  counted).
-
 ## Someday
 
 - **Six chrome shadow levels nobody chose.** They were preserved from what the
