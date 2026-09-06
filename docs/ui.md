@@ -212,7 +212,7 @@ Neither replaces the page: it stays in *review mode* (the final board, connectio
 
 **Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. The row's button calls `goToClub: () => void` off `GamePageCtx`, which `<GamePage>` wires to direct navigation (the same terminal branch the menu's "Back to club" item takes).
 
-**The moment — `<CelebrationBlockingModal>`.** `common/components/game/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle, ported from crossplay) is **the only modal a terminal game pops**, and only for a win. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
+**The moment — `<CelebrationBlockingModal>`.** `common/terminal/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle, ported from crossplay) is **the only modal a terminal game pops**, and only for a win. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
 
 **Gate it only on values that are correct on the FIRST render** — the `common.games` row (`playState`, `status.*`) plus the roster, all of which `<GamePage>` awaits before rendering a PlayArea. Anything fetched by the game's own hook is null while it loads, so the fetch landing fakes a false→true flip and pops confetti at someone merely reviewing a finished game. (Caught live by an e2e; unit tests with synchronous mocks miss it.)
 
@@ -1345,9 +1345,9 @@ Same principle, applied to components.
 
 A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PageHeaderPlayersStrip>` presence dots, the `<ChatButton>` unread fill, the `<ColorChoiceList>` swatches, the per-finder markers in the spellingbee / boggle `<WordList>`, and the HomePage greeting ("● joel — welcome!"), which is the one place the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
-**The disc is one shared component: `<Dot>`** (`common/components/text/Dot`). It draws the fill PLUS the color's paired **`-border` ring** (`--member-NAME-border-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in theme.css). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. Feedback pills take the actor's color **name** in `GenericFeedbackMsg.dot` and render it with `<Dot>` themselves.
+**The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **`-border` ring** (`--member-NAME-border-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in theme.css). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. Feedback pills take the actor's color **name** in `GenericFeedbackMsg.dot` and render it with `<Dot>` themselves.
 
-**The name + disc cluster is `<ActorTag>`** (`common/components/game/lists/ActorTag`): a person's name followed by their identity disc, the "who did this" marker the turn logs drop beside each row. Pass it the resolved member (`<ActorTag actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. (Reach for it before re-rolling a name-span + ● by hand. Note that several older logs still encode the actor by *coloring the name text* instead — a deliberate-or-not divergence from the disc rule below, tracked as a consistency follow-up.)
+**The name + disc cluster is `<ActorTag>`** (`common/turn-log/ActorMention`): a person's name followed by their identity disc, the "who did this" marker the turn logs drop beside each row. Pass it the resolved member (`<ActorTag actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. (Reach for it before re-rolling a name-span + ● by hand. Note that several older logs still encode the actor by *coloring the name text* instead — a deliberate-or-not divergence from the disc rule below, tracked as a consistency follow-up.)
 
 Two rules keep the signal clean:
 
@@ -1360,7 +1360,7 @@ Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
 and the shared `.tile` / `.tileWord` classes in
-[`common/components/game/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css).
+[`common/game-page/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
 - **Resting** — a warm fill from the shared **tile ramp** (`--tile-slot-fill-color`, which
@@ -1805,44 +1805,40 @@ Because the badge carries the mode, the per-game `labelFor` status strings (show
 
 ## What a `<button>` is: the fourteen kinds
 
-`<button>` is the app's most-overloaded element — 102 of them, and most are not
-buttons in the sense a designer means. **So the bare element is NEUTRAL**: font,
-color, cursor and a radius, and nothing else. Chrome is opt-in:
+`<button>` is the app's most-overloaded element, and most of them are not buttons
+in the sense a designer means. **So the bare element is NEUTRAL**: font, color,
+cursor and a radius, and nothing else. Chrome is opt-in — and a general button
+opts in by BEING one rather than by composing classes:
 
 ```
 button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-.button                   a general button's SHAPE (buttons/StandardButton.module.css) — padding, border width, radius. Paints nothing.
-  .primary                the filled treatment    ┐ exactly one of these, always
-  .secondary              the outline treatment   ┘ × the five families
+<StandardButton>          the app's general button. Its whole look lives in its
+                          own module; there are no global button classes, and
+                          nothing outside that folder writes those class names
 .tile                     a game piece (each board's module)
 .key                      a keycap (module-local)
 ```
 
-So every general button is `button primary` or `button secondary` — **never
-`button` alone**, which is a shape with no color and looks it. That split is the
-class-layer twin of the token rule: *both treatments marked, no unmarked
-default.* `.button` first carried the shape **and** the filled paint, which made
-"unmarked" silently mean "primary" — one name doing two jobs, exactly the fault
-`-fill-color` had one layer down. It also cost a cascade dependency, since
-`.secondary` only won by being declared after `.button` at equal weight; now
-exactly one treatment rule matches and nothing overrides anything.
-[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) holds all three parts: `.button`
-declares no color, each treatment declares all of background + border + label,
-and no markup carries `.button` without naming a treatment.
+**How a general button is BUILT is [that folder's own
+doc](../src/common/buttons/doc.md)** — the one component, what a call site
+passes it, why the two color axes are separate. This page is the taxonomy
+around it: which kinds of control the app has, which glyph means what, and when
+a button is offered at all.
+
+Two rules from there matter here because they are what makes the taxonomy
+enforceable. **Both treatments are marked and there is no unmarked default** —
+the class layer's twin of the token rule, so a button that says nothing can
+never silently mean the filled one. And **nobody hand-composes a button's
+classes**; a call site renders the component.
+[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) holds both: each
+treatment declares all of background + border + label, the shape declares no
+color, and markup that spells those class names by hand fails.
 
 **To see the grid, open [`buttons.html`](buttons.html)** — every tone in both
 treatments, at rest, hovered and disabled, with the sliders that derive the whole
-family from its `-primary`. It is the rendered twin of `theme.css` → CHROME, and
-the reason it is kept rather than deleted is that a picture of the palette cannot
-drift silently into prose the way a paragraph can.
-
-It used to be the other way round: the bare element was the filled accent
-button, so every `<button>` that isn't one opened by canceling the fill, the
-border and the padding it had just been handed — twenty-nine rules whose first
-three lines were an apology. Worse, it made a blanket hover impossible (a hover
-right for Submit is a lie on a codenamesduet tile), so the most-clicked control
-in the app was inert under the pointer while a dialog's button was not. Inverting
-the default deletes the apologies and lets `.button:hover` exist.
+family from its `-primary`. It is the rendered twin of `themes/daylight.css` →
+BUTTON, and the reason it is kept rather than deleted is that a picture of the
+palette cannot drift silently into prose the way a paragraph can.
 
 Two of the four base declarations look like chrome and aren't — they overrule
 browser defaults: a `<button>` does **not** inherit the page font (the UA hands it
@@ -1926,52 +1922,44 @@ It needs no new colors — each family already carries both: filled hovers read
 `--button-<family>-primary-hover-color`, outline hovers
 `--button-<family>-secondary-hover-color`. Both treatments change the **background and
 nothing else**; each re-states its own border so a hover can never shift the
-hairline as a side effect (the two rules pair `.button` / `.secondary` at
-matching weights, the outline's landing second).
+hairline as a side effect.
 
 A **disabled** button is the deliberate exception to "everything gets a hover":
 it has none, and that missing answer is what tells you it's dead — see
 [A disabled button still gets a tooltip](#a-disabled-button-still-gets-a-tooltip--usually-a-better-one).
 
-**One general button deliberately doesn't use `.button`**, and it's recorded
-here so a future sweep doesn't "helpfully" convert it. The rule above is about
-*feedback* — color only, no motion, no shadow — and it obeys that; `.button` is
-one implementation of the rule, not the rule itself.
+**One general button deliberately isn't a `<StandardButton>`**, and it's
+recorded here so a future sweep doesn't "helpfully" convert it. The rule above
+is about *feedback* — color only, no motion, no shadow — and it obeys that; the
+shared component is one implementation of the rule, not the rule itself.
 
 | control | why it styles itself |
 |---|---|
 | crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a button family without lying about what the color means |
 
-Crosswords' puzzle-source picker used to be listed here too, on the strength of
-being a segmented control that `.button` would dismantle. That was right about
-`.button` and wrong about the conclusion: the answer was a segmented-control
+Crosswords' puzzle-source picker was listed here too, on the strength of being a
+segmented control the shared button would dismantle. That was right about the
+button and wrong about the conclusion: the answer was a segmented-control
 pattern, not a per-game exemption. It is [`.segmented`](#a-segmented-choice)
 now, and the yellow it filled its chosen segment with was never a decision — it
 had simply reached for the game's cursor color because that was to hand.
 
 The distinction that keeps this honest: what made the button sweep worth doing was
-that buttons were being handed chrome they never asked for. Neither of these has
-that problem — each asks for exactly what it wants. Converting them would change
-how two controls look in order to make the stylesheet tidier, which is backwards.
-The cost of the exemption, since it isn't zero: their hover colors are hand-picked
-rather than derived from a tone, so a future theme has two extra places to visit.
+that buttons were being handed chrome they never asked for. This one doesn't have
+that problem — it asks for exactly what it wants. Converting it would change how a
+control looks in order to make the stylesheet tidier, which is backwards.
+The cost of the exemption, since it isn't zero: its hover colors are hand-picked
+rather than derived from a tone, so a future theme has an extra place to visit.
 
-**A smaller button is a SIZE, not a kind** — the global `.button-small`
-(`buttons/StandardButton.module.css`): `0.8rem` at weight 500 in `0.25rem 0.6rem` of padding, the
-extra weight being what holds a 0.8rem label together rather than a separate
-choice. It composes with any tone and either treatment, so the homepage's
-"+ New club" is `cls('button', 'secondary', 'button-small')`. It carries no
-meaning of its own; how important the button is has already been said by the
-tone. `clubFilters.module.css`'s `.modeOption` is the same adjustment written
-by hand (0.05rem apart on the padding) and adopts this at its own pass.
-
-**`.button` works on any element, including a link.** It declares
-`display: inline-block`, the radius and `text-decoration: none` itself, rather
-than leaving them to the `button { … }` element reset in `base.css` that a
-`<a>` never matches. Every real `<button>` already computed to exactly those
-three, so declaring them changed nothing and made the class portable: the
-homepage's "+ New club" is a `<Link>` wearing
-`cls('button', 'secondary', 'button-small')` and no class of its own.
+**A smaller button is a SIZE, not a kind** — the shared button's `small` prop,
+which brings the whole small treatment with it: tighter padding, smaller type, a
+glyph that follows both, and a smaller icon-only square. One prop rather than
+loose classes whose padding fought on declaration order. It composes with any
+tone and either treatment, and carries no meaning of its own; how important the
+button is has already been said by the tone. Several controls still write a
+small size by hand, in sizes that don't agree with each other or with the font
+ramp; that is [the buttons folder's to settle](../src/common/buttons/todo.md),
+and each surface then applies the rule at its own pass.
 
 **One case is genuinely unsettled**: `GameScratchpadCompanion`'s "take over" — a small
 inline text button, currently a white fill with a gray border, which could
@@ -2081,7 +2069,8 @@ before someone consolidates them. Android's long-press menu arrives as a
 Safari's callout (Copy / Look Up / Share) does **not** — Safari fires no
 `contextmenu` for a long press — so the JS half can't touch it; it takes
 `-webkit-touch-callout: none` (plus `user-select: none`, since the callout is
-the text-selection UI in another hat) on `[data-tooltip]` in `theme.css`.
+the text-selection UI in another hat) on `[data-tooltip]` in
+`core-css/utilities.css`.
 Without it the bubble still opens on an iPhone, with the system menu sitting on
 top of it. No desktop browser reproduces this, headless or not, so the CSS rule
 is guarded by reading the stylesheet. Pinned by
@@ -2102,16 +2091,16 @@ the glyph into a `House` and a `Users`.
 - **Styled tooltips, not the native `title`.** Some browsers delay the native
   bubble so long users never see it, so buttons carry a `data-tooltip`
   attribute and the single **`<TooltipHost>`**
-  (`common/components/tooltips/`, mounted once in App.tsx like ToastHost)
+  (`common/tooltips/`, mounted once in App.tsx like ToastHost)
   draws a small dark bubble after a ~400ms beat (about a third of the native
   delay; also on `:focus-visible` keyboard focus; hover is gated on
   `(hover: hover)` so a touch tap doesn't leave a stuck bubble; hides
-  instantly on leave/blur/press/scroll). `ActionButton` wires
-  `tooltip ?? label` automatically — every purpose button has a tooltip by
-  default, and a caller passes `tooltip` to say something richer than the
-  label. `ShuffleButton` writes its own `data-tooltip`, being outside
-  `ActionButton` entirely; `PauseButton` takes its from `<PageHeaderButton>`,
-  which wires `tooltip ?? label` the same way. The attribute is usable on ANY element as other spots want
+  instantly on leave/blur/press/scroll). A standard button fills the attribute
+  itself: its tooltip defaults to its label, so an icon-only button always
+  names itself, and a caller passes `tooltip` to say something richer — or to
+  name a button whose drawn word is shorter than what it does. The controls
+  outside that component write `data-tooltip` themselves.
+  The attribute is usable on ANY element as other spots want
   tooltips later. The host measures and **clamps the bubble to the
   viewport** — above the anchor by default, flipped below near the top edge
   (no per-button placement flags), x pinned inside the edges — and the body
@@ -2120,18 +2109,18 @@ the glyph into a `House` and a `Users`.
   is a JS host.) The bubble is `aria-hidden` — the accessible name stays on
   the button itself. One known trade: disabled buttons don't fire mouse
   events, so their tooltips don't show.
-- **Sizing:** ~`size={15-16}` for an icon beside a text label, ~`size={20-24}`
-  for an icon-only pill.
-- **The icon-and-label shape is the global `.icon-button` class** (`theme.css`):
-  `display: inline-flex; align-items: center; justify-content: center; gap:
-  0.4em` — defined once, composed via `cls()` the way `secondary` is, so a button
-  is `cls('button', 'icon-button', styles.someModifier)` (or `cls('button',
-  'secondary', 'icon-button', …)`). It's pure shape — fill/border come from
-  `.button` (and `secondary` if it's the outline), width from a per-button
-  modifier (`.inputButton`'s `min-width`, `.helperButton`'s flex-grow). **Not** for `ShuffleButton`, the board's round pill — a
-  separate fixed-size circular shape that styles itself, and the only one of
-  its kind: the header's marks are `<PageHeaderButton>`s and `ZoomFitButton` is
-  an ordinary `icon-only` square.
+- **Sizing is not a call site's business.** A standard button sizes its glyph
+  in `em`, so the icon tracks the button's own type rather than a number picked
+  per site; a glyph that reads denser or looser than the rest is tuned once, in
+  the component, by a multiplier. The controls outside that component pass a
+  `size` because they draw their own `<svg>`.
+- **The icon-and-label shape belongs to the component**, not to a class a
+  caller composes: one centered row, a gap, and a fixed square when no words are
+  drawn. A surface needing a different box re-points the size token in its own
+  class. **Not** for `ShuffleButton`, the board's round pill — a separate
+  fixed-size circular shape that styles itself, and the only one of its kind:
+  the header's marks are `<PageHeaderButton>`s and `ZoomFitButton` is an
+  ordinary icon-only square.
 - **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
   A move-submit "sends" the move up to the other players (our boards put YOU at
   the bottom, others above — codenamesduet's keycards literally so), and pointing
@@ -2151,33 +2140,28 @@ the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete — **all sixteen games are v3**, so every game-move / end /
-hint / reveal / concede is now a semantic component from
-`common/components/buttons/`, and **End (or Concede)** is an info-column
-action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
-`SubmitButton` · `SubmitWithScore` · `DeleteButton` · `ClearButton` ·
-`HintButton` · `RevealButton` · `AIButton` · `EndGameButton` ·
-`ConcedeGameButton` · `EndTurnButton` · `PassButton` · `ExchangeButton` ·
-`PeelButton` · `ZoomFitButton` (icon-only, an ordinary square) ·
-`BackToClubButton` (which carries a text label). Outside the roster: the board's
-round pill `ShuffleButton`, and `PauseButton`, which is a
-`<PageHeaderButton>` — neither is an `ActionButton`. Still on their old glyphs / pending: the
-chat bubble, the `×` close, and the `✓`/`✗` marks.
+**Rollout.** Complete: every game-move / end / hint / reveal / concede is a
+named button from [`common/buttons/`](../src/common/buttons/doc.md), and **End
+(or Concede)** is an info-column action-row *button*, never a GamePage-menu
+item. That folder's own doc lists what is there and which of them stand apart —
+the board's round pill and the header's pause mark are their own controls, not
+standard buttons. Still on their old glyphs / pending: the chat bubble, the `×`
+close, and the `✓`/`✗` marks.
 
-**Two axes + natural width.** A semantic button composes from `ActionButton`'s two
-axes: **weight** (`primary` = the filled-accent main action like Submit;
-`secondary` = the outline everything else builds on) and **tone** (`quiet |
-normal | caution | destructive | success` — the BUTTON bucket's own vocabulary,
-not the outcome palette's: a control saying "this is irreversible" is a different
-question from a game saying "you lost"). Each tone re-sets the slot tokens both
-treatments read, so a tone works in either weight. Today: Hint / Reveal =
-`caution`, End / Concede = `destructive`, Submit / Peel / Back-at-terminal =
-`primary`+`normal`, Clear / Delete = `normal`, and a bare dialog Cancel is
-`quiet`+`secondary`. `success` has no caller and is wired anyway.
+**Two axes + natural width.** A named button carries **weight** (`primary` = the
+filled-accent main action like Submit; `secondary` = the outline everything else
+builds on) and **tone** (`quiet | normal | caution | destructive | success` —
+the BUTTON bucket's own vocabulary, not the outcome palette's: a control saying
+"this is irreversible" is a different question from a game saying "you lost").
+Each tone re-sets the slot tokens both treatments read, so a tone works in either
+weight. Where they land: the help ladder — Hint, Spoiler, an AI suggestion — is
+`caution`; End, Concede and Reveal are `destructive`, since all three are
+irreversible; a move commit is `primary`; a dialog's Cancel is
+`quiet`+`secondary`. `success` is wired with no caller.
 
-The tone was called `action` until 2026-08-20, and the rename removed a real
-collision: `action` is also one of the fourteen BUTTON KINDS above, so one word
-named a purpose in one taxonomy and a color in another.
+The tone deliberately avoids the word `action`, which is one of the fourteen
+BUTTON KINDS above — one word naming a purpose in one taxonomy and a color in
+another is a collision worth keeping out.
 
 **The grid is complete, and that is load-bearing.** All five families carry all
 six values — `-base-color` / `-primary-color` / `-primary-hover-color` /
@@ -2197,8 +2181,8 @@ primary/secondary, and the property is always a background. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
 **not** stretch to equal widths or the column's right edge: equalizing widths clipped
 a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the
-short one"). Need a button with no semantic component yet? **Create one** (a one-line
-wrapper around `<ActionButton>`) — never hand-roll a one-off `<button>` in a game.
+short one"). Need a button with no named component yet? **Create one** (a
+one-line wrapper) — never hand-roll a one-off `<button>` in a game.
 
 **End vs Concede** are distinct components for distinct actions: **End**
 (`EndGameButton`) is the neutral mutual "we're done" that stops the game for
@@ -2206,7 +2190,7 @@ everyone; **Concede** (`ConcedeGameButton`) is one player dropping out of a race
 that continues without them. They were near-identical buttons — same flag, same
 red — on the assumption that a game shows one *or* the other. **bananagrams
 shows both at once** (its compete row has End alongside Concede), where two red
-flags read as the same act twice, so they diverged 2026-08-03:
+flags read as the same act twice, so they diverge:
 
 - **End** took `OctagonX` — the stop sign, crossed out — putting it in a family
   with `IconEndTurn`'s plain octagon (Pass ends just your turn; the X marks the
@@ -2214,15 +2198,15 @@ flags read as the same act twice, so they diverged 2026-08-03:
   tone: Pass is amber, End is red.
 - **Concede** kept the **flag**: surrender, one player, not a stop for the table.
 
-They still share the `error` red — both are irreversible — and stay separate
-components so they can diverge further (a concede should hand the opponent the
-win).
+They still share the `destructive` red — both are irreversible — and stay
+separate components so they can diverge further (a concede should hand the
+opponent the win).
 
-**End's label is the full "End game"**, not a bare "End". Most games render it
-icon-only, where the label *is* the accessible name and the tooltip, and "End"
-alone doesn't say end what. It also stopped substring-matching the pause
-overlay's "Susp**end** and return to club", which an e2e had been working around
-with `exact: true`.
+**End's label is the full "End game"**, not a bare "End". Most games draw it as
+a glyph alone, where the label *is* the accessible name and the tooltip, and
+"End" alone doesn't say end what. It also avoids substring-matching the pause
+overlay's "Susp**end** and return to club", which a test would otherwise have to
+work around.
 
 ### A disabled button still gets a tooltip — usually a *better* one
 

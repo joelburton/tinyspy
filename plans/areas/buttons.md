@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10, -11, -12 and -20. Closed by F-buttons-20
+F-buttons-1 through -5, -7, -8, -10 through -13, and -20. Closed by F-buttons-20
 without work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
 row, and Joel chose `buttons` first.
 
@@ -593,7 +593,7 @@ the registry grew `AppIcon`, that is exactly the type a surface must NOT reach
 for. The icons folder is closed and blessed; this is a correction to a sentence
 this area broke, not a re-opening.
 
-### F-buttons-13 · `ui-md-button-sections` · `docs/ui.md`'s two button sections describe the world before `StandardButton`
+### WORKED · F-buttons-13 · `ui-md-button-sections` · `docs/ui.md`'s two button sections describe the world before `StandardButton`
 
 "What a `<button>` is: the fourteen kinds" (1806–1980) and "Button
 iconography" (1982–2225) still say: `.button` / `.button-small` /
@@ -613,6 +613,40 @@ disabled-tooltip rule.
 component — one place says how a button is built (this folder's `doc.md`
 Design, most likely) and `docs/ui.md` keeps the taxonomy and the rules and
 points at it. A decision on which file owns the class story comes first.
+
+**Resolution (2026-09-06, Joel: "do it")** — `docs/ui.md` only; no code. The
+decision the recommendation asked for had already been made by F-buttons-12's
+Design, so the rewrite was mostly DELETION plus a link: everything explaining
+how a button is constructed left, and everything about which control exists and
+which glyph means what stayed.
+
+What went, because it described a world two steps back — the class table and
+the compose-by-hand story (`.button` / `.primary` / `.secondary` as globals),
+`cls('button', 'secondary', 'button-small')`, the global `.icon-button` shape,
+per-call-site `size={15-16}`, the five `ActionButton` mentions, "Hint / Reveal =
+`caution`" (Reveal is `destructive`, and argues why), `.button-small`'s
+measurements, and the "it used to be the other way round" paragraph about the
+old filled default. The roster of named buttons went too: it is a list that
+rots, and the folder's own doc holds it.
+
+What stayed, which is most of it: the fourteen kinds and their four feedback
+families, "a kind is what a control IS", the pieces-use-depth rule, the
+general-buttons-use-color-only rule, the menu-is-the-legend argument, the four
+exempt glyphs, long-press and the two platform suppressions, the End/Concede
+split, and the disabled-tooltip rule.
+
+Also swept, since nothing else was on the hook for them: **the count in the
+opening line** ("102 of them"), and **five pre-reorg paths elsewhere in the
+file** — `common/components/game/CelebrationBlockingModal`,
+`common/components/text/Dot`, `common/components/game/lists/ActorTag`,
+`common/components/game/PlayArea.module.css`, and `[data-tooltip]`'s callout
+suppression, which is in `core-css/utilities.css` rather than a `theme.css`.
+Four of those sit outside both button sections.
+
+**Left for F-buttons-15:** the `buttons.html` paragraph. Its file name was
+wrong (`theme.css` → CHROME, which does not exist) and is now
+`themes/daylight.css` → BUTTON, but whether the page is regenerated or deleted
+is that finding's call, and the rest of the paragraph describes it as it is.
 
 ### F-buttons-14 · `theme-tone-map-is-wrong` · `daylight.css`'s BUTTON header assigns buttons to the wrong families
 
