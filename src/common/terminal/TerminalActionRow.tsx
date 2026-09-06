@@ -14,16 +14,15 @@ type Props = {
    *  the Back-to-Club button (i.e. to its left). Waffle's Restart is the first
    *  user; most games pass nothing. */
   children?: ReactNode
-  /** What the Back-to-Club button DRAWS. Omit it for the default compact
-   *  "‹ Club"; pass `null` for the icon-only square (waffle's icon-only
-   *  action-row experiment). The button is called "Back to club" either way. */
+  /** What the Back-to-Club button DRAWS. Omit it for the button's own default,
+   *  "‹ Club"; pass `null` for the icon-only square, which every game's
+   *  terminal row does today. The button is called "Back to club" either way. */
   backLabel?: string | null
 }
 
 /**
  * The game-over action row in the info column: a short bold outcome line
- * (colored by `over.tone` via `outcome_<tone>`) + a compact "back to club"
- * button. Every PlayArea rendered this identical block in its `over ?` branch,
+ * (colored by `over.tone` via `outcome_<tone>`) + a "back to club" button. Every PlayArea rendered this identical block in its `over ?` branch,
  * so this single-sources the `outcome_<tone>` + `message` + BackToClub contract.
  *
  * Only the TERMINAL branch is shared — the non-terminal branches genuinely
@@ -35,7 +34,7 @@ export function TerminalActionRow({ over, onBackToClub, children, backLabel }: P
     <div className={cls(shared.infoActions, shared.terminalActions)}>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
       {children}
-      <BackToClubButton onClick={onBackToClub} variant="primary" compact label={backLabel} />
+      <BackToClubButton onClick={onBackToClub} weight="primary" label={backLabel} />
     </div>
   )
 }

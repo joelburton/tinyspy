@@ -1117,7 +1117,7 @@ type Explained =
                   />
                   <RestartButton label={null} onClick={() => void handleRestart()} />
                   <NewGameButton label={null} onClick={handleNewGame} disabled={startingNewGame} />
-                  <BackToClubButton onClick={goToClub} variant="primary" compact label={null} />
+                  <BackToClubButton onClick={goToClub} weight="primary" label={null} />
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">

@@ -5,8 +5,9 @@ The folders it reads: `buttons`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
-stamped `cs-audited-buttons`; nineteen findings recorded, none worked. Opened
-out of §3's order: `members` is the next row, and Joel chose `buttons` first.
+stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 and
+F-buttons-2 worked. Opened out of §3's order: `members` is the next row, and
+Joel chose `buttons` first.
 
 ## The roster
 
@@ -19,7 +20,7 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-audited-buttons` |
 | `src/common/buttons/StandardButton.test.tsx` | the three rules that keep `name` / `label` / `tooltip` three things | `cs-audited-buttons` |
 | `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-audited-buttons` |
-| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; filled at terminal, outline elsewhere; a `compact` form | `cs-audited-buttons` |
+| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-audited-buttons` |
 | `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a glyph | `cs-audited-buttons` |
 | `src/common/buttons/ClearButton.tsx` | wipe the pending selection — eraser, neutral | `cs-audited-buttons` |
 | `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-audited-buttons` |
@@ -65,7 +66,7 @@ re-checked against the tree. The folder's `todo.md` was read first; its five
 items reappear below re-judged (F-buttons-3, -11, -13, -18, -19). Shape and
 behavior first, then the theme and the docs, then prose. No prefix means OPEN.
 
-### F-buttons-1 · `back-to-club-never-icon-only` · `<BackToClubButton label={null}>` draws text anyway
+### WORKED · F-buttons-1 · `back-to-club-never-icon-only` · `<BackToClubButton label={null}>` draws text anyway
 
 `BackToClubButton` computes what it draws as
 `label ?? (compact ? 'Club' : undefined)`. `??` treats `null` like
@@ -90,7 +91,62 @@ control is called "Back to club"). Then look at the terminal rows in the
 gallery: they have never rendered as designed, so the design should be seen
 before it ships.
 
-### F-buttons-2 · `variant-is-weight` · One axis, two props
+**Resolution (2026-09-06, Joel: "let's make the back-to-club button just like
+the other buttons (so it loses the 'compact' property) and its default label is
+just '< Club'")** — the recommendation is superseded and the fix is smaller
+than it: `compact` is gone and the drawn text is a default PARAMETER,
+`label = 'Club'`. A default parameter treats an explicitly passed `undefined`
+as omitted, which is the `undefined` = "use the default" half of the rule
+`StandardButtonProps` documents, so `label={null}` now reaches the base
+untouched and suppresses the text. The `??` was deleted, not rewritten. The
+explicit `aria-label={name}` stays — the drawn word is never the name now, and
+every test and e2e selector finds this button by "Back to club".
+
+Two call sites relied on "the label defaults to the name" and had to say what
+they draw, since the default is no longer the name:
+
+- `PauseOverlay` passes `name="Suspend and return to club"` and now passes the
+  same string as `label`. It is the one place the button says more than "Club":
+  leaving a paused game suspends it, and the overlay is wide enough to say so.
+- `DeviceBlockNotice` drew "Back to club" and now draws "Club" — it takes the
+  new default, which is what the ruling asks for. Its card is the one surface
+  where the longer text would still fit, so it is the place to look first if
+  the short word reads too terse.
+
+**The chevron got heavier, in the registry (2026-09-06, Joel: "the icon
+*itself* should be thicker, wherever its used. no new icon. just make it a bit
+thicker").** Making `label={null}` work is what exposed it: at lucide's default
+weight of 2 a chevron is two strokes and no body, and the icon-only form is
+that hairline alone in an empty square. So `IconBack` is now a component in
+`common/icons/icons.ts` carrying `strokeWidth={2.75}`, not an alias of
+`ChevronLeft` — the weight belongs to the glyph, so all three call sites get it
+(this button, the game menu's Back-to-club row, the club menu's Back-to-home
+row). Two consequences worth knowing:
+
+- It is the first glyph in the registry that is not a bare re-export, so its
+  argument moved below the export block and a pointer sits in its place. The
+  file's grouping is load-bearing by its own docstring ("a glyph is chosen
+  against its NEIGHBORS"), which is what the pointer protects.
+- `MenuItem.icon` was typed `LucideIcon`, which a component of ours cannot
+  satisfy. The registry now exports `AppIcon` and the menu takes that. Its
+  comment claimed the menu's type "is the same type `ActionButton.icon` takes",
+  which was false twice over — `ActionButton` is gone (F-buttons-4) and
+  `StandardButton` takes the wider `ButtonIcon`. It now says what is true.
+
+**Files this area changed outside its roster:** `common/icons/icons.ts`
+(`cs-blessed-icons`) and `common/menu/menuModel.ts` (`cs-unmet`). Neither takes
+this area's stamp; both are named here so the close can see them.
+
+The number to look at is 2.75, which has not been seen on screen — the stroke
+is the one part of this that cannot be checked from the source.
+
+Correction to the finding: **fifteen** games pass `backLabel={null}` through
+`<TerminalActionRow>`, not ten (the ten direct `label={null}` info columns were
+right). So twenty-five call sites change appearance at once, into a design that
+has never rendered — the gallery pass the finding asks for is still owed and is
+the review of this change.
+
+### WORKED (with F-buttons-1) · F-buttons-2 · `variant-is-weight` · One axis, two props
 
 `BackToClubButton` takes `variant?: 'primary' | 'secondary'` and passes it as
 `weight`. Its `Props` is `PurposeButtonProps & {…}`, so `weight` is still
@@ -101,6 +157,28 @@ crosswords' terminal strip).
 
 **Recommendation:** drop `variant`; take `weight` with the default
 `'secondary'` like every sibling, and change the three callers.
+
+**Resolution (2026-09-06, same ruling — "just like the other buttons", then
+"we should drop the special props for back-to-club button")** — `variant` is
+gone and the three callers pass `weight="primary"`. The button does not name
+`weight` at all: a sibling only declares an axis where its default differs from
+the base's, and `secondary` already is the base's.
+
+The required `onClick` went with it, so the button now takes
+`PurposeButtonProps` and nothing else. It was the only button in the folder
+that required a handler, and it required one for no stated reason — the
+requirement had ridden in on the bespoke `Props` block that existed to hold
+`variant` and `compact`, and the siblings that take `PurposeButtonProps`
+directly have nowhere to put such a thing. It also narrowed the handler to
+`() => void`, where the native one takes an event.
+
+Whether a button HAS a handler turns out to be a property of the call site, not
+of the button: two groups render one with none — a `type="submit"` form commit
+(nine `StandardButton`s plus codenamesduet's `SubmitButton`), and an inert
+`disabled` placeholder held so a row does not change shape (`ConcedeGameButton`
+in nine info columns, `RevealButton` in five). `spellingbee/InfoCol.tsx` renders
+the same Concede both ways four lines apart. So the requirement could never
+have become a family rule.
 
 ### F-buttons-3 · `tones-that-do-not-exist` · Seven docstrings name a tone the type has never had
 
@@ -178,6 +256,15 @@ DeleteButton's docstring sentence in favor of the comment that is right.
 **Recommendation:** fix the tone example and the count (or drop the count —
 "the axes below"), and give `ButtonIcon` a true reason or narrow it to
 `LucideIcon` — a decision, since the type is exported and unread.
+
+**Updated 2026-09-06 by the IconBack change (see F-buttons-1's resolution):
+narrowing to `LucideIcon` is now the wrong branch.** `IconBack` is a component
+of ours, so a button typed against lucide's forwardRef shape would reject the
+registry's own glyph — the widening has a true reason after all, and the
+docstring's example of it (the pause bars) is still the wrong one. The
+registry now exports `AppIcon` for exactly this, and the menu reads it. So the
+open decision is smaller than it was: whether `ButtonIcon` should simply BE
+`AppIcon`, leaving one name for what a glyph is.
 
 ### F-buttons-7 · `module-header-contradicts-close` · The stylesheet's list of what is NOT a standard button includes one that is
 

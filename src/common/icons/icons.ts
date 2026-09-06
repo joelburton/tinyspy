@@ -23,6 +23,20 @@
  * view. The three ✕ aliases are the one chain that crosses a group boundary,
  * since a verdict and a dismissal genuinely belong to different groups.
  */
+import { createElement, type ComponentType } from 'react'
+import { ChevronLeft, type LucideProps } from 'lucide-react'
+
+/**
+ * What a glyph from this registry IS — the type a surface uses to say "hand me
+ * an icon from the registry".
+ *
+ * Lucide's own `LucideIcon` looks like the answer and is the wrong one: it
+ * describes a forwardRef component lucide built, and `IconBack` is a component
+ * of ours. A surface typed against lucide's shape silently stops accepting half
+ * this file the day any other glyph needs a default of its own.
+ */
+export type AppIcon = ComponentType<LucideProps>
+
 export {
   // ── Game actions: what a player does on a board ────────────────────────────
 
@@ -163,27 +177,10 @@ export {
   // The note above applies here too: as an SVG it is centered by its own box,
   // where the text character is not.
   X as IconClose,
-  // Go UP ONE LEVEL — game → club today, and the same idea wherever it lands
-  // next. Named for the direction rather than a destination, unlike every
-  // other glyph here, and that's deliberate on two counts.
-  //
-  // First, it can't be confused: the ups never co-occur. From a game the only
-  // way up is its club; from a club, home. No screen shows both, so one glyph
-  // has only ever one meaning in place. Contrast the arrow-like cluster
-  // (IconRestart / IconUndo / IconShuffle), which had to be pulled apart
-  // precisely BECAUSE they share an action row and compete for one glance.
-  //
-  // Second, the chevron is the only thing on screen that teaches the `⇧<`
-  // shortcut: the button draws this glyph without printing the key, the menu
-  // item prints the key without drawing the glyph, and the two rhyme. A
-  // destination glyph (a house, a group of people) would read fine and quietly
-  // cost that.
-  //
-  // Revisit if a screen ever offers both ups at once — a breadcrumb, or a home
-  // button beside the back-to-club one. The answer then is probably to add the
-  // WORD ("< Club" / "< Home") rather than to swap the glyph, so the shortcut
-  // mnemonic survives the disambiguation.
-  ChevronLeft as IconBack,
+  // (Go up one level — IconBack — belongs in this spot, between the ✕ and the
+  //  menu chevron. It is defined below the block, with its argument, because it
+  //  is the one glyph here that is not a bare re-export.)
+
   // The little "this opens a menu" chevron beside a page-header logo. It is an
   // AFFORDANCE MARK rather than an icon in the button sense — nothing labels it
   // and nothing acts on it alone — but it belongs here anyway: a glyph kept
@@ -220,3 +217,13 @@ export {
   // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
   // the familiar solid two-bars mark, so PauseButton draws its own glyph.
 } from 'lucide-react'
+
+/**
+ * Go UP ONE LEVEL — game → club today, and the same idea wherever it lands
+ * next. Named for the direction rather than a destination, unlike every other
+ * glyph here, and that's deliberate on two counts.
+ *
+ * Made thicker so it's easier to read.
+ */
+export const IconBack = (props: LucideProps) =>
+  createElement(ChevronLeft, { strokeWidth: 2.75, ...props })

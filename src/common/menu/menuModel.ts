@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { LucideIcon } from 'lucide-react'
+import type { AppIcon } from '../icons/icons'
 
 /**
  * What a menu is made of — the row, section and header types every `<Menu>`
@@ -56,12 +56,13 @@ type MenuItemBase = {
   // **Take it from `common/icons/icons.ts`, never `lucide-react`.** That
   // registry is "the ONE place that maps an action to its glyph"; the menu
   // joining it is what stops a legend from ever teaching a symbol the button
-  // doesn't use. `LucideIcon` is the same type `ActionButton.icon` takes, so a
-  // menu row and its button can be handed the identical value.
+  // doesn't use. `AppIcon` is the registry's own type rather than lucide's, so
+  // a menu row and its button can be handed the identical value — including a
+  // glyph the registry defines itself, as IconBack is.
   //
   // A menu with NO icons reserves no gutter; one with any reserves it for all,
   // so labels line up rather than going ragged (Menu.module.css).
-  icon?: LucideIcon
+  icon?: AppIcon
 }
 
 /** A row that DOES something when activated. The common case. */

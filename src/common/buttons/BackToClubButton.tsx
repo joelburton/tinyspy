@@ -3,24 +3,21 @@
 import { IconBack } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
-type Props = PurposeButtonProps & {
-  onClick: () => void
-  /** Filled (`primary`) at terminal, where going back IS the next thing you do;
-   *  the outline everywhere else. */
-  variant?: 'primary' | 'secondary'
-  /** Shorten the visible label to "Club" — the chevron carries the rest. The
-   *  accessible label stays "Back to club" either way. */
-  compact?: boolean
-}
-
 /**
- * The app-wide "‹ Back to club" button.
+ * The app-wide "‹ Club" button.
  *
  * Every exit-to-club affordance (each game's playing action row, and its
  * terminal row via `<TerminalActionRow>`) routes through here so the glyph, the
  * spacing and the accessible label are identical everywhere. The chevron is
  * `aria-hidden` inside `ActionButton`, so a screen reader just announces "Back
  * to club".
+ *
+ * It DRAWS "Club" and is CALLED "Back to club". The chevron carries the "back",
+ * and the button spends its life in a ~22rem info column with other controls
+ * beside it, so the short word is the one that fits; the full sentence lives on
+ * as the accessible name, which is what the e2e suite finds it by. Pass
+ * `label={null}` for the icon-only square, or a `label` of your own where the
+ * room is there for a longer one.
  *
  * It wears the **`normal`** tone in both weights. Going back to the club is a
  * thing you do — it is not a cancel — and it is already the filled blue at
@@ -31,29 +28,27 @@ type Props = PurposeButtonProps & {
  */
 export function BackToClubButton({
   name = 'Back to club',
+  label = 'Club',
   icon = IconBack,
   tone = 'normal',
-  // The chevron is a touch lighter than the default: it is a direction mark
-  // rather than an object, and at full size it out-weighed its own label.
+  // A shade smaller than the default: a direction mark should not take as much
+  // room as an object glyph. It reads at that size because the glyph carries a
+  // heavier stroke than the rest — see IconBack in the registry.
   iconScale = 0.9,
-  variant = 'secondary',
-  compact,
-  label,
   ...rest
-}: Props) {
+}: PurposeButtonProps) {
   return (
     <StandardButton
       name={name}
+      label={label}
       icon={icon}
       tone={tone}
       iconScale={iconScale}
-      weight={variant}
-      // `compact` shortens what is DRAWN, never what the button is called.
-      label={label ?? (compact ? 'Club' : undefined)}
-      // The visible text may be "Club", or nothing at all — but the control is
-      // always announced in full, and e2e finds it by that name. StandardButton
-      // only sets an aria-label when nothing is drawn, so the compact case says
-      // it here; spread after its own, so this wins.
+      // The visible text is "Club", or nothing at all — but the control is
+      // always announced in full, and e2e finds it by that name.
+      // StandardButton only sets an aria-label when nothing is drawn, so the
+      // labeled case says it here; before the spread, so a call site can still
+      // override it.
       aria-label={name}
       {...rest}
     />
