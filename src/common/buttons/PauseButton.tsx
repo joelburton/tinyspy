@@ -48,7 +48,7 @@ type Props = {
  * grows into.
  *
  * A `<PageHeaderButton>` rather than a toned one: it is a mark in the header, not
- * an action being offered (docs/ui.md → the button taxonomy). The resume face
+ * an action being offered (docs/ui.md → "What a `<button>` is"). The resume face
  * is green — see the module.
  */
 export function PauseButton({ paused, manual, onPause, onUnpause }: Props) {

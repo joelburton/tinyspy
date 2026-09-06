@@ -221,7 +221,7 @@
 
 @media (--phone) {
   /* On a phone the Clear/Submit buttons go icon-only (BoardCol passes
-   * `iconOnly`), so drop the text-era floor width — they shrink to the icon and
+   * `label={null}`), so drop the text-era floor width — they shrink to the icon and
    * the tight commit row (mistakes readout + both buttons) fits a narrow screen. */
 /* @@ */   .inputButton {
     min-width: 0;

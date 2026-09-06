@@ -4,16 +4,18 @@ import { IconZoomFit } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * Zoom-to-fit — frame the whole board in the viewport (bananagrams' "Center +
- * fit"). A standard square icon-only action button (the shared `.icon-only`
- * box), not a bespoke round control. Default aria-label "Fit to screen".
+ * FRAME THE WHOLE BOARD in the viewport — reach for this on a board a player
+ * can pan or grow past the window (bananagrams' "Center + fit").
  *
- * Icon-only by default (it floats over the board where a text label wouldn't
- * fit); pass `label={false ? null : undefined}` for a labeled form if a game ever wants one.
+ * Icon-only by default, since it floats over the board where a word has
+ * nowhere to sit; pass `label` if a game ever has the room for one. `name`
+ * defaults to "Fit to screen", which is what it is called with no text drawn.
  */
 export function ZoomFitButton({
   name = 'Fit to screen',
   icon = IconZoomFit,
+  // It floats over the board, where a word has nowhere to sit — so it takes
+  // the shared square box rather than a shape of its own.
   label = null,
   ...rest
 }: PurposeButtonProps) {

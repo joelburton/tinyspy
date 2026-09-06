@@ -4,9 +4,10 @@ import { IconHideSolution, IconRevealSolution } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * Reveal-the-solution button — uncovers the WHOLE hidden answer of a finished
- * game: waffle's grid, wordle's word, stackdown's six words, psychicnum's
- * secrets, codenamesduet's partner key, crosswords' author solution.
+ * UNCOVER THE WHOLE HIDDEN ANSWER of a finished game — the grid, the word, the
+ * partner's key, whatever the game was keeping. Every game with something
+ * hidden renders one at terminal; `useSolutionReveal` is the hook that drives
+ * it, and holds the list.
  *
  * Red, and the boxed-eye glyph, both saying the same thing:
  * this is more than one word. Its quieter sibling is `SpoilerButton` — amber,
@@ -21,9 +22,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * far the players got survives the post-mortem instead of being overwritten by
  * it.
  *
- * Games that want a noun ("Reveal answer") pass `label`; pass `revealedLabel`
- * with it so the other face reads the same way ("Hide answer"). Both default,
- * so the plain `<RevealButton revealed={…} onClick={toggle} />` is the norm.
+ * Games that want a noun pass `name="Reveal answer"` and `revealedName="Hide
+ * answer"` together, so both faces read the same way; nearly every game does.
+ * Both default, so the plain `<RevealButton revealed={…} onClick={toggle} />`
+ * is still the shape.
  *
  * **`alreadyShown`** is the third state, for the six games with a CLEAR WIN
  * (see `useSolutionReveal`'s `impliedBy`): you can only finish strands,

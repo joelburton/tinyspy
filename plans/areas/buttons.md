@@ -6,8 +6,15 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 through
-F-buttons-4 worked. Opened out of §3's order: `members` is the next row, and
+F-buttons-5 worked. Opened out of §3's order: `members` is the next row, and
 Joel chose `buttons` first.
+
+**A docstring standard came out of F-buttons-5 and governs the rest of the
+area:** a purpose button's docstring answers *when do I reach for this* and
+*what do I pass*, and nothing else — glyph tuning, box mechanics and class
+names belong in a `//` comment at the line they explain. With F-buttons-3's
+ruling (the tone never appears in a docstring), that is the shape every file
+here is being brought to.
 
 ## The roster
 
@@ -279,7 +286,7 @@ Two things the finding did not have:
   `definitions/WordEditDialog.module.css`. Re-derived from the tree and
   rewritten.
 
-### F-buttons-5 · `renamed-props-in-prose` · Docstrings name props and classes that were renamed under them
+### WORKED · F-buttons-5 · `renamed-props-in-prose` · Docstrings name props and classes that were renamed under them
 
 - `SubmitButton`: "`iconOnly` for the no-text form" — the prop is
   `label={null}`. `docs/ui.md:209` says "most games pass `iconOnly`".
@@ -301,6 +308,47 @@ Two things the finding did not have:
 
 **Recommendation:** fix each sentence to the current name; delete
 DeleteButton's docstring sentence in favor of the comment that is right.
+
+**Resolution (2026-09-06, Joel: "Stuff like 'what the iconScale is for this
+button' shouldn't be in the docstring anyway; that's inside-the-component
+comment material. The docstring for a button should be simple: 'when should i
+use this, what do i pass to it'")** — a standard, not a set of corrections, and
+it settles most of the finding by deletion. **A purpose button's docstring
+answers two questions: when do I reach for this, and what do I pass.** Glyph
+tuning, box mechanics and class names are a `//` comment at the line they
+explain, or nothing.
+
+Under it the six read shorter and lead with the job: SUBMIT is "send my move",
+DELETE is "backspace", ZOOMFIT is "frame the whole board", HELP is "open the
+rules". `DeleteButton`'s wrong "bumped to 22" needed no correction — the
+parameter comment below it was already right, so the docstring sentence just
+went. `ZoomFitButton`'s `label={false ? null : undefined}` (an expression that
+always evaluates to `null`, documenting the state it is already in) went the
+same way; what a caller can actually do — pass `label` — is what replaced it.
+`RevealButton` keeps its two-state design argument, which IS "when do I use
+this", and loses the six-game list: `useSolutionReveal` holds the real one, and
+ten games render the button.
+
+**The ghost prop `iconOnly` was in six docs as well as the docstrings.**
+`docs/ui.md:209`, `docs/mobile.md` twice, `docs/games/wordiply.md`,
+`docs/games/waffle.md`, `docs/games/wordle.md`, and one game stylesheet comment
+(`connections/PlayArea.module.css`). It has never been a prop; the spellings
+are `label={null}` on a button and `backLabel={null}` through
+`<TerminalActionRow>`. All fixed — the same defect in one place is the same
+defect in seven.
+
+**Two more lines this area had made wrong, both fixed here for that reason:**
+
+- `docs/ui.md:317` documented `variant` and `iconOnly` on Back-to-club, one of
+  which F-buttons-2 deleted this morning and the other of which never existed.
+  It now describes `weight` and the draws-"Club"/called-"Back to club" split.
+- `docs/ui.md:209` and `:1342` gave `common/components/game/terminal/`, a
+  pre-reorg path; the folder is `common/terminal/`. Both are OUTSIDE
+  F-buttons-13's 1806–2225 range, so nothing else was going to reach them.
+
+**Left for its own decision:** `core-css/base.css:265` calls the icon-only box
+`.icon-only`, the pre-module global name. That is a paused area's file, and the
+same call as F-buttons-14 — it rides with that one.
 
 ### F-buttons-6 · `base-docstring-drift` · `StandardButton.tsx`'s own docstrings disagree with the file
 

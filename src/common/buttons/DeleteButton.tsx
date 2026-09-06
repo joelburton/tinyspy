@@ -4,11 +4,12 @@ import { IconDelete } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * Delete / backspace button — removes the last typed character. The `IconDelete`
- * glyph reads denser/smaller than most, so it's bumped to 22 (vs the default 18)
- * here, once, for every consumer; `.icon-only`'s fixed box keeps the button the
- * same size as its neighbors regardless. Secondary weight. Default label
- * "Delete".
+ * BACKSPACE — removes the last typed character. Reach for this on an
+ * on-screen keyboard or an entry row, wherever a player types without a
+ * physical keyboard to delete with.
+ *
+ * Default label "Delete"; pass `label={null}` for the icon-only key, which is
+ * what every keyboard uses.
  */
 export function DeleteButton({
   name = 'Delete',
