@@ -10,9 +10,8 @@
   display: block;
   width: 32px;
   height: 32px;
-  /* Keep the logo at its intrinsic 32px when used inside flex
-   * rows (e.g. the StartGameButtons cards) — without this, the
-   * default flex-shrink: 1 can compress the image when the row
-   * is narrow. */
+  /* Keep the logo at its intrinsic 32px inside the club's game
+   * rows — without this, the default flex-shrink: 1 compresses
+   * the image when the row is narrow. */
   flex-shrink: 0;
 }

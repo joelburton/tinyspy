@@ -126,7 +126,7 @@ in `ModeFilter.tsx`, and six across `docs/naming.md`, `docs/ui.md` ×3,
 `docs/code-conventions.md`, `docs/deferred.md`) went to `club/todo.md` on
 Joel's ruling ("4. file it in club").
 
-### F-branding-3 · `logo-docstrings-describe-an-older-header` · Both logo components explain click semantics that no longer exist
+### WORKED · F-branding-3 · `logo-docstrings-describe-an-older-header` · Both logo components explain click semantics that no longer exist
 
 `GameLogo`'s docstring: the parent "wraps this component in a `<Link>`
 (terminal) or `<a>` (non-terminal with intercept)" with a suspend-confirm on
@@ -151,6 +151,18 @@ page is a second call site.
 it (today `<PageHeaderMenu>` on the headers, a `<Link>` row in the club
 lists), and the one real design constraint the two share — they render the
 same bare 32×32 image so the two menu triggers are interchangeable.
+
+**Resolution (2026-09-05, Joel: "do all")** — both docstrings rewritten to
+that shape, F-branding-7's sentence folded into the second (see there), and
+the stylesheet's `flex-shrink` comment now names the club's game rows instead
+of `StartGameButtons`. Re-verified while writing: `<PageHeaderMenu>` is the
+wrapper at all three headers and supplies the chevron (`PageHeaderMenu.tsx`
+→ `<Menu>`); the three-branch leave-the-game logic is `requestBackToClub`
+(`GamePage.tsx:419–424`) reached from the menu's **Back to club** row
+(`gameMenu.ts:109–112`), not from any click on a logo; `<PuzpuzpuzLogo>` has
+TWO call sites, `ClubPage.tsx:943` ("Club menu") and `HomePage.tsx:172`
+("Main menu"). The "Future: the logo expands into a menu" paragraph is gone —
+that menu is what wraps it.
 
 ### F-branding-4 · `32px-in-six-places` · The logo's size is a number written six times and a contract derived from it by hand
 
@@ -196,7 +208,7 @@ goes and the component points at `/favicon.svg` by URL and accepts an
 unhashed asset. The first keeps the app's asset hashing and moves one line
 in the script. Step 11's asset pass then has one file to touch.
 
-### F-branding-7 · `rounded-square-is-painted-corners` · The mark's docstring describes a shape the SVG does not have
+### WORKED (with F-branding-3) · F-branding-7 · `rounded-square-is-painted-corners` · The mark's docstring describes a shape the SVG does not have
 
 `PuzpuzpuzLogo.tsx`: "a white 'P' on its own rounded indigo square". The
 SVG's ground is a plain square path (`M0 0 … 1254 1254 … Z`, four straight
@@ -209,6 +221,17 @@ page": on anything but a white ground the corners show as pale squares.
 **Recommendation:** say so in the docstring, in a sentence — it is the one
 fact about this asset a future dark theme needs, and the touch-icon script
 already depends on it. Comment-only; the fix to the asset is step 11's.
+
+**Resolution (2026-09-05, Joel: "do all")** — folded into F-branding-3's
+rewrite of the same docstring rather than reopening the file for one sentence.
+`<PuzpuzpuzLogo>` now says the tile is a plain indigo square whose corners are
+painted over in the page background (#FAFAFC), reading as rounded on a white
+page and showing four pale corners on anything else, and that
+`generate-icons.sh` strips that path for the full-bleed home-screen icons.
+Re-verified in the SVG (the ground is a four-sided path, the `#FAFAFC` path is
+separate and over it) and in the script, whose Python asserts `len(corner)
+== 1` on exactly that fill. Nothing said about WHICH file is the master — that
+is F-branding-6's, still open.
 
 ### F-branding-8 · `homeTitle-named-for-a-use` · The wordmark's file is named for the page it first sat on
 

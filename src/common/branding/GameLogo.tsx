@@ -11,24 +11,19 @@ type Props = {
 }
 
 /**
- * The game's square SVG logo, used as the leftmost element of
- * the GamePage header. Identity element + (when wrapped by the
- * parent) the back-to-club click affordance.
+ * A game's square logo, 32×32. It says WHICH game you are looking at, and it
+ * appears in the two places a game is named: first in the header of a game's
+ * page, and first in each of the club's game rows.
  *
- * Loads from each game's manifest `logoUrl`, which the per-game
- * `manifest.ts` imports via `import logoUrl from './logo.svg?url'`
- * so Vite hashes the asset and the URL works in build output.
+ * The image is the manifest's `logoUrl` — each per-game `manifest.ts` imports
+ * `./logo.svg?url` so Vite hashes the asset and the URL survives the build.
  *
- * **Pure presentational.** The click semantics (suspend-confirm
- * for non-terminal games, direct nav for terminal) live on the
- * `<GamePage>` parent because the branch depends on game state
- * the logo itself doesn't see. The parent wraps this component
- * in a `<Link>` (terminal) or `<a>` (non-terminal with intercept).
- *
- * Future: this is where the "switch to another game in this club"
- * dropdown will land — Joel's design has the logo expand into a
- * menu of other gametypes + an explicit return-to-club row. Not
- * built yet; the click is single-purpose for now.
+ * **Nothing here is clickable, and the two wrappers want different clicks.**
+ * In a game header `<PageHeaderMenu>` makes this the menu's trigger (leaving
+ * the game is a "Back to club" row inside that menu, not a click on the mark);
+ * in a club list the row's own `<Link>` opens the game. So it stays a bare
+ * `<img>` — the same bare 32×32 `<PuzpuzpuzLogo>` renders, which is what lets
+ * the two menu triggers look interchangeable.
  */
 export function GameLogo({ manifest }: Props) {
   return (

@@ -4,21 +4,24 @@ import puzpuzpuzLogo from './puzpuzpuz.svg?url'
 import styles from './PuzpuzpuzLogo.module.css'
 
 /**
- * The generic PuzPuzPuz logo, used as the leftmost element of the
- * ClubPage header. Parallels `<GameLogo>` on the game page — but
- * gametype-agnostic, since the club page lives above any specific
- * game.
+ * The app's own mark — a white "P" on an indigo tile, 32×32. It stands where a
+ * game's logo stands on a game page: first in the header, as the trigger of
+ * the page menu, on home ("Main menu") and on a club page ("Club menu").
  *
- * Pure presentational. The click semantics (open the club menu)
- * live on the `<Menu>` wrapper at the call site — see ClubPage.
+ * Not clickable itself. `<PageHeaderMenu>` at both call sites wraps it in the
+ * menu's trigger button and supplies the chevron, and this renders the same
+ * bare 32×32 image `<GameLogo>` does — which is what lets the two triggers
+ * look interchangeable.
  *
- * Source SVG is at `src/common/branding/puzpuzpuz.svg`, imported as `?url`
- * so Vite hashes the asset and the URL works in build output.
+ * The mark brings its own tile, so it needs no chrome here. But that tile is
+ * NOT a rounded square: the artwork is a plain square of indigo whose corners
+ * are painted over in the page background (#FAFAFC), so it reads as rounded
+ * against a white page and shows four pale corners against anything else.
+ * `scripts/generate-icons.sh` strips that one path to render the home-screen
+ * icons full-bleed.
  *
- * The mark is a self-contained tile — a white "P" on its own rounded
- * indigo square — so it needs no chrome around it, and this renders
- * as a bare 32×32 image exactly like `<GameLogo>`. That keeps the two
- * trigger shapes interchangeable inside the `<Menu>` wrapping button.
+ * Imported from `./puzpuzpuz.svg` as `?url` so Vite hashes the asset and the
+ * URL works in build output.
  */
 export function PuzpuzpuzLogo() {
   return (
