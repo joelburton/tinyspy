@@ -1,8 +1,6 @@
 /* cs-audited-branding */
 
-/* The square game-logo image. Sized at 32×32 in the header; the
- * SVG uses `currentColor` for stroke/fill so the icon inherits
- * the wrapping link's color (which is theme text color by default).
+/* The square game-logo image, sized at 32×32 in the header.
  *
  * `display: block` strips the inline-image baseline gap; the
  * parent flex row aligns everything via `align-items: center`.
@@ -12,7 +10,6 @@
   display: block;
   width: 32px;
   height: 32px;
-  color: var(--page-text-color);
   /* Keep the logo at its intrinsic 32px when used inside flex
    * rows (e.g. the StartGameButtons cards) — without this, the
    * default flex-shrink: 1 can compress the image when the row

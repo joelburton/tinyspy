@@ -98,7 +98,7 @@ The fully-flattened alternative (`logoUrl` / `mode` / `aiOpponent` copied on
 too, `<GameLogo>` back to loose `src`/`alt` props so "the logo's alt is the
 game's name" stops being one decision) was weighed and left.
 
-### F-branding-2 · `dead-color-on-an-img` · `GameLogo.module.css` sets a color no logo can read, and says why in a sentence that is false
+### WORKED · F-branding-2 · `dead-color-on-an-img` · `GameLogo.module.css` sets a color no logo can read, and says why in a sentence that is false
 
 `.logo { color: var(--page-text-color) }` under a comment: "the SVG uses
 `currentColor` for stroke/fill so the icon inherits the wrapping link's
@@ -112,6 +112,19 @@ the color, which is the correct one.
 
 **Recommendation:** delete the declaration and the sentence. Nothing moves:
 the property has no effect on an `<img>`.
+
+**Resolution (2026-09-05, Joel: "do it.")** — both gone; the comment keeps its
+true half (`display: block` strips the inline-image baseline gap). Counted at
+the fix: 16 per-game `logo.svg` (one per live game) plus the mark, and
+`currentColor` appears in NONE of them nor in `public/*.svg` — the roster note
+above says "17 per-game", which is the 16 plus `puzpuzpuz.svg`.
+`--page-text-color` is read in 74 files, so `cssTokens` is untroubled.
+The file's other stale sentence — `flex-shrink` naming "the StartGameButtons
+cards" — was deliberately LEFT for F-branding-3, which owns that rewrite.
+`<StartGameButtons>`'s nine other mentions (two `ClubPage.tsx` comments, one
+in `ModeFilter.tsx`, and six across `docs/naming.md`, `docs/ui.md` ×3,
+`docs/code-conventions.md`, `docs/deferred.md`) went to `club/todo.md` on
+Joel's ruling ("4. file it in club").
 
 ### F-branding-3 · `logo-docstrings-describe-an-older-header` · Both logo components explain click semantics that no longer exist
 
