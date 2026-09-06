@@ -24,9 +24,8 @@
 /* ---------- Surfaces and text ---------- */
 
 /* A CARD in the ordinary sense: a bordered section of a page, like a post-it
-   note. The app has few of
-   them — the homepage's body is one, the error page is one, and the club page
-   has none at all.
+   note. A page reaches for one when its content is a discrete block rather
+   than the page itself; the club page has none at all.
 
    IT CARRIES THE SURFACE AND NOTHING ELSE. No width and no centering: how wide
    a page's content is, and where it sits, is the PAGEMAIN's business
@@ -105,8 +104,8 @@
    dark bubble — rendered by the single <TooltipHost> (mounted in App.tsx, like
    ToastHost), which measures and CLAMPS the bubble to the viewport (above the
    anchor, flipped below near the top edge). None of the bubble's LOOK is here
-   on purpose: an earlier pure-CSS ::after version overflowed at viewport edges
-   and clipped under overflow-hidden ancestors. See
+   on purpose: a pure-CSS `::after` bubble cannot measure the viewport, so it
+   overflows at the edges and clips under overflow-hidden ancestors. See
    common/tooltips/TooltipHost.tsx.
 
    What IS here is the one thing only CSS can say: on a tooltip target, the long

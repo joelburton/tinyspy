@@ -37,15 +37,14 @@
      background: a light disc alone would vanish, and the dark-gold
      ring carries it.
 
-     NOT DERIVED, though a comment claimed they were. The claim was
-     oklch lightness clamped to min(0.85 × fillL, 0.55) at the same hue
-     and chroma; re-measured, that reproduces ONE of the eight. The
-     rest were hand-tuned afterwards, so there is no formula to invert
-     and a dark set is eight fresh judgments.
+     NOT DERIVED. An oklch lightness clamped to min(0.85 × fillL, 0.55)
+     at the same hue and chroma reproduces exactly one of the eight;
+     the rest are hand-tuned. So there is no formula to invert, and a
+     dark set is eight fresh judgments rather than a recalculation.
 
-     Was `-dot-` / `-border-`. `dot` named the one COMPONENT that draws
-     them, and these also paint chat names and list labels; fill/edge
-     is what every other pair in the app calls the same two jobs. */
+     `fill` / `edge`, because these paint chat names and list labels as
+     well as the dot — and because fill/edge is what every other pair
+     in the app calls the same two jobs. */
 /* @@ */   --member-red-fill-color:     #d32f2f;   --member-red-edge-color:     #b30115;
 /* @@ */   --member-orange-fill-color:  #ff9800;   --member-orange-edge-color:  #a25f01;
 /* @@ */   --member-yellow-fill-color:  #ffe05a;   --member-yellow-edge-color:  #867004;

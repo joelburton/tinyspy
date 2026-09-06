@@ -225,6 +225,21 @@ F-corecss-2: it names a background, not a component.)
 | `daylight.css:29` | a game's brand anchors are in "that game's brand.css" | every game's file is `theme.css` |
 | `focus-ring.css:34` | `<SelectionList>`'s `.cursor` is in `common/components/lists/` | `common/lists/` |
 
+**A SEVENTH, found later (2026-09-05, Joel: "what are all the comments at the
+bottom of focus-ring.css?") and fixed with the rest.** The offset block ended
+"Only the abutting case gets a class… **see below**", and below said the class
+is not in this file — a pointer that resolved to an absence. Rewritten as one
+block that says why the abutting case is a class at all (a list row never
+takes focus; the list does and points at a row, so there is no
+`:focus-visible` on the row to hang the ring on) and then names where it
+lives. Two more things came out of reading it properly: the three offsets are
+the SHELL's, and a game's board piece is tuned to its own board — the repo
+writes -3px and 3px on boards, which the block read as violations. And the
+`ColorChoiceList` warning said "nothing has brought the two into line", which
+is unfair to that file: it declines to read the token deliberately, says so,
+and hands the real question — should selected look like the cursor — to the
+account pass. The warning now says that.
+
 **Resolution (2026-09-05, Joel: "do 1 and 2")** — all six fixed. Five were
 name swaps, each target confirmed against the tree first: `.primary` /
 `.secondary` in `buttons/StandardButton.module.css` (twice — `base.css` and
@@ -387,7 +402,7 @@ Also fixed: `stackdown/theme.css`'s lede said the per-tile background is "an
 hsl ramp computed at runtime, so it isn't a token". It is tokens — the
 shared ones — as that file's own next comment says.
 
-### F-corecss-11 · `archaeology-and-counts` · Passages that tell how it used to work, and counts that rot
+### WORKED · F-corecss-11 (with F-corecss-19) · `archaeology-and-counts` · Passages that tell how it used to work, and counts that rot
 
 CLAUDE.md: "how it used to work is not useful", and a count is a claim that
 is wrong the next time anyone touches a file. Found:
@@ -415,8 +430,28 @@ is wrong the next time anyone touches a file. Found:
 - `focus-ring.css:32–35` — `.kb-cursor` "used to live here"
 - `utilities.css:117–123` — "an earlier pure-CSS ::after version overflowed"
 
-**Recommendation:** each keeps its rule and loses its history and its
-number, one edit per passage, presented as a batch diff.
+**Resolution (2026-09-05, Joel: "do it")** — each passage keeps its rule and
+loses its history and its number. Comment-only throughout.
+
+Both countable claims were wrong when re-checked: `base.css:75` said four of
+six non-game pages take the default width (five do — ClubPage, HomePage,
+ClaimHandleScreen, LoginScreen, ErrorPage), and it now says "nearly every",
+which is the part that was ever load-bearing.
+
+An ELEVENTH passage turned up in the sweep afterwards and was fixed with
+them: the `--pageHeader-height` contract comment said the value "used to be
+the literal 2.5rem in both places". It now states what the number is for.
+
+**F-corecss-19 (`card-readers-listed-wrong`) is worked here**, being the same
+rule under Joel's tile-ramp ruling — a reader list in a comment is a count in
+disguise. `.card`'s said "the homepage's body is one, the error page is one"
+and missed three of the five. It now says when a page reaches for a card
+instead of naming who does, and keeps the true club-page sentence.
+
+**Left out deliberately:** `base.css:49`'s "Nine places in the app ask for
+italics" (seven declarations today). The same sentence carries F-corecss-17's
+unverified oblique claim, so both edits land in one place and it is cheaper
+to do it once, there.
 
 ### F-corecss-12 · `base-loads-before-the-theme` · base.css says it loads after the theme; it loads before
 
@@ -536,7 +571,7 @@ the names — is still open and still this folder's; its evidence has rotted.
 **Recommendation:** rewrite the item against the tree (five tokens, three
 sharing `0 8px 24px`, four with one reader) when the area works its todo.md.
 
-### F-corecss-19 · `card-readers-listed-wrong` · `.card`'s comment lists who wears it, and misses most of them
+### WORKED with F-corecss-11 · F-corecss-19 · `card-readers-listed-wrong` · `.card`'s comment lists who wears it, and misses most of them
 
 `utilities.css:24–27`: "the homepage's body is one, the error page is one,
 and the club page has none at all." Readers: `HomePage`, `ErrorPage`,

@@ -64,13 +64,9 @@
 /* @@ */   --pageHeader-border-color:      #7b8391;
 
   /* A floating panel's TITLEBAR at rest. Its own token, and that is the whole
-     point: it was `--page-surface-hover-color` for months, which made the
-     titlebar's gray and every hover in the app one decision by accident — nudge
-     the hover and every panel header moved with it. Joel, 2026-08-22: titlebars
-     not being white "makes sense", but the two must not be coupled.
-
-     It STARTS at the same value it inherited, so nothing repaints today; the
-     point is that they can now diverge. */
+     point: share one with the page's hover and the two become a single
+     decision by accident. Same value as the hover here, free to diverge —
+     daylight's block says why. */
 /* @@ */   --floatingPanel-titlebar-color: #3a4459;
 
   /* The other two text grays, and both are the daylight decision read

@@ -15,7 +15,7 @@
 }
 
 /* THE OFFSET IS THE ONLY THING THAT VARIES, and it is not a preference — it
-   follows from what the element sits against:
+ * follows from what the element sits against:
  *
  *   -2px   the element ABUTS its neighbors (a list row, a menu item). An
  *          outside ring would overlap the next one and get clipped by the
@@ -26,15 +26,19 @@
  *          menu trigger).
  *
  * So a site declares `outline: var(--chrome-cursor-ring)` with the offset its
- * situation calls for. Only the abutting case gets a class, because it is the
- * one applied as a class rather than as a `:focus-visible` rule — see below. */
-
-/* THE KEYBOARD CURSOR — the ring on the row a focused list is pointing at —
- * used to live here as `.kb-cursor`. It is now `<SelectionList>`'s own
- * `.cursor` (common/lists/), because only that component can put it
- * on a row, and a global class let three pages each remember to.
+ * situation calls for. A game's board piece is tuned to its own board and is
+ * not on this list.
  *
- * ⚠️ A CURSOR IS NOT A SELECTED STATE. `ColorChoiceList.swatchActive` draws
- * this same ring to mark the color you have PICKED — a different meaning
- * wearing the same paint. It is not a SelectionList (there is no cursor there;
- * the ring is the value), so nothing has brought the two into line. */
+ * ONE OF THE THREE IS A CLASS INSTEAD OF A `:focus-visible` RULE — the
+ * abutting one, and for a reason that is about focus rather than about the
+ * ring: a list row never takes focus. The list does, and points at a row, so
+ * there is no `:focus-visible` on the row to hang the ring on. That class is
+ * `<SelectionList>`'s own `.cursor` (common/lists/) rather than anything here,
+ * because only the component that owns the rows can put it on one.
+ *
+ * ⚠️ A CURSOR IS NOT A SELECTED STATE. `ColorChoiceList.swatchActive` paints a
+ * ring that looks exactly like this one, meaning the color you HAVE CHOSEN. It
+ * writes the width and the color out rather than reading the token, on purpose
+ * — a selected state should not be tied to a decision about keyboard
+ * affordances. So the resemblance is not coupling; whether the two should look
+ * alike at all is a live question, and it belongs to the account pass. */

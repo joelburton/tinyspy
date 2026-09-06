@@ -73,8 +73,8 @@
 
 /* @@ */ :root {
   /* The DEFAULT page-content width — "the width when a page doesn't need a
-     custom one" (Joel, 2026-08-23). Four of the six non-game pages take it, and
-     a new page would too. The one page that is wider chose its own number for
+     custom one" (Joel, 2026-08-23). Nearly every non-game page takes it, and a
+     new page would too. The one page that is wider chose its own number for
      its own reasons and writes it in its own file, which is why there is no
      second tier here called "wide". GamePage caps nothing: its content width IS
      the page's. Inert on a phone, where every page is full-bleed.
@@ -401,12 +401,6 @@
      That is why these are named for what they ARE: nothing about "3"
      says whether it beats chat.
 
-     **THE OLD `--z-index-*` LADDER IS GONE** (2026-08-25). It ran
-     alongside this one while components migrated a rung at a time, and
-     it is empty now that every reader has moved — which is the
-     condition set for it to disappear. Eight
-     tokens, thirteen declarations, eleven files.
-
      `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer, and
      that is the whole point of the split: `--radius-md` feeds
      `border-radius` and `--shadow-panel` feeds `box-shadow`, so a token
@@ -573,10 +567,10 @@
 
   /* The page header's height, read by <PageHeader> and by the sheet
      offset above. A REAL contract between two files, not a description:
-     this used to be the literal 2.5rem in both places, true only because
-     the header's tallest child happens to be the menu trigger (a 32px
-     logo plus 0.25rem of padding each side). Change this and both move
-     together; change the trigger and this is the one number to update. */
+     the value is what the header's tallest child needs (the menu trigger —
+     a 32px logo plus 0.25rem of padding each side). Change this and both
+     readers move together; change the trigger and this is the one number
+     to update. */
 /* @@ */   --pageHeader-height: 2.5rem;
 
   /* A FLOATING PANEL's titlebar height, and the one number that sizes the strip.
@@ -642,21 +636,11 @@
 
 /* @@ */ body {
   margin: 0;
-  /* THE PAGE'S OWN GROUND, and until 2026-08-20 nothing painted it.
-     `--page-bg-color` existed, was documented as "off-white so pure-white cards
-     have a subtle ground", and was read by exactly two components — so what you
-     actually saw behind every screen was the USER AGENT's canvas.
-
-     In light mode that is white, which is close enough to #fafafa that the bug
-     survived years of looking at it. The midnight spike is what exposed it: a
-     dark theme put near-white text on a page whose background was still the
-     browser's, and the only reason it did not render unreadable is that Chrome's
-     dark canvas happens to be #121212 — the same value midnight had picked.
-     A token that is right by coincidence is a token that is not being used.
-
-     Painting it here costs one visible change in daylight: the page goes from
-     #ffffff to #fafafa, which is the ground the cards were always designed to
-     sit on. */
+  /* THE PAGE'S OWN GROUND — off-white, so pure-white cards have something to
+     sit on. Declaring it here is what makes it real: with no rule painting it,
+     what shows behind every screen is the USER AGENT's canvas, which happens to
+     resemble both themes closely enough to hide that nothing is using the token.
+     A token that is right by coincidence is a token that is not being used. */
   background: var(--page-bg-color);
   /* `svh` (small viewport height), NOT `vh`: on mobile Safari `100vh` is the
      toolbar-HIDDEN height (taller than what's visible), so a `100vh` page runs
@@ -724,11 +708,10 @@
  *                                    the info column's panels, Help prose
  *   h4   a SUBSECTION inside prose   letterboxed's Help
  *
- * Declared rather than left to the browser, because until 2026-08-21 the
- * spacing between a page's section heading and the list under it WAS the
- * UA's `margin-block: 1em` — a number nobody had chosen, load-bearing on
- * two pages, and different from the number the info column uses. A
- * default that matters is a decision.
+ * Declared rather than left to the browser: the spacing between a page's
+ * section heading and the list under it is load-bearing, and left undeclared
+ * it is the UA's `margin-block: 1em` — a number nobody chose. A default that
+ * matters is a decision.
  *
  * THE SIZES ARE FOR NON-GAME PAGES. A game's info column is the packed
  * surface — vertical space there is the scarce thing — so it runs its
@@ -803,16 +786,14 @@ input:focus,
 
 /* The bare <button> element is NEUTRAL — it carries no chrome at all.
  *
- * This INVERTS what it used to be. The bare element was the filled accent
- * button, which meant every <button> that isn't one — a board tile, a list row,
- * a chat bubble, a text link, a menu item — opened by canceling the fill, the
- * border and the padding it had just been handed; twenty-nine rules began with
- * that apology. It also made a blanket hover impossible: a hover that is right
- * for Submit is a lie on a codenamesduet tile, where the old accent-blue read as
- * a real reveal. So the app's most-clicked control was inert under the pointer
- * while a dialog's button was not. Chrome is opt-in now (`.primary` /
- * `.secondary` in buttons/StandardButton.module.css, plus `.tile` / `.key` for
- * the game pieces), and the hover lands with it.
+ * Most <button>s in this app are not buttons in the chrome sense: a board tile,
+ * a list row, a chat bubble, a text link, a menu item. If the bare element
+ * carried a fill, a border and padding, every one of those would have to open
+ * by canceling them — and a blanket hover would be impossible, because a hover
+ * that is right for Submit is a lie on a codenamesduet tile, where accent blue
+ * reads as a real reveal. So chrome is opt-in (`.primary` / `.secondary` in
+ * buttons/StandardButton.module.css, plus `.tile` / `.key` for the game
+ * pieces), and the hover lands with it.
  *
  * Two of these declarations look like chrome and aren't — they overrule browser
  * defaults that any reset has to overrule:
@@ -825,11 +806,11 @@ input:focus,
  *   cursor: pointer  the UA default for a button is `default`, an arrow, not a
  *                    hand. Links get the hand for free; buttons never have.
  *
- * `border-radius` stays in the base, and that is measured rather than tidy: 19
- * rules cancel the old fill without ever declaring a radius, living on this one.
- * On a transparent element a radius is inert — until something paints a
- * background, which is exactly what a row or a menu item does on hover. Drop it
- * and up to 19 hover states get square corners; it costs nothing to leave. */
+ * `border-radius` stays in the base, and that is measured rather than tidy. On
+ * a transparent element a radius is inert — until something paints a
+ * background, which is exactly what a row or a menu item does on hover. Plenty
+ * of rules rely on this one and declare no radius of their own; drop it and
+ * their hover states get square corners. It costs nothing to leave. */
 /* @@ */ button {
   font: inherit;
   color: inherit;
