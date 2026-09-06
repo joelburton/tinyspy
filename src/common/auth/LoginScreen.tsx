@@ -7,7 +7,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { supabase } from '../supabase/supabase'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { cls } from '../utils/cls'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
 
 /**
@@ -168,8 +168,9 @@ export function LoginScreen() {
                   required
                 />
               )}
-              <StandardButton
-                name={
+              <FormSubmitButton
+                show="label"
+                label={
                   action === 'send-link'
                     ? status === 'sending'
                       ? 'Sending…'
@@ -178,8 +179,6 @@ export function LoginScreen() {
                       ? 'Verifying…'
                       : 'Verify code'
                 }
-                type="submit"
-                weight="primary"
                 disabled={
                   busy || !values.email || (action === 'verify-code' && !values.code.trim())
                 }

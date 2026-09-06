@@ -176,7 +176,7 @@ export function PlayerBoard({
               SERVER enforces words, not whether you may ask). */}
           {!isTerminal && !isConceded && (
             <WordCheckButton
-              label={null}
+              show="icon"
               className={shared.helperButton}
               disabled={arena.checking}
               onClick={() => void arena.doWordCheck()}
@@ -184,6 +184,7 @@ export function PlayerBoard({
           )}
           {onPeel && !isTerminal && !isConceded && (
             <PeelButton
+              show="both"
               className={shared.helperButton}
               disabled={arena.derivedHand.length !== 0 || arena.declaring}
               onClick={() => void arena.doPeel()}

@@ -65,7 +65,7 @@ export function UploadPickerBlockingModal({ onPick, onClose }: Props) {
   }
 
   return (
-    <BlockingModal title="Upload" onClose={onClose} actions={<CancelButton onClick={onClose} />}>
+    <BlockingModal title="Upload" onClose={onClose} actions={<CancelButton show="label" onClick={onClose} />}>
       <div className={styles.body}>
         <p className={styles.lead}>Upload a .puz or .ipuz crossword file to play it.</p>
         <input

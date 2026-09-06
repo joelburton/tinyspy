@@ -46,7 +46,7 @@ export function GuardianPickerBlockingModal({ onPick, onClose }: Props) {
     <BlockingModal
       title="Guardian"
       onClose={onClose}
-      actions={<CancelButton onClick={onClose} />}
+      actions={<CancelButton show="label" onClick={onClose} />}
     >
       <div className={styles.body}>
         <p className={styles.lead}>

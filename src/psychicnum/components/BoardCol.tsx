@@ -306,7 +306,7 @@ export function BoardCol({
         floatingControl={
           <ShuffleButton
             onShuffle={handleShuffle}
-            label="Shuffle the words"
+            tooltip="Shuffle the words"
             className={shared.floatingShuffle}
           />
         }

@@ -1,6 +1,7 @@
 // cs-audited-buttons
 
 import type { ComponentPropsWithRef, ComponentType, ReactNode } from 'react'
+import { IconGeneric } from '../icons/icons'
 import { cls } from '../utils/cls'
 import styles from './StandardButton.module.css'
 
@@ -12,70 +13,84 @@ export type ButtonWeight = 'primary' | 'secondary'
 /** A button's semantic TONE — the BUTTON bucket's own vocabulary (see
  *  themes/daylight.css → BUTTON), not the outcome palette's. It colors a
  *  secondary button's border + label + glyph, or a primary button's background:
- *  `normal` = blue, `caution` = orange (Hint / Reveal), `destructive` = dark red
- *  (End / Concede / Delete), `quiet` = gray (a Cancel), `success` = a confirming
- *  yes, reserved. Tone and weight are ORTHOGONAL — all five tones work in both
- *  treatments, and each carries the values that takes. */
+ *  `normal` = blue, `caution` = orange, `destructive` = dark red, `quiet` =
+ *  gray, `success` = a confirming yes, reserved. Tone and weight are
+ *  ORTHOGONAL — all five tones work in both treatments, and each carries the
+ *  values that takes. */
 export type ButtonTone = 'quiet' | 'normal' | 'caution' | 'destructive' | 'success'
 
+/**
+ * WHAT THE BUTTON DRAWS — its glyph, its words, or both.
+ *
+ * Every call site says this out loud, and that is the whole point: reading
+ * `<RestartButton show="icon" />` you know what appears without opening
+ * `RestartButton`. Before this prop each button carried its own default and
+ * three of them disagreed, so a bare `<HelpButton />` drew nothing while a bare
+ * `<RestartButton />` drew a word — the same call-site shape meaning opposite
+ * things.
+ *
+ * It is separate from `label`, which carries the WORDS. Form and text are two
+ * decisions and a button can want any pair of them: `show="label"` with a
+ * `label` of your own, `show="icon"` with a `label` that survives as the hover
+ * bubble and the accessible name.
+ */
+export type ButtonShow = 'icon' | 'label' | 'both'
+
 /** The glyph type: a component that takes a `size`. Widened past Lucide's own
- *  so a button can supply its own drawing when the registry's answer is wrong
- *  — the pause bars are drawn inline, because lucide's `Pause` is two OUTLINED
- *  rounded rects and doesn't read as the familiar media mark. The `size` prop
- *  is never passed (the module sizes the glyph in `em`); it stays in the type
- *  because Lucide's components declare it. */
+ *  because the registry now defines glyphs of its own as well as aliasing
+ *  lucide's — `IconBack` is a component, not an alias, so a type demanding
+ *  lucide's forwardRef shape would refuse it. The `size` prop is never passed
+ *  (the module sizes the glyph in `em`); it stays in the type because Lucide's
+ *  components declare it. */
 export type ButtonIcon = ComponentType<{ size?: number | string; 'aria-hidden'?: boolean }>
 
 /**
  * What every standard button takes — the native <button> attributes plus the
- * six axes. A PURPOSE BUTTON (`RestartButton`, `TrashButton`, …) takes this
+ * axes below. A PURPOSE BUTTON (`RestartButton`, `TrashButton`, …) takes this
  * same type, supplies defaults for some of it, and overrides nothing: every
  * axis stays reachable at every call site.
  *
- * **`undefined` means "not supplied, use the default"; `null` means "don't"**
- *. `<RestartButton />` and `<RestartButton icon={undefined} />`
- * are the same button; `<RestartButton icon={null} />` is that button with no
- * glyph. The two only differ where a default exists, which is to say inside a
- * purpose button — on a bare `<StandardButton>` both simply mean "nothing here".
+ * **Two props are REQUIRED, and between them they say what the button is:**
+ * `label` (the words) and `show` (which parts appear). A purpose button
+ * supplies the first; nobody supplies the second, because guessing it is the
+ * thing that made call sites unreadable.
  *
- * `small` is the exception, and doesn't need the rule: it is a boolean, so
- * `false` already plays the part `null` plays for the others. It is also NOT
- * `size="normal"` — `normal` is a tone, and 95% of buttons would have to type a
- * word that says nothing.
+ * `small` is a boolean rather than a size word, and is NOT `size="normal"` —
+ * `normal` is a tone, and 95% of buttons would have to type a word that says
+ * nothing.
  */
 export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
-  /** WHAT THIS BUTTON IS — "Restart", "Delete", "Back to club". The identity,
-   *  and the one thing a purpose button always supplies.
+  /** THE WORDS — "Restart", "Delete", "Club". Drawn when `show` includes them,
+   *  and the button's identity either way: when `show="icon"` this is what the
+   *  hover bubble says and what the button is called, so an icon-only button is
+   *  still findable and still says what it does.
    *
-   *  It is not necessarily what you SEE: `label` is what gets drawn, and it
-   *  defaults to this. When the label is suppressed the name lives on as the
-   *  hover bubble and the accessible name, so an icon-only button is still
-   *  findable and still says what it does.
+   *  A purpose button supplies a default, so a call site passes this only to
+   *  deviate ("Start over" on a Restart).
    *
-   *  **This shadows the DOM `name` attribute deliberately.** No button in the
-   *  app uses native form submission with a named button (every form goes
-   *  through an RPC), and a button's identity is worth the better word. */
-  name: string
-  /** WHAT IS DRAWN. Defaults to `name`; pass a different string to deviate
-   *  ("Start over" on a Restart), or `null` to draw no text at all — which is
-   *  what makes it an icon-only button.
-   *
-   *  A ReactNode, because the drawn label is CONTENT while `name` is identity:
-   *  the setup dialog's Start wraps part of its own text in a span the phone
-   *  breakpoint hides ("Start" + "PsychicNum · Co-op"), and that is a rendering
-   *  detail, not a second name. */
-  label?: ReactNode | null
-  /** THE GLYPH. Defaults to the purpose button's; `null` draws none. A standard
-   *  button may carry a label, an icon, or both — neither is required. */
-  icon?: ButtonIcon | null
+   *  A ReactNode rather than a string, because the drawn label is CONTENT: the
+   *  setup dialog's Start wraps part of its own text in a span the phone
+   *  breakpoint hides ("Start" + "PsychicNum · Co-op"). Pass a plain string
+   *  unless you need that — an icon-only button has nowhere to put markup, and
+   *  its accessible name comes from this. */
+  label: ReactNode
+  /** WHICH PARTS ARE DRAWN. Required, always, at every call site. */
+  show: ButtonShow
+  /** THE GLYPH. Defaults to the purpose button's, or to a generic square for
+   *  the one button with no glyph of its own, so `show="both"` always draws
+   *  two things. */
+  icon?: ButtonIcon
   /** The styled hover bubble (`data-tooltip`, rendered by TooltipHost — the
    *  fast replacement for the native `title`, which some browsers delay past
    *  the point anyone notices).
    *
-   *  Omit it and the bubble says the NAME, but only when the name isn't already
-   *  drawn — a bubble reading "Cancel" over a button reading "Cancel" is noise.
-   *  Pass a string to say something richer ("End the game for everyone"), which
-   *  shows in both cases. Pass `null` for no bubble at all. */
+   *  Defaults to the `label`, but only shows when the label ISN'T drawn — a
+   *  bubble reading "Cancel" over a button reading "Cancel" is noise. Pass a
+   *  string to say something richer ("End the game for everyone"), which shows
+   *  in both cases, or when the drawn words are shorter than the button's real
+   *  name (Back-to-club draws "Club" and is called "Back to club"). Pass
+   *  `null` for no bubble at all — the accessible name still comes from the
+   *  label. */
   tooltip?: string | null
   /** Filled (`primary`) vs the default outline (`secondary`). */
   weight?: ButtonWeight
@@ -87,8 +102,8 @@ export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
    *
    *  For a button that is the whole content of its row rather than one control
    *  beside others — a stacked pair in a small card, where two hugging buttons
-   *  of different label lengths read as ragged. Meaningless on an icon-only
-   *  button, which is a fixed square by definition. */
+   *  of different label lengths read as ragged. Meaningless on `show="icon"`,
+   *  which is a fixed square by definition. */
   fullWidth?: boolean
   /** Per-glyph size multiplier, for the Lucide glyphs that read denser or
    *  looser than the rest at the same nominal size (the trash can wants 1.2, a
@@ -99,25 +114,26 @@ export type StandardButtonProps = ComponentPropsWithRef<'button'> & {
 
 /**
  * What a PURPOSE BUTTON takes: everything a standard button does, except that
- * `name` is optional because the purpose button already knows its own.
+ * `label` is optional because the purpose button already knows its own words.
+ * `show` stays REQUIRED — that is the one thing no component may decide for its
+ * call sites.
  *
  * Purpose buttons supply defaults **as default parameters**, not by spreading
  * over them, and that is load-bearing: a default parameter treats an explicitly
- * passed `undefined` exactly like an omitted prop, which is the
- * `undefined` = "use the default" half of the rule. A JSX spread would not — it
+ * passed `undefined` exactly like an omitted prop. A JSX spread would not — it
  * would override the default with the undefined.
  */
-export type PurposeButtonProps = Omit<StandardButtonProps, 'name'> & { name?: string }
+export type PurposeButtonProps = Omit<StandardButtonProps, 'label'> & { label?: ReactNode }
 
 /**
  * A STANDARD BUTTON — the app's ordinary button, and the only general button
  * component there is.
  *
- * ONE button, not a family: an info-column action, a form's
- * Cancel and a dialog's acknowledgment are this control wearing different
- * tones. Every axis is optional — a button with no glyph, no label, or neither
- * is still this one — so there is never a reason to hand-write a `<button>` to
- * escape a required prop.
+ * ONE button, not a family: an info-column action, a form's Cancel and a
+ * dialog's acknowledgment are this control wearing different tones. Reach for a
+ * purpose button (`RestartButton`, `CancelButton`, `FormSubmitButton`, …) when
+ * one names what you are doing; reach for this directly for a one-off whose
+ * words appear nowhere else — a dialog's "Got it", "Reload", "Try again".
  *
  * Everything a standard button looks like lives in its module. There are no
  * global button classes to compose.
@@ -125,13 +141,13 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'name'> & { name?: st
  * The families that are NOT this: a game piece, a keycap, a segmented choice, a
  * page-header mark, and the board's round `ShuffleButton`.
  *
- * A ✕ dismiss IS this button — a glyph, no label, no border — packaged as
+ * A ✕ dismiss IS this button — a glyph, no words, no border — packaged as
  * `<CloseButton>`.
  */
 export function StandardButton({
-  name,
   label,
-  icon,
+  show,
+  icon = IconGeneric,
   tooltip,
   weight = 'secondary',
   tone = 'normal',
@@ -142,16 +158,26 @@ export function StandardButton({
   style,
   ...rest
 }: StandardButtonProps) {
-  // `undefined` falls through to the name, `null` suppresses. `??` would treat
-  // the two alike, which is the whole distinction, so this is written out.
-  const drawn = label === undefined ? name : label
-  const Icon = icon ?? undefined
+  const Icon = icon
+  const iconOnly = show === 'icon'
+
+  // What the button is CALLED — its words, unless a `tooltip` says otherwise.
+  // Back-to-club is why that override exists: it draws "Club" and is called
+  // "Back to club", and the longer one is what a player hovers and what the
+  // suite finds it by. Only a string can serve as a name; a label carrying
+  // markup is already in the DOM as text, which names the button on its own.
+  const words = typeof label === 'string' ? label : undefined
+  const called = tooltip ?? words
 
   // The bubble says the name only when the name isn't already on screen; an
   // explicit tooltip always shows. `tooltip === null` is "no bubble", which
-  // `??` cannot express either.
-  const bubble =
-    tooltip === null ? undefined : tooltip !== undefined ? tooltip : drawn === null ? name : undefined
+  // `??` cannot express.
+  const bubble = tooltip === null ? undefined : (tooltip ?? (iconOnly ? words : undefined))
+
+  // Only worth saying when the name is not already the visible text — which is
+  // every icon-only button, and the handful whose tooltip renames them.
+  const drawnText = iconOnly ? undefined : words
+  const ariaLabel = called !== drawnText ? called : undefined
 
   return (
     <button
@@ -168,7 +194,7 @@ export function StandardButton({
         styles[tone],
         small && styles.small,
         fullWidth && styles.fullWidth,
-        drawn === null && styles.iconOnly,
+        iconOnly && styles.iconOnly,
         className,
       )}
       style={
@@ -176,14 +202,14 @@ export function StandardButton({
           ? style
           : { ...style, ['--standardButton-icon-scale' as string]: iconScale }
       }
-      // The name has to reach the DOM somehow when it isn't drawn — it is what
-      // the bubble says and what tests find the button by.
-      aria-label={drawn === null ? name : undefined}
+      // The name has to reach the DOM somehow when the drawn words aren't it —
+      // it is what the bubble says and what tests find the button by.
+      aria-label={ariaLabel}
       // A glyph with no words, said in the DOM so another stylesheet can ask.
       // `modalActions` uses it to keep its text-button width floor off a lone
       // icon; the class that draws it is hashed per module and unreachable
       // from there.
-      data-icon-only={drawn === null ? '' : undefined}
+      data-icon-only={iconOnly ? '' : undefined}
       data-tooltip={bubble}
       // Suppress focus-steal on mouse click: the capture-input games
       // (spellingbee) read keystrokes off the window, so a clicked button must
@@ -195,8 +221,8 @@ export function StandardButton({
       // call site. A form's commit passes `type="submit"` and it wins.
       {...rest}
     >
-      {Icon && <Icon aria-hidden />}
-      {drawn}
+      {show !== 'label' && <Icon aria-hidden />}
+      {show !== 'icon' && label}
     </button>
   )
 }

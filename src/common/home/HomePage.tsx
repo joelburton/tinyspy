@@ -210,7 +210,7 @@ export function HomePage({ session }: Props) {
           <header className="heading-with-controls">
             <h3>Your clubs</h3>
             <StandardButton
-              name="New club"
+              show="label"
               label="+ New club"
               weight="secondary"
               tone="quiet"

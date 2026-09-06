@@ -16,10 +16,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * default label "End turn".
  */
 export function EndTurnButton({
-  name = 'End turn',
+  label = 'End turn',
   icon = IconEndTurn,
   weight = 'primary',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} weight={weight} {...rest} />
+  return <StandardButton label={label} icon={icon} weight={weight} {...rest} />
 }

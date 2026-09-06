@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import { BackToClubButton } from '../buttons/BackToClubButton'
+import type { ButtonShow } from '../buttons/StandardButton'
 import type { TerminalCopy } from './terminalCopy'
 import shared from '../game-page/PlayArea.module.css'
 
@@ -14,10 +15,12 @@ type Props = {
    *  the Back-to-Club button (i.e. to its left). Waffle's Restart is the first
    *  user; most games pass nothing. */
   children?: ReactNode
-  /** What the Back-to-Club button DRAWS. Omit it for the button's own default,
-   *  "‹ Club"; pass `null` for the icon-only square, which every game's
-   *  terminal row does today. The button is called "Back to club" either way. */
-  backLabel?: string | null
+  /** What the Back-to-Club button DRAWS — passed straight through as its
+   *  `show`, and required here for the same reason it is required there: a row
+   *  that doesn't say is a row you have to open a file to read. Every game's
+   *  terminal row passes `"icon"` today, because the row is four controls wide
+   *  in a ~22rem column. The button is called "Back to club" either way. */
+  backShow: ButtonShow
 }
 
 /**
@@ -29,12 +32,12 @@ type Props = {
  * differ per game (plain action buttons vs a compete game's "you conceded"
  * sub-state), so each game keeps its own `over ? <TerminalActionRow/> : (…)`.
  */
-export function TerminalActionRow({ over, onBackToClub, children, backLabel }: Props) {
+export function TerminalActionRow({ over, onBackToClub, children, backShow }: Props) {
   return (
     <div className={cls(shared.infoActions, shared.terminalActions)}>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
       {children}
-      <BackToClubButton onClick={onBackToClub} weight="primary" label={backLabel} />
+      <BackToClubButton onClick={onBackToClub} weight="primary" show={backShow} />
     </div>
   )
 }

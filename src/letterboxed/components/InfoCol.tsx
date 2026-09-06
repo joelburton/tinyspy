@@ -177,20 +177,20 @@ export function InfoCol({
             / Club. CONCEDED (others race on): the terminal look + a disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
-            <RestartButton label={null} onClick={onRestart} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+            <RestartButton show="icon" onClick={onRestart} />
             <RevealButton
-              label={null}
-              name="Reveal solution"
-              revealedName="Hide solution"
+              show="icon"
+              label="Reveal solution"
+              revealedLabel="Hide solution"
               revealed={solutionShown}
               onClick={onReveal}
             />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
+            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
@@ -200,21 +200,21 @@ export function InfoCol({
                 them there too. */}
             {!isCompete && (
               <>
-                <HintButton label={null} className={shared.helperButton} onClick={onHint} />
+                <HintButton show="icon" className={shared.helperButton} onClick={onHint} />
                 <SpoilerButton
-                  label={null}
-                  name="Show the word"
+                  show="icon"
+                  label="Show the word"
                   className={shared.helperButton}
                   onClick={onSpoiler}
                 />
               </>
             )}
             {isCompete ? (
-              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton label={null} onClick={onRequestBackToClub} />
+            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
           </div>
         )}
 

@@ -148,9 +148,9 @@ export function InfoCol({
   // Icon-only (the canonical action-row treatment): the styled tooltip carries
   // the label.
   const endButton = isCompete ? (
-    <ConcedeGameButton label={null} onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton show="icon" onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
   ) : (
-    <EndGameButton label={null} onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
   )
 
   return (
@@ -204,20 +204,20 @@ export function InfoCol({
             status ("You're out" / "You conceded") + Concede. Terminal: the outcome
             line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
             {/* Stay-here options left of the leave option (Club): see the
                 categories you didn't get, run this puzzle back, or move on to
                 the next unplayed date. */}
             <RevealButton
-              label={null}
-              name="Reveal categories"
-              revealedName="Hide categories"
+              show="icon"
+              label="Reveal categories"
+              revealedLabel="Hide categories"
               revealed={solutionShown}
               alreadyShown={solutionAlreadyShown}
               onClick={onReveal}
             />
-            <RestartButton label={null} onClick={onRestart} />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton show="icon" onClick={onRestart} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : !showInput ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
@@ -229,8 +229,8 @@ export function InfoCol({
               {/* Hints toggles the inline HintList below (warning-toned, amber);
                   aria-pressed reflects whether the list is currently unfolded. */}
               <HintButton
-                label={null}
-                name="Hints"
+                show="icon"
+                label="Hints"
                 onClick={onHints}
                 aria-pressed={hintsOpen}
                 className={shared.helperButton}

@@ -891,7 +891,7 @@ function PanelRnd({
               className={`${styles.titlebar} ${draggable ? styles.dragHandle : ''}`}
             >
               <span className={styles.title}>{title}</span>
-              <CloseButton className={styles.close} onClick={onClose} />
+              <CloseButton show="icon" className={styles.close} onClick={onClose} />
             </div>
           )}
           {/* ONE content wrapper, always — the panel's parts are its children,

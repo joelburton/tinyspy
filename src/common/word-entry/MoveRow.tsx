@@ -57,9 +57,9 @@ export function MoveRow({
 }: Props) {
   return (
     <div className={cls(styles.moveRow, className)}>
-      <DeleteButton label={null} onClick={onDelete} disabled={deleteDisabled} />
+      <DeleteButton show="icon" onClick={onDelete} disabled={deleteDisabled} />
       {children}
-      <SubmitButton label={null} onClick={onSubmit} disabled={submitDisabled} />
+      <SubmitButton show="icon" onClick={onSubmit} disabled={submitDisabled} />
     </div>
   )
 }

@@ -158,12 +158,12 @@ export function InfoCol({
   const endButton = isCompete ? (
     <ConcedeGameButton
       onClick={onConcede}
-      label={null}
+      show="icon"
       className={shared.helperButton}
       disabled={myConceded || selfSolved}
     />
   ) : (
-    <EndGameButton onClick={onEndGame} label={null} className={shared.helperButton} />
+    <EndGameButton onClick={onEndGame} show="icon" className={shared.helperButton} />
   )
 
   return (
@@ -231,19 +231,19 @@ export function InfoCol({
             back-to-club (secondary, via the suspend-confirm flow). WATCHING
             (not in the game): a bold note, no button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
             {/* Stay-here options left of the leave option (Club): restart this
                 board, see the answer, or spin up the next game. */}
-            <RestartButton label={null} onClick={onRestart} />
+            <RestartButton show="icon" onClick={onRestart} />
             <RevealButton
-              label={null}
-              name="Reveal answer"
-              revealedName="Hide answer"
+              show="icon"
+              label="Reveal answer"
+              revealedLabel="Hide answer"
               revealed={answerShown}
               alreadyShown={answerAlreadyShown}
               onClick={onRevealAnswer}
             />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : selfDone ? (
           <LocalTerminalRow
@@ -255,13 +255,13 @@ export function InfoCol({
                 a player who dropped out can't spoil a live race. Present
                 rather than absent so the row doesn't change shape when the
                 last racer finishes — the button is simply enabled then. */}
-            <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
+            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
             {endButton}
-            <BackToClubButton label={null} onClick={onRequestBackToClub} />
+            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
           </div>
         ) : (
           <LocalTerminalRow label="Watching — not in this game" />

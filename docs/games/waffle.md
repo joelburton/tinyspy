@@ -491,7 +491,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   direct `goToClub`); at terminal the bold outcome line +
   `RestartButton` / `RevealButton` (the terminal-local reveal) /
   `NewGameButton` / primary back-to-club, via `TerminalActionRow`'s children
-  slot + its `backLabel={null}`. Stay-here options sit left of the leave option.
+  slot + its `backShow="icon"`. Stay-here options sit left of the leave option.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorTag>`; coop only. Compete shows

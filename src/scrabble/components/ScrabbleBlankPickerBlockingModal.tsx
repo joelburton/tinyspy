@@ -35,7 +35,7 @@ export function ScrabbleBlankPickerBlockingModal({
             </button>
           ))}
         </div>
-        <CancelButton onClick={onCancel} />
+        <CancelButton show="label" onClick={onCancel} />
       </div>
     </div>
   )

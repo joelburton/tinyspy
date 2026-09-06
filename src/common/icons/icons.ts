@@ -216,6 +216,17 @@ export {
   PanelRightClose as IconInfoSheetClose, // back to the board
   // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
   // the familiar solid two-bars mark, so PauseButton draws its own glyph.
+
+  // ── The one glyph that means nothing ──────────────────────────────────────
+
+  // The placeholder for a button that has no glyph of its own — CancelButton is
+  // the only one, and always will be while "never a glyph" is its rule. It
+  // exists so that EVERY button has an icon and `show` can be honest: a call
+  // site asking for `show="both"` gets two things, rather than silently getting
+  // one. Nothing renders it today, because every such call site passes
+  // `show="label"`. If you find yourself reaching for it deliberately, the
+  // button wants a real glyph and this file is where to choose one.
+  Square as IconGeneric,
 } from 'lucide-react'
 
 /**

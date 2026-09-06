@@ -12,10 +12,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * user.
  */
 export function RestartButton({
-  name = 'Restart',
+  label = 'Restart',
   icon = IconRestart,
   tone = 'normal',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

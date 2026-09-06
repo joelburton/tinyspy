@@ -11,10 +11,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * terminal action row is the first user.
  */
 export function NewGameButton({
-  name = 'New game',
+  label = 'New game',
   icon = IconNewGame,
   tone = 'normal',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

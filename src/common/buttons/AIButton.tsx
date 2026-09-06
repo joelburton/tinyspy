@@ -14,6 +14,6 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * get distinct glyphs + labels even though they share a color. Default label
  * "AI".
  */
-export function AIButton({ name = 'AI', icon = IconAI, tone = 'caution', ...rest }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+export function AIButton({ label = 'AI', icon = IconAI, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

@@ -374,8 +374,8 @@ function ClueForm({
             onSubmit still fires (StandardButton defaults to type="button"). */}
         <SubmitButton
           type="submit"
-          name={busy ? 'Submitting…' : 'Submit'}
-          label={isPhone ? null : undefined}
+          label={busy ? 'Submitting…' : 'Submit'}
+          show={isPhone ? 'icon' : 'both'}
           disabled={eitherBusy || !submittable}
           className={styles.submitBtn}
         />
@@ -383,8 +383,8 @@ function ClueForm({
             tone): asking Claude for a clue is "use AI", distinct from a built-in
             "hint". Shows "Thinking…" while the edge function runs. */}
         <AIButton
-          name={suggesting ? 'Thinking…' : 'AI'}
-          label={isPhone ? null : undefined}
+          label={suggesting ? 'Thinking…' : 'AI'}
+          show={isPhone ? 'icon' : 'both'}
           onClick={onSuggest}
           disabled={eitherBusy}
           className={styles.aiBtn}
@@ -414,8 +414,8 @@ function PassButton({
   const isPhone = useIsPhone()
   return (
     <EndTurnButton
-      name="Pass & End Turn"
-      label={isPhone ? null : undefined}
+      label="Pass & End Turn"
+      show={isPhone ? 'icon' : 'both'}
       disabled={busy}
       onClick={async () => {
         setBusy(true)

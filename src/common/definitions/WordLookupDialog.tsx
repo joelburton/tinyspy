@@ -7,7 +7,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { DefinitionView } from './DefinitionView'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordLookupDialog.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
 
 type Props = {
@@ -80,7 +80,7 @@ export function WordLookupDialog({ onClose }: Props) {
               placeholder="a word…"
             />
             <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
-            <StandardButton name="Define" type="submit" weight="primary" className={styles.button} />
+            <FormSubmitButton show="label" label="Define" className={styles.button} />
 
             {/* INSIDE the form, which it did not use to be. Following a related
                 word writes back into the box as well as changing what is

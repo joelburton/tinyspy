@@ -97,7 +97,7 @@ export function HandCard({
               className={styles.floatingRotate}
               onShuffle={onShuffle}
               disabled={displayedHand.length === 0}
-              label="Shuffle hand"
+              tooltip="Shuffle hand"
             />
           )}
           <div className={styles.hand} data-zone="hand" onPointerDown={blurActiveField}>

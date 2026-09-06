@@ -42,7 +42,7 @@ export function FaultModal() {
       family="modal-fault"
       onClose={dismissFaultModal}
       actions={
-        <StandardButton name="Close" weight="primary" onClick={dismissFaultModal} autoFocus />
+        <StandardButton show="label" label="Close" weight="primary" onClick={dismissFaultModal} autoFocus />
       }
     >
       <div className={styles.report}>

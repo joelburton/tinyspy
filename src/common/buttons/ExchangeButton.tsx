@@ -17,10 +17,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * takes the lighter outline.
  */
 export function ExchangeButton({
-  name = 'Swap',
+  label = 'Swap',
   icon = IconExchange,
   tone = 'normal',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

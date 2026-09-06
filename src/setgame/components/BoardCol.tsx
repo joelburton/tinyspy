@@ -81,11 +81,11 @@ export function BoardCol({
               the info column's copy makes, for the same reason: a button that
               vanishes leaves a player hunting for a feature they know exists. */}
           <HintButton
-            label={null}
+            show="icon"
             className={shared.helperButton}
             onClick={onHint}
             disabled={isCompete || !canHint}
-            name={hintLabel(isCompete)}
+            label={hintLabel(isCompete)}
           />
         </div>
       </MobileStatusBar>

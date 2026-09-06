@@ -28,9 +28,8 @@ import styles from './CloseButton.module.css'
  * position. The toast pins its own to the top-right corner.
  */
 export function CloseButton({
-  name = 'Close',
+  label = 'Close',
   icon = IconClose,
-  label = null,
   tone = 'quiet',
   // Lighter than the default: at full weight the ✕ fills its square wall to
   // wall. The purpose button owns its glyph scale, so every dismiss matches.
@@ -40,9 +39,8 @@ export function CloseButton({
 }: PurposeButtonProps) {
   return (
     <StandardButton
-      name={name}
-      icon={icon}
       label={label}
+      icon={icon}
       tone={tone}
       iconScale={iconScale}
       className={cls(styles.close, className)}

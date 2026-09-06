@@ -182,19 +182,19 @@ export function InfoCol({
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
                 Restart / New game are both "move on", and they leave. */}
             <RevealButton
-              label={null}
+              show="icon"
               revealed={solutionShown}
               alreadyShown={solutionAlreadyShown}
               onClick={onReveal}
             />
-            <RestartButton label={null} onClick={onRestart} />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton show="icon" onClick={onRestart} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
@@ -206,17 +206,17 @@ export function InfoCol({
                 player who dropped out can't spoil a live race. Present rather
                 than absent so the row doesn't change shape when the last racer
                 finishes — the button is simply enabled then. */}
-            <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
-            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
+            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
+            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
             {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
-                aria-label the glyph gets from `label`. */}
+                name the glyph would take from `label` alone. */}
             <HintButton
-              label={null}
+              show="icon"
               onClick={onHint}
               className={shared.helperButton}
               tooltip="Hint for next word"
@@ -225,15 +225,15 @@ export function InfoCol({
                 live game. The boxed-eye RevealButton is reserved for the whole
                 solution at game-over (see the icon registry). */}
             <SpoilerButton
-              label={null}
+              show="icon"
               onClick={onSpoiler}
               className={shared.helperButton}
               tooltip="Cheat for next word"
             />
             {isCompete ? (
-              <ConcedeGameButton label={null} onClick={onConcede} className={shared.helperButton} />
+              <ConcedeGameButton show="icon" onClick={onConcede} className={shared.helperButton} />
             ) : (
-              <EndGameButton label={null} onClick={onEndGame} className={shared.helperButton} />
+              <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
             )}
           </div>
         ) : null}

@@ -102,7 +102,7 @@ export default function App() {
   if (probeFailed) return (
     <EnvelopeErrorPage
       envelope={probeFailed}
-      action={<StandardButton name="Try again" weight="primary" onClick={() => void refresh()} />}
+      action={<StandardButton show="label" label="Try again" weight="primary" onClick={() => void refresh()} />}
     />
   )
   // Signed in but no profile row yet — block all app routes until

@@ -57,7 +57,7 @@ export function GameHelpCompanion({
     >
       {children}
       <div className={styles.gotItRow}>
-        <StandardButton name="Got it" weight="primary" autoFocus onClick={onClose} />
+        <StandardButton show="label" label="Got it" weight="primary" autoFocus onClick={onClose} />
       </div>
     </Companion>
   )

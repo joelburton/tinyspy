@@ -177,7 +177,7 @@ describe('stackdown PlayArea — hint', () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     rpc.mockResolvedValueOnce(hintEnvelope('a fruit'))
-    await user.click(screen.getByRole('button', { name: /^hint$/i }))
+    await user.click(screen.getByRole('button', { name: 'Hint for next word' }))
     expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' })
     expect(await screen.findByText('Hint: a fruit')).toBeInTheDocument()
   })
@@ -195,7 +195,7 @@ describe('stackdown PlayArea — hint', () => {
       },
       error: null,
     })
-    await user.click(screen.getByRole('button', { name: /^hint$/i }))
+    await user.click(screen.getByRole('button', { name: 'Hint for next word' }))
     expect(await screen.findByText('Game over')).toBeInTheDocument()
     expect(screen.queryByText(/^Hint:/)).not.toBeInTheDocument()
   })

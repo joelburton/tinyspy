@@ -10,7 +10,7 @@ import { supabase } from '../supabase/supabase'
 import { cls } from '../utils/cls'
 import { defaultColorFor } from '../members/memberColor'
 import styles from './ClaimHandleScreen.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { ColorField } from '../fields/ColorField'
@@ -233,14 +233,14 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
                     gate). Sits beside Accept now, styled as a real button. */}
                 <div className={styles.buttonRow}>
                   <CancelButton
-                    name="Not you? Sign out"
+                    show="label"
+                    label="Not you? Sign out"
                     disabled={busy}
                     onClick={() => void handleSignOut()}
                   />
-                  <StandardButton
-                    name={busy ? 'Setting up…' : 'Accept'}
-                    type="submit"
-                    weight="primary"
+                  <FormSubmitButton
+                    show="label"
+                    label={busy ? 'Setting up…' : 'Accept'}
                     disabled={busy || !HANDLE_REGEX.test(values.desired)}
                   />
                 </div>

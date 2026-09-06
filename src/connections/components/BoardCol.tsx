@@ -457,7 +457,7 @@ export function BoardCol({
             <ShuffleButton
               onShuffle={handleShuffle}
               disabled={displayedTiles.length === 0}
-              label="Shuffle tiles"
+              tooltip="Shuffle tiles"
               className={shared.floatingShuffle}
             />
           )
@@ -511,16 +511,16 @@ export function BoardCol({
                   <StrikeMarks used={mistakeCount} total={mistakeBudget} />
                 </div>
                 <ClearButton
+                  show={phone ? 'icon' : 'both'}
                   onClick={sendClear}
                   disabled={unionTiles.length === 0}
-                  label={phone ? null : undefined}
                   className={styles.inputButton}
                 />
                 <SubmitButton
-                  name={submitting ? 'Submitting…' : 'Submit'}
+                  label={submitting ? 'Submitting…' : 'Submit'}
+                  show={phone ? 'icon' : 'both'}
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  label={phone ? null : undefined}
                   className={styles.inputButton}
                 />
               </div>

@@ -15,7 +15,7 @@ export const DEFAULT_TOAST_MS = 4000
 /**
  * One announcement card in the bottom-right toast stack (`<ToastHost>`). Dumb +
  * presentational: it renders a message, an optional action button, and the
- * shared `<CloseButton>`, and talks to the store only to remove itself. See
+ * shared `<CloseButton show="icon">`, and talks to the store only to remove itself. See
  * `toastStore.ts` for the model + lifecycle.
  *
  * Close semantics:
@@ -52,11 +52,12 @@ export function Toast({ toast }: { toast: ToastModel }) {
 
   return (
     <div className={cls(styles.toast, styles[tone])} role="alertdialog" aria-label="Announcement">
-      {dismissible && <CloseButton name="Dismiss" className={styles.close} onClick={close} />}
+      {dismissible && <CloseButton show="icon" label="Dismiss" className={styles.close} onClick={close} />}
       <div className={styles.message}>{message}</div>
       {action && (
         <StandardButton
-          name={action.label}
+          show="label"
+          label={action.label}
           weight="primary"
           className={styles.action}
           onClick={act}

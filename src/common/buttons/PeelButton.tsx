@@ -17,10 +17,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * label ("Peel! 🍌" / "Place all your tiles") to reflect the enabled state.
  */
 export function PeelButton({
-  name = 'Peel',
+  label = 'Peel',
   icon = IconPeel,
   weight = 'primary',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} weight={weight} {...rest} />
+  return <StandardButton label={label} icon={icon} weight={weight} {...rest} />
 }

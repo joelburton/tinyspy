@@ -588,7 +588,7 @@ variation rather than psychicnum's assumptions:
   So there's **no special layout code** — just the standard board-fills recipe.
   Two mobile tweaks: the clue inputs are already ≥16px (no focus-zoom), and the
   below-board action buttons (Submit / AI / Pass) go **icon-only on a phone**
-  (`label={useIsPhone() ? null : undefined}` — the shared buttons already support it) so the tight
+  (`show={useIsPhone() ? 'icon' : 'both'}` — the shared buttons already support it) so the tight
   clue row fits. Guarded by
   [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) (board
   fills, no scroll at rest, collapsed sheet, buttons icon-only). The
@@ -711,7 +711,7 @@ like psychicnum); input is tap-a-tile (touch-native), no keyboard/drag; the info
 column (mistakes/turn-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
 the pure-board games it has a below-board **commit row** (mistakes readout +
 Clear/Submit), which is tight on a phone, so — same treatment as codenamesduet's
-action row — the **buttons go icon-only** (`label={useIsPhone() ? null : undefined}` + a `@media
+action row — the **buttons go icon-only** (`show={useIsPhone() ? 'icon' : 'both'}` + a `@media
 (--phone)` drop of their text-era `min-width`) and the **label shortens to
 "Mistakes"** (the strike dots already carry "lose at 4"). One tile-text tweak:
 connections is the only game with multi-letter WORD tiles, and on a narrow phone

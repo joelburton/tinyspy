@@ -512,7 +512,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   value = each opponent's `n/5`; at terminal switch to length score %), then the **action row** —
   ICON-ONLY: playing = End (coop) / Concede (compete) + back-to-club; terminal = the outcome
   line + `RestartButton` / `RevealButton` / `NewGameButton` / primary Club via
-  `TerminalActionRow` with `backLabel={null}`;
+  `TerminalActionRow` with `backShow="icon"`;
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
   + the below-board out-of-race pill —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**

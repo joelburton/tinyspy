@@ -96,7 +96,8 @@ export function CelebrationBlockingModal({
         <>
           {primary && (
             <StandardButton
-              name={primary.label}
+              show="label"
+              label={primary.label}
               ref={focusRef}
               weight="primary"
               onClick={primary.onClick}
@@ -109,7 +110,8 @@ export function CelebrationBlockingModal({
               filled, the way out is the outline. A celebration with only a
               gray outline button undersells itself. */}
           <StandardButton
-            name="Nice!"
+            show="label"
+            label="Nice!"
             ref={primary ? undefined : focusRef}
             weight={primary ? 'secondary' : 'primary'}
             onClick={onClose}

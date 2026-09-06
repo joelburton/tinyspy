@@ -8,11 +8,11 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * on-screen keyboard or an entry row, wherever a player types without a
  * physical keyboard to delete with.
  *
- * Default label "Delete"; pass `label={null}` for the icon-only key, which is
- * what every keyboard uses.
+ * Default label "Delete"; every keyboard passes `show="icon"`, since a key is
+ * the glyph.
  */
 export function DeleteButton({
-  name = 'Delete',
+  label = 'Delete',
   icon = IconDelete,
   // The delete glyph reads denser and smaller than most, so it is bumped for
   // every consumer here, once. A multiplier rather than a pixel size, so it
@@ -20,5 +20,5 @@ export function DeleteButton({
   iconScale = 1.2,
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} iconScale={iconScale} {...rest} />
+  return <StandardButton label={label} icon={icon} iconScale={iconScale} {...rest} />
 }

@@ -10,6 +10,6 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * theme rotates it a third of the way toward red for exactly that reason (see
  * its CAUTION block). Default label "Hint".
  */
-export function HintButton({ name = 'Hint', icon = IconHint, tone = 'caution', ...rest }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+export function HintButton({ label = 'Hint', icon = IconHint, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

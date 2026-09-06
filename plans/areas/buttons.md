@@ -6,8 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 through
-F-buttons-5 worked. Opened out of §3's order: `members` is the next row, and
-Joel chose `buttons` first.
+F-buttons-5 worked, plus F-buttons-20 (raised by Joel, not by the read: the
+`label`/`show` vocabulary). Opened out of §3's order: `members` is the next row,
+and Joel chose `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
 area:** a purpose button's docstring answers *when do I reach for this* and
@@ -28,7 +29,8 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/StandardButton.test.tsx` | the three rules that keep `name` / `label` / `tooltip` three things | `cs-audited-buttons` |
 | `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-audited-buttons` |
 | `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-audited-buttons` |
-| `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a glyph | `cs-audited-buttons` |
+| `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a drawn glyph | `cs-audited-buttons` |
+| `src/common/buttons/FormSubmitButton.tsx` | **written by this area** (F-buttons-20) — a form or dialog's commit, Cancel's partner: it owns `type="submit"` + the emphasis, and defaults no words | `cs-audited-buttons` |
 | `src/common/buttons/ClearButton.tsx` | wipe the pending selection — eraser, neutral | `cs-audited-buttons` |
 | `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-audited-buttons` |
 | `src/common/buttons/CloseButton.module.css` | its stylesheet (24 lines) | `cs-audited-buttons` |
@@ -570,6 +572,83 @@ base is consistent and the others are not.
 **Recommendation:** decide whether disabled is a utility (`--opacity-2`,
 `not-allowed`) every control composes or a rule the base states; the
 non-button sites are their folders'.
+
+### WORKED · F-buttons-20 · `show-not-a-guessed-default` · A call site could not say what its button draws
+
+Raised by Joel 2026-09-06, not by the read: *"it looks like our buttons don't
+align on whether they default to an icon or not, or a label or not. this makes
+it hard to read at a call site — is the label missing because there's a default?
+or, do we need to pass an empty string for no label? I'd rather the call sites
+be regular, even if that means more verbose call sites."*
+
+**The measurement that settled it.** "No `label` prop" meant three different
+things depending on the component: `<RestartButton />` drew its word and glyph
+(21 buttons), `<HelpButton />` drew nothing but the glyph (4), and
+`<BackToClubButton />` drew "Club" — neither its name nor nothing (1). Reading
+a call site you could not tell which without opening the file. And the dominant
+form was nobody's default: **128 call sites passed `label={null}`** to get
+icon-only, against ~20 that drew text.
+
+**The design, Joel's** (*"this could a prop like `show: ICON | LABEL | BOTH`
+passed in"*, then *"name is a terrible name, then. shall we call it 'tooltip'?
+it probably makes sense for 'label' be the one that people pass, and tooltip
+defaults to the label, if no tooltip is given"*):
+
+```
+label: ReactNode                    REQUIRED. the words — what people pass
+show: 'icon' | 'label' | 'both'     REQUIRED, at every call site. what is drawn
+tooltip?: string | null             the bubble AND the name; defaults to label
+icon?: ButtonIcon                   defaults to the purpose button's
+```
+
+`name` is gone. The root defect it fixes is that `label` used to do two jobs —
+carry the words, and secretly change the form by being `null`. Separating them
+retires the whole class of bug F-buttons-1 was: a `??` cannot swallow a
+meaning that `null` no longer carries.
+
+Four properties worth keeping in mind:
+
+- **The rename is accessible-name-preserving.** The name is `tooltip ?? label`,
+  so Back-to-club stays "Back to club" while drawing "Club", and the ~500
+  `getByRole('button', { name })` selectors did not move. Two exceptions, both
+  now more descriptive: stackdown's Hint and Spoiler pass a `tooltip` and so are
+  named by it ("Hint for next word"), which cost two selectors in that game's
+  test.
+- **`aria-label` is emitted only when the name is not already the visible
+  text** — every icon-only button, and the handful a tooltip renames. A first
+  cut set it from the tooltip unconditionally and renamed stackdown's Hint out
+  from under its test; the test caught it.
+- **`StandardButtonProps` no longer shadows the DOM `name` attribute**, which it
+  used to do deliberately and document at length.
+- **Rejected, then done anyway on Joel's call:** a generic square
+  (`IconGeneric`) is now the fallback glyph, so every button has one and
+  `show="both"` always draws two things. The concern was a meaningless glyph in
+  twelve dialog footers; Joel's answer — *"we'll just pass show='label' for the
+  ones that we currently have be label-only"* — means it never actually renders.
+  It exists to keep the component shape uniform.
+
+**`FormSubmitButton` is new** (Joel: *"i think we should make a button for that
+--- 'SaveButton'? or FormSubmitButton?"*). Nine sites hand-wrote `type="submit"`
++ `weight="primary"` + the words; the first two now live in the component.
+`SaveButton` was the wrong name — the sites are Save, Start, Create, Send magic
+link, Accept, Find, Define — so `label` is required and defaults to nothing.
+This also deletes F-buttons-9's subject: `CancelButton` no longer tells callers
+to pass a `type` the base already sets, because its commit partner exists.
+
+**Two prop renames rode along**, both of which had been open questions in this
+area: `ShuffleButton.label` was never drawn text — it was the aria-label — and
+is now `tooltip`, which is what that word means everywhere else in the folder.
+`RevealButton.revealedName` is `revealedLabel`, which is what its docstring
+wrongly claimed for months before F-buttons-5 corrected the doc.
+
+`TerminalActionRow.backLabel` became `backShow`, required, passed straight
+through — a row that doesn't say what it draws is a row you have to open a file
+to read, one level up.
+
+**Scale:** 94 files. The mechanical parts were scripted with per-file
+assertions; the ~20 sites passing real text, the six with a dynamic form
+(`show={isPhone ? 'icon' : 'both'}`, which replaces the unreadable
+`label={isPhone ? null : undefined}`), and every docstring were done by hand.
 
 ## Notes
 

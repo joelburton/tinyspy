@@ -167,24 +167,24 @@ export function InfoCol({
             the terminal LOOK — a status line + the now-disabled Concede.
             PLAYING: End/Concede + back-to-club (via the suspend-confirm flow). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
             {/* Stay-here options left of the leave option (Club): run this
                 board back, or spin up the next one. */}
-            <RestartButton label={null} onClick={onRestart} />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <RestartButton show="icon" onClick={onRestart} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
+            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton label={null} onClick={onRequestBackToClub} />
+            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
           </div>
         )}
 

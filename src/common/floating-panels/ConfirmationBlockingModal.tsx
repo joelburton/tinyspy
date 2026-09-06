@@ -66,13 +66,15 @@ export function ConfirmationBlockingModal({
       actions={
         <>
           <CancelButton
-            name={cancelLabel}
+            show="label"
+            label={cancelLabel}
             weight={confirmIsPrimary ? 'secondary' : 'primary'}
             onClick={onCancel}
             autoFocus={!confirmIsPrimary}
           />
           <StandardButton
-            name={confirmLabel}
+            show="label"
+            label={confirmLabel}
             weight={confirmIsPrimary ? 'primary' : 'secondary'}
             onClick={onConfirm}
             autoFocus={confirmIsPrimary}

@@ -17,10 +17,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * screen while being nothing alike in consequence.
  */
 export function TrashButton({
-  name = 'Delete',
+  label = 'Delete',
   icon = IconTrash,
   tone = 'destructive',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

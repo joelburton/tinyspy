@@ -10,9 +10,11 @@ type Props = {
    *  shuffling is harmless, so even a locked/terminal game can leave it on
    *  as a post-game fidget. */
   disabled?: boolean
-  /** Accessible label + styled tooltip (the TooltipHost `data-tooltip` bubble).
-   *  Defaults to "Shuffle". */
-  label?: string
+  /** The hover bubble and the accessible name — the same word `tooltip` means
+   *  on a `<StandardButton>`, which is why it is spelled that way here even
+   *  though this control is its own `<button>`. Nothing is ever drawn, so
+   *  there is no `label` to be confused with. Defaults to "Shuffle". */
+  tooltip?: string
   /** Extra class for the caller's layout (margins/placement). */
   className?: string
 }
@@ -35,7 +37,7 @@ type Props = {
  * focus from a game's keyboard-handler attachment point (spellingbee captures typed
  * letters and must keep focus where keydown is bound).
  */
-export function ShuffleButton({ onShuffle, disabled, label = 'Shuffle', className }: Props) {
+export function ShuffleButton({ onShuffle, disabled, tooltip = 'Shuffle', className }: Props) {
   return (
     <button
       type="button"
@@ -43,8 +45,8 @@ export function ShuffleButton({ onShuffle, disabled, label = 'Shuffle', classNam
       onClick={onShuffle}
       onMouseDown={(e) => e.preventDefault()}
       disabled={disabled}
-      aria-label={label}
-      data-tooltip={label}
+      aria-label={tooltip}
+      data-tooltip={tooltip}
     >
       {/* The glyph spins on hover via the .glyph span (rotating the button
        *  would spin the whole pill). IconShuffle is the rotate glyph — chosen

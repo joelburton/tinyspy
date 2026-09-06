@@ -9,7 +9,7 @@ import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../feedback/FailureLine'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './CreateClubModal.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
@@ -250,11 +250,10 @@ export function CreateClubModal({ onCreated, onCancel }: Props) {
             <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
             <div className={actionRow.modalActions}>
-              <CancelButton onClick={onCancel} disabled={busy} />
-              <StandardButton
-                name={busy ? 'Creating…' : 'Create club'}
-                type="submit"
-                weight="primary"
+              <CancelButton show="label" onClick={onCancel} disabled={busy} />
+              <FormSubmitButton
+                show="label"
+                label={busy ? 'Creating…' : 'Create club'}
                 disabled={busy}
               />
             </div>

@@ -11,7 +11,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './SetupGameModal.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
@@ -290,24 +290,23 @@ export function SetupGameModal({
                   order. */}
               <div className={actionRow.modalActions}>
                 <HelpButton
+                  show="icon"
                   className={actionRow.leading}
                   onClick={() => setShowHelp(true)}
                   disabled={busy}
                 />
-                <CancelButton onClick={onCancel} disabled={busy} />
-                <StandardButton
-                  name={busy ? 'Starting…' : 'Start'}
-                  weight="primary"
-                  type="submit"
+                <CancelButton show="label" onClick={onCancel} disabled={busy} />
+                <FormSubmitButton
+                  show="label"
                   disabled={busy || !countOk || Object.keys(setupErrors).length > 0}
                   autoFocus
-                  // On a phone the button is just "Start" — "Start PsychicNum · Co-op"
-                  // doesn't fit beside Cancel at 390px. The detail is dropped in CSS
-                  // rather than by a `useIsPhone()` branch: it's presentation, and the
-                  // dialog TITLE right above still names the game + mode, so nothing
-                  // is actually lost. Hence a NODE for what is drawn while `name`
-                  // stays the plain word — the span is a rendering detail, not a
-                  // second name for the button.
+                  // The button is called "Start" while it DRAWS "Start PsychicNum
+                  // · Co-op" — the extra detail is dropped at the phone
+                  // breakpoint in CSS rather than by a `useIsPhone()` branch,
+                  // since it's presentation and the dialog TITLE right above
+                  // names the game and mode anyway. Hence a node for the drawn
+                  // words and a plain `tooltip` for what the control is.
+                  tooltip={busy ? 'Starting…' : 'Start'}
                   label={
                     busy ? (
                       'Starting…'

@@ -136,7 +136,7 @@ export function BoardArena({
           aria-label="Zoom"
           title="Zoom"
         />
-        <ZoomFitButton onClick={onCenterFit} />
+        <ZoomFitButton show="icon" onClick={onCenterFit} />
       </div>
     </div>
   )

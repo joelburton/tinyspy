@@ -9,6 +9,6 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * reversible and low-stakes, neither the main move nor an irreversible one.
  * Default label "Clear".
  */
-export function ClearButton({ name = 'Clear', icon = IconClear, ...rest }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} {...rest} />
+export function ClearButton({ label = 'Clear', icon = IconClear, ...rest }: PurposeButtonProps) {
+  return <StandardButton label={label} icon={icon} {...rest} />
 }

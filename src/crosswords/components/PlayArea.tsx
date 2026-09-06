@@ -1106,18 +1106,18 @@ type Explained =
               {isTerminal ? (
                 <div className={styles.actions}>
                   <RevealButton
-                    name="Reveal solution"
-                    revealedName="Hide solution"
+                    label="Reveal solution"
+                    revealedLabel="Hide solution"
                     revealed={solutionShown}
-                    label={null}
+                    show="icon"
                     // Icon-only, so both faces occupy the same fixed box: the
                     // strip cannot change width under a click, and this layout
                     // is precise.
                     onClick={toggleSolution}
                   />
-                  <RestartButton label={null} onClick={() => void handleRestart()} />
-                  <NewGameButton label={null} onClick={handleNewGame} disabled={startingNewGame} />
-                  <BackToClubButton onClick={goToClub} weight="primary" label={null} />
+                  <RestartButton show="icon" onClick={() => void handleRestart()} />
+                  <NewGameButton show="icon" onClick={handleNewGame} disabled={startingNewGame} />
+                  <BackToClubButton onClick={goToClub} weight="primary" show="icon" />
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">
@@ -1126,8 +1126,8 @@ type Explained =
                       is_terminal), so a player who dropped out can't spoil a
                       live race — and the row keeps its shape for when the last
                       solver finishes. */}
-                  <RevealButton label={null} disabled tooltip="Can't reveal until all end" />
-                  <ConcedeGameButton label={null} disabled />
+                  <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
+                  <ConcedeGameButton show="icon" disabled />
                 </LocalTerminalRow>
               ) : (
                 <div className={styles.toolRow}>
@@ -1144,9 +1144,9 @@ type Explained =
                   >
                     {isPlayable &&
                       (mode === 'compete' ? (
-                        <ConcedeGameButton label={null} onClick={() => void handleConcede()} />
+                        <ConcedeGameButton show="icon" onClick={() => void handleConcede()} />
                       ) : (
-                        <EndGameButton label={null} onClick={() => void handleEndGame()} />
+                        <EndGameButton show="icon" onClick={() => void handleEndGame()} />
                       ))}
                   </Controls>
                 </div>

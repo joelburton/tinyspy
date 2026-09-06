@@ -22,7 +22,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * far the players got survives the post-mortem instead of being overwritten by
  * it.
  *
- * Games that want a noun pass `name="Reveal answer"` and `revealedName="Hide
+ * Games that want a noun pass `label="Reveal answer"` and `revealedLabel="Hide
  * answer"` together, so both faces read the same way; nearly every game does.
  * Both default, so the plain `<RevealButton revealed={…} onClick={toggle} />`
  * is still the shape.
@@ -38,25 +38,25 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 export function RevealButton({
   revealed = false,
   alreadyShown = false,
-  name = 'Reveal',
-  revealedName = 'Hide',
+  label = 'Reveal',
+  revealedLabel = 'Hide',
   icon,
   tone = 'destructive',
   disabled,
   ...rest
 }: PurposeButtonProps & {
-  /** Is the solution on screen right now? Swaps glyph + name to the hide face. */
+  /** Is the solution on screen right now? Swaps glyph + words to the hide face. */
   revealed?: boolean
   /** Is it on screen because this player SOLVED it, rather than by their own
    *  press? Renders the inert "Solution already shown" face. */
   alreadyShown?: boolean
-  /** What the hide face is called; `name` names the reveal face. */
-  revealedName?: string
+  /** The hide face's words; `label` carries the reveal face's. */
+  revealedLabel?: string
 }) {
-  // One string for all three faces: it is what the button is called, which is
-  // also what an icon-only one announces and what its bubble says, so they
-  // cannot drift apart.
-  const shownName = alreadyShown ? 'Solution already shown' : revealed ? revealedName : name
+  // One string for all three faces: it is what the button says, which is also
+  // what an icon-only one announces and what its bubble reads, so they cannot
+  // drift apart.
+  const shownLabel = alreadyShown ? 'Solution already shown' : revealed ? revealedLabel : label
   return (
     <StandardButton
       // The inert face keeps the VIEW glyph, not EyeOff. Both readings are
@@ -66,7 +66,7 @@ export function RevealButton({
       // reads as a state they don't recognize. The plain eye, grayed, says the
       // thing they'd expect: showing the solution isn't available, because it's
       // already here.
-      name={shownName}
+      label={shownLabel}
       icon={icon ?? (revealed && !alreadyShown ? IconHideSolution : IconRevealSolution)}
       tone={tone}
       // Present but inert, never absent — the row must not change shape between

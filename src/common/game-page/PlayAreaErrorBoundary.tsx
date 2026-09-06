@@ -53,7 +53,7 @@ export class PlayAreaErrorBoundary extends Component<
           detail: `${this.state.error.name}: ${this.state.error.message}`,
         })}
         action={
-          <StandardButton name="Reload" weight="primary" onClick={() => window.location.reload()} />
+          <StandardButton show="label" label="Reload" weight="primary" onClick={() => window.location.reload()} />
         }
       />
     )

@@ -9,7 +9,7 @@ import { runRpc } from '../supabase/dbResult'
 import { useDefinePopover } from '../definitions/useDefinePopover'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
 import { FailureLine } from '../feedback/FailureLine'
 import { SimpleScrollableList } from '../lists/SimpleScrollableList'
@@ -151,10 +151,9 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
               entryHelp="abc float · ABC pinned in place · ? any letter"
               error={errors.letters}
             />
-            <StandardButton
-              name="Find"
-              type="submit"
-              weight="primary"
+            <FormSubmitButton
+              show="label"
+              label="Find"
               fullWidth
               disabled={searching}
             />

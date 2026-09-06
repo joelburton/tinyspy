@@ -22,10 +22,10 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * why it's its own file from the start.
  */
 export function EndGameButton({
-  name = 'End game',
+  label = 'End game',
   icon = IconEndGame,
   tone = 'destructive',
   ...rest
 }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

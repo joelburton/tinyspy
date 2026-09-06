@@ -13,6 +13,7 @@ import { cls } from '../utils/cls'
 import actionRow from '../floating-panels/modalActions.module.css'
 import styles from './WordEditDialog.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
 import { NumberField } from '../fields/NumberField'
@@ -389,7 +390,8 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
               <div className={cls(actionRow.modalActions, styles.pinBottom)}>
                 {editing && (
                   <StandardButton
-                    name="Delete"
+                    show="label"
+                    label="Delete"
                     tone="destructive"
                     className={cls(styles.deleteButton, actionRow.leading)}
                     onClick={() => void onDelete(values.note)}
@@ -397,13 +399,13 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                   />
                 )}
                 <CancelButton
+                  show="label"
                   onClick={() => setWordEdit(null)}
                   disabled={busy}
                 />
-                <StandardButton
-                  name="Save"
-                  type="submit"
-                  weight="primary"
+                <FormSubmitButton
+                  show="label"
+                  label="Save"
                   className={styles.saveButton}
                   disabled={busy}
                 />

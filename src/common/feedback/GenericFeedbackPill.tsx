@@ -81,7 +81,7 @@ export function GenericFeedbackPill({ msg, onClose }: Props) {
       {msg.dot !== undefined && <Dot color={msg.dot} className={styles.dot} />}
       <span className={styles.text}>{msg.text}</span>
       {kind === 'manual' && (
-        <CloseButton name="Dismiss" className={styles.close} onClick={onClose} />
+        <CloseButton show="icon" label="Dismiss" className={styles.close} onClick={onClose} />
       )}
     </div>
   )

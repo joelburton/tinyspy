@@ -144,13 +144,13 @@ export function InfoCol({
         )}
 
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
-            <RestartButton label={null} onClick={onRestart} />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+            <RestartButton show="icon" onClick={onRestart} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
+            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
@@ -164,18 +164,18 @@ export function InfoCol({
                 it is asked. (The ban itself is the priced-help rule: free
                 generative help decides a race.) */}
             <HintButton
-              label={null}
+              show="icon"
               className={shared.helperButton}
               onClick={onHint}
               disabled={isCompete || !canHint}
-              name={hintLabel(isCompete)}
+              label={hintLabel(isCompete)}
             />
             {isCompete ? (
-              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton label={null} onClick={onRequestBackToClub} />
+            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
           </div>
         )}
 

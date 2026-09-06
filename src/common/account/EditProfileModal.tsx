@@ -9,7 +9,7 @@ import { FailureLine } from '../feedback/FailureLine'
 import { useProfile, setProfileColor } from '../session/useProfile'
 import { NormalModal } from '../floating-panels/NormalModal'
 import actionRow from '../floating-panels/modalActions.module.css'
-import { StandardButton } from '../buttons/StandardButton'
+import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { ReadOnlyField } from '../fields/ReadOnlyField'
 import { ColorField } from '../fields/ColorField'
@@ -121,11 +121,10 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
               <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
               <div className={actionRow.modalActions}>
-                <CancelButton onClick={onCancel} disabled={busy} />
-                <StandardButton
-                  name={busy ? 'Saving…' : 'Save'}
-                  type="submit"
-                  weight="primary"
+                <CancelButton show="label" onClick={onCancel} disabled={busy} />
+                <FormSubmitButton
+                  show="label"
+                  label={busy ? 'Saving…' : 'Save'}
                   disabled={busy}
                   autoFocus
                 />

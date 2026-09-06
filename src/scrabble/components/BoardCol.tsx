@@ -884,7 +884,7 @@ export function BoardCol({
                     rack, not in the commit row. Hidden when the rack is empty
                     (nothing to shuffle); it floats absolutely, so no reflow. */}
                 {rackTiles.length > 0 && (
-                  <ShuffleButton onShuffle={shuffle} label="Shuffle rack" className={styles.rackShuffle} />
+                  <ShuffleButton onShuffle={shuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
                 )}
               </div>
               <Controls

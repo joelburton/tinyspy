@@ -228,7 +228,7 @@ export function BoardCol({
             setTurns((t) => (t + 1) % 4)
             setPath([])
           }}
-          label="Rotate board"
+          tooltip="Rotate board"
           className={shared.floatingShuffle}
         />
       </div>

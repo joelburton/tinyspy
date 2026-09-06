@@ -12,7 +12,7 @@ import styles from './StandardForm.module.css'
  * not a look. Chat's composer and codenamesduet's clue strip are both real
  * forms that submit and neither wants a column of spaced fields, so looking
  * like a form is opt-in — the same reason a bare `<button>` has no chrome and
- * `<StandardButton>` supplies it.
+ * `<StandardButton show="label">` supplies it.
  *
  * ─── Why it owns the values ──────────────────────────────────
  * What is currently being typed belongs to the form, not to the screen around

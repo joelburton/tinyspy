@@ -15,6 +15,6 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * as separate components so each reads consistently wherever it's used. Default
  * label "Pass".
  */
-export function PassButton({ name = 'Pass', icon = IconEndTurn, tone = 'caution', ...rest }: PurposeButtonProps) {
-  return <StandardButton name={name} icon={icon} tone={tone} {...rest} />
+export function PassButton({ label = 'Pass', icon = IconEndTurn, tone = 'caution', ...rest }: PurposeButtonProps) {
+  return <StandardButton label={label} icon={icon} tone={tone} {...rest} />
 }

@@ -187,34 +187,34 @@ export function InfoCol({
             / Club. CONCEDED (others race on): the terminal look + disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backLabel={null}>
-            <RestartButton label={null} onClick={onRestart} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+            <RestartButton show="icon" onClick={onRestart} />
             {/* The best possible word, hidden until asked for. wordiply used to
                 hand it over the moment the game ended; a score you can read
                 without being told the answer is a puzzle you can keep chewing
                 on, so it waits for this button now (and the same button takes
                 it back). */}
             <RevealButton
-              label={null}
-              name="Reveal best word"
-              revealedName="Hide best word"
+              show="icon"
+              label="Reveal best word"
+              revealedLabel="Hide best word"
               revealed={solutionShown}
               onClick={onReveal}
             />
-            <NewGameButton label={null} onClick={onNewGame} disabled={startingNewGame} />
+            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton label={null} className={shared.helperButton} disabled />
+            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton label={null} className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton label={null} className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
             )}
-            <BackToClubButton label={null} onClick={onRequestBackToClub} />
+            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
           </div>
         )}
 

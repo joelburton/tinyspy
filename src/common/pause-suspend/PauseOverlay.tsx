@@ -125,19 +125,21 @@ export function PauseOverlay({
         {(onResume && manuallyPausedBy) || onReturnToClub || onEndGame ? (
           <div className={styles.actions}>
             {onResume && manuallyPausedBy && (
-              <StandardButton name="Resume" weight="primary" onClick={onResume} />
+              <StandardButton show="label" label="Resume" weight="primary" onClick={onResume} />
             )}
             {/* The one place the button says more than "Club": leaving from a
                 paused game suspends it, and the overlay has the room to say so.
-                `label` as well as `name`, since the two are separate. */}
+                The tooltip goes with it, or the bubble would still say the
+                shorter "Back to club" over a button that promises more. */}
             {onReturnToClub && (
               <BackToClubButton
-                onClick={onReturnToClub}
-                name="Suspend and return to club"
+                show="both"
                 label="Suspend and return to club"
+                tooltip="Suspend and return to club"
+                onClick={onReturnToClub}
               />
             )}
-            {onEndGame && <EndGameButton onClick={onEndGame} />}
+            {onEndGame && <EndGameButton show="both" onClick={onEndGame} />}
           </div>
         ) : null}
       </div>
