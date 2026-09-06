@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 through -13, and -20. Closed by F-buttons-20
+F-buttons-1 through -5, -7, -8, -10 through -14, and -20. Closed by F-buttons-20
 without work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
 row, and Joel chose `buttons` first.
 
@@ -648,7 +648,7 @@ wrong (`theme.css` → CHROME, which does not exist) and is now
 `themes/daylight.css` → BUTTON, but whether the page is regenerated or deleted
 is that finding's call, and the rest of the paragraph describes it as it is.
 
-### F-buttons-14 · `theme-tone-map-is-wrong` · `daylight.css`'s BUTTON header assigns buttons to the wrong families
+### WORKED · F-buttons-14 · `theme-tone-map-is-wrong` · `daylight.css`'s BUTTON header assigns buttons to the wrong families
 
 `themes/daylight.css:97–101` (corecss's file, paused): "quiet — Cancel, Back
 to club, Pause" — `BackToClubButton` is `normal` in both weights and its
@@ -661,6 +661,41 @@ today", twice: `PauseButton.module.css` reads
 **Recommendation:** a conformance edit to five lines of a paused area's file
 — this folder owns the tone vocabulary, so it ships with this area — or a
 line in `core-css/todo.md` if Joel would rather the paused area not move.
+
+**Resolution (2026-09-06, Joel: "it feels like most of these 'it's used here'
+comments are low value. my editor can easily show me where something is used.
+unless its important, we don't need examples.")** — which reframes the finding:
+three of the four wrong facts were EXAMPLES, and examples of that kind are
+deleted rather than corrected. The family list now says what each family MEANS
+and names no buttons, so Cancel/Back-to-club/Pause and the Delete ambiguity all
+go with the roster. Comments only — no declaration, token or color moved, in
+either the theme or `base.css`.
+
+**The fourth was not an example and stayed, rewritten as the warning it should
+have been.** `success` was documented "RESERVED — no consumer today", which
+invites deletion, while `PauseButton.module.css` reads
+`--button-success-primary-color` for its resume face. It now says no button
+passes the tone, the family is live because a stylesheet reads its tokens
+directly, and not to retire it on the strength of an empty grep for the tone
+name. That is the difference between "safe to delete" and "not", which is worth
+a comment where a usage list is not.
+
+The paused-area question resolved itself: what shipped is a comment edit that
+leaves nothing for `corecss` to re-derive. `core-css/base.css`'s `.icon-only` —
+the pre-module class name that had been riding on this decision — went at the
+same time, by naming the thing rather than a class: "the fixed square footprint
+of a button drawn as a glyph alone".
+
+**The same ruling swept this folder**, and Joel scoped it: *"no, we'll worry
+about docs/ui.md later"*, so the doc's own example lists (the fourteen kinds,
+the exempt glyphs) are untouched. Deleted here: the "X is the first user"
+sentences in `EndTurnButton`, `NewGameButton`, `SharePreviewButton` and
+`WordCheckButton`, and the game roster this area had itself put into
+`ShuffleButton` earlier today. Kept, on Joel's "unless it's important": a single
+grounding example where the sentence is otherwise abstract — `ZoomFitButton`'s
+"a board a player can pan or grow past the window", `ClearButton`'s pending
+selection — and `PeelButton`'s "only bananagrams peels", which is load-bearing
+because it explains why a one-game button lives in a shared folder.
 
 ### F-buttons-15 · `buttons-html-behind` · The rendered grid no longer shows what ships
 

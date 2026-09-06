@@ -6,7 +6,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 /**
  * Check-my-own-work button — asks the server whether the board in front of you
  * satisfies the rules it would be judged by anyway, and paints the cells that
- * don't. bananagrams' "Check words" is the first user.
+ * don't.
  *
  * **Not the amber of Hint / Spoiler**, and the distinction is the
  * point: those hand over something you didn't have (a clue, an answer). This

@@ -21,11 +21,10 @@ type Props = {
 
 /**
  * The standard ⟲ shuffle control — an icon-only pill, used wherever a player
- * reshuffles their OWN tiles for a fresh look: spellingbee's outer letters,
- * bananagrams's hand and scrabble's rack among them, and every other game with
- * pieces of its own to reorder. It's part of the shared design language: the
- * same recognizable glyph + hover-spin everywhere, so a player who learns it in
- * one game knows it in the next. See docs/ui.md → Consistency across games.
+ * reshuffles their OWN tiles for a fresh look. It's part of the shared design
+ * language: the same recognizable glyph + hover-spin everywhere, so a player
+ * who learns it in one game knows it in the next. See docs/ui.md →
+ * Consistency across games.
  *
  * Shuffling is always local and harmless (no server write, no broadcast), so
  * the control stays enabled by default even when the rest of the game is

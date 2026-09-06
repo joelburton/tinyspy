@@ -261,8 +261,8 @@
      because dimming a card "reads as a different card". */
 /* @@ */   --chrome-disabled-opacity:  0.75;
 
-  /* The fixed square footprint of an icon-only action button
-     (`.icon-only`). One token so the box size is consistent everywhere
+  /* The fixed square footprint of a button drawn as a glyph alone.
+     One token so the box size is consistent everywhere
      and tunable in one place, independent of the glyph inside it. Kept
      equal to the rendered height of a labeled text button (its 0.4rem
      × 2 padding + one line of text + borders) so the two sit flush in

@@ -14,8 +14,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * context. `EndGameButton` shares the WORD and not the act: it ends the whole
  * game, this ends one turn.
  *
- * codenamesduet's "Pass & end turn" is the first user; default label
- * "End turn".
+ * Default label "End turn".
  */
 export function EndTurnButton({
   label = 'End turn',
