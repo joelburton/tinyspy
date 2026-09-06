@@ -93,7 +93,7 @@
 /* @@ */ .pencil {
   color: var(--crosswords-pencil);
   font-weight: 500;
-  font-style: italic;
+  font-style: oblique;
 }
 /* @@ */ .given {
   text-decoration: underline;

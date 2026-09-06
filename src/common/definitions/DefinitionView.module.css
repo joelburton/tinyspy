@@ -33,7 +33,7 @@
 /* @@ */ .status {
   font-size: 0.9rem;
   color: var(--page-text-muted-color);
-  font-style: italic;
+  font-style: oblique;
 }
 
 /* @@ */ .error {

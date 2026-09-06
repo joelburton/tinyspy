@@ -616,7 +616,7 @@ The component keeps its name until `club` renames it, so the doc reads "a
 small colored badge via `<ModePill>`" — the section says in one clause why,
 and points at the todo that owns it.
 
-### F-corecss-17 · `italic-count-and-oblique-claim` · A rule nobody follows, and a count that is off
+### WORKED · F-corecss-17 · `italic-count-and-oblique-claim` · A rule nobody follows, and a count that is off
 
 `base.css:48–51`: no italic exists in Roboto Flex; "nine places ask for
 italics; `font-style: oblique` reaches the dial, and plain `font-style:
@@ -628,9 +628,28 @@ Whether the claim is even true is NOT verified: CSS Fonts 4 lets a browser
 satisfy `italic` from an oblique face when the family has no italic, so
 `italic` may already reach the dial. That needs a real render, not a grep.
 
-**Recommendation:** render one site both ways; if they match, the sentence
-becomes "either spelling reaches the slant dial"; if they differ, "use
-`oblique`" is a line in six folders' `todo.md`. The count goes either way.
+**Resolution (2026-09-05, Joel: "yeah, change all to oblique")** — the six
+reachable sites now write `font-style: oblique`: crosswords `Grid.pencil` and
+`Controls.pencilBtn`, letterboxed `PlayArea.logRetreat`, `WordList.empty`,
+`ManualBoardField`'s placeholder, and `DefinitionView.status`. The seventh is
+`devtools/PalettePage.module.css`, which is excluded and keeps `italic`.
+
+**The render was proposed and then withdrawn, which is the useful part of
+this one.** Whether `italic` falls back to an oblique face is FONT-MATCHING
+behavior, so it can differ per engine — and a Playwright screenshot answers
+for Chromium only, while the app is played on iOS Safari. A render that comes
+back "identical" would not have settled it. Writing `oblique` names the axis
+directly and depends on no engine, so it is both the smaller action and the
+certain one.
+
+Nobody had ever looked at these seven; the audit's claim that the rule has
+"zero followers" was right, and the earlier suggestion that the sites "look
+fine" was unfounded and withdrawn.
+
+`base.css`'s comment now states the rule with its reason — the @font-face
+declares this face as `oblique 0deg 10deg` precisely so `italic` CAN match
+it, but naming the axis costs nothing and relies on no one. The count is
+gone with the rest of F-corecss-11's counts.
 
 ### WORKED · F-corecss-18 · `six-shadows-are-five` · The todo item about chrome shadows describes tokens that are not there
 

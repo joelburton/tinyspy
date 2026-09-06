@@ -49,9 +49,14 @@
  * here, and it is why a theme may one day set a non-color value.
  *
  * NO ITALIC EXISTS in this family — there is a slant dial instead, which is
- * the font's own oblique rather than drawn italic letterforms. Nine places in
- * the app ask for italics; `font-style: oblique` reaches the dial, and plain
- * `font-style: italic` gets the browser's synthesized skew.
+ * the font's own oblique rather than drawn italic letterforms. **Write
+ * `font-style: oblique`**, which asks for that dial by name. `italic` is
+ * SUPPOSED to fall back to an oblique face when a family has no italic, and
+ * the @font-face below declares this one as `oblique 0deg 10deg` so that it
+ * can — but whether an engine honors that rather than shearing the upright
+ * glyphs itself is engine behavior, and the app runs on more engines than
+ * anyone here can check. Naming the axis costs nothing and depends on
+ * no one.
  *
  * The file is built by `scripts/subset-font.py` and committed. It carries the
  * Latin range plus `→ ← ≥ ≈ ≠`, and a symbol outside that set is a question

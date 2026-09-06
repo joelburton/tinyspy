@@ -41,6 +41,6 @@
  */
 /* @@ */ .input::placeholder {
   color: var(--field-placeholder-ink-color);
-  font-style: italic;
+  font-style: oblique;
 }
 
