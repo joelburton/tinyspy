@@ -1,6 +1,6 @@
 // cs-audited-branding
 
-import homeTitle from './homeTitle.png'
+import wordmark from './puzpuzpuz-wordmark.png'
 import styles from './PuzpuzpuzWordmark.module.css'
 
 /**
@@ -13,7 +13,7 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * Distinct from `<PuzpuzpuzLogo>`, which is the small square logo used as a menu
  * trigger (ClubPage header). This is the wide horizontal wordmark.
  *
- * Source is `src/common/branding/homeTitle.png` — a raster, unlike the
+ * Source is `src/common/branding/puzpuzpuz-wordmark.png` — a raster, unlike the
  * rest of our branding. The artwork has a soft drop shadow and hand-drawn letter
  * outlines that don't survive a trace, so the PNG *is* the master. It ships at
  * 840px, ~2x the ~416px it renders at inside the `.card`; `width: 100%` on the
@@ -27,5 +27,5 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * hashing it into the build output either way.
  */
 export function PuzpuzpuzWordmark() {
-  return <img src={homeTitle} alt="PuzPuzPuz" className={styles.wordmark} />
+  return <img src={wordmark} alt="PuzPuzPuz" className={styles.wordmark} />
 }

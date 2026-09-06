@@ -213,7 +213,7 @@ count goes 85 → 86.
 `--spacer-1` exactly, so it converts silently under §5 and its `pending` row
 comes off `guards/vocabularies.test.ts`. Done at the audit; nothing moves.
 
-### F-branding-6 · `one-mark-two-masters` · The "P" mark is two byte-identical files, and each is documented as the source
+### CLOSED, NO CHANGE · F-branding-6 · `one-mark-two-masters` · The "P" mark is two byte-identical files, and each is documented as the source
 
 `src/common/branding/puzpuzpuz.svg` and `public/favicon.svg` are identical
 (`cmp` says so). `PuzpuzpuzLogo.tsx` says "source SVG is at
@@ -230,6 +230,18 @@ graph), so either the script reads the branding copy, or the branding copy
 goes and the component points at `/favicon.svg` by URL and accepts an
 unhashed asset. The first keeps the app's asset hashing and moves one line
 in the script. Step 11's asset pass then has one file to touch.
+
+**Resolution (2026-09-05, Joel: "no, keep both. no guard needed.")** — closed
+with no change. Two corrections to that recommendation, found re-verifying it:
+"the script reads the branding copy" does NOT dedupe, because `index.html:5`
+and `manifest.webmanifest:29` both name `/favicon.svg` and the webmanifest is
+static JSON Vite cannot rewrite; and the two copies want different DELIVERY,
+which is why one file cannot serve both — `public/_headers` puts everything
+outside `/assets/` on `max-age=0, must-revalidate` (its comment says "plus
+favicon"), while the component's `?url` import lands in `/assets/` as
+`immutable`, so a single file would make the app's header mark revalidate on
+every page load. Half the documented conflict is already gone: F-branding-3
+left the component saying where it imports FROM, not that it is the source.
 
 ### WORKED (with F-branding-3) · F-branding-7 · `rounded-square-is-painted-corners` · The mark's docstring describes a shape the SVG does not have
 
@@ -256,7 +268,7 @@ separate and over it) and in the script, whose Python asserts `len(corner)
 == 1` on exactly that fill. Nothing said about WHICH file is the master — that
 is F-branding-6's, still open.
 
-### F-branding-8 · `homeTitle-named-for-a-use` · The wordmark's file is named for the page it first sat on
+### WORKED · F-branding-8 · `homeTitle-named-for-a-use` · The wordmark's file is named for the page it first sat on
 
 `homeTitle.png` renders through `<PuzpuzpuzWordmark>`, on the login screen
 as well as home, and the docstring has to explain that "source is
@@ -266,6 +278,16 @@ wordmark; the file says home title.
 **Recommendation:** `git mv` to `puzpuzpuz-wordmark.png` and change the one
 import. A rename is what a whole-repo read is for (§4 → Renaming is the
 point).
+
+**Resolution (2026-09-05, Joel: "do all")** — `git mv`'d to
+`puzpuzpuz-wordmark.png`, beside `puzpuzpuz.svg` under the folder's own
+convention of prefixing its assets. The local binding went with it
+(`homeTitle` → `wordmark`) — the same wrong word one level in — and the
+docstring's path sentence updated; its "the PNG *is* the master" paragraph is
+untouched, which is the part worth keeping. A whole-repo grep found the name
+nowhere else: three sites, all inside `PuzpuzpuzWordmark.tsx`, and two plan
+mentions left alone (`css-philosophy.md:1165`, which also carries a pre-reorg
+path, and the do-not-read draft).
 
 ### F-branding-9 · `ui-md-describes-a-placeholder` · docs/ui.md still describes the mark as a placeholder at its pre-reorg path
 
