@@ -8,8 +8,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * game: waffle's grid, wordle's word, stackdown's six words, psychicnum's
  * secrets, codenamesduet's partner key, crosswords' author solution.
  *
- * **`destructive`** tone (red) and the boxed-eye glyph, both saying the same
- * thing:
+ * Red, and the boxed-eye glyph, both saying the same thing:
  * this is more than one word. Its quieter sibling is `SpoilerButton` — amber,
  * bare eye, one item, mid-game.
  *

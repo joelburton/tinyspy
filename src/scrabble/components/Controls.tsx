@@ -21,10 +21,10 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * left) stays interactive, so a keystroke / tile tap dismisses the pill.
  *
  * The commit buttons:
- *   - **Swap** (`ExchangeButton`, icon-only, info tone) — return rack tiles.
+ *   - **Swap** (`ExchangeButton`, icon-only) — return rack tiles.
  *   - **Pass** (compete only; the `EndTurnButton` octagon, but de-emphasized to
- *     icon-only + secondary + warning tone — passing isn't the main move here, so
- *     it doesn't carry the primary weight codenamesduet's pass does).
+ *     icon-only + secondary — passing isn't the main move here, so it doesn't
+ *     carry the primary weight codenamesduet's pass does).
  *   - **Submit** (`SubmitWithScore`) — the primary action, doubling as the live
  *     score preview ("+score", or an em-dash on an empty board). `canSubmit`
  *     enables it for any placed tiles (an illegal shape is explained by a pill on
@@ -112,8 +112,8 @@ export function Controls({
                     : 'Swap — select rack tiles first'
               }
             />
-            {/* Pass — the de-emphasized end-turn octagon (icon-only, secondary +
-                warning) since it isn't the main move here. Compete only. */}
+            {/* Pass — the de-emphasized end-turn octagon (icon-only, secondary)
+                since it isn't the main move here. Compete only. */}
             {isCompete && (
               <PassButton label={null} disabled={!canCommit || hasTentative} onClick={onPass} />
             )}

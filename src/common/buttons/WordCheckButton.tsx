@@ -8,11 +8,11 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * satisfies the rules it would be judged by anyway, and paints the cells that
  * don't. bananagrams' "Check words" is the first user.
  *
- * **`info` tone, not the amber of Hint / Spoiler**, and the distinction is the
+ * **Not the amber of Hint / Spoiler**, and the distinction is the
  * point: those hand over something you didn't have (a clue, an answer). This
  * hands over nothing — every letter it flags is already on your screen, and the
  * rule it applies is one you could apply yourself with a dictionary and a
- * minute. It's verification, so it reads as a neutral utility (the blue of
+ * minute. It's verification, so it reads as a plain utility (the blue of
  * Restart / New game), not as help you might feel funny about taking.
  *
  * That's also why it's always available, regardless of a game's word-checking

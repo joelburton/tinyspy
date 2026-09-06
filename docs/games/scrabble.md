@@ -580,9 +580,9 @@ slot doubles as the **local feedback area**: an own-move result (or the terminal
 verdict) shows as a sticky `<FeedbackPill>` in place of the commit buttons,
 dismissed by the player's next move (a tile tap / a keystroke). To keep that row
 on one line within the board width, the buttons are compact — **Swap is
-icon-only** (the `ExchangeButton`, two-way-arrows glyph, `info` tone); Pass (compete
+icon-only** (the `ExchangeButton`, two-way-arrows glyph); Pass (compete
 only) is the de-emphasized end-turn octagon (`PassButton` — icon-only, secondary,
-`warning` tone, left of Submit); and **Submit is the `SubmitWithScore` button**, a
+left of Submit); and **Submit is the `SubmitWithScore` button**, a
 shared component that doubles as the live preview — the triangle pinned left, the
 play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
 width so it never resizes. Submit is enabled for *any* placed tiles; an illegal

@@ -19,7 +19,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * `label={null}` for the icon-only square, or a `label` of your own where the
  * room is there for a longer one.
  *
- * It wears the **`normal`** tone in both weights. Going back to the club is a
+ * It is colored as an action in both weights. Going back to the club is a
  * thing you do — it is not a cancel — and it is already the filled blue at
  * terminal, so anything else would make one control two colors depending on the
  * phase. It rendered a raw `<button className="secondary">` until 2026-08-18,

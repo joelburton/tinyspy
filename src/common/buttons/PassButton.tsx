@@ -5,7 +5,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
  * Pass / skip your turn, **de-emphasized** — the end-turn octagon at the default
- * secondary weight + a `warning` (amber) tone. For games where passing is a
+ * secondary weight, in amber rather than the accent blue. For games where passing is a
  * fallback, not the main move: scrabble's Submit is the main action, so its Pass
  * sits beside it as a lighter, secondary control (typically icon-only).
  *

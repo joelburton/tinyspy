@@ -5,9 +5,9 @@ The folders it reads: `buttons`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
-stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 and
-F-buttons-2 worked. Opened out of §3's order: `members` is the next row, and
-Joel chose `buttons` first.
+stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1,
+F-buttons-2 and F-buttons-3 worked. Opened out of §3's order: `members` is the
+next row, and Joel chose `buttons` first.
 
 ## The roster
 
@@ -180,7 +180,7 @@ in nine info columns, `RevealButton` in five). `spellingbee/InfoCol.tsx` renders
 the same Concede both ways four lines apart. So the requirement could never
 have become a family rule.
 
-### F-buttons-3 · `tones-that-do-not-exist` · Seven docstrings name a tone the type has never had
+### WORKED · F-buttons-3 · `tones-that-do-not-exist` · Seven docstrings name a tone the type has never had
 
 `ButtonTone` is `quiet | normal | caution | destructive | success`. The
 docstrings say: `warning` (AIButton, HintButton, PassButton, SpoilerButton —
@@ -196,6 +196,39 @@ file of seven.
 the pill comparison. The same sentence lives in scrabble's `Controls.tsx`
 docstring and `docs/games/scrabble.md` ("`warning` tone") — a sweep, since
 this folder owns the vocabulary.
+
+**Resolution (2026-09-06, Joel: "i think we shouldn't put the tone in
+docstring --- it's not useful for the docstring, and it can drift.")** — the
+recommendation is superseded: the tone came OUT rather than being corrected.
+A docstring naming the tone is a second copy of the line of code directly
+below it, and the seven wrong ones are what a second copy does over time.
+
+That makes it a bigger sweep than the finding, and rightly: **fifteen files
+named a tone, not seven.** The eight that happened to be right (`CancelButton`,
+`EndGameButton`, `ExchangeButton`, `NewGameButton`, `RestartButton`,
+`RevealButton`, `SharePreviewButton`, `BackToClubButton`) could drift exactly
+as the other seven had, so they lost the token too. Outside the folder,
+scrabble's `Controls.tsx` (twice) and `docs/games/scrabble.md` said "`info`
+tone" for Swap and "`warning` tone" for Pass; both are gone.
+
+Two judgment calls in the execution:
+
+- **The token went; the argument stayed.** Most of these sentences wrapped a
+  real point — why Reveal is not Spoiler, why WordCheck is not Hint — around
+  the token. The point is why anyone reads the docstring, so it survives in
+  plain words ("irreversible", "help you asked for", "the main move").
+- **Color words stayed** ("amber", "the accent blue", "red"). They describe
+  what a reader sees rather than naming a value the code sets, and the
+  sibling comparisons need them. Worth revisiting if a theme ever moves one.
+
+`HintButton`'s false claim is gone with the rest of it: it said its amber was
+"the same amber as a `warning` feedback pill", where the theme's CAUTION block
+says it is rotated a third of the way to red for exactly the reason that it
+must not be. The docstring now says that, and points at the theme.
+
+Still open in this area, and not touched here: `docs/ui.md`'s "Hint / Reveal =
+`caution`" (F-buttons-13, where Reveal is `destructive`) and
+`daylight.css`'s BUTTON header (F-buttons-14).
 
 ### F-buttons-4 · `ghost-action-button` · `ActionButton` is gone and still named across the tree
 
