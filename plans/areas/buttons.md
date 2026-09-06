@@ -7,9 +7,11 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 through -14, and -20. Closed by F-buttons-20
-without work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
-row, and Joel chose `buttons` first.
+F-buttons-1 through -5, -7, -8, -10 through -14, -17 and -20. Closed with no
+change: F-buttons-6, -9 and -16 (absorbed by the F-buttons-20 rewrite) and
+F-buttons-15 (`buttons.html` ruled out of scope). Still open: F-buttons-18 and
+-19. Opened out of §3's order: `members` is the next row, and Joel chose
+`buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
 area:** a purpose button's docstring answers *when do I reach for this* and
@@ -697,7 +699,7 @@ grounding example where the sentence is otherwise abstract — `ZoomFitButton`'s
 selection — and `PeelButton`'s "only bananagrams peels", which is load-bearing
 because it explains why a one-game button lives in a shared folder.
 
-### F-buttons-15 · `buttons-html-behind` · The rendered grid no longer shows what ships
+### CLOSED, NO CHANGE · F-buttons-15 · `buttons-html-behind` · The rendered grid no longer shows what ships
 
 `docs/buttons.html` says it is "THE RENDERED REFERENCE for
 `src/common/theme.css` → CHROME" — no such file; the block is
@@ -716,7 +718,20 @@ five families, all eight cells, the real derivation) or delete it and let the
 stylesheet be the reference. If kept, `CLAUDE.md`'s row and `ui.md`'s
 sentence get the right file name.
 
-### F-buttons-16 · `test-prose` · The spec carries a finding ID, two counts, and a test that does not test its title
+**Closed 2026-09-06 with no change (Joel: "ignore buttons.html. just close
+this")** — the page is out of scope, the way `/palette` and `/font` are. Nothing
+about it moved: not the page, not `CLAUDE.md`'s row, not `daylight.css`'s claim
+that the page wins where they disagree. The one incidental change already
+shipped: `docs/ui.md`'s paragraph names `themes/daylight.css` → BUTTON instead
+of a `theme.css` → CHROME that does not exist, because that sentence was being
+rewritten anyway.
+
+The evidence is left recorded because it stays true and someone will notice it
+again: the page shows four cells per family where the theme has eight, glosses
+`caution` as the outcome orange the theme is at pains to separate from, and its
+"today" swatches are three colors that no longer ship.
+
+### CLOSED, NO CHANGE · F-buttons-16 · `test-prose` · The spec carries a finding ID, two counts, and a test that does not test its title
 
 `StandardButton.test.tsx`: "the F9 case" is a finding number from a deleted
 audit in a durable file; "146 call sites draw no text, and 457 test selectors
@@ -729,7 +744,16 @@ standard button with no glyph); say "many" or nothing; either override an
 axis in the test (`<RestartButton name="Start over" />` is found by the new
 name) or retitle it.
 
-### F-buttons-17 · `archaeology` · "How it used to work" in six docstrings
+**Closed 2026-09-06 with no work of its own:** F-buttons-20 rewrote the spec
+around the new vocabulary and took all three items with it. "The F9 case" is
+gone — the test is named for its rule, that a Cancel is a standard button whose
+glyph is never drawn. The two counts are gone, replaced by the condition ("most
+buttons in the app are icon-only, and the suite finds them by that name"). And
+the test that did not test its title now does: it rerenders with a label of its
+own and finds the button by the new words, which is what "stay overridable on
+every axis" was claiming.
+
+### WORKED · F-buttons-17 · `archaeology` · "How it used to work" in six docstrings
 
 `BackToClubButton` ("rendered a raw `<button className="secondary">` until
 2026-08-18, which is how it ended up quiet-gray"), `TrashButton` ("used to be
@@ -742,6 +766,28 @@ Trash is red BEFORE the press; End and Concede differ by glyph because
 bananagrams shows both.
 
 **Recommendation:** keep the rule, cut the history, in each.
+
+**Resolution (2026-09-06, Joel: "i'll take your rec.")** — three docstrings, no
+code. The finding listed six sites; two had already gone with F-buttons-7 and
+F-buttons-11, and `BackToClubButton`'s 2026-08-18 sentence went with the
+F-buttons-20 rewrite, so three were left.
+
+Each was protecting a rule, and each states forward without the history. End's
+glyph and Concede's are described as what they ARE, with bananagrams showing
+both at once as the standing reason rather than as the event that "forced them
+apart"; the date on Concede went, since it dated a decision whose reason sits in
+the same sentence. Trash keeps the rule that mattered — an irreversible act
+should look irreversible while you can still change your mind — with the
+too-late-to-help point made about *a control that turns red only once you have
+clicked it* rather than about the club's old delete.
+
+Also dropped, in the same docstring: **"every v3 game"**. The version vocabulary
+is settled at v3-canonical with no v4, so the qualifier can only ever be
+redundant; it is now "the same in every game".
+
+And one this area wrote itself today: `FormSubmitButton` said its packaged props
+"used to be retyped at each of them", which is the same fault a few hours old. It
+now says what it packages.
 
 ### F-buttons-18 · `small-buttons` · Ten controls make themselves small by hand (from `todo.md`)
 

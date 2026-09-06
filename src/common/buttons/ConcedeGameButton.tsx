@@ -11,9 +11,9 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * everyone; Concede is ONE player quitting a race — a real per-player loss, while
  * the others keep playing (common.concede). The two never mean the same thing —
  * and bananagrams proves they aren't even exclusive: its compete row shows
- * Concede AND End side by side, which is what forced them apart visually
- * (2026-08-03). Concede keeps the **flag** (surrender, one player); End took the
- * crossed-out stop sign. They still share the red: both are irreversible.
+ * Concede AND End side by side, which is what keeps them apart visually.
+ * Concede wears the **flag** — surrender, one player — and End the crossed-out
+ * stop sign. They share the red: both are irreversible.
  * Default label "Concede".
  */
 export function ConcedeGameButton({
