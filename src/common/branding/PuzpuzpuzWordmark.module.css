@@ -1,12 +1,12 @@
-/* cs-audited-branding */
+/* cs-blessed-branding */
 
 /* The big PuzPuzPuz wordmark image. A wide, short PNG shipped at 2x, so we only
  * constrain the width and let the height follow its intrinsic aspect ratio.
- * Fills the card, centered, with clear space below before the screen's heading /
- * sign-in copy. */
+ * Fills the card, with clear space below before the screen's heading or
+ * sign-in text. */
 /* @@ */ .wordmark {
   display: block;
   width: 100%;
   height: auto;
-  margin: 0 auto var(--spacer-1);
+  margin: 0 0 var(--spacer-1);
 }

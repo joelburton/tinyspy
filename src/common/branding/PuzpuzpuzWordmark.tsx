@@ -1,4 +1,4 @@
-// cs-audited-branding
+// cs-blessed-branding
 
 import wordmark from './puzpuzpuz-wordmark.png'
 import styles from './PuzpuzpuzWordmark.module.css'
@@ -10,8 +10,9 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * "● <name> — welcome!" greeting). One component so the two stay in visual
  * lockstep.
  *
- * Distinct from `<PuzpuzpuzLogo>`, which is the small square logo used as a menu
- * trigger (ClubPage header). This is the wide horizontal wordmark.
+ * Distinct from `<PuzpuzpuzLogo>`, the small square mark that triggers the page
+ * menu on home and on a club page. This is the wide horizontal wordmark, and it
+ * is artwork rather than a control — nothing hangs off it.
  *
  * Source is `src/common/branding/puzpuzpuz-wordmark.png` — a raster, unlike the
  * rest of our branding. The artwork has a soft drop shadow and hand-drawn letter
@@ -19,9 +20,9 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * 840px, ~2x the ~416px it renders at inside the `.card`; `width: 100%` on the
  * img scales it down and the intrinsic dimensions supply the aspect ratio.
  *
- * Its ground is opaque near-white, which disappears against `.card`'s
- * `--default-bg-color` (#ffffff) — keeping the white sticker outline around the
- * letters, which a transparency key-out would eat along with the background.
+ * Its ground is opaque near-white and vanishes into the card's own light ground,
+ * which is what keeps the white sticker outline around the letters — a
+ * transparency key-out would eat that outline along with the background.
  *
  * A default import (not `?url`): Vite treats any image import as an asset URL,
  * hashing it into the build output either way.

@@ -1,4 +1,4 @@
-/* cs-audited-branding */
+/* cs-blessed-branding */
 
 /* The puzpuzpuz menu logo: the "P" mark. `--logo-size` is the shared edge — a
  * game's logo wears it too, which is what keeps the two header triggers
@@ -12,5 +12,5 @@
   display: block;
   width: var(--logo-size);
   height: var(--logo-size);
-  flex-shrink: 0; /* hold 32px inside flex rows — don't let it compress */
+  flex-shrink: 0; /* hold its size inside flex rows — don't let it compress */
 }

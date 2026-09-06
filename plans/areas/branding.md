@@ -4,8 +4,11 @@ The folders it reads: `branding`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-05).** Roster stamped `cs-audited-branding`; every
-file read in one sitting; findings below.
+**Status: CLOSED (2026-09-05).** Every roster file stamped
+`cs-blessed-branding` on Joel's word ("mark all files in this area as blessed
+and then close this area"). Fifteen findings: thirteen worked, two closed with
+no change. `branding/doc.md` carries the Design and the folder is off
+`DESIGNS_OWED`; `branding/todo.md` is empty because nothing is owed here.
 
 ## The roster
 
@@ -14,12 +17,12 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every source file of
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/branding/GameLogo.tsx` | a game's 32px square logo, looked up from the registry by gametype string; rendered in the game header's menu trigger and in three club-list rows | `cs-audited-branding` |
-| `src/common/branding/GameLogo.module.css` | `.logo` — block, 32×32, `flex-shrink: 0`, and a `color` nothing reads | `cs-audited-branding` |
-| `src/common/branding/PuzpuzpuzLogo.tsx` | the app's 32px "P" mark, the menu trigger on home and the club page | `cs-audited-branding` |
-| `src/common/branding/PuzpuzpuzLogo.module.css` | `.logo` — the same three declarations as GameLogo's, minus the color | `cs-audited-branding` |
-| `src/common/branding/PuzpuzpuzWordmark.tsx` | the wide raster wordmark atop the login and home cards | `cs-audited-branding` |
-| `src/common/branding/PuzpuzpuzWordmark.module.css` | `.wordmark` — full width, intrinsic aspect, a spacer below | `cs-audited-branding` |
+| `src/common/branding/GameLogo.tsx` | a game's 32px square logo, looked up from the registry by gametype string; rendered in the game header's menu trigger and in three club-list rows | `cs-blessed-branding` |
+| `src/common/branding/GameLogo.module.css` | `.logo` — block, 32×32, `flex-shrink: 0`, and a `color` nothing reads | `cs-blessed-branding` |
+| `src/common/branding/PuzpuzpuzLogo.tsx` | the app's 32px "P" mark, the menu trigger on home and the club page | `cs-blessed-branding` |
+| `src/common/branding/PuzpuzpuzLogo.module.css` | `.logo` — the same three declarations as GameLogo's, minus the color | `cs-blessed-branding` |
+| `src/common/branding/PuzpuzpuzWordmark.tsx` | the wide raster wordmark atop the login and home cards | `cs-blessed-branding` |
+| `src/common/branding/PuzpuzpuzWordmark.module.css` | `.wordmark` — full width, intrinsic aspect, a spacer below | `cs-blessed-branding` |
 | `src/common/branding/doc.md` | a one-sentence lede; Design owed | (no stamp — markdown) |
 | `src/common/branding/todo.md` | empty at the open | (no stamp — markdown) |
 
@@ -289,7 +292,7 @@ nowhere else: three sites, all inside `PuzpuzpuzWordmark.tsx`, and two plan
 mentions left alone (`css-philosophy.md:1165`, which also carries a pre-reorg
 path, and the do-not-read draft).
 
-### F-branding-9 · `ui-md-describes-a-placeholder` · docs/ui.md still describes the mark as a placeholder at its pre-reorg path
+### WORKED · F-branding-9 · `ui-md-describes-a-placeholder` · docs/ui.md still describes the mark as a placeholder at its pre-reorg path
 
 `docs/ui.md` → ClubPage header: "`<PuzpuzpuzLogo />` — a generic placeholder
 SVG at `src/common/puzpuzpuz.svg`, the same 4-dot-grid the per-game logos
@@ -297,6 +300,101 @@ use. Wrapped by `<Menu>` exactly like the game logo." Three things: the path
 is pre-reorg (`src/common/branding/puzpuzpuz.svg`); it is not a placeholder
 or a dot grid, it is the "P" mark; and the wrapper is `<PageHeaderMenu>`.
 A sentence about this area's file, so a forward fix here.
+
+**Resolution (2026-09-05, Joel: "fix")** — `docs/ui.md`'s ClubPage-header
+entry now names the "P" mark at its real path, says it renders as the same
+bare 32×32 image `<GameLogo>` does (the reason the two triggers are
+interchangeable), and names `<PageHeaderMenu>` as the wrapper. A SECOND line
+went with it, found re-verifying: `docs/ui.md`'s GamePage-header entry read
+`<GameLogo gametype={…} />`, a signature F-branding-1 invalidated in this same
+area. Deliberately left: the "Reuse outside GamePage" paragraph's "a generic
+PuzPuzPuz logo as the trigger", where "generic" means not-gametype-specific
+and is the contrast being drawn, not the error the placeholder sentence made.
+Checked and clean: `common-folders.md` and `code-conventions.md` name the
+components correctly, `docs/ui.md`'s home-header paragraph says "the square
+site logo" with no path, and no doc names the wordmark's file — so
+F-branding-8's rename left nothing trailing it.
+
+## The closing re-read
+
+All eight files read again in one sitting, 2026-09-05, after the last group
+went in. Six things surfaced; four were comment-only fixes of kinds already
+ruled in this area and went in with the re-read, two are presented.
+
+### WORKED · F-branding-10 · `wordmark-names-one-call-site` · The third file carried the staleness F-branding-3 fixed in the other two
+
+`PuzpuzpuzWordmark.tsx` described `<PuzpuzpuzLogo>` as "the small square logo
+used as a menu trigger (ClubPage header)" — the same one-call-site claim
+F-branding-3 corrected inside `PuzpuzpuzLogo.tsx` itself, missed because it
+lives in a THIRD file. A finding that says "this docstring is stale" is worth
+grepping for the same sentence elsewhere; this one was a cross-reference.
+Now names home and the club page, and adds the one thing the cross-reference
+is actually for: the wordmark is artwork, not a control.
+
+### WORKED · F-branding-11 · `copy-in-a-stylesheet` · The banned word, in the wordmark's spacing comment
+
+`PuzpuzpuzWordmark.module.css` said the clear space below sits before "the
+screen's heading / sign-in copy". A message's words are its TEXT. Now "sign-in
+text".
+
+### WORKED · F-branding-12 · `a-32-the-token-replaced` · The sibling stylesheet's inline comment still said 32px
+
+`PuzpuzpuzLogo.module.css`'s `flex-shrink` note read "hold 32px inside flex
+rows" after F-branding-4 made the declaration `var(--logo-size)`. Now "hold
+its size". The lesson is the finding's own: converting a value means re-reading
+the sentences around it, not just the declaration.
+
+### WORKED · F-branding-14 · `a-theme-value-written-as-a-literal` · The wordmark's docstring stated one theme's color as the fact
+
+It said the near-white ground "disappears against `.card`'s
+`--default-bg-color` (#ffffff)". That parenthetical is daylight's value;
+`midnight.css` sets the same token to `#2f394c`, where a near-white ground does
+the opposite of disappearing. Rewritten to state the RESULT — the ground
+vanishes into the card's own light ground, which is what keeps the sticker
+outline — with no literal. The near-white itself is step 11's asset problem and
+is recorded there already.
+
+### WORKED · F-branding-13 · `an-auto-margin-that-cannot-center` · The wordmark is centered by a declaration that does nothing
+
+`PuzpuzpuzWordmark.module.css` is `width: 100%` with `margin: 0 auto
+var(--spacer-1)`, and its comment says "Fills the card, centered". An element
+at 100% of its container has no free space, so the `auto` resolves to zero and
+centers nothing — and there is no global `img { max-width }` rule that could
+make it matter. Verified: no `img` element rule exists anywhere in
+`core-css/`.
+
+**Recommendation:** `margin: 0 0 var(--spacer-1)`, and the comment stops
+claiming the centering. The alternative reading — that the `auto` is insurance
+for a future `max-width` — is the kind of standing-by-for code the repo does
+not write. Paints nothing either way. The comment's "centered" is already gone
+with F-branding-11's edit.
+
+**Resolution (2026-09-05, Joel: "do f13")** — `margin: 0 0 var(--spacer-1)`.
+Nothing repaints; the rule stops describing a centering it was not doing.
+
+### CLOSED, NO CHANGE · F-branding-15 · `two-numbers-that-must-move-together` · Nothing at either component says the attributes track the token
+
+F-branding-4 made the CSS read `--logo-size`, leaving `width={32} height={32}`
+in both components as the only literal 32s. The base.css token's comment
+explains why they cannot compose — no variable reaches an HTML attribute — but
+neither component says it, and a reader who changes the token there is not
+reading base.css. If the two drift, the browser reserves a box of one size and
+paints the mark at another: a shift on every cold load, which is the one thing
+this app treats as always a bug.
+
+**Recommendation:** one clause in each component's Props/render — the
+attributes are the intrinsic-size hint and must match `--logo-size`. It is the
+"short sentence and a pointer" shape, with the base.css token's comment as the
+copy that stays right. Comment-only. The alternative is a guard asserting the
+two agree, which is more apparatus than a two-line coupling in one folder
+deserves.
+
+**Resolution (2026-09-05, Joel: "f15: they're fine as is.")** — closed with no
+change, and nothing filed: the coupling is real but the two components sit in
+the same folder as the token's own explanation, and a note at each call site
+would be the third copy of one sentence. `base.css`'s `--logo-size` comment and
+this folder's `doc.md` Details both say why the attributes cannot compose;
+that is where it stays.
 
 ## Notes
 
@@ -316,8 +414,11 @@ A sentence about this area's file, so a forward fix here.
   header's "the logo is a menu trigger" is current.
 - **Left for `page-header`:** `PageHeader.tsx:33`'s "arithmetic nobody had
   written down" is the same archaeology corecss removed from `docs/ui.md`.
-- **Left for `manifest`:** the hand-written registry lookup in eight files
-  (F-branding-1).
+- **Left for `manifest`, and FILED in `manifest/todo.md` at the close:** the
+  hand-written registry lookup. It was five call sites at the close, not the
+  eight recorded at the open — this area removed three of them (`GameLogo`'s
+  own, and the two club rows'), which is why the filed item names the call
+  sites and the QUESTION each one answers rather than a number.
 - **Owed by every area from `mobile`, checked here:** no hooks; `window` is
   not referenced.
 
@@ -333,7 +434,13 @@ A sentence about this area's file, so a forward fix here.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — `branding/todo.md` stays EMPTY. Every finding was worked or closed,
+      and the two handoffs went to their own folders: the hand-written
+      registry lookup to `manifest/todo.md`, `<StartGameButtons>`'s nine
+      stale mentions to `club/todo.md`. `PageHeader.tsx`'s "arithmetic nobody
+      had written down" was already owed to `page-header`.
+- [x] every file on the roster blessed, or its stamp says why not — all six
+      `cs-blessed-branding`.

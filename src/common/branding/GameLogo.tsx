@@ -1,4 +1,4 @@
-// cs-audited-branding
+// cs-blessed-branding
 
 import type { GameManifest } from '../manifest/gameManifest'
 import styles from './GameLogo.module.css'
