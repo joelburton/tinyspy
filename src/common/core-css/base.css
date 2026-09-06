@@ -723,7 +723,7 @@
  * if a game ever needs them. That override is the point of declaring a
  * default: it is now a deliberate step down from a stated size rather
  * than a second guess at the browser's. */
- 
+
 /* @@ */ h1 {
   /* Smaller than the browser default (2rem). Every h1 is a page title on a
    * card/shell screen — the game play surface has no h1. A gentler title
@@ -754,8 +754,8 @@
   margin-block: 1rem;
 }
 
-input,
-/* @@ */ textarea {
+/* @@ */ input,
+textarea {
   font: inherit;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-md);
@@ -764,8 +764,8 @@ input,
   color: inherit;
 }
 
-input:focus,
-/* @@ */ textarea:focus {
+/* @@ */ input:focus,
+textarea:focus {
   outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
 }
@@ -781,8 +781,8 @@ input:focus,
    untouched — and never shrinks. Fields that set their own font-size via a class
    (higher specificity) are unaffected here and handled at their own rule. */
 @media (--touch) {
-  input,
-/* @@ */   textarea {
+/* @@ */   input,
+  textarea {
     font-size: max(16px, 1em);
   }
 }

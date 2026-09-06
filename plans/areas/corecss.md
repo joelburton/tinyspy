@@ -366,7 +366,7 @@ rule — a value with one or two readers belongs in its class as a number —
 disqualifies it. Building it would also have put an unworn class in
 `utilities.css`, which is the state this audit flags elsewhere.
 
-### F-corecss-9 · `marker-placement-and-cosmetics` · Three markers sit mid-selector, plus two whitespace nits
+### WORKED · F-corecss-9 · `marker-placement-and-cosmetics` · Three markers sit mid-selector, plus two whitespace nits
 
 `base.css:769–770`, `:779–780`, `:796–797`: the rule is `input,\ntextarea {`
 and the marking script put `/* @@ */` before `textarea`, the second selector,
@@ -374,6 +374,17 @@ because it anchored on the `{` line. The convention is one marker per RULE at
 column 0 before it. Cosmetic and mechanical. Same bucket: `daylight.css:190`
 is the one declaration in the file with no space after its colon
 (`-hover-color:color-mix`), and `base.css:738` is a line holding one space.
+
+**Resolution (2026-09-05, Joel: "do it")** — all five. The three markers moved
+up to sit before `input,`, so each rule carries one marker at column 0. The
+declaration that skipped its space was `--button-destructive-secondary-hover-
+color`, whose nine siblings align their values in a column — which is how the
+eye caught it. The single-space line is now empty.
+
+Counted both ways, since `tileColor.test.ts` reads these markers and
+`cs-stamp.mjs tally` counts them: `base.css` holds 85 and `daylight.css` 181
+before and after, tally 1533 both times. Swept the twelve stylesheets after:
+no whitespace-only line and no marker off column 0 remains.
 
 ### WORKED · F-corecss-10 · `tile-ramp-meanings-stale` · The TILE block's "the numbers ARE the meaning" table names readers that do not read
 

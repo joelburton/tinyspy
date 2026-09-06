@@ -185,7 +185,7 @@
 /* @@ */   --button-destructive-primary-press-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-destructive-primary-ink-color:    #ffffff;
 /* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--default-bg-color));
 /* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--default-bg-color));
 
   /* CAUTION — consequential, not destructive. NOT the outcome orange:
