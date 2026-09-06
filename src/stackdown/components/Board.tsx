@@ -16,14 +16,25 @@ const STEP = 32
 const PAD = 26
 
 /**
- * Shade by covering-depth below the clickable frontier, off the SHARED warm tile
- * ramp (common/themes/daylight.css `--tile-1-fill-color` … `--tile-4-fill-color`): depth 0 (exposed now) = shade 1, deeper
- * layers = 2, 3, 4 (deepest). The direct depth→shade map means a given depth
- * always reads the same shade, and a tile lightens a step each time a cover clears
- * (its depth drops). Clamped at 4 — the fixed 30-tile geometry is 4 layers deep.
+ * Covering-depth below the clickable frontier → a shade of the SHARED warm tile
+ * ramp, deepest last. A given depth always reads the same shade, so a tile
+ * lightens a step each time a cover clears.
+ *
+ * Written out rather than composed from the index: a `--tile-${n}` template
+ * makes these four the only readers of the ramp that a search for the token
+ * cannot find.
  */
+const DEPTH_FILL = [
+  'var(--tile-1-fill-color)',
+  'var(--tile-2-fill-color)',
+  'var(--tile-3-fill-color)',
+  'var(--tile-4-fill-color)',
+]
+
+/** Deeper than the ramp goes clamps to the last shade; the fixed 30-tile
+ *  geometry is exactly four layers deep, so today nothing reaches the clamp. */
 function depthColor(depth: number): string {
-  return `var(--tile-${1 + Math.min(depth, 3)}-fill-color)`
+  return DEPTH_FILL[Math.min(depth, DEPTH_FILL.length - 1)]
 }
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')

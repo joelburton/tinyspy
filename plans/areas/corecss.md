@@ -340,7 +340,7 @@ column 0 before it. Cosmetic and mechanical. Same bucket: `daylight.css:190`
 is the one declaration in the file with no space after its colon
 (`-hover-color:color-mix`), and `base.css:738` is a line holding one space.
 
-### F-corecss-10 · `tile-ramp-meanings-stale` · The TILE block's "the numbers ARE the meaning" table names readers that do not read
+### WORKED · F-corecss-10 · `tile-ramp-meanings-stale` · The TILE block's "the numbers ARE the meaning" table names readers that do not read
 
 `daylight.css:537–540`: `1` attention (scrabble) · `2..5` stackdown depth
 0..3 · `3` normal. Verified readers of each shade outside the area:
@@ -352,12 +352,40 @@ still describes the shades as `--tile-1…4` for depth 0..3, which is a third
 story. `midnight.css:319–324` retells the stackdown mapping as current fact,
 and `docs/ui.md` → The buckets says "stackdown reads stack depth off them".
 
-**Recommendation:** the block states what each shade IS (a lightness step in
-one material) and stops claiming who reads it; midnight's direction argument
-keeps its point (deeper is darker under every theme) without the stackdown
-attribution; the ui.md sentence is a forward fix. Whether stackdown should
-read the ramp is stackdown's, and `stackdown/theme.css:26` already calls its
-runtime ramp a spike.
+**⚠️ The finding above is WRONG about stackdown, and so was the audit.**
+Stackdown DOES read the ramp. `Board.tsx` composed the token name at
+runtime — `` `var(--tile-${1 + Math.min(depth, 3)}-fill-color)` `` — so a
+search for `--tile-4` found nothing and both the audit and the presentation
+concluded there was no reader. Joel caught it. There is no hsl ramp in that
+file; the sentence claiming one is `stackdown/theme.css`'s own, and it is the
+stale thing here. So `--tile-4` is read (depth 3), `midnight.css:321`'s
+inverted-ramp argument rests on a real reader and is correct, and
+`docs/ui.md`'s "stackdown reads stack depth off them" is correct. Neither
+needed touching. What was actually wrong in daylight: the stackdown row said
+2..5 where the map is 1..4, and row 1 credited scrabble, whose
+placed-but-not-committed tile is shade 3 plus the attention overlay
+(`--scrabble-tile-attention`).
+
+**Resolution (2026-09-05)** — the reader list is gone rather than corrected,
+on Joel's argument: *"surely, if i were curious, i'd just search the repo for
+the name. the comments just seems like a magnet for being stale."* Every row
+of it had rotted, and a list of who reads a token from elsewhere is not what
+a comment is for. The block now says what a shade IS — a step of lightness,
+nothing reserved, walk them in order if a board shows a range.
+
+That left one hole: for this ramp, searching for the name did NOT work, and
+the reader it missed was the most important one. Joel's fix, and it is the
+better one — *"why don't we change this to a set of if-else conditions on
+depth, each choosing the correct --tile-x string? then we could grep it"* —
+removes the trap instead of commenting on it. `depthColor` now indexes a
+`DEPTH_FILL` array of the four literal strings (an array rather than a chain:
+same greppability, and the clamp bound comes off the array instead of a
+magic 3). All four shades are findable by name now, so the comment owes
+nothing.
+
+Also fixed: `stackdown/theme.css`'s lede said the per-tile background is "an
+hsl ramp computed at runtime, so it isn't a token". It is tokens — the
+shared ones — as that file's own next comment says.
 
 ### F-corecss-11 · `archaeology-and-counts` · Passages that tell how it used to work, and counts that rot
 
@@ -540,9 +568,9 @@ the surface and nothing else).
 - **Left for `game-page`:** `GamePage.tsx:169` renders its not-found page as
   a `.card.pageMain` (the home of that page is already on that folder's
   list); the `<ModePill>` rename if F-corecss-16 is worked.
-- **Left for `stackdown`:** whether its runtime hsl ramp should read the
-  shared tile ramp (`stackdown/theme.css:26` calls the runtime ramp a spike;
-  `Board.tsx:20` describes shades it does not read).
+- **Nothing left for `stackdown`.** The audit thought its board ran an hsl
+  ramp of its own; it reads the shared shades, and both its files now say so
+  (see F-corecss-10).
 - **The excluded font page reads `--page-surface-color`** — the one fact that
   makes F-corecss-2 need a ruling rather than a sweep.
 - **Owed by every area from `mobile`, checked here:** no hooks in the area;

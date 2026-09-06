@@ -534,10 +534,9 @@
      OTHER signal (whose? selected? hovered? decided?).
 
      NO SEMANTIC MEANING, and fine to reuse for game-ish things. The
-     NUMBERS are the meaning:
-       1  attention — a placed-but-not-committed tile (scrabble)
-       2..5          stackdown depth 0..3 (top → deepest)
-       3  NORMAL     the everyday tile most games use
+     NUMBERS are the meaning: a shade is a step of lightness and nothing
+     else, so a board picks the one that suits it and a board that
+     shows a range walks them in order. Nothing is reserved.
 
      The ramp does NOT derive from a single anchor: across all twelve
      values hue holds at 87–90° while lightness falls 0.976 → 0.662 and
