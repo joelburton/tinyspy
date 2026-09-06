@@ -1566,7 +1566,7 @@ assembling the same skeleton by hand is how they drifted apart before.
 - **Both slots always render**, even when the right one is empty. One shape for
   three pages, and putting something on the right later is adding a child rather
   than restructuring a header.
-- **The height is a contract**, `--page-header-height` in `base.css`. All three
+- **The height is a contract**, `--pageHeader-height` in `base.css`. All three
   were `2.5rem` by arithmetic nobody had written down — a 32px logo plus the
   menu trigger's `0.25rem` of padding each side — while `--game-header-bottom`
   hard-coded that same `2.5rem` to position the mobile `<InfoSheet>` under this

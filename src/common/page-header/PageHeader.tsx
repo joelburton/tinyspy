@@ -36,7 +36,7 @@ type Props = {
  * `<InfoSheet>` just under this rule. Two places agreeing by coincidence is
  * how the sheet ends up riding 4px over the rule at one viewport, which has
  * happened once already (the token's comment records it). Both now read
- * `--page-header-height`, so moving the strip's height moves the sheet with
+ * `--pageHeader-height`, so moving the strip's height moves the sheet with
  * it.
  *
  * What each page puts in it:

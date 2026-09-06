@@ -567,7 +567,7 @@
      768px.) The remaining terms are the header's own box: its height,
      its 0.5rem padding-bottom, and the 1px rule. */
 /* @@ */   --game-header-bottom: calc(
-    var(--page-padding-y) + var(--page-header-height) + 0.5rem + 1px
+    var(--page-padding-y) + var(--pageHeader-height) + 0.5rem + 1px
   );
 
   /* The page header's height, read by <PageHeader> and by the sheet
@@ -576,7 +576,7 @@
      the header's tallest child happens to be the menu trigger (a 32px
      logo plus 0.25rem of padding each side). Change this and both move
      together; change the trigger and this is the one number to update. */
-/* @@ */   --page-header-height: 2.5rem;
+/* @@ */   --pageHeader-height: 2.5rem;
 
   /* A FLOATING PANEL's titlebar height, and the one number that sizes the strip.
      The title's type and the ✕ derive from it rather than carrying tokens of

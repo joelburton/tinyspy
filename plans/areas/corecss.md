@@ -190,7 +190,7 @@ the `0.6rem` row comment's "the retired list.css pattern's row gap", which
 names the file as retired and is recording where a value came from, not
 sending anyone to read it.
 
-### F-corecss-4 · `pageHeader-two-spellings` · One component, two token spellings
+### WORKED · F-corecss-4 · `pageHeader-two-spellings` · One component, two token spellings
 
 `--pageHeader-border-color` (daylight, midnight) and `--page-header-height`
 (base.css) name the same component. Every other component-named token in the
@@ -200,7 +200,19 @@ area is camelCase — `--pageMain-width`, `--floatingPanel-titlebar-height`,
 `PageHeader.module.css`, a docstring in `PageHeader.tsx`, `base.css`
 (`--game-header-bottom`), and one sentence in `docs/ui.md`.
 
-**Recommendation:** rename to `--pageHeader-height`; four files, no pixel.
+**Resolution (2026-09-05, Joel: "fix f4")** — renamed to
+`--pageHeader-height`. Five sites in four files: the declaration and the
+`--game-header-bottom` calc in `base.css`, `PageHeader.module.css`'s
+`height`, the `<PageHeader>` docstring, and the "the height is a contract"
+line in `docs/ui.md`. No pixel moves, no guard names it, no e2e names it;
+`tsc -b` and the 26 guard files green.
+
+Checked for others while here: every `--page-*` token left in `base.css` and
+`daylight.css` is about the page itself — `-bg-`, `-divider-`, `-padding-x/y`,
+the three `-surface-` and the four `-text-`. This was the only component
+wearing the page's prefix, so `page.css:10`'s reservation now holds without
+an exception. (The `-surface-` family is a different question and stays with
+F-corecss-2: it names a background, not a component.)
 
 ### F-corecss-5 · `stale-file-and-class-citations` · Six pointers at things that moved or never existed
 

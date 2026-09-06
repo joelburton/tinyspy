@@ -31,7 +31,7 @@
      Under border-box the same declaration would mean the total, and the strip
      would lose 9px it does not have to give. */
   box-sizing: content-box;
-  height: var(--page-header-height);
+  height: var(--pageHeader-height);
   /* The strip reads as bounded without a card around it. */
   border-bottom: var(--border-width-line) solid var(--pageHeader-border-color);
   padding-bottom: var(--spacer-4);
