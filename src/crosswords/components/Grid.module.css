@@ -27,7 +27,7 @@
   width: 1em;
   height: 1em;
   box-sizing: border-box;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   display: flex;
   align-items: center;
   justify-content: center;

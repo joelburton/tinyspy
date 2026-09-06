@@ -48,7 +48,7 @@
   overflow: auto;
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
-  background: radial-gradient(circle at 50% 40%, var(--page-surface-color), var(--page-bg-color));
+  background: radial-gradient(circle at 50% 40%, var(--default-bg-color), var(--page-bg-color));
 }
 
 /* The below-board REGION (universal). Shrink-wraps to its content (the feedback

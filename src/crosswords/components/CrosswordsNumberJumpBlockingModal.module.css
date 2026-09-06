@@ -20,7 +20,7 @@
 
 /* @@ */ .card {
   width: min(280px, calc(100% - 2rem));
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--crosswords-dialog-shadow);

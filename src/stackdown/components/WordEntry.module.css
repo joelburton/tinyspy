@@ -31,7 +31,7 @@
 /* @@ */ .filled {
   border-style: solid;
   border-color: var(--button-normal-primary-color);
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   cursor: pointer;
 }
 

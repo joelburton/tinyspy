@@ -857,6 +857,6 @@ input:focus,
     text-align: center;
     font: 600 18pt/1.6 system-ui, -apple-system, sans-serif;
     color: var(--print-ink-color);
-    background: var(--page-surface-color);
+    background: var(--default-bg-color);
   }
 }

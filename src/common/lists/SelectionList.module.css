@@ -36,7 +36,7 @@
 /* @@ */ .list {
   display: flex;
   flex-direction: column;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-lg);
   /* The rows' square corners would otherwise poke past the frame's rounding at

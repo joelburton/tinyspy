@@ -50,7 +50,7 @@
 /* @@ */ .shell {
   width: 100%;
   height: 100%;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   /* Elevation shadow so the panel reads as "above the page"

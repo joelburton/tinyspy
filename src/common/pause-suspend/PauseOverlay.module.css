@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
 }

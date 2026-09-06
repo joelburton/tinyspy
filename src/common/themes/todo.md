@@ -4,11 +4,6 @@
 
 ## Soon
 
-- **Rename `--page-surface-color` → `--default-bg-color`.** Decided
-  2026-08-22 and never built: the white is "what a background is unless
-  something says otherwise", and the name should say so. `--page-bg-color`
-  stays the page's own. docs/ui.md → The buckets has the rule.
-
 ## Someday
 
 - **Three tokens paint a 1px line and mean different things** —

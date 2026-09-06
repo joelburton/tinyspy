@@ -75,7 +75,7 @@
   fill: var(--letterboxed-accent);
 }
 /* @@ */ .last text {
-  fill: var(--page-surface-color);
+  fill: var(--default-bg-color);
 }
 
 /* @@ */ .disabled {

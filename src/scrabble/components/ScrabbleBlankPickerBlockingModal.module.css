@@ -10,7 +10,7 @@
   z-index: 50;
 }
 /* @@ */ .panel {
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   padding: 20px;
   border-radius: 10px;
   box-shadow: var(--scrabble-dialog-shadow);

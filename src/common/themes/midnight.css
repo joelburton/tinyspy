@@ -53,7 +53,7 @@
      in daylight: that relationship survives the flip even though both
      values move. */
 /* @@ */   --page-bg-color:                #262e3f;
-/* @@ */   --page-surface-color:           #2f394c;
+/* @@ */   --default-bg-color:           #2f394c;
 /* @@ */   --page-surface-border-color:    #454f63;
 /* @@ */   --page-surface-hover-color:     #3a4459;
 /* @@ */   --page-text-color:              #e8eaee;
@@ -115,8 +115,8 @@
 /* @@ */   --button-normal-primary-press-color:       oklch(from var(--button-normal-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-normal-primary-ink-color:         #0a1621;
 /* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l + 0.115) c h);
-/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--default-bg-color));
 
 /* @@ */   --button-success-base-color:               #66bb6a;
 /* @@ */   --button-success-primary-color:            var(--button-success-base-color);
@@ -124,8 +124,8 @@
 /* @@ */   --button-success-primary-press-color:      oklch(from var(--button-success-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-success-primary-ink-color:        #0c1a0d;
 /* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l + 0.115) c h);
-/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--default-bg-color));
 
   /* DESTRUCTIVE — and here is a real dark-mode problem, recorded
      rather than solved: daylight's destructive is a DARK red, which is
@@ -140,8 +140,8 @@
 /* @@ */   --button-destructive-primary-press-color:  oklch(from var(--button-destructive-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-destructive-primary-ink-color:    #1e0a0a;
 /* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l + 0.115) c h);
-/* @@ */   --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-destructive-secondary-hover-color: color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--default-bg-color));
 
   /* CAUTION — the same hue rotation daylight makes (a third of the way
      from orange to red, so it reads as caution rather than
@@ -152,8 +152,8 @@
 /* @@ */   --button-caution-primary-press-color:      oklch(from var(--button-caution-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-caution-primary-ink-color:        #1e1006;
 /* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l + 0.115) c h);
-/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--default-bg-color));
 
 /* @@ */   --button-quiet-base-color:                 #8d8d8d;
 /* @@ */   --button-quiet-primary-color:              var(--button-quiet-base-color);
@@ -161,8 +161,8 @@
 /* @@ */   --button-quiet-primary-press-color:        oklch(from var(--button-quiet-base-color) calc(l + 0.10) c h);
 /* @@ */   --button-quiet-primary-ink-color:          #141414;
 /* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l + 0.115) c h);
-/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--default-bg-color));
 
   /* The treatment slots, defaulted exactly as daylight defaults them.
      Identical lines in both themes, which is the correct outcome: a
@@ -236,13 +236,13 @@
      where daylight needs three recipes plus two hand-picked Material
      100s — a dark theme has no Material ramp to inherit, so it gets
      the consistency daylight lost by having one. */
-/* @@ */   --outcomes-won-wash-color:      color-mix(in oklab, var(--outcomes-won-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-lost-wash-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-near-wash-color:     color-mix(in oklab, var(--outcomes-near-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-warning-wash-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-neutral-wash-color:  color-mix(in oklab, var(--outcomes-neutral-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 22%, var(--page-surface-color));
-/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 22%, var(--page-surface-color));
+/* @@ */   --outcomes-won-wash-color:      color-mix(in oklab, var(--outcomes-won-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-lost-wash-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-near-wash-color:     color-mix(in oklab, var(--outcomes-near-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-warning-wash-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-neutral-wash-color:  color-mix(in oklab, var(--outcomes-neutral-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 22%, var(--default-bg-color));
+/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 22%, var(--default-bg-color));
 
 /* @@ */   --outcomes-won-bar-color:       var(--outcomes-won-fill-color);
 /* @@ */   --outcomes-lost-bar-color:      var(--outcomes-lost-fill-color);
@@ -284,13 +284,13 @@
 /* @@ */   --pill-noted-color:    var(--outcomes-noted-ink-color);
 /* @@ */   --pill-error-color:    var(--outcomes-error-ink-color);
 
-/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-neutral-tint-color:  var(--page-surface-color);
-/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
-/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-neutral-tint-color:  var(--default-bg-color);
+/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--default-bg-color));
+/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--default-bg-color));
 
 /* @@ */   --pill-won-ink-color:       var(--page-text-color);
 /* @@ */   --pill-lost-ink-color:      var(--page-text-color);
@@ -426,7 +426,7 @@
      finished" — but lightens to carry on the dark page. */
 /* @@ */   --view-history-color:         #7fb0dd;
 /* @@ */   --view-sharePreview-color:    #ffd21a;
-/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      Every blue lightens to the tier that reads on dark; each stays its
@@ -439,7 +439,7 @@
 /* @@ */   --chrome-link-color:           #64b5f6;
 /* @@ */   --chrome-link-hover-color:     #90caf9;
 /* @@ */   --chrome-definable-ring-color: #64b5f6;
-/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--default-bg-color) 65%, transparent);
 
   /* ══ GAMELIST ═══════════════════════════════════════════════════ */
 /* @@ */   --gamelist-won-color:        var(--outcomes-won-fill-color);

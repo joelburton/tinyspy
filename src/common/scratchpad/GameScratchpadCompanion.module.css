@@ -62,6 +62,6 @@
   }
 }
 /* @@ */ .textarea:read-only {
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   color: var(--page-text-muted-color);
 }

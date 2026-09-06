@@ -90,7 +90,7 @@
    * (see the header note). A small radius keeps the corners from reading as
    * a harsh pixel box. */
   border-radius: 2px;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: 2px solid var(--rank-bar-edge-color);
   cursor: default;
 }
@@ -132,7 +132,7 @@
   z-index: 2;
   transform: translateX(-50%);
   background: var(--rank-text);
-  color: var(--page-surface-color);
+  color: var(--default-bg-color);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;

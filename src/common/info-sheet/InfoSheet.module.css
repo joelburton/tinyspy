@@ -36,7 +36,7 @@
      * opt-out that five games needed to get this behavior anyway. */
     width: 100%;
     z-index: var(--z-infocol);
-    background: var(--page-surface-color);
+    background: var(--default-bg-color);
     /* No extra top padding now that the ✕ is gone from the corner. */
     padding: 1rem;
     /* A FLEX COLUMN, so the info column inside can be given the sheet's height

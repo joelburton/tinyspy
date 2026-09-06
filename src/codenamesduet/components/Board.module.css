@@ -199,9 +199,9 @@
 }
 /* @@ */ .triPeer {
   top: 4px;
-  border-bottom: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points up */
+  border-bottom: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points up */
 }
 /* @@ */ .triMine {
   bottom: 4px;
-  border-top: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points down */
+  border-top: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points down */
 }

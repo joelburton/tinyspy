@@ -20,7 +20,7 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * img scales it down and the intrinsic dimensions supply the aspect ratio.
  *
  * Its ground is opaque near-white, which disappears against `.card`'s
- * `--page-surface-color` (#ffffff) — keeping the white sticker outline around the
+ * `--default-bg-color` (#ffffff) — keeping the white sticker outline around the
  * letters, which a transparency key-out would eat along with the background.
  *
  * A default import (not `?url`): Vite treats any image import as an asset URL,

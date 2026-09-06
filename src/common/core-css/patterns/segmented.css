@@ -50,7 +50,7 @@
 /* @@ */ .segmented > * {
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   color: var(--page-text-color);
   /* Undo the bare <button>'s radius from base.css: an abutting segment must be
      square, and the frame above supplies the rounding. */

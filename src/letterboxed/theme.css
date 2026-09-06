@@ -35,7 +35,7 @@
 /* @@ */   --letterboxed-used:       var(--outcomes-won-wash-color);
 /* @@ */   --letterboxed-ghost:      var(--field-muted-ink-color);
 /* @@ */   --letterboxed-box:        var(--page-divider-color);
-/* @@ */   --letterboxed-tile:       var(--page-surface-color);
+/* @@ */   --letterboxed-tile:       var(--default-bg-color);
 /* @@ */   --letterboxed-tile-text:  var(--page-text-color);
 /* @@ */   --letterboxed-seed:       var(--outcomes-won-ink-color);
 }

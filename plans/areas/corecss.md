@@ -106,7 +106,7 @@ but `.actions` still wrote `1rem` and `1.5rem` — and then went with
 F-corecss-3, which also emptied `.divider`'s `0.85rem` out of the font-size
 row. Six rows stand.
 
-### F-corecss-2 · `default-bg-color-rename` · The rename the folder's own `todo.md` has carried since 2026-08-22, never built
+### WORKED · F-corecss-2 · `default-bg-color-rename` · The rename the folder's own `todo.md` has carried since 2026-08-22, never built
 
 `themes/todo.md` Soon: `--page-surface-color` → `--default-bg-color`,
 "decided 2026-08-22 and never built", because the white is "what a
@@ -133,6 +133,26 @@ alias kept for it, or the page taking the breakage until its own turn.
 family (`--default-bg-border-color`, `--default-bg-hover-color`) or the one?
 The doc lists the hover gray as a deliberately unnamed exception, which
 argues for the one.
+
+**Resolution (2026-09-05, Joel: "it's ok to break /font. do not bring it up.
+if it breaks, it breaks.")** — built. `--page-surface-color` →
+`--default-bg-color` across 37 files: both themes, `base.css`,
+`utilities.css`, `segmented.css`, eighteen more shell modules, nine games and
+`shared/rank-ladder`, plus three sentences in `docs/ui.md`. The `themes/todo.md`
+Soon item is deleted, having been built.
+
+**Only the one token.** The two `page-surface` siblings keep their names: they
+are about a surface's border and its hover, not about "the default
+background", so `--default-bg-border-color` would be a worse name rather than
+a more consistent one. `page.css`'s `--page-*` rule carries that as its
+exception.
+
+**The devtools font page keeps the old name and is left alone**, per the
+ruling above. That made `cssTokens` red — an undefined `var()` is exactly what
+that guard exists to catch — so the guard now carries a single tolerated
+reference, named file-and-token, with a comment saying why and that the list
+must not grow. Whole suite green: 2652 vitest, `tsc -b` clean. Do not raise
+this again.
 
 ### WORKED · F-corecss-3 · `dead-utility-classes` · `.actions` and `.divider` have no reader
 

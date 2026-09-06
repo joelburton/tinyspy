@@ -6,7 +6,7 @@
  * is just the card. */
 /* @@ */ .toast {
   position: relative;
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: 1px solid var(--page-surface-border-color);
   border-left: 4px solid var(--stripe, var(--toast-info-stripe-color));
   border-radius: var(--radius-md);

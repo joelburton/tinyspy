@@ -32,7 +32,7 @@
    (patterns/page.css). Bundling the two here is what let one class stand in
    for a page on five screens and made "a card" mean four different things. */
 /* @@ */ .card {
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   padding: 2rem;

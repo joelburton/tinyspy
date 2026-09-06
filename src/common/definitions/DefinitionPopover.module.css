@@ -14,7 +14,7 @@
      SolutionReveal) never have to declare a host. It is a tooltip with
      different styling (Joel, 2026-08-25). */
   z-index: var(--z-tooltip);
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-popover);

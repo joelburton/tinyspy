@@ -44,7 +44,7 @@
   max-width: 11rem;
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
-  background-color: var(--page-surface-color);
+  background-color: var(--default-bg-color);
   color: var(--page-text-color);
 }
 

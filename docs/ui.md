@@ -610,7 +610,7 @@ Within each file, token names describe the *role* of the value, not the value it
 
 | good (semantic) | bad (literal) |
 |---|---|
-| `--page-bg-color`, `--page-surface-color`, `--page-text-color` | `--color-near-black`, `--color-light-gray` |
+| `--page-bg-color`, `--default-bg-color`, `--page-text-color` | `--color-near-black`, `--color-light-gray` |
 | `--button-normal-primary-color`, `--chrome-fault-color` | `--color-blue`, `--color-red` |
 | `--codenamesduet-agent`, `--codenamesduet-assassin` | `--codenamesduet-green`, `--codenamesduet-red` |
 
@@ -620,7 +620,7 @@ This rule applies *within each namespace separately*. `--codenamesduet-agent` is
 
 ### No `var()` fallbacks
 
-Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong color, not a visible failure.
+Reference tokens as `var(--default-bg-color)`, never `var(--default-bg-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong color, not a visible failure.
 
 The safety net is build-time, not a fallback: [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
@@ -734,7 +734,7 @@ use red and blue.
 
 **Two backgrounds, and everything else is an exception.** `--page-bg-color`
 is the PAGE's background, very light gray, and it is `<body>` and nothing
-else. `--page-surface-color` is white, and it is what a background is unless
+else. `--default-bg-color` is white, and it is what a background is unless
 something says otherwise — cards, list frames, panels, every dialog, popovers,
 toasts, segments, the info sheet, the pause overlay, the feedback pill, inputs.
 Stated theme-neutrally so the rule survives midnight: **the default background

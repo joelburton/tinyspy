@@ -100,7 +100,7 @@
   cursor: pointer;
   border: 2px solid var(--viewer-accent, var(--view-history-color));
   border-radius: var(--radius-md);
-  background: var(--page-surface-color);
+  background: var(--default-bg-color);
   color: var(--page-text-color);
   font-weight: 600;
 }

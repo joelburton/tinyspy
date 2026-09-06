@@ -37,7 +37,7 @@
      gray for muted, darker gray for dividers (which sit on the bg,
      not on cards). */
 /* @@ */   --page-bg-color:                #fafafa;
-/* @@ */   --page-surface-color:           #ffffff;
+/* @@ */   --default-bg-color:           #ffffff;
 /* @@ */   --page-surface-border-color:    #e2e2e2;
 /* @@ */   --page-surface-hover-color:     #f0f0f0;
 /* @@ */   --page-text-color:              #1a1a1a;
@@ -148,8 +148,8 @@
 /* @@ */   --button-normal-primary-press-color:       oklch(from var(--button-normal-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-normal-primary-ink-color:         #ffffff;
 /* @@ */   --button-normal-secondary-color:           oklch(from var(--button-normal-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-normal-secondary-hover-color:     color-mix(in oklab, var(--button-normal-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-normal-secondary-press-color:     color-mix(in oklab, var(--button-normal-base-color) 16%, var(--default-bg-color));
 
   /* SUCCESS — a confirming YES. RESERVED: nothing reads it today, and
      it is written today for the reason the whole file is written this
@@ -163,8 +163,8 @@
 /* @@ */   --button-success-primary-press-color:      oklch(from var(--button-success-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-success-primary-ink-color:        #ffffff;
 /* @@ */   --button-success-secondary-color:          oklch(from var(--button-success-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-success-secondary-hover-color:    color-mix(in oklab, var(--button-success-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-success-secondary-press-color:    color-mix(in oklab, var(--button-success-base-color) 16%, var(--default-bg-color));
 
   /* DESTRUCTIVE — irreversible.
      This DELIBERATELY collides with the game-loss red: it sits 0.037
@@ -185,8 +185,8 @@
 /* @@ */   --button-destructive-primary-press-color:  oklch(from var(--button-destructive-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-destructive-primary-ink-color:    #ffffff;
 /* @@ */   --button-destructive-secondary-color:      oklch(from var(--button-destructive-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-destructive-secondary-hover-color:color-mix(in oklab, var(--button-destructive-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-destructive-secondary-press-color: color-mix(in oklab, var(--button-destructive-base-color) 16%, var(--default-bg-color));
 
   /* CAUTION — consequential, not destructive. NOT the outcome orange:
      `outcomes-warning` sits at oklab hue 69.6°, a true bright orange;
@@ -203,8 +203,8 @@
 /* @@ */   --button-caution-primary-press-color:      oklch(from var(--button-caution-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-caution-primary-ink-color:        #ffffff;
 /* @@ */   --button-caution-secondary-color:          oklch(from var(--button-caution-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-caution-secondary-hover-color:    color-mix(in oklab, var(--button-caution-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-caution-secondary-press-color:    color-mix(in oklab, var(--button-caution-base-color) 16%, var(--default-bg-color));
 
   /* QUIET — active, but not the thing we are pointing you at. Named
      for its VOLUME rather than its purpose, because "cancel" made
@@ -227,8 +227,8 @@
 /* @@ */   --button-quiet-primary-press-color:        oklch(from var(--button-quiet-base-color) calc(l - 0.10) c h);
 /* @@ */   --button-quiet-primary-ink-color:          #ffffff;
 /* @@ */   --button-quiet-secondary-color:            oklch(from var(--button-quiet-base-color) calc(l - 0.115) c h);
-/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--page-surface-color));
-/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--page-surface-color));
+/* @@ */   --button-quiet-secondary-hover-color:      color-mix(in oklab, var(--button-quiet-base-color) 8%, var(--default-bg-color));
+/* @@ */   --button-quiet-secondary-press-color:      color-mix(in oklab, var(--button-quiet-base-color) 16%, var(--default-bg-color));
 
   /* The two TREATMENT SLOTS — contract slots, not design decisions.
      `.primary` and `.secondary` must paint without knowing their
@@ -385,8 +385,8 @@
      lands them in the same visual band as the five Material 100s above,
      which is what a wash has to be; it is a placeholder that looks
      right, not a fourth recipe worth keeping. */
-/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 20%, var(--page-surface-color));
-/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 20%, var(--page-surface-color));
+/* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 20%, var(--default-bg-color));
+/* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 20%, var(--default-bg-color));
 
   /* BAR — the turn log's left bar. Every cell is `fill` today, so this
      tier is a NAME rather than a new decision, and the name is what it
@@ -500,18 +500,18 @@
 /* @@ */   --pill-noted-color:    var(--outcomes-noted-ink-color);
 /* @@ */   --pill-error-color:    var(--outcomes-error-ink-color);
 
-/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--page-surface-color));
-/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--page-surface-color));
+/* @@ */   --pill-won-tint-color:      color-mix(in oklab, var(--outcomes-won-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--default-bg-color));
+/* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--default-bg-color));
   /* Neutral has no tone to carry recognition, so the BORDER does the
      whole job of saying "this is a feedback pill" — and its tint is
      the plain surface, on purpose: the one pill that says nothing
      should look like it. Written as a cell rather than left out, so
      the family stays a rectangle. */
-/* @@ */   --pill-neutral-tint-color:  var(--page-surface-color);
-/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
-/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
+/* @@ */   --pill-neutral-tint-color:  var(--default-bg-color);
+/* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--default-bg-color));
+/* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--default-bg-color));
 
   /* One value, seven cells. Not an alias chain and not a single shared
      token: each tone owns its ink so any one of them can move alone,
@@ -696,7 +696,7 @@
      color of its own. */
 /* @@ */   --view-history-color:         #4a7bab;
 /* @@ */   --view-sharePreview-color:    #ffd21a;
-/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      App furniture that isn't a button, a field or a game surface.
@@ -736,7 +736,7 @@
   /* The translucent surface a control floating OVER a board takes, so
      a little of the tiles shows through and it doesn't read as an
      opaque patch stuck on top (the Shuffle button). */
-/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+/* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--default-bg-color) 65%, transparent);
 
   /* ══ GAMELIST ═══════════════════════════════════════════════════
      The state of a game as an object in a LIST — the club page's cards
