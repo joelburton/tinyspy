@@ -21,10 +21,11 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  *
  * This is deliberately UNLIKE the centered icon+label `StandardButton`: the
  * left-icon / right-number split is the whole point, so it's its own component
- * rather than a `SubmitButton` variant. Built for scrabble's rack/commit row, but
- * general — any game with a live "what would this move score" preview can use it
- * (a future Boggle/word game commit). Primary weight (the filled `.button`),
- * since it's the main action.
+ * rather than a `SubmitButton` variant. It still WEARS a standard button —
+ * filled, since it's the main action — by composing that module's classes and
+ * supplying only its own row. Built for scrabble's rack/commit row, but general
+ * — any game with a live "what would this move score" preview can use it (a
+ * future Boggle/word game commit).
  *
  * `onMouseDown` is suppressed so a click doesn't steal focus from a game's
  * window-level key capture (same guard the action buttons bake in).

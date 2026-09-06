@@ -1,9 +1,12 @@
 /* cs-audited-buttons */
 
-/* SubmitWithScore — icon pinned left, score pinned right, fixed footprint. The
- * `.button` class provides the primary accent fill / padding / radius (it's the
- * main action, so it takes the filled treatment); this only arranges the two
- * children and locks the width.
+/* SubmitWithScore — icon pinned left, score pinned right, fixed footprint.
+ *
+ * NONE OF THE CHROME IS HERE. The fill, padding, radius and border come from
+ * `StandardButton.module.css`, whose classes the component composes before
+ * these; this file only arranges the two children and locks the width. That
+ * reach next door is deliberate and is the whole reason this is its own
+ * component — see the class list in SubmitWithScore.tsx.
  *
  * `justify-content: space-between` pins the triangle to the left edge and the
  * score's box to the right edge, so the score stays right-justified at a constant

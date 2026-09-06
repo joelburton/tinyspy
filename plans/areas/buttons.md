@@ -7,8 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7 and -20. Closed by F-buttons-20 without work of
-their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
+F-buttons-1 through -5, -7, -8, -10 and -20. Closed by F-buttons-20 without
+work of their own: F-buttons-6 and -9. Opened out of §3's order: `members` is the next
 row, and Joel chose `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
@@ -434,7 +434,7 @@ to be. Neither needed F-buttons-18 to settle anything.
 The fourth item on the finding — `ActionButton.module.css`'s tone classes
 "came with them" — was already gone, deleted by F-buttons-4.
 
-### F-buttons-8 · `end-turn-prose` · `EndTurnButton` describes a mechanism the module contradicts
+### WORKED · F-buttons-8 · `end-turn-prose` · `EndTurnButton` describes a mechanism the module contradicts
 
 "Primary is the filled-accent look, so it ignores semantic tone — the accent
 fill stands in for the no-valence 'info' read." Both treatments take all
@@ -445,6 +445,20 @@ flag, red …)" — the flag is Concede's; End took the crossed-out stop sign, a
 
 **Recommendation:** say it is `primary` in the default `normal` tone because
 it is the row's main move, and name End's glyph correctly or not at all.
+
+**Resolution (2026-09-06, Joel: "do it")** — one docstring, no code. The
+tone-ignoring parenthetical is gone: it is `primary` because ending the turn IS
+the move on offer, and nothing about weight touches tone. It also smuggled in
+`info`, a tone that has never existed — F-buttons-3's sweep missed it because
+it read as a claim about weight rather than about tone.
+
+End's glyph is not named at all now, which is better than naming it right: the
+glyph was never what distinguished these two. The contrast the docstring keeps
+is **the trap it exists for** — `EndGameButton` shares the WORD and not the
+act. And the sibling that shares the ACT and not the word, `PassButton`, is
+named alongside it: same octagon, secondary weight, for games where passing is
+the fallback. Both confusions now have a sentence, from the side a reader
+arrives on.
 
 ### CLOSED, NO CHANGE · F-buttons-9 · `cancel-type-button` · `CancelButton` tells callers to pass what the base already sets
 
@@ -463,7 +477,7 @@ about the pair. `<FormSubmitButton>` now owns `type="submit"`, so neither
 button asks a caller for it and Cancel's docstring points at its partner
 instead.
 
-### F-buttons-10 · `submit-with-score-prose` · Both `SubmitWithScore` files credit a class that paints nothing
+### WORKED · F-buttons-10 · `submit-with-score-prose` · Both `SubmitWithScore` files credit a class that paints nothing
 
 `SubmitWithScore.module.css`: "The `.button` class provides the primary accent
 fill / padding / radius". In that module `.button` is layout only (flex,
@@ -473,6 +487,19 @@ sb.normal` in the component. The component's docstring says "the filled
 `docs/games/scrabble.md` is real and stays scrabble's.
 
 **Recommendation:** say what each class does; keep the deferral where it is.
+
+**Resolution (2026-09-06, Joel: "do it")** — two comments, no code. The module
+header now leads with what is NOT here: none of the chrome, which comes from
+`StandardButton.module.css` via the classes the component composes. Saying it
+that way round is the point — the file's whole oddity is the reach next door,
+and the old sentence made it sound ordinary by crediting the local class with
+the paint. The docstring's "the filled `.button`" becomes "it still WEARS a
+standard button, by composing that module's classes and supplying only its own
+row".
+
+The deferral in `docs/games/scrabble.md` (a shared prop, or scrabble keeps a
+shape of its own) stays scrabble's, untouched — the component's `className`
+comment already points at it, correctly.
 
 ### F-buttons-11 · `shuffle-stylesheet-claims` · `ShuffleButton.module.css` describes a button it is not
 

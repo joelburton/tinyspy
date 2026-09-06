@@ -4,16 +4,18 @@ import { IconEndTurn } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * End-the-turn button — voluntarily stops your turn without making (another)
- * move, handing play on. The stop-sign **octagon** glyph reads as "halt here," at
- * **`primary`** weight (the filled accent): when it's your turn to act, ending it
- * is the main move on offer, so it carries the row's emphasis. (Primary is the
- * filled-accent look, so it ignores semantic tone — the accent fill stands in for
- * the no-valence "info" read.)
+ * HAND PLAY ON — voluntarily stop your turn without making (another) move.
+ * Reach for this where ending the turn IS the move on offer, which is why it
+ * takes the filled `primary` weight: it carries the row's emphasis.
  *
- * Distinct from `EndGameButton` (the flag, red — ends the whole GAME): this ends
- * only the current turn. codenamesduet's "Pass & end turn" is the first user;
- * default label "End turn".
+ * Two buttons are easy to confuse with it, in opposite ways. `PassButton` is
+ * this same octagon at the default secondary weight, for games where passing
+ * is the fallback rather than the main move — same act, different emphasis by
+ * context. `EndGameButton` shares the WORD and not the act: it ends the whole
+ * game, this ends one turn.
+ *
+ * codenamesduet's "Pass & end turn" is the first user; default label
+ * "End turn".
  */
 export function EndTurnButton({
   label = 'End turn',
