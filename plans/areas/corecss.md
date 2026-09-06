@@ -53,19 +53,359 @@ blessed:
 
 ## Findings
 
-*(`F-corecss-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+Recorded 2026-09-05 from one read of all sixteen files, every claim below
+re-checked against the tree. Shape findings first, prose after. No prefix
+means OPEN.
+
+### F-corecss-1 · `vocabulary-literals-in-the-vocabulary-files` · The files that DECLARE the vocabularies still write the literals they exist to replace
+
+`guards/vocabularies.test.ts` keeps a `pending` row per file for every literal
+not yet converted, and the a/b/c rule says a value converts when its area is
+audited. This is that area, and its own five stylesheets hold fourteen rows:
+
+| file | vocabulary | literal(s) | the a/b/c question |
+|---|---|---|---|
+| `base.css` | spacer | `1rem`, `1.25rem`, `1.15rem` — the h1–h4 margins | h2/h3/h4 use `margin-block` equal to their own font-size, which is a RATIO (`1em`) written as a rem; (b) `--spacer-2` / off-ramp, or (c) `1em` with the reason |
+| `base.css` | font-size | `1.5rem`, `1.25rem`, `1.15rem`, `1rem` — h1–h4; `max(16px, 1em)` — the touch floor | base.css:146 says the headings are "not on this ramp: they are sized by h1–h4 below" — already a (c), so the row should say so the way the `0.375rem` row does, or the levels get tokens (`--font-size-h1`…) |
+| `base.css` | border-width | `1px` — the field border | (b) `--border-width-line`, the token three lines below it declares |
+| `heading.css` | spacer | `0.5rem` — the gap | (b) `--spacer-4`, which is exactly this value |
+| `utilities.css` | spacer | `1rem`, `1.5rem` — `.actions` gap + margin | moot if F-corecss-3 deletes `.actions` |
+| `utilities.css` | font-size | `0.9rem` (`.muted`), `0.85rem` (`.divider`) | `0.85` is `--font-size-2`; `0.9` is between `-1` and `-2` — (a) a step, (b) fit to `-2`, or (c) |
+| `utilities.css` | border-width | `1px` — `.card` | (b) `--border-width-line` |
+| `badge.css` | font-size | `0.7rem` | off-ramp below `-3` (0.75); (a) `--font-size-4` or (b) `-3` |
+| `badge.css` | line-height | `1.4` | between `-1` (1.5) and `-2` (1.25); badge.css says it is "a single line that should occupy exactly its own height", which is `-3`'s stated meaning (1) — (b), and see whether the lozenge changes height |
+| `badge.css` | border-width | `1px` | (b) `--border-width-line` |
+| `segmented.css` | font-size | `0.8rem` | between `-2` and `-3`; (a)/(b) |
+| `segmented.css` | transition-duration | `100ms` | (b) `--transition-duration-paint`, which is 100ms and is for exactly this ("a color settling instead of jumping") |
+| `segmented.css` | border-width | `1px` ×2 | (b) `--border-width-line` |
+
+The (b) cells with an exact match — five `1px`s, the `0.5rem` gap, the
+`100ms` — move no pixel and are the mechanical half. The rest are decisions
+(one per row, named above), and each is Joel's: the font ramp has three steps
+and this area's own files want 0.7, 0.8, 0.9 and 1.4.
+
+**Recommendation:** work it in two passes. Pass one converts every exact
+match and deletes those entries from the guard rows. Pass two presents the
+off-ramp values one at a time, each with what the (a) and (b) renders look
+like.
+
+### F-corecss-2 · `default-bg-color-rename` · The rename the folder's own `todo.md` has carried since 2026-08-22, never built
+
+`themes/todo.md` Soon: `--page-surface-color` → `--default-bg-color`,
+"decided 2026-08-22 and never built", because the white is "what a
+background is unless something says otherwise" (`docs/ui.md` → The buckets
+→ "Two backgrounds"). Verified: the doc still says exactly that, and the
+token still carries the old name in both themes.
+
+Readers today: 30 files outside this area across 26 folders (every game's
+components, lists, floating-panels, toasts, tooltips, the info sheet…), plus
+`docs/ui.md`, plus `src/common/devtools/FontPage.module.css`. A rename is a
+sweep caused by this area's change and ships with it.
+
+**One thing blocks it, and it needs Joel's word: `/font` reads the token.**
+`FontPage.module.css` is under the absolute exclusion ("do not read them, do
+not edit them, do not touch them"). A rename that skips it leaves the font
+page reading a token that no longer exists — the surface goes transparent.
+So the rename cannot complete without ONE edit to an excluded file, or an
+alias kept for it, or the page taking the breakage until its own turn.
+
+**Also to rule:** the todo names one token. Its two siblings,
+`--page-surface-border-color` and `--page-surface-hover-color`, keep the
+`page-surface` prefix under the rename as written, and `page.css:10` says
+"everything called `--page-*` is about `<body>` and nothing else". Rename the
+family (`--default-bg-border-color`, `--default-bg-hover-color`) or the one?
+The doc lists the hover gray as a deliberately unnamed exception, which
+argues for the one.
+
+### F-corecss-3 · `dead-utility-classes` · `.actions` and `.divider` have no reader
+
+Verified by grepping every `.tsx` for the class as a `className` string or a
+`cls('…')` argument: nothing passes `actions` or `divider`. The earlier loose
+count that found sixteen and five was matching `styles.actions` /
+`styles.divider` — module classes with the same word, which is precisely the
+collision `core-css/todo.md` → "`.card` and `.actions` each name two things"
+records. The global half of that item is dead; deleting it settles the item
+for `.actions`. `.error` has one reader (`ChatBody`); `.link-button` four;
+`.muted` nineteen; `.definable` fifteen.
+
+**Recommendation:** delete `.actions` and `.divider` and their comments;
+strike the `.actions` half of the todo item.
+
+### F-corecss-4 · `pageHeader-two-spellings` · One component, two token spellings
+
+`--pageHeader-border-color` (daylight, midnight) and `--page-header-height`
+(base.css) name the same component. Every other component-named token in the
+area is camelCase — `--pageMain-width`, `--floatingPanel-titlebar-height`,
+`--floatingPanel-titlebar-color`, `--iconButton-size`, `--entryBox-font-size`
+— and `page.css:10` reserves `--page-*` for `<body>`. Readers of the odd one:
+`PageHeader.module.css`, a docstring in `PageHeader.tsx`, `base.css`
+(`--game-header-bottom`), and one sentence in `docs/ui.md`.
+
+**Recommendation:** rename to `--pageHeader-height`; four files, no pixel.
+
+### F-corecss-5 · `stale-file-and-class-citations` · Six pointers at things that moved or never existed
+
+| where | says | the tree |
+|---|---|---|
+| `base.css:811` | chrome is opt-in via "`.button` in utilities.css" | no global `.button` exists; the chrome is `.primary` / `.secondary` in `common/buttons/StandardButton.module.css` |
+| `utilities.css:8` | a class that names a thing "gets its own file in patterns/ — the button did, and the list did after it" | neither is in `patterns/`; both live with their component (`buttons/`, `lists/SelectionList.module.css`) |
+| `daylight.css:238` | `ActionButton.module.css` re-sets the slots | `StandardButton.module.css` |
+| `daylight.css:579` | the selected width "lives in standards.css" | `base.css` |
+| `daylight.css:29` | a game's brand anchors are in "that game's brand.css" | every game's file is `theme.css` |
+| `focus-ring.css:34` | `<SelectionList>`'s `.cursor` is in `common/components/lists/` | `common/lists/` |
+
+Every other path and symbol the sixteen files name was checked and holds:
+`tileColor.ts`, `feedbackTiming.ts`, `layoutWidth.ts`, `breakpoints.css` and
+its four custom-media names, `FloatingPanel.module.css`'s ratios,
+`PlayArea.module.css`'s three dim classes and its `.infoCol` `--z-host`,
+`infoPanel.module.css`'s 0.95rem heading, `colorVarFor` / `<Dot>`,
+`MODE_LABEL`, `<RadioRow>`, `<FilterSelect>`, `ModeFilter` +
+`useStickyChoice`, and all eight `docs/*.md` headings cited.
+
+### F-corecss-6 · `plan-citations-in-durable-files` · Six citations of the plan or a finding
+
+Banned by the no-cite rule for every file that outlives the sprint:
+`page.css:45` "F27 `width-100-undeclared`", `page.css:68` "F31
+`centering-said-4x`", `base.css:55` and `:596` "(§22)", `midnight.css:17`
+"(§3: the base must load because a theme asked for it)", `midnight.css:19`
+"(§4)". Each becomes the reason itself or the owning doc — the two `page.css`
+ones already state their reason in the sentence before the tag, so the tag
+just goes; the font ones point at `docs/ui.md` → The typeface.
+
+### F-corecss-7 · `flash-durations-kept-in-step-by-hand` · Two files disagree about how they agree
+
+`base.css:274–275`: the JS "reads the same numbers from
+`feedbackTiming.ts`; keep the two in step." `feedbackTiming.ts` says
+something different and more precise: the JS value must be AT LEAST the CSS
+one, and holds `YOUR_TURN_FLASH_MS = 1200` against `--mark-yourTurn-flash-
+duration: 1.1s` on purpose (the class outlives the fade). So base.css states
+a rule the other file deliberately breaks. And "kept in step by hand" is the
+shape `mobile` fixed for the breakpoints: the hook exports its value and a
+spec holds it to the stylesheet.
+
+**Recommendation:** base.css gets one sentence and a pointer (the rule lives
+in `feedbackTiming.ts`); a spec that reads the two tokens out of base.css
+and asserts JS ≥ CSS is a line in `common/move-flash/todo.md`.
+
+### F-corecss-8 · `scroll-region-utility` · The folder's one Soon item
+
+`core-css/todo.md` Soon: a utility for the box that scrolls inside a fixed
+parent — `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto`, written by
+hand at dozens of sites. It is this folder's to build, and this is the area.
+Building it here with no readers puts a global class in `utilities.css` that
+nothing wears until each area converts — the same "live and unread" state
+the tokens sit in, minus a guard that would notice.
+
+**Recommendation:** Joel's call — build it now as `.scroll-region` with the
+three declarations and a docstring naming the condition, and add "convert
+to `.scroll-region`" to the todo of each folder that writes the triple; or
+leave the item where it is.
+
+### F-corecss-9 · `marker-placement-and-cosmetics` · Three markers sit mid-selector, plus two whitespace nits
+
+`base.css:769–770`, `:779–780`, `:796–797`: the rule is `input,\ntextarea {`
+and the marking script put `/* @@ */` before `textarea`, the second selector,
+because it anchored on the `{` line. The convention is one marker per RULE at
+column 0 before it. Cosmetic and mechanical. Same bucket: `daylight.css:190`
+is the one declaration in the file with no space after its colon
+(`-hover-color:color-mix`), and `base.css:738` is a line holding one space.
+
+### F-corecss-10 · `tile-ramp-meanings-stale` · The TILE block's "the numbers ARE the meaning" table names readers that do not read
+
+`daylight.css:537–540`: `1` attention (scrabble) · `2..5` stackdown depth
+0..3 · `3` normal. Verified readers of each shade outside the area:
+`--tile-1` codenamesduet's board; `--tile-2` spellingbee and wordwheel;
+`--tile-3` boggle and scrabble; `--tile-4` and `--tile-5` nobody; `spent`
+scrabble's rack. Stackdown reads no shade at all — its `theme.css` says its
+per-tile background is an hsl ramp computed at runtime, and `Board.tsx:20`
+still describes the shades as `--tile-1…4` for depth 0..3, which is a third
+story. `midnight.css:319–324` retells the stackdown mapping as current fact,
+and `docs/ui.md` → The buckets says "stackdown reads stack depth off them".
+
+**Recommendation:** the block states what each shade IS (a lightness step in
+one material) and stops claiming who reads it; midnight's direction argument
+keeps its point (deeper is darker under every theme) without the stackdown
+attribution; the ui.md sentence is a forward fix. Whether stackdown should
+read the ramp is stackdown's, and `stackdown/theme.css:26` already calls its
+runtime ramp a spike.
+
+### F-corecss-11 · `archaeology-and-counts` · Passages that tell how it used to work, and counts that rot
+
+CLAUDE.md: "how it used to work is not useful", and a count is a claim that
+is wrong the next time anyone touches a file. Found:
+
+- `base.css:403–407` — the old `--z-index-*` ladder "IS GONE (2026-08-25)…
+  Eight tokens, thirteen declarations, eleven files"
+- `base.css:643–657` — "until 2026-08-20 nothing painted it", the whole
+  story of the unpainted body; the rule (the body paints `--page-bg-color`;
+  a token right by coincidence is a token not being used) survives in two
+  sentences
+- `base.css:725–729` — "until 2026-08-21 the spacing … WAS the UA's"
+- `base.css:804–813` — "This INVERTS what it used to be … twenty-nine rules
+  began with that apology"; `:826–830` "19 rules cancel the old fill … up to
+  19 hover states" (the reason to keep the radius stands without the count)
+- `base.css:49` — "Nine places in the app ask for italics" (seven today, see
+  F-corecss-17); `:75` "Four of the six non-game pages take it" (five of six
+  wear `.pageMain` at the default; the count adds nothing to "a page that
+  needs its own says so")
+- `fixed.css:40–48` — "NOT DERIVED, though a comment claimed they were… Was
+  `-dot-` / `-border-`"
+- `daylight.css:82–85` "Was `--control-*`"; `:146` "Was the `action`
+  family"; `:52–57` and `midnight.css:66–71` the titlebar token "was
+  `--page-surface-hover-color` for months" (the rule — the two must not be
+  coupled — stays)
+- `focus-ring.css:32–35` — `.kb-cursor` "used to live here"
+- `utilities.css:117–123` — "an earlier pure-CSS ::after version overflowed"
+
+**Recommendation:** each keeps its rule and loses its history and its
+number, one edit per passage, presented as a batch diff.
+
+### F-corecss-12 · `base-loads-before-the-theme` · base.css says it loads after the theme; it loads before
+
+`base.css:24`: "Loaded after the theme chain (see main.tsx) so a rule here
+can read a token from it." `main.tsx` imports base.css statically at line
+20; the theme arrives by dynamic `import()` inside `loadTheme()` at line 47,
+after the whole static graph. So base.css is in the document first. Nothing
+depends on the order — `var()` resolves at compute time, and the two `:root`
+blocks set disjoint properties — which is why the false sentence has never
+cost a pixel. `utilities.css:18` ("loaded after base.css") is true.
+
+**Recommendation:** replace with the true statement: order does not matter
+for tokens, and the theme is last because it is chosen at runtime.
+
+### F-corecss-13 · `wordle-converged-and-an-unscheduled-rename` · Two sentences in fixed.css about wordle
+
+`fixed.css:60` — the palette is shared by "waffle today, wordle as it
+converges". Wordle has converged: `wordle/theme.css`, `Board.module.css`,
+`GameTurnLog.module.css` and `lib/colors.ts` all read the shared fills.
+`fixed.css:89–91` — "the wordle-vocabulary rename is scheduled for wordle's
+own pass, so these names are UNCHANGED here on purpose." Nothing schedules
+it: not `src/wordle/todo.md`, not `docs/games/wordle.md`, not
+`plans/areas/wordle.md`; the only mention is the do-not-read plan. And
+`docs/ui.md` → The buckets now argues the `wordle-*` name is RIGHT ("wordle
+green is a phrase people say").
+
+**Recommendation:** the first sentence names both readers as current. For
+the second, Joel rules: the rename is off (drop the sentence, the doc's
+argument stands), or on (a line in the owning folder's `todo.md` — the
+tokens are declared here but the readers are `wordle-style`'s family).
+
+### F-corecss-14 · `imaginary-themes-as-loaders` · light-mode.css and dark-mode.css cite themes that do not exist
+
+`light-mode.css:6` — "daylight and cupcake both load this". Cupcake is a
+thought experiment in `docs/ui.md` ("imaginary: pink, cheery, light"), not a
+theme; `loadTheme.ts`'s `ThemeName` is `'daylight' | 'midnight'`.
+`dark-mode.css:7` — "a future `horror` would load it too". `light-mode.css:28`
+— "dark-mode.css WILL carry `color-scheme: only dark`", future tense for a
+file that exists and does. The rule both files state (a theme declares its
+chain; this file is never an unconditional default) is right and stays.
+
+### F-corecss-15 · `midnight-board-numbers-predate-the-slate` · The BOARD block measures against a page that is no longer the page
+
+`midnight.css:352–355`: "an alpha black over #121212 has 18 units to work in
+rather than 250. Measured before this existed: the tile shadow moved the page
+by 5 of 255." The page is `#262e3f` (line 53), lifted to L* 18.9 precisely so
+a shadow has room — the PAGE block (lines 34–46) explains that and gives the
+number. The BOARD block's figures describe the page before the slate, and
+`plans/dark-mode.md` is where that measurement belongs if it belongs
+anywhere.
+
+### F-corecss-16 · `badge-cites-mode-pills` · The pattern that says a badge is not a pill points at a section called "Mode pills"
+
+`badge.css:10` cites `docs/ui.md` → Mode pills, and `badge.css:26–29` is
+the argument that a badge and a pill are two roles with two shapes. The
+thing the section describes is rendered by `<ModePill>` with `cls('badge',
+…)`, and `ModeFilter.tsx:25` calls it "the Co-op badge". One thing, two
+names, and the pattern file is the one that defines the other name as
+something else.
+
+**Recommendation:** the doc heading and the component follow the pattern —
+"Mode badges", `<ModeBadge>`. The heading is a forward fix (a sentence about
+this area's pattern); the component rename is a line in
+`common/game-page/todo.md`.
+
+### F-corecss-17 · `italic-count-and-oblique-claim` · A rule nobody follows, and a count that is off
+
+`base.css:48–51`: no italic exists in Roboto Flex; "nine places ask for
+italics; `font-style: oblique` reaches the dial, and plain `font-style:
+italic` gets the browser's synthesized skew." Today: seven sites write
+`font-style: italic` (crosswords `Controls` + `Grid`, letterboxed `PlayArea`,
+`WordList`, `ManualBoardField`, `DefinitionView`, and the excluded font page)
+and zero write `oblique`. So the comment states a rule with no follower.
+Whether the claim is even true is NOT verified: CSS Fonts 4 lets a browser
+satisfy `italic` from an oblique face when the family has no italic, so
+`italic` may already reach the dial. That needs a real render, not a grep.
+
+**Recommendation:** render one site both ways; if they match, the sentence
+becomes "either spelling reaches the slant dial"; if they differ, "use
+`oblique`" is a line in six folders' `todo.md`. The count goes either way.
+
+### F-corecss-18 · `six-shadows-are-five` · The todo item about chrome shadows describes tokens that are not there
+
+`core-css/todo.md` Someday: "Six chrome shadow levels… `toast` is the
+TOPMOST layer and blurs 16 where `dialog` blurs 48… `popover` alone has four
+(Menu ×2, FilterSelect, DefinitionPopover)". `base.css` declares five
+`--shadow-*` (popover, notice, panel, toast, boardFloat) and no `dialog`;
+popover has three reader files. The item's question — decide the count and
+the names — is still open and still this folder's; its evidence has rotted.
+
+**Recommendation:** rewrite the item against the tree (five tokens, three
+sharing `0 8px 24px`, four with one reader) when the area works its todo.md.
+
+### F-corecss-19 · `card-readers-listed-wrong` · `.card`'s comment lists who wears it, and misses most of them
+
+`utilities.css:24–27`: "the homepage's body is one, the error page is one,
+and the club page has none at all." Readers: `HomePage`, `ErrorPage`,
+`LoginScreen`, `ClaimHandleScreen`, and `GamePage`'s not-found page. The
+club-page sentence is true. A reader list in a comment is a count in
+disguise; the sentence that matters is the one after it (the card carries
+the surface and nothing else).
 
 ## Notes
 
-*(things worth remembering about this area that are neither a finding nor
-owed work — a forward-fix made from another area, a question for the opening,
-a dependency listed and left. Anything durable goes to the folder's `doc.md`
-or `todo.md` instead; a note here never stands in for either)*
+- **Verified and holding, so no finding:** `--button-success-*` has no
+  consumer (the one `'success'` in `ClubPage.tsx` is a toast tone);
+  `--page-text-strong-color` and `-label-color` are unread and on
+  `DECLARED_AHEAD`; `--z-board`, `--z-board-question`, `--z-ghost` unread
+  and declared ahead; `--tile-edge-width` / `--tile-selected-edge-width`,
+  `--iconButton-size`, `--entryBox-font-size` (re-set by strands and
+  psychicnum) all read; the crosswords picker still folds "ended manually"
+  into the suspended stripe, so daylight's "gets minted when crosswords
+  converts" is current.
+- **Two tokens carry no `@@` on purpose:** `--radius-round` (blessed on
+  sight, Joel 2026-08-22: "it's fine", per `b6f07dfc`) and
+  `--page-text-strong-color` (`#000000`, decided outright).
+- **All four guards green at the open** (`cssTokens`, `vocabularies`,
+  `csStamps`, `folderDocs`), so anything red after this area is this area's.
+- **Found outside the area and left, both one-line sweeps:**
+  `guards/vocabularies.test.ts:258` cites "F43 (`unequal-mark-separation`)" in
+  a comment (a finding ID in a durable file; the row is `page-header`'s), and
+  `:226` and `:303` name `list.css`, a file that is now
+  `lists/SelectionList.module.css`.
+- **Left for `game-page`:** `GamePage.tsx:169` renders its not-found page as
+  a `.card.pageMain` (the home of that page is already on that folder's
+  list); the `<ModePill>` rename if F-corecss-16 is worked.
+- **Left for `stackdown`:** whether its runtime hsl ramp should read the
+  shared tile ramp (`stackdown/theme.css:26` calls the runtime ramp a spike;
+  `Board.tsx:20` describes shades it does not read).
+- **The excluded font page reads `--page-surface-color`** — the one fact that
+  makes F-corecss-2 need a ruling rather than a sweep.
+- **Owed by every area from `mobile`, checked here:** no hooks in the area;
+  `window` is not referenced.
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- `src/guards/vocabularies.test.ts` — every literal F-corecss-1 converts must
+  come off its `pending` row in the same edit (the guard fails from both
+  sides: a listed literal that is gone is as red as an unlisted one).
+- `src/guards/cssTokens.test.ts` — a rename (F-corecss-2, F-corecss-4)
+  changes the declared set; every reader moves in the same commit or the
+  dead-token / unknown-token check goes red.
+- `src/guards/tileColor.test.ts` reads the `@@` markers; F-corecss-9 moves
+  three of them one line and must not lose one — run
+  `node scripts/cs-stamp.mjs tally` after.
+- `e2e/` — none predicted: nothing here moves a pixel except F-corecss-1's
+  off-ramp decisions, each of which is presented with its render first.
 
 ## Closing
 
