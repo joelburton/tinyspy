@@ -5,9 +5,9 @@ The folders it reads: `buttons`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
-stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1,
-F-buttons-2 and F-buttons-3 worked. Opened out of §3's order: `members` is the
-next row, and Joel chose `buttons` first.
+stamped `cs-audited-buttons`; nineteen findings recorded, F-buttons-1 through
+F-buttons-4 worked. Opened out of §3's order: `members` is the next row, and
+Joel chose `buttons` first.
 
 ## The roster
 
@@ -230,7 +230,7 @@ Still open in this area, and not touched here: `docs/ui.md`'s "Hint / Reveal =
 `caution`" (F-buttons-13, where Reveal is `destructive`) and
 `daylight.css`'s BUTTON header (F-buttons-14).
 
-### F-buttons-4 · `ghost-action-button` · `ActionButton` is gone and still named across the tree
+### WORKED · F-buttons-4 · `ghost-action-button` · `ActionButton` is gone and still named across the tree
 
 There is no `ActionButton` in the tree. Inside the folder it is named by
 `BackToClubButton` ("`aria-hidden` inside `ActionButton`"), `HelpButton` ("a
@@ -245,6 +245,39 @@ names `theme.css`), and `docs/ui.md` six times (F-buttons-13).
 **Recommendation:** `StandardButton` wherever the sentence survives the
 substitution; where the sentence only existed to say "it's an ActionButton",
 delete it. The `docs/ui.md` hits fold into F-buttons-13.
+
+**Resolution (2026-09-06, Joel: "do it")** — every mention outside
+`docs/ui.md`'s two button sections is gone: `HelpButton`, `BackToClubButton`,
+`SubmitWithScore`, `codenamesduet/CluePanel.tsx`,
+`definitions/WordEditDialog.module.css` and `tooltips/TooltipHost.tsx` each
+took the substitution, and `StandardButton.module.css`'s clause was deleted
+rather than substituted — "`ActionButton.module.css`'s tone classes came with
+them" becomes nonsense when the file it names IS the file it is written in.
+That clause was also F-buttons-7's archaeology, so that finding is one item
+lighter.
+
+**The five remaining mentions are all in `docs/ui.md` 2109–2201, and are
+deliberately LEFT for F-buttons-13**, which rewrites both those sections
+whole. Fixing a noun inside a paragraph that is being replaced is work thrown
+away.
+
+Two things the finding did not have:
+
+- **`docs/ui.md`'s icon-type sentence had gone wrong under this area's own
+  hand.** It said "`MenuItem.icon` is typed `LucideIcon`, the same type
+  `ActionButton.icon` takes" — one stale name when the finding was written, two
+  after F-buttons-1's `AppIcon` change. Fixed here, not deferred, because this
+  area broke it.
+- **`docs/deferred.md`'s slot-rename item named three files and got all three
+  wrong**, which made a deferred item unactionable rather than merely stale:
+  `theme.css` does not exist (the themes are `themes/daylight.css` and
+  `themes/midnight.css`, two now, not one), `ActionButton.module.css` is
+  `StandardButton.module.css`, and strands' `HintBar` is not touched at all —
+  it reads the `--button-caution-*` family tokens, not the slots. It also
+  missed two files that DO read `--button-slot-*`:
+  `feedback/GenericFeedbackPill.module.css` and
+  `definitions/WordEditDialog.module.css`. Re-derived from the tree and
+  rewritten.
 
 ### F-buttons-5 · `renamed-props-in-prose` · Docstrings name props and classes that were renamed under them
 
@@ -492,6 +525,12 @@ non-button sites are their folders'.
 
 ## Notes
 
+- **Seen, not audited — `TooltipHost`'s list of direct carriers.** Fixing
+  F-buttons-4's noun there also took `BackToClubButton` off the list, which was
+  wrong on it: that button's bubble comes from `StandardButton` like any
+  other's. The list still reads as exhaustive and is not — crosswords'
+  `Controls` and letterboxed's `ChainStrip` write `data-tooltip` directly too.
+  That is the `tooltips` area's sentence to finish.
 - **Seen, not audited — a guard with a stale allowlist.**
   `src/guards/cssTokens.test.ts:353` allows `common/components/buttons/`, a
   pre-reorg path; the test still passes because `StandardButton.tsx` composes

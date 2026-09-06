@@ -371,7 +371,7 @@ function ClueForm({
         />
         {/* Submit — the shared primary SubmitButton (its IconSubmit up-triangle
             "sends this clue up to your partner"). type="submit" so the form's
-            onSubmit still fires (ActionButton defaults to type="button"). */}
+            onSubmit still fires (StandardButton defaults to type="button"). */}
         <SubmitButton
           type="submit"
           name={busy ? 'Submitting…' : 'Submit'}

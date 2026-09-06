@@ -23,8 +23,8 @@ type Anchor = { el: Element; text: string }
 
 /**
  * The styled-tooltip renderer — the single host behind every `data-tooltip`
- * attribute (ActionButton wires `tooltip ?? label`; ShuffleButton /
- * BackToClubButton / PauseButton carry theirs directly). Mounted once in
+ * attribute (StandardButton wires `tooltip ?? label`; ShuffleButton /
+ * PauseButton carry theirs directly). Mounted once in
  * App.tsx, like `<ToastHost>`.
  *
  * Why JS-positioned (vs the earlier pure-CSS `::after` bubble): a CSS bubble

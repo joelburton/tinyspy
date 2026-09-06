@@ -20,8 +20,7 @@
  * rule under it says a shared stylesheet with many consumers and no component is
  * a component waiting to be written. `<StandardButton>` is that component, so
  * nobody writes these class names by hand and they stop
- * being public and come home. `ActionButton.module.css`'s tone classes came
- * with them — one component, one stylesheet.
+ * being public — one component, one stylesheet, tone classes included.
  *
  * FLAT — color only, no motion, no shadow. Not conservatism: it is the
  * load-bearing half of "depth belongs to game pieces, not chrome". If a

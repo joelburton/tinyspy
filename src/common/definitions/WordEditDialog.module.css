@@ -46,7 +46,7 @@
  * option, not the loud one.
  *
  * The tone arrives by re-setting the slot tokens the shared `.secondary` reads,
- * because the tone CLASSES are scoped to ActionButton.module.css and a raw
+ * because the tone CLASSES are scoped to StandardButton.module.css and a raw
  * <button> can't reach them — the same discipline, just spelled out locally. */
 /* @@ */ .deleteButton {
 /* @@ */   --button-slot-secondary-color: var(--button-destructive-secondary-color);

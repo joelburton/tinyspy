@@ -11,7 +11,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  *
  * Icon-only by default (the glyph is self-explanatory); `label` becomes the
  * aria-label + tooltip ("Help" unless overridden). A thin wrapper over
- * `ActionButton`, like the other purpose buttons — so it can't drift from them.
+ * `StandardButton`, like the other purpose buttons — so it can't drift from
+ * them.
  */
 export function HelpButton({
   name = 'Help',

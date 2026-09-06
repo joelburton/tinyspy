@@ -9,8 +9,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * Every exit-to-club affordance (each game's playing action row, and its
  * terminal row via `<TerminalActionRow>`) routes through here so the glyph, the
  * spacing and the accessible label are identical everywhere. The chevron is
- * `aria-hidden` inside `ActionButton`, so a screen reader just announces "Back
- * to club".
+ * `aria-hidden` inside `StandardButton`, so the control announces itself as
+ * "Back to club" and nothing else.
  *
  * It DRAWS "Club" and is CALLED "Back to club". The chevron carries the "back",
  * and the button spends its life in a ~22rem info column with other controls

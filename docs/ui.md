@@ -2032,8 +2032,9 @@ question) and a Help-page legend (nobody opens it at the moment of doubt).
 
 Two rules keep it honest. **Icons come from the semantic registry**, never
 `lucide-react` directly, so the menu can never teach a symbol the button doesn't
-use; `MenuItem.icon` is typed `LucideIcon`, the same type `ActionButton.icon`
-takes. And **the gutter is
+use; `MenuItem.icon` is typed `AppIcon`, the registry's own type, so a menu row
+and a button can be handed the identical value — including a glyph the registry
+defines itself rather than aliasing from lucide. And **the gutter is
 reserved per menu**: once any row has an icon every row gets the slot, so labels
 share one column instead of going ragged — while a menu with no icons at all
 (nothing in it maps to the language) gains no indent for a feature it doesn't

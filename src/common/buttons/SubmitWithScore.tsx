@@ -19,7 +19,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * crucially — keeps a **fixed footprint** as the score ticks up/down or appears
  * from nothing (it does not grow when the first tile lands).
  *
- * This is deliberately UNLIKE the centered icon+label `ActionButton` family: the
+ * This is deliberately UNLIKE the centered icon+label `StandardButton`: the
  * left-icon / right-number split is the whole point, so it's its own component
  * rather than a `SubmitButton` variant. Built for scrabble's rack/commit row, but
  * general — any game with a live "what would this move score" preview can use it
