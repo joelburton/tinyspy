@@ -57,7 +57,7 @@ Recorded 2026-09-05 from one read of all sixteen files, every claim below
 re-checked against the tree. Shape findings first, prose after. No prefix
 means OPEN.
 
-### F-corecss-1 · `vocabulary-literals-in-the-vocabulary-files` · The files that DECLARE the vocabularies still write the literals they exist to replace
+### WORKED · F-corecss-1 · `vocabulary-literals-in-the-vocabulary-files` · The files that DECLARE the vocabularies still write the literals they exist to replace
 
 `guards/vocabularies.test.ts` keeps a `pending` row per file for every literal
 not yet converted, and the a/b/c rule says a value converts when its area is
@@ -91,11 +91,27 @@ and this area's own files want 0.7, 0.8, 0.9 and 1.4:
 | `badge.css` | line-height | `1.4` | between `-1` (1.5) and `-2` (1.25). `--line-height-3`'s own comment in `base.css` defines it as "a single line that should occupy exactly its own height", which is what a lozenge is (badge.css itself says nothing about line-height) — but (b) is not free: at `0.7rem` the line box goes 15.7px → 11.2px and the lozenge shrinks |
 | `segmented.css` | font-size | `0.8rem` | between `-2` and `-3`; (a)/(b). Twelve sites app-wide |
 
-**Recommendation for what remains:** present the four off-ramp values one at
-a time with an (a)/(b) render each, `0.9rem` separately from the other three
-because it is a ramp question rather than a class's. The two `base.css`
-heading rows are not decisions — they are a stated (c) that wants a row
-comment in the shape of the `0.375rem` one.
+**The four off-ramp values are NOT BEING CHANGED NOW** (2026-09-05, Joel:
+"don't change any of them"; "i'm not worried about them now"). `badge.css`'s
+`0.7rem` and `1.4`, `segmented.css`'s `0.8rem` and `.muted`'s `0.9rem` keep
+their values and their pending rows, which is what a pending row is for.
+**This is a not-now, not a never** — the rows carry no comment saying the
+values are decided, deliberately, because they are not. Each is still a live
+question whenever someone wants to look:
+
+- `0.7rem` (badge) and `0.8rem` (segmented) sit between ramp steps; each is
+  one component and wants an (a)/(b) render before anyone rules.
+- `1.4` (badge line-height) is the one with a visible cost: at
+  `--line-height-3` the line box goes 15.7px → 11.2px and the lozenge gets
+  shorter.
+- `0.9rem` is the biggest of the four and the least about its own class: it
+  is written 26 times across 18 files against `--font-size-2`'s 21, so the
+  ramp is missing its most-used step. A ramp question, and it reaches
+  `setup-form` and `fields`, whose rows the guard binds to this one.
+
+The two `base.css` heading rows are annotated and stay on the list
+permanently: a heading's size and its margin are decided at h1–h4, which is
+the vocabulary's own stated exemption.
 
 **Pass one WORKED (2026-09-05, Joel: "do pass one now")** — the seven
 conversions above, with the `heading.css` spacer row, the `segmented.css`
