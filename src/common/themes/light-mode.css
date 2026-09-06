@@ -3,10 +3,11 @@
 /* ============================================================
  * light-mode.css — ONLY what is true of every light theme.
  *
- * daylight and cupcake both load this; midnight loads dark-mode.css
- * instead. A theme declares its chain and loads it — this file is
- * never an unconditional default, because a role midnight forgot
- * would then resolve silently to a light value on a dark page.
+ * A light theme loads this and a dark one loads dark-mode.css: daylight
+ * takes this file, midnight takes the other. A theme declares its chain
+ * and loads it — this file is never an unconditional default, because a
+ * role midnight forgot would then resolve silently to a light value on
+ * a dark page.
  *
  * It is nearly empty, and that is the finding rather than a
  * placeholder: almost everything that felt like "light mode" turned
@@ -25,7 +26,7 @@
      here would quietly win and re-enable the browser's flipping.
      Change both together.
 
-     dark-mode.css will carry `color-scheme: only dark`, and that is
+     dark-mode.css carries `color-scheme: only dark`, and that pair is
      the whole reason this file exists as a named home. */
   color-scheme: only light;
 }

@@ -4,8 +4,8 @@
  * dark-mode.css — ONLY what is true of every DARK theme.
  *
  * The mirror of light-mode.css, and it exists for the same reason:
- * midnight loads this, a future `horror` would load it too, and a
- * theme declares its chain rather than inheriting one by accident.
+ * midnight loads this, any dark theme after it would too, and a theme
+ * declares its chain rather than inheriting one by accident.
  *
  * Also nearly empty, which is the second half of a finding rather
  * than a coincidence. Almost everything that felt like "dark mode"

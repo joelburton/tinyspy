@@ -21,8 +21,11 @@
  * live here — which is worth knowing before grepping for one and
  * finding the other.
  *
- * Loaded after the theme chain (see main.tsx) so a rule here can read
- * a token from it. Nothing in this file is scoped: the element
+ * Loaded BEFORE the theme, which is a runtime choice and so arrives by
+ * dynamic import (see main.tsx). Order does not matter either way: a
+ * `var()` resolves when the value is computed, not when the rule is
+ * parsed, and the two `:root` blocks set disjoint properties anyway.
+ * Nothing in this file is scoped: the element
  * selectors could not be scoped, and the tokens are global by nature.
  * The shared CLASSES are next door in utilities.css.
  * ============================================================ */

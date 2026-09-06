@@ -453,7 +453,7 @@ italics" (seven declarations today). The same sentence carries F-corecss-17's
 unverified oblique claim, so both edits land in one place and it is cheaper
 to do it once, there.
 
-### F-corecss-12 · `base-loads-before-the-theme` · base.css says it loads after the theme; it loads before
+### WORKED · F-corecss-12 (with F-corecss-14) · `base-loads-before-the-theme` · base.css says it loads after the theme; it loads before
 
 `base.css:24`: "Loaded after the theme chain (see main.tsx) so a rule here
 can read a token from it." `main.tsx` imports base.css statically at line
@@ -463,8 +463,21 @@ depends on the order — `var()` resolves at compute time, and the two `:root`
 blocks set disjoint properties — which is why the false sentence has never
 cost a pixel. `utilities.css:18` ("loaded after base.css") is true.
 
-**Recommendation:** replace with the true statement: order does not matter
-for tokens, and the theme is last because it is chosen at runtime.
+**Resolution (2026-09-05, Joel: "i'll take your rec")** — comment-only, three
+files. base.css now says it loads BEFORE the theme, that the theme is late
+because it is a runtime choice and so arrives by dynamic import, and that the
+order does not matter either way. Verified rather than assumed: `base.css`
+and `daylight.css` declare no token in common, so even a rule that read
+across the two could not be order-dependent.
+
+**F-corecss-14 (`imaginary-themes-as-loaders`) is worked here** — same
+subject, one file over. `cupcake` and `horror` are gone from the two mode
+files; a reader cannot tell an imaginary theme from an unimplemented one, and
+the sentence makes its point with the two that exist ("a light theme loads
+this and a dark one loads dark-mode.css"). `light-mode.css`'s future tense
+about dark-mode.css is now present tense, the file having existed all along.
+The rule both files state — a theme declares its chain, neither file is ever
+an unconditional default — is untouched.
 
 ### F-corecss-13 · `wordle-converged-and-an-unscheduled-rename` · Two sentences in fixed.css about wordle
 
@@ -483,7 +496,7 @@ the second, Joel rules: the rename is off (drop the sentence, the doc's
 argument stands), or on (a line in the owning folder's `todo.md` — the
 tokens are declared here but the readers are `wordle-style`'s family).
 
-### F-corecss-14 · `imaginary-themes-as-loaders` · light-mode.css and dark-mode.css cite themes that do not exist
+### WORKED with F-corecss-12 · F-corecss-14 · `imaginary-themes-as-loaders` · light-mode.css and dark-mode.css cite themes that do not exist
 
 `light-mode.css:6` — "daylight and cupcake both load this". Cupcake is a
 thought experiment in `docs/ui.md` ("imaginary: pink, cheery, light"), not a
