@@ -7,10 +7,11 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
 stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
 (raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18 and -20. Closed with no
-change: F-buttons-6, -9 and -16 (absorbed by the F-buttons-20 rewrite) and
-F-buttons-15 (`buttons.html` ruled out of scope). Still open: F-buttons-19. Opened out of §3's order: `members` is the next row, and Joel chose
-`buttons` first.
+F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18 and -20. Closed with
+no change: F-buttons-6, -9 and -16 (absorbed by the F-buttons-20 rewrite),
+F-buttons-15 (`buttons.html` ruled out of scope) and F-buttons-19 (its sites
+are not buttons in the normal sense). **Every finding is resolved.** Opened out
+of §3's order: `members` is the next row, and Joel chose `buttons` first.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
 area:** a purpose button's docstring answers *when do I reach for this* and
@@ -833,7 +834,7 @@ and gone; the `+` in "+ New club" survives it as its own line.
 Also cleared from `buttons/todo.md`: the item asking for the `docs/ui.md`
 class story to be rewritten, which F-buttons-13 did.
 
-### F-buttons-19 · `disabled-utility` · One look for a disabled control (from `todo.md`)
+### CLOSED, NO CHANGE · F-buttons-19 · `disabled-utility` · One look for a disabled control (from `todo.md`)
 
 The todo item, re-judged: nine `cursor: not-allowed` sites today (the item
 says eleven), with the opacity still spread across values; `ShuffleButton`'s
@@ -845,6 +846,33 @@ base is consistent and the others are not.
 **Recommendation:** decide whether disabled is a utility (`--opacity-2`,
 `not-allowed`) every control composes or a rule the base states; the
 non-button sites are their folders'.
+
+**Closed 2026-09-06 with no change (Joel: "these aren't buttons in the normal
+sense; just close this")** — the same ruling as F-buttons-18, and the sites bear
+it out: a select, a timer input, a menu row, a keycap, crosswords' game-surface
+control bar, and the board's round shuffle pill. None is a general button, so
+none is this area's to restyle.
+
+Two things the re-read turned up that are worth leaving recorded, because the
+finding had them backwards and the next reader will hit the same wall:
+
+- **The utility already exists**, and deliberately on the ELEMENT rather than on
+  the button class: `base.css` gives every `button:disabled` the fade and
+  `cursor: not-allowed`, with a comment saying why — a disabled game piece,
+  keycap or list row should fade and refuse the pointer exactly as a button
+  does. So "StandardButton states no disabled rule" is true and irrelevant; the
+  base is consistent BECAUSE the element rule covers it, and five of the
+  hand-written `cursor: not-allowed` declarations are re-stating what they
+  already inherit.
+- **Every site that overrides the opacity makes it FAINTER than the global** —
+  0.45, 0.5, 0.55 and 0.6 against `--chrome-disabled-opacity`'s 0.75. Seven
+  independent choices in the same direction read as the global being too subtle
+  rather than as seven surfaces each needing something different. And
+  `--opacity-1` (0.7) sits 0.05 from that token, which is the same
+  indistinguishable-pair shape as the 0.85/0.9 font sizes.
+
+That is a `core-css` question about one number, not a buttons question, and it
+is left for that area rather than filed as a defect here.
 
 ### WORKED · F-buttons-20 · `show-not-a-guessed-default` · A call site could not say what its button draws
 
@@ -959,7 +987,20 @@ assertions; the ~20 sites passing real text, the six with a dynamic form
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+Written as the area changed things, and all of them landed:
+
+- **`StandardButton.test.tsx`** — rewritten whole. Its three tests existed to
+  keep `name` / `label` / `tooltip` apart, and the vocabulary changed under
+  them.
+- **`stackdown/PlayArea.test.tsx`** — two selectors. Its Hint passes a
+  `tooltip`, so the button's accessible name became the richer sentence.
+- **`folderDocs.test.ts`** — by design: writing the Design failed the guard
+  until `common/buttons` came off `DESIGNS_OWED`, which is how the guard was
+  verified rather than trusted.
+
+Nothing else moved. The ~500 `getByRole('button', { name })` selectors across
+the unit and e2e suites survived the rename untouched, because `tooltip ?? label`
+preserves every accessible name that `name` used to carry.
 
 ## Closing
 

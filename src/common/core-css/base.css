@@ -79,7 +79,7 @@
   font-display: swap;
 }
 
-/* @@ */ :root {
+:root {
   /* The DEFAULT page-content width — "the width when a page doesn't need a
      custom one" (Joel, 2026-08-23). Nearly every non-game page takes it, and a
      new page would too. The one page that is wider chose its own number for
@@ -271,7 +271,7 @@
 
   /* The shared <EntryBox> text size (placeholder + entered word).
      Default here; a consumer raises it by re-setting the token on its
-     own EntryBox element (psychicnum's word entry goes bigger). A
+     own EntryBox element . A
      token rather than a literal so the override wins regardless of
      stylesheet order. The caret height tracks it (1.15em). */
 /* @@ */   --entryBox-font-size:  1.5rem;
