@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
 import styles from './PauseButton.module.css'

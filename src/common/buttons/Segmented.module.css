@@ -1,4 +1,4 @@
-/* cs-audited-buttons */
+/* cs-blessed-buttons */
 
 /* The whole look of a segmented choice (see Segmented.tsx). One component, one
  * stylesheet: nothing outside writes these class names, and a caller's own

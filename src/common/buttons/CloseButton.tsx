@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { cls } from '../utils/cls'
 import { IconClose } from '../icons/icons'

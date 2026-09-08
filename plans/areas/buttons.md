@@ -4,14 +4,15 @@ The folders it reads: `buttons`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-05).** Roster agreed (Joel: "audit this area") and
-stamped `cs-audited-buttons`; nineteen findings recorded, plus F-buttons-20
-(raised by Joel, not by the read: the `label`/`show` vocabulary). Worked:
-F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18 and -20. Closed with
-no change: F-buttons-6, -9 and -16 (absorbed by the F-buttons-20 rewrite),
-F-buttons-15 (`buttons.html` ruled out of scope) and F-buttons-19 (its sites
-are not buttons in the normal sense). **Every finding is resolved.** Opened out
-of §3's order: `members` is the next row, and Joel chose `buttons` first.
+**Status: CLOSED (2026-09-08), every file blessed.** Opened 2026-09-05 out of
+§3's order — `members` was the next row and Joel chose `buttons` first.
+
+Nineteen findings came from the read, and two more from Joel while it ran:
+F-buttons-20 (the `label`/`show` vocabulary) and F-buttons-21 (`<Segmented>`).
+**Worked:** F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18, -20 and
+-21. **Closed with no change:** -6, -9 and -16, absorbed by the F-buttons-20
+rewrite; -15, `buttons.html` ruled out of scope; -19, its sites are not buttons
+in the normal sense. The closing re-read added six more, five of them fixed.
 
 **A docstring standard came out of F-buttons-5 and governs the rest of the
 area:** a purpose button's docstring answers *when do I reach for this* and
@@ -27,42 +28,42 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/buttons/StandardButton.tsx` | the one `<button>` — weight × tone × label/show/tooltip; every purpose button composes it | `cs-audited-buttons` |
-| `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-audited-buttons` |
-| `src/common/buttons/StandardButton.test.tsx` | the rules that keep `label` / `show` / `tooltip` three things | `cs-audited-buttons` |
-| `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-audited-buttons` |
-| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-audited-buttons` |
-| `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a drawn glyph | `cs-audited-buttons` |
-| `src/common/buttons/FormSubmitButton.tsx` | **written by this area** (F-buttons-20) — a form or dialog's commit, Cancel's partner: it owns `type="submit"` + the emphasis, and defaults no words | `cs-audited-buttons` |
-| `src/common/buttons/ClearButton.tsx` | wipe the pending selection — the eraser on a plain outline | `cs-audited-buttons` |
-| `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-audited-buttons` |
-| `src/common/buttons/CloseButton.module.css` | its stylesheet (24 lines) | `cs-audited-buttons` |
-| `src/common/buttons/ConcedeGameButton.tsx` | one player quitting a compete race — distinct from End | `cs-audited-buttons` |
-| `src/common/buttons/DeleteButton.tsx` | backspace — remove the last typed character; the glyph scaled up, since it reads small | `cs-audited-buttons` |
-| `src/common/buttons/EndGameButton.tsx` | the manual "we're done" for solo / coop — destructive red, the crossed-out stop sign | `cs-audited-buttons` |
-| `src/common/buttons/EndTurnButton.tsx` | hand play on — the octagon at primary weight | `cs-audited-buttons` |
-| `src/common/buttons/ExchangeButton.tsx` | scrabble's swap — two-way arrows, the accent blue, "Swap" | `cs-audited-buttons` |
-| `src/common/buttons/HelpButton.tsx` | icon-only "?" that opens a game's rules on top of the setup dialog | `cs-audited-buttons` |
-| `src/common/buttons/HintButton.tsx` | ask for a clue — amber | `cs-audited-buttons` |
-| `src/common/buttons/NewGameButton.tsx` | a fresh game with the same setup — the accent blue, "New game" | `cs-audited-buttons` |
-| `src/common/buttons/PassButton.tsx` | skip your turn, de-emphasized — the octagon at secondary weight | `cs-audited-buttons` |
-| `src/common/buttons/PauseButton.tsx` | pause / unpause, aware of manual vs presence pause | `cs-audited-buttons` |
-| `src/common/buttons/PauseButton.module.css` | its stylesheet (18 lines) | `cs-audited-buttons` |
-| `src/common/buttons/PeelButton.tsx` | bananagrams' primary move — the banana, primary weight | `cs-audited-buttons` |
-| `src/common/buttons/RestartButton.tsx` | start this board over — the accent blue, "Restart" | `cs-audited-buttons` |
-| `src/common/buttons/Segmented.tsx` | **written by this area** — a segmented choice: the joined frame + the group's label, segments left to the caller | `cs-audited-buttons` |
-| `src/common/buttons/Segmented.module.css` | its stylesheet, moved here from `core-css/patterns/segmented.css` | `cs-audited-buttons` |
-| `src/common/buttons/RevealButton.tsx` | uncover the whole hidden answer of a finished game — destructive red, boxed eye | `cs-audited-buttons` |
-| `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — a blue outline, drawn as a glyph | `cs-audited-buttons` |
-| `src/common/buttons/ShuffleButton.tsx` | shuffle the tile set — its own component with its own stylesheet | `cs-audited-buttons` |
-| `src/common/buttons/ShuffleButton.module.css` | its stylesheet (73 lines) | `cs-audited-buttons` |
-| `src/common/buttons/SpoilerButton.tsx` | hand over one hidden item mid-game — amber, the bare eye; the rung above Hint | `cs-audited-buttons` |
-| `src/common/buttons/SubmitButton.tsx` | send my move — the up triangle at primary weight; "deliberately thin" | `cs-audited-buttons` |
-| `src/common/buttons/SubmitWithScore.tsx` | scrabble's submit carrying the staged play's score; a raw `<button>`, not a `StandardButton` | `cs-audited-buttons` |
-| `src/common/buttons/SubmitWithScore.module.css` | its stylesheet (26 lines) | `cs-audited-buttons` |
-| `src/common/buttons/TrashButton.tsx` | destroy this thing — destructive by default so it looks irreversible before the press | `cs-audited-buttons` |
-| `src/common/buttons/WordCheckButton.tsx` | check my own work — the accent blue, deliberately not Hint's amber | `cs-audited-buttons` |
-| `src/common/buttons/ZoomFitButton.tsx` | frame the whole board — icon-only, the shared square box | `cs-audited-buttons` |
+| `src/common/buttons/StandardButton.tsx` | the one `<button>` — weight × tone × label/show/tooltip; every purpose button composes it | `cs-blessed-buttons` |
+| `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-blessed-buttons` |
+| `src/common/buttons/StandardButton.test.tsx` | the rules that keep `label` / `show` / `tooltip` three things | `cs-blessed-buttons` |
+| `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-blessed-buttons` |
+| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-blessed-buttons` |
+| `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a drawn glyph | `cs-blessed-buttons` |
+| `src/common/buttons/FormSubmitButton.tsx` | **written by this area** (F-buttons-20) — a form or dialog's commit, Cancel's partner: it owns `type="submit"` + the emphasis, and defaults no words | `cs-blessed-buttons` |
+| `src/common/buttons/ClearButton.tsx` | wipe the pending selection — the eraser on a plain outline | `cs-blessed-buttons` |
+| `src/common/buttons/CloseButton.tsx` | dismiss the thing this sits in — a component because it owns the glyph | `cs-blessed-buttons` |
+| `src/common/buttons/CloseButton.module.css` | its stylesheet (24 lines) | `cs-blessed-buttons` |
+| `src/common/buttons/ConcedeGameButton.tsx` | one player quitting a compete race — distinct from End | `cs-blessed-buttons` |
+| `src/common/buttons/DeleteButton.tsx` | backspace — remove the last typed character; the glyph scaled up, since it reads small | `cs-blessed-buttons` |
+| `src/common/buttons/EndGameButton.tsx` | the manual "we're done" for solo / coop — destructive red, the crossed-out stop sign | `cs-blessed-buttons` |
+| `src/common/buttons/EndTurnButton.tsx` | hand play on — the octagon at primary weight | `cs-blessed-buttons` |
+| `src/common/buttons/ExchangeButton.tsx` | scrabble's swap — two-way arrows, the accent blue, "Swap" | `cs-blessed-buttons` |
+| `src/common/buttons/HelpButton.tsx` | icon-only "?" that opens a game's rules on top of the setup dialog | `cs-blessed-buttons` |
+| `src/common/buttons/HintButton.tsx` | ask for a clue — amber | `cs-blessed-buttons` |
+| `src/common/buttons/NewGameButton.tsx` | a fresh game with the same setup — the accent blue, "New game" | `cs-blessed-buttons` |
+| `src/common/buttons/PassButton.tsx` | skip your turn, de-emphasized — the octagon at secondary weight | `cs-blessed-buttons` |
+| `src/common/buttons/PauseButton.tsx` | pause / unpause, aware of manual vs presence pause | `cs-blessed-buttons` |
+| `src/common/buttons/PauseButton.module.css` | its stylesheet (18 lines) | `cs-blessed-buttons` |
+| `src/common/buttons/PeelButton.tsx` | bananagrams' primary move — the banana, primary weight | `cs-blessed-buttons` |
+| `src/common/buttons/RestartButton.tsx` | start this board over — the accent blue, "Restart" | `cs-blessed-buttons` |
+| `src/common/buttons/Segmented.tsx` | **written by this area** — a segmented choice: the joined frame + the group's label, segments left to the caller | `cs-blessed-buttons` |
+| `src/common/buttons/Segmented.module.css` | its stylesheet, moved here from `core-css/patterns/segmented.css` | `cs-blessed-buttons` |
+| `src/common/buttons/RevealButton.tsx` | uncover the whole hidden answer of a finished game — destructive red, boxed eye | `cs-blessed-buttons` |
+| `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — a blue outline, drawn as a glyph | `cs-blessed-buttons` |
+| `src/common/buttons/ShuffleButton.tsx` | shuffle the tile set — its own component with its own stylesheet | `cs-blessed-buttons` |
+| `src/common/buttons/ShuffleButton.module.css` | its stylesheet (73 lines) | `cs-blessed-buttons` |
+| `src/common/buttons/SpoilerButton.tsx` | hand over one hidden item mid-game — amber, the bare eye; the rung above Hint | `cs-blessed-buttons` |
+| `src/common/buttons/SubmitButton.tsx` | send my move — the up triangle at primary weight; "deliberately thin" | `cs-blessed-buttons` |
+| `src/common/buttons/SubmitWithScore.tsx` | scrabble's submit carrying the staged play's score; a raw `<button>`, not a `StandardButton` | `cs-blessed-buttons` |
+| `src/common/buttons/SubmitWithScore.module.css` | its stylesheet (26 lines) | `cs-blessed-buttons` |
+| `src/common/buttons/TrashButton.tsx` | destroy this thing — destructive by default so it looks irreversible before the press | `cs-blessed-buttons` |
+| `src/common/buttons/WordCheckButton.tsx` | check my own work — the accent blue, deliberately not Hint's amber | `cs-blessed-buttons` |
+| `src/common/buttons/ZoomFitButton.tsx` | frame the whole board — icon-only, the shared square box | `cs-blessed-buttons` |
 | `src/common/buttons/doc.md` | the lede + the Design (written by this area; `common/buttons` is off `DESIGNS_OWED`) | (no stamp — markdown) |
 | `src/common/buttons/todo.md` | the Soon items handed in by earlier areas, plus what this area filed; the area's first read once it opens | (no stamp — markdown) |
 
@@ -996,6 +997,99 @@ literal. F-buttons-18 established that `0.8` / `0.85` / `0.9` are the same size
 to within a pixel, but collapsing it here would be a visible change nobody asked
 for in a move that is otherwise render-identical.
 
+## The closing re-read
+
+Done 2026-09-08, every file in the folder read end to end in one sitting. It
+found what a re-read is for: not new defects, but what the separate passes did
+to each other. Six things, all small, none of them a bug — R2 through R6 fixed,
+R1 closed with no change. **Three of the six were sentences this area wrote
+itself during the week**, which is the re-read earning its place: a rule and its
+first violation land in the same session, and the violation is the one nobody
+re-reads.
+
+**R1 · CLOSED, NO CHANGE — a house-style difference, not a defect.** Twelve
+docstrings open by naming the component ("Restart-the-board button — start THIS
+board over…") where the ones F-buttons-5 touched open with the job ("BACKSPACE —
+removes the last typed character…"). Both answer *when do I reach for this*,
+which is what the standard is for, so the twelve are not wrong — they read
+differently. Converting them is twelve prose rewrites with no reader-visible
+gain, and the same split would recur the next time only part of a folder is
+touched. **The standard applies to what gets written from here, not
+retroactively.**
+
+**R2 · WORKED — three sweeps each missed exactly one site**, and each miss is
+instructive about how it was done (Joel: "fix r2"):
+
+- `RestartButton` still says "waffle's terminal action row is the first user" —
+  F-buttons-14 removed that sentence from four files and this was a fifth.
+- `DeleteButton` says "every keyboard passes `show="icon"`" — a census
+  sentence, the class F-buttons-14 swept, written by F-buttons-5 hours earlier.
+- `PeelButton` says "the shared action-button shape" — F-buttons-4 grepped for
+  `ActionButton` and this is `action-button`, so the ghost survived in
+  lowercase.
+
+All three fixed. The lesson each carries is about the sweep, not the file: a
+sweep that greps one spelling finds one spelling, and a sentence written in the
+same session as the rule that forbids it is the one nobody re-reads.
+
+**R3 · WORKED — one piece of archaeology F-buttons-17 missed.**
+`StandardButton.module.css` said "1.6rem is the value the club page's delete
+button had been setting by hand". That finding grepped "used to"; this said "had
+been". Stated forward: `small` supplies the whole small treatment so a surface
+never has to size the square itself.
+
+**R4 · WORKED, and wider than the finding — the whole class of usage claim is
+out.** Joel: *"listing the users of a button or tone or such is *dumb*, as is
+saying stuff like 'this is the first user of ...' or 'nobody asks for it today.'
+these are useless and drift-magnets."*
+
+So the fix was not to complete the half-truth but to delete it. Three sentences
+in `StandardButton.module.css` and one in the theme said who does or does not
+use something; all four now say the RULE instead:
+
+- "ALL FIVE families get a class, including the two nothing calls for … `success`
+  has no caller at all today" → "whether or not one is reached for", with the
+  completeness argument that was already underneath it.
+- "`success` — RESERVED, nothing asks for it today" → wired like its siblings so
+  that whatever reaches for it inherits a family picked alongside them.
+- The theme's warning this area added at F-buttons-14 ("NO BUTTON PASSES
+  `success`, and the family is still live: the pause control's resume face reads
+  its tokens directly") was itself a census, written a day earlier. It now says
+  the durable thing: **a family is not retired on an empty grep — the tone names
+  are not the only way in, since a stylesheet may read a family's tokens
+  directly.** Same protection, nothing to go stale.
+- `PeelButton`'s "Only bananagrams peels, so this is the one game that renders
+  it" — kept at F-buttons-14 on the argument that it was load-bearing. It was
+  the argument that was load-bearing, not the census: "a move only one game has
+  still gets a named button here rather than a hand-rolled one in the game."
+
+**Left alone deliberately:** `daylight.css`'s file header says "Cells with no
+consumer today are still written today" and names a devtools file as the reader
+that keeps a guard honest. That is the same class of sentence, but it is the
+THEME's own general rule about cells rather than the BUTTON block's, and the
+file it names is out of scope by a standing ruling. It belongs to `corecss`.
+
+**R5 · WORKED — `todo.md`'s disabled item was stale in two ways** and is
+rewritten to what F-buttons-19 established. Gone: the count ("eleven sites"
+where the CSS has seven), the framing that a utility is still needed, and the
+appended sentence that half-contradicted the item's own opening. What it says
+now is the shape of the question — the global exists and sits on the ELEMENT on
+purpose, every override makes disabled fainter than it, `--opacity-1` is too
+close to `--chrome-disabled-opacity` to be a second decision, and picking one
+number belongs to `core-css`. The only part that is a button's is that its tell
+is the missing hover.
+
+**R6 · WORKED — cosmetic.** `ExchangeButton`'s docstring wrapped raggedly, a
+leftover from the F-buttons-3 edit. Reflowed.
+
+**Checked and clean**, worth not re-checking: `CancelButton`'s claim that the
+tone vocabulary documents `quiet` as "a dialog's Cancel" survives F-buttons-14's
+example sweep — that phrase lives in `daylight.css`'s `.secondary` note, not in
+the family roster that was deleted. Every purpose button now takes
+`PurposeButtonProps` with no bespoke props except `RevealButton`'s three faces.
+No file in the folder names a tone, a count, a first user or `ActionButton` in
+the spellings the sweeps used.
+
 ## Notes
 
 - **Seen, not audited — `TooltipHost`'s list of direct carriers.** Fixing
@@ -1049,7 +1143,17 @@ preserves every accessible name that `name` used to carry.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not
+
+Blessed 2026-09-08 on Joel's instruction ("make files in this area blessed") —
+36 files carry `cs-blessed-buttons`, which is every `.tsx` and `.css` in the
+folder including the two this area wrote, `FormSubmitButton` and `Segmented`.
+The two markdown files take no stamp.
+
+**What this area does NOT cover, and did not bless:** the files it changed
+outside the folder. `TerminalActionRow`, the sixty-odd call sites, the icon
+registry, the menu model, the themes and `core-css` all keep the stamps their
+own areas will give them.

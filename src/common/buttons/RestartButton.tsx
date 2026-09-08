@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconRestart } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
@@ -8,8 +8,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * scramble/setup, all progress cleared). The accent blue marks it as a
  * navigational "do something different" action, not an irreversible end (that's
  * EndGameButton's red) — restarting un-terminals the game rather than closing
- * it. Label is always **"Restart"**; waffle's terminal action row is the first
- * user.
+ * it. Label is always **"Restart"**.
  */
 export function RestartButton({
   label = 'Restart',

@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconPeel } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
@@ -9,12 +9,11 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * and win (Bananas!). Primary weight (the filled accent) since it's the main
  * action, with the banana glyph (see IconPeel).
  *
- * Only bananagrams peels, so this is the one game that renders it — but it lives
- * here with the other semantic buttons (rather than hand-rolled in the game) so
- * it inherits the shared action-button shape, focus-guard, and icon-only box,
- * per docs/ui.md → "Button iconography" (games never hand-roll a
- * `<button className="...">`). Default label "Peel"; the game passes a fuller
- * label ("Peel! 🍌" / "Place all your tiles") to reflect the enabled state.
+ * A move only one game has still gets a named button here rather than a
+ * hand-rolled one in the game: that way it inherits the shared shape, the focus
+ * guard and the glyph-alone box, and a game never writes a `<button>` of its
+ * own. Default label "Peel"; the game passes a fuller one ("Peel! 🍌" / "Place
+ * all your tiles") to reflect the enabled state.
  */
 export function PeelButton({
   label = 'Peel',

@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconTrash } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'

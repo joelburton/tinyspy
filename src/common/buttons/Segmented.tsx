@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'

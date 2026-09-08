@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 /**
  * The rules that keep `label`, `show` and `tooltip` three separate things

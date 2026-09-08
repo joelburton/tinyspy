@@ -370,7 +370,7 @@ will list the other as a dependency whichever goes first.
 |    | **The people** | | |
 | 14 | `members` | `members` · `text` | who someone is, their color, the disc, and the inline text that renders player segments |
 |    | **The controls everyone touches** | | |
-| 15 | `buttons` | `buttons` | the button taxonomy |
+| 15 | `buttons` | `buttons` | **CLOSED 2026-09-08, blessed.** the button taxonomy. Twenty-one findings; the two biggest came from Joel rather than the read — a call site now states what its button DRAWS (`label` + a required `show`, with `tooltip` carrying the name), and a segmented choice became `<Segmented>` here rather than a global class. `FormSubmitButton` is new. The folder owns how a button is BUILT; `docs/ui.md` keeps the taxonomy around it |
 | 16 | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |
 | 17 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md#selection-lists) is the canonical one |
 | 18 | `forms` | `forms` · `fields` | the design language of forms: the frame, the state, and every field — including the three only a setup form renders |

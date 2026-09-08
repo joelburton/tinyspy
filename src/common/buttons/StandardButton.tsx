@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import type { ComponentPropsWithRef, ComponentType, ReactNode } from 'react'
 import { IconGeneric } from '../icons/icons'

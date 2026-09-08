@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons/icons'

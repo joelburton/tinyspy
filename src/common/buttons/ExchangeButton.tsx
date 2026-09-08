@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconExchange } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
@@ -12,9 +12,8 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  *
  * It IS a turn-committing action (it costs the turn in compete, though unlike a
  * pass it doesn't count toward the blocked end), which is why it sits on the
- * commit side of scrabble's action
- * row next to Submit — but Submit stays the filled-accent primary, so Swap
- * takes the lighter outline.
+ * commit side of scrabble's action row next to Submit — but Submit stays the
+ * filled-accent primary, so Swap takes the lighter outline.
  */
 export function ExchangeButton({
   label = 'Swap',

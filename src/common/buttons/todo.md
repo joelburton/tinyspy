@@ -9,13 +9,16 @@
   the line box its `inline-block` span sits on — which may still give the span
   height inside the 35px flex-centered pill, or may be inert. It cannot be
   settled by reading, only in a browser. Left in place until someone looks.
-- **Disabled control** — one utility for the disabled look. Today
-  `cursor: not-allowed` is written at eleven sites with the opacity spread
-  over 0.45 / 0.5 / 0.55 / 0.6 (`Menu.itemDisabled`, `SelectField`,
-  `SetupTimerSection`, `AnagramDialog`, `WordEditDialog`). The vocabulary has
-  `--opacity-2` (0.5) for it. `StandardButton` states no disabled rule at all —
-  its tell is the missing hover, delivered by `:not(:disabled)` on every hover
-  rule — so the base is consistent and the hand-written sites are not.
+- **One disabled opacity, not five.** `base.css` already gives every
+  `button:disabled` the fade and `cursor: not-allowed`, deliberately on the
+  ELEMENT so a disabled game piece, keycap or list row behaves like a disabled
+  button. Every surface that overrides it makes disabled FAINTER than that
+  global, and they disagree with each other — which reads as the global being
+  too subtle rather than as each surface needing its own. `--opacity-1` sits
+  0.05 from `--chrome-disabled-opacity`, close enough that they cannot be two
+  decisions. Picking one number is a `core-css` question; what belongs to a
+  button is only that its tell is the missing hover, which every hover rule
+  delivers by asking `:not(:disabled)`.
 - **`<ShuffleButton>` should never take focus at all** — game stuff doesn't.
   Its `:focus { outline: none }` says a click leaves no ring, then
   `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is

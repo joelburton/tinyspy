@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconDelete } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
@@ -8,8 +8,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * on-screen keyboard or an entry row, wherever a player types without a
  * physical keyboard to delete with.
  *
- * Default label "Delete"; every keyboard passes `show="icon"`, since a key is
- * the glyph.
+ * Default label "Delete"; pass `show="icon"`, since a key is the glyph.
  */
 export function DeleteButton({
   label = 'Delete',

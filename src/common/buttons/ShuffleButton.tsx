@@ -1,4 +1,4 @@
-// cs-audited-buttons
+// cs-blessed-buttons
 
 import { IconShuffle } from '../icons/icons'
 import { cls } from '../utils/cls'
