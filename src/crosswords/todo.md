@@ -2,8 +2,21 @@
 
 ## Bugs
 
+- **Picture clues don't appear.** The NYT daily for 2026-09-06
+  (<https://www.nytimes.com/crosswords/game/daily/2026/09/06>) has clues whose
+  content is an image, and the board shows nothing for them — so those entries
+  are unsolvable from the app. Investigate whether we can show them: what the
+  source format carries for such a clue, whether the importer drops it or never
+  had it, and whether the image can be stored with the puzzle rather than
+  hot-linked.
+
 ## Soon
 
+- **Link a from-site puzzle back to its source.** For puzzles imported from a
+  publisher (NYT, Guardian, …) it would be nice to offer a link to the puzzle
+  on that site. The importer already keeps `author` and `copyright` from the
+  source format; whether a canonical URL is available per publisher, or has to
+  be composed from the puzzle's date and slug, is the thing to find out.
 - **`CrosswordsNumberJumpBlockingModal` is a blocking modal not built as
   one** — a hand-rolled `position: fixed` box with its own scrim, riding the
   popover tier, so a menu can open over it. `<BlockingModal>` is what it
