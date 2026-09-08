@@ -394,7 +394,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
       'src/common/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/core-css/patterns/badge.css': ['0.7rem'],
-      'src/common/core-css/patterns/segmented.css': ['0.8rem'],
+      'src/common/buttons/Segmented.module.css': ['0.8rem'],
       'src/common/core-css/utilities.css': ['0.9rem'],
       // `.help` is the global `.muted` carved out under a name that says
       // what it is, at the SAME values — a rename must not move a pixel. So its

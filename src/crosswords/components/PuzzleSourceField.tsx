@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Field } from '@/common/fields/Field'
 import type { AllFieldProps } from '@/common/fields/fieldProps'
-import { cls } from '@/common/utils/cls'
 import { db } from '../db'
 import type { PuzzleChoice } from '../lib/setup'
 import { LibraryPickerBlockingModal } from './pickers/LibraryPickerBlockingModal'
@@ -14,6 +13,7 @@ import { summarize } from '../lib/puzzleSummary'
 import { runRpc } from '@/common/supabase/dbResult'
 import { GuardianPickerBlockingModal } from './pickers/GuardianPickerBlockingModal'
 import { UploadPickerBlockingModal } from './pickers/UploadPickerBlockingModal'
+import { Segmented } from '@/common/buttons/Segmented'
 import styles from './PuzzleSourceField.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -139,7 +139,7 @@ export function PuzzleSourceField({
             in a span under the caption. It matters more here than there, since
             after a picker closes this is the only account of what it chose. */}
         <p className={styles.chosen}>{summarize(s, resolved, libraryTitle)}</p>
-        <div className={cls('segmented', styles.sources)} role="group" aria-label="Puzzle source">
+        <Segmented label="Puzzle source" className={styles.sources}>
           <button
             type="button"
             disabled={disabled}
@@ -172,7 +172,7 @@ export function PuzzleSourceField({
           >
             Upload
           </button>
-        </div>
+        </Segmented>
       </Field>
 
       {/*

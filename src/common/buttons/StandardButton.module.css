@@ -10,7 +10,7 @@
  * Cancel are one control wearing different tones.
  *
  * NOT standard buttons, and none of them come through here: a game piece
- * (`.tile`), a keycap (`.key`), a segmented choice (patterns/segmented.css), a
+ * (`.tile`), a keycap (`.key`), a segmented choice (`<Segmented>`, next door), a
  * page-header mark (`<PageHeaderButton>`), and the board's round
  * `ShuffleButton`. A ✕ dismiss is NOT on that list — see `<CloseButton>`, which
  * composes these classes like anything else.

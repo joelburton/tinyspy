@@ -1,0 +1,56 @@
+/* cs-audited-buttons */
+
+/* The whole look of a segmented choice (see Segmented.tsx). One component, one
+ * stylesheet: nothing outside writes these class names, and a caller's own
+ * module supplies only where the group sits and whether its segments stretch. */
+
+/* JOINED, NOT A ROW OF BUTTONS, and the shape is the message: these options are
+   mutually exclusive, so they share one border and touch each other. Separate
+   buttons with a gap between them read as independent toggles you could press
+   several of — which is exactly what these aren't.
+
+   `overflow: hidden` is what rounds the ends: the first and last segments are
+   square and get clipped to the frame's radius, so the corners stay clean
+   however many segments there are. */
+/* @@ */ .segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  border: var(--border-width-line) solid var(--field-edge-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Its CHILDREN are its segments — no class needed on each one, which is what
+   lets a caller pass ordinary buttons. */
+/* @@ */ .segmented > * {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  background: var(--default-bg-color);
+  color: var(--page-text-color);
+  /* Undo the bare <button>'s radius from base.css: an abutting segment must be
+     square, and the frame above supplies the rounding. */
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-duration-paint) ease;
+}
+
+/* One hairline between segments, and none at the ends — the frame closes those. */
+/* @@ */ .segmented > * + * {
+  border-left: var(--border-width-line) solid var(--field-edge-color);
+}
+
+/* THE CHOSEN ONE reads off `aria-pressed`, which the markup already carries for
+   its own sake — so the state lives in one place rather than in a class the
+   styling and the semantics have to keep in step. Filled in the action family,
+   the same paint a primary button takes, because "this is the one" is the same
+   statement. */
+/* @@ */ .segmented > [aria-pressed='true'] {
+  background: var(--button-normal-primary-color);
+  color: var(--button-normal-primary-ink-color);
+}
+
+/* @@ */ .segmented > *:hover:not([aria-pressed='true']) {
+  background: var(--page-surface-hover-color);
+}

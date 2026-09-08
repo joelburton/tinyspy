@@ -22,7 +22,6 @@ import './common/core-css/patterns/badge.css'        // CSS patterns
 import './common/core-css/patterns/focus-ring.css'
 import './common/core-css/patterns/heading.css'
 import './common/core-css/patterns/page.css'
-import './common/core-css/patterns/segmented.css'
 import './common/core-css/utilities.css'             // tiny utilities: muted, etc
 
 import App from './App'

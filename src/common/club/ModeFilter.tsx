@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
-import { cls } from '../utils/cls'
+import { Segmented } from '../buttons/Segmented'
 import styles from './clubFilters.module.css'
 
 type Props = {
@@ -32,7 +32,7 @@ type Props = {
 export function ModeFilter({ value, onChange, soloClub }: Props) {
   if (soloClub) return null
   return (
-    <div className={cls('segmented', styles.modeFilter)} role="group" aria-label="Filter games by mode">
+    <Segmented label="Filter games by mode" className={styles.modeFilter}>
       {MODE_FILTER_OPTIONS.map((o) => (
         <button
           key={o.value}
@@ -51,6 +51,6 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
           {o.label}
         </button>
       ))}
-    </div>
+    </Segmented>
   )
 }

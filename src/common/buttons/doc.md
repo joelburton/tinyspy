@@ -1,8 +1,9 @@
 # buttons
 
-The app's one general button, and the named buttons built from it. What a button
-LOOKS like is decided here; the taxonomy around it — the kinds of control the app
-has, which glyph means what, when a button is offered at all — is
+The app's one general button, the named buttons built from it, and the one
+control family close enough to belong beside them. What a button LOOKS like is
+decided here; the taxonomy around it — the kinds of control the app has, which
+glyph means what, when a button is offered at all — is
 [ui.md](../../../docs/ui.md).
 
 ## Design
@@ -91,6 +92,13 @@ the boundary is.
   size token in its own class rather than reaching for a selector here.
 - **A disabled button's tell is the missing hover**, which every hover rule
   delivers by asking `:not(:disabled)`.
-- **Not buttons in this sense**: a game piece, a keycap, a segmented choice, a
-  page-header mark. Those are their own controls with their own rules, and none
-  of them composes this module.
+- **A segmented choice lives here without being a standard button.**
+  `<Segmented>` owns a joined frame and leaves the segments as the caller's own
+  buttons, because giving each segment its own border and radius dismantles the
+  control rather than restyling it. It sits in this folder because it is a
+  chooser made of buttons and shares their vocabulary — but it composes none of
+  the standard button's classes, and its chosen segment is keyed off
+  `aria-pressed` so the paint and the semantics cannot drift apart.
+- **Not buttons in this sense**: a game piece, a keycap, a page-header mark.
+  Those are their own controls with their own rules, and none of them composes
+  this module.

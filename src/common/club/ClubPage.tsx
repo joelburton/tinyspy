@@ -32,6 +32,7 @@ import { ClubHelpCompanion } from './ClubHelpCompanion'
 import { EditClubModal } from './EditClubModal'
 import { GametypeFilter, type GametypeOption } from './GametypeFilter'
 import { ModeFilter } from './ModeFilter'
+import { Segmented } from '../buttons/Segmented'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
@@ -986,7 +987,7 @@ export function ClubPage({ handle, session }: Props) {
             is the honest shape: two independent toggle buttons whose pressed
             state says which view is showing. `role="group"` + a label ties
             them together for assistive tech without over-claiming behavior. */}
-        <div className={cls('segmented', styles.tabs)} role="group" aria-label="Show new game or your games">
+        <Segmented label="Show new game or your games" className={styles.tabs}>
           <button
             type="button"
             aria-pressed={mobileTab === 'new'}
@@ -1003,7 +1004,7 @@ export function ClubPage({ handle, session }: Props) {
           >
             Your games
           </button>
-        </div>
+        </Segmented>
 
         {/* Mobile-only filter row. On desktop each filter lives at the right of
             its column's heading (below); on mobile those headings are gone —

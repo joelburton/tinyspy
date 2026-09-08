@@ -1587,15 +1587,14 @@ assembling the same skeleton by hand is how they drifted apart before.
 
 A few options in a row, exactly one chosen — the club page's mobile tabs and
 its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
-`.segmented` in
-[`patterns/segmented.css`](../src/common/core-css/patterns/segmented.css).
+[`<Segmented>`](../src/common/buttons/Segmented.tsx), which owns the frame and
+the group's label; the segments stay the caller's own buttons.
 
 - **Joined, not a row of buttons.** The shape is the message: the options are
   mutually exclusive, so they share one border and touch. Separate buttons with
   a gap read as independent toggles you could press several of.
-- **The segments are not `.standardButton`s.** That class gives every element
-  its own border and radius, which doesn't restyle a segmented control, it
-  dismantles it. The frame owns the border and the rounding; a segment owns
+- **The segments are not standard buttons.** Giving each one its own border and
+  radius doesn't restyle a segmented control, it dismantles it. The frame owns the border and the rounding; a segment owns
   only its fill — the same division a SelectionList makes with its rows.
 - **Its children are its segments**, no class per option. A caller wanting
   full-width segments (the mobile tab bar) sets `flex: 1` on them from its own
@@ -1606,8 +1605,10 @@ its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
   family, the paint a primary button takes, because "this is the one" is the
   same statement.
 
-Crosswords' picker is the same control and converts at its own pass; it fills
-the chosen segment with a game brand color today.
+The component deliberately does not hold the value or wire the clicks: its
+three call sites want different things from a press — one sets a filter, one
+switches a view, one opens a picker — and owning the value would make two of
+them lie about what pressing a segment does.
 
 ## The heading levels
 
@@ -1940,7 +1941,7 @@ shared component is one implementation of the rule, not the rule itself.
 Crosswords' puzzle-source picker was listed here too, on the strength of being a
 segmented control the shared button would dismantle. That was right about the
 button and wrong about the conclusion: the answer was a segmented-control
-pattern, not a per-game exemption. It is [`.segmented`](#a-segmented-choice)
+pattern, not a per-game exemption. It is [`<Segmented>`](#a-segmented-choice)
 now, and the yellow it filled its chosen segment with was never a decision — it
 had simply reached for the game's cursor color because that was to hand.
 

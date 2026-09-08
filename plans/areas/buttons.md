@@ -50,6 +50,8 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/PauseButton.module.css` | its stylesheet (18 lines) | `cs-audited-buttons` |
 | `src/common/buttons/PeelButton.tsx` | bananagrams' primary move — the banana, primary weight | `cs-audited-buttons` |
 | `src/common/buttons/RestartButton.tsx` | start this board over — the accent blue, "Restart" | `cs-audited-buttons` |
+| `src/common/buttons/Segmented.tsx` | **written by this area** — a segmented choice: the joined frame + the group's label, segments left to the caller | `cs-audited-buttons` |
+| `src/common/buttons/Segmented.module.css` | its stylesheet, moved here from `core-css/patterns/segmented.css` | `cs-audited-buttons` |
 | `src/common/buttons/RevealButton.tsx` | uncover the whole hidden answer of a finished game — destructive red, boxed eye | `cs-audited-buttons` |
 | `src/common/buttons/SharePreviewButton.tsx` | scrabble's show-a-move broadcast — a blue outline, drawn as a glyph | `cs-audited-buttons` |
 | `src/common/buttons/ShuffleButton.tsx` | shuffle the tile set — its own component with its own stylesheet | `cs-audited-buttons` |
@@ -950,6 +952,49 @@ to read, one level up.
 assertions; the ~20 sites passing real text, the six with a dynamic form
 (`show={isPhone ? 'icon' : 'both'}`, which replaces the unreadable
 `label={isPhone ? null : undefined}`), and every docstring were done by hand.
+
+### WORKED · F-buttons-21 · `segmented-is-a-pattern-without-a-component` · A shared class with three hand-composing call sites
+
+Raised by Joel 2026-09-08, from a question about where `segmented.css` was
+used: *"do you think the segmented.css stuff would be better as a proper React
+component?"* then *"we should do it, and we should put it here, in buttons."*
+
+**It was the case the buttons module's own header describes.** That header
+states the boundary rule — a pattern with structure or behavior belongs in a
+React component plus its module, and a shared stylesheet with many consumers
+and no component is a component waiting to be written. A segmented choice has
+both: a frame that owns the border and rounding while the segments own only
+their fill, and "exactly one chosen" keyed off `aria-pressed`.
+
+Two specific costs of it being a class:
+
+- **The `aria-pressed` contract lived only in a CSS comment.** The chosen
+  segment is styled by `[aria-pressed='true']`, so a call site that forgot the
+  attribute got a control where nothing looks chosen — no type error, no guard,
+  no test.
+- **It was hand-composed**, which is the fault `cssTokens.test.ts` exists to
+  prevent for buttons. That guard's regex looks for `button|primary|secondary`,
+  so `cls('segmented', …)` walked past it at all three sites.
+
+**What it deliberately is NOT** is the obvious `value` / `onChange` / `options`
+component. The three call sites want different things from a press — the club's
+mode filter sets a filter, its mobile tabs switch a view, crosswords' picker
+OPENS A MODAL and reflects state set elsewhere — and one that owned the value
+would have made two of them lie. So `<Segmented>` owns the frame, the class and
+the group semantics (`role="group"` plus a required label, since a row of
+segments never says what the choice is about), and the segments stay the
+caller's own buttons. ModeFilter's `onMouseDown` focus-suppression, which keeps
+ClubPage's list cursor alive, survives untouched for the same reason.
+
+The global stylesheet is gone with it — deleted from `core-css/patterns/`, its
+import dropped from `main.tsx`, and `vocabularies.test.ts`'s pending-literal row
+moved to the new path. `docs/ui.md`'s section now points at the component, and
+five comments that named the class or the old path were corrected.
+
+**Left alone deliberately:** the segments' `0.8rem`, which stays a pending
+literal. F-buttons-18 established that `0.8` / `0.85` / `0.9` are the same size
+to within a pixel, but collapsing it here would be a visible change nobody asked
+for in a move that is otherwise render-identical.
 
 ## Notes
 

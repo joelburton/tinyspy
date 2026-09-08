@@ -87,12 +87,12 @@
      second tier here called "wide". GamePage caps nothing: its content width IS
      the page's. Inert on a phone, where every page is full-bleed.
      See patterns/page.css. */
-/* @@ */   --pageMain-width: 480px;
+  --pageMain-width: 480px;
 
   /* Radii. */
-/* @@ */   --radius-sm:  4px;   /* small chips, tiles, hint pills */
-/* @@ */   --radius-md:  6px;   /* buttons, inputs, panels */
-/* @@ */   --radius-lg:  8px;   /* cards, modals */
+  --radius-sm:  4px;   /* small chips, tiles, hint pills */
+  --radius-md:  6px;   /* buttons, inputs, panels */
+  --radius-lg:  8px;   /* cards, modals */
   /* Not a fourth step — a SHAPE. Any radius past half the box's height rounds
      the ends into semicircles, so a wide box becomes a stadium (a circle with
      a flat middle) and a square one becomes a circle. `999px` is the usual way
@@ -147,26 +147,26 @@
      distinction looks like; a `0.4` becomes `--spacer-4` at its area's
      pass, and if converting one loses something real, that is when we
      learn it and add a member. */
-/* @@ */   --spacer-1:  1.5rem;
-/* @@ */   --spacer-2:  1rem;
-/* @@ */   --spacer-3:  0.75rem;
-/* @@ */   --spacer-4:  0.5rem;
-/* @@ */   --spacer-5:  0.25rem;
+  --spacer-1:  1.5rem;
+  --spacer-2:  1rem;
+  --spacer-3:  0.75rem;
+  --spacer-4:  0.5rem;
+  --spacer-5:  0.25rem;
 
   /* FONT SIZE — body text and the two quieter steps under it. The
      headings are not on this ramp: they are sized by `h1`–`h4` below,
      which is where a heading's size is decided. */
-/* @@ */   --font-size-1:  1rem;
-/* @@ */   --font-size-2:  0.85rem;
-/* @@ */   --font-size-3:  0.75rem;
+  --font-size-1:  1rem;
+  --font-size-2:  0.85rem;
+  --font-size-3:  0.75rem;
 
   /* LINE HEIGHT — unitless, so it multiplies the element's own size
      rather than a size inherited from somewhere else. `-1` is prose,
      `-2` a tighter block, `-3` a single line that should occupy
      exactly its own height (a badge, a tile's letter). */
-/* @@ */   --line-height-1:  1.5;
-/* @@ */   --line-height-2:  1.25;
-/* @@ */   --line-height-3:  1;
+  --line-height-1:  1.5;
+  --line-height-2:  1.25;
+  --line-height-3:  1;
 
   /* OPACITY, and these two numbers are a HOLDING POSITION. Opacity in
      this app spans at least two different KINDS of statement — a
@@ -178,8 +178,8 @@
      `--chrome-disabled-opacity` below is NOT on this ramp for exactly
      that reason: it is a role with a documented argument behind its
      value, not a step. */
-/* @@ */   --opacity-1:  0.7;
-/* @@ */   --opacity-2:  0.5;
+  --opacity-1:  0.7;
+  --opacity-2:  0.5;
 
   /* TRANSITION DURATION, named by the JOB rather than by the number,
      because "how long" is not the question a reader has — "what kind
@@ -198,16 +198,16 @@
 
      ANIMATIONS ARE NOT IN THIS. The flash and shake durations are
      game-surface and tuned; they keep their own names. */
-/* @@ */   --transition-duration-paint:   100ms;
-/* @@ */   --transition-duration-nudge:   80ms;
-/* @@ */   --transition-duration-travel:  180ms;
+  --transition-duration-paint:   100ms;
+  --transition-duration-nudge:   80ms;
+  --transition-duration-travel:  180ms;
 
   /* LETTER SPACING — two, and both are for text that is not being read
      as prose. `label` is the hair of extra room that makes a small
      uppercase label legible; `wide` is the deliberate spread of
      letters presented as objects rather than as a word. */
-/* @@ */   --letter-spacing-label:  0.03em;
-/* @@ */   --letter-spacing-wide:   0.2em;
+  --letter-spacing-label:  0.03em;
+  --letter-spacing-wide:   0.2em;
 
   /* BORDER WIDTH, named by what the line SAYS:
 
@@ -223,9 +223,9 @@
      The two scales are `line` → `line-thick` and `frame` → a
      `frame-thick` that does not exist yet and self-explains the day
      something needs it. */
-/* @@ */   --border-width-line:        1px;
-/* @@ */   --border-width-line-thick:  2px;
-/* @@ */   --border-width-frame:       4px;
+  --border-width-line:        1px;
+  --border-width-line-thick:  2px;
+  --border-width-frame:       4px;
 
   /* Border WIDTH is the "selected" channel on a game piece — the
      tile's edge thickens to say "this piece is part of the move I'm
@@ -234,8 +234,8 @@
      resting edge and the selected edge can be tuned against each other
      in one place. A selected class re-sets `--tile-edge-width` to the
      selected value rather than re-declaring the border shorthand. */
-/* @@ */   --tile-edge-width:           2px;
-/* @@ */   --tile-selected-edge-width:  4px;
+  --tile-edge-width:           2px;
+  --tile-selected-edge-width:  4px;
 
   /* How far a disabled control fades. An EFFECT rather than a
      per-family color: filled and outline degrade identically under
@@ -259,7 +259,7 @@
      measured across every game, every unclickable piece shows what
      HAPPENED to it instead, and setgame overrides the global dim
      because dimming a card "reads as a different card". */
-/* @@ */   --chrome-disabled-opacity:  0.75;
+  --chrome-disabled-opacity:  0.75;
 
   /* The fixed square footprint of a button drawn as a glyph alone.
      One token so the box size is consistent everywhere
@@ -267,14 +267,14 @@
      equal to the rendered height of a labeled text button (its 0.4rem
      × 2 padding + one line of text + borders) so the two sit flush in
      mixed rows like EntryRow — retune if the button padding changes. */
-/* @@ */   --iconButton-size:  2.05rem;
+  --iconButton-size:  2.05rem;
 
   /* The shared <EntryBox> text size (placeholder + entered word).
      Default here; a consumer raises it by re-setting the token on its
      own EntryBox element . A
      token rather than a literal so the override wins regardless of
      stylesheet order. The caret height tracks it (1.15em). */
-/* @@ */   --entryBox-font-size:  1.5rem;
+  --entryBox-font-size:  1.5rem;
 
   /* ── Feedback timings ──────────────────────────────────────────
      How long the two transient marks last. Shared, because "how long
@@ -292,8 +292,8 @@
      The board frame at the moment the turn becomes yours is a fade-out
      rather than a blink: the message is "it just became yours", not
      "something is wrong". */
-/* @@ */   --mark-attention-flash-duration:  0.7s;
-/* @@ */   --mark-yourTurn-flash-duration:   1.1s;
+  --mark-attention-flash-duration:  0.7s;
+  --mark-yourTurn-flash-duration:   1.1s;
 
   /* ── Depth on a GAME SURFACE ───────────────────────────────────
      Board tiles and the on-screen keyboard's keys. Ordinary buttons
@@ -330,8 +330,8 @@
      small and pale, so the big one may want more offset than the small
      one — probably as a multiplier rather than a second literal. Left
      as one value until we can see both wanting different things. */
-/* @@ */   --tile-shadow:        1px 2px 6px rgb(0 0 0 / 30%);
-/* @@ */   --tile-hover-shadow:  2px 6px 12px rgb(0 0 0 / 32%);
+  --tile-shadow:        1px 2px 6px rgb(0 0 0 / 30%);
+  --tile-hover-shadow:  2px 6px 12px rgb(0 0 0 / 32%);
 
   /* ── Depth in CHROME ───────────────────────────────────────────
      Shadows for things that FLOAT above the page — menus, popovers,
@@ -349,19 +349,19 @@
      keeps its own, in its own file, with a note — collapsing on
      similarity is how you silently restyle a surface nobody was
      looking at. */
-/* @@ */   --shadow-popover:     0 8px 24px rgb(0 0 0 / 18%);
-/* @@ */   --shadow-notice:      0 8px 24px rgb(0 0 0 / 8%);
-/* @@ */   --shadow-panel:       0 8px 24px rgb(0 0 0 / 12%);
-/* @@ */   --shadow-toast:       0 4px 16px rgb(0 0 0 / 30%);
+  --shadow-popover:     0 8px 24px rgb(0 0 0 / 18%);
+  --shadow-notice:      0 8px 24px rgb(0 0 0 / 8%);
+  --shadow-panel:       0 8px 24px rgb(0 0 0 / 12%);
+  --shadow-toast:       0 4px 16px rgb(0 0 0 / 30%);
   /* The floating control that sits ON a board (psychicnum's /
      connections' Shuffle). Separation, not decoration. */
-/* @@ */   --shadow-boardFloat:  0 2px 6px rgb(0 0 0 / 18%);
+  --shadow-boardFloat:  0 2px 6px rgb(0 0 0 / 18%);
 
   /* The dark layer behind a modal: it dims the page so the dialog
      reads as being on top of it, and swallows clicks aimed past it.
      `light` is for an overlay you can see more through. */
-/* @@ */   --scrim-color:        rgb(0 0 0 / 45%);
-/* @@ */   --scrim-light-color:  rgb(0 0 0 / 40%);
+  --scrim-color:        rgb(0 0 0 / 45%);
+  --scrim-light-color:  rgb(0 0 0 / 40%);
 
   /* ── The three DIMS ────────────────────────────────────────────
      One value per MEANING, not per scope: a mark that means "in
@@ -401,9 +401,9 @@
      inFlight and notYourTurn CAN compound (your move can still be in
      flight when the turn passes), so those two are a PAIR: 18% over
      12% reads as ~28% black, still short of looking broken. */
-/* @@ */   --mark-inFlight-dim-color:     rgb(0 0 0 / 18%);
-/* @@ */   --mark-notYourTurn-dim-color:  rgb(0 0 0 / 12%);
-/* @@ */   --mark-gameOver-dim-color:     rgb(0 0 0 / 12%);
+  --mark-inFlight-dim-color:     rgb(0 0 0 / 18%);
+  --mark-notYourTurn-dim-color:  rgb(0 0 0 / 12%);
+  --mark-gameOver-dim-color:     rgb(0 0 0 / 12%);
 
   /* ── THE Z- LAYERS ────────────────────────────────────────────
      Every page-level layer, low to high. Not a scale — a stacking
@@ -463,34 +463,34 @@
 
      And the ordering rule, which is the sentence to keep: SHORTER-
      LIVED OR MORE IMPORTANT SITS HIGHER. */
-/* @@ */   --z-page:            0;     /* the page itself. Nothing here is ever
+  --z-page:            0;     /* the page itself. Nothing here is ever
                                           deliberately drawn over anything else */
-/* @@ */   --z-board:           1000;  /* the play surface and the pieces on it. OWNS
+  --z-board:           1000;  /* the play surface and the pieces on it. OWNS
                                           THE RANGE 1000–1099, for pieces stacked on
                                           other pieces — stackdown's depth. Every
                                           layer could have a range; only this one
                                           needs one today */
-/* @@ */   --z-board-question:  1100;  /* a box over ONE square, showing or taking
+  --z-board-question:  1100;  /* a box over ONE square, showing or taking
                                           something for that square: crosswords'
                                           rebus entry and its read-only peek */
-/* @@ */   --z-ghost:           1200;  /* a piece in transit, following the pointer
+  --z-ghost:           1200;  /* a piece in transit, following the pointer
                                           between two places on its own board */
-/* @@ */   --z-infocol:         1300;  /* the readouts beside the board — and a layer
+  --z-infocol:         1300;  /* the readouts beside the board — and a layer
                                           on desktop too, where nothing overlaps:
                                           sitting beside rather than over is a fact
                                           about the viewport, not about the kind */
-/* @@ */   --z-companion:       2000;  /* something you keep NEARBY while you play:
+  --z-companion:       2000;  /* something you keep NEARBY while you play:
                                           open it, keep it open, move it where you
                                           want it. Reading is the common case (help,
                                           a setter's note); writing is the exception
                                           (the scratchpad) */
-/* @@ */   --z-dialog:          2100;  /* a question that can wait. No dim, movable,
+  --z-dialog:          2100;  /* a question that can wait. No dim, movable,
                                           reopens where you left it */
-/* @@ */   --z-modal-normal:    2200;  /* a question worth thinking or talking about.
+  --z-modal-normal:    2200;  /* a question worth thinking or talking about.
                                           Dims to focus you — and chat stays
                                           reachable, which is not a leak: a normal
                                           modal never claimed the world stopped */
-/* @@ */   --z-help:            2300;  /* HELP STATES OTHERWISE, the way chat does. It is a
+  --z-help:            2300;  /* HELP STATES OTHERWISE, the way chat does. It is a
                                           COMPANION — no dim, keep-open, X-to-close — but it
                                           is summoned FROM things, including the setup modal
                                           at 2200, and the rules must never open behind the
@@ -509,11 +509,11 @@
                                           what covers what, and this covers
                                           everything under it more completely than
                                           any z-index could. */
-/* @@ */   --z-chat:            3100;  /* over every dim below it, because talking is
+  --z-chat:            3100;  /* over every dim below it, because talking is
                                           what the app is for — and chat is the one
                                           companion that can OPEN ITSELF, so it must
                                           never materialize under something */
-/* @@ */   --z-menu:            3200;  /* the header menu — the app's own always-available
+  --z-menu:            3200;  /* the header menu — the app's own always-available
                                           affordance, beside the pause gate and chat. There
                                           is exactly ONE menu (rendered only by
                                           <PageHeaderMenu>), so it is a rung and not a
@@ -522,16 +522,16 @@
                                           drops down over them; above the windows you left
                                           lying around, because it is the shortest-lived
                                           thing on screen and you just asked for it. */
-/* @@ */   --z-toast:           4000;  /* an announcement you must see wherever you
+  --z-toast:           4000;  /* an announcement you must see wherever you
                                           are and whatever you are doing */
-/* @@ */   --z-modal-blocking:  5000;  /* the world stops. Answer it now; nothing
+  --z-modal-blocking:  5000;  /* the world stops. Answer it now; nothing
                                           underneath is live */
-/* @@ */   --z-modal-fault:     5100;  /* as blocking, but strictly above it: an error
+  --z-modal-fault:     5100;  /* as blocking, but strictly above it: an error
                                           must be readable mid-question. The jump
                                           from here to 9000 is the point — nothing
                                           lives above a fault except the thing that
                                           blocks nothing */
-/* @@ */   --z-tooltip:         9000;  /* always the very top. You asked for it by
+  --z-tooltip:         9000;  /* always the very top. You asked for it by
                                           hovering, and it blocks nothing */
 
   /* ── Page geometry ─────────────────────────────────────────────
@@ -540,8 +540,8 @@
      vertical is tighter so the header + play surface claim more of the
      viewport. Single source: `body` below applies both, and a game
      PlayArea's available-width math subtracts 2× the horizontal one. */
-/* @@ */   --page-padding-x:  1rem;
-/* @@ */   --page-padding-y:  0.5rem;
+  --page-padding-x:  1rem;
+  --page-padding-y:  0.5rem;
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from
      100svh so it fills to the bottom without overflowing. What it
@@ -553,7 +553,7 @@
      below, which says why it composes — so a header or padding change
      moves this by hand. See docs/ui.md → "Page-height fits the
      viewport". */
-/* @@ */   --game-chrome-height:  5rem;
+  --game-chrome-height:  5rem;
 
   /* Where the GamePage header's bottom edge actually SITS, measured
      from the viewport top. Anything positioning itself directly under
@@ -573,7 +573,7 @@
      at 390px and let the sheet ride 4px over the header's rule at
      768px.) The remaining terms are the header's own box: its height,
      its 0.5rem padding-bottom, and the 1px rule. */
-/* @@ */   --game-header-bottom: calc(
+  --game-header-bottom: calc(
     var(--page-padding-y) + var(--pageHeader-height) + 0.5rem + 1px
   );
 
@@ -583,7 +583,7 @@
      `width`/`height` ATTRIBUTES, which no variable can reach: those are the
      intrinsic-size hint that reserves the box before the image loads
      (docs/ui.md → "Layout stability"), a different job that stays put. */
-/* @@ */   --logo-size: 32px;
+  --logo-size: 32px;
 
   /* The page header's height, read by <PageHeader> and by the sheet
      offset above. A REAL contract between two files, not a description:
@@ -594,7 +594,7 @@
      PageHeader.module.css, which fixes the height). The padding is
      Menu.module.css's own and has no token, so that one term is still a
      number two files agree on. */
-/* @@ */   --pageHeader-height: calc(var(--logo-size) + 2 * 0.25rem);
+  --pageHeader-height: calc(var(--logo-size) + 2 * 0.25rem);
 
   /* A FLOATING PANEL's titlebar height, and the one number that sizes the strip.
      The title's type and the ✕ derive from it rather than carrying tokens of
@@ -604,7 +604,7 @@
 
      2rem is what the strip already measured: 0.3rem of padding either side of a
      1.4rem ✕. Nothing repaints; the arithmetic just stops being implicit. */
-/* @@ */   --floatingPanel-titlebar-height: 2rem;
+  --floatingPanel-titlebar-height: 2rem;
 
   /* Type + the page's own ink, which every element inherits.
      The fallbacks are what shows while the file is in flight, and on the one
@@ -631,9 +631,9 @@
  * tweak never live apart, and moving one moves both. There is no
  * density stylesheet and no density tokens. */
 @media (--phone) {
-/* @@ */   :root {
-/* @@ */     --page-padding-x: 0.25rem;
-/* @@ */     --page-padding-y: 0.25rem;
+  :root {
+    --page-padding-x: 0.25rem;
+    --page-padding-y: 0.25rem;
   }
 }
 
@@ -642,7 +642,7 @@
 /* Universal border-box so padding doesn't get added on top of widths
    and heights — without this `body { min-height: 100svh; padding: 1rem }`
    totals to `100svh + 32px` and the page scrolls even when content fits. */
-/* @@ */ *, *::before, *::after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -653,11 +653,11 @@
    PlayArea.module.css `--avail-w`); this just avoids a cosmetic width jump when
    the scrollbar toggles. No effect on overlay-scrollbar systems (0px gutter);
    where unsupported (older Safari) it degrades to a harmless jump, not overflow. */
-/* @@ */ html {
+html {
   scrollbar-gutter: stable;
 }
 
-/* @@ */ body {
+body {
   margin: 0;
   /* THE PAGE'S OWN GROUND — off-white, so pure-white cards have something to
      sit on. Declaring it here is what makes it real: with no rule painting it,
@@ -714,7 +714,7 @@
    top-level screen's responsibility, so the narrow card-based
    screens (login, home, club page) can stay readable while the
    board claims wide-desktop space. */
-/* @@ */ #root {
+#root {
   width: 100%;
 }
 
@@ -744,7 +744,7 @@
  * default: it is now a deliberate step down from a stated size rather
  * than a second guess at the browser's. */
 
-/* @@ */ h1 {
+h1 {
   /* Smaller than the browser default (2rem). Every h1 is a page title on a
    * card/shell screen — the game play surface has no h1. A gentler title
    * size reads better and leaves breathing room for long club names /
@@ -754,14 +754,14 @@
   margin: 0 0 1rem;
 }
 
-/* @@ */ h2 {
+h2 {
   /* The browser default is 1.5em — the same rendered size as our h1, which
    * makes it not a level at all. Stepped down so the four sizes descend. */
   font-size: 1.25rem;
   margin-block: 1.25rem;
 }
 
-/* @@ */ h3 {
+h3 {
   font-size: 1.15rem;
   /* The gap between a section heading and what it introduces. Load-bearing
    * on the club page and the homepage, where nothing else separates the
@@ -769,12 +769,12 @@
   margin-block: 1.15rem;
 }
 
-/* @@ */ h4 {
+h4 {
   font-size: 1rem;
   margin-block: 1rem;
 }
 
-/* @@ */ input,
+input,
 textarea {
   font: inherit;
   padding: 0.6rem 0.9rem;
@@ -784,7 +784,7 @@ textarea {
   color: inherit;
 }
 
-/* @@ */ input:focus,
+input:focus,
 textarea:focus {
   outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
@@ -801,7 +801,7 @@ textarea:focus {
    untouched — and never shrinks. Fields that set their own font-size via a class
    (higher specificity) are unaffected here and handled at their own rule. */
 @media (--touch) {
-/* @@ */   input,
+  input,
   textarea {
     font-size: max(16px, 1em);
   }
@@ -834,7 +834,7 @@ textarea:focus {
  * background, which is exactly what a row or a menu item does on hover. Plenty
  * of rules rely on this one and declare no radius of their own; drop it and
  * their hover states get square corners. It costs nothing to leave. */
-/* @@ */ button {
+button {
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -847,12 +847,12 @@ textarea:focus {
 /* Stays on the ELEMENT, not on `.standardButton`: a disabled game piece, keycap
    or list row should fade and refuse the pointer exactly as a disabled button
    does. */
-/* @@ */ button:disabled {
+button:disabled {
   opacity: var(--chrome-disabled-opacity);
   cursor: not-allowed;
 }
 
-/* @@ */ a {
+a {
   color: var(--chrome-link-color);
 }
 
@@ -863,10 +863,10 @@ textarea:focus {
    note is a `body::before` (a pseudo-element isn't matched by `body *`, so it
    stays visible), covering the hidden page with an opaque white sheet. */
 @media print {
-/* @@ */   body * {
+  body * {
     visibility: hidden;
   }
-/* @@ */   body::before {
+  body::before {
     content: 'This app isn’t designed for browser printing. To print a game board, open the game and choose “Print board (PDF)” from the menu (the logo, top-left).';
     visibility: visible;
     position: fixed;

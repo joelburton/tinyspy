@@ -18,7 +18,7 @@
 
 /* ─── ModeFilter — the All / Co-op / Compete segmented buttons ───────────── */
 
-/* The mode filter is the shared `.segmented` (common/core-css/patterns/segmented.css);
+/* The mode filter is the shared <Segmented> (common/buttons/Segmented.tsx);
  * only "don't let this squeeze" is the club page's. */
 /* @@ */ .modeFilter {
   flex-shrink: 0;

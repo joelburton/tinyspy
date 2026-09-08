@@ -60,7 +60,7 @@ export type FilterOption = {
  *   focus, and wears a focus ring, all of which this one refuses above.
  *
  *   HOW MANY OPTIONS picks the shape. A list long enough to want collapsing
- *   is this; a short one shows every choice at once as `.segmented`. The club
+ *   is this; a short one shows every choice at once as `<Segmented>`. The club
  *   page runs both side by side — its gametype filter is a menu because it
  *   has one entry per game family, its mode filter is segments because it has
  *   three.

@@ -30,7 +30,7 @@ type Props<T extends string | number> = AllFieldProps<T | undefined> & {
  *   WHAT IT DOES picks the family. This one SETS A VALUE: it looks and acts
  *   like an input, and the game reads what you picked later — every one of
  *   its call sites writes a key the RPC consumes. A control that changes what
- *   you are LOOKING at, recording no answer, is `.segmented`.
+ *   you are LOOKING at, recording no answer, is `<Segmented>`.
  *
  *   HOW MANY OPTIONS picks the shape. Few enough to show at once is this; a
  *   long list collapses into `<SelectField>`'s menu — which is why the
