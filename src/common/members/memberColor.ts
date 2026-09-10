@@ -46,7 +46,7 @@ const VALID = new Set<string>(MEMBER_COLORS)
  * tile tint. It does not paint their NAME: identity rides the disc and never
  * the text (docs/ui.md → "Player identity = a colored disc"), so a name beside
  * a disc stays body-text color. Reach for `<ActorTag>` / `<ActorDot>`
- * (`common/turn-log/ActorMention`) when what you want is the pair.
+ * (`common/members/ActorMention`) when what you want is the pair.
  */
 export function colorVarFor(name: string | null | undefined): string {
   return name && VALID.has(name)

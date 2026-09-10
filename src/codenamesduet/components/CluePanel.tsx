@@ -5,7 +5,7 @@ import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent 
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
-import { ActorDot, ActorTag } from '@/common/turn-log/ActorMention'
+import { ActorDot, ActorTag } from '@/common/members/ActorMention'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
 import { AIButton } from '@/common/buttons/AIButton'
 import { EndTurnButton } from '@/common/buttons/EndTurnButton'

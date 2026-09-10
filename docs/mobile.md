@@ -287,7 +287,7 @@ name is the droppable half. Desktop still shows names.
 
 The same "the dot IS the identity, the name is droppable" idea, extended to
 **feedback**. A shared pair of widgets in
-[`ActorMention.tsx`](../src/common/turn-log/ActorMention.tsx) —
+[`ActorMention.tsx`](../src/common/members/ActorMention.tsx) —
 `ActorTag` (name-then-dot, "moth ●") and `ActorDot` (dot-then-name, "● moth") —
 render the name in a real `.name` span rather than baking it into the message
 string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;

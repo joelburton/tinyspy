@@ -302,7 +302,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/game-page/GamePage.module.css': ['1rem', '0.1rem'],
       'src/common/game-page/GameHelpCompanion.module.css': ['1rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.5rem', '0.35rem'],
-      'src/common/turn-log/ActorMention.module.css': ['0.4rem'],
+      'src/common/members/ActorMention.module.css': ['0.4rem'],
       // Both values MOVED here rather than being chosen here: `0.6rem` was the
       // retired list.css pattern's row gap, and `0.85rem` was ClubPage's packed
       // override, now the `packed` density. Both are tuned to the box on

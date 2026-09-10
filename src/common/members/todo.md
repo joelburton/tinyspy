@@ -17,6 +17,12 @@
   or leave both, but don't rename one: half the pair is a worse mismatch than
   either whole scheme.
 
+- **`ActorMention.tsx` exports two components**, `ActorTag` and `ActorDot`, so
+  "the filename is the component" is false in it. They differ only in order and
+  share every piece, which is why this wants a look rather than a mechanical
+  split. (The same question is open in `turn-log` for `TurnLog.tsx`, in
+  `game-page` for `PlayAreaMountLog.tsx`, and in setgame for `Card.tsx`.)
+
 ## Someday
 
 ## Maybe

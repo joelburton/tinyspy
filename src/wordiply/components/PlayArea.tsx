@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { ActorDot } from '@/common/turn-log/ActorMention'
+import { ActorDot } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'

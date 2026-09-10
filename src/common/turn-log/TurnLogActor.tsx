@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { ComponentProps } from 'react'
-import { ActorTag } from './ActorMention'
+import { ActorTag } from '../members/ActorMention'
 import styles from './TurnLog.module.css'
 
 /**

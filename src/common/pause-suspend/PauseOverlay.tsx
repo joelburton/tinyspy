@@ -2,7 +2,7 @@
 
 import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
-import { ActorDot } from '../turn-log/ActorMention'
+import { ActorDot } from '../members/ActorMention'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'

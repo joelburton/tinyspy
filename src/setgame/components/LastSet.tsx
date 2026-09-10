@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { GamePlayer } from '@/common/members/member'
-import { ActorDot } from '@/common/turn-log/ActorMention'
+import { ActorDot } from '@/common/members/ActorMention'
 import type { EventRow } from '../hooks/useGame'
 import { Card } from './Card'
 import styles from './LastSet.module.css'

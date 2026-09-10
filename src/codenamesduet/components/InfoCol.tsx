@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { ActorDot } from '@/common/turn-log/ActorMention'
+import { ActorDot } from '@/common/members/ActorMention'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { NewGameButton } from '@/common/buttons/NewGameButton'

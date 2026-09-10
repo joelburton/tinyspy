@@ -110,7 +110,7 @@ makes with its files open.
 **WORKED 2026-09-09 — the four sites are converted, not handed off** (Joel:
 "on the pause page, show player name in black and with the member dot… same for
 chat… same for codenames duet"). Each renders the shared `<ActorDot>`
-(`common/turn-log/ActorMention`), whose stylesheet already carried the rule.
+(`common/members/ActorMention`), whose stylesheet already carried the rule.
 `show="both"` at all four: they are sentences, and the mention's default drops
 the name on a phone. The names now inherit their line's color, so the two duet
 banners keep their green/tan rather than turning literally black. The weight
@@ -403,7 +403,7 @@ Second is a failed first read, which `useClubRoster` leaves as `[]` on purpose
 noted there rather than here.
 
 **And "a departed member" cannot happen**, though `memberList.ts`'s
-`memberById` and `turn-log/ActorMention.tsx` both name it as the case.
+`memberById` and `members/ActorMention.tsx` both name it as the case.
 `common.messages.user_id` is `on delete cascade` from `common.profiles`, so a
 deleted account takes its messages with it; and nothing removes a row from
 `clubs_members` — two `insert`s in `common.sql`, no delete and no delete

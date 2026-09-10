@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
-import { ActorDot } from '../turn-log/ActorMention'
+import { ActorDot } from '../members/ActorMention'
 import { linkify } from '../utils/linkify'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import type { ClubMessage } from './useClubChat'

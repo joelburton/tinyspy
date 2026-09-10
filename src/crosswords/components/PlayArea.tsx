@@ -29,7 +29,7 @@ import { writeIpuz } from '../lib/parse/ipuz'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { ActorDot } from '@/common/turn-log/ActorMention'
+import { ActorDot } from '@/common/members/ActorMention'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { cls } from '@/common/utils/cls'
 import {

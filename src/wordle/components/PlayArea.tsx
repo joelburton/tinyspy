@@ -23,7 +23,7 @@ import { useStandardGameActions } from '@/common/game-page/useStandardGameAction
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { ActorDot } from '@/common/turn-log/ActorMention'
+import { ActorDot } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
