@@ -6,11 +6,8 @@ import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
@@ -26,8 +23,9 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * spellingbee picks: the RankBar + Stats are ONE "state" unit and lead (the thing you
  * watch), and there's no help line (the honeycomb makes the move obvious). Order:
  * state (RankBar + Stats) → OpponentStrip (compete) → action row → setup disclosure →
- * the found-words `<WordList>`. Every mutation is a named callback up (`onEndGame` /
- * `onConcede`); PlayArea owns the RPCs + coordination. Prop names match the other
+ * the found-words `<WordList>`. Every command arrives as a bound action this
+ * column simply places — what it does, whether it applies right now and which key
+ * also fires it are the action's own business. Prop names match the other
  * games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
@@ -49,13 +47,11 @@ export function InfoCol({
   selfRankIdx,
   metricByUser,
   concededIds,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   setupRows,
   wordRows,
   reveal,
@@ -91,23 +87,20 @@ export function InfoCol({
   // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
   //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
   //    Restart + New game + back-to-club.) ──
-  onEndGame: () => void
-  onConcede: () => void
-  /** Restart THIS board — same letters, finds wiped (the menu's
-   *  replay-board, unconfirmed at terminal since there's nothing to lose). */
-  onRestart: () => void
-  /** Start a fresh follow-up game — same setup, new board + id. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  /** Direct navigation to the club — terminal only (nothing to lose). */
-  onBackToClub: () => void
-  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
-   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
-   *  shelves it. */
-  onRequestBackToClub: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Restart THIS board — same letters, finds wiped. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup, new board + id. Disables itself
+   *  while the create is in flight, so a slow network reads as "working". */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+   *  for both rows: it navigates directly at terminal and routes through the
+   *  suspend-confirm flow mid-game, which is the difference the two callbacks
+   *  this replaced were spelling out by hand. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   setup: SpellingbeeSetup
@@ -167,24 +160,26 @@ export function InfoCol({
             the terminal LOOK — a status line + the now-disabled Concede.
             PLAYING: End/Concede + back-to-club (via the suspend-confirm flow). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): run this
                 board back, or spin up the next one. */}
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede disables itself once conceded — the row keeps its shape
+                and the button says why it can't be pressed again. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-            )}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

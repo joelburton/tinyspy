@@ -310,8 +310,10 @@ board exits back to live.
 | `A`–`Z` | Type into the entry (stored uppercase). |
 | `⌫` / `Enter` | Delete / submit. |
 | `↑` `↓` | Recall your last word / clear the entry. |
-| `Space` | **Shuffle the hive** — a fresh visual scan. A BOARD key, not an entry key: it works mid-submit *and at terminal*, matching the Shuffle button, which is deliberately live on a finished board (a harmless rearrange). `useCaptureKeys` runs `onExtraKey` before its own hard-off for exactly this. |
-| `Enter` / `Space` on a focused letter | Type that letter. Tiles don't take focus on a tap, so this is rarely reached. |
+| `⌥Z` | **Shuffle the hive** — a fresh visual scan of the same letters, local to you and live at terminal (a harmless rearrange). The ⟲ pill over the hive's top-right does the same thing. |
+
+Hive letters are pointer-only (no `tabIndex`, no `role`), so no keystroke types a
+letter from one — clicking does.
 
 ## stackdown
 

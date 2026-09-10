@@ -1,7 +1,6 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -28,9 +27,8 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import { buildWordSections } from '@/common/pdf/wordSections'
@@ -77,7 +75,7 @@ type SubmittedWord =
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    setup, goToClub, clubHandle, goToGame, menu, brand, title,
+    setup, clubHandle, goToGame, menu, brand, title,
     // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
     // the player's own word result. Two different surfaces.
@@ -119,10 +117,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // is unchanged. No board divergence — input is letter taps (no keyboard).
   const infoSheet = useInfoSheet()
 
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
-
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team crosses the rank they set out for (the
   // winning word flips playState to 'won' on every connected client via
@@ -131,18 +125,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // telling the winner from the losers there needs data that isn't right on the
   // first render (the waffle loading-race lesson), so compete doesn't celebrate.
   const celebration = useCelebration(playState === 'won')
-
-  // The end/concede action handlers, held in a stable ref so the menu effect
-  // needn't list the (later-declared, per-render `useCallback`) handlers in its
-  // deps — that would rebuild the menu every render. Populated by an effect once
-  // handleEndGame/handleConcede exist (below); read at click time. (Crosswords'
-  // `actionsRef` pattern.)
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-  } | null>(null)
 
   // Concede state (from the common roster). A conceder can't submit and sees the
   // locally-terminal look while the others race; peers show as "out" in the strip.
@@ -185,85 +167,62 @@ export function PlayArea(ctx: GamePageCtx) {
     return { foundWordsScore: s, foundWordsCount: myFoundRows.length }
   }, [myFoundRows])
 
-  // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from the
-  // live state (RLS + the explicit compete filter already scope what I may see) and
-  // hands it to the jsPDF renderer. A snapshot at click time. See docs/pdf.md.
-  useEffect(() => {
-    if (!game) return
-    // The same reveal the on-screen list uses: at terminal, every missed word —
-    // required AND bonus — folds in (`buildDisplayRows` dedups found + appends the
-    // unfound). The print deliberately follows the screen here: the missed-word
-    // list IS the post-game artifact, so a printout that quietly dropped the bonus
-    // half would be a different document from the one on screen. Look up each found
-    // word's points (the shared row type carries finder/bonus/pangram, not score).
-    // Gated on `isTerminal`, which is the whole rule for these three word-finding
-    // games: at game over the list shows what nobody found, and the KIND filter
-    // (found / missed) is the only control anyone needs over it. They carry no
-    // Reveal button on purpose — it would be a second, confusing way to switch
-    // between the same two lists (docs/ui.md → Terminal results). If we ever
-    // wanted the answer withheld at the end, the change is the filter's DEFAULT,
-    // not a new control.
-    const reveal = isTerminal
-      ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords)
-      : null
-    const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
-    const words = buildDisplayRows(foundWords, reveal).map((r) => ({
-      word: r.word.toUpperCase(),
-      pangram: r.isPangram ?? false, // spellingbee's own difference: pangrams print bold
-      bonus: r.isBonus ?? false,
-      found:
-        r.kind === 'found'
-          ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
-          : null,
-    }))
-    const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
-    const model = {
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      // Coop's rank + totals are the TEAM's, so the header states them. Compete's
-      // are per-player — each section carries its own — so the header states only
-      // the shared targets rather than reporting the viewer's as the table's.
-      summary:
-        game.mode === 'compete'
-          ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
-          : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
-      outerLetters: game.outer_letters.split(''),
-      centerLetter: game.center_letter,
-      mode: game?.mode ?? 'coop',
-      setup: summaryRows,
-      // Coop prints one shared list; compete a section per player, each with its
-      // own score, plus a trailing "Not found" for the terminal reveal.
-      sections: buildWordSections(words, game.mode, players, session.user.id),
-    }
-    // The FULL spellingbee menu: Help (top) + the Print item + the End/Concede +
-    // Back-to-club tail, all from `buildGameMenu`. End/concede dispatch through the
-    // stable `actionsRef` so this effect needn't depend on the later-declared
-    // handlers. `mode` picks coop's End vs compete's Concede; `myConceded` grays
-    // the compete item once I've dropped out.
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
+  // Print the board — the plain-data print model built from the live state (RLS +
+  // the explicit compete filter already scope what I may see) and handed to the
+  // jsPDF renderer. Built inside `run`, so it is a snapshot at CLICK time and the
+  // menu needn't rebuild as words are found. See docs/pdf.md.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      // The same reveal the on-screen list uses: at terminal, every missed word —
+      // required AND bonus — folds in (`buildDisplayRows` dedups found + appends the
+      // unfound). The print deliberately follows the screen here: the missed-word
+      // list IS the post-game artifact, so a printout that quietly dropped the bonus
+      // half would be a different document from the one on screen. Look up each found
+      // word's points (the shared row type carries finder/bonus/pangram, not score).
+      // Gated on `isTerminal`, which is the whole rule for these three word-finding
+      // games: at game over the list shows what nobody found, and the KIND filter
+      // (found / missed) is the only control anyone needs over it. They carry no
+      // Reveal button on purpose — it would be a second, confusing way to switch
+      // between the same two lists (docs/ui.md → Terminal results). If we ever
+      // wanted the answer withheld at the end, the change is the filter's DEFAULT,
+      // not a new control.
+      const reveal = isTerminal
+        ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords)
+        : null
+      const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
+      const words = buildDisplayRows(foundWords, reveal).map((r) => ({
+        word: r.word.toUpperCase(),
+        pangram: r.isPangram ?? false, // spellingbee's own difference: pangrams print bold
+        bonus: r.isBonus ?? false,
+        found:
+          r.kind === 'found'
+            ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+            : null,
+      }))
+      const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
+      printSpellingbeePdf({
+        brand,
+        gameTitle: title,
+        date: new Date().toLocaleDateString(),
+        // Coop's rank + totals are the TEAM's, so the header states them. Compete's
+        // are per-player — each section carries its own — so the header states only
+        // the shared targets rather than reporting the viewer's as the table's.
+        summary:
+          game.mode === 'compete'
+            ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
+            : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
+        outerLetters: game.outer_letters.split(''),
+        centerLetter: game.center_letter,
         mode: game.mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
-        extra: [
-          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] },
-          {
-            items: [
-              // Same board, wiped finds / same setup, fresh board + id.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-            ],
-          },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, hasBonus, isTerminal, myConceded, foundWordsScore, foundWordsCount, summaryRows, session.user.id])
+        setup: summaryRows,
+        // Coop prints one shared list; compete a section per player, each with its
+        // own score, plus a trailing "Not found" for the terminal reveal.
+        sections: buildWordSections(words, game.mode, players, session.user.id),
+      })
+    },
+  })
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -357,27 +316,26 @@ export function PlayArea(ctx: GamePageCtx) {
   // three are the byte-identical shared handlers (useStandardGameActions); only
   // the failure-pill format + the replay sentence are spellingbee's. New game
   // stays below — its create path diverges per game.
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
   })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
   // Same roster + mode, in the same club, via the same spellingbee-build-board
   // edge function the manifest's startGameInClub uses. Non-destructive (this
-  // game un-currents into the club list), so no confirm; the creator jumps in
-  // via ctx.goToGame, peers arrive via the game-invitation toast.
+  // game un-currents into the club list); the creator jumps in via ctx.goToGame,
+  // peers arrive via the game-invitation toast.
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     // A hand-picked custom board is a ONE-OFF (docs/games/spellingbee.md): a
     // "new game" should get a fresh RANDOM board, not silently rebuild the
@@ -411,21 +369,41 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('spellingbee-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press building a second board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
-  // Keep the menu's actions current (read by the menu items via the stable
-  // actionsRef, so the menu effect needn't depend on these handlers).
+  // The FULL spellingbee menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The effect
+  // re-runs only when the SHAPE changes, which is why every dep is stable.
   useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, handleNewGame])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
+        extra: [
+          { items: [actPrintBoard] },
+          // Same board, wiped finds / same setup, fresh board + id.
+          { items: [actRestart, actNewGame] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -631,13 +609,11 @@ export function PlayArea(ctx: GamePageCtx) {
         metricByUser={rankByUser}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
-        onRequestBackToClub={menu.requestBackToClub}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={spellingbeeSetup}
         setupRows={summaryRows}
@@ -658,7 +634,6 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }
