@@ -5,12 +5,8 @@ import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
@@ -50,16 +46,12 @@ export function InfoCol({
   selfId,
   playerStates,
   concededIds,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onRevealAnswer,
-  answerShown,
-  answerAlreadyShown,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actReveal,
+  actNewGame,
+  actBackToClub,
   setupRows,
   answerWords,
   swaps,
@@ -101,33 +93,27 @@ export function InfoCol({
   // ── Action row (ICON-ONLY buttons — waffle's experiment; tooltips carry
   //    the labels. Playing: End/Concede + back-to-club. Terminal: Restart +
   //    Reveal + New game + back-to-club.) ──
-  onEndGame: () => void
-  onConcede: () => void
-  /** Restart THIS board from scratch (the menu's Restart item, unconfirmed at
-   *  terminal since there's no progress left to lose). */
-  onRestart: () => void
+  /** The whole table stops, with no result. Hidden in a race that doesn't offer
+   *  it, so the pair can be placed unconditionally. */
+  actEndGame: BoundAction
+  /** Drop out of a race; the others keep going. Hidden outside one, and gray
+   *  once you have solved — see `concedeDisabled` in useStandardGameActions. */
+  actConcede: BoundAction
+  /** Restart THIS board from scratch. */
+  actRestart: BoundAction
   /** Show the answer — or put it away again, bringing back the board the
    *  players finished with. A local display toggle, no RPC (see PlayArea's
-   *  useSolutionReveal). Rendered only in the terminal row. */
-  onRevealAnswer: () => void
-  /** Is the solution the grid currently shows? Swaps this button and the
-   *  matching menu item to their Hide face. */
-  answerShown: boolean
-  /** Is it showing because this player SOLVED the grid — in which case their
-   *  own board already IS the answer and the control has nothing to do? */
-  answerAlreadyShown: boolean
-  /** Start a fresh follow-up game — same setup, new board + id. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  /** Direct navigation to the club — terminal only (nothing to lose). */
-  onBackToClub: () => void
-  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
-   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
-   *  shelves it. */
-  onRequestBackToClub: () => void
+   *  useSolutionReveal); it carries its own two faces, so this column places one
+   *  button either way. */
+  actReveal: BoundAction
+  /** Start a fresh follow-up game — same setup, new board + id. Disables itself
+   *  while the create is in flight, so a slow network reads as "working". */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+   *  for both rows: it navigates directly at terminal and routes through the
+   *  suspend-confirm flow mid-game, which is the difference the two callbacks
+   *  this replaced were spelling out by hand. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
@@ -148,22 +134,19 @@ export function InfoCol({
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
   // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
   // components for two semantically distinct actions (docs/ui.md → Button iconography,
-  // End vs Concede).
+  // End vs Concede) — and each hides itself in the mode that isn't its own, so
+  // both are placed and the row asks nothing.
   //
   // Concede is disabled once you've SOLVED: _maybe_finish_compete excludes
   // conceded players from the winner query, so a solved-and-waiting player who
   // clicked Concede ("I'm done waiting") would silently forfeit a win they may
   // have already banked. A solved player waits it out via Back-to-club instead.
   // Icon-only (the waffle experiment): the styled tooltip carries the label.
-  const endButton = isCompete ? (
-    <ConcedeGameButton
-      onClick={onConcede}
-      show="icon"
-      className={shared.helperButton}
-      disabled={myConceded || selfSolved}
-    />
-  ) : (
-    <EndGameButton onClick={onEndGame} show="icon" className={shared.helperButton} />
+  const exits = (
+    <>
+      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+    </>
   )
 
   return (
@@ -231,19 +214,13 @@ export function InfoCol({
             back-to-club (secondary, via the suspend-confirm flow). WATCHING
             (not in the game): a bold note, no button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): restart this
                 board, see the answer, or spin up the next game. */}
-            <RestartButton show="icon" onClick={onRestart} />
-            <RevealButton
-              show="icon"
-              label="Reveal answer"
-              revealedLabel="Hide answer"
-              revealed={answerShown}
-              alreadyShown={answerAlreadyShown}
-              onClick={onRevealAnswer}
-            />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : selfDone ? (
           <LocalTerminalRow
@@ -255,13 +232,13 @@ export function InfoCol({
                 a player who dropped out can't spoil a live race. Present
                 rather than absent so the row doesn't change shape when the
                 last racer finishes — the button is simply enabled then. */}
-            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
-            {endButton}
+            <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+            {exits}
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
-            {endButton}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            {exits}
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         ) : (
           <LocalTerminalRow label="Watching — not in this game" />

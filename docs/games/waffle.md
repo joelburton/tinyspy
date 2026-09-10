@@ -290,8 +290,9 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   boards survive — so the turn-history viewer still replays real swaps against
   the board they actually played — and **Hide brings that board straight back**,
   which a rewrite could never do. Nothing autoreveals, a win included. Offered
-  from the game menu AND the terminal action row's `RevealButton`, both wearing
-  the same two faces. pgTAP: `boards_untouched_test.sql`.
+  from the game menu AND the terminal action row, both the SAME bound action
+  (`act-reveal`) wearing the same two faces — its words and its glyph move
+  together, so a row and a button can't disagree about which face is on. pgTAP: `boards_untouched_test.sql`.
 
 ### Terminal logic
 
@@ -406,10 +407,11 @@ Two details the formula is careful about:
 The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback,
 the locally-terminal "waiting" message, and the terminal verdict are all the shared
 `<FeedbackPill>` in the `.belowBoard` slot (transient outline error / sticky neutral
-waiting / permanent fill verdict); the action row uses the semantic `EndGameButton`
-(coop) / `ConcedeGameButton` (compete); a **locally-terminal** state (compete: solved
+waiting / permanent fill verdict); the action row places both exits and lets each hide itself
+(coop shows End, a race shows Concede); a **locally-terminal** state (compete: solved
 or out of swaps while others race on) reuses the terminal look (a bold status line +
-Concede) and disables the grid; the `.infoCol` follows the canonical **state →
+Concede) and disables the grid — and Concede goes gray once you have SOLVED, since
+conceding would forfeit a win already banked; the `.infoCol` follows the canonical **state →
 opponent strip → action row → help → setup → log** order; the `OpponentStrip` carries
 a `metricLabel="Swaps"`; and the turn log renders its own `<tr>` rows. An opponent
 solving reads as `success` (green), the same green a found word always reads as (tone
@@ -485,13 +487,13 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is **ICON-ONLY** (waffle's
   experiment — the styled tooltips carry the labels; see
   [ui.md → Button iconography](../ui.md#button-iconography)): during play the
-  semantic `EndGameButton` / `ConcedeGameButton` plus an icon-only
-  `BackToClubButton` (routed through the shell's **suspend-confirm** flow,
-  `menu.requestBackToClub` — leaving a live game shelves it, unlike terminal's
-  direct `goToClub`); at terminal the bold outcome line +
-  `RestartButton` / `RevealButton` (the terminal-local reveal) /
-  `NewGameButton` / primary back-to-club, via `TerminalActionRow`'s children
-  slot + its `backShow="icon"`. Stay-here options sit left of the leave option.
+  two exits plus back-to-club; at terminal the bold outcome line + Restart /
+  Reveal (the terminal-local reveal) / New game / primary back-to-club, in
+  `TerminalActionRow`'s children. Every one is an `<ActionButton>` over a bound
+  action ([common/actions](../../src/common/actions/doc.md)), including
+  back-to-club: ONE binding serves both rows, navigating directly at terminal
+  and routing through the shell's **suspend-confirm** flow mid-game — the
+  difference the two callbacks it replaced used to spell out by hand. Stay-here options sit left of the leave option.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows

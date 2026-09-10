@@ -961,6 +961,28 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## Step 5 — game 2: waffle
+
+The second conversion, and the first that was mostly mechanical: menu rows to
+bindings, InfoCol buttons to `<ActionButton>`s, `useStandardGameActions`'s new
+shape, `TerminalActionRow`'s children. Its whole keyboard was one line
+(`useGlobalKeyHandler(exitOnKey)`), which the viewer's own binding replaced.
+What it added:
+
+- **Two back-to-club props became one binding.** waffle passed `onBackToClub`
+  (direct, terminal) AND `onRequestBackToClub` (suspend-confirm, mid-game); the
+  shell's `actBackToClub` already knows which is which, so the game stopped
+  choosing — and stopped being able to choose wrong.
+- **"Solved, so you may not concede" moved into the action** as an optional
+  `selfSolved`, with the reason in its docstring: the winner query excludes
+  conceded players, so conceding a race you have already won silently forfeits
+  it. **wordle looks like it has this bug** — it disables Concede on
+  `myConceded` alone while a solved player waits — and gets the fix for free
+  when it converts and passes the flag.
+- **`boundActionFixture` replaces the per-test stub.** psychicnum grew one; game
+  two would have copied it, so it moved to `common/actions/` before it could
+  become fifteen of them.
+
 ## Step 5 — the first game: psychicnum
 
 Its PlayArea, BoardCol, InfoCol and tests are converted; 35 of 35 pass and its

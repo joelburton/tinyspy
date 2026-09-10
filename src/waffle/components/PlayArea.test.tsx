@@ -21,6 +21,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
@@ -145,9 +149,29 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   }
+}
+
+/** What PlayArea handed `setGameSections`, as the ROWS the menu would draw. */
+const menuItems = (ctx: GamePageCtx) => {
+  const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
+  const sections = (calls.at(-1)![0] ?? []) as MenuSection[]
+  return sections.flatMap((s) => s.items).map(menuRow)
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 beforeEach(() => {
@@ -196,18 +220,31 @@ describe('waffle PlayArea — render smoke', () => {
 
 describe('waffle PlayArea — concede', () => {
   it('compete shows Concede and calls waffle.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(competeGame, [me, moth])
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
     h.result = loaded(coopGame)
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons
@@ -249,21 +286,19 @@ describe('waffle PlayArea — concede', () => {
  * contract: the CURRENT game's setup verbatim, every ctx player, this mode.
  */
 describe('waffle PlayArea — new game (menu)', () => {
-  /** The game sections most recently pushed to the menu, flattened to items. */
-  const menuItems = (ctx: GamePageCtx) => {
-    const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
-    const sections = calls.at(-1)![0] as { items: { id: string; onClick: () => void }[] }[]
-    return sections.flatMap((s) => s.items)
-  }
-
   it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
     const user = userEvent.setup()
     startEdgeFn.mockResolvedValue({ error: null, data: { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } } })
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
-    render(<PlayArea {...ctx} />)
+    render(
+      <>
+        <PlayArea {...ctx} />
+        <ConfirmationHost />
+      </>,
+    )
 
-    act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    act(() => menuItems(ctx).find((r) => r.id === 'act-new-game')!.run())
     // Mid-game, New game CONFIRMS first (NEW_GAME_CONFIRM) — an accidental `+`
     // shouldn't shelve a game in progress. Nothing is created until we say yes.
     expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
@@ -307,9 +342,14 @@ describe('waffle PlayArea — new game (menu)', () => {
     // asserted and pass for the wrong reason.
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
-    render(<PlayArea {...ctx} />)
+    render(
+      <>
+        <PlayArea {...ctx} />
+        <ConfirmationHost />
+      </>,
+    )
 
-    act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    act(() => menuItems(ctx).find((r) => r.id === 'act-new-game')!.run())
     await user.click(await screen.findByRole('button', { name: 'Start new game' }))
 
     // Faults route to the MODAL queue, never a slot (docs/ui.md → Faults), and
@@ -340,14 +380,28 @@ describe('waffle PlayArea — icon-only action rows', () => {
   // ABCDE / IJKLM / QRSTU — what SolutionReveal shows once revealed.
   const FIXTURE_SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 
-  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+  it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
+    // ONE binding for both rows now: it navigates directly at terminal and
+    // routes through the suspend-confirm flow mid-game, so the game no longer
+    // picks between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
     h.result = loaded(coopGame)
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
-    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
-    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+    expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
+  })
+
+  it('the menu row is named "Reveal answer" mid-game too, inert but not renamed', () => {
+    // The row must not change its words as the game ends: falling through to
+    // the registry's bare "Reveal" while inert reads as a different command.
+    h.result = loaded(coopGame)
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+
+    const reveal = menuItems(ctx).find((r) => r.id === 'act-reveal')
+    expect(reveal?.label).toBe('Reveal answer')
+    expect(reveal?.disabled).toBe(true)
   })
 
   it('terminal "Reveal answer" swaps in the solution for me alone — no RPC', async () => {
@@ -524,7 +578,7 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   it('a keystroke returns to live', async () => {
     const user = userEvent.setup()
     h.result = withHistory()
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ players: twoMembers })} />)
 
     await user.click(screen.getByText('#2', { exact: true, selector: 'span' }))
     expect(screen.getByLabelText('Exit viewing')).toBeInTheDocument()

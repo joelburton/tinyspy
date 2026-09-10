@@ -22,8 +22,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { BoundAction } from '@/common/actions/useBoundAction'
-import type { ActionId } from '@/common/actions/registry'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { PsychicnumGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
@@ -72,25 +71,12 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToGame: vi.fn(),
     menu: {
       setGameSections: vi.fn(),
-      actHelp: shellAction('act-help'),
-      actChat: shellAction('act-open-chat'),
-      actBackToClub: shellAction('act-back-to-club'),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
     },
     ...over,
   } as unknown as GamePageCtx
-}
-
-/** One of the shell's own rows, as GamePage would hand it down. Hand-made
- *  rather than bound: what these tests exercise is psychicnum's menu, and a real
- *  binding would drag the key dispatcher in with it. */
-function shellAction(id: string): BoundAction {
-  return {
-    id: id as ActionId,
-    spec: { label: id },
-    run: vi.fn(),
-    describe: () => ({ state: 'active' }),
-    pending: false,
-  }
 }
 
 const competeGame: PsychicnumGame = {
@@ -415,6 +401,9 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     render(<PlayArea {...ctx} />)
     // Nothing to ring: the secrets don't reach this client until terminal.
     expect(menuItems(ctx).get('act-reveal')?.disabled).toBe(true)
+    // Still named, though — an inert row that fell through to the registry's
+    // bare "Reveal" would rename itself as the game ended.
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal secrets')
   })
 })
 

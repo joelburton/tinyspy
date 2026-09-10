@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
+import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
@@ -19,11 +19,10 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -94,7 +93,6 @@ export function PlayArea({
   setup,
   status,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -124,21 +122,16 @@ export function PlayArea({
   // The shared coordination state: which swap-log row (by POSITION in the coop log)
   // is open on the board, or null = live. When set, PlayArea feeds BoardCol that
   // swap's historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
-  // and freezes input. Only coop can reach it (compete renders no swap log). waffle
-  // has no keyboard play, so `exitOnKey` is its ONLY key handler — a bare key exits.
-  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing, exitOnKey } =
+  // and freezes input. Only coop can reach it (compete renders no swap log). Any key
+  // returns to live: the hook binds `act-exit-viewer` itself, so nothing is wired here.
+  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing } =
     useHistoryViewer()
-  useGlobalKeyHandler(exitOnKey)
 
   // Mobile: below --mobile the board fills the screen and the whole info column
   // slides in as an off-canvas sheet from a "Game info" menu item (the shared
   // recipe — docs/mobile.md). Plain (not `wide`): waffle's info column is a narrow
   // 22rem readout + swap log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
-
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the group solves it — the winning swap flips
@@ -324,12 +317,15 @@ export function PlayArea({
     // live again on the fresh board.
     setOptimisticSwap(null)
   }, [exitViewing, clearLocalFeedback, resetAnswer])
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
+    // Solved and waiting for the others: conceding would forfeit a win already
+    // banked, so it goes gray and you leave via Back to club.
+    selfSolved: playerStates.find((p) => p.user_id === session.user.id)?.solved ?? false,
     showError: showLocalFeedback,
     onRestarted,
   })
@@ -366,11 +362,6 @@ export function PlayArea({
     }
   })
   const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const args = newGameArgsRef.current
     const res = await runEdgeFn<CreatedGame>(
@@ -404,10 +395,34 @@ export function PlayArea({
       reportUnhandled('waffle-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }, [gameMode, clubHandle, goToGame, showLocalFeedback])
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
+  // read as "I just lost my game" — the copy says shelved, not ended) and goes
+  // straight through at terminal; the shared run's single flight is what stops
+  // a second press building a second board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
+
+  // Reveal the answer — a LOCAL display toggle: it swaps the board shown, writes
+  // nothing, and affects no peer. Its two faces are what `describe` is for, the
+  // glyph moving with the words because the button is icon-only. Terminal-only:
+  // the solution doesn't reach a compete client before then, so a player who
+  // conceded can't peek at a race still running.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (answerShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal answer' }
+    },
+    run: toggleAnswer,
+  })
 
   // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
   // Terminal results). There used to be a mid-game shape as well: a give-up
@@ -420,32 +435,21 @@ export function PlayArea({
   // No handler of its own: showing the answer is `toggleAnswer`, a local state
   // flip that swaps the DISPLAYED board. No RPC, so no failure to classify.
 
-  // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
-  // Back to club) via `buildGameMenu`. Its own items are "Restart" (both
-  // modes, any state), "New game" (same setup, fresh board + id — see
-  // handleNewGame), and "Reveal answer" — offered once the game is over for
-  // everyone, until the answer is already showing (a win's board IS the
-  // solution, or somebody already asked).
-  //
-  // menuMode is derived up here (not the below-guard copy) so the effect can
-  // pick coop End vs compete Concede. Every handler in the deps is a stable
-  // useCallback (or a one-shot transition value like `isTerminal`), so this
-  // effect only re-runs on real menu-affecting changes — never every render —
-  // keeping the setState loop-free. (`myConceded` is derived at the top.)
-  // Terminal-only: the solution doesn't reach a compete client before then, so
-  // a player who conceded can't peek at a race still running.
-  const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
-  useEffect(() => {
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The server
-    // already withholds a compete opponent's board AND their swaps until the
-    // game ends, so what the viewer may see is what prints; the model refuses
-    // the solution before terminal on top of that.
-    const printModel = game
-      ? buildWafflePrintModel({
+  // Print the board — a snapshot at CLICK time (docs/pdf.md), so the menu needn't
+  // rebuild as the board moves. The server already withholds a compete
+  // opponent's board AND their swaps until the game ends, so what the viewer may
+  // see is what prints; the model refuses the solution before terminal on top of
+  // that.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printWafflePdf(
+        buildWafflePrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode: menuMode,
+          mode: game.mode === 'compete' ? 'compete' : 'coop',
           isTerminal,
           maxSwaps: game.max_swaps,
           parSwaps: game.par_swaps,
@@ -461,68 +465,31 @@ export function PlayArea({
             : null,
           answerShown,
           setup: summaryRows,
-        })
-      : null
+        }),
+      )
+    },
+  })
+
+  // The FULL waffle menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The effect
+  // re-runs only when the SHAPE changes, which is why every dep is stable.
+  useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: menuMode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: endGame,
-        onConcede: concede,
+        // Both exits, in reading order; each hides itself in the mode that
+        // isn't its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
-              // Same setup + roster, a fresh randomly-built board, a NEW game id.
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
-              {
-                id: 'reveal',
-                // The same two faces as the terminal row's button — one toggle.
-                // The View glyph, not EyeOff, once solving put it there — see
-                // RevealButton for why the inert face keeps the plain eye.
-                icon: answerShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
-                label: impliedBySolve
-                  ? 'Solution already shown'
-                  : answerShown
-                    ? 'Hide answer'
-                    : 'Reveal answer',
-                disabled: !isTerminal || impliedBySolve,
-                onClick: toggleAnswer,
-              },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWafflePdf(printModel) }] }]
-            : []),
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu,
-    menuMode,
-    myConceded,
-    endGame,
-    concede,
-    restart,
-    handleNewGame,
-    toggleAnswer,
-    impliedBySolve,
-    isTerminal,
-    answerShown,
-    // The print model's inputs — rebuilt whenever the printable state moves, so
-    // the snapshot is current at click time.
-    brand,
-    title,
-    game,
-    playerStates,
-    swaps,
-    players,
-    session.user.id,
-    summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -712,16 +679,12 @@ export function PlayArea({
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onRevealAnswer={toggleAnswer}
-        answerShown={answerShown}
-        answerAlreadyShown={impliedBySolve}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
-        onRequestBackToClub={menu.requestBackToClub}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actReveal={actReveal}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         setup={waffleSetup}
         setupRows={summaryRows}
         answerWords={answerWords}
@@ -736,7 +699,6 @@ export function PlayArea({
           pill + the outcome line in the action row, with Restart right there),
           and a coop solve gets the celebration instead. */}
       {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
-      {confirmationModal}
     </div>
   )
 }

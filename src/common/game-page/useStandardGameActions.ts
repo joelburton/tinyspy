@@ -69,6 +69,7 @@ export function useStandardGameActions({
   isTerminal,
   mode,
   myConceded,
+  selfSolved,
   offerEndInCompete,
   showError,
   onRestarted,
@@ -80,6 +81,17 @@ export function useStandardGameActions({
   mode: 'coop' | 'compete'
   /** Compete: I've conceded (so I can't concede again). Always false in coop. */
   myConceded: boolean
+  /**
+   * Compete: I have SOLVED it and am waiting for the others — so Concede goes
+   * gray. Conceding there would silently forfeit a win already banked: the
+   * winner query excludes conceded players, so "I'm done waiting" would throw
+   * away the result. A solved player leaves via Back to club instead.
+   *
+   * Optional because not every race HAS this state: in a game where finishing
+   * ends it for everyone (psychicnum), or where there is nothing to solve
+   * (spellingbee, boggle), nobody can sit on a banked win.
+   */
+  selfSolved?: boolean
   /**
    * Compete: ALSO offer the whole-table End beneath Concede. They're different
    * acts — conceding is a loss on your record and it takes every player doing it
@@ -122,7 +134,7 @@ export function useStandardGameActions({
     terminal: isTerminal,
     describe: (): ActionState => {
       if (mode !== 'compete') return 'hidden'
-      return isTerminal || myConceded ? 'disabled' : 'active'
+      return isTerminal || myConceded || selfSolved ? 'disabled' : 'active'
     },
     run: async () => {
       const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))

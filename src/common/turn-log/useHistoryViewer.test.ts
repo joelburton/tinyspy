@@ -12,6 +12,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useHistoryViewer } from './useHistoryViewer'
+import { useActionDispatcher } from '../actions/dispatcher'
+import { liveBindings } from '../actions/useBoundAction'
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -109,5 +111,42 @@ describe('useHistoryViewer', () => {
     })
     expect(consumed).toBe(false)
     expect(result.current.viewingId).toBe(1) // still viewing — Cmd+Z is the game's
+  })
+})
+
+/** The same "any key returns to live", reached the way a converted game reaches
+ *  it: a real window keydown, the app-root dispatcher, `act-exit-viewer`. A game
+ *  on bound actions wires nothing, so this path is the only thing holding the
+ *  behavior up for it. */
+describe('useHistoryViewer — act-exit-viewer', () => {
+  /** Awaited: an action's run settles a microtask after the key. */
+  async function press(init: KeyboardEventInit = {}) {
+    await act(async () => {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, ...init }))
+    })
+  }
+
+  it('a bare key returns to live', async () => {
+    const { result } = renderHook(() => {
+      useActionDispatcher()
+      return useHistoryViewer()
+    })
+    act(() => result.current.select(1))
+
+    await press()
+    expect(result.current.viewingId).toBeNull()
+  })
+
+  it('is hidden when live, so a key is left for the board', () => {
+    const { result } = renderHook(() => {
+      useActionDispatcher()
+      return useHistoryViewer()
+    })
+
+    const exit = () => liveBindings().find((b) => b.id === 'act-exit-viewer')
+    expect(exit()?.describe().state).toBe('hidden')
+
+    act(() => result.current.select(1))
+    expect(exit()?.describe().state).toBe('active')
   })
 })

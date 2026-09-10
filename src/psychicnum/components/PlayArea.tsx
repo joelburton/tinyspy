@@ -463,10 +463,10 @@ export function PlayArea({
   const actReveal = useBoundAction('act-reveal', {
     describe: () => {
       if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (!isTerminal) return 'disabled'
-      return secretsShown
-        ? { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
-        : { state: 'active', label: 'Reveal secrets' }
+      if (secretsShown) return { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal secrets' }
     },
     run: toggleSecrets,
   })
