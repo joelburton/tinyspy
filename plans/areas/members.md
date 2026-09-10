@@ -145,6 +145,31 @@ Also `docs/common.md:236` cites `lib/members/terminalOutcomeVerb.ts`; the
 link target is right and the display path is not. A one-word fix that rides
 along.
 
+**WORKED 2026-09-09 — and the six were not all of them.** Grepping each stale
+NAME rather than each cited line found five more, all of them members' own
+prose: `docs/naming.md:132` and `docs/code-conventions.md:681` + its two
+example import lines cite `common/lib/members/member.ts`, and
+`docs/naming.md:159` cites both `common/lib/color/memberColor.ts` and a
+`--member-*-dot-color` token that has never existed under that name.
+`docs/common-folders.md:336` is why they were still there — prose paths
+elsewhere in `docs/` were left for "each area of the app audit" — and members
+is that area for these.
+
+Two of them carried a second error past the path. `naming.md:159` gave
+"coloring your own chat-message label" as the example of a member-level color;
+F-members-2 ended that, so it now says the disc beside the message.
+`docs/deferred.md:85`'s `-edge` item named the token `-border-color`, and asked
+"whether name labels should switch to the border shade outright" — a question
+with no subject left. Its other two cases (connections tile-selection borders,
+crosswords peer-cursor frames) are real and stay.
+
+**`borderVarFor` keeps its name.** The tokens are `-fill-color` / `-edge-color`
+and the functions are `colorVarFor` / `borderVarFor`: two schemes, one naming
+the visual part and one naming the CSS property it feeds, and the citations
+were conflating them rather than the code being wrong. Renaming half the pair
+would trade this for a worse mismatch, so the whole-pair question
+(`fillVarFor` / `edgeVarFor`) is in `members/todo.md` to be decided as a pair.
+
 ### F-members-4 · `census-sentences` · Counts and who-uses lists, which the ruling deletes rather than corrects
 
 - `member.ts:13`: *"over a hundred files"*. `memberList.ts:11`: *"well over a
@@ -166,6 +191,13 @@ along.
 `Dot.tsx`'s prop notes give one example each for `hollow` (an away member, an
 unfound word) — examples that explain a prop's meaning, not a census. Kept.
 
+**WORKED 2026-09-09.** All five deleted. `MEMBER_COLORS`'s comment keeps a fact
+the picker sentence was standing in for: the ORDER is part of the contract,
+because it is the order the swatches lay out in. `orderSelfFirst` keeps "you,
+then the others" and loses the four callers. The third copy of the count, in
+`terminal/terminalOutcomeVerb.ts`, went too rather than waiting for its own
+area — leaving one of three identical sentences is how the three drift apart.
+
 ### F-members-5 · `dark-theme-contradiction` · `memberColor.ts` says the indirection exists so a dark theme can remap the palette; the palette is exempt from theming
 
 `memberColor.ts:11`: *"That indirection means a future dark theme can remap each
@@ -173,6 +205,10 @@ palette entry without rewriting every consumer."* docs/ui.md:721 and the
 `fixed.css` header say the opposite: the eight member colors are *"exempt from
 theming … a theme has nothing to say about them."* The indirection's real
 reason is that one file owns the hex. Rewrite the sentence to that.
+
+**WORKED 2026-09-09.** It now says the hex lives in one file and a consumer
+names the player, never the shade — and says outright that this is not theme
+groundwork, since the sentence it replaces is the obvious thing to write again.
 
 ### F-members-6 · `white-ring-is-a-hex-literal` · `Dot.tsx:53` hard-codes `'#fff'` for the ring on a colored surface
 
@@ -290,8 +326,9 @@ wrong is a look-at-it question, not a read one; recorded so it is asked.
 - **`fixed.css`'s header** said the member colors paint *"bold name labels
   (chat usernames)"* — a `corecss` sentence, and F-members-2 made it false the
   day it landed. Fixed there rather than noted, and called out for `corecss`.
-- **`terminalOutcomeVerb.ts:15`** carries the same "well over a hundred files"
-  count as F-members-4; the `terminal` area's.
+- **`terminalOutcomeVerb.ts:15`** carried the same "well over a hundred files"
+  count as F-members-4. Deleted with the other two rather than left for the
+  `terminal` area (row 41, still `cs-unmet`).
 
 ## Predicted test breaks
 

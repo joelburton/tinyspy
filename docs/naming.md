@@ -129,7 +129,7 @@ For the database row specifically (regardless of context), `profile` is the name
 
 A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameModal` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
 
-**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/members/member.ts` plus a per-game `Player` alias in each game's hook file:
+**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/members/member.ts` plus a per-game `Player` alias in each game's hook file:
 
 - connections, spellingbee, psychicnum: `type Player = Member` (pure re-export — no per-game enrichment today).
 - codenamesduet: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — codenamesduet is intrinsically 2-seat).
@@ -156,7 +156,7 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 
 **Where peer does NOT belong:**
 
-- Identity-color helpers (`src/common/lib/color/memberColor.ts`, `--member-*-dot-color` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. coloring your own chat-message label). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
+- Identity-color helpers (`src/common/members/memberColor.ts`, `--member-*-fill-color` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. your own disc beside your own chat message). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
 - Cross-game lobby / roster contexts — `members` and `players` are still the right words there. "Peer" only makes sense from a viewer's POV inside an active play surface.
 
 ### start (startSetup vs startGame)

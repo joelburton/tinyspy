@@ -12,9 +12,8 @@ import type { GamePlayer } from '../members/member'
  * part that must not.
  *
  * Kept OUT of `member.ts` deliberately. That file is types-only so its
- * importers — well over a hundred files — erase at runtime, and this is a
- * value: putting it there would give every one of those imports a runtime half
- * it does not want.
+ * importers erase at runtime, and this is a value: putting it there would give
+ * every one of those imports a runtime half it does not want.
  */
 
 /**

@@ -9,12 +9,12 @@
  * three fields you always need; `GamePlayer` adds the three that only exist
  * once someone is seated in a game.
  *
- * **Types only, and that is load-bearing.** `Member` is the single
- * most-imported name in `common/lib/` — over a hundred files — so a module
- * with no runtime half means all of those imports erase at compile time and cannot
- * participate in an import cycle, whatever else moves later. The one VALUE that
- * reads these types lives next door in `terminalOutcomeVerb.ts` precisely so it stays
- * out of this file. Keep it that way: no functions, no constants.
+ * **Types only, and that is load-bearing.** `Member` is imported by more of the
+ * app than any other name here, so a module with no runtime half means all of
+ * those imports erase at compile time and cannot participate in an import
+ * cycle, whatever else moves later. The one VALUE that reads these types was
+ * put in `common/terminal/terminalOutcomeVerb.ts` precisely so it stays out of
+ * this file. Keep it that way: no functions, no constants.
  *
  * The naming convention — `members` in club code, `players` in game code, for
  * the same shape — is docs/naming.md → "member" and "player".

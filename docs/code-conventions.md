@@ -678,7 +678,7 @@ If you see a type whose fields are snake_case but whose *name* doesn't end in `R
 
 #### Member vs Player — one type, context-driven variable names
 
-The codebase has a single canonical identity shape — `Member` in [`src/common/lib/members/member.ts`](../src/common/members/member.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
+The codebase has a single canonical identity shape — `Member` in [`src/common/members/member.ts`](../src/common/members/member.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
 
 > **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
 
@@ -691,11 +691,11 @@ The per-game `Player` alias earns its keep even when it's a pure re-export:
 
 ```ts
 // connections/hooks/useGame.ts (and psychicnum/hooks/useGame.ts)
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 export type Player = Member
 
 // codenamesduet/hooks/useGame.ts
-import type { Member } from '../../common/lib/members/member'
+import type { Member } from '@/common/members/member'
 export type Player = Member & { seat: 'A' | 'B' }
 ```
 

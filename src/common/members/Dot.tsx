@@ -30,8 +30,9 @@ type Props = {
 /**
  * The **identity disc** — the app-wide "this color is this player" marker
  * (docs/ui.md → "Player identity = a colored disc"), as one shared element: a
- * CSS circle FILLED with the member color and RINGED with its paired
- * `-border` shade (see theme.css). The ring is what lets light fills (yellow)
+ * CSS circle FILLED with the member color and RINGED with its paired EDGE
+ * shade (`--member-NAME-edge-color`, defined beside each fill in
+ * `core-css/fixed.css`). The ring is what lets light fills (yellow)
  * read against the page background — and why this must be a styled element,
  * never a unicode `●` (glyphs can't wear a border, and their size/baseline
  * drift by font).

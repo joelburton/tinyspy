@@ -4,26 +4,22 @@
  * Profile-color → CSS variable resolver.
  *
  * Each user's `common.profiles.color` is a name from a fixed
- * 8-entry palette (see the column's check constraint and
- * common.color_for_username in the baseline migration). The FE
+ * 8-entry palette (the column's check constraint holds the eight;
+ * `common.color_for_username` picks one, in `supabase/sql/common.sql`). The FE
  * never hard-codes the hex — it asks `colorVarFor(name)` for a
- * `var(--member-NAME-fill-color)` reference, and themes/fixed.css owns the
- * actual shade. That indirection means a future dark theme can
- * remap each palette entry without rewriting every consumer.
- *
- * Used wherever a member's identity needs a visual anchor — the
- * member-list circles, chat name labels, per-member in-game
- * affordances (tile-selection borders, etc.), per-game guess/
- * clue history rows.
+ * `var(--member-NAME-fill-color)` reference, and `core-css/fixed.css` owns the
+ * actual shade. The point of that indirection is that the hex lives in ONE
+ * file: a consumer names the player and never the shade. (It is not theme
+ * groundwork — the eight member colors are exempt from theming, docs/ui.md →
+ * "Player identity = a colored disc".)
  */
 
 // The same 8 names as the DB check constraint on
-// common.profiles.color.
+// common.profiles.color. The ORDER is part of it — this is the palette a
+// swatch grid lays out, so reordering here reorders the picker.
 //
-// `MEMBER_COLORS` is the ordered palette, exported so the "Edit
-// profile" color picker can map over it (each rendered as its
-// `--member-NAME-fill-color` swatch). Keep in sync with the DB CHECK and
-// the `common.update_profile_color` RPC allow-list.
+// Keep in sync with the DB CHECK and the `common.update_profile_color` RPC
+// allow-list.
 export const MEMBER_COLORS = [
   'red',
   'orange',
