@@ -8,7 +8,7 @@ import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { cls } from '@/common/utils/cls'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/turn-log/turnCopy'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -183,7 +183,7 @@ export function PlayArea({
             tone: 'won',
             text: (
               <>
-                <ActorDot actor={member} fallback="Someone" /> solved it
+                <DotActor actor={member} fallback="Someone" /> solved it
               </>
             ),
             mode: { kind: 'timed' },
@@ -194,7 +194,7 @@ export function PlayArea({
             tone: 'warning',
             text: (
               <>
-                <ActorDot actor={member} fallback="Someone" /> out of swaps
+                <DotActor actor={member} fallback="Someone" /> out of swaps
               </>
             ),
             mode: { kind: 'timed' },

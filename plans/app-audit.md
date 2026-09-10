@@ -605,6 +605,13 @@ making every single-line change in four folders its own commit is dumb.)
    sprint has done found eleven findings that six group passes had not — most
    of them the area's own recorded faults recurring in prose written that
    week.
+
+   **The docstring-marker pass belongs to this sitting, not only to the
+   opening.** Prose written while working the area's own findings is prose
+   nothing has checked, and it is where the marker rule and the
+   rationale-in-a-docstring rule get broken — `members` broke both, in
+   docstrings written the same day, after it had already made an opening pass.
+   See [The docstring marker](#the-docstring-marker--a-pass-every-area-makes).
 2. **Harvest the folder's `doc.md`** (Joel, 2026-09-04). Everything durable and
    important the area learned has to be somewhere that outlives it — the
    `doc.md`'s Design, or a docstring or comment in the code, whichever is the
@@ -670,6 +677,35 @@ to read is gone. The rule lives in
 this is the note that it gets applied **per area, not swept**. Separating a
 method's docstring from a field note takes a read per file, which is what an
 area already does.
+
+**A props block is the case this pass keeps missing** (`members`, 2026-09-09,
+and only because Joel asked twice). Two things make it slippery, and both are
+worth knowing before the next area opens one:
+
+- **A props block does not feel like fields.** It is the shape a caller passes,
+  so it reads as API surface and the marker looks earned. It is still one
+  declaration, and a note on one prop is a note on one of its members. The
+  docstring that answers *how do I call this* is the component's own.
+- **Much of the app still has it wrong, so the surrounding code argues for the
+  violation.** Closed areas are among them — `buttons` was audited and blessed
+  with prop `/**` throughout. In `members` that observation was written into
+  the area file as a REASON to leave the block alone, which is precedent
+  overriding a stated rule; the rule wins, and a blessed folder that predates
+  the pass is just a folder that predates the pass.
+
+**And there is no cheap test for it, which is why this is a read.** Indentation
+is not the tell: a docstring on a nested function or a method is indented and
+correct. What separates the two is what the marker SITS ON — a whole
+declaration, or one member of one — and answering that means having the
+declaration in front of you. A grep can gather candidates; only the read
+decides.
+
+The other half of the same rule is missed as often and is easier to check:
+a paragraph explaining **why the implementation is what it is** belongs on the
+line it defends, not in the docstring. `members` had three, and had written two
+of them that same day while working its own findings — the pass catches what
+the area itself just wrote, which is the argument for doing it at the CLOSING
+re-read and not only at the opening.
 
 ### Findings are numbered AND slugged
 

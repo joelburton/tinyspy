@@ -19,7 +19,7 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { outOfRacePill } from '@/common/feedback/localPills'
 import { memberById } from '@/common/members/memberList'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
@@ -427,11 +427,11 @@ export function PlayArea(ctx: GamePageCtx) {
         // line fits the header pill's ~26 phone characters.
         text: wow ? (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> wow! {label} +{r.points}
+            <DotActor actor={member} fallback="A teammate" /> wow! {label} +{r.points}
           </>
         ) : (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> found {label} +{r.points}
+            <DotActor actor={member} fallback="A teammate" /> found {label} +{r.points}
           </>
         ),
         mode: { kind: 'timed' },
@@ -678,7 +678,7 @@ function buildOver({
       verdict: `${winnerName} won`,
       verdictNode: (
         <>
-          <ActorDot actor={winner} fallback="Someone" show="both" /> won
+          <DotActor actor={winner} fallback="Someone" show="both" /> won
         </>
       ),
       message: `${winnerName} won`,
@@ -718,7 +718,7 @@ function buildOver({
     verdict: `${topName} won`,
     verdictNode: (
       <>
-        <ActorDot actor={topPlayer} fallback="Someone" show="both" /> won
+        <DotActor actor={topPlayer} fallback="Someone" show="both" /> won
       </>
     ),
     message: `${topName} won`,

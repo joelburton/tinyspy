@@ -5,31 +5,20 @@ import { cls } from '../utils/cls'
 import styles from './Dot.module.css'
 
 type Props = {
-  /** The member's profile-color NAME ('red' … 'pink'). Missing/unknown falls
-   *  back to a body-text-colored disc (same contract as `colorVarFor`) — the
-   *  neutral disc for a departed member. Ignored when `hollow`. */
+  // The member's profile-color NAME ('red' … 'pink'). Missing/unknown falls
+  // back to a body-text-colored disc (same contract as `colorVarFor`) — the
+  // neutral disc for a departed member. Ignored when `hollow`.
   color?: string | null
-  /** The "nobody" ring: an empty outline instead of a filled disc — an away
-   *  member on the club strip, an unfound word in a reveal list. Ring color
-   *  defaults to body text; override with `--dot-ring` on a className. */
+  // The "nobody" ring: an empty outline instead of a filled disc — an away
+  // member on the club strip, an unfound word in a reveal list. Ring color
+  // defaults to body text; override with `--dot-ring` on a className.
   hollow?: boolean
-  /** The disc sits on a SATURATED surface — a decided game tile — rather than on
-   *  the page. Its ring takes `--ink-onDark-color` instead of the member's
-   *  darker shade, the same token the tile's own letters take.
-   *
-   *  The ring's job is separating the disc from what is behind it, and which color
-   *  does that depends on the background, not on the player: a darker shade
-   *  separates a light disc from a white page, and white separates any disc from a
-   *  strong fill. Red is the case that forces it — a red member's dark-red ring on
-   *  a red tile is three reds in a row, and the disc disappears.
-   *
-   *  That token rather than a literal `#fff`, and rather than the page
-   *  background: it is named for the GROUND it sits on, so it stays white in a
-   *  dark theme, where the page background would have flipped and taken the ring
-   *  with it — dark-on-dark, exactly where the contrast is needed. */
+  // The disc sits on a SATURATED surface — a decided game tile — rather than
+  // on the page, so its ring switches to the shade that separates it from one.
+  // Pass it whenever the background behind the disc is a strong fill.
   onColor?: boolean
-  /** Merged onto the root — for per-site sizing (`--dot-size`,
-   *  `--dot-border-width`, `--dot-ring`) and margins. */
+  // Merged onto the root — for per-site sizing (`--dot-size`,
+  // `--dot-border-width`, `--dot-ring`) and margins.
   className?: string
 }
 
@@ -45,8 +34,8 @@ type Props = {
  *
  * Presentational and self-resolving: callers pass the color NAME off a
  * `Member` and the component resolves both CSS vars — except on a colored
- * surface, where the ring takes the on-dark ink instead (`onColor`). Size rides `--dot-size`
- * (em-relative default, so an inline dot tracks its text).
+ * surface, where the ring takes the on-dark ink instead (`onColor`). Size
+ * rides `--dot-size` (em-relative default, so an inline dot tracks its text).
  */
 export function Dot({ color, hollow = false, onColor = false, className }: Props) {
   return (
@@ -57,6 +46,18 @@ export function Dot({ color, hollow = false, onColor = false, className }: Props
           ? undefined
           : {
               background: colorVarFor(color),
+              // The ring separates the disc from what is behind it, and which
+              // color does that depends on the background, not on the player: a
+              // darker shade separates a light disc from a white page, and white
+              // separates any disc from a strong fill. Red forces the case — a
+              // red member's dark-red ring on a red tile is three reds in a row
+              // and the disc vanishes.
+              //
+              // `--ink-onDark-color` rather than a literal white, and rather
+              // than the page background: it is named for the GROUND it sits
+              // on, so a dark theme leaves it alone. The page background would
+              // have flipped and taken the ring with it, dark-on-dark, exactly
+              // where the contrast is needed.
               borderColor: onColor ? 'var(--ink-onDark-color)' : borderVarFor(color),
             }
       }

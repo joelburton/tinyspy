@@ -25,7 +25,7 @@ import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
 
-// Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
+// Feedback `text` is now a ReactNode (a <DotActor> widget + sentence) rather
 // than a string — render it and read the plain text to assert on the wording.
 const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 

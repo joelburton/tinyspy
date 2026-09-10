@@ -29,7 +29,7 @@ import { writeIpuz } from '../lib/parse/ipuz'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { cls } from '@/common/utils/cls'
 import {
@@ -1259,7 +1259,7 @@ function buildOver(
         verdict: `${winnerName} solved it first`,
         verdictNode: (
           <>
-            <ActorDot actor={players.find((p) => p.user_id === winner)} fallback="Someone" show="both" />{' '}
+            <DotActor actor={players.find((p) => p.user_id === winner)} fallback="Someone" show="both" />{' '}
             solved it first
           </>
         ),

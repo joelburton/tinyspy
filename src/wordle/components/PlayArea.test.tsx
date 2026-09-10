@@ -27,7 +27,7 @@ import { db as commonDb } from '@/common/supabase/db'
 import { PlayArea } from './PlayArea'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
-// Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
+// Feedback `text` is now a ReactNode (a <DotActor> widget + sentence) rather
 // than a string — render it and read the plain text to assert on the wording.
 const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 

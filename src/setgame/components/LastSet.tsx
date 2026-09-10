@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { GamePlayer } from '@/common/members/member'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { EventRow } from '../hooks/useGame'
 import { Card } from './Card'
 import styles from './LastSet.module.css'
@@ -49,7 +49,7 @@ export function LastSet({
             mode including solo: one shape for the line means it never has to be
             re-read as the roster changes. */}
         <span>Last set{claim ? ':' : ''}</span>
-        {claim && <ActorDot actor={finder} fallback="Someone" show="both" />}
+        {claim && <DotActor actor={finder} fallback="Someone" show="both" />}
       </div>
       <div className={styles.cards}>
         {claim

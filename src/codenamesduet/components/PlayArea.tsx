@@ -8,7 +8,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { CreatedGame, GameStopResult } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'
 import { db } from '../db'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
@@ -166,8 +166,8 @@ function useTurnPill(args: {
   const { game, players, clues, playState, gameOver, sessionUserId, feedback } = args
 
   // `key` is a stable STRING used only to dedup (fire the pill on real changes);
-  // `node` is what's actually shown. Splitting them lets the peer's identity be an
-  // <ActorDot> WIDGET in the text (dot-then-name) rather than a baked-in name — so
+  // `node` is what's actually shown. Splitting them lets the peer's identity be a
+  // <DotActor> WIDGET in the text (dot-then-name) rather than a baked-in name — so
   // on a phone it collapses to just the dot, and a long username can't blow out
   // the header pill. (Previously the name was interpolated into the string and the
   // disc came from the pill's separate `dot` prop.)
@@ -196,7 +196,7 @@ function useTurnPill(args: {
       tone = 'lost'
     } else {
       modeKind = 'sticky'
-      // What the peer is doing — the phrase WITHOUT their name (the ActorDot
+      // What the peer is doing — the phrase WITHOUT their name (the DotActor
       // supplies "● moth" ahead of it), and without a verb ("● moth guessing"):
       // see the phone-width note above.
       const rest = !isGuessPhase
@@ -209,7 +209,7 @@ function useTurnPill(args: {
       key = `${peer?.user_id ?? 'partner'}:${rest}`
       node = (
         <>
-          <ActorDot actor={peer} fallback="Your partner" /> {rest}
+          <DotActor actor={peer} fallback="Your partner" /> {rest}
         </>
       )
     }

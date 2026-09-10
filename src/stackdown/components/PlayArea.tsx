@@ -32,7 +32,7 @@ import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -570,7 +570,7 @@ export function PlayArea({
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → own local pill / flash
       const member = players.find((p) => p.user_id === s.user_id)
-      const who = <ActorDot actor={member} fallback="A teammate" />
+      const who = <DotActor actor={member} fallback="A teammate" />
       if (s.kind === 'hint')
         return { tone: 'warning', text: <>{who} revealed a hint</>, mode: { kind: 'timed' } }
       if (s.kind === 'reveal')
@@ -782,7 +782,7 @@ function buildOver({
       verdict: `${winnerName} cleared it first`,
       verdictNode: (
         <>
-          <ActorDot actor={winner} fallback="Someone" show="both" /> cleared it first
+          <DotActor actor={winner} fallback="Someone" show="both" /> cleared it first
         </>
       ),
       message: `${winnerName} won`,

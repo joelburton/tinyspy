@@ -22,7 +22,7 @@ import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
 import { memberById } from '@/common/members/memberList'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { db } from '../db'
@@ -377,7 +377,7 @@ export function PlayArea({
           tone: 'warning',
           text: (
             <>
-              <ActorDot actor={member} fallback="Someone" />{' '}
+              <DotActor actor={member} fallback="Someone" />{' '}
               {g.kind === 'hint' ? 'got hint' : 'revealed word'}
             </>
           ),
@@ -391,7 +391,7 @@ export function PlayArea({
         // itself rather than a sentence around it.
         text: (
           <>
-            <ActorDot actor={member} fallback="Someone" />{' '}
+            <DotActor actor={member} fallback="Someone" />{' '}
             {g.is_correct ? 'Correct: ' : 'Wrong: '}
             {g.word.toUpperCase()}
           </>
@@ -422,7 +422,7 @@ export function PlayArea({
         tone: 'won',
         text: (
           <>
-            <ActorDot actor={member} fallback="Someone" /> guessed a word
+            <DotActor actor={member} fallback="Someone" /> guessed a word
           </>
         ),
         mode: { kind: 'timed' },

@@ -27,6 +27,8 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 | `src/common/members/gamePlayer.fixture.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test. Renamed from `gamePlayers.ts` by F-members-9 | `cs-audited-members` |
 | `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
 | `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-audited-members` |
+| `src/common/members/ActorMention.tsx` | `<ActorTag>` / `<DotActor>` — the disc-plus-name pair. MOVED here from `turn-log` during the area; joined the roster at the closing re-read | `cs-audited-members` |
+| `src/common/members/ActorMention.module.css` | the mention's inline layout and the name/dot gap | `cs-audited-members` |
 | `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | DELETED (F-members-1) |
 | `src/common/text/RichMessage.module.css` | the segment's inline-flex and its disc size | DELETED (F-members-1) |
 | `src/common/members/doc.md` · `todo.md` | the lede; the Soon item about bare `.dot` classes | (no stamp — markdown) |
@@ -109,7 +111,7 @@ makes with its files open.
 
 **WORKED 2026-09-09 — the four sites are converted, not handed off** (Joel:
 "on the pause page, show player name in black and with the member dot… same for
-chat… same for codenames duet"). Each renders the shared `<ActorDot>`
+chat… same for codenames duet"). Each renders the shared `<DotActor>`
 (`common/members/ActorMention`), whose stylesheet already carried the rule.
 `show="both"` at all four: they are sentences, and the mention's default drops
 the name on a phone. The names now inherit their line's color, so the two duet
@@ -119,7 +121,7 @@ dropped to the mention's 500 (chat was 600, the two banners were `<strong>`);
 `ChatBody.module.css` lost `.senderName` with its only caller.
 
 The docstring is rewritten too: `colorVarFor` now says the reference paints a
-SHAPE and never a name, and points at `<ActorTag>` / `<ActorDot>`.
+SHAPE and never a name, and points at `<ActorTag>` / `<DotActor>`.
 
 Two sentences that described the old state went with it. `docs/ui.md:1350` said
 *"several older logs still encode the actor by coloring the name text …
@@ -435,9 +437,75 @@ the sentences are aspirational. Joel's, and not this finding's to settle.
 
 *(written when the area starts changing things)*
 
+## The closing re-read (2026-09-09)
+
+Everything in the folder read end to end in one sitting, plus the guard the
+area wrote. Seven things, and every one of them was made BY the area rather
+than found in what it inherited — which is the argument for the re-read.
+
+1. **The two moved files arrived unaudited.** `ActorMention.tsx` and its
+   stylesheet still carried `cs-unmet` while sitting in an audited folder, and
+   were not on the roster. Stamped and added.
+2. **The move left them importing themselves the long way round.**
+   `from '../members/member'` resolved correctly from inside `members/` and so
+   compiled, typechecked and tested clean while saying something false about
+   where the file lives. Now `./member` and `./Dot`.
+3. **`MEMBER_COLORS`'s comment still asked a human to keep the palette in
+   sync** — the exact arrangement the area replaced with a guard, left in
+   place, and naming two SQL sites when there are four. It now points at the
+   guard and keeps only the part the guard has no opinion about: the order is
+   this list's own, because it is the picker's.
+4. **`VALID`'s comment justified itself with a case the guard now covers.** The
+   defense is still right, but for a different reason: what the guard cannot
+   cover is a DEPLOY that is inconsistent — a migration reaching the database
+   before the bundle, or a tab older than both.
+5. **`borderVarFor` was the one place F-members-3 missed**, still saying "the
+   paired BORDER shade" and bare `fixed.css` after `Dot.tsx` and `docs/ui.md`
+   were corrected. Fixed, and it now says outright that it is named for the CSS
+   property while the token is named for the part of the disc, pointing at
+   `todo.md` rather than restating the open question.
+6. **`colorByUserIdMap` kept the invitation F-members-2 removed from
+   `colorVarFor`** — *"ready to drop into a `style={{ … }}` prop"*, which is how
+   a caller talks itself into coloring a name. It now says its values carry
+   `colorVarFor`'s rule with them.
+7. **"A departed member" turned out to be in THREE docstrings here**, not the
+   two F-members-15 found — `Dot`'s `color` prop has it too. Still not settled
+   here, because the answer is a product one; moved into `members/todo.md` so
+   it outlives the area.
+8. **`MEMBER_COLORS` was documented in `//` lines** (caught by Joel, who asked
+   whether the re-read had checked marker-vs-comment; it had not).
+   `docs/code-conventions.md` gives `/**` to a file, a type, a structure or a
+   function and `//` to a note about one field or one statement, and this is
+   the folder's most-imported export — a caller hovering it saw nothing,
+   because `//` does not light up. Now a docstring.
+
+   **The eight prop notes in `Dot.tsx` and `ActorMention.tsx` were the same
+   violation**, and this file first recorded them as fine. The argument for
+   leaving them was that the blessed `buttons` folder writes props with `/**`
+   too — which is history, not a decision, and was used here to override a
+   stated rule. A docstring documents a whole declaration; a note about one
+   member of one is `//`, and a prop is a field. All eight converted.
+   `Member.color`'s `//` was right all along, for the same reason.
+9. **The rule's other half was still unchecked** (Joel again, saying `Dot.tsx`
+   had been skipped — it had). The marker is only the first sentence of
+   `docs/code-conventions.md`'s rule; the rest says a paragraph explaining why
+   the implementation is what it is belongs on the line it defends, not in the
+   docstring a caller reads. Three places broke it, and **this area wrote two
+   of them the same day**:
+
+   - `Dot`'s `onColor` prop had grown to three paragraphs — the ring-contrast
+     argument, then the token-versus-page-background argument added while
+     working F-members-6. Both are defenses of one ternary and now sit beside
+     it; the prop says what a caller needs, which is when to pass it.
+   - `borderVarFor`'s docstring restated the `todo.md` item about the two
+     naming schemes, added an hour earlier. A filed item does not also live in
+     a docstring; deleted.
+   - `defaultColorFor`'s "a simple FE-only hash, not Postgres' `hashtext`"
+     paragraph is a defense of the loop below it, and moved into it.
+
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [ ] every file on the roster blessed, or its stamp says why not — **Joel's**

@@ -1,8 +1,8 @@
-// cs-unmet
+// cs-audited-members
 
 import { cls } from '../utils/cls'
-import type { Member } from '../members/member'
-import { Dot } from '../members/Dot'
+import type { Member } from './member'
+import { Dot } from './Dot'
 import styles from './ActorMention.module.css'
 
 /**
@@ -15,15 +15,15 @@ import styles from './ActorMention.module.css'
 export type ActorShow = 'auto' | 'both' | 'name' | 'dot' | 'none'
 
 type Props = {
-  /** The person who acted. `undefined`/`null` → the `fallback` name + a neutral
-   *  disc (a departed member, or a row whose player hasn't loaded yet). Only the
-   *  identity fields are needed, so any `Member`-ish value works. */
+  // The person who acted. `undefined`/`null` → the `fallback` name + a neutral
+  // disc (a departed member, or a row whose player hasn't loaded yet). Only the
+  // identity fields are needed, so any `Member`-ish value works.
   actor?: Pick<Member, 'username' | 'color'> | null
-  /** Name shown when `actor` is missing. */
+  // Name shown when `actor` is missing.
   fallback?: string
-  /** Merged onto the root — for positioning the mention in its row. */
+  // Merged onto the root — for positioning the mention in its row.
   className?: string
-  /** Which parts to show (see `ActorShow`). Each widget sets its own default. */
+  // Which parts to show (see `ActorShow`). Each widget sets its own default.
   show?: ActorShow
 }
 
@@ -32,7 +32,7 @@ type Props = {
  * app-wide "who did this" marker. Two exported widgets differ only in ORDER, so
  * the pieces (the `.name` span, the `<Dot>`) and the show/hide logic live here
  * once: use `<ActorTag>` when the name reads first (turn logs — "moth ●"),
- * `<ActorDot>` when the disc anchors a peer message ("● moth is guessing").
+ * `<DotActor>` when the disc anchors a peer message ("● moth is guessing").
  *
  * The `show` prop is the point of the pair: keeping the name a real element (not
  * baked into a text string) is what lets us drop it to just a dot on phones —
@@ -72,6 +72,6 @@ export function ActorTag(props: Props) {
 
 /** Dot-then-name ("● moth"). Default `show="auto"` — a feedback widget, so it
  *  drops the name to just the disc on phones. */
-export function ActorDot(props: Props) {
+export function DotActor(props: Props) {
   return <Mention {...props} dotFirst={true} show={props.show ?? 'auto'} />
 }

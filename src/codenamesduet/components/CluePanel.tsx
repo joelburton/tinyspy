@@ -5,7 +5,7 @@ import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent 
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
-import { ActorDot, ActorTag } from '@/common/members/ActorMention'
+import { DotActor, ActorTag } from '@/common/members/ActorMention'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
 import { AIButton } from '@/common/buttons/AIButton'
 import { EndTurnButton } from '@/common/buttons/EndTurnButton'
@@ -154,7 +154,7 @@ function ClueDisplay({ clue }: { clue: Clue }) {
   )
 }
 
-/** "● moth guessing" — the peer's identity via the shared <ActorDot> (colored
+/** "● moth guessing" — the peer's identity via the shared <DotActor> (colored
  *  disc + name) followed by what they're doing. Telegraphic, matching the header
  *  pill's vocabulary: this shares the below-board row with the clue display and
  *  the Pass button, so a sentence ("Waiting for moth to guess…") crowded it on a
@@ -170,7 +170,7 @@ function PeerActivity({
     <span className={cls('muted', styles.waiting)}>
       {/* show="auto": on a phone the name drops to just the dot ("● guessing") so
           a long username can't overflow this tight below-board row. */}
-      <ActorDot actor={peer} fallback="Your partner" show="auto" /> {activity}
+      <DotActor actor={peer} fallback="Your partner" show="auto" /> {activity}
     </span>
   )
 }

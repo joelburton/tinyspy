@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { NewGameButton } from '@/common/buttons/NewGameButton'
@@ -142,13 +142,13 @@ export function InfoCol({
             All your agents have been found! From here{' '}
             {/* `show="both"` on both banners: they are sentences, and a phone
                 dropping the name would leave "From here ● gives every…". */}
-            {peer ? <ActorDot actor={peer} show="both" /> : 'your partner'}{' '}
+            {peer ? <DotActor actor={peer} show="both" /> : 'your partner'}{' '}
             gives every remaining clue — keep guessing to find theirs.
           </div>
         )}
         {peerFinished && (
           <div className={styles.peerDoneNote}>
-            {peer ? <ActorDot actor={peer} show="both" /> : 'Your partner'}{' '}
+            {peer ? <DotActor actor={peer} show="both" /> : 'Your partner'}{' '}
             has found all their agents — you give every remaining clue now, and they do
             the guessing.
           </div>

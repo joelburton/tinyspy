@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
@@ -579,7 +579,7 @@ export function PlayArea(ctx: GamePageCtx) {
           tone: 'noted',
           text: (
             <>
-              <ActorDot actor={member} fallback="A teammate" />{' '}
+              <DotActor actor={member} fallback="A teammate" />{' '}
               {e.kind === 'hint' ? 'got a hint' : 'revealed a word'}
             </>
           ),
@@ -598,7 +598,7 @@ export function PlayArea(ctx: GamePageCtx) {
         tone: e.kind === 'played' ? 'won' : 'noted',
         text: (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> {what}
+            <DotActor actor={member} fallback="A teammate" /> {what}
           </>
         ),
         mode: { kind: 'timed' },

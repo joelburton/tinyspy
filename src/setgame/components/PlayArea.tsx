@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
@@ -522,7 +522,7 @@ export function PlayArea(ctx: GamePageCtx) {
         tone: 'won',
         text: (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> found a set
+            <DotActor actor={member} fallback="A teammate" /> found a set
           </>
         ),
         mode: { kind: 'timed' },

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
@@ -372,7 +372,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // length. "played" earned no room in a ~26-char header pill.
         text: (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> {r.word.toUpperCase()} ({r.length})
+            <DotActor actor={member} fallback="A teammate" /> {r.word.toUpperCase()} ({r.length})
           </>
         ),
         mode: { kind: 'timed' },
@@ -561,7 +561,7 @@ function buildOver({
         verdict: `${label} won at ${pct}%`,
         verdictNode: (
           <>
-            <ActorDot actor={players.find((p) => p.user_id === soleId)} fallback="Someone" show="both" /> won
+            <DotActor actor={players.find((p) => p.user_id === soleId)} fallback="Someone" show="both" /> won
             at {pct}%
           </>
         ),

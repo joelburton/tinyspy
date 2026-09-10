@@ -22,7 +22,7 @@ import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { memberById } from '@/common/members/memberList'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
@@ -242,7 +242,7 @@ export function PlayArea({
           tone: 'won',
           text: (
             <>
-              <ActorDot actor={member} fallback="Someone" /> found category
+              <DotActor actor={member} fallback="Someone" /> found category
             </>
           ),
           mode: { kind: 'timed' },
@@ -252,7 +252,7 @@ export function PlayArea({
         tone: g.outcome,
         text: (
           <>
-            <ActorDot actor={member} fallback="Someone" />{' '}
+            <DotActor actor={member} fallback="Someone" />{' '}
             {g.outcome === 'near' ? 'was one away' : 'guessed wrong'}
           </>
         ),

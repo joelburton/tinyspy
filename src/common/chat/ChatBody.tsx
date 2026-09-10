@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
-import { ActorDot } from '../members/ActorMention'
+import { DotActor } from '../members/ActorMention'
 import { linkify } from '../utils/linkify'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import type { ClubMessage } from './useClubChat'
@@ -127,7 +127,7 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
             <div key={m.id} className={styles.message}>
               {/* `show="both"`: a chat line without its sender's name is
                   unreadable, so the name survives on a phone. */}
-              <ActorDot actor={sender} fallback="?" show="both" />:{' '}
+              <DotActor actor={sender} fallback="?" show="both" />:{' '}
               <span
                 className={important ? styles.importantContent : undefined}
               >

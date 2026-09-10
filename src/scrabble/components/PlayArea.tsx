@@ -10,7 +10,7 @@ import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { cls } from '@/common/utils/cls'
 import { outOfRacePill, terminalPill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/turn-log/turnCopy'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -763,7 +763,7 @@ function buildOver({
     verdict: `${name} won`,
     verdictNode: (
       <>
-        <ActorDot actor={winnerMember} fallback="Someone" show="both" /> won
+        <DotActor actor={winnerMember} fallback="Someone" show="both" /> won
       </>
     ),
     message: `${name} won`,

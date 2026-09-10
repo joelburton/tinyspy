@@ -2,7 +2,7 @@
 
 import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
-import { ActorDot } from '../members/ActorMention'
+import { DotActor } from '../members/ActorMention'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
@@ -116,7 +116,7 @@ export function PauseOverlay({
           <strong>
             {/* `show="both"` because this is a sentence, not a pill: dropping the
                 name on a phone would leave "● paused the game." */}
-            <ActorDot actor={manuallyPausedBy} show="both" /> paused the game.
+            <DotActor actor={manuallyPausedBy} show="both" /> paused the game.
           </strong>
         )}
         <p className="muted">

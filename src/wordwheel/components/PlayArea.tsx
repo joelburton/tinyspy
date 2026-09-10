@@ -5,7 +5,7 @@ import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { ActorDot } from '@/common/members/ActorMention'
+import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
@@ -461,12 +461,12 @@ export function PlayArea(ctx: GamePageCtx) {
         // characters, which "found WORD +14 — pangram! 🦌" did not.
         text: r.is_pangram ? (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> pangram 🦌{' '}
+            <DotActor actor={member} fallback="A teammate" /> pangram 🦌{' '}
             {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
           </>
         ) : (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> found{' '}
+            <DotActor actor={member} fallback="A teammate" /> found{' '}
             {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
           </>
         ),
@@ -503,7 +503,7 @@ export function PlayArea(ctx: GamePageCtx) {
           tone: 'noted',
           text: (
             <>
-              <ActorDot actor={member} fallback="An opponent" /> reached{' '}
+              <DotActor actor={member} fallback="An opponent" /> reached{' '}
               {RANKS[row.rank_idx] ?? 'a new rank'}
             </>
           ),
@@ -756,7 +756,7 @@ function buildOver({
         // does — no "Lost:" prefix needed, the loss is implicit in "they won".
         verdictNode: (
           <>
-            <ActorDot actor={winner} fallback="someone" show="both" /> won at "
+            <DotActor actor={winner} fallback="someone" show="both" /> won at "
             {targetRankName}"
           </>
         ),

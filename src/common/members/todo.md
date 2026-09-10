@@ -2,6 +2,18 @@
 
 ## Bugs
 
+- **Three docstrings here say a lookup can miss because of "a departed
+  member," and the schema forbids one** — `memberList.ts`'s `memberById`,
+  `ActorMention`'s `actor` prop, and `Dot`'s `color` prop. A deleted account
+  takes its messages and its `game_players` rows with it (`on delete cascade`
+  from `common.profiles`), and nothing ever removes a row from
+  `clubs_members`: two inserts in `common.sql`, no delete and no delete policy.
+  So a club member cannot stop being one. The real reason a lookup misses is
+  that the roster has not loaded yet — `useClubRoster` starts at `[]` and fills
+  after two sequential reads. Either those three sentences should say that and
+  nothing more, or leaving a club is a gap and they are describing something
+  the app should support. Needs the product answer before the docstrings move.
+
 ## Soon
 
 - **Some consumer modules style `<Dot>` as a bare `.dot`.** `Dot.module.css`
@@ -17,12 +29,21 @@
   or leave both, but don't rename one: half the pair is a worse mismatch than
   either whole scheme.
 
-- **`ActorMention.tsx` exports two components**, `ActorTag` and `ActorDot`, so
+- **`ActorMention.tsx` exports two components**, `ActorTag` and `DotActor`, so
   "the filename is the component" is false in it. They differ only in order and
   share every piece, which is why this wants a look rather than a mechanical
   split. (The same question is open in `turn-log` for `TurnLog.tsx`, in
   `game-page` for `PlayAreaMountLog.tsx`, and in setgame for `Card.tsx`.)
 
 ## Someday
+
+- **Much of the app writes prop notes with `/**`.** This folder's are `//`,
+  which is what the rule says: a docstring documents a whole declaration, and a
+  note about one field of one is a comment. The blessed `buttons` folder is
+  among the ones that differ. Not this folder's to sweep, and not sweepable
+  cheaply either — indentation does not separate the two cases, since a nested
+  function's docstring is indented and correct, so telling a field note from a
+  declaration's docstring needs the declaration in front of you. Recorded so
+  the divergence reads as deliberate rather than as an oversight.
 
 ## Maybe
