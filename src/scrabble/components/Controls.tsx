@@ -2,11 +2,9 @@
 
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
-import { ClearButton } from '@/common/buttons/ClearButton'
-import { SharePreviewButton } from '@/common/buttons/SharePreviewButton'
-import { ExchangeButton } from '@/common/buttons/ExchangeButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
-import { PassButton } from '@/common/buttons/PassButton'
 import { cls } from '@/common/utils/cls'
 import styles from './PlayArea.module.css'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -21,74 +19,66 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * left) stays interactive, so a keystroke / tile tap dismisses the pill.
  *
  * The commit buttons:
- *   - **Swap** (`ExchangeButton`, icon-only) — return rack tiles.
- *   - **Pass** (compete only; the `EndTurnButton` octagon, but de-emphasized to
- *     icon-only + secondary — passing isn't the main move here, so it doesn't
- *     carry the primary weight codenamesduet's pass does).
- *   - **Submit** (`SubmitWithScore`) — the primary action, doubling as the live
- *     score preview ("+score", or an em-dash on an empty board). `canSubmit`
- *     enables it for any placed tiles (an illegal shape is explained by a pill on
- *     submit, not by disabling).
+ *   - **Swap** (`act-exchange`, icon-only) — return rack tiles. It carries its
+ *     own reason when it can't act ("need ≥ 7 tiles in the bag", "select rack
+ *     tiles first"), so this row places it and explains nothing.
+ *   - **Pass** (`act-pass`, which HIDES itself in coop; the end-turn octagon
+ *     de-emphasized to icon-only + secondary — passing isn't the main move here,
+ *     so it doesn't carry the primary weight codenamesduet's pass does).
+ *   - **Submit** (`act-submit`, drawn by `SubmitWithScore`) — the primary
+ *     action, doubling as the live score preview ("+score", or an em-dash on an
+ *     empty board). Enabled for any placed tiles (an illegal shape is explained
+ *     by a pill on submit, not by disabling) — and **Enter** is the same
+ *     binding, so the key and the button are gray at the same moments.
  *
- * The **Share** button (coop, ≥2 players only) sits beside Recall on the LEFT — not
- * in the commit slot — so it stays visible when a pill takes the slot over. It
- * broadcasts the staged tiles for teammates to preview (see useSharedMove).
+ * The **Share** button sits beside Recall on the LEFT — not in the commit slot —
+ * so it stays visible when a pill takes the slot over. It broadcasts the staged
+ * tiles for teammates to preview (see useSharedMove), and hides itself where
+ * there is nobody to show them to (a race, or a solo game).
  *
- * Disabled-state logic is computed in PlayArea and passed down.
+ * Every one of them is a BOUND ACTION: what it does, what it is called, whether
+ * it can be pressed and which key also does it come from the binding, which the
+ * board column makes. This row decides placement and nothing else.
  */
 export function Controls({
-  isCompete,
-  canCommit,
-  hasTentative,
-  selectedCount,
-  canExchange,
-  submitting,
   submitScore,
-  canSubmit,
-  canShare,
-  onShare,
+  actSubmit,
+  actRecallTiles,
+  actSharePreview,
+  actExchange,
+  actPass,
   pill,
   onDismissPill,
-  onSubmit,
-  onRecall,
-  onExchange,
-  onPass,
 }: {
-  isCompete: boolean
-  /** May commit a turn-consuming move (Swap / Pass) — i.e. it's your turn. */
-  canCommit: boolean
-  hasTentative: boolean
-  selectedCount: number
-  canExchange: boolean
-  submitting: boolean
   /** The staged play's score for the Submit preview; `null` (empty board) shows
-   *  an em-dash. */
+   *  an em-dash. Its own prop, not the action's: the score is what this control
+   *  DRAWS, where the action says whether it can be pressed. */
   submitScore: number | null
-  /** Whether the staged play is submittable (tiles placed + the player can act). */
-  canSubmit: boolean
-  /** Coop with ≥2 players — render the Share button (a teammate can be shown). */
-  canShare: boolean
-  /** Broadcast the staged tiles to teammates for a read-only preview. */
-  onShare: () => void
+  /** Play the staged word. Also Enter, from the board cursor. */
+  actSubmit: BoundAction
+  /** Take every staged tile back to the rack at once. */
+  actRecallTiles: BoundAction
+  /** Show the staged play to teammates, read-only. Hides itself where there is
+   *  nobody to show it to. */
+  actSharePreview: BoundAction
+  /** Swap rack tiles for fresh ones — it carries its own reason when it can't. */
+  actExchange: BoundAction
+  /** Pass the turn. Hides itself in coop. */
+  actPass: BoundAction
   /** An own-move / terminal pill to show IN the commit slot (replacing the commit
    *  buttons + filling its width), or null to show the buttons. */
   pill: GenericFeedbackMsg | null
   /** Clear the pill — tapping a transient one dismisses it, the same way the
    *  next keystroke does (docs/ui.md → Feedback pill). */
   onDismissPill: () => void
-  onSubmit: () => void
-  onRecall: () => void
-  onExchange: () => void
-  onPass: () => void
 }) {
   return (
     <div className={styles.controls}>
-      <ClearButton show="icon" label="Recall" disabled={!hasTentative} onClick={onRecall} />
+      <ActionButton action={actRecallTiles} show="icon" />
       {/* Show a move to teammates (coop, ≥2 players). On the left with Recall so a
-          pill in the commit slot never hides it; enabled only with tiles staged. */}
-      {canShare && (
-        <SharePreviewButton show="icon" label="Show move to team" disabled={!hasTentative} onClick={onShare} />
-      )}
+          pill in the commit slot never hides it; enabled only with tiles staged.
+          It hides itself where there is nobody to show it to. */}
+      <ActionButton action={actSharePreview} show="icon" />
 
       <div
         className={cls(styles.moveAreaOrLocalFeedback, pill && styles.moveAreaOrLocalFeedbackPill)}
@@ -100,24 +90,14 @@ export function Controls({
           </div>
         ) : (
           <div className={styles.commitButtons}>
-            <ExchangeButton
-              show="icon"
-              disabled={!canCommit || hasTentative || selectedCount === 0 || !canExchange}
-              onClick={onExchange}
-              title={
-                !canExchange
-                  ? 'Swap — need ≥ 7 tiles in the bag'
-                  : selectedCount > 0
-                    ? `Swap ${selectedCount} selected tile${selectedCount === 1 ? '' : 's'}`
-                    : 'Swap — select rack tiles first'
-              }
-            />
+            {/* Swap carries its OWN reason when it can't act ("need ≥ 7 tiles in
+                the bag", "select rack tiles first"), which is `describe()`'s
+                doing rather than a `title` worked out here. */}
+            <ActionButton action={actExchange} show="icon" />
             {/* Pass — the de-emphasized end-turn octagon (icon-only, secondary)
-                since it isn't the main move here. Compete only. */}
-            {isCompete && (
-              <PassButton show="icon" disabled={!canCommit || hasTentative} onClick={onPass} />
-            )}
-            <SubmitWithScore score={submitScore} disabled={!canSubmit || submitting} onClick={onSubmit} />
+                since it isn't the main move here. It hides itself in coop. */}
+            <ActionButton action={actPass} show="icon" />
+            <SubmitWithScore score={submitScore} action={actSubmit} />
           </div>
         )}
       </div>

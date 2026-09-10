@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
@@ -16,8 +15,8 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -39,7 +38,6 @@ import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -76,7 +74,6 @@ export function PlayArea({
   currentTurnUserId,
   status,
   setup,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -117,7 +114,6 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   // Sticky is a DEFAULT, not an override: hand-built {tone, text} pills omit
   // `mode` and get it stamped; a classified message keeps the mode the
   // classifier chose — a fault's `manual` must not be downgraded to sticky
@@ -364,72 +360,6 @@ type Suggested =
     suggestionApplierRef.current?.(move.placements)
   }, [])
 
-  // The End/Concede handlers are declared BELOW the menu effect (they read
-  // `isTerminal` and the local-feedback channel), so the menu effect can't list
-  // them in its deps without either re-running per render or going stale. Route
-  // them through a stable ref (the crosswords `actionsRef` pattern): the menu's
-  // End/Concede items call `actionsRef.current?.…` at click time, and a separate
-  // effect keeps the ref current. This keeps the menu effect's deps stable so
-  // `setGameSections` (a setState) doesn't loop.
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-  } | null>(null)
-
-  // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
-  // Builds the print model from the live state (RLS already scoped it to what I may
-  // see — my own rack, my visible moves) and hands it to the jsPDF renderer. Prints
-  // a snapshot at click time, so it works mid-game or at the end. Re-registers when
-  // the inputs change so the closure stays fresh; cleared on unmount.
-  useEffect(() => {
-    if (!game) return
-    const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
-    const model = {
-      // "Brand: game title" (brand from the manifest via ctx — never the "scrabble"
-      // code-name; title = common.games.title, this game's own name) + today's date.
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      summary: isCompete
-        ? `${game.bagCount} tiles in the bag`
-        : `Team score: ${game.teamScore ?? 0} · ${game.bagCount} tiles in the bag`,
-      board: game.board,
-      moves: plays.map((p) => ({ seq: p.seq, who: nameOf(p.user_id), text: moveText(p) })),
-      rack,
-      rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
-      // Relevant setup only — the dictionary bands (the timer isn't relevant on a print).
-      mode: game?.mode ?? 'coop',
-      setup: summaryRows,
-    }
-    // The FULL scrabble menu: Help (top) + the Print item + the End/Concede +
-    // Back-to-club tail, all from `buildGameMenu`. End/Concede dispatch through
-    // the stable `actionsRef` so this effect needn't depend on the (later-declared)
-    // handlers. ⌥⌫ / `<` are wired globally by the shell — no shortcuts here.
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        mode: isCompete ? 'compete' : 'coop',
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
-        extra: [
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
-          {
-            items: [
-              // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-            ],
-          },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title, summaryRows])
-
   // ─── End / Concede / Replay — the shared trio ─────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own
   // bits are the failure-pill format, the replay sentence, and the post-replay
@@ -444,14 +374,26 @@ type Suggested =
     exitViewing()
     clearLocalFeedback()
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: isCompete ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
     onRestarted,
+  })
+
+  // Ask the AI for a move — coop only (in a race a suggested play would be a win
+  // button, and it reads the shared rack besides). Gray while a request is out,
+  // so a second press can't stack two.
+  const actSuggestMove = useBoundAction('act-suggest-move', {
+    describe: () => {
+      if (isCompete) return 'hidden'
+      const busy = suggest.status === 'loading'
+      return { state: isTerminal || !self || busy ? 'disabled' : 'active', label: 'Suggest' }
+    },
+    run: handleSuggest,
   })
 
   // New game — a FRESH game (new id, new shuffle) with THIS game's setup +
@@ -471,12 +413,11 @@ type Suggested =
   // friend from the rematch silently, and in the common 2-human compete case
   // would leave a single player, which create_game rejects outright.
   const gameMode: 'coop' | 'compete' = isCompete ? 'compete' : 'coop'
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
+  const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
@@ -505,22 +446,68 @@ type Suggested =
       reportUnhandled('create_game', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal. The
+  // shared run's single flight is what stops a second press dealing a second bag.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
-  // Keep the menu's dispatch current (read via the stable actionsRef by the menu
-  // items above). Separate from the menu effect so those handlers' changing
-  // identity doesn't rebuild the menu each time.
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scoped
+  // the state to what I may see (my own rack, my visible moves), so what prints
+  // is what the page in front of me shows.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
+      printScrabblePdf({
+        // "Brand: game title" (brand from the manifest via ctx — never the
+        // "scrabble" code-name; title = common.games.title, this game's own
+        // name) + today's date.
+        brand,
+        gameTitle: title,
+        date: new Date().toLocaleDateString(),
+        summary: isCompete
+          ? `${game.bagCount} tiles in the bag`
+          : `Team score: ${game.teamScore ?? 0} · ${game.bagCount} tiles in the bag`,
+        board: game.board,
+        moves: plays.map((p) => ({ seq: p.seq, who: nameOf(p.user_id), text: moveText(p) })),
+        rack,
+        rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
+        // Relevant setup only — the dictionary bands (the timer isn't relevant
+        // on a print).
+        mode: game.mode ?? 'coop',
+        setup: summaryRows,
+      })
+    },
+  })
+
+  // The FULL scrabble menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time.
   useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, handleNewGame])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
+        extra: [
+          { items: [actPrintBoard] },
+          // The same pair the terminal action row offers, reachable mid-game too.
+          { items: [actRestart, actNewGame] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -641,15 +628,13 @@ type Suggested =
           selfId={session.user.id}
           playerStates={playerStates}
           concededIds={concededIds}
-          onEndGame={endGame}
-          onConcede={concede}
-          onRestart={restart}
-          onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-          onBackToClub={goToClub}
+          actEndGame={actEndGame}
+          actConcede={actConcede}
+          actRestart={actRestart}
+          actNewGame={actNewGame}
+          actBackToClub={menu.actBackToClub}
           suggest={isCompete ? null : suggestView}
-          canSuggest={!isTerminal && !!self}
-          onSuggest={() => void handleSuggest()}
+          actSuggestMove={actSuggestMove}
           onApplySuggestion={handleApplySuggestion}
           setup={scrabbleSetup}
           setupRows={summaryRows}
@@ -668,7 +653,6 @@ type Suggested =
       {celebration.show && (
         <CelebrationBlockingModal title="You win! 🎉" onClose={celebration.close} />
       )}
-      {confirmationModal}
     </div>
   )
 }

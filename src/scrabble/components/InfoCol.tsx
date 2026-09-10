@@ -6,12 +6,9 @@ import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { AIButton } from '@/common/buttons/AIButton'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -64,15 +61,13 @@ export function InfoCol({
   selfId,
   playerStates,
   concededIds,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   suggest,
-  canSuggest,
-  onSuggest,
+  actSuggestMove,
   onApplySuggestion,
   setupRows,
   aiSeats,
@@ -112,29 +107,27 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (End/Concede, back-to-club at terminal) ──
-  onEndGame: () => void
-  onConcede: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
   /** Deal this game again from scratch — same setup, roster and seats, fresh bag
-   *  and racks (the menu's replay-board; unconfirmed at terminal since there's no
-   *  progress left to lose). scrabble's grid is the standard layout, so a replay
-   *  is a re-deal rather than a puzzle reset. */
-  onRestart: () => void
-  /** Start a fresh follow-up game — same setup + roster, a NEW game id. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
+   *  and racks. scrabble's grid is the standard layout, so a replay is a re-deal
+   *  rather than a puzzle reset. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup + roster, a NEW game id. Disables
+   *  itself while the create is in flight. */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
 
   // ── Suggest-a-move (docs/scrabble-ai.md S5) ──
   /** The suggest box's state, or null to not render it at all (compete — the
    *  mode never changes mid-game, so its absence is not a reflow). */
   suggest: SuggestState | null
-  /** May ask right now (playing, seated, not over) — gates the button only;
-   *  the box collapses entirely when idle (nothing to show). */
-  canSuggest: boolean
-  onSuggest: () => void
+  /** Ask the AI for a move — it grays itself while a request is out and where
+   *  the ask isn't available; the box below collapses entirely when idle. */
+  actSuggestMove: BoundAction
   /** Stage a suggested move's tiles on the board (BoardCol applies it). */
   onApplySuggestion: (move: RankedMove) => void
 
@@ -254,37 +247,29 @@ export function InfoCol({
             conceded" terminal look once I've dropped out (others race on); at
             terminal the bold outcome line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): deal this table
                 again, or spin up the next game. */}
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isCompete && myConceded ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede disables itself once conceded — the row keeps its shape
+                and the button says why it can't be pressed again. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <>
-                <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-                {/* Suggest-a-move (coop) — the AI hint lives with the other
-                    action buttons; its results render in the reserved box
-                    below the help text. */}
-                {suggest && (
-                  <AIButton
-                    show="icon"
-                    label="Suggest"
-                    className={shared.helperButton}
-                    disabled={!canSuggest || suggest.status === 'loading'}
-                    onClick={onSuggest}
-                  />
-                )}
-              </>
-            )}
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            {/* Suggest-a-move (coop) — the AI hint lives with the other action
+                buttons; its results render in the reserved box below the help
+                text. It hides itself in a race. */}
+            <ActionButton action={actSuggestMove} show="icon" className={shared.helperButton} />
           </div>
         )}
 

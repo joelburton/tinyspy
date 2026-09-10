@@ -7,6 +7,8 @@ import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { useFlash } from '@/common/move-flash/useFlash'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
@@ -755,30 +757,29 @@ export function BoardCol({
     })
   }, [staged, board, shareMove, selfId, game.version])
 
-  // Board-cursor keyboard — the shared 2-D placement engine (bananagrams's twin;
-  // it owns the modifier bail, focused-input guard, arrows→cursor, Backspace/Enter
-  // dispatch, and the skip-Enter-when-a-button-is-focused). scrabble supplies its
-  // 5%: type stages a tile, Enter plays the staged word, and the first keystroke
-  // exits a turn-viewer.
-  useBoardCursorKeys({
+  // Any key dismisses the sticky own-move pill (a no-op at terminal). A
+  // NON-consuming watcher, so the same press still stages its tile — which is
+  // why this is the shared hook rather than a branch inside the board's keys.
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+
+  // Board-cursor keyboard — the shared 2-D placement engine (bananagrams' twin),
+  // four bound actions. scrabble supplies its 5%: type stages a tile, Backspace
+  // takes the last one back, and the commit is a SUBMIT of the staged word.
+  //
+  // Leaving a turn viewer is not here any more: `useHistoryViewer` binds that
+  // itself, and the dispatcher runs an any-key MODE ahead of any particular key,
+  // so the press reaches it without the board standing aside.
+  const { actCommit: actSubmit } = useBoardCursorKeys({
     enabled: canPlace,
-    onAnyKey: () => {
-      // While viewing a past turn, ANY key exits to the live board (navigation is
-      // by clicking Moves-log rows) — consume this key. (onAnyKey carries no event,
-      // so this uses `viewing`/`onExitViewing` rather than the hook's `exitOnKey`.)
-      if (viewing) {
-        onExitViewing()
-        return true
-      }
-      // Otherwise any key dismisses the sticky local feedback (no-op at terminal).
-      clearLocalFeedback()
-    },
+    commit: 'act-submit',
+    // NARROWER than `canPlace`: in compete you may stage a play before your turn
+    // ("pre-play"), and the Submit button shows its score while it waits. The
+    // same answer grays the button and stops Enter firing a no-op.
+    canCommit: staged.length > 0 && canCommit,
     onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
     onLetter: (letter) => typeLetter(letter),
     onBackspace: backspace,
-    onEnter: () => {
-      if (staged.length > 0 && canCommit) void submit()
-    },
+    onEnter: () => void submit(),
   })
 
   // The Submit button's live score preview: the play's score when tiles are staged
@@ -786,7 +787,61 @@ export function BoardCol({
   const submitScore = staged.length > 0 ? (preview?.valid ? preview.score : 0) : null
   // Submittable only on your turn (compete) — a pre-played move shows its score
   // (a disabled Submit displaying "+N") and enables the moment your turn starts.
-  const canSubmit = staged.length > 0 && canCommit
+  // Swapping needs a bag deep enough to draw a fresh hand from.
+  const canExchange = game.bagCount >= 7
+
+  // ─── The rack + commit row's own commands ──────────────
+  // Each is ONE binding behind its control, so what a button says about itself
+  // and what it does are the same answer. None has a key today; giving one is a
+  // line in the registry rather than a change here.
+  const actShuffle = useBoundAction('act-shuffle', {
+    // Live whenever there are tiles to reorder, a frozen board included:
+    // rearranging your own rack is not acting on the game.
+    describe: () => (rackTiles.length === 0 ? 'hidden' : 'active'),
+    run: shuffle,
+  })
+
+  // Recall — every staged tile back to the rack at once. Distinct from ⌫, which
+  // takes the last one back.
+  const actRecallTiles = useBoundAction('act-recall-tiles', {
+    describe: () => (staged.length > 0 ? 'active' : 'disabled'),
+    run: recallAll,
+  })
+
+  // Show the staged play to teammates, read-only. Coop with somebody to show it
+  // to, so it hides itself in a race and in a solo game.
+  const actSharePreview = useBoundAction('act-share-preview', {
+    describe: () => {
+      if (!canShare) return 'hidden'
+      return staged.length > 0 ? { state: 'active', label: 'Show move to team' } : { state: 'disabled', label: 'Show move to team' }
+    },
+    run: shareCurrentMove,
+  })
+
+  // Swap rack tiles for fresh ones — a turn-consuming move, so it waits for your
+  // turn, for a selection, and for a bag deep enough to draw from.
+  const actExchange = useBoundAction('act-exchange', {
+    describe: () => {
+      if (!canExchange) return { state: 'disabled', label: 'Swap — need ≥ 7 tiles in the bag' }
+      if (!canCommit || staged.length > 0) return { state: 'disabled', label: 'Swap' }
+      if (selected.size === 0) return { state: 'disabled', label: 'Swap — select rack tiles first' }
+      return {
+        state: 'active',
+        label: `Swap ${selected.size} selected tile${selected.size === 1 ? '' : 's'}`,
+      }
+    },
+    run: exchange,
+  })
+
+  // Pass the turn — compete only (in coop the table simply plays on), and only
+  // with nothing staged: passing is what you do INSTEAD of a move.
+  const actPass = useBoundAction('act-pass', {
+    describe: () => {
+      if (!isCompete) return 'hidden'
+      return canCommit && staged.length === 0 ? 'active' : 'disabled'
+    },
+    run: pass,
+  })
 
   // Board viewer: two read-only overlays share the chrome (frame + banner + frozen
   // input + suppressed live overlays), picked by `viewTarget.kind`:
@@ -884,26 +939,19 @@ export function BoardCol({
                     rack, not in the commit row. Hidden when the rack is empty
                     (nothing to shuffle); it floats absolutely, so no reflow. */}
                 {rackTiles.length > 0 && (
-                  <ShuffleButton onShuffle={shuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
+                  <ShuffleButton action={actShuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
                 )}
               </div>
               <Controls
-                isCompete={isCompete}
-                canCommit={canCommit}
-                hasTentative={staged.length > 0}
-                selectedCount={selected.size}
-                canExchange={game.bagCount >= 7}
-                submitting={submitting}
                 submitScore={submitScore}
-                canSubmit={canSubmit}
-                canShare={canShare}
-                onShare={shareCurrentMove}
+                actSubmit={actSubmit}
+                actRecallTiles={actRecallTiles}
+                actSharePreview={actSharePreview}
+                actExchange={actExchange}
+                actPass={actPass}
+
                 onDismissPill={clearLocalFeedback}
                 pill={localPill}
-                onSubmit={() => void submit()}
-                onRecall={recallAll}
-                onExchange={() => void exchange()}
-                onPass={() => void pass()}
               />
             </div>
           ) : (

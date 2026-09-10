@@ -585,7 +585,6 @@ const VOCABULARIES: Vocabulary[] = [
       // All three are recorded decisions, not oversights — docs/code-conventions.md
       // → The z- layers names them, and the owning folder's todo.md carries each.
       'src/bananagrams/components/PlayerBoard.module.css': ['1000'], // drag ghost → shared-game-chrome
-      'src/scrabble/components/ScrabbleBlankPickerBlockingModal.module.css': ['50'], //      overlay    → the scrabble area
       'src/scrabble/components/BoardCol.module.css': ['100'], //        drag ghost → shared-game-chrome
     },
     fix:

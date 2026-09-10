@@ -304,10 +304,11 @@ The other board-cursor game (bananagrams' twin).
 | `←` `→` `↑` `↓` | Move the board cursor. Committed tiles are locked — only staged ones are editable. |
 | `A`–`Z` | Stage that tile from your rack at the cursor. |
 | `⌫` | Remove the tile behind the cursor / the last staged one. |
-| `Enter` | Play the staged word (only when it's a legal, committable play). A focused Submit button won't double-fire it. |
+| `Enter` | Play the staged word. Gray until there are tiles staged AND it's your turn, which is the same answer the Submit button reads — so the key and the button are never live at different moments. |
 
 The first keystroke while a past turn — or a teammate's shared move — is on the
-board exits back to live.
+board exits back to live: that is the viewer's own any-key action, which the
+dispatcher runs ahead of the board's keys.
 
 ## spellingbee
 

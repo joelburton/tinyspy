@@ -22,19 +22,6 @@
   the terminal copy type exists to separate, and no comment says why. Almost
   certainly `return endedCopy(mode)`; if the divergence is wanted it needs a
   comment instead.
-- **`ScrabbleBlankPickerBlockingModal`'s overlay is at `z-index: 50`** — a
-  full-screen `position: fixed` modal parked BELOW the panel tier, so an open
-  chat or menu paints over it, and not on the floating-panel shell (no focus
-  trap, no Esc, and a scrim click CANCELS, the opposite of every other
-  modal's contract). Long recorded as the ladder's known anomaly; it wants a
-  look, not a reflex bump. On the z-index guard's pending list until then.
-
-  **Settle it when scrabble's keys become bound actions**, because the keyboard
-  makes it concrete: the app's one key dispatcher stands down for anything
-  inside a `[data-floating-panel]`, and this overlay is not one — so while it is
-  open, a keystroke still reaches the board underneath. Whether it ends up
-  blocking or not was never decided; deciding it is what says who owns the
-  keyboard while a blank is being declared.
 - **Two raw `<button>`s take focus on click**, where every `StandardButton`
   suppresses it: the AI suggestion rows (`InfoCol.tsx`) and the history banner's
   ✕ (`BoardCol.tsx`). The suggestion row is the one that lingers — clicking it

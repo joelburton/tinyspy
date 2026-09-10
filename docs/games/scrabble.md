@@ -574,15 +574,16 @@ the 15×15 board (the square *hug* model — `--side = min(--avail-w, --avail-h)
 the largest square that fits, like waffle/boggle) and, directly below it,
 scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the input,
 so it lives with everything else needed to play). That row is pinned to the board
-width and split by a divider — Shuffle + the icon-only Recall (`ClearButton`) on
+width and split by a divider — Shuffle + the icon-only Recall (`act-recall-tiles`) on
 the left; the **commit slot** ([Swap] [Submit] [Pass]) on the right. The commit
 slot doubles as the **local feedback area**: an own-move result (or the terminal
 verdict) shows as a sticky `<FeedbackPill>` in place of the commit buttons,
 dismissed by the player's next move (a tile tap / a keystroke). To keep that row
 on one line within the board width, the buttons are compact — **Swap is
-icon-only** (the `ExchangeButton`, two-way-arrows glyph); Pass (compete
-only) is the de-emphasized end-turn octagon (`PassButton` — icon-only, secondary,
-left of Submit); and **Submit is the `SubmitWithScore` button**, a
+icon-only** (`act-exchange`, two-way-arrows glyph, carrying its own reason when it
+can't act); Pass hides itself outside compete and is the de-emphasized end-turn
+octagon (`act-pass` — icon-only, secondary, left of Submit); and **Submit is the
+`SubmitWithScore` button** over `act-submit`, a
 shared component that doubles as the live preview — the triangle pinned left, the
 play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
 width so it never resizes. Submit is enabled for *any* placed tiles; an illegal
@@ -616,9 +617,11 @@ viewports: fit invariants + the sheet round-trip).
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
 advances). The keyboard cursor rides the **shared `useBoardCursorKeys`** (the
-common 2-D board-cursor hook both games use); scrabble's 5% is that only STAGED
-tiles are editable — committed tiles are locked — and Enter plays the staged word
-(vs bananagrams's peel). Drag a tile rack→board, board→board (move), board→rack (recall), or
+common 2-D board-cursor hook both games use, four bound actions); scrabble's 5%
+is that only STAGED tiles are editable — committed tiles are locked — and its
+COMMIT is `act-submit`, which plays the staged word (vs bananagrams' peel). The
+commit's availability is its own, narrower than the cursor's: you may stage a
+play before your turn in compete, and Enter waits with the button. Drag a tile rack→board, board→board (move), board→rack (recall), or
 **rack→rack to reorder** (people rearrange tiles to hunt for anagrams — the drop
 position is read off the rack tiles' midpoints and moves the tile in the display
 `order`); tap a square to position the cursor; tap a rack tile to mark it for
@@ -686,14 +689,17 @@ board rotation) — never shared, never persisted, doesn't pause.
   + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
   7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
   just-drawn tiles flashed yellow, blanks grayed), `Controls` (the action half of
-  the below-board row: the icon-only Recall `ClearButton` on the left, then — coop,
-  ≥2 players — the icon-only `SharePreviewButton` (see [Show a move](#show-a-move-coop)),
-  then the **commit slot** pushed right [Swap `ExchangeButton` icon-only / Pass
-  `PassButton` icon-only, compete / Submit `SubmitWithScore`]; that slot doubles as the
+  the below-board row: the icon-only Recall on the left, then the icon-only Share
+  preview (see [Show a move](#show-a-move-coop)), which hides itself where there is
+  nobody to show a move to, then the **commit slot** pushed right [Swap / Pass,
+  which hides itself in coop / Submit]; that slot doubles as the
   local feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
   when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
   floats over the rack corner, not in this row), `ScrabbleBlankPickerBlockingModal` (declare a
-  dragged blank's letter on drop), `GameTurnLog` (the move log on the shared
+  dragged blank's letter on drop — a real `<BlockingModal>` since 2026-09-10, so
+  it has the focus trap, Escape and panel tier every other modal has; its 26
+  letters are not actions, being answers to a question this panel asks rather
+  than commands the page offers), `GameTurnLog` (the move log on the shared
   `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
   exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
   `<ActorDot>`; words click-to-define via the common `DefinitionPopover`. The

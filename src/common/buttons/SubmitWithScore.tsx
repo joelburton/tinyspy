@@ -2,13 +2,19 @@
 
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons/icons'
+import { actionSurface } from '../actions/actionSurface'
+import type { BoundAction } from '../actions/useBoundAction'
 import { cls } from '../utils/cls'
 import sb from './StandardButton.module.css'
 import styles from './SubmitWithScore.module.css'
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled'> & {
   /** The staged play's score. `null` → an em-dash (nothing staged yet). */
   score: number | null
+  /** The action this button IS — `act-submit`. What it does, whether it can be
+   *  pressed and which key also does it all come from here; the SCORE is the
+   *  only thing this control decides. */
+  action: BoundAction
 }
 
 /**
@@ -29,12 +35,16 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  *
  * `onMouseDown` is suppressed so a click doesn't steal focus from a game's
  * window-level key capture (same guard the action buttons bake in).
+ *
+ * Bespoke chrome, driven by an action — the same bargain the round shuffle pill
+ * and the on-screen keycaps make.
  */
-export function SubmitWithScore({ score, className, ...rest }: Props) {
+export function SubmitWithScore({ score, action, className, ...rest }: Props) {
+  const { buttonProps } = actionSurface(action)
   return (
     <button
       type="button"
-      aria-label="Submit"
+      {...buttonProps}
       // It borrows `<StandardButton>`'s OWN classes: the standard button's look
       // lives in its module, and there are no global button classes to compose.
       // This is the one control in the app that wants that look with a

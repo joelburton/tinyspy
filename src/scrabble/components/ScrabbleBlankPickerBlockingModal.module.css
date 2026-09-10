@@ -1,31 +1,11 @@
 /* cs-unmet */
 
-/* @@ */ .overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--scrim-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-/* @@ */ .panel {
-  background: var(--default-bg-color);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: var(--scrabble-dialog-shadow);
-  /* Bounded (and `min-width: 0` so the flex centering in `.overlay` can't let
-     the grid's content min-width force the panel wider than this — that was the
-     bug where the 7th letter column spilled out the side). Caps to the viewport
-     on small screens. */
-  width: min(92vw, 340px);
-  min-width: 0;
-  box-sizing: border-box;
-}
-/* @@ */ .prompt {
-  margin: 0 0 12px;
-  font-weight: 600;
-}
+/* The overlay, the panel and the prompt are GONE: this is a <BlockingModal>
+ * now, so the scrim, the card, the title and the footer row are the shared
+ * shell's — which is also where its focus trap, its Escape and its place in the
+ * panel z-index tier come from. What is left is the letter grid, which is the
+ * only part of this question that is scrabble's own. */
+
 /* @@ */ .grid {
   display: grid;
   /* `minmax(0, 1fr)` (not `1fr`) lets the columns shrink to share the panel
