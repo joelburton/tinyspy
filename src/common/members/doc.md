@@ -63,13 +63,13 @@ disc sitting on a saturated tile, where the ring goes to the on-dark ink because
 white is what separates any disc from a strong fill.
 
 **The mention comes in two orders and one of them is not decoration.**
-Each is named in the order it draws: `<ActorDot>` is actor-then-dot, which is
-what a table row wants; `<DotActor>` is dot-then-actor, which is what a
-sentence wants. What makes
-the pair worth a component rather than two spans is the `show` prop: because
-the name is a real element rather than text baked into a string, a phone can
-drop it globally and leave the disc, which is the fallback the whole
-one-shape-carries-color rule is built to allow.
+Each is named in the order it draws: `<ActorDot>` is actor-then-dot, which a
+turn log wants so its discs line up down one column; `<DotActor>` is
+dot-then-actor, which is what a sentence wants. What makes the pair worth a
+component rather than two spans is the `show` prop: because the name is a real
+element rather than text baked into a string, a phone can drop it globally and
+leave the disc, which is the fallback the whole one-shape-carries-color rule is
+built to allow.
 
 **Reading order is a fact about people, not about any game.** Every list of
 players in the app is read "you, then the others," and sorting the others

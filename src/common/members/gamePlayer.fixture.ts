@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 import type { GamePlayer } from './member'
 

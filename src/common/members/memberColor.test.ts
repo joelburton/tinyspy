@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 import { describe, expect, it } from 'vitest'
 import {

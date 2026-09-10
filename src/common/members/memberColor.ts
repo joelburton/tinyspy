@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 /**
  * Profile-color → CSS variable resolver.

@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 import { cls } from '../utils/cls'
 import type { Member } from './member'
@@ -68,14 +68,14 @@ function Mention({
   )
 }
 
-/** Name-then-dot ("moth ●"). Default `show="both"` — its main use is turn logs,
- *  which keep their names; feedback callers pass `show="auto"`. */
+/** Defaults to `show="both"`: its rows are turn logs, which have the width for
+ *  a name and want it. A caller in a tighter place passes `show="auto"`. */
 export function ActorDot(props: Props) {
   return <Mention {...props} dotFirst={false} show={props.show ?? 'both'} />
 }
 
-/** Dot-then-name ("● moth"). Default `show="auto"` — a feedback widget, so it
- *  drops the name to just the disc on phones. */
+/** Defaults to `show="auto"`: its rows are feedback pills and sentences, where
+ *  a long username is what overflows, so a phone keeps only the disc. */
 export function DotActor(props: Props) {
   return <Mention {...props} dotFirst={true} show={props.show ?? 'auto'} />
 }

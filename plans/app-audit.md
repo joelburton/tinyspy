@@ -259,6 +259,22 @@ so `branding/todo.md` stays empty; the two handoffs went to `manifest/todo.md`
 "what if it isn't there?" differently) and `club/todo.md` (`<StartGameButtons>`
 no longer exists and is named in nine places).
 
+**`members` is closed** (2026-09-09): ten files `cs-blessed-members`, fifteen
+findings all worked, closed moot or decided. Two of them changed the folder's
+shape rather than its prose — `common/text` was deleted (its one component had
+had no caller since August and no producer since before that), and
+`<ActorTag>` / `<ActorDot>` moved in from `turn-log`, where one JSX use site was
+a turn log and about thirty-seven were not. Both were then renamed to read in
+draw order, in two passes because the target names overlapped the current ones.
+The folder's rule — identity is a NAME the database constrains, and exactly one
+shape carries it — is why four surfaces stopped coloring player names, and
+`memberPalette.test.ts` is what keeps the eight names agreeing across the FIVE
+places that spell them, not the three the read found. **Both closing re-reads
+earned their place**: between them ten findings, and every single one was prose
+the area itself had written, several of them that same day. Owed work is in
+`members/todo.md`; the handoff to `club` is that a first-load roster read that
+fails leaves `members` at `[]` for the life of the page.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -368,7 +384,7 @@ will list the other as a dependency whichever goes first.
 | 12 | `corecss` | `core-css` · `themes` (less `loadTheme.ts`, which is `boot`'s) | **PAUSED 2026-09-05, one step from closed.** Every finding worked, the re-read done, both Designs written; the roster stays `cs-audited-corecss` until Joel blesses it, which waits until areas that rely on these stylesheets have closed — a base rule is judged from the surfaces that wear it. The stylesheets every page loads and none owns, and the theme chain |
 | 13 | `branding` | `branding` | **CLOSED 2026-09-05.** the app logo, the wordmark, and the `<GameLogo>` that renders a game's. Fifteen findings, thirteen worked; the folder's rule is that a mark is a bare `<img>` and never a control, because the same mark stands in two wrappers that mean different things by a click. **Not step 11's asset pass** — the 16 per-game logo files live in `src/<game>/`, so that stays one sweep at the end |
 |    | **The people** | | |
-| 14 | `members` | `members` (and `text`, which the area deleted) | who someone is, their color, and the disc that carries it. `common/text` was on the roster and is gone: its one component had no caller and no producer, so the area removed the folder rather than write a Design for it |
+| 14 | `members` | `members` (and `text`, which the area deleted) | **CLOSED 2026-09-09, blessed.** who someone is, their color, and the disc that carries it. Fifteen findings. Two of them were the area's shape rather than its prose: `common/text` had no caller and no producer, so the folder went instead of getting a Design; and `<ActorTag>`/`<ActorDot>` — one turn-log use site against ~37 elsewhere — moved in from `turn-log` and were renamed to read in draw order (`ActorDot` "moth ●", `DotActor` "● moth"). The folder's rule is that identity is a NAME the database constrains and exactly one shape carries it, which is why four surfaces stopped coloring player names. `memberPalette.test.ts` is new: the eight color names are spelled in FIVE places, not the three the read found |
 |    | **The controls everyone touches** | | |
 | 15 | `buttons` | `buttons` | **CLOSED 2026-09-08, blessed.** the button taxonomy. Twenty-one findings; the two biggest came from Joel rather than the read — a call site now states what its button DRAWS (`label` + a required `show`, with `tooltip` carrying the name), and a segmented choice became `<Segmented>` here rather than a global class. `FormSubmitButton` is new. The folder owns how a button is BUILT; `docs/ui.md` keeps the taxonomy around it |
 | 16 | `keyboard` | `keyboard` | key capture, tab rings, shortcuts — and [tab-rings.md](tab-rings.md)'s mechanism |

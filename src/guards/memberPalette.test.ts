@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 /**
  * **The member palette is spelled in five places, and nothing made them agree.**

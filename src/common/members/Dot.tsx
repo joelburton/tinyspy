@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 import { borderVarFor, colorVarFor } from './memberColor'
 import { cls } from '../utils/cls'

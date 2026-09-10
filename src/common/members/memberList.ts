@@ -1,4 +1,4 @@
-// cs-audited-members
+// cs-blessed-members
 
 /**
  * Two operations on a list of members: put it in reading order, and find one

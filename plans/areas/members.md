@@ -4,9 +4,14 @@ The folders it reads: `members` · `text`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-08).** Roster agreed and stamped
-`cs-audited-members`; every file read end to end; fifteen findings recorded. It
-was the next row after `buttons` closed.
+**Status: CLOSED 2026-09-09, blessed.** Opened 2026-09-08, the next row after
+`buttons` closed: roster agreed and stamped `cs-audited-members`, every file
+read end to end, fifteen findings recorded. All fifteen are worked, closed moot
+or decided; one folder was deleted and one component moved in and renamed; the
+Design is written and `members` is off `DESIGNS_OWED`; two closing re-reads are
+done and what is still owed is in `members/todo.md`. Joel blessed the roster —
+*"bless the files in the area, then close and commit"* — and the ten files are
+`cs-blessed-members`.
 
 **`src/common/text/` is deleted (2026-09-09, Joel).** F-members-1 is worked, and
 F-members-7, -11, -12 and -13 close as moot with it — they were all
@@ -19,16 +24,16 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/members/member.ts` | the `Member` / `GamePlayer` types — who someone is; types only | `cs-audited-members` |
-| `src/common/members/memberColor.ts` | `MEMBER_COLORS` and the four helpers that turn a palette name into a CSS reference | `cs-audited-members` |
-| `src/common/members/memberColor.test.ts` | tests for two of those four helpers; all four after F-members-8 | `cs-audited-members` |
-| `src/guards/memberPalette.test.ts` | WRITTEN by this area (F-members-8) — the five spellings of the palette agree | `cs-audited-members` |
-| `src/common/members/memberList.ts` | `orderSelfFirst` and `memberById` — reading order, and the who-is-this lookup | `cs-audited-members` |
-| `src/common/members/gamePlayer.fixture.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test. Renamed from `gamePlayers.ts` by F-members-9 | `cs-audited-members` |
-| `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
-| `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-audited-members` |
-| `src/common/members/ActorMention.tsx` | `<ActorDot>` / `<DotActor>` — the disc-plus-name pair. MOVED here from `turn-log` during the area; joined the roster at the closing re-read | `cs-audited-members` |
-| `src/common/members/ActorMention.module.css` | the mention's inline layout and the name/dot gap | `cs-audited-members` |
+| `src/common/members/member.ts` | the `Member` / `GamePlayer` types — who someone is; types only | `cs-blessed-members` |
+| `src/common/members/memberColor.ts` | `MEMBER_COLORS` and the four helpers that turn a palette name into a CSS reference | `cs-blessed-members` |
+| `src/common/members/memberColor.test.ts` | tests for two of those four helpers; all four after F-members-8 | `cs-blessed-members` |
+| `src/guards/memberPalette.test.ts` | WRITTEN by this area (F-members-8) — the five spellings of the palette agree | `cs-blessed-members` |
+| `src/common/members/memberList.ts` | `orderSelfFirst` and `memberById` — reading order, and the who-is-this lookup | `cs-blessed-members` |
+| `src/common/members/gamePlayer.fixture.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test. Renamed from `gamePlayers.ts` by F-members-9 | `cs-blessed-members` |
+| `src/common/members/Dot.tsx` | the identity disc | `cs-blessed-members` |
+| `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-blessed-members` |
+| `src/common/members/ActorMention.tsx` | `<ActorDot>` / `<DotActor>` — the disc-plus-name pair. MOVED here from `turn-log` during the area, and its two exports renamed; joined the roster at the closing re-read | `cs-blessed-members` |
+| `src/common/members/ActorMention.module.css` | the mention's inline layout and the name/dot gap | `cs-blessed-members` |
 | `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | DELETED (F-members-1) |
 | `src/common/text/RichMessage.module.css` | the segment's inline-flex and its disc size | DELETED (F-members-1) |
 | `src/common/members/doc.md` · `todo.md` | the lede; the Soon item about bare `.dot` classes | (no stamp — markdown) |
@@ -503,9 +508,64 @@ than found in what it inherited — which is the argument for the re-read.
    - `defaultColorFor`'s "a simple FE-only hash, not Postgres' `hashtext`"
      paragraph is a defense of the loop below it, and moved into it.
 
+## Two changes with no finding behind them (Joel, 2026-09-09)
+
+Both came from Joel mid-session rather than from the read, so neither has an
+`F-members-n`; they are recorded here because the area made them.
+
+**`<ActorTag>` / `<ActorDot>` moved from `turn-log` to `members`.** The pair is
+the disc-plus-name rendering of this folder's own claim and it lived one folder
+over. Counting real JSX use sites at the time: one was a turn log
+(`TurnLogActor`, a wrapper), and about thirty-seven were not — peer-narration
+feedback pills across thirteen games, terminal winner lines, codenamesduet's
+banners and peer-activity line, setgame's `LastSet`, chat, the pause overlay.
+The component already said as much about itself: `ActorShow` documents `auto`
+as *"the default for feedback"* and `both` as the turn-log exception.
+`TurnLogActor` stayed behind — it is the turn log's own `<td class="who">`
+wrapper, which genuinely is that folder's.
+
+**Then both exports were renamed, in two passes.** `ActorTag` / `ActorDot` did
+not say which order each drew, and the two target names overlapped the two
+current ones — so renaming in one pass would have collided. Pass 1 freed the
+name (`ActorDot` → `DotActor`), Joel checked it, pass 2 took it
+(`ActorTag` → `ActorDot`). They now read in render order:
+
+| name | draws | its rows |
+|---|---|---|
+| `ActorDot` | actor-then-dot, "moth ●" | turn logs, where the discs line up down one column |
+| `DotActor` | dot-then-actor, "● moth" | feedback pills and sentences |
+
+Two things the rename turned up. A blanket replace broke five articles — *"an
+`<ActorDot>`"* is right and *"an `<DotActor>`"* is not — one of which wrapped
+across a line break and needed doing by hand. And `plans/areas/buttons.md`
+keeps the old name on purpose: it quotes a pre-reorg path verbatim as the
+record of a sweep that FIXED five stale paths, so renaming inside that
+quotation would invent a path that never existed.
+
+## The second closing re-read (2026-09-09)
+
+The move, the two renames and the prose that came with them all landed AFTER
+the first re-read, so its result no longer covered the folder. A second, short
+sitting over what had changed since — and it found three, all of them written
+in that window:
+
+1. **The rename made three docstrings redundant with the names.** Both widget
+   docstrings still opened by restating the order ("Name-then-dot", "Dot-then-
+   name"), and the stylesheet header carried a third copy — after the component
+   docstring had already stated the rule and the names themselves now say it.
+   Each widget's docstring now carries only what its name cannot: which `show`
+   it defaults to and why.
+2. **They also said "name" where the pair now says "actor".** Two vocabularies
+   for one thing, in the file that defines it.
+3. **A hand edit to `doc.md` left a ragged paragraph**, and described a turn
+   log as "a table row" where the docstring had the better reason: the discs
+   line up down one column. The doc now says that.
+
 ## Closing
 
-- [x] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — twice, the
+      second covering the move, the renames and the prose that came with them
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not — **Joel's**
+- [x] every file on the roster blessed, or its stamp says why not — all ten
+      `cs-blessed-members`; the four `text` rows are DELETED and carry no stamp
