@@ -222,6 +222,29 @@ on a colored surface is part of the member palette's contract, and it is as
 theme-exempt as the pair), or keep the literal on purpose with a sentence
 saying why. Joel's call.
 
+**WORKED 2026-09-09, and neither of those was the answer.** Joel asked whether
+the value would change with the theme, and looking turned up a token that
+already means exactly this: `--ink-onDark-color`, `#ffffff` in daylight and in
+midnight both. Midnight's own comment on it says why that is correct rather
+than lazy — *"a role named for the ground it sits on is a role a theme has
+nothing to say about"* — which is the ring's situation stated better than this
+finding stated it.
+
+So there is no third member-palette value and nothing to add to `fixed.css`.
+Two things settle it: the decided tile this disc sits on ALREADY takes that
+token for its own letters (`psychicnum/components/Board.module.css:105`), so
+the tile's text and the ring in its corner were the same role resolved two
+different ways three characters apart; and the repo has decided this exact
+question once before — daylight's wordle-ink block says *"It is
+`--ink-onDark-color` rather than a fourth `#ffffff`, because that is what the
+token means."*
+
+`Dot.tsx` now reads `onColor ? 'var(--ink-onDark-color)' : borderVarFor(color)`,
+and the prop docstring says why it is that token rather than a literal AND
+rather than the page background — the page background is the trap here, since
+it would flip in a dark theme and take the ring dark-on-dark, exactly where the
+contrast is needed. No pixel moves: the token is `#ffffff` in both themes.
+
 ### F-members-7 · `richmessage-archaeology` · The `RichMessageType` docstring tells how it used to work
 
 `RichMessage.tsx:15–19`: *"It lived in `lib/games.ts` until the split, where

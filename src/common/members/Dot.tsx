@@ -14,13 +14,19 @@ type Props = {
    *  defaults to body text; override with `--dot-ring` on a className. */
   hollow?: boolean
   /** The disc sits on a SATURATED surface — a decided game tile — rather than on
-   *  the page. Its ring goes white instead of the member's darker shade.
+   *  the page. Its ring takes `--ink-onDark-color` instead of the member's
+   *  darker shade, the same token the tile's own letters take.
    *
    *  The ring's job is separating the disc from what is behind it, and which color
    *  does that depends on the background, not on the player: a darker shade
    *  separates a light disc from a white page, and white separates any disc from a
    *  strong fill. Red is the case that forces it — a red member's dark-red ring on
-   *  a red tile is three reds in a row, and the disc disappears. */
+   *  a red tile is three reds in a row, and the disc disappears.
+   *
+   *  That token rather than a literal `#fff`, and rather than the page
+   *  background: it is named for the GROUND it sits on, so it stays white in a
+   *  dark theme, where the page background would have flipped and taken the ring
+   *  with it — dark-on-dark, exactly where the contrast is needed. */
   onColor?: boolean
   /** Merged onto the root — for per-site sizing (`--dot-size`,
    *  `--dot-border-width`, `--dot-ring`) and margins. */
@@ -39,7 +45,7 @@ type Props = {
  *
  * Presentational and self-resolving: callers pass the color NAME off a
  * `Member` and the component resolves both CSS vars — except on a colored
- * surface, where the ring turns white (`onColor`). Size rides `--dot-size`
+ * surface, where the ring takes the on-dark ink instead (`onColor`). Size rides `--dot-size`
  * (em-relative default, so an inline dot tracks its text).
  */
 export function Dot({ color, hollow = false, onColor = false, className }: Props) {
@@ -51,7 +57,7 @@ export function Dot({ color, hollow = false, onColor = false, className }: Props
           ? undefined
           : {
               background: colorVarFor(color),
-              borderColor: onColor ? '#fff' : borderVarFor(color),
+              borderColor: onColor ? 'var(--ink-onDark-color)' : borderVarFor(color),
             }
       }
       aria-hidden="true"
