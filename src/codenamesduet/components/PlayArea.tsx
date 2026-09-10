@@ -1,11 +1,11 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
+import { useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { CreatedGame, GameStopResult } from '@/common/manifest/gameManifest'
+import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { DotActor } from '@/common/members/ActorMention'
@@ -16,14 +16,13 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '@/common/floating-panels/useConfirmation'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildDuetPrintModel } from '../pdf/model'
 import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useStandardGameActions, type GameRpcClient } from '@/common/game-page/useStandardGameActions'
 import { setupRows } from '../lib/setupSummary'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -240,10 +239,6 @@ function useTurnPill(args: {
  *  fixed total); named so the print model and the readout can't disagree. */
 const TOTAL_AGENTS = 15
 
-/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
- *  every client, this one included, learns the reset from the subscription. */
-type ReplayResult = { result: 'replayed' }
-
 export function PlayArea({
   session,
   gameId,
@@ -251,7 +246,6 @@ export function PlayArea({
   isTerminal,
   setup,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   players: members,
@@ -285,7 +279,6 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -360,12 +353,12 @@ export function PlayArea({
   // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
   // the effect deps honest: `exitViewing` is a stable useCallback, so the effect
   // below re-arms only when `viewing` flips.
-  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+  const { viewing, viewingId, select: selectTurn, exitViewing } =
     useHistoryViewer<number>()
   // A bare keystroke (nothing focused) returns to the live board — the shared
-  // "type anywhere to exit". useGlobalKeyHandler ignores keys aimed at the clue
-  // input, so typing a clue never kicks you out; exitOnKey no-ops when not viewing.
-  useGlobalKeyHandler(exitOnKey)
+  // "type anywhere to exit" — the hook binds `act-exit-viewer` itself, and the
+  // dispatcher never offers an action a keystroke aimed at a focused field, so
+  // typing a clue can't kick you out of the viewer.
   // (Click-anywhere-to-exit is intrinsic to useHistoryViewer now — no per-game wiring.)
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
@@ -393,34 +386,30 @@ export function PlayArea({
    *  first-guess assassin ends a game nobody got to play, and "let's just run
    *  it back" is what the friends actually say. Someone who wants a blind board
    *  has New game, the next item down. Confirmed mid-game like everywhere. */
-  const handleRestart = useCallback(async () => {
-    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
-    // The same board and the same two key cards, run back — so cover the
-    // partner's again. Nothing on the server remembers the reveal now, which is
-    // why this is explicit.
-    hidePeerKey()
-    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-      // Nothing to do: the fresh board arrives through the subscription.
-    } else {
-      reportUnhandled('replay_board', res)
-    }
-  }, [gameId, isTerminal, confirmAction, showLocalFeedback, hidePeerKey])
+  // ─── End / Restart — the shared pair ───────────────────
+  // codenamesduet is coop-only, so Concede hides itself and only End is ever
+  // placed. Restart runs the SAME board back — and since duet's whole board is
+  // the secret, the post-replay cleanup is covering the partner's key again:
+  // nothing on the server remembers the reveal.
+  // duet's schema has no `concede` — it is coop-only, and nobody drops out of a
+  // two-player co-op; you End. Its generated client therefore accepts a NARROWER
+  // set of function names than the shared hook's type asks for, and TypeScript
+  // has no way to say "all three, except this game only ever calls two". The
+  // assertion is what that sentence looks like in code, and it is safe for the
+  // reason it exists: in coop the Concede binding says `hidden`, so the branch
+  // that would name the missing function is unreachable. Loosening the shared
+  // type instead would weaken it for the fourteen games that do have all three.
+  const stopRpc = db as unknown as GameRpcClient
 
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'ended') {
-      // Nothing to do: the terminal arrives by subscription.
-    } else {
-      reportUnhandled('end_game', res)
-    }
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+    db: stopRpc,
+    gameId,
+    isTerminal,
+    mode: 'coop',
+    myConceded: false,
+    showError: showLocalFeedback,
+    onRestarted: hidePeerKey,
+  })
 
   // ─── New game ───────────────────────────────────────────
   // A FRESH game (new id, a newly sampled board) with THIS game's setup +
@@ -437,12 +426,11 @@ export function PlayArea({
   // which words are the assassin — is the secret, so replaying it would hand
   // both players a board they'd already learned. A new sample is the only
   // meaningful "again".
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so the setup and roster are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
+  const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
@@ -470,94 +458,93 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal. The
+  // shared run's single flight is what stops a second press sampling a second
+  // board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
-  // ─── Header menu (each game owns its whole menu now) ────
-  // codenamesduet is coop-only (fixed 2 seats, no compete sibling), so the menu
-  // is Help + End game + Back to club — no `extra` sections. `buildGameMenu`
-  // renders the End-game item (⌥⌫, disabled at terminal) wired to the same
-  // `handleEndGame` the info-column button uses. `handleEndGame` is a stable
-  // useCallback and `menu` is stable, so this effect re-runs only when
-  // `isTerminal` flips — no setState loop. Placed above the loading early-return
-  // to keep hook order stable.
+  // Reveal the partner's key — a LOCAL display toggle: it shows their card to me
+  // alone, writes nothing, and affects nobody else. Terminal-only, because
+  // mid-game the partner's card IS the game.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (peerKeyShown) {
+        return { state: 'active', label: "Hide partner's key", icon: IconHideSolution }
+      }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: "Reveal partner's key" }
+    },
+    run: togglePeerKey,
+  })
+
   // Seat/roster derivations, hoisted above the early return so the print model
-  // (built in the menu effect, a hook) reads the SAME values the render does.
+  // (built in the binding's run, but reading these) sees the SAME values the
+  // render does.
   const me = players.find((p) => p.user_id === session.user.id)
   const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). The peer's key is
+  // a secret mid-game; `useBoard` only hands it over post-game and the model
+  // refuses it before terminal regardless, so it can't reach paper early.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game && myKey && words.length >= 25 ? 'active' : 'hidden'),
+    run: () => {
+      if (!game || !myKey || words.length < 25) return
+      printCodenamesduetPdf(
+        buildDuetPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          words,
+          myKey,
+          peerKey,
+          mySeat,
+          isTerminal,
+          clues,
+          guesses,
+          nameForSeat: (seat) =>
+            (players.find((p) => p.seat === seat)?.username) ?? `Seat ${seat}`,
+          greenFound,
+          totalAgents: TOTAL_AGENTS,
+          turnNumber: game.turn_number,
+          turnCap: codenamesduetSetup.turns,
+          mode: 'coop' as const,
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // The FULL codenamesduet menu. `buildGameMenu` supplies the framing (Help +
+  // chat above, Back to club below); the middle is this game's own rows, each
+  // one a binding it already made. The game is coop-only, so Concede hides
+  // itself and the exits list draws as End alone.
   useEffect(() => {
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The peer's
-    // key is a secret mid-game; useBoard only hands it over post-game and the
-    // model refuses it before terminal regardless, so it can't reach paper early.
-    const printModel =
-      game && myKey && words.length >= 25
-        ? buildDuetPrintModel({
-            brand,
-            gameTitle: title,
-            date: new Date().toLocaleDateString(),
-            words,
-            myKey,
-            peerKey,
-            mySeat,
-            isTerminal,
-            clues,
-            guesses,
-            nameForSeat: (seat) =>
-              (players.find((p) => p.seat === seat)?.username) ?? `Seat ${seat}`,
-            greenFound,
-            totalAgents: TOTAL_AGENTS,
-            turnNumber: game.turn_number,
-            turnCap: codenamesduetSetup.turns,
-            mode: 'coop' as const,
-            setup: summaryRows,
-          })
-        : null
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: 'coop',
-        isTerminal,
-        onEndGame: () => void handleEndGame(),
+        exits: [actConcede, actEndGame],
         extra: [
-          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           // The same actions the terminal row offers, reachable mid-game too.
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => void handleRestart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
-              // The menu twin of the terminal row's boxed-eye button. Inert
-              // until the game's over — mid-game the partner's card is the
-              // whole point of the game.
-              {
-                id: 'reveal',
-                // The same two faces as the terminal row's button — one toggle.
-                icon: peerKeyShown ? IconHideSolution : IconRevealSolution,
-                label: peerKeyShown ? "Hide partner's key" : "Reveal partner's key",
-                disabled: !isTerminal,
-                onClick: togglePeerKey,
-              },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printCodenamesduetPdf(printModel) }] }]
-            : []),
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, isTerminal, handleEndGame, handleNewGame, handleRestart, togglePeerKey, peerKeyShown,
-    // The print model's inputs — rebuilt whenever the printable state moves,
-    // which is what keeps the snapshot current at click time.
-    brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,
-    greenFound, codenamesduetSetup.turns,
-    summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -692,13 +679,12 @@ export function PlayArea({
         peerFinished={peerFinished}
         peer={peer}
         // ── Action row ──
-        onEndGame={() => void handleEndGame()}
-        onRestart={() => void handleRestart()}
-        onReveal={togglePeerKey}
-        peerKeyShown={peerKeyShown}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actReveal={actReveal}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={codenamesduetSetup}
         setupRows={summaryRows}
@@ -734,7 +720,6 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }

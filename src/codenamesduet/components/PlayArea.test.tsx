@@ -15,6 +15,8 @@
  * tiles are clickable.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -79,7 +81,12 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
 }
@@ -131,15 +138,13 @@ describe('codenamesduet PlayArea — input gating', () => {
  * that's what these assert on — the hook itself is mocked.
  */
 describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
-  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+  /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
+   *  draw — a row is a bound action now, so its words, glyph and availability
+   *  come from the action rather than from the list. */
   function menuItems(ctx: GamePageCtx) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-    return new Map(
-      (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
-        .flatMap((s) => s.items)
-        .map((i) => [i.id, i]),
-    )
+    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+    return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
   }
 
   const lastPeerKeyArg = () => peerKeyArgs.calls.at(-1)
@@ -171,14 +176,14 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     const live = makeCtx()
     const { unmount } = render(<PlayArea {...live} />)
     // Mid-game the partner's card is the whole game — nothing to reveal.
-    expect(menuItems(live).get('reveal')?.disabled).toBe(true)
+    expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
     const done = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...done} />)
-    expect(menuItems(done).get('reveal')?.label).toBe("Reveal partner's key")
-    act(() => menuItems(done).get('reveal')!.onClick())
+    expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal partner's key")
+    act(() => menuItems(done).get('act-reveal')!.run())
     expect(lastPeerKeyArg()).toBe(true)
-    await waitFor(() => expect(menuItems(done).get('reveal')?.label).toBe("Hide partner's key"))
+    await waitFor(() => expect(menuItems(done).get('act-reveal')?.label).toBe("Hide partner's key"))
   })
 })

@@ -168,7 +168,7 @@ window-level board keys.
 | key | what it does |
 |---|---|
 | `Tab` / `⇧Tab` | Toggle between the clue's count and word fields — and nowhere else. With two fields, both directions are the same toggle. |
-| `Enter` | Submit the clue (the form's submit). |
+| `Enter` | Submit the clue — **the form's own submit**, not a bound action. A keystroke aimed at a focused field never reaches the key dispatcher, so the form keeps its Enter the way any form does, and the Submit button stays a `type="submit"`. The commands beside it (Pass & End Turn, the AI clue) ARE actions; a submit button is not one. |
 
 ## connections
 

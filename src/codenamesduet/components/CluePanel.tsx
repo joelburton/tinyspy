@@ -7,8 +7,8 @@ import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
 import { DotActor, ActorDot } from '@/common/members/ActorMention'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
-import { AIButton } from '@/common/buttons/AIButton'
-import { EndTurnButton } from '@/common/buttons/EndTurnButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
@@ -335,6 +335,17 @@ function ClueForm({
   const submittable = count !== '' && word.trim().length > 0
   const eitherBusy = busy || suggesting
 
+  // Ask Claude for a clue. A COMMAND the page offers, so it's a bound action —
+  // unlike the Submit beside it, which is this form's own submit button and
+  // whose Enter belongs to the focused field rather than to the key dispatcher.
+  const actSuggestClue = useBoundAction('act-suggest-clue', {
+    describe: () => ({
+      state: eitherBusy ? 'disabled' : 'active',
+      label: suggesting ? 'Thinking…' : 'AI',
+    }),
+    run: onSuggest,
+  })
+
   return (
     <form className={styles.clueForm} onSubmit={onSubmit}>
       {/* No "Clue for <peer>" label — the inputs (a count + a word + the send
@@ -379,14 +390,13 @@ function ClueForm({
           disabled={eitherBusy || !submittable}
           className={styles.submitBtn}
         />
-        {/* AI clue suggestion — the shared AIButton (sparkles + amber warning
-            tone): asking Claude for a clue is "use AI", distinct from a built-in
-            "hint". Shows "Thinking…" while the edge function runs. */}
-        <AIButton
-          label={suggesting ? 'Thinking…' : 'AI'}
+        {/* AI clue suggestion — sparkles + amber warning tone: asking Claude
+            for a clue is "use AI", distinct from a built-in "hint". It says
+            "Thinking…" while the edge function runs, which is the action's
+            doing. */}
+        <ActionButton
+          action={actSuggestClue}
           show={isPhone ? 'icon' : 'both'}
-          onClick={onSuggest}
-          disabled={eitherBusy}
           className={styles.aiBtn}
         />
       </div>
@@ -409,30 +419,28 @@ function PassButton({
    *  fault as red, and a string sink would flatten the two into one look. */
   onError: (msg: GenericFeedbackMsg) => void
 }) {
-  const [busy, setBusy] = useState(false)
-  // Icon-only on a phone (the below-board row is tight); label → aria-label/title.
+  // Icon-only on a phone (the below-board row is tight); the label rides in the
+  // tooltip either way. No `busy` flag of its own: the action's run is
+  // single-flight, so a second press while the first is out is dropped.
   const isPhone = useIsPhone()
-  return (
-    <EndTurnButton
-      label="Pass & End Turn"
-      show={isPhone ? 'icon' : 'both'}
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true)
-        const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
-        setBusy(false)
-        if (res.type === 'not-ok') {
-          onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-          return
-        } else if (res.type === 'ok' && res.data.result === 'passed') {
-          // Nothing to do: the new turn — and sudden death, if that was the last
-          // one — arrives on the games row, which is what redraws this panel.
-          return
-        } else {
-          reportUnhandled('pass_turn', res)
-          return
-        }
-      }}
-    />
-  )
+  const actPass = useBoundAction('act-pass', {
+    // duet's pass ENDS the turn as well as skipping the guess, and says so — the
+    // registry's bare "Pass" would undersell what it costs.
+    describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
+    run: async () => {
+      const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
+      if (res.type === 'not-ok') {
+        onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        return
+      } else if (res.type === 'ok' && res.data.result === 'passed') {
+        // Nothing to do: the new turn — and sudden death, if that was the last
+        // one — arrives on the games row, which is what redraws this panel.
+        return
+      } else {
+        reportUnhandled('pass_turn', res)
+        return
+      }
+    },
+  })
+  return <ActionButton action={actPass} show={isPhone ? 'icon' : 'both'} />
 }

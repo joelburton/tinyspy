@@ -224,6 +224,11 @@ export const ACTIONS = {
   // here. Keyless: it has always been a button.
   'act-recall-tiles': { label: 'Recall', icon: IconClear },
   'act-suggest-move': { label: 'Suggest a move', icon: IconAI, tone: 'caution' },
+  // codenamesduet's clue-giver asks Claude for a clue. Its own id rather than
+  // `act-suggest-move`'s: what it hands back is a WORD and a number for the
+  // partner to read, not a play to stage, and the two games' buttons sit in
+  // different rows saying different things.
+  'act-suggest-clue': { label: 'Suggest a clue', icon: IconAI, tone: 'caution' },
   'act-print-board': { label: 'Print board (PDF)', icon: IconPrint },
 
   // ─── Crosswords' commands ──────────────────────────────────────────────

@@ -16,10 +16,18 @@ export type StandardGameActions = {
   actRestart: BoundAction
 }
 
-/** The minimal slice of a schema-scoped client this hook calls. Typing it this
- *  narrowly (rather than the full generated client) lets every game pass its own
- *  `db` without the per-schema union getting in the way. */
-type GameRpcClient = {
+/**
+ * The minimal slice of a schema-scoped client this hook calls. Typing it this
+ * narrowly (rather than the full generated client) lets every game pass its own
+ * `db` without the per-schema union getting in the way.
+ *
+ * It asks for all three names because nearly every game HAS all three. A
+ * coop-only game whose schema has no `concede` at all (codenamesduet — nobody
+ * drops out of a two-player co-op, you End) passes a small shim instead of this
+ * being loosened for the fourteen games that don't need it; see that game's
+ * PlayArea.
+ */
+export type GameRpcClient = {
   rpc: (
     fn: 'end_game' | 'concede' | 'replay_board',
     args: { target_game: string },

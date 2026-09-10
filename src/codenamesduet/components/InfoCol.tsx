@@ -3,10 +3,8 @@
 import { DotActor } from '@/common/members/ActorMention'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { CodenamesduetSetup } from '../lib/setup'
@@ -24,7 +22,7 @@ import styles from './InfoCol.module.css'
  * agent/turn state readout → finished-player banners → action row → help → setup
  * disclosure → turn log. codenamesduet has NO opponent strip (peer status rides the
  * GamePage header pill) and its finished-player banners sit right under the state
- * line they explain. Every mutation is a named callback up (`onEndGame` /
+ * line they explain. Every command arrives as a bound action this column places (`actEndGame` /
  * `onSelectTurn`); PlayArea owns the RPCs + coordination. Prop names match the other
  * games' columns for the same idea (see docs/playarea.md).
  */
@@ -40,13 +38,12 @@ export function InfoCol({
   viewerFinished,
   peerFinished,
   peer,
-  onEndGame,
-  onRestart,
-  onReveal,
-  peerKeyShown,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actReveal,
+  actNewGame,
+  actBackToClub,
   setup,
   setupRows,
   clues,
@@ -79,23 +76,22 @@ export function InfoCol({
   peer: Player | undefined
 
   // ── Action row (End during play; back-to-club at terminal) ──
-  onEndGame: () => void
+  /** End the game for the whole table — the mutual "we're done". */
+  actEndGame: BoundAction
+  /** Placed for symmetry with every other game's row and never drawn here: duet
+   *  is coop, so this hides itself. */
+  actConcede: BoundAction
   /** Run this board back — same words, same key cards (a mulligan). */
-  onRestart: () => void
-  /** Open the partner's key card at game-over — or cover it up again (the red
-   *  boxed-eye RevealButton + its menu twin). A local display toggle: nothing is
-   *  written, and the partner's own card stays covered until THEY ask. */
-  onReveal: () => void
-  /** Is the partner's card open on my screen? Swaps the button to its Hide
-   *  face, and the menu item with it. */
-  peerKeyShown: boolean
-  /** Start a fresh follow-up game — same setup + roster, a newly sampled board. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
+  actRestart: BoundAction
+  /** Open the partner's key card at game-over — or cover it up again. A local
+   *  display toggle carrying its own two faces: nothing is written, and the
+   *  partner's own card stays covered until THEY ask. */
+  actReveal: BoundAction
+  /** Start a fresh follow-up game — same setup + roster, a newly sampled board.
+   *  Disables itself while the create is in flight. */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   setup: CodenamesduetSetup
@@ -157,29 +153,27 @@ export function InfoCol({
         {/* Action row. Playing: End. Terminal: the bold, outcome-colored result line +
             a compact back-to-club button (the shared swap). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options, left of the leave option (Club): open the
                 partner's key card (the post-mortem, once you've talked through
                 what you'd have played next), run the same board back, or deal a
                 fresh one. */}
-            <RevealButton
-              show="icon"
-              label="Reveal partner's key"
-              revealedLabel="Hide partner's key"
-              revealed={peerKeyShown}
-              onClick={onReveal}
-            />
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : (
           <div className={shared.infoActions}>
-            {/* Manual "we're done" stop — the shared EndGameButton (flag + error/red
-                tone, the canonical "End" label). codenamesduet is coop, so End (a
-                mutual stop), not Concede. It reads distinctly from this game's "Pass &
-                end turn" below the board (a different component + glyph), so it keeps
-                the same plain "End" as every other v3 game. */}
-            <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
+            {/* Manual "we're done" stop — flag + error/red tone, the canonical
+                "End game" label. Both exits are placed, as in every other game's
+                row; duet is coop, so Concede hides itself and only End is drawn.
+                It reads distinctly from this game's "Pass & end turn" below the
+                board (a different glyph), so it keeps the same wording as every
+                other v3 game. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

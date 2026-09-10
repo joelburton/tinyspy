@@ -258,7 +258,7 @@ The **New game** button in the terminal action row + the matching menu item: a F
 
 ### `codenamesduet.end_game(target_game uuid) → void`
 
-The friends' explicit "we're done" button — the **End game** header-menu item (coop-only; declared by codenamesduet's PlayArea via `ctx.menu.setGameSections` + `buildGameMenu`; click → the shared confirm dialog (`END_GAME_CONFIRM` via `useConfirmation`, never `window.confirm`) → `db.rpc('end_game', ...)`, disabled when terminal) and the info-column `<EndGameButton>`, both firing the same handler. codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
+The friends' explicit "we're done" button — `act-end-game`, placed as both the header-menu row (declared by codenamesduet's PlayArea via `ctx.menu.setGameSections` + `buildGameMenu`) and the info-column button, which is the SAME binding rather than two things firing one handler. Its question (`END_GAME_CONFIRM`) is asked once by the shared run, mid-game only, and it grays itself at terminal. codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 
@@ -322,7 +322,7 @@ Inherited unchanged from the common shell. The only codenamesduet-relevant note:
 
 ## Edge Function: `codenamesduet-suggest-clue`
 
-The "AI" button (the shared `AIButton`) in the FE calls this. The function:
+The "AI" button (`act-suggest-clue` — its own id rather than scrabble's `act-suggest-move`, since what comes back is a word and a number for the partner to read, not a play to stage) in the FE calls this. The function:
 
 1. Invokes `codenamesduet.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through). The RPC lives in the `codenamesduet` schema, so the call is `.schema('codenamesduet').rpc('get_clue_context', …)` — an un-qualified `rpc()` hits `public`, misses, and 403s.
 2. Calls Claude Sonnet 5 (`claude-sonnet-5`) with **structured outputs** (`output_config.format`, a `json_schema`) — the typed-JSON guarantee the old forced-tool call gave us, minus the tool. The schema asks for `{clue, count, agents, reasoning}`, and the model must commit to specific agent words. Dropping the forced tool is what lets **native adaptive thinking** (`thinking: {type:'adaptive', display:'summarized'}`, `effort: 'high'`) run — the model deliberates in real thinking blocks (logged server-side, never sent to the player) instead of the discarded scratchpad field the old tool schema carried, so the returned `reasoning` stays a clean final explanation. `max_tokens` is generous (8192) so the thinking budget never truncates the final JSON. A `console.log` of the raw Anthropic response is kept intentionally as a debugging aid.
@@ -417,7 +417,7 @@ src/codenamesduet/
                           Pass for the guesser; a muted "● moth guessing" /
                           "Waiting for moth to give a clue…" line otherwise; the
                           sudden-death notice. Live-uppercases the
-                          clue. The "AI" button (shared `AIButton`, sparkles + amber)
+                          clue. The "AI" button (`act-suggest-clue`, sparkles + amber)
                           calls the edge function and opens the
                           AI suggestion in a <FloatingPanel> (the exported
                           `ClueSuggestionPanel`, mounted by PlayArea at `.layout`
