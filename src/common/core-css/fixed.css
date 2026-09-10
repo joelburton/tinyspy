@@ -29,8 +29,9 @@
      at runtime and cannot know the meaning.
 
      Fills are mid-tones — saturated enough to read as small filled
-     circles (member list dots) and bold name labels (chat usernames),
-     dark enough to remain legible as text on the white surface.
+     circles (member list dots, the chat button's unread glyph), dark
+     enough to stay legible against the white surface. None of them
+     paints a NAME: identity rides the disc, never the text.
 
      Each fill has a PAIRED edge — the ring <Dot> draws around it, and
      what lets a light fill (yellow) stay visible against the white

@@ -106,6 +106,30 @@ four sites to their folders' `todo.md` (chat, pause-suspend, codenamesduet),
 since swapping a colored name for a `<Dot>` is a design change each surface
 makes with its files open.
 
+**WORKED 2026-09-09 — the four sites are converted, not handed off** (Joel:
+"on the pause page, show player name in black and with the member dot… same for
+chat… same for codenames duet"). Each renders the shared `<ActorDot>`
+(`common/turn-log/ActorMention`), whose stylesheet already carried the rule.
+`show="both"` at all four: they are sentences, and the mention's default drops
+the name on a phone. The names now inherit their line's color, so the two duet
+banners keep their green/tan rather than turning literally black. The weight
+dropped to the mention's 500 (chat was 600, the two banners were `<strong>`);
+`PauseOverlay`'s is the one to look at, since its line is a 700 block headline.
+`ChatBody.module.css` lost `.senderName` with its only caller.
+
+The docstring is rewritten too: `colorVarFor` now says the reference paints a
+SHAPE and never a name, and points at `<ActorTag>` / `<ActorDot>`.
+
+Two sentences that described the old state went with it. `docs/ui.md:1350` said
+*"several older logs still encode the actor by coloring the name text …
+tracked as a consistency follow-up"* — nothing does now, so the follow-up is
+gone and the paragraph names both widgets instead of only `<ActorTag>`. And
+`core-css/fixed.css`'s MEMBER header said the fills paint *"bold name labels
+(chat usernames)"* — **that file belongs to the paused `corecss` area**, whose
+re-read is done and whose blessing is pending, so Joel should know it was
+edited after the fact; the alternative was leaving a header that is now flatly
+false.
+
 ### F-members-3 · `stale-paths-and-names` · Six citations name files, folders or tokens that moved or were renamed
 
 | where | says | is |
@@ -263,9 +287,9 @@ wrong is a look-at-it question, not a read one; recorded so it is asked.
   dark ring on a colored tile; no site does it.
 - **The palette CHECK, the RPC allow-list and `MEMBER_COLORS` agree today**,
   same eight names, same order. F-members-8 is about keeping it that way.
-- **`fixed.css`'s header** says the member colors *"paint chat names and list
-  labels as well as the dot"* — a `corecss` sentence, and it will be wrong the
-  day F-members-2's handoffs land. Noted for `corecss`.
+- **`fixed.css`'s header** said the member colors paint *"bold name labels
+  (chat usernames)"* — a `corecss` sentence, and F-members-2 made it false the
+  day it landed. Fixed there rather than noted, and called out for `corecss`.
 - **`terminalOutcomeVerb.ts:15`** carries the same "well over a hundred files"
   count as F-members-4; the `terminal` area's.
 

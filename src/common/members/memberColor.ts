@@ -46,9 +46,11 @@ const VALID = new Set<string>(MEMBER_COLORS)
  * Falls back to body-text color when the name is missing or
  * unknown — never throws, never returns an invalid CSS value.
  *
- * Use as a `style={{ color: colorVarFor(member.color) }}` or
- * `style={{ background: colorVarFor(member.color) }}` directly
- * — no need for a wrapping helper at every call site.
+ * The reference paints a SHAPE the player owns — a disc's fill, a glyph, a
+ * tile tint. It does not paint their NAME: identity rides the disc and never
+ * the text (docs/ui.md → "Player identity = a colored disc"), so a name beside
+ * a disc stays body-text color. Reach for `<ActorTag>` / `<ActorDot>`
+ * (`common/turn-log/ActorMention`) when what you want is the pair.
  */
 export function colorVarFor(name: string | null | undefined): string {
   return name && VALID.has(name)
