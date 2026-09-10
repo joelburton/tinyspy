@@ -3,6 +3,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createStrandsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 import { boardReady } from './helpers/ready'
 
 /**
@@ -103,7 +104,10 @@ test.describe('strands typed input', () => {
   test('the move row’s buttons take back a letter and submit', async ({ browser }) => {
     const { ctx, page } = await openGame(browser, 'ppbtn')
 
-    const del = page.getByRole('button', { name: 'Delete' })
+    // strands drops a traced CELL rather than a typed letter, so its ⌫ is
+    // `act-drop-last-cell` — and it reads "Drop the last tile", which is why
+    // the old lookup for a button named 'Delete' had gone stale.
+    const del = actionButton(page, 'act-drop-last-cell')
     const submit = page.getByRole('button', { name: 'Submit' })
 
     await cell(page, [2, 4]).click()

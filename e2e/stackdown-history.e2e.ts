@@ -3,6 +3,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createStackdownGame, seedStackdownFirstWord } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 
 /**
  * Turn-history viewer for stackdown. Clicking a turn-log #N replays that word on
@@ -82,7 +83,7 @@ test.describe('stackdown replay + new game', () => {
 
     // Take a hint so the submission log is non-empty without needing to spell
     // a word through the tile geometry.
-    await page.getByRole('button', { name: /hint/i }).click()
+    await actionButton(page, 'act-hint').click()
     await expect(page.getByText('No words yet.')).toBeHidden({ timeout: 10000 })
 
     // Mid-game restart is confirmed through the styled ConfirmationBlockingModal (it wipes

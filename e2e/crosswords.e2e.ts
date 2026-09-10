@@ -8,6 +8,7 @@ import {
   createSoloClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionRow } from './helpers/actions'
 import { settled } from './helpers/ready'
 import { startGameRow } from './helpers/clubPage'
 import { closeContextsAfterEach } from './helpers/contexts'
@@ -93,7 +94,7 @@ test.describe('crosswords play loop', () => {
 
     // Mid-game "Reveal solution" is disabled (the solution is still shielded).
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Reveal solution' })).toBeDisabled()
+    await expect(actionRow(page, 'act-reveal')).toBeDisabled()
     await page.keyboard.press('Escape')
 
     // Give up (coop End) → terminal, but the blanks do NOT auto-fill; the
@@ -113,7 +114,7 @@ test.describe('crosswords play loop', () => {
     // the entire reason to look. The wrong-mark goes with it: that verdict was
     // about a letter no longer on screen.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Reveal solution' }).click()
+    await actionRow(page, 'act-reveal').click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
     await expect(cell10).toHaveAttribute('data-fill', 'T')
     await expect(cell10).not.toHaveAttribute('data-wrong', '')
@@ -124,7 +125,7 @@ test.describe('crosswords play loop', () => {
     // quantum clues), so overwriting it permanently would destroy the only
     // record of what the solvers wrote.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Hide solution' }).click()
+    await actionRow(page, 'act-reveal').click()
     await expect(cell11).toHaveAttribute('data-fill', '', { timeout: 8000 })
     // …including the wrong letter and its mark — overwriting the fill on screen
     // is only safe BECAUSE this comes back.
@@ -132,7 +133,7 @@ test.describe('crosswords play loop', () => {
     await expect(cell10).toHaveAttribute('data-wrong', '')
     // Show it again — from the cache this time, no refetch.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Reveal solution' }).click()
+    await actionRow(page, 'act-reveal').click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
 
     // …and Restart from HERE must hand back a blank grid, not the answers.

@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 
 /**
  * psychicnum's terminal reveal: the board becomes the answer key — but only when
@@ -60,7 +61,7 @@ test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring',
   // By its exact label, not a prefix: psychicnum's tiles ARE buttons whose
   // accessible name is the word, so `/^reveal/i` or `/^hide/i` would also match
   // a board that happened to roll "reveals" or "hider".
-  const reveal = page.getByRole('button', { name: 'Reveal secrets' })
+  const reveal = actionButton(page, 'act-reveal')
   await expect(reveal).toBeVisible({ timeout: 8000 })
   expect(await ringed()).toHaveLength(0)
 
@@ -82,7 +83,7 @@ test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring',
 
   // The same button, now wearing its Hide face, takes the green back off — the
   // board as the players actually left it.
-  await page.getByRole('button', { name: 'Hide secrets' }).click()
+  await actionButton(page, 'act-reveal').click()
   await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(0)
   await expect(reveal).toBeVisible()
 

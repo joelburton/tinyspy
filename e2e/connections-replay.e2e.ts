@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createConnectionsGame, connectionsArchiveEdge } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 
 /**
  * connections' "Restart" + "New game" — the terminal action row's
@@ -120,12 +121,12 @@ test('ending keeps the tiles; Reveal swaps in the categories, Hide swaps back', 
   await expect(tiles.first()).toBeDisabled()
 
   // Reveal swaps them for the four category bands…
-  await page.getByRole('button', { name: 'Reveal categories' }).click()
+  await actionButton(page, 'act-reveal').click()
   await expect(page.getByText('Words starting with A')).toBeVisible({ timeout: 8000 })
   await expect(tiles).toHaveCount(0)
 
   // …and Hide brings the board back exactly as they left it.
-  await page.getByRole('button', { name: 'Hide categories' }).click()
+  await actionButton(page, 'act-reveal').click()
   await expect(tiles).toHaveCount(16)
   await expect(page.getByText('Words starting with A')).toHaveCount(0)
 

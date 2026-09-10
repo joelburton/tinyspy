@@ -3,6 +3,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createStrandsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 
 /**
  * strands (PaulPath) play loop, end to end against a real archive puzzle.
@@ -169,7 +170,7 @@ test.describe('strands play loop', () => {
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
 
     // Now ask for it: the missed words draw on the board, grayed…
-    await page.getByRole('button', { name: /^Reveal/i }).first().click()
+    await actionButton(page, 'act-reveal').first().click()
     await expect(cell(page, unfound.coords[0])).toHaveClass(/tileMissed/, { timeout: 10000 })
 
     // …and the info column names them, spangram first. The board draws PATHS
@@ -181,7 +182,7 @@ test.describe('strands play loop', () => {
 
     // And the same button, wearing its other face, takes BOTH back off — the
     // board and the column as the players actually left them.
-    await page.getByRole('button', { name: /^Hide/i }).first().click()
+    await actionButton(page, 'act-reveal').first().click()
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
     await expect(page.getByText('Words:')).toHaveCount(0)
 
@@ -211,7 +212,7 @@ test.describe('strands hint economy', () => {
     // The fixture sets hint_cost = 3 and nothing has been found, so the answer
     // is the whole cost. The count is literally words: the ledger adds exactly
     // one point per valid non-theme word.
-    const hint = page.getByRole('button', { name: /hint/i })
+    const hint = actionButton(page, 'act-hint')
     await expect(hint).toBeEnabled()
     await hint.click()
     await expect(page.getByText('3 more words needed for a hint')).toBeVisible()

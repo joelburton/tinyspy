@@ -94,10 +94,19 @@ props to spread on their own `<button>`. `<ActionButton>` is the ordinary way to
 place an action; this is the door for the deliberate exceptions, and it is why a
 bespoke look is not a reason to write a command down twice.
 
-**A button says which action it is**, as `data-action="act-shuffle"` — the
-escape hatch for styling one button in particular, and a stable handle for a
-test that would otherwise hunt by wording. An attribute rather than a global
-class, matching every other marker the app leaves for a stylesheet to read.
+**Every surface says which action it is**, as `data-action="act-shuffle"` — on
+`<ActionButton>`, on an `actionSurface` control, and on a menu row. It is the
+escape hatch for styling one command in particular, and the handle a test wants:
+what a control is CALLED is `describe()`'s to vary per game and per state, so
+one action reads "Reveal answer", "Reveal secrets", "Hide solution" and
+"Solution already shown" — and a spec keyed to the wording breaks the first time
+a game says it better. `e2e/helpers/actions.ts` wraps it. An attribute rather
+than a global class, matching every other marker the app leaves for a
+stylesheet to read.
+
+The exception is a MENU SUBMENU parent ("Check", "Reveal"), which carries none:
+its id names a grouping rather than a command, and its words are the grouping's
+own — they do not vary, so naming them is safe.
 
 **The confirmation is asked by the shared run**, not by the callback. New game
 always asks the new-game question and always only mid-game, because at terminal

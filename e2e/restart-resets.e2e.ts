@@ -12,6 +12,7 @@ import {
   createWordwheelGame,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton, actionRow } from './helpers/actions'
 import { closeContextsAfterEach } from './helpers/contexts'
 
 closeContextsAfterEach()
@@ -59,26 +60,25 @@ async function restart(page: Page) {
 
 /**
  * Reveal the answer if this game offers it, wherever it lives. Two homes across
- * the roster: strands + wordle carry a "Reveal answer" MENU item; the others put
- * an `act-reveal` button in the terminal action row. `count()` first, always — a
- * zero-match locator makes `isEnabled()`/`click()` auto-wait to the timeout.
+ * the roster: strands + wordle carry the MENU row; the others put a button in
+ * the terminal action row. `count()` first, always — a zero-match locator makes
+ * `isEnabled()`/`click()` auto-wait to the timeout.
+ *
+ * By id, which is what makes one helper serve nine games: every one of them
+ * calls this control something different ("Reveal answer", "Reveal secrets",
+ * "Reveal solution", "Solution already shown"), and the id is the half that
+ * holds still. It also drops a board-tile exclusion the name needed —
+ * psychicnum's and connections' tiles are buttons named for the word on them,
+ * so a board that rolled "revealed" used to match too.
  */
 async function revealIfOffered(page: Page) {
-  // Never a board tile. psychicnum's and connections' tiles are buttons whose
-  // accessible name is the word on them, so a board that rolls "revealed"
-  // matches this too — and being disabled, it would send the helper down the
-  // menu path in silence rather than failing. The name can't be pinned exactly
-  // here (each game calls its control something different, and stackdown's says
-  // just "Reveal"), so the board is what gets excluded.
-  const rowBtn = page
-    .getByRole('button', { name: /^Reveal/ })
-    .and(page.locator(':not([data-tile])'))
+  const rowBtn = actionButton(page, 'act-reveal')
   if (await rowBtn.count()) {
     if (await rowBtn.first().isEnabled()) await rowBtn.first().click()
     return
   }
   await page.getByRole('button', { name: 'Game menu' }).click()
-  const item = page.getByRole('menuitem', { name: /^Reveal/ })
+  const item = actionRow(page, 'act-reveal')
   if ((await item.count()) === 1 && (await item.isEnabled())) await item.click()
   else await page.keyboard.press('Escape')
 }
@@ -119,7 +119,7 @@ for (const g of GAMES) {
     // the FE's own signal that it isn't still holding a revealed solution — the
     // shape of the crosswords bug, where the answers stayed painted on a board
     // the server had already cleared and un-revealed.
-    await expect(page.getByRole('button', { name: /^Reveal/ })).toHaveCount(0)
+    await expect(actionButton(page, 'act-reveal')).toHaveCount(0)
   })
 }
 

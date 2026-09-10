@@ -7,6 +7,7 @@ import {
   createStackdownGame,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton, actionRow } from './helpers/actions'
 
 /**
  * The terminal solution reveal (docs/ui.md → Terminal results): **local to each
@@ -37,20 +38,22 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
   const words = page.getByText(/^The words were/)
-  const revealRow = page.getByRole('button', { name: /^reveal$/i })
+  // By id, not by words: this one action reads "Reveal solution", "Hide
+  // solution" and "Solution already shown" depending on the moment.
+  const revealRow = actionButton(page, 'act-reveal')
 
   // Mid-game: no solution, and no reveal control in the action row (the amber
   // Spoiler button beside it is a different thing — one word, and it stays).
   await expect(words).toHaveCount(0)
   await expect(revealRow).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Spoiler' })).toBeVisible()
+  await expect(actionButton(page, 'act-spoiler')).toBeVisible()
 
   // The menu item exists all along but is inert until terminal — the words
   // don't even reach this client before then (stackdown._solution_for gates on
   // is_terminal), so there is nothing it could show.
   const openMenu = () => page.getByRole('button', { name: /menu/i }).first().click()
   await openMenu()
-  const revealItem = page.getByRole('menuitem', { name: 'Reveal solution' })
+  const revealItem = actionRow(page, 'act-reveal')
   await expect(revealItem).toBeVisible()
   await expect(revealItem).toBeDisabled()
   await page.keyboard.press('Escape')
@@ -67,10 +70,11 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   // going inert — the way back has to be as reachable as the way in.
   await revealRow.click()
   await expect(words).toBeVisible()
-  const hideRow = page.getByRole('button', { name: /^hide$/i })
+  // The same binding, wearing its other face.
+  const hideRow = actionButton(page, 'act-reveal')
   await expect(hideRow).toBeVisible()
   await openMenu()
-  await expect(page.getByRole('menuitem', { name: 'Hide solution' })).toBeEnabled()
+  await expect(actionRow(page, 'act-reveal')).toBeEnabled()
   await page.keyboard.press('Escape')
 
   // Hide puts them away again — the info column as the game ended.
@@ -83,9 +87,9 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   // had to be given explicitly when the shared flag went away.
   await revealRow.click()
   await expect(words).toBeVisible()
-  await page.getByRole('button', { name: 'Restart' }).click()
+  await actionButton(page, 'act-restart').click()
   await expect(words).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Spoiler' })).toBeVisible() // playing again
+  await expect(actionButton(page, 'act-spoiler')).toBeVisible() // playing again
 
   await ctx.close()
 })
@@ -128,12 +132,12 @@ test('stackdown: one player revealing does NOT open the words for the other', as
   // A ends it for the table; neither sees the words yet.
   await a.getByRole('button', { name: 'End game' }).first().click()
   await a.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
-  await expect(a.getByRole('button', { name: /^reveal$/i })).toBeVisible({ timeout: 8000 })
+  await expect(actionButton(a, 'act-reveal')).toBeVisible({ timeout: 8000 })
   await expect(wordsA).toHaveCount(0)
   await expect(wordsB).toHaveCount(0)
 
   // B asks. B's screen opens…
-  await b.getByRole('button', { name: /^reveal$/i }).click()
+  await actionButton(b, 'act-reveal').click()
   await expect(wordsB).toBeVisible()
 
   // …and A's does not. Give the realtime channel a real chance to carry a
@@ -142,7 +146,7 @@ test('stackdown: one player revealing does NOT open the words for the other', as
   await a.waitForTimeout(2000)
   await expect(wordsA).toHaveCount(0)
   // A's own control still offers the way in, untouched by B.
-  await expect(a.getByRole('button', { name: /^reveal$/i })).toBeVisible()
+  await expect(actionButton(a, 'act-reveal')).toBeVisible()
 
   await ctxA.close()
   await ctxB.close()
@@ -181,11 +185,12 @@ test('stackdown: a conceded player sees Reveal, disabled, while the others race'
   await expect(b.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
   a.on('dialog', (d) => void d.accept())
-  await a.getByRole('button', { name: 'Concede' }).click()
+  await actionButton(a, 'act-concede').click()
+  await a.locator('[data-floating-panel]').getByRole('button', { name: 'Concede' }).click()
   await expect(a.getByText('You conceded')).toBeVisible({ timeout: 15000 })
 
   // Alice is locally done, the game is NOT over — Reveal is there and inert.
-  const reveal = a.getByRole('button', { name: /^reveal$/i })
+  const reveal = actionButton(a, 'act-reveal')
   await expect(reveal).toBeVisible()
   await expect(reveal).toBeDisabled()
   await expect(reveal).toHaveAttribute('data-tooltip', "Can't reveal until all end")

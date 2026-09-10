@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createLetterboxedGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 import { boardReady } from './helpers/ready'
 import { startGameRow } from './helpers/clubPage'
 
@@ -220,7 +221,7 @@ test.describe('letterboxed', () => {
     // HINT describes the word without giving it: the fixture's two-word
     // solution opens with ADGJBEHK — 8 letters, so three of them (four only
     // past eight).
-    await page.getByRole('button', { name: /^hint$/i }).click()
+    await actionButton(page, 'act-hint').click()
     await expect(page.getByText('8 letters starting with ADG')).toBeVisible({ timeout: 10000 })
 
     // SPOILER hands it over.
@@ -256,7 +257,7 @@ test.describe('letterboxed', () => {
     await expect(page.getByText('Game over')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/Solvable in two/i)).toBeHidden()
 
-    await page.getByRole('button', { name: /reveal solution/i }).click()
+    await actionButton(page, 'act-reveal').click()
     await expect(page.getByText(/Solvable in two/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('ADGJBEHK')).toBeVisible()
 

@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createSetgameGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 import { boardReady } from './helpers/ready'
 import { closeContextsAfterEach } from './helpers/contexts'
 
@@ -78,8 +79,8 @@ test.describe('setgame turn order (coop)', () => {
     await expect(pageB.locator('button[class*="selected"]')).toHaveCount(0)
 
     // Nor cash a hint — the button is there (so it can say why), disabled.
-    await expect(pageB.getByRole('button', { name: 'Show hint' })).toBeDisabled()
-    await expect(pageA.getByRole('button', { name: 'Show hint' })).toBeEnabled()
+    await expect(actionButton(pageB, 'act-hint')).toBeDisabled()
+    await expect(actionButton(pageA, 'act-hint')).toBeEnabled()
 
     // ── Alice claims, by walking the hint ladder to a full set. ──
     // Three presses ring one, two, then all three cards — and the third selects
@@ -99,7 +100,7 @@ test.describe('setgame turn order (coop)', () => {
     // awaiting, so it appears while the call is still in flight. `Hints: n` is
     // the tally on the player ROW, so it moves only once the RPC has committed —
     // which is exactly when the gate reopens.
-    const hintA = pageA.getByRole('button', { name: 'Show hint' })
+    const hintA = actionButton(pageA, 'act-hint')
     // The counts heading rather than the `Counts` bar: the bar renders twice
     // (info column + mobile), so its text is never unique.
     const hintsUsed = (n: number) =>

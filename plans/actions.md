@@ -963,6 +963,42 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## After the last game — the e2e stops hunting by wording
+
+The sweep `todo.md` filed, done in one pass: every e2e lookup for an action
+whose label VARIES now asks for the action instead. `<Menu>`'s rows gained the
+`data-action` that `<ActionButton>` already wrote (a submenu parent gets none —
+its id names a grouping, not a command), and `e2e/helpers/actions.ts` wraps
+both surfaces.
+
+The helper has to keep the ROLE, which was not obvious and cost a green test to
+learn: a bare `[data-action="…"]` matches what is hidden from the accessibility
+tree, so setgame — which draws Hint in both its mobile and its desktop column —
+resolved to two elements and failed strict mode. `getByRole('button').and(…)`
+filters both the hidden twin and the menu's row for the same action.
+
+**Four specs were already red and nobody knew**, all of them for this reason:
+
+- `terminal-reveal.e2e.ts` (three tests) looked for `'Spoiler'` and
+  `/^reveal$/i`, which stackdown's `describe()` had renamed to "Cheat for next
+  word" and "Reveal solution" at its own conversion, nine commits earlier.
+- `strands.e2e.ts`'s hint test looked for `/hint/i`, and strands renames that
+  button "Find 3 more valid words" while the hint is unearned — which is the
+  very state the test sets up.
+- `strands-typing.e2e.ts` looked for `'Delete'`; strands drops a traced CELL, so
+  its ⌫ is `act-drop-last-cell` and reads "Drop the last tile".
+- `concede.e2e.ts` was still auto-accepting a `window.confirm` that stopped
+  existing when concede's question became the shared modal.
+
+`restart-resets.e2e.ts` shows what the id buys beyond not breaking: its
+`revealIfOffered` helper serves nine games whose control has nine names, and it
+loses the board-tile exclusion the name needed (psychicnum's and connections'
+tiles are buttons named for the word on them, so a board that rolled "revealed"
+used to match).
+
+**waffle keeps its wording**, per the todo's carve-out: "the SAME button, now
+wearing its Hide face" is a test ABOUT the words, and it should go on saying so.
+
 ## After the last game — a question with two ways to say yes
 
 The dispatcher's new chord-tie warning found `⌥⌫` doing the wrong thing in

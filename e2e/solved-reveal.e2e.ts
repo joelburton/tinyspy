@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { createSoloClub, createStrandsGame, createWordleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { actionButton } from './helpers/actions'
 
 /**
  * **A game you SOLVED starts with its answer on screen.**
@@ -48,7 +49,7 @@ test('wordle: solving shows the answer unasked, and the control says so', async 
   await expect(page.getByRole('grid', { name: /board/i })).toBeVisible({ timeout: 20000 })
 
   // Before the win: nothing revealed, and no reveal control at all (mid-game).
-  await expect(page.getByRole('button', { name: /^(Reveal|Hide|Solution) /i })).toHaveCount(0)
+  await expect(actionButton(page, 'act-reveal')).toHaveCount(0)
 
   await page.keyboard.type(target)
   await page.keyboard.press('Enter')

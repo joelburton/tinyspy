@@ -398,6 +398,13 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           parent && submenu?.parentId === parent.id && styles.itemOpen,
         )}
         role="menuitem"
+        // WHICH action this row is, in the DOM — the twin of the attribute
+        // `<ActionButton>` writes, and for the same reason: what a row is
+        // CALLED is `describe()`'s to vary per game and per state, so a test or
+        // a stylesheet that wants THIS command should not be asking about its
+        // words. A submenu parent gets none: its id names a grouping, not a
+        // command, and `children` is what tells the two apart.
+        data-action={item && item.children === null ? item.id : undefined}
         aria-disabled={disabled || undefined}
         disabled={disabled}
         // A submenu parent is a disclosure, so it advertises itself as one.
