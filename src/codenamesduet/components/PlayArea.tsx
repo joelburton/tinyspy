@@ -22,7 +22,7 @@ import { buildDuetPrintModel } from '../pdf/model'
 import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { useBoundAction } from '@/common/actions/useBoundAction'
-import { useStandardGameActions, type GameRpcClient } from '@/common/game-page/useStandardGameActions'
+import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { setupRows } from '../lib/setupSummary'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -391,18 +391,8 @@ export function PlayArea({
   // placed. Restart runs the SAME board back — and since duet's whole board is
   // the secret, the post-replay cleanup is covering the partner's key again:
   // nothing on the server remembers the reveal.
-  // duet's schema has no `concede` — it is coop-only, and nobody drops out of a
-  // two-player co-op; you End. Its generated client therefore accepts a NARROWER
-  // set of function names than the shared hook's type asks for, and TypeScript
-  // has no way to say "all three, except this game only ever calls two". The
-  // assertion is what that sentence looks like in code, and it is safe for the
-  // reason it exists: in coop the Concede binding says `hidden`, so the branch
-  // that would name the missing function is unreachable. Loosening the shared
-  // type instead would weaken it for the fourteen games that do have all three.
-  const stopRpc = db as unknown as GameRpcClient
-
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
-    db: stopRpc,
+    db,
     gameId,
     isTerminal,
     mode: 'coop',
