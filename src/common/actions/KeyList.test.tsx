@@ -6,7 +6,7 @@
  * comes or goes.
  */
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { KeyList } from './KeyList'
 import { useBoundAction, type ActionState } from './useBoundAction'
 
@@ -44,5 +44,25 @@ describe('KeyList', () => {
   it('shows nothing at all when nothing with a key is bound', () => {
     const { container } = render(<KeyList />)
     expect(container.innerHTML).toBe('')
+  })
+
+  /**
+   * One command offered twice is still one key. `act-end-game` really is bound
+   * twice — by the game, and by the page for the pause overlay — and the two
+   * are kept apart by describing themselves out of each other's way, which is
+   * two files agreeing rather than something the list can rely on.
+   */
+  it('lists a command ONCE however many bindings offer it', () => {
+    function Twice() {
+      useBoundAction('act-end-game', { run: () => undefined, describe: () => 'active' })
+      useBoundAction('act-end-game', { run: () => undefined, describe: () => 'active' })
+      return <KeyList />
+    }
+    const reactSaid = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(<Twice />)
+    expect(screen.getAllByText('⌥⌫')).toHaveLength(1)
+    // …and no duplicate-key complaint, which is what a second row would cost.
+    expect(reactSaid).not.toHaveBeenCalled()
+    reactSaid.mockRestore()
   })
 })

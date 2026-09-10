@@ -50,11 +50,22 @@ two saying different things. What never moves is the action's name, its keys,
 its tone and its question: those are what make it the same command in all
 sixteen games, and none of them depends on the moment.
 
-Keys go through one listener at the app root. It matches the keystroke against
-what is bound, innermost first, and fires the one action that answers. Nothing
-else in the app listens for a game key, which is the property the whole design
-rests on: a key that works is a key some action declared, so there is one place
-to look for a page's keys and no way for one to escape the list.
+Keys go through one listener at the app root, and nothing else in the app
+listens for a game key. That is the property the whole design rests on: a key
+that works is a key some action declared, so there is one place to look for a
+page's keys and no way for one to escape the list.
+
+What the listener does with a keystroke is three passes, because a keystroke can
+mean three kinds of thing. A **watcher** claims nothing and every live one runs:
+that is how any key dismisses the last message and still types its letter. An
+**interceptor** is a surface declaring a MODE — while a past turn is open, the
+next key means "back to the live board", whatever else is bound — and a mode
+outranks any particular key, which is a claim about the moment rather than
+about specificity. Everything else is a **command**, innermost binding first,
+because a component mounted inside a page may hold a more specific binding than
+the page and should win. Innermost-first is a fact about React's effect order
+rather than a decision, so when two different commands both answer one keystroke
+the dispatcher says so in the console in development.
 
 ## Details
 
@@ -125,6 +136,16 @@ sixteen games stop carrying the same three lines. A question only one game asks
 stays inside that game's callback. The asking goes through
 `common/floating-panels/confirmationService.ts`, which exists precisely because
 the code doing the asking is not a component and has nothing to render into.
+
+**A question may have two ways to say YES.** Conceding a race and ending it for
+everyone are both things to do and they differ in what they do — subtly enough
+that two red buttons side by side can only name the difference, where a question
+has room to explain it. So the registry can carry a second question
+(`confirmChoice`) whose answer says which act was picked, and the binding
+decides which question applies by supplying a body for the second act
+(`runAlternative`) or not. There is no flag: a game cannot end up offering an
+answer it has nothing to carry out with. It stops at two — past that it is a
+menu, not a question.
 
 **The run is single-flight**, so a second press while the first is still out is
 dropped and every surface shares one wait. The gate closes on the press, before

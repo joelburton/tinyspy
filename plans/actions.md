@@ -963,6 +963,37 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## Step 7 — the docs, and what looking at the key list turned up
+
+`docs/keyboard-shortcuts.md` was rewritten as each piece landed (the routing
+section with crosswords, the per-game tables game by game), so what step 7 had
+left was the two folder docs and an instruction to LOOK at `KeyList`.
+
+`common/keyboard/doc.md` needed the most: its Design described a folder whose
+whole subject had moved out. What is left there is the three questions that are
+about keys in general rather than about any one key — whose keystroke is it
+(`editableField`, and it stayed because the dispatcher is not its only asker),
+where Tab may go, and backtick standing in for Escape — plus `useCaptureKeys`,
+which is now a binder rather than a listener. Several Details bullets were
+describing the old world outright: the modifier bail is the chord matcher's job
+now, not each handler's, and the "extra key is a board key" rule went with
+`onExtraKey`.
+
+`common/actions/doc.md` gained the two things built after it was written: the
+dispatcher's three passes (its Design still said the listener "fires the one
+action that answers", which is the shape before watchers and interceptors) and
+the question with two ways to say yes.
+
+**And the look at `KeyList` found a defect.** It keys its rows by action id,
+and an id is no longer unique among live bindings — `act-end-game` is bound
+twice, by the game and by the page for the pause overlay. They are written so
+they are never live together, but that is two files agreeing rather than a
+guarantee, and a probe confirmed what happens if it ever slips: two identical
+rows plus React's duplicate-key error. It deduplicates by id now, first binding
+wins the words (the innermost, which is the one the dispatcher would fire) —
+which is the right OUTPUT regardless, since a list answering "which keys work
+here" should say a key once however many places offer it.
+
 ## After the last game — pushing a menu stops re-rendering the game
 
 `menu/todo.md`'s one item, and the last structural debt the conversion left.
