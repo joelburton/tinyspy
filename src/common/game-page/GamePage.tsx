@@ -21,7 +21,6 @@ import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { useCommonGame } from './useCommonGame'
-import { useConfirmation, END_GAME_CONFIRM } from '../floating-panels/useConfirmation'
 import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
 import { useChatFeedback } from '../chat/useChatFeedback'
@@ -267,10 +266,6 @@ function GamePageInner({
     announce: null,
   })
 
-  // The shared confirm modal (the pause overlay's End game asks through it;
-  // per-game PlayAreas own their own instances for their End buttons).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
-
   // Open/closed state for the suspend-confirm modal (fired from
   // the menu's "Back to club" item for non-terminal games).
   const [confirmingSuspend, setConfirmingSuspend] = useState(false)
@@ -454,6 +449,41 @@ function GamePageInner({
     },
   })
 
+  // End game, FOR THE PAUSE OVERLAY — the reliable way out of a wedged
+  // presence-pause (both players walked away and presence timed out). It goes
+  // through PostgREST, so it works when Realtime is stuck.
+  //
+  // Bound HERE rather than in the overlay, because the overlay is not a place a
+  // binding can live: it exists only while paused, and `<PauseBoundary>` — which
+  // this page renders — unmounts the PlayArea to show it, taking the game's own
+  // `act-end-game` off the stack with it. GamePage is above the boundary and
+  // stays mounted either way.
+  //
+  // **Hidden unless paused**, which is what keeps the two bindings from ever
+  // being live together: while a game is playing its PlayArea owns `⌥⌫`, and
+  // this one is not there at all. `manifest.endGame` is optional (bananagrams
+  // has no whole-table end), and a game that omits it hides this too.
+  const actEndGame = useBoundAction('act-end-game', {
+    terminal: isGameOver,
+    describe: () => (paused && manifest.endGame ? 'active' : 'hidden'),
+    run: async () => {
+      const endGame = manifest.endGame
+      if (!endGame) return
+      const res = await endGame(gameId)
+      if (res.type === 'not-ok') {
+        // A lost End race shows PN486's "Game over" in its own words and its
+        // own tone — the same sentence the in-game End action shows, because it
+        // is the same raise.
+        globalFeedbackShow({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else if (res.type === 'ok' && res.data?.result === 'ended') {
+        // Nothing here: the terminal arrives by subscription and the overlay
+        // unmounts with the pause.
+      } else {
+        reportUnhandled('end_game', res)
+      }
+    },
+  })
+
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member. Empty
   // until the game row (and its club_handle) loads; `useClubRoster` no-ops on ''.
@@ -479,11 +509,6 @@ function GamePageInner({
   // only one of them means the game is gone.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!commonGame) return noSuchGamePage(`rows=0 gametype=${gametype} game=${gameId}`)
-
-  // The gametype's manual end-game dispatcher, if it has one (bananagrams has no
-  // whole-table end — see the manifest). Used by the pause overlay's End-game
-  // escape; undefined hides that button.
-  const endGameFn = manifest.endGame
 
   const gameOver = commonGame.ended_at !== null
   // A COUNT-UP clock survives the end of the game and a COUNTDOWN does not, and
@@ -598,38 +623,14 @@ function GamePageInner({
         presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}
-        // Escape hatches for a wedged presence-pause (both players walked away,
-        // presence timed out). Return-to-club shelves the game (sendSuspend,
-        // which broadcasts + navigates); End game dispatches to the gametype's
-        // own end_game via the manifest (the same RPC the in-game End button
-        // uses). Both go through PostgREST, so they work even when Realtime is
-        // stuck — see docs + the reconnect nudge in App.
+        // The other escape hatch from a wedged presence-pause: shelve the game
+        // and go (sendSuspend broadcasts + navigates). NOT `act-back-to-club`,
+        // which asks first mid-game — there is nothing to ask about here, since
+        // the game is already stopped.
         onReturnToClub={sendSuspend}
-        // Optional on the manifest → the overlay hides its End-game button for
-        // a game that omits it. Every gametype supplies it today, bananagrams
-        // included: it needs End *and* per-player Concede, which are different
-        // acts. Captured as a local so the guard narrows in the async closure.
-        onEndGame={
-          endGameFn
-            ? async () => {
-                // The shared end-game confirm modal (never window.confirm —
-                // docs/ui.md → Modals). Same copy every game's own End uses.
-                if (!(await confirmAction(END_GAME_CONFIRM))) return
-                const res = await endGameFn(gameId)
-                if (res.type === 'not-ok') {
-                  // A lost End race shows PN486's "Game over" in its own words
-                  // and its own tone — the same sentence the in-game End action
-                  // shows, because it is the same raise.
-                  globalFeedbackShow({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-                } else if (res.type === 'ok' && res.data?.result === 'ended') {
-                  // Nothing here: the terminal arrives by subscription and the
-                  // overlay unmounts with the pause.
-                } else {
-                  reportUnhandled('end_game', res)
-                }
-              }
-            : undefined
-        }
+        // End game — bound above, and hidden unless paused, so the overlay is
+        // the only place it is ever drawn.
+        actEndGame={actEndGame}
       >
         {children({
           session,
@@ -707,9 +708,6 @@ function GamePageInner({
           }}
         />
       )}
-
-      {/* The pause overlay's End-game confirm (see onEndGame above). */}
-      {confirmationModal}
     </div>
   )
 }

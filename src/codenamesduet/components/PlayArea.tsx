@@ -53,7 +53,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *     `<GenericFeedbackPill>` for an own-action error or the terminal verdict).
  *   - **Info column** (fixed-width):
  *       - Status: "{greenFound}/15 agents · {turn-1}/{turns} turns spent"
- *       - Action row: the EndGameButton while playing; at terminal the bold
+ *       - Action row: End game while playing; at terminal the bold
  *         outcome line + a compact Back-to-club button. Fixed minimum height so
  *         swapping between them doesn't shift the log below.
  *       - GameTurnLog: the shared TurnLog table, scrolls internally.

@@ -962,6 +962,39 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## After the last game — the named action buttons retire
+
+The deletion II.5 defers to "when the last game converts". Sixteen files went;
+what the sweep turned up:
+
+- **Two bindings existed that nothing placed.** bananagrams' `act-zoom-fit` was
+  bound in `usePlayerBoard` and returned, while `BoardArena` went on calling
+  `centerAndFit` through a prop — and since the action is keyless, the binding
+  did nothing at all. A conversion can leave this behind silently; a keyed action
+  would at least have answered its key.
+- **A form's commit is not a command.** codenamesduet's clue submit looked like
+  an action and is not: the clue box is a real form, so the button is the FORM's
+  commit (`<FormSubmitButton>`, `type="submit"`), and the game's `onSubmit`
+  reads the two fields. Being a real form is what decides it, not whether the
+  thing being sent is a game move.
+- **`EndGameButton` needed a binding, not a deletion.** Its last caller is the
+  pause overlay, which REPLACES the play area — `PauseBoundary` unmounts the
+  PlayArea to show it, so the game's own `act-end-game` leaves the stack with it.
+  The answer is that the binding does not belong to the overlay: `GamePage`
+  renders the boundary and stays mounted either way, so IT binds a second
+  `act-end-game`, **hidden unless paused**, and the overlay places it. That is
+  what keeps the two from ever being live together, and it means the escape from
+  a wedged pause now answers `⌥⌫` too. GamePage's hand-rolled
+  `confirmAction(END_GAME_CONFIRM)` went with it — the registry asks.
+- **`BackToClubButton` stays, and the reason is worth writing down.** The
+  overlay's exit is `sendSuspend` — shelve and go. `act-back-to-club` is
+  "leave, asking first if mid-game", which would put a suspend question in front
+  of someone whose game is already stopped. Two exits that differ in what they
+  DO are two things, and making one action branch on which surface drew it would
+  put the choice back in the surface. Same for the desktop-only notice.
+- **`ClearButton` has no callers and stays**, per II.5's keep-list: it is a
+  generic clear, not a command.
+
 ## Step 6 — the last game: crosswords
 
 The sixteenth and hardest: fourteen grid keys, six ⌥ shortcuts and a dozen menu

@@ -3,8 +3,9 @@
 import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
 import { DotActor } from '../members/ActorMention'
+import { ActionButton } from '../actions/ActionButton'
+import type { BoundAction } from '../actions/useBoundAction'
 import { BackToClubButton } from '../buttons/BackToClubButton'
-import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
@@ -30,9 +31,12 @@ type Props = {
    *  presence-pause won't clear (both players walked away, presence timed out).
    *  It goes through PostgREST, so it works even if Realtime is wedged. */
   onReturnToClub?: () => void
-  /** End the game now (irreversible; the caller confirms first). The other
-   *  escape from a stuck pause, dispatched to the gametype's own end_game. */
-  onEndGame?: () => void
+  /** End the game now — the other escape from a stuck pause. Bound by
+   *  `GamePage`, which sits above the boundary that unmounts the play area, so
+   *  the binding survives the pause that the game's own one does not. It hides
+   *  itself unless paused and for a gametype with no whole-table end, so this
+   *  places it without asking. */
+  actEndGame?: BoundAction
 }
 
 /**
@@ -77,7 +81,7 @@ export function PauseOverlay({
   manuallyPausedBy,
   onResume,
   onReturnToClub,
-  onEndGame,
+  actEndGame,
 }: Props) {
   // Anyone expected but off the channel is who we're waiting on. Derived
   // here (not passed in) so the roster and the "someone's missing" gate
@@ -125,7 +129,7 @@ export function PauseOverlay({
         </p>
         {/* Actions: Resume (manual pause only), plus the always-available
             escapes — the reliable out if presence never comes back. */}
-        {(onResume && manuallyPausedBy) || onReturnToClub || onEndGame ? (
+        {(onResume && manuallyPausedBy) || onReturnToClub || actEndGame ? (
           <div className={styles.actions}>
             {onResume && manuallyPausedBy && (
               <StandardButton show="label" label="Resume" weight="primary" onClick={onResume} />
@@ -142,7 +146,7 @@ export function PauseOverlay({
                 onClick={onReturnToClub}
               />
             )}
-            {onEndGame && <EndGameButton show="both" onClick={onEndGame} />}
+            {actEndGame && <ActionButton action={actEndGame} show="both" />}
           </div>
         ) : null}
       </div>

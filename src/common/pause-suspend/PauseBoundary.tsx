@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
+import type { BoundAction } from '../actions/useBoundAction'
 import type { Member } from '../members/member'
 import { PauseOverlay } from './PauseOverlay'
 
@@ -27,7 +28,10 @@ type Props = {
    *  (suspends the game) / end the game now. The reliable way out of a wedged
    *  presence-pause — see PauseOverlay + the deadlock note. */
   onReturnToClub?: () => void
-  onEndGame?: () => void
+  /** End game, bound by `GamePage` — which is above this boundary, so it keeps
+   *  the binding while the play area below is unmounted. It hides itself unless
+   *  paused, so passing it always is right. */
+  actEndGame?: BoundAction
   /** The play surface. Rendered only when `paused === false`. */
   children: ReactNode
 }
@@ -71,7 +75,7 @@ export function PauseBoundary({
   manuallyPausedBy,
   onResume,
   onReturnToClub,
-  onEndGame,
+  actEndGame,
   children,
 }: Props) {
   if (paused) {
@@ -82,7 +86,7 @@ export function PauseBoundary({
         manuallyPausedBy={manuallyPausedBy}
         onResume={onResume}
         onReturnToClub={onReturnToClub}
-        onEndGame={onEndGame}
+        actEndGame={actEndGame}
       />
     )
   }
