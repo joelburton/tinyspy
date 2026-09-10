@@ -12,17 +12,16 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import type { GamePageCtx } from './gamePageCtx'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '../feedback/genericFeedback'
-import { menuRow, type MenuApi, type MenuSection } from '../menu/menuModel'
-import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../menu/gameMenu'
+import type { MenuApi, MenuSection } from '../menu/menuModel'
 import { getNotOkFeedback } from '../feedback/genericPills'
-import { isEditableField } from '../keyboard/editableField'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
+import { useAppAction, useBoundAction } from '../actions/useBoundAction'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { useCommonGame } from './useCommonGame'
-import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../floating-panels/useConfirmation'
+import { useConfirmation, END_GAME_CONFIRM } from '../floating-panels/useConfirmation'
 import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
 import { useChatFeedback } from '../chat/useChatFeedback'
@@ -385,7 +384,17 @@ function GamePageInner({
   const setGameSectionsApi = useCallback((sections: MenuSection[]) => {
     setGameSections(sections)
   }, [])
-  const openHelp = useCallback(() => setHelpOpen(true), [])
+  // Help for THIS game — the manifest's rules component. Bound here rather than
+  // in each PlayArea because the page is what mounts it, and handed down on the
+  // menu API for the game to place.
+  const actHelp = useBoundAction('act-help', {
+    describe: () => 'active',
+    run: () => setHelpOpen(true),
+  })
+  // Open chat, bound at the app root; the page passes it along so a game's menu
+  // can show the row. Null on a page with no chat panel — never here in
+  // practice, since GamePage mounts one, but the type says what it is.
+  const actChat = useAppAction('act-open-chat')
   // Club handle + terminal flag drive both "Back to club" affordances. Derived
   // from `commonGame` here so the menu API can be assembled; the primitives
   // (not the `commonGame` object) are the callback deps, so identities only
@@ -418,77 +427,32 @@ function GamePageInner({
     else if (players.length <= 1) sendSuspend()
     else setConfirmingSuspend(true)
   }, [clubHandle, isGameOver, players.length, sendSuspend])
+  // ⇧< → Back to club. The menu's row is this same binding, which is what makes
+  // the key discoverable: the row shows it.
+  const actBackToClub = useBoundAction('act-back-to-club', {
+    describe: () => 'active',
+    run: requestBackToClub,
+  })
+
   const menuApi = useMemo<MenuApi>(
-    () => ({ setGameSections: setGameSectionsApi, openHelp, requestBackToClub }),
-    [setGameSectionsApi, openHelp, requestBackToClub],
+    () => ({ setGameSections: setGameSectionsApi, actHelp, actChat, actBackToClub }),
+    [setGameSectionsApi, actHelp, actChat, actBackToClub],
   )
 
-  // Global game-menu shortcuts (work on any game, dispatching to the game's
-  // own menu items): ⇧< → Back to club; + → New game; ⌥+ → New game FROM SETUP;
-  // ⌥⌫ → End / Concede game. All bail inside any editable field (so ⌥Backspace
-  // stays "delete word" while typing a clue). The menu itself stopPropagations
-  // its keys, so an open menu won't reach here. See docs/ui.md → GamePage menu.
-  useEffect(function globalMenuShortcuts() {
-    function onKeyDown(e: KeyboardEvent) {
-      // Auto-repeat is never wanted here. Every shortcut below is a discrete,
-      // one-shot command — leave, start a game, end a game — and none is
-      // meaningfully repeatable. Without this, HOLDING a key fires at the OS
-      // repeat rate (~30/s): `+` at terminal has no confirm to slow it down, so
-      // a leaning finger would start dozens of games, each one orphaning the
-      // last in the club list and toasting every peer. One line, all four
-      // shortcuts.
-      if (e.repeat) return
-      if (isEditableField(e.target)) return
-      if (e.metaKey || e.ctrlKey) return
-      if (e.key === '<' && !e.altKey) {
-        e.preventDefault()
-        requestBackToClub()
-      } else if (e.key === '+' && !e.altKey) {
-        // New game. Dispatched through the MENU ITEM, like ⌥⌫ below, so it
-        // works on every game that offers New game — including the ones whose
-        // only affordance is the menu (no terminal button on screen) — with no
-        // per-game wiring, and it inherits the item's disabled state.
-        // Mid-game the game's own handler asks NEW_GAME_CONFIRM first, so a
-        // stray `+` can't silently shelve a game in progress.
-        e.preventDefault()
-        // Read as a ROW, which is what makes this work whether the game wrote
-        // a hand-written item or handed over a bound action.
-        const row = gameSectionsRef.current
-          .flatMap((s) => s.items)
-          .map(menuRow)
-          .find((r) => r.id === NEW_GAME_ID)
-        if (row && !row.disabled) row.run()
-      } else if (e.altKey && e.code === 'Equal') {
-        // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the
-        // setup dialog so you can change the options first (the plain `+` reuses
-        // this game's setup verbatim). Deliberately NOT a menu item — it's the
-        // power-user variant of one that is.
-        //
-        // Matched on `code`, not `key`: Option changes the character a key
-        // produces (⌥= is "≠" on a Mac), which is exactly why ⌥⌫ below matches
-        // `code` too. Matching the physical key also accepts ⌥= and ⌥⇧= alike,
-        // so it doesn't matter whether you reach for the shift.
-        //
-        // The dialog lives on ClubPage, so this hands off with `?new=<gametype>`
-        // — the same route crosswords' own New game uses. Canceling it just
-        // leaves you on the club page, which is a fine place to be.
-        e.preventDefault()
-        void (async () => {
-          if (!isGameOver && !(await confirmAction(NEW_GAME_CONFIRM))) return
-          if (clubHandle) navigate(`${clubPath(clubHandle)}?new=${gametype}`)
-        })()
-      } else if (e.altKey && e.code === 'Backspace') {
-        e.preventDefault()
-        const row = gameSectionsRef.current
-          .flatMap((s) => s.items)
-          .map(menuRow)
-          .find((r) => END_OR_CONCEDE_IDS.includes(r.id as (typeof END_OR_CONCEDE_IDS)[number]))
-        if (row && !row.disabled) row.run() // a row, not an item — see the `+` case above
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestBackToClub, confirmAction, isGameOver, clubHandle, gametype])
+  // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the setup
+  // dialog so you can change the options first (the plain `+`, which each game
+  // binds, reuses this game's setup verbatim). Deliberately not a menu row —
+  // it is the power-user variant of one that is, which is why it is bound here
+  // and placed nowhere. The dialog lives on ClubPage, so this hands off with
+  // `?new=<gametype>`; canceling it just leaves you on the club page, which is
+  // a fine place to be. The registry asks NEW_GAME_CONFIRM first, mid-game.
+  useBoundAction('act-new-game-from-setup', {
+    terminal: isGameOver,
+    describe: () => (clubHandle ? 'active' : 'hidden'),
+    run: () => {
+      if (clubHandle) navigate(`${clubPath(clubHandle)}?new=${gametype}`)
+    },
+  })
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member. Empty

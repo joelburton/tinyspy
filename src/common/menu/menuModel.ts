@@ -213,6 +213,18 @@ export type MenuHeader = {
 }
 
 export type MenuApi = {
+  // Help for THIS game — the manifest's `help` component, opened as a row in
+  // the menu. Bound by the game page, because it is the page that knows which
+  // rules to show; place it with `buildGameMenu`.
+  actHelp: BoundAction
+  // "Back to club": navigates directly for a terminal game, or opens the
+  // suspend-confirm modal mid-game. Also carries `⇧<`, so a menu row built from
+  // it advertises the key. Place it in a menu, or as an `<ActionButton>` in a
+  // terminal row.
+  actBackToClub: BoundAction
+  // Open chat, bound at the app root rather than here — the game page only
+  // passes it along so a menu can show it. Null on a page with no chat panel.
+  actChat: BoundAction | null
   // Replace the game's ENTIRE header menu. Every game owns its whole
   // menu — the shell injects nothing — so the game supplies all sections
   // (dividers appear between them). Use the `buildGameMenu` helper (common/lib/game/
@@ -220,12 +232,4 @@ export type MenuApi = {
   // framing. Pass `[]` to clear (on unmount). Identity is stable across
   // GamePage renders.
   setGameSections: (sections: MenuSection[]) => void
-  // Open this game's Help modal (the manifest `help` component). Wire
-  // it into your menu's Help item. Stable identity.
-  openHelp: () => void
-  // "Back to club": navigates directly for a terminal game, or opens
-  // the suspend-confirm modal mid-game. Wire it into your menu's
-  // Back-to-club item. The shell also binds ⇧< to it globally. Stable
-  // identity.
-  requestBackToClub: () => void
 }

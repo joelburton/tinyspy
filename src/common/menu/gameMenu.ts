@@ -1,132 +1,46 @@
 // cs-unmet
 
-import { IconBack, IconChat, IconConcede, IconEndGame, IconHelp } from '../icons/icons'
-import { setChatOpen } from '../chat/chatOpenStore'
+import type { BoundAction } from '../actions/useBoundAction'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
 
 /**
  * Assemble a game's FULL header menu. Every game owns its own menu (the shell
- * injects nothing — see docs/ui.md → GamePage menu), but the four framing
- * items are identical everywhere, so this builds them
- * once: **Help** + **Open chat** at the top, the game's own `extra` sections in
- * the middle, and an **End game / Concede game** + **Back to club** tail at the
- * bottom.
+ * injects nothing — see docs/ui.md → GamePage menu), but the framing is
+ * identical everywhere, so this builds it once: **Help** + **Open chat** at the
+ * top, the game's own `extra` sections in the middle, and the game's **exits** +
+ * **Back to club** at the bottom.
  *
- * The end/concede item's id is standardized (`end-game` in coop, `concede` in
- * compete) so the shell's ⌥⌫ shortcut can find + fire it; Back to club carries
- * ⇧<. Both dispatch through the shell actions on `menu` (`openHelp`,
- * `requestBackToClub`) or the game's own end/concede handler — each game's `db` is
- * schema-typed, so the RPC call stays at the call site.
+ * Every row is a bound action, so this arranges rows and decides nothing about
+ * them: which exit a mode offers, whether one is available and what key it
+ * answers to are the actions' own business (`useStandardGameActions` binds End,
+ * Concede and Restart; `common/actions` holds what they are). A row an action
+ * says is hidden drops out when the menu draws — which is how a coop game shows
+ * End and a race shows Concede without this asking.
  */
 export function buildGameMenu(opts: {
-  // The shell menu actions (openHelp / requestBackToClub) from `ctx.menu`.
-  menu: Pick<MenuApi, 'openHelp' | 'requestBackToClub'>
-  mode: 'coop' | 'compete'
-  isTerminal: boolean
-  // Compete only: a conceded player has already dropped out — gray the item.
-  conceded?: boolean
-  // Fires the game's `end_game` RPC (the neutral, whole-table give-up).
-  // Coop shows it as the mode's exit; compete ignores it unless
-  // `offerEndInCompete` is set (several compete PlayAreas pass a handler
-  // unconditionally and rely on the mode to pick, so its mere presence can't
-  // mean "offer it here").
-  onEndGame?: () => void
-  // Compete only: ALSO offer the whole-table End beneath Concede. They're
-  // different acts — conceding is a loss on your record and it takes every
-  // player doing it to close a game the group has simply lost interest in;
-  // ending is the group agreeing there's no result. Opt-in per game: every
-  // schema defines `end_game`, but most races have no use for a whole-table
-  // stop, and offering one anyway would put a second exit beside Concede that
-  // means something else.
-  offerEndInCompete?: boolean
-  // Compete: fires the game's `concede` RPC (drop out of the race).
-  onConcede?: () => void
-  // The game's own sections, inserted between Help and the End/Back tail.
+  /** The shell's own rows, off `ctx.menu`: Help, chat and Back to club. */
+  menu: Pick<MenuApi, 'actHelp' | 'actChat' | 'actBackToClub'>
+  /** The game's exits, in the order they should read. Concede goes before End
+   *  where a race offers both — it is the mode's primary exit, and the first
+   *  one on the list is the one a player reaches for. */
+  exits: BoundAction[]
+  /** The game's own sections, inserted between Help and the exits. */
   extra?: MenuSection[]
-  // Optional info block pinned at the VERY TOP of the menu (above Help) — a
-  // non-clickable title + credit lines. crosswords passes the loaded puzzle's
-  // title / author / copyright, matching the menu of the original crossplay
-  // app it was ported from.
+  /** Optional info block pinned at the VERY TOP of the menu (above Help) — a
+   *  non-clickable title + credit lines. crosswords passes the loaded puzzle's
+   *  title / author / copyright, matching the menu of the original crossplay
+   *  app it was ported from. */
   header?: MenuHeader
 }): MenuSection[] {
-  const { menu, mode, isTerminal, conceded, onEndGame, onConcede, offerEndInCompete, extra = [], header } = opts
+  const { menu, exits, extra = [], header } = opts
 
-  const endItem: MenuItem = {
-    id: 'end-game',
-    label: 'End game',
-    icon: IconEndGame,
-    // The shortcut belongs to whichever item is the mode's PRIMARY exit —
-    // Concede in a race, End otherwise — so a compete game offering both keeps
-    // ⌥⌫ on Concede.
-    shortcut: mode === 'compete' ? undefined : '⌥⌫',
-    disabled: isTerminal,
-    onClick: () => onEndGame?.(),
-  }
-  const concedeItem: MenuItem = {
-    id: 'concede',
-    label: 'Concede game',
-    icon: IconConcede,
-    shortcut: '⌥⌫',
-    disabled: isTerminal || !!conceded,
-    onClick: () => onConcede?.(),
-  }
-  const exits: MenuItem[] =
-    mode === 'compete'
-      ? [concedeItem, ...(offerEndInCompete ? [endItem] : [])]
-      : [endItem]
+  const top: MenuItem[] = menu.actChat ? [menu.actHelp, menu.actChat] : [menu.actHelp]
 
   return [
     // A header-only section (no items) at the very top when a header is given.
     ...(header ? [{ header, items: [] }] : []),
-    {
-      items: [
-        {
-          id: 'help',
-          label: 'Help',
-          icon: IconHelp,
-          onClick: menu.openHelp,
-        },
-        {
-          // Chat has a bubble in the header and a `/` shortcut, and the menu row
-          // exists for BOTH: it's the labeled twin every other action has (the
-          // bubble is an icon like the rest), and it's where the shortcut gets
-          // advertised — the shortcut column is the only place `/` is written
-          // down in the app.
-          id: 'chat',
-          label: 'Open chat',
-          icon: IconChat,
-          shortcut: '/',
-          onClick: () => setChatOpen(true),
-        },
-      ],
-    },
+    { items: top },
     ...extra,
-    {
-      items: [
-        ...exits,
-        {
-          id: 'back',
-          label: 'Back to club',
-          icon: IconBack,
-          shortcut: '⇧<',
-          onClick: menu.requestBackToClub,
-        },
-      ],
-    },
+    { items: [...exits, menu.actBackToClub] },
   ]
 }
-
-/** The menu-item ids the shell's ⌥⌫ shortcut looks for to fire end/concede. */
-export const END_OR_CONCEDE_IDS = ['end-game', 'concede'] as const
-
-/**
- * The menu-item id the shell's `+` shortcut looks for to start a new game.
- *
- * New game is NOT built by `buildGameMenu` — each game adds its own item (the
- * board it deals is game-specific), so this is the contract between them and
- * the shell: use this id and the shortcut finds you. Dispatching through the
- * menu item rather than a callback is deliberate — it means `+` works on any
- * game that offers New game at all, with no per-game wiring, and it inherits
- * the item's `disabled` state for free.
- */
-export const NEW_GAME_ID = 'new-game'

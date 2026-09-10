@@ -72,17 +72,23 @@ with no chat panel: the home page.
 
 ## Global — any play area
 
-From [`GamePage`](../src/common/game-page/GamePage.tsx). All of these bail
-inside any editable field (so `⌥⌫` stays "delete word" while typing a clue),
-ignore `Cmd`/`Ctrl`, and ignore auto-repeat — every one is a discrete command,
-and holding `+` would otherwise start dozens of games.
+Each is an action. `⇧<` and `⌥+` are bound by
+[`GamePage`](../src/common/game-page/GamePage.tsx); `+`, `⌥⌫` and the rest are
+bound by the game that offers them, which is why a game without one simply
+doesn't answer that key. All bail inside any editable field (so `⌥⌫` stays
+"delete word" while typing a clue), ignore `Cmd`, and ignore auto-repeat —
+every one is a discrete command, and holding `+` would otherwise start dozens
+of games.
+
+**Mid-conversion:** the games have not bound theirs yet, so `+` and `⌥⌫` are
+live only where a game has converted.
 
 | key | what it does |
 |---|---|
 | `⇧<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
-| `+` | **New game** — dispatched through the game's own New game menu item, so it inherits that item's disabled state and its mid-game confirm. |
+| `+` | **New game** — the game's own action, so it carries that action's availability and its mid-game confirm wherever it is shown. |
 | `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key (`Equal` + Option + Shift), since Option changes the character; `⌥=` is a different chord and is unbound. |
-| `⌥⌫` | **End game**, or **Concede** in a compete game that offers both (the shortcut follows the mode's primary exit). Disabled at terminal / once conceded. |
+| `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. Disabled at terminal / once conceded. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
 | *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Games with a viewer: codenamesduet, connections, letterboxed, psychicnum, scrabble, stackdown, strands, waffle, wordle. Clicking anywhere exits too. |

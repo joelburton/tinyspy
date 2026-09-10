@@ -5,25 +5,16 @@ import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
 import type { GameStopResult } from '../manifest/gameManifest'
 import { getNotOkFeedback } from '../feedback/genericPills'
 import { runRpc } from '../supabase/dbResult'
-import { useCallback } from 'react'
-import { useSingleFlight } from '../single-flight/useSingleFlight'
-import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../floating-panels/useConfirmation'
+import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-/** The shared game-menu actions this hook owns, as fire-and-forget handlers.
- *  A game wires these into its own `actionsRef` alongside any game-specific
- *  actions (e.g. waffle/wordle's Reveal), and hands them to its InfoCol. */
+/** The three exits every game offers some combination of, as bound actions —
+ *  hand each straight to a menu list or an `<ActionButton>`. */
 export type StandardGameActions = {
-  endGame: () => void
-  concede: () => void
-  restart: () => void
+  actEndGame: BoundAction
+  actConcede: BoundAction
+  actRestart: BoundAction
 }
-
-/** The concede confirm — one sentence, shared (the games only trivially varied
- *  "others" vs "rest"; normalized here). Concede is compete-only. Exported for
- *  bananagrams, which owns its own concede handler (its per-player concede
- *  predates this hook) but must ask the same question. */
-export const CONCEDE_CONFIRM = 'Concede the game? You drop out and the others keep playing.'
 
 /** The minimal slice of a schema-scoped client this hook calls. Typing it this
  *  narrowly (rather than the full generated client) lets every game pass its own
@@ -44,12 +35,16 @@ type ConcedeResult = { result: 'conceded' }
 type ReplayResult = { result: 'replayed' }
 
 /**
- * The End / Concede / Replay handlers shared by twelve games (spellingbee,
- * wordwheel, wordiply, boggle, waffle, wordle, psychicnum, stackdown, scrabble,
- * connections, strands, letterboxed). Their PlayAreas
- * each hand-rolled the same three handlers (byte-identical modulo the
- * schema-scoped `db`); this owns the one copy. The genuinely per-game bits stay
- * callbacks/params, so no deliberate difference is flattened:
+ * End, Concede and Restart, bound for this game — the three exits whose only
+ * per-game part is which `db` they call and where a failure is shown.
+ *
+ * Every game calls this and places what it wants: coop shows End, a race shows
+ * Concede, and a game that offers neither simply doesn't put them anywhere. The
+ * actions themselves say when they apply, so a caller never asks — End is
+ * hidden in a race unless the game opts in, Concede is hidden outside one, and
+ * both go disabled once the game is over.
+ *
+ * The genuinely per-game bits stay callbacks:
  *   - `showError` is the game's own local-feedback sink (`useLocalFeedback`'s
  *      `showLocalFeedback`, whatever the game names it). The hook hands it a
  *      fully-built `GenericFeedbackMsg`, so a failure keeps everything the
@@ -63,32 +58,36 @@ type ReplayResult = { result: 'replayed' }
  * via a direct `create_game` RPC (no edge fn), spellingbee/wordwheel strip the
  * one-off custom letters, waffle reads its args through a click-time ref, and the
  * edge-fn name + gametype vary — so its shared shell (~4 lines) is smaller than
- * the per-game `createGame` it would need. It stays a per-game handler, wired
- * into `actionsRef` next to these three.
+ * the per-game `createGame` it would need. Each game binds `act-new-game` itself.
  *
- * Confirms preserve today's behavior: End goes through the styled modal
- * (`confirm`); Concede + Replay use `window.confirm`. (Unifying those two onto
- * the modal is a deliberate, separate follow-up — kept out so this is a pure
- * refactor.)
- *
- * Returns fire-and-forget `() => void` handlers, stable while their inputs are.
+ * Nothing here asks a confirmation: each action's question lives in the registry
+ * and the shared run asks it, mid-game only.
  */
 export function useStandardGameActions({
   db,
   gameId,
   isTerminal,
+  mode,
   myConceded,
-  confirm,
+  offerEndInCompete,
   showError,
   onRestarted,
 }: {
   db: GameRpcClient
   gameId: string
   isTerminal: boolean
+  /** Which exit this game's mode offers: coop ends, a race concedes. */
+  mode: 'coop' | 'compete'
   /** Compete: I've conceded (so I can't concede again). Always false in coop. */
   myConceded: boolean
-  /** The styled end-game confirm (a game's `useConfirmation().confirm`). */
-  confirm: (opts: ConfirmOptions) => Promise<boolean>
+  /**
+   * Compete: ALSO offer the whole-table End beneath Concede. They're different
+   * acts — conceding is a loss on your record and it takes every player doing it
+   * to close a game the group has simply lost interest in; ending is the group
+   * agreeing there's no result. Opt-in per game: every schema defines
+   * `end_game`, but most races have no use for a whole-table stop.
+   */
+  offerEndInCompete?: boolean
 
   /** The game's local-feedback sink. Receives the full classified message so
    *  tone and fault styling survive the trip (see the docstring above). */
@@ -96,12 +95,15 @@ export function useStandardGameActions({
   /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
   onRestarted?: () => void
 }): StandardGameActions {
-  // End (coop's neutral mutual stop / any-mode manual end) — irreversible, so
-  // it's confirmed through the styled modal.
-  const endGame = useCallback(() => {
-    void (async () => {
-      if (isTerminal) return
-      if (!(await confirm(END_GAME_CONFIRM))) return
+  // End — the coop exit, and the opt-in second exit in a race. Irreversible,
+  // so the registry gives it the confirm; the shared run asks.
+  const actEndGame = useBoundAction('act-end-game', {
+    terminal: isTerminal,
+    describe: (): ActionState => {
+      if (mode === 'compete' && !offerEndInCompete) return 'hidden'
+      return isTerminal ? 'disabled' : 'active'
+    },
+    run: async () => {
       const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
       if (res.type === 'not-ok') {
         // The one race is `isTerminal` losing to the subscription that feeds
@@ -112,14 +114,17 @@ export function useStandardGameActions({
       } else {
         reportUnhandled('end_game', res)
       }
-    })()
-  }, [db, gameId, isTerminal, confirm, showError])
+    },
+  })
 
-  // Concede (compete) — a real loss for the conceder; the others keep racing.
-  const concede = useCallback(() => {
-    void (async () => {
-      if (isTerminal || myConceded) return
-      if (!window.confirm(CONCEDE_CONFIRM)) return
+  // Concede — a real loss for the conceder; the others keep racing.
+  const actConcede = useBoundAction('act-concede', {
+    terminal: isTerminal,
+    describe: (): ActionState => {
+      if (mode !== 'compete') return 'hidden'
+      return isTerminal || myConceded ? 'disabled' : 'active'
+    },
+    run: async () => {
       const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
       if (res.type === 'not-ok') {
         // Both races reachable here are the two gates above losing to the
@@ -132,35 +137,32 @@ export function useStandardGameActions({
       } else {
         reportUnhandled('concede', res)
       }
-    })()
-  }, [db, gameId, isTerminal, myConceded, showError])
+    },
+  })
 
-  // Restart — restart THIS board for everyone. Confirmed MID-GAME only (it
-  // wipes the group's progress); at terminal there's nothing left to lose. The
-  // reset arrives via each game's realtime refetch (the RPC's games touch).
-  const doRestart = useCallback(async () => {
-    if (!isTerminal && !(await confirm(RESTART_CONFIRM))) return
-    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      // The one race here is the game having been deleted out from under the
-      // page — a club member tidying the list while you had it open.
-      showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-      // The fresh board arrives by subscription; this is the game's own
-      // post-replay cleanup (wordle/waffle re-hide the answer).
-      onRestarted?.()
-    } else {
-      reportUnhandled('replay_board', res)
-    }
-  }, [db, gameId, isTerminal, confirm, showError, onRestarted])
+  // Restart — restart THIS board for everyone. The reset arrives via each
+  // game's realtime refetch (the RPC's games touch). A replayed board is a
+  // perfectly legal thing to replay again, so it stays offered at terminal;
+  // the shared run's single flight is what stops a second wipe landing on a
+  // board someone has already started guessing on.
+  const actRestart = useBoundAction('act-restart', {
+    terminal: isTerminal,
+    describe: (): ActionState => 'active',
+    run: async () => {
+      const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
+      if (res.type === 'not-ok') {
+        // The one race here is the game having been deleted out from under the
+        // page — a club member tidying the list while you had it open.
+        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      } else if (res.type === 'ok' && res.data?.result === 'replayed') {
+        // The fresh board arrives by subscription; this is the game's own
+        // post-replay cleanup (wordle/waffle re-hide the answer).
+        onRestarted?.()
+      } else {
+        reportUnhandled('replay_board', res)
+      }
+    },
+  })
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  // End and Concede need no such guard — `isTerminal` / `myConceded` stop the
-  // second call once the first lands, and one that beats the round trip errors
-  // harmlessly. A replayed board is a perfectly legal thing to replay again, so
-  // nothing stops the second wipe from landing after someone has started
-  // guessing on the fresh one.
-  const [restart] = useSingleFlight(doRestart)
-
-  return { endGame, concede, restart }
+  return { actEndGame, actConcede, actRestart }
 }

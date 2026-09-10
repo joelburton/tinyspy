@@ -88,7 +88,10 @@ the code doing the asking is not a component and has nothing to render into.
 **The run is single-flight**, so a second press while the first is still out is
 dropped and every surface shares one wait. The gate closes on the press, before
 the question is answered, which is deliberate: a button behind an open confirm
-reads gray rather than live.
+reads gray rather than live. **A menu row grays for the same flight**, which
+settles a question the games used to answer each their own way — a row that
+silently does nothing for a second, while advertising a key, reads as a promise
+it isn't keeping.
 
 **A surface reads a bound action when it draws it.** For anything the game
 renders that is automatic. The menu is the one surface the game does not

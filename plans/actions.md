@@ -928,3 +928,35 @@ machinery; the game page and the games do not yet.**
   from the games' help, so it needed the mount of its own. Its prose still names
   `/`, `?` and `~` by hand a paragraph above the list — Joel's copy, left alone,
   and worth a look now that the list says the same thing.
+
+## Steps 3 and 4 — the button, and the game page
+
+**Step 3 needed nothing built.** `<ActionButton>` shipped in step 1 and
+`TooltipHost` renders `data-tooltip` verbatim, so "New game · +" already works;
+there is nowhere to place a button until the games convert, so the step folds
+into step 5.
+
+**Step 4 converts the shell's game-page keys and breaks the games**, which is
+the bargain §9 named. `tsc -b` reports 92 errors, all in the sixteen PlayAreas
+and their tests; every other file, test and guard is green.
+
+- **`useStandardGameActions` returns bound actions** — `actEndGame`,
+  `actConcede`, `actRestart` — and takes `mode` instead of a confirm. Which
+  exit a mode offers stopped being the caller's question: End hides itself in a
+  race unless the game opts in, Concede hides outside one, both disable at
+  terminal. Its `window.confirm` for concede is gone, which is decision 2
+  landing where it belongs.
+- **`buildGameMenu` arranges rows and decides nothing.** No `mode`, no
+  `isTerminal`, no `conceded`, no handlers: it takes the game's `exits` in the
+  order they should read and the shell's three rows off `ctx.menu`.
+- **`MenuApi` carries actions, not callbacks.** `openHelp` and
+  `requestBackToClub` are replaced by `actHelp`, `actBackToClub` and `actChat`
+  — the last bound at the app root and passed along, which needed a way to
+  reference an action somebody else bound (`useAppAction`).
+- **`NEW_GAME_ID` and `END_OR_CONCEDE_IDS` are deleted**, and with them the
+  four-branch listener and the id contract by which the shell found a row to
+  fire. A game gets `+` and `⌥⌫` by binding the action; until it does, in
+  step 5, those keys do nothing there.
+- **Two `menu/todo.md` items are answered and deleted.** A row grays while its
+  action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
+  and the New-game id contract that fifteen games typed by hand is gone.

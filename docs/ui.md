@@ -1176,7 +1176,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
 
-**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell exposes the two actions a game can't build itself — `ctx.menu.openHelp()` and `ctx.menu.requestBackToClub()` (the terminal-vs-suspend "Back to club" logic).
+**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `⇧<`) and `ctx.menu.actChat`, which is bound at the app root.
 
 ```
 [logo ▼]   ← click
@@ -1192,29 +1192,30 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          └──────────────────────┘
 ```
 
-**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the shortcut column is the only place in the app `/` is written down. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
+**The `buildGameMenu` helper** ([common/menu/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with the game's **exits** + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the row is where `/` is written down. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
-**Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Three are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **+** fires New game (finds the `new-game` item — `NEW_GAME_ID`), **⇧<** fires Back to club. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
+**A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its key hint and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
 
-Dispatching through the *menu item* rather than a callback is what makes `+` work on **every** game that offers New game — including one whose only affordance is the menu, with no button on screen — and it inherits the item's `disabled` state for free. New game isn't built by `buildGameMenu` (the board each game deals is its own), so the shared id is the contract between the games and the shell.
+**Shortcut hints** are the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **⇧<** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
-**⌥+ — "new game from setup"** is the one shortcut with **no menu item**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`; that also makes ⌥= and ⌥⇧= both work, so the shift is optional.
+**⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'` + Shift, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
 
-**⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* item carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are. (ClubPage's handler additionally bails inside an open dialog / menu / floating panel — navigating out from under an open setup dialog would be its own bug. GamePage's older twin bails only on editable fields; worth aligning next time that file is open.)
+**⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* row carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are.
 
 API on `GamePageCtx`:
 
 ```ts
 menu: {
   setGameSections: (sections: MenuSection[]) => void
-  openHelp: () => void      // opens the manifest Help modal
-  requestBackToClub: () => void   // Back to club (terminal-nav or suspend-confirm)
+  actHelp: BoundAction          // this game's rules
+  actBackToClub: BoundAction    // terminal-nav or suspend-confirm, and ⇧<
+  actChat: BoundAction | null   // bound at the app root; null with no chat panel
 }
 ```
 
 **`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is either an action (`onClick`, an optional `shortcut` hint, an optional `icon`) or a submenu (`items`, one level deep). This paragraph used to be a copy of those type literals, which is exactly why it fell behind them: it still showed a plain `MenuItem` with no `icon` and no submenu arm long after both shipped. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
 
-**Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values; route any late-declared or unstable item handlers (typically End/Concede) through a stable ref populated in a separate effect — the crosswords `actionsRef` pattern. The shell's menu actions (`openHelp` / `requestBackToClub`) have stable identity.
+**Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values — which is most of what a bound action buys here: a row is a reference whose label and state are asked at draw time, so the sections only change when the SHAPE of the menu does, and nothing has to be routed through a ref to be reachable from the effect.
 
 **Focus.** The game menu is given `returnFocusOnClose={false}` (Menu.tsx), so closing it blurs the trigger and lets focus fall to `<body>` — a keyboard-first board (crosswords) resumes reading arrows instead of a focused logo swallowing them / reopening the menu. `Menu` also `stopPropagation`s its own keydowns so arrowing through the menu never doubles as a board move. Non-game menus (ClubPage's, HomePage's) keep the standard Esc-restores-focus a11y.
 

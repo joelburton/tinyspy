@@ -1,124 +1,104 @@
 // cs-unmet
 
 import { describe, it, expect, vi } from 'vitest'
-import { buildGameMenu, END_OR_CONCEDE_IDS } from './gameMenu'
+import { buildGameMenu } from './gameMenu'
 import { menuRow, type MenuItem, type MenuRow } from './menuModel'
+import type { BoundAction } from '../actions/useBoundAction'
+import type { ActionId } from '../actions/registry'
 
 /**
  * What the shared menu framing puts on screen, and in what order.
  *
- * **Order is behavior here, not presentation.** The shell's ⌥⌫ takes the FIRST
- * item whose id is in `END_OR_CONCEDE_IDS` (`GamePage.tsx` →
- * `globalMenuShortcuts`), so which
- * exit the shortcut fires is decided by array position — Concede is written
- * before End, and that is the whole implementation of "the shortcut follows the
- * mode's primary exit". A careless reorder would move the shortcut to the wrong
- * act and break nothing else, which is why the compete-with-both case asserts
- * position and not just membership.
+ * **Order is behavior here, not presentation.** A player reaches for the first
+ * exit on the list, so a race writes Concede before End; and the exits sit
+ * above Back to club, which is the last thing in every game's menu. Nothing
+ * else about a row is decided here — which exit a mode offers, whether one
+ * applies, what key it answers to are the actions' own, and the rows this
+ * builds are references to them.
  *
- * That case is also the one nothing else covers. `buildGameMenu`'s output is
- * asserted through the games — most PlayArea tests name End/Concede, and
- * crosswords pins its whole id order — but `offerEndInCompete`'s one caller
- * (bananagrams) hands `setGameSections` a `vi.fn()` its own test never reads.
+ * A hidden action leaving the menu is `menuRow`'s doing, exercised through it
+ * here because that is how `<Menu>` sees a row.
  */
 
-const menu = { openHelp: vi.fn(), requestBackToClub: vi.fn() }
-
-/** Every row the menu renders, flattened — the shape the shell's shortcut
- *  dispatchers walk. */
-function idsOf(sections: { items: MenuItem[] }[]): string[] {
-  return sections.flatMap((s) => s.items).map((i) => i.id)
+/** A bound action, as a menu sees one. Hand-made rather than bound through the
+ *  hook: what this file tests is arrangement, and a real binding would drag a
+ *  React tree and a key dispatcher in with it. */
+function action(id: string, over: Partial<BoundAction> = {}): BoundAction {
+  return {
+    id: id as ActionId,
+    spec: { label: id },
+    run: vi.fn(),
+    describe: () => ({ state: 'active' }),
+    pending: false,
+    ...over,
+  }
 }
 
-/** A row as the MENU would draw it — which is where a label, a shortcut hint
- *  and a disabled state are decided, whatever kind of item produced them. */
-function rowOf(sections: { items: MenuItem[] }[], id: string): MenuRow | undefined {
-  return sections.flatMap((s) => s.items).map(menuRow).find((r) => r.id === id)
+const actHelp = action('act-help')
+const actChat = action('act-open-chat')
+const actBackToClub = action('act-back-to-club')
+const actEndGame = action('act-end-game')
+const actConcede = action('act-concede')
+
+const menu = { actHelp, actChat, actBackToClub }
+
+/** Every row the menu draws, flattened and in order. */
+function idsOf(sections: { items: MenuItem[] }[]): string[] {
+  return sections
+    .flatMap((s) => s.items)
+    .map(menuRow)
+    .filter((r: MenuRow) => !r.hidden)
+    .map((r) => r.id)
 }
 
 describe('buildGameMenu', () => {
-  it('frames a coop menu with Help + chat above and End + Back below', () => {
-    const sections = buildGameMenu({ menu, mode: 'coop', isTerminal: false })
-    expect(idsOf(sections)).toEqual(['help', 'chat', 'end-game', 'back'])
-    // Coop has one exit, so it carries the shortcut.
-    expect(rowOf(sections, 'end-game')?.shortcut).toBe('⌥⌫')
-    expect(rowOf(sections, 'back')?.shortcut).toBe('⇧<')
+  it('frames a coop menu with Help + chat above and the exit + Back below', () => {
+    const sections = buildGameMenu({ menu, exits: [actEndGame] })
+    expect(idsOf(sections)).toEqual(['act-help', 'act-open-chat', 'act-end-game', 'act-back-to-club'])
   })
 
-  it('offers Concede instead of End in compete', () => {
-    const sections = buildGameMenu({ menu, mode: 'compete', isTerminal: false })
-    expect(idsOf(sections)).toEqual(['help', 'chat', 'concede', 'back'])
-    expect(rowOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
+  it('drops the chat row on a page with no chat panel', () => {
+    const sections = buildGameMenu({ menu: { ...menu, actChat: null }, exits: [actEndGame] })
+    expect(idsOf(sections)).toEqual(['act-help', 'act-end-game', 'act-back-to-club'])
   })
 
-  it('puts Concede FIRST when a compete game offers both exits, so ⌥⌫ finds it', () => {
-    const sections = buildGameMenu({
-      menu,
-      mode: 'compete',
-      isTerminal: false,
-      offerEndInCompete: true,
-    })
-    // Position, not just membership: End sits BENEATH Concede.
-    expect(idsOf(sections)).toEqual(['help', 'chat', 'concede', 'end-game', 'back'])
-    // The shortcut rides the mode's primary exit, and the second exit carries
-    // none — two items advertising ⌥⌫ would be a lie about what it fires.
-    expect(rowOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
-    expect(rowOf(sections, 'end-game')?.shortcut).toBeUndefined()
-
-    // The shell's own dispatch, reproduced: first match wins.
-    const fired = sections
-      .flatMap((s) => s.items)
-      .find((i) => END_OR_CONCEDE_IDS.includes(i.id as (typeof END_OR_CONCEDE_IDS)[number]))
-    expect(fired?.id).toBe('concede')
+  it('keeps the exits in the order the game gave them', () => {
+    // Position, not just membership: a race offering both puts Concede first,
+    // because that is the exit it means.
+    const sections = buildGameMenu({ menu, exits: [actConcede, actEndGame] })
+    expect(idsOf(sections)).toEqual([
+      'act-help', 'act-open-chat', 'act-concede', 'act-end-game', 'act-back-to-club',
+    ])
   })
 
-  it('leaves End enabled for a player who has conceded', () => {
-    // A decision, not an oversight (Joel, 2026-09-04): ending is the group
-    // agreeing there is no result, and choosing it is freely open — a conceder
-    // is still in the conversation. Concede is what `conceded` disables.
-    const sections = buildGameMenu({
-      menu,
-      mode: 'compete',
-      isTerminal: false,
-      conceded: true,
-      offerEndInCompete: true,
-    })
-    expect(rowOf(sections, 'concede')?.disabled).toBe(true)
-    expect(rowOf(sections, 'end-game')?.disabled).toBe(false)
-  })
-
-  it('disables both exits once the game is terminal', () => {
-    const sections = buildGameMenu({
-      menu,
-      mode: 'compete',
-      isTerminal: true,
-      offerEndInCompete: true,
-    })
-    expect(rowOf(sections, 'concede')?.disabled).toBe(true)
-    expect(rowOf(sections, 'end-game')?.disabled).toBe(true)
+  it('leaves out an exit the action says is hidden — how a mode picks one', () => {
+    const hidden = action('act-end-game', { describe: () => ({ state: 'hidden' }) })
+    const sections = buildGameMenu({ menu, exits: [actConcede, hidden] })
+    expect(idsOf(sections)).toEqual([
+      'act-help', 'act-open-chat', 'act-concede', 'act-back-to-club',
+    ])
   })
 
   it('drops the game its own sections between the two framing halves', () => {
     const sections = buildGameMenu({
       menu,
-      mode: 'coop',
-      isTerminal: false,
+      exits: [actEndGame],
       extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: vi.fn() }] }],
     })
-    expect(idsOf(sections)).toEqual(['help', 'chat', 'print', 'end-game', 'back'])
+    expect(idsOf(sections)).toEqual([
+      'act-help', 'act-open-chat', 'print', 'act-end-game', 'act-back-to-club',
+    ])
   })
 
   it('pins a header-only section above everything when a header is given', () => {
     const sections = buildGameMenu({
       menu,
-      mode: 'coop',
-      isTerminal: false,
+      exits: [actEndGame],
       header: { title: 'Sunday Crossword', lines: ['by A. Setter'] },
     })
     // It carries no items of its own — the renderer keeps a section that has a
     // header and nothing else (Menu.tsx), which is what makes this shape legal.
     expect(sections[0]?.header?.title).toBe('Sunday Crossword')
     expect(sections[0]?.items).toEqual([])
-    expect(idsOf(sections)).toEqual(['help', 'chat', 'end-game', 'back'])
   })
 })

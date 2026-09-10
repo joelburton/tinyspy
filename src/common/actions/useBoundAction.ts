@@ -114,6 +114,23 @@ export function liveBindings(): BoundAction[] {
   return bindings.map((b) => b.current)
 }
 
+/**
+ * An action somebody ELSE bound, for a surface that wants to show it.
+ *
+ * The game menu's chat row is the case: `/` is bound once at the app root, and
+ * the row should be that action rather than a second copy of its name and its
+ * key. Null when nothing has bound it — a page with no chat panel — and the
+ * caller drops the row.
+ */
+export function useAppAction(id: ActionId): BoundAction | null {
+  useSyncExternalStore(subscribe, () => version)
+  // Innermost wins, the same rule the dispatcher follows.
+  for (let i = bindings.length - 1; i >= 0; i -= 1) {
+    if (bindings[i]!.current.id === id) return bindings[i]!.current
+  }
+  return null
+}
+
 /** Normalize the shorthand: a bare state means that state and the fixed label. */
 function described(answer: Described | ActionState): Described {
   return typeof answer === 'string' ? { state: answer } : answer

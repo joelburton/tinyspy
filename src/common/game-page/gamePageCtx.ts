@@ -138,11 +138,11 @@ export type GamePageCtx = {
   // into it. Peers arrive via the game-invitation toast, as with
   // any new game. Identity is stable across renders.
   goToGame: (gametype: string, gameId: string) => void
-  // Imperative API for the GamePage menu (the dropdown opened from
-  // the game logo). The PlayArea owns its WHOLE menu — it calls
-  // `menu.setGameSections([...])` (usually via the `buildGameMenu`
-  // helper), and uses `menu.openHelp` / `menu.requestBackToClub` for
-  // the two shell actions. See docs/ui.md → GamePage menu for the
-  // placement + activation contract. Identity is stable across renders.
+  // The GamePage menu (the dropdown opened from the game logo). The PlayArea
+  // owns its WHOLE menu — it calls `menu.setGameSections([...])` (usually via
+  // the `buildGameMenu` helper) — and the shell hands down the three rows a
+  // game cannot build itself: `menu.actHelp`, `menu.actBackToClub` and
+  // `menu.actChat`. See docs/ui.md → GamePage menu for the placement +
+  // activation contract. Identity is stable across renders.
   menu: MenuApi
 }
