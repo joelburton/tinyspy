@@ -78,7 +78,7 @@ const DESIGNS_OWED: string[] = [
   'common/definitions', 'common/error-page', 'common/faults',
   'common/feedback', 'common/fields', 'common/floating-panels', 'common/forms',
   'common/game-page', 'common/home', 'common/info-sheet',
-  'common/invitations', 'common/keyboard', 'common/lists', 'common/loading',
+  'common/invitations', 'common/lists', 'common/loading',
   'common/manifest', 'common/menu',
   'common/move-flash', 'common/page-header',
   'common/pause-suspend', 'common/pdf', 'common/reveal',
