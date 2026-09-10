@@ -36,7 +36,10 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { IconRestart } from '../icons/icons'
+import { boundActionFixture } from '../actions/boundAction.fixture'
+import type { ActionId } from '../actions/registry'
+import type { BoundAction } from '../actions/useBoundAction'
+import { IconRestart, type AppIcon } from '../icons/icons'
 import { installFakeMatchMedia } from '../mobile/matchMedia.fake'
 import { MOBILE_QUERY } from '../mobile/useIsMobile'
 import { Menu } from './Menu'
@@ -61,31 +64,41 @@ function renderMenu(
   )
 }
 
-function singleSection(
-  items: Array<{
-    id: string
-    label: string
-    disabled?: boolean
-    onClick?: () => void
-    shortcut?: string
-  }>,
-): MenuSection[] {
-  return [
-    {
-      items: items.map((it) => ({
-        id: it.id,
-        label: it.label,
-        disabled: it.disabled,
-        onClick: it.onClick ?? (() => {}),
-        shortcut: it.shortcut,
-      })),
-    },
-  ]
+/**
+ * A row for these tests. Every menu row is a bound action, so a fixture is one:
+ * the `id` is a real registry id — which is where the row's glyph and its
+ * shortcut hint come from — and the WORDS come from `describe`, the half a game
+ * varies. Most of these ids are picked for carrying no key of their own, so a
+ * hint shows only where a test asks for one.
+ *
+ * `onClick` is the fixture's `run`, so a test can either pass a body or assert
+ * on `action.run` directly.
+ */
+type TestRow = {
+  id: ActionId
+  label: string
+  disabled?: boolean
+  onClick?: () => void
+  icon?: AppIcon
+}
+
+function row({ id, label, disabled, onClick, icon }: TestRow): BoundAction {
+  const action = boundActionFixture(id, () => ({
+    state: disabled ? 'disabled' : 'active',
+    label,
+    icon,
+  }))
+  if (onClick) (action.run as ReturnType<typeof vi.fn>).mockImplementation(onClick)
+  return action
+}
+
+function singleSection(items: TestRow[]): MenuSection[] {
+  return [{ items: items.map(row) }]
 }
 
 describe('Menu — open/close', () => {
   it('renders the trigger with the right ARIA shape', () => {
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     expect(trigger).toHaveAttribute('aria-haspopup', 'menu')
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -96,7 +109,7 @@ describe('Menu — open/close', () => {
 
   it('opens on trigger click and renders the popover', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     expect(
@@ -106,7 +119,7 @@ describe('Menu — open/close', () => {
 
   it('aria-controls on the trigger matches the popover id when open', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     const popover = screen.getByRole('menu')
@@ -116,7 +129,7 @@ describe('Menu — open/close', () => {
 
   it('toggles closed on a second trigger click', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     await user.click(trigger)
@@ -125,7 +138,7 @@ describe('Menu — open/close', () => {
 
   it('opens on ArrowDown from the focused trigger', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     trigger.focus()
     await user.keyboard('{ArrowDown}')
@@ -134,7 +147,7 @@ describe('Menu — open/close', () => {
 
   it('closes on Esc and returns focus to the trigger', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     await user.keyboard('{Escape}')
@@ -144,7 +157,7 @@ describe('Menu — open/close', () => {
 
   it('closes on Tab so focus advances to the next page element', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     await user.keyboard('{Tab}')
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
@@ -152,7 +165,7 @@ describe('Menu — open/close', () => {
 
   it('closes when the user mousedowns outside the popover', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     // The "after" button sits outside the popover.
     await user.click(screen.getByRole('button', { name: 'after' }))
@@ -161,7 +174,7 @@ describe('Menu — open/close', () => {
 
   it('stays open when the user clicks inside the popover (but not on an item)', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     const popover = screen.getByRole('menu')
     await user.click(popover) // click the bare popover surface, not an item
@@ -174,8 +187,8 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -186,8 +199,8 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha', disabled: true },
-        { id: 'b', label: 'Beta' },
+        { id: 'act-help', label: 'Alpha', disabled: true },
+        { id: 'act-pause', label: 'Beta' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -198,8 +211,8 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -211,9 +224,9 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta', disabled: true },
-        { id: 'c', label: 'Gamma' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta', disabled: true },
+        { id: 'act-log-out', label: 'Gamma' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -225,8 +238,8 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -238,9 +251,9 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta' },
-        { id: 'c', label: 'Gamma' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta' },
+        { id: 'act-log-out', label: 'Gamma' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -252,9 +265,9 @@ describe('Menu — focus + arrow nav', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta', disabled: true },
-        { id: 'c', label: 'Gamma' },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta', disabled: true },
+        { id: 'act-log-out', label: 'Gamma' },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -269,7 +282,7 @@ describe('Menu — activation', () => {
   it('clicking an item fires its onClick and closes the menu', async () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha', onClick }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha', onClick }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     await user.click(screen.getByRole('menuitem', { name: 'Alpha' }))
     expect(onClick).toHaveBeenCalledTimes(1)
@@ -280,7 +293,7 @@ describe('Menu — activation', () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
     renderMenu(
-      singleSection([{ id: 'a', label: 'Alpha', disabled: true, onClick }]),
+      singleSection([{ id: 'act-help', label: 'Alpha', disabled: true, onClick }]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     // Querying as menuitem may or may not match a disabled
@@ -308,7 +321,7 @@ describe('Menu — activation', () => {
     const onClick = vi.fn(() => {
       activeWhenClicked = document.activeElement
     })
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha', onClick }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha', onClick }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     await user.click(screen.getByRole('menuitem', { name: 'Alpha' }))
@@ -320,8 +333,8 @@ describe('Menu — activation', () => {
     const user = userEvent.setup()
     renderMenu(
       singleSection([
-        { id: 'a', label: 'Alpha' },
-        { id: 'b', label: 'Beta', disabled: true },
+        { id: 'act-help', label: 'Alpha' },
+        { id: 'act-pause', label: 'Beta', disabled: true },
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
@@ -334,9 +347,9 @@ describe('Menu — activation', () => {
 
   it('renders a shortcut hint on an item that carries one', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Check word', shortcut: '⌥C' }]))
+    renderMenu(singleSection([{ id: 'act-check-letter', label: 'Check letter' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
-    const item = screen.getByRole('menuitem', { name: /Check word/ })
+    const item = screen.getByRole('menuitem', { name: /Check letter/ })
     expect(within(item).getByText('⌥C')).toBeInTheDocument()
   })
 })
@@ -347,7 +360,7 @@ describe('Menu — key isolation (no leak to a page-level window handler)', () =
     const windowSpy = vi.fn()
     window.addEventListener('keydown', windowSpy)
     try {
-      renderMenu(singleSection([{ id: 'a', label: 'Alpha' }, { id: 'b', label: 'Beta' }]))
+      renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }, { id: 'act-pause', label: 'Beta' }]))
       await user.click(screen.getByRole('button', { name: 'Test menu' }))
       windowSpy.mockClear()
       await user.keyboard('{ArrowDown}')
@@ -364,7 +377,7 @@ describe('Menu — key isolation (no leak to a page-level window handler)', () =
     const windowSpy = vi.fn()
     window.addEventListener('keydown', windowSpy)
     try {
-      renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+      renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
       screen.getByRole('button', { name: 'Test menu' }).focus()
       windowSpy.mockClear()
       await user.keyboard('{ArrowDown}')
@@ -378,7 +391,7 @@ describe('Menu — key isolation (no leak to a page-level window handler)', () =
 describe('Menu — returnFocusOnClose', () => {
   it('returns focus to the trigger on Esc by default', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     await user.keyboard('{Escape}')
@@ -387,7 +400,7 @@ describe('Menu — returnFocusOnClose', () => {
 
   it('does NOT keep focus on the trigger when returnFocusOnClose is false', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]), { returnFocusOnClose: false })
+    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]), { returnFocusOnClose: false })
     const trigger = screen.getByRole('button', { name: 'Test menu' })
     await user.click(trigger)
     await user.keyboard('{Escape}')
@@ -405,8 +418,8 @@ describe('Menu — sections + dividers', () => {
         logo="☰"
         triggerLabel="Test menu"
         sections={[
-          { items: [{ id: 'a', label: 'Alpha', onClick: () => {} }] },
-          { items: [{ id: 'b', label: 'Beta', onClick: () => {} }] },
+          { items: [row({ id: 'act-help', label: 'Alpha' })] },
+          { items: [row({ id: 'act-pause', label: 'Beta' })] },
         ]}
       />,
     )
@@ -423,7 +436,7 @@ describe('Menu — sections + dividers', () => {
         triggerLabel="Test menu"
         sections={[
           { items: [] },
-          { items: [{ id: 'a', label: 'Alpha', onClick: () => {} }] },
+          { items: [row({ id: 'act-help', label: 'Alpha' })] },
         ]}
       />,
     )
@@ -439,7 +452,7 @@ describe('Menu — sections + dividers', () => {
         logo="☰"
         triggerLabel="Test menu"
         sections={[
-          { items: [{ id: 'a', label: 'Alpha', onClick: () => {} }] },
+          { items: [row({ id: 'act-help', label: 'Alpha' })] },
           { items: [] },
         ]}
       />,
@@ -458,7 +471,7 @@ describe('Menu — sections + dividers', () => {
         sections={[
           // A header-only section (no items) — the crosswords puzzle-info block.
           { header: { title: 'Sunday Special', lines: ['by A. Constructor', '© 2026'] }, items: [] },
-          { items: [{ id: 'help', label: 'Help', onClick: () => {} }] },
+          { items: [row({ id: 'act-help', label: 'Help' })] },
         ]}
       />,
     )
@@ -494,14 +507,14 @@ function withSubmenu(onProfile = () => {}): MenuSection[] {
   return [
     {
       items: [
-        { id: 'help', label: 'Help', onClick: () => {} },
-        { id: 'back', label: 'Back to club', onClick: () => {} },
+        row({ id: 'act-help', label: 'Help' }),
+        row({ id: 'act-back-to-club', label: 'Back to club' }),
         {
           id: 'account',
           label: 'Account',
           items: [
-            { id: 'profile', label: 'Profile', onClick: onProfile },
-            { id: 'logout', label: 'Log out', onClick: () => {} },
+            row({ id: 'act-edit-profile', label: 'Profile', onClick: onProfile }),
+            row({ id: 'act-log-out', label: 'Log out' }),
           ],
         },
       ],
@@ -669,8 +682,8 @@ describe('Menu — the icon gutter', () => {
     renderMenu([
       {
         items: [
-          { id: 'a', label: 'Alpha', icon: IconRestart, onClick: () => {} },
-          { id: 'b', label: 'Beta', onClick: () => {} },
+          row({ id: 'act-pause', label: 'Alpha', icon: IconRestart }),
+          row({ id: 'act-log-out', label: 'Beta' }),
         ],
       },
     ])
@@ -682,7 +695,8 @@ describe('Menu — the icon gutter', () => {
 
   it('reserves nothing when no row has an icon', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }, { id: 'b', label: 'Beta' }]))
+    // Both ids are registry entries with no glyph of their own.
+    renderMenu(singleSection([{ id: 'act-pause', label: 'Alpha' }, { id: 'act-log-out', label: 'Beta' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
     expect(slots()).toHaveLength(0)
   })

@@ -3,6 +3,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu } from './gameMenu'
 import { menuRow, type MenuItem, type MenuRow } from './menuModel'
+import { boundActionFixture } from '../actions/boundAction.fixture'
 import type { BoundAction } from '../actions/useBoundAction'
 import type { ActionId } from '../actions/registry'
 
@@ -83,10 +84,10 @@ describe('buildGameMenu', () => {
     const sections = buildGameMenu({
       menu,
       exits: [actEndGame],
-      extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: vi.fn() }] }],
+      extra: [{ items: [boundActionFixture('act-print-board')] }],
     })
     expect(idsOf(sections)).toEqual([
-      'act-help', 'act-open-chat', 'print', 'act-end-game', 'act-back-to-club',
+      'act-help', 'act-open-chat', 'act-print-board', 'act-end-game', 'act-back-to-club',
     ])
   })
 

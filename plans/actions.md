@@ -911,9 +911,10 @@ machinery; the game page and the games do not yet.**
   so it never asks what kind of row it has. A hidden action drops out before
   anything counts rows for keyboard navigation, which is how "Add word" is
   absent for a non-editor rather than present and refusing.
-- **Three row shapes coexist**, as §9 said they would: a bound action, a
-  submenu, and the hand-written row the unconverted surfaces still write. The
-  last one goes with the last game.
+- **Three row shapes coexisted**, as §9 said they would: a bound action, a
+  submenu, and the hand-written row the unconverted surfaces still wrote. The
+  last one went once nothing wrote one — see "the hand-written menu row goes"
+  below.
 - **The open submenu is held by id, not by the row.** Rows are re-read every
   render, so holding one would be holding what it said when it opened.
 - **The account row stays a submenu and keeps its dot** — decision 4. It shows
@@ -961,6 +962,29 @@ and their tests; every other file, test and guard is green.
 - **Two `menu/todo.md` items are answered and deleted.** A row grays while its
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
+
+## After the last game — the hand-written menu row goes
+
+`MenuAction` is deleted. `MenuItem` is two arms now — an action, or a submenu
+holding actions — and `menuRow` two branches; `isBoundAction` had no callers
+left and went with it, since anything that is not a submenu is an action.
+`MenuSubmenu.items` narrows from `Array<BoundAction | MenuAction>` to
+`BoundAction[]`, which both of its users (crosswords' Check and Reveal, the
+account row) already satisfied.
+
+The submenu is now the only row that is not an action, and its docstring says
+what earns it that: opening is the whole behavior, so there is nothing to run
+and no key to advertise, and a family name ("Check", "Reveal") belongs to the
+grouping rather than to any command inside it.
+
+What this cost was two test files' fixtures. `Menu.test.tsx` built its rows as
+`{ id, label, onClick }` literals — convenient, and no longer a shape the type
+allows — so they became `boundActionFixture`s wearing arbitrary labels through
+`describe`. Two of its tests turned out to have been asserting the fixture
+rather than the menu, and only said so once the id had to be real: the
+shortcut-hint test now names the action whose chord it checks, and the
+icon-gutter tests now use ids the registry gives no glyph, where before the
+fixture's own `icon` was the only source.
 
 ## After the last game — the named action buttons retire
 

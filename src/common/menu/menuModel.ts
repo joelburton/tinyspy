@@ -5,34 +5,43 @@ import type { BoundAction } from '../actions/useBoundAction'
 
 /**
  * What a menu is made of — the row, section and header types every `<Menu>`
- * speaks, plus the two functions that tell the kinds of row apart.
+ * speaks, plus the one function that tells the two kinds of row apart.
  *
  * Reach for this when you are BUILDING a menu: a game assembling its header
- * menu (via `buildGameMenu` in `lib/game/gameMenu.ts`), or any surface handing
- * sections to `<Menu>`. The imperative side — opening a menu, replacing a
- * game's sections — is `MenuApi`, which a PlayArea receives on its
- * `GamePageCtx` rather than importing.
+ * menu (via `buildGameMenu` next door), or any surface handing sections to
+ * `<Menu>`. The imperative side — opening a menu, replacing a game's sections —
+ * is `MenuApi`, which a PlayArea receives on its `GamePageCtx` rather than
+ * importing.
  *
- * Types only, plus `isSubmenu`. The rendering lives in
- * `common/components/menu/`, and the open/closed state in `pageMenuStore.ts`
- * next door.
+ * Types only, plus `isSubmenu` and `menuRow`. The rendering lives in `Menu.tsx`
+ * and the open/closed state in `pageMenuStore.ts`, both next door.
  *
  * **Why its own module.** None of these names a game: a menu is a shell
  * thing, and a surface that builds one should not have to import the manifest
  * contract to get the row type.
  */
 
-/** What every menu row carries, whichever kind it is. */
-type MenuItemBase = {
-  // Stable id for React keying. PlayArea-owned values that
-  // reflect game-state changes are fine — the sections are replaced
-  // wholesale on each `setGameSections` call.
+/**
+ * A row that OPENS A SUBMENU instead of acting — crosswords' Check and Reveal
+ * by scope, and the account row.
+ *
+ * One level deep only: a submenu's items are actions, not further submenus.
+ * That cap is deliberate — the flyout half of the desktop presentation would
+ * need cascade positioning to go deeper, and no menu in the app wants it.
+ *
+ * The only kind of row that is not itself an action, and it earns that by not
+ * BEING one: opening is the whole behavior, so there is nothing to run and no
+ * key to advertise. Its own words and glyph are written here because a family
+ * name ("Check", "Reveal") belongs to the grouping rather than to any command
+ * in it — and the account row's, because what it shows is who you are.
+ */
+export type MenuSubmenu = {
+  // Stable id for React keying, and the name the menu holds an open submenu by.
   id: string
   label: string
-  // When true, the item renders grayed-out and skips keyboard
-  // navigation. Use for state-dependent actions ("Reveal cell"
-  // enabled only when a cell is selected). A disabled submenu
-  // parent can't be opened.
+  // When true, the row renders grayed-out and skips keyboard navigation — and a
+  // disabled parent can't be opened, which is why the children carry no
+  // `disabled` of their own to repeat.
   disabled?: boolean
   // A member-color NAME ('red' … 'pink') to draw as an identity disc before the
   // label — the app-wide "this color is this player" marker (docs/ui.md →
@@ -44,7 +53,8 @@ type MenuItemBase = {
   // label, so `label` stays a plain string — the drill-down's "‹ {label}" row
   // and the button's accessible name both depend on that.
   dot?: string
-  // The action's glyph, drawn before the label — **the icon language's legend**.
+  // The family's glyph, drawn before the label — **the icon language's legend**,
+  // which every row takes part in (an action's comes from the registry).
   //
   // Icon-only buttons carry their names in hover tooltips, which touch devices
   // don't have (TooltipHost gates hover off there — a tap's synthetic hover
@@ -64,63 +74,26 @@ type MenuItemBase = {
   // A menu with NO icons reserves no gutter; one with any reserves it for all,
   // so labels line up rather than going ragged (Menu.module.css).
   icon?: AppIcon
+  items: BoundAction[]
 }
 
 /**
- * A hand-written row that DOES something when activated.
+ * One row in a menu: an ACTION, or a submenu holding actions.
  *
- * **TRANSITIONAL.** A command is an action now (`common/actions`), and a menu
- * row is a reference to one: the label, glyph, key and availability come from
- * the action, so nothing has to be typed twice and a row cannot disagree with
- * the button beside it. This is the shape the surfaces that have not converted
- * yet still write, and it goes when the last of them does.
- */
-export type MenuAction = MenuItemBase & {
-  onClick: () => void
-  // The keyboard-shortcut hint shown right-aligned + muted on the row (e.g.
-  // "⌥C"). Hand-typed, and hand-kept in step with a binding written elsewhere,
-  // which is the drift a bound action removes: it knows its own keys.
-  shortcut?: string
-  // Never present on an action — the discriminant.
-  items?: never
-}
-
-/**
- * A row that OPENS A SUBMENU instead of acting. One level deep only:
- * a submenu's own items are actions, not further submenus. That cap is
- * deliberate — the flyout half of the desktop presentation would need
- * cascade positioning to go deeper, and no menu in the app wants it.
- *
- * Carries no `onClick` (opening is the whole behavior) and no
- * `shortcut` (the row isn't a command, so there's nothing to bind).
- */
-export type MenuSubmenu = MenuItemBase & {
-  items: Array<BoundAction | MenuAction>
-  onClick?: never
-  shortcut?: never
-}
-
-/**
- * One row in a menu. Three kinds, and only the first is the one to write:
- *
- *   - a **bound action** — a reference to a command (`common/actions`), which
- *     is where its label, glyph, key and availability come from;
- *   - a **submenu**, holding rows of its own;
- *   - a hand-written `MenuAction`, for the surfaces that have not converted.
+ * A command is an action (`common/actions`), so a row is a reference to one —
+ * its label, glyph, key hint and availability all come from the action, which
+ * is what stops a row from disagreeing with the button beside it. There is no
+ * hand-written row shape any more: writing one was how a menu came to say a
+ * thing the rest of the app said differently.
  *
  * See docs/ui.md → "GamePage menu" for the placement + activation contract.
  */
-export type MenuItem = BoundAction | MenuAction | MenuSubmenu
+export type MenuItem = BoundAction | MenuSubmenu
 
 /** Narrow a row to the submenu arm. A function rather than an inline
  *  `'items' in item` so the discriminant is named in one place. */
 export function isSubmenu(item: MenuItem): item is MenuSubmenu {
   return (item as MenuSubmenu).items !== undefined
-}
-
-/** Narrow a row to the bound-action arm — the one that answers for itself. */
-export function isBoundAction(item: MenuItem): item is BoundAction {
-  return (item as BoundAction).spec !== undefined
 }
 
 /**
@@ -163,32 +136,19 @@ export function menuRow(item: MenuItem): MenuRow {
       run: () => {},
     }
   }
-  if (isBoundAction(item)) {
-    const { state, label, icon } = item.describe()
-    return {
-      id: item.id,
-      label: label ?? item.spec.label,
-      // A toggle's face, when it has one — the menu is the legend that teaches
-      // the buttons' glyphs, so it has to show the one the button is wearing.
-      icon: icon ?? item.spec.icon,
-      shortcut: item.spec.keys?.[0]?.label,
-      // An action still out is not one to fire again, and the row says so.
-      disabled: state === 'disabled' || item.pending,
-      hidden: state === 'hidden',
-      children: null,
-      run: () => item.run(),
-    }
-  }
+  const { state, label, icon } = item.describe()
   return {
     id: item.id,
-    label: item.label,
-    icon: item.icon,
-    dot: item.dot,
-    shortcut: item.shortcut,
-    disabled: item.disabled ?? false,
-    hidden: false,
+    label: label ?? item.spec.label,
+    // A toggle's face, when it has one — the menu is the legend that teaches
+    // the buttons' glyphs, so it has to show the one the button is wearing.
+    icon: icon ?? item.spec.icon,
+    shortcut: item.spec.keys?.[0]?.label,
+    // An action still out is not one to fire again, and the row says so.
+    disabled: state === 'disabled' || item.pending,
+    hidden: state === 'hidden',
     children: null,
-    run: item.onClick,
+    run: () => item.run(),
   }
 }
 
