@@ -33,8 +33,8 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
 - **Two helpers, both free + logged amber in the turn log, neither finds the secret or decrements the budget:**
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
-  - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." The FE button is the amber bare-eye `SpoilerButton`; the red boxed-eye `RevealButton` is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
-  - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The two handlers are hoisted into `actionsRef` so the row and the button fire the same one.
+  - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." Its button is the amber bare-eye; the red boxed-eye Reveal is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
+  - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). Row and button are the same bound action ([common/actions](../../src/common/actions/doc.md)), so neither can drift from the other.
 - Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DictBandField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 
@@ -129,7 +129,7 @@ The shape that's the same in both modes:
 
 **Both modes:**
 - **ended** — a player pressed the **End** button (`psychicnum.end_game`, `outcome='manual'`), shown in **coop**. Terminal, neutral: nobody won, nobody lost, everyone's `result = {won: false}`. Deliberately the *uniform* value the other games use for manual stops (not `'lost'`/`'lost_compete'`) so the cross-game terminal vocabulary stays consistent; the FE has explicit `'ended'` branches that render it green ("Game ended") rather than as a loss.
-- **compete: Concede, not End.** `psychicnum.concede` is the compete-mode per-player drop-out. psychicnum is an **elimination** game (each player has an independent guess budget; the game ends only when every budget is exhausted or someone finds the whole set), so concede calls `common._set_conceded` then ends the game as a collective loss iff no non-conceded player still has budget (a conceder's leftover budget is excluded — `submit_guess`'s all-exhausted check sums only non-conceded players too). That terminal is `lost_compete` with `status.outcome = 'conceded'` only when **every** player conceded; a mixed table writes `'exhausted'`, because somebody played their budget out. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip, folded into the existing out-of-guesses locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
+- **compete: Concede, not End.** `psychicnum.concede` is the compete-mode per-player drop-out. psychicnum is an **elimination** game (each player has an independent guess budget; the game ends only when every budget is exhausted or someone finds the whole set), so concede calls `common._set_conceded` then ends the game as a collective loss iff no non-conceded player still has budget (a conceder's leftover budget is excluded — `submit_guess`'s all-exhausted check sums only non-conceded players too). That terminal is `lost_compete` with `status.outcome = 'conceded'` only when **every** player conceded; a mixed table writes `'exhausted'`, because somebody played their budget out. FE: the Concede action shows in compete and hides in coop, conceder "out" in the OpponentStrip, folded into the existing out-of-guesses locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
 The mode-specific suffixes mirror what spellingbee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
 
@@ -397,7 +397,8 @@ src/psychicnum/
                               action row: Hint / Spoiler / End — playing
                             Shuffle button — FLOATS over the board top-right
                               (board-visual, not a turn action); always live
-                            terminal: outcome line + "‹ club" button (in action row)
+                            terminal: outcome line + Reveal / Restart / New game /
+                              "‹ club" (all bound actions, in the action row)
                             GameTurnLog (chronological guess + hint log, auto-scroll)
                             CelebrationBlockingModal (shared) — pops on a COOP WIN only,
                               once, at the moment it happens; the only modal here

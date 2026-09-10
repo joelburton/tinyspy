@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useGlobalKeyHandler } from '../keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '../actions/useBoundAction'
 
 /**
  * Dismiss the game's local feedback on ANY key — the "your next keystroke is your
@@ -9,13 +9,11 @@ import { useGlobalKeyHandler } from '../keyboard/useGlobalKeyHandler'
  * when not clueing) clear their own-move pill on a keypress, the same way the
  * capture games do.
  *
- * It rides `useGlobalKeyHandler`, so it inherits the two things that keep this
- * safe:
- *   - the **focused-input guard** — a keystroke aimed at chat or a game input
- *     never reaches here, so typing in chat can't wipe a game's feedback and
- *     vice-versa;
- *   - the **once-registered** window listener.
- * It only adds the modifier bail (Cmd-R / Ctrl-C aren't a "move").
+ * It binds `act-dismiss-feedback`, whose any-key wildcard does NOT consume the
+ * keystroke — so the letter that clears a stale verdict still plays its move.
+ * The dispatcher's gates come with it: a keystroke aimed at chat or a game input
+ * never reaches here, so typing in chat can't wipe a game's feedback or the
+ * other way round, and a modified chord isn't the player's next move.
  *
  * It deliberately does NOT know whether the game is over: `clearLocalFeedback`
  * is itself a no-op at terminal (terminal local feedback is permanent — see
@@ -23,9 +21,8 @@ import { useGlobalKeyHandler } from '../keyboard/useGlobalKeyHandler'
  * re-checked here. Pass any `clearLocalFeedback` from `useLocalFeedback`.
  */
 export function useDismissLocalFeedbackOnKey(clearLocalFeedback: () => void): void {
-  useGlobalKeyHandler((e: KeyboardEvent) => {
-    // A modified chord isn't the player's next move — leave it to the browser/OS.
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    clearLocalFeedback()
+  useBoundAction('act-dismiss-feedback', {
+    describe: () => 'active',
+    run: clearLocalFeedback,
   })
 }

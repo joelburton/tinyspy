@@ -89,7 +89,7 @@ test('connections: clicking a tile leaves no focus behind, and Space shuffles', 
   await ctx.close()
 })
 
-test('psychicnum: clicking a tile leaves no focus behind, and Space shuffles', async ({
+test('psychicnum: clicking a tile leaves no focus behind, and ⌥Z shuffles', async ({
   browser,
 }) => {
   const club = await createSoloClub('bfpn')
@@ -106,7 +106,9 @@ test('psychicnum: clicking a tile leaves no focus behind, and Space shuffles', a
   const order = () => page.$$eval(tiles, (ts) => ts.map((t) => t.textContent).join(''))
   const before = await order()
   for (let i = 0; i < 8 && (await order()) === before; i++) {
-    await page.keyboard.press(' ')
+    // The physical key: Option changes the character, so the binding matches
+    // `code` and this is what a player's ⌥Z actually sends.
+    await page.keyboard.press('Alt+KeyZ')
     await page.waitForTimeout(120)
   }
   expect(await order()).not.toBe(before)

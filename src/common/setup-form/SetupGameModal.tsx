@@ -4,7 +4,8 @@ import { Suspense, useCallback, useState } from 'react'
 import { MODE_LABEL, type GameManifest } from '../manifest/gameManifest'
 import { type Member } from '../members/member'
 import { NormalModal } from '../floating-panels/NormalModal'
-import { HelpButton } from '../buttons/HelpButton'
+import { ActionButton } from '../actions/ActionButton'
+import { useBoundAction } from '../actions/useBoundAction'
 import { cls } from '../utils/cls'
 import { StandardForm } from '../forms/StandardForm'
 import { FailureLine } from '../feedback/FailureLine'
@@ -139,9 +140,15 @@ export function SetupGameModal({
       return { ...prev, [name]: message }
     })
   }, [])
-  // The game's Help/rules, opened from the footer's HelpButton ON TOP of this
-  // dialog (which stays open behind it) — read the rules, then keep setting up.
+  // The game's Help/rules, opened from the footer's "?" ON TOP of this dialog
+  // (which stays open behind it) — read the rules, then keep setting up. The
+  // same command the in-game menu's Help row is, bound here because this is
+  // where these rules are reachable from.
   const [showHelp, setShowHelp] = useState(false)
+  const actHelp = useBoundAction('act-help', {
+    describe: () => (busy ? 'disabled' : 'active'),
+    run: () => setShowHelp(true),
+  })
 
   const SetupBody = manifest.setupForm.Component
 
@@ -289,11 +296,10 @@ export function SetupGameModal({
                   dialog, which stays open behind. Then Cancel and Start in macOS
                   order. */}
               <div className={actionRow.modalActions}>
-                <HelpButton
+                <ActionButton
+                  action={actHelp}
                   show="icon"
                   className={actionRow.leading}
-                  onClick={() => setShowHelp(true)}
-                  disabled={busy}
                 />
                 <CancelButton show="label" onClick={onCancel} disabled={busy} />
                 <FormSubmitButton

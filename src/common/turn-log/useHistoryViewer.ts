@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { setInfoSheetOpen } from '../info-sheet/infoSheetStore'
+import { useBoundAction } from '../actions/useBoundAction'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
@@ -21,11 +22,15 @@ export interface HistoryViewer<Id> {
   select: (id: Id) => void
   /** Return to the live board (a board click, the banner ✕, a new move landing). */
   exitViewing: () => void
-  /** For a `useGlobalKeyHandler` game: if viewing and the key is unmodified, return
-   *  to live and report the key CONSUMED (true) so it doesn't also play a move. Call
-   *  it first in the game's key handler and bail on true — or pass it straight to
-   *  `useGlobalKeyHandler` in a game with no keyboard play (waffle). Games whose key
-   *  path has no event (scrabble's `onAnyKey`) use `viewing` + `exitViewing` instead. */
+  /**
+   * For a game that still reads the keyboard itself: if viewing and the key is
+   * unmodified, return to live and report the key CONSUMED (true) so it doesn't
+   * also play a move. Call it first in the game's key handler and bail on true.
+   *
+   * A game whose keys are actions needs none of this — the viewer binds
+   * `act-exit-viewer` here, and its any-key wildcard consumes the keystroke
+   * before the board's own actions are offered it.
+   */
   exitOnKey: (e: KeyboardEvent) => boolean
 }
 
@@ -48,8 +53,9 @@ export interface HistoryViewer<Id> {
  *     `viewing` (which also makes it click-through — see below)
  *   - the turn log hangs a `<TurnLogNumber>` on each turn: `onSelect={() =>
  *     select(id)}`, `viewing={viewingId === id}`
- *   - a bare keystroke returns to live: `exitOnKey` (event-carrying key handlers) or
- *     `viewing` + `exitViewing` (event-less ones)
+ *   - a bare keystroke returns to live: nothing to wire — the viewer binds
+ *     `act-exit-viewer`, whose any-key wildcard consumes the press while a turn
+ *     is open. A game that still reads the keyboard itself calls `exitOnKey`.
  *
  * Exit-on-CLICK is NOT wired per game — it's built in here: a click anywhere returns
  * to live (skipping the `#N` handles). Games needn't add a board-click handler.
@@ -102,6 +108,15 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     setInfoSheetOpen(false)
     setViewingId(id)
   }, [])
+
+  // A KEYSTROKE RETURNS TO LIVE, and the press is spent doing it — the same key
+  // must not also play a move on a board you have only just got back. That is
+  // the whole of `consumes` in the registry: this wildcard runs before the
+  // board's own keys are offered the keystroke, and stops the walk.
+  useBoundAction('act-exit-viewer', {
+    describe: () => (viewingId === null ? 'hidden' : 'active'),
+    run: exitViewing,
+  })
 
   const exitOnKey = useCallback(
     (e: KeyboardEvent): boolean => {

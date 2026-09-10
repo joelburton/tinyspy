@@ -164,11 +164,13 @@ export function menuRow(item: MenuItem): MenuRow {
     }
   }
   if (isBoundAction(item)) {
-    const { state, label } = item.describe()
+    const { state, label, icon } = item.describe()
     return {
       id: item.id,
       label: label ?? item.spec.label,
-      icon: item.spec.icon,
+      // A toggle's face, when it has one — the menu is the legend that teaches
+      // the buttons' glyphs, so it has to show the one the button is wearing.
+      icon: icon ?? item.spec.icon,
       shortcut: item.spec.keys?.[0]?.label,
       // An action still out is not one to fire again, and the row says so.
       disabled: state === 'disabled' || item.pending,
@@ -218,7 +220,7 @@ export type MenuApi = {
   // rules to show; place it with `buildGameMenu`.
   actHelp: BoundAction
   // "Back to club": navigates directly for a terminal game, or opens the
-  // suspend-confirm modal mid-game. Also carries `⇧<`, so a menu row built from
+  // suspend-confirm modal mid-game. Also carries `<`, so a menu row built from
   // it advertises the key. Place it in a menu, or as an `<ActionButton>` in a
   // terminal row.
   actBackToClub: BoundAction

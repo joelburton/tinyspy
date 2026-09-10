@@ -1,5 +1,6 @@
 // cs-audited-keyboard
 
+import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
 import { useGlobalKeyHandler } from './useGlobalKeyHandler'
 
 /**
@@ -16,6 +17,14 @@ export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
   }
 }
 
+/** The two entry keys that also have a button — handed back so `<MoveRow>` can
+ *  place the very bindings the keys fire. Typing and dismissal have no button,
+ *  so they are offered and not returned. */
+export type CaptureKeysActions = {
+  actDeleteLast: BoundAction
+  actSubmitEntry: BoundAction
+}
+
 export type CaptureKeysOptions = {
   /** The current pending text. The helper computes the next value from it
    *  (append / delete), so it must be the live value each render. */
@@ -25,10 +34,9 @@ export type CaptureKeysOptions = {
   /** Submit the current value (Enter, when non-empty). */
   onSubmit: () => void
   /**
-   * Hard-off. When true the handler is a complete no-op — no dispatch, and in
-   * particular **no feedback dismissal**, so a terminal sticky pill isn't cleared
-   * by a stray key. Use for loading / terminal, where capture shouldn't run at
-   * all. Default false.
+   * Hard-off. When true the entry is not here at all — no typing, no submit, and
+   * in particular **no feedback dismissal**, so a terminal sticky pill isn't
+   * cleared by a stray key. Use for loading / terminal. Default false.
    */
   disabled?: boolean
   /**
@@ -39,10 +47,10 @@ export type CaptureKeysOptions = {
    */
   busy?: boolean
   /**
-   * Dismiss sticky local feedback. Called on ANY key the game sees (after the
-   * modifier bail, before dispatch) — the player's next keystroke is their next
-   * move (docs/ui.md → Feedback pill (dismissal modes)). Optional; tile/letter
-   * clicks dismiss via their own handlers, not this.
+   * Dismiss sticky local feedback. Called on ANY key the game sees — the
+   * player's next keystroke is their next move (docs/ui.md → Feedback pill
+   * (dismissal modes)). Optional; tile/letter clicks dismiss via their own
+   * handlers, not this.
    */
   onAnyKey?: () => void
   /**
@@ -56,36 +64,35 @@ export type CaptureKeysOptions = {
    *  typed text from overrunning its box. */
   maxLength?: number
   /**
-   * Game-specific keys beyond the universal set (spellingbee: Space = shuffle).
-   * Runs after `onAnyKey` + the Tab swallow, before the universal dispatch; the
-   * callback does its own `preventDefault` and returns true to **claim** the key
-   * (the helper then stops). Optional. (The EntryBox ArrowUp-recall / ArrowDown-
-   * clear history lives in the separate `useArrowHistory`, not here.)
+   * The current value can't be submitted, but editing stays live: Enter is a
+   * no-op and the Submit button is gray, while typing and Backspace keep
+   * working so the player can fix it. Distinct from `disabled` / `busy`, which
+   * freeze the whole entry — this is a per-value veto (wordwheel's word that
+   * can't be spelled from the wheel's tiles).
    */
-  onExtraKey?: (e: KeyboardEvent) => boolean
+  submitDisabled?: boolean
 }
 
 /**
- * The shared **capture-entry key handler** — the GENERIC key-capture core every
- * key-capture game builds on (the keyboard half of the capture model; the display
- * half is `<EntryBox>`, when there is one). It reads keystrokes off the window
- * (via `useGlobalKeyHandler`, which already drops keys aimed at a focused text
- * field like chat) and turns them into edits on a pending value, so there's no
- * `<input>` to lose focus when the player clicks a board tile.
+ * The shared **capture-entry keys** — typing, deleting and submitting, for every
+ * game whose entry has no `<input>` to focus (the keyboard half of the capture
+ * model; the display half is `<EntryBox>`, when there is one).
  *
- * It owns the **universal** capture plumbing — the bits docs/playarea.md
- * → "Move entry" / "Text entry" mandate for *every* such game, so they stay
- * identical and can't drift:
+ * It binds four actions rather than reading the keyboard itself, so a game's
+ * entry keys are in the same list as its commands: `act-type-letter`,
+ * `act-delete-last`, `act-submit-entry`, and the any-key `act-dismiss-feedback`
+ * that clears the last verdict without claiming the keystroke. That is what puts
+ * "A–Z types into the entry" in the help list beside "⌥⌫ ends the game", and it
+ * is why no game writes an entry key branch.
  *
- *   1. **Modifier bail** — leave `Cmd-R`, `Ctrl-Tab`, etc. to the browser.
- *   2. **Tab swallow** — Tab can't move focus off the board while the caret
- *      claims the keyboard (two cursors would be confusing).
- *   3. **Feedback dismissal** — any key is the player's next move (`onAnyKey`).
- *   4. **Backspace** deletes the last character; **Enter** submits when non-empty.
- *   5. **Length cap** (`maxLength`, default 16).
+ * What it owns is the universal plumbing — the bits docs/playarea.md → "Move
+ * entry" / "Text entry" mandate for *every* such game, so they stay identical
+ * and can't drift: the length cap, Backspace deleting the last character, Enter
+ * submitting only a non-empty value, and the two gates (`disabled` for a done
+ * entry, `busy` for one mid-submit).
  *
- * What stays per-game is *what may be entered* (`charFor` — letters vs digits, the
- * stored case) and any extra keys (`onExtraKey` — spellingbee's Space-shuffle).
+ * What stays per-game is *what may be entered* (`charFor` — letters vs digits,
+ * the stored case).
  *
  * **Layering** (docs/ui.md → Text entry): the EntryBox-only history arrows —
  * `ArrowUp` recalls the last entry, `ArrowDown` clears it — are NOT here; they're
@@ -102,66 +109,60 @@ export function useCaptureKeys({
   onAnyKey,
   charFor = asciiLetters('lower'),
   maxLength = 16,
-  onExtraKey,
-}: CaptureKeysOptions): void {
-  useGlobalKeyHandler((e: KeyboardEvent) => {
-    // 1. Let the browser/OS keep any modified keystroke — Cmd-R, Ctrl-Tab, Cmd-L,
-    //    … — so bail before touching anything (including the Tab swallow below).
-    if (e.metaKey || e.ctrlKey || e.altKey) return
+  submitDisabled = false,
+}: CaptureKeysOptions): CaptureKeysActions {
+  // The entry is gone (terminal / loading) vs briefly frozen (mid-submit). Gone
+  // takes its keys off the list entirely; frozen keeps them there and grays them.
+  const editState: ActionState = disabled ? 'hidden' : busy ? 'disabled' : 'active'
 
-    // 3. Any key the game sees is the player's next move → dismiss sticky local
-    //    feedback. (Runs even while `busy`, since the dismissal is harmless and
-    //    the result it clears is from the previous move.) Gated on the entry
-    //    being live, so a terminal sticky pill isn't dismissed by a stray key.
-    if (!disabled) onAnyKey?.()
-
-    // Game-specific keys get first refusal (they preventDefault + return true to
-    // claim the key), and they get it BEFORE the hard-off below.
-    //
-    // Extra keys are BOARD keys, not entry keys: the only two are
-    // spellingbee's and wordwheel's Space-shuffles, a view-only rearrange of
-    // the letters that acts on the board rather than the word. Its BUTTON is
-    // deliberately live at terminal ("always clickable, even when locked — a
-    // harmless rearrange"), and the key sitting below the hard-off meant the
-    // two disagreed: you could shuffle a finished board by clicking but not by
-    // pressing Space. Also before the busy gate, so it still works mid-submit.
-    if (onExtraKey?.(e)) return
-
-    // Hard-off (loading / terminal): the ENTRY is done, so nothing below here —
-    // no Tab swallow (Tab is only worth stealing while the caret owns the
-    // keyboard), no edits, no submit.
-    if (disabled) return
-
-    // 2. Swallow Tab while the entry is live — the caret owns the keyboard, so
-    //    moving real focus onto a button would read as a second cursor. (Chat /
-    //    dialog fields keep their own Tab — useGlobalKeyHandler never dispatches
-    //    their keys here.)
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      return
-    }
-
-    // Soft-busy (mid-submit): dismissal + Tab already handled; block edits + submit.
-    if (busy) return
-
-    // 4/5. A character to append (per the game's `charFor`), capped at maxLength.
-    const ch = charFor(e.key)
-    if (ch !== null) {
-      e.preventDefault()
-      if (value.length >= maxLength) return
+  useBoundAction('act-type-letter', {
+    describe: () => editState,
+    run: (key) => {
+      const ch = key === undefined ? null : charFor(key)
+      if (ch === null || value.length >= maxLength) return
       onChange(value + ch)
-      return
-    }
-    if (e.key === 'Backspace') {
-      e.preventDefault()
-      onChange(value.slice(0, -1))
-      return
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      // Empty Enter just dismisses (above) — don't submit '' (which would flash a
-      // validation error); the Submit button is disabled when empty too.
-      if (value !== '') onSubmit()
-    }
+    },
   })
+
+  // Nothing to take back on an empty entry.
+  const actDeleteLast = useBoundAction('act-delete-last', {
+    describe: () => (value === '' && editState === 'active' ? 'disabled' : editState),
+    run: () => {
+      // A press of the button is a move too, so it dismisses the last verdict
+      // the way a keystroke does — the any-key watcher above covers the KEY, and
+      // this covers the click. Clearing twice on a keypress costs nothing.
+      onAnyKey?.()
+      onChange(value.slice(0, -1))
+    },
+  })
+
+  // An empty Enter is a no-op rather than a submit — it would flash a validation
+  // error for a word nobody typed.
+  const actSubmitEntry = useBoundAction('act-submit-entry', {
+    describe: () =>
+      (value === '' || submitDisabled) && editState === 'active' ? 'disabled' : editState,
+    run: onSubmit,
+  })
+
+  // Any key is the player's next move, so it clears the last verdict — but it
+  // does NOT claim the keystroke, which is how the letter that dismissed a pill
+  // still types. Off entirely when the entry is done, so a terminal pill isn't
+  // wiped by a stray key.
+  useBoundAction('act-dismiss-feedback', {
+    describe: () => (disabled || onAnyKey === undefined ? 'hidden' : 'active'),
+    run: () => onAnyKey?.(),
+  })
+
+  // Tab is the one key here that is nobody's action: it moves focus rather than
+  // doing something, and where it may move is `plans/tab-rings.md`. Swallowed
+  // while the caret owns the keyboard, because focus landing on a button would
+  // read as a second cursor. (Chat and dialog fields keep their own Tab — the
+  // dispatcher never sends theirs here.)
+  useGlobalKeyHandler((e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (disabled) return
+    if (e.key === 'Tab') e.preventDefault()
+  })
+
+  return { actDeleteLast, actSubmitEntry }
 }

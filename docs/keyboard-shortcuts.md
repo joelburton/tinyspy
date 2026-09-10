@@ -72,7 +72,7 @@ with no chat panel: the home page.
 
 ## Global — any play area
 
-Each is an action. `⇧<` and `⌥+` are bound by
+Each is an action. `<` and `⌥+` are bound by
 [`GamePage`](../src/common/game-page/GamePage.tsx); `+`, `⌥⌫` and the rest are
 bound by the game that offers them, which is why a game without one simply
 doesn't answer that key. All bail inside any editable field (so `⌥⌫` stays
@@ -85,7 +85,7 @@ live only where a game has converted.
 
 | key | what it does |
 |---|---|
-| `⇧<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
+| `<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
 | `+` | **New game** — the game's own action, so it carries that action's availability and its mid-game confirm wherever it is shown. |
 | `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key (`Equal` + Option + Shift), since Option changes the character; `⌥=` is a different chord and is unbound. |
 | `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. Disabled at terminal / once conceded. |
@@ -123,7 +123,7 @@ keys are the same on each; only how many lists there are differs.
 | Either page | `PageUp` `PageDown` | Move by one visible page, measured from the list's own height. |
 | Either page | `Space` | **Nothing** — moving a cursor must not consent to an action. It is caught all the same, so it can't scroll the list out from under the ring. |
 | Either page | `Tab` | Moves to the page's next list — cycling the club page's two, always landing on the one list at home. This is also the way BACK after clicking some blank part of the page, which blurs the list. Overlays keep their native Tab. |
-| Club page | `⇧<` | Back to home — the twin of the play area's `⇧<`. |
+| Club page | `<` | Back to home — the twin of the play area's `<`. |
 | Create club | `Esc` | Back to home. |
 
 ---
@@ -173,7 +173,7 @@ window-level board keys.
 | key | what it does |
 |---|---|
 | `Enter` | Submit the selected four **from anywhere on the board** — not just when a tile holds focus (macOS doesn't focus a button on click, which used to kill the whole click-four-then-Return flow). Harmless no-op with an incomplete selection. |
-| `Space` | **Shuffle the tiles** — a fresh visual scan of the same sixteen, never a move (the selection survives it). The same board key spellingbee, wordwheel and psychicnum have; it matches the floating Shuffle button, which is live whenever there are tiles, a finished board included. |
+| `Space` | **Shuffle the tiles** — a fresh visual scan of the same sixteen, never a move (the selection survives it). The same board key spellingbee and wordwheel have; it matches the floating Shuffle button, which is live whenever there are tiles, a finished board included. (psychicnum's is `⌥Z` now — the key every game's shuffle takes as it converts.) |
 
 It used to say "`Space` on a focused tile toggles it (native button activation)". That's gone: board tiles are no longer focus targets in any game (see [ui.md → Terminal results](ui.md) and the note on `Board.tsx`), which is what freed `Space` to mean the same thing here as everywhere else.
 
@@ -279,14 +279,14 @@ and visibly faded.
 | `A`–`Z` | Type a guess word (clicking a board tile fills the same entry). |
 | `⌫` / `Enter` | Delete / submit. |
 | `↑` `↓` | Recall your last guess / clear the entry. |
-| `Space` | **Shuffle the words** — a fresh visual scan of the same board, never a move. |
+| `⌥Z` | **Shuffle the words** — a fresh visual scan of the same board, never a move. |
 
 The entry is inert while viewing history (so the keystroke goes to the viewer
-instead) and when it isn't your turn. `Space` is the exception on purpose: it's a
-BOARD key, not an entry key, so it lives on its own window handler rather than
-the entry's — psychicnum unmounts the entry when you can't guess, and the Shuffle
+instead) and when it isn't your turn. Shuffle is the exception on purpose: it's a
+BOARD key, not an entry key, and it is bound by the board column rather than the
+entry — psychicnum unmounts the entry when you can't guess, and the round Shuffle
 button stays live in every one of those states (terminal included). A key that
-disagreed with its own button is the bug this fixed.
+disagreed with its own button is the bug that split them.
 
 ## scrabble
 

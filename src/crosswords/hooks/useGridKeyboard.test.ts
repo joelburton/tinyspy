@@ -57,7 +57,6 @@ function makeState(over: Partial<GridKeyboard> = {}): GridKeyboard {
     onReveal: vi.fn(),
     onShowNote: vi.fn(),
     onExplain: vi.fn(),
-    onScratchpad: vi.fn(),
     ...over,
   }
 }
@@ -174,12 +173,12 @@ describe('⌥ shortcuts (keyed on physical code)', () => {
     expect(s.onCheck).toHaveBeenNthCalledWith(2, 'word')
   })
 
-  it('⌥R reveals a letter, ⌥S opens the scratchpad', () => {
+  it('⌥R reveals a letter', () => {
+    // ⌥S is no longer here: the scratchpad mark binds it, so the key works in
+    // any game with a scratchpad rather than only in this one's grid.
     const s = mount()
     press({ altKey: true, code: 'KeyR', key: '®' })
-    press({ altKey: true, code: 'KeyS', key: 'ß' })
     expect(s.onReveal).toHaveBeenCalledWith('letter')
-    expect(s.onScratchpad).toHaveBeenCalled()
   })
 
   it('⌥R is inert when reveal is unavailable (compete)', () => {

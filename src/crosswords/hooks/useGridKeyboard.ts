@@ -58,7 +58,6 @@ export type GridKeyboard = {
   onReveal: ((scope: 'letter' | 'word' | 'puzzle') => void) | null
   onShowNote: (() => void) | null
   onExplain: (() => void) | null
-  onScratchpad: () => void
 }
 
 const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
@@ -109,7 +108,7 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       const {
         grid, cursor, pencil, setCursor, fillAt, isGiven, setCell,
         onRebus, onNumberJump, onPeek, clearPeek, onMark,
-        onTogglePencil, onCheck, onReveal, onShowNote, onExplain, onScratchpad,
+        onTogglePencil, onCheck, onReveal, onShowNote, onExplain,
       } = k
       const { row, col } = cursor
 
@@ -147,9 +146,6 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
             return
           case 'KeyX':
             if (onExplain) { e.preventDefault(); onExplain() }
-            return
-          case 'KeyS':
-            e.preventDefault(); onScratchpad()
             return
           default:
             return // any other ⌥ combo: bail, as before

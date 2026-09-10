@@ -58,6 +58,24 @@ describe('useBoundAction — describe', () => {
     view.unmount()
   })
 
+  it('answers for THIS render, not the one before', () => {
+    // A surface reads `describe()` while the tree is rendering — a game's info
+    // column asks about an action its PlayArea bound in the same pass. Answering
+    // from the previous render put a button saying "Reveal" (the fixed label,
+    // disabled) beside a row that had already switched to the game-over look.
+    let over = false
+    const view = renderHook(() =>
+      useBoundAction('act-reveal', {
+        run: () => undefined,
+        describe: () => (over ? { state: 'active' as const, label: 'Reveal secrets' } : 'disabled' as const),
+      }),
+    )
+    over = true
+    view.rerender()
+    expect(view.result.current.describe()).toEqual({ state: 'active', label: 'Reveal secrets' })
+    view.unmount()
+  })
+
   it('passes a label through when there is one', () => {
     const { view } = bind('act-submit', { describe: () => ({ state: 'active', label: 'Submit · 24' }) })
     expect(view.result.current.describe()).toEqual({ state: 'active', label: 'Submit · 24' })

@@ -21,6 +21,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
+import type { BoundAction } from '@/common/actions/useBoundAction'
+import type { ActionId } from '@/common/actions/registry'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { PsychicnumGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -66,9 +70,27 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: shellAction('act-help'),
+      actChat: shellAction('act-open-chat'),
+      actBackToClub: shellAction('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
+}
+
+/** One of the shell's own rows, as GamePage would hand it down. Hand-made
+ *  rather than bound: what these tests exercise is psychicnum's menu, and a real
+ *  binding would drag the key dispatcher in with it. */
+function shellAction(id: string): BoundAction {
+  return {
+    id: id as ActionId,
+    spec: { label: id },
+    run: vi.fn(),
+    describe: () => ({ state: 'active' }),
+    pending: false,
+  }
 }
 
 const competeGame: PsychicnumGame = {
@@ -89,18 +111,31 @@ beforeEach(() => {
 
 describe('psychicnum PlayArea — concede', () => {
   it('compete shows Concede and calls psychicnum.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(competeGame, [me, moth])
-    render(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
     h.result = loaded(coopGame)
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons
@@ -110,6 +145,16 @@ describe('psychicnum PlayArea — concede', () => {
     const confirms = await screen.findAllByRole('button', { name: 'End game' })
     await user.click(confirms[confirms.length - 1])
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('keeps each action button its own tone — the color IS what it means', () => {
+    // A regression this actually had: the tones live on the ACTION now (amber
+    // for a help ask, red for the whole solution, red for an exit), and an
+    // action that forgot one came out action-blue like everything else.
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.getByRole('button', { name: 'Hint' }).className).toMatch(/caution/)
+    expect(screen.getByRole('button', { name: 'Spoiler' }).className).toMatch(/caution/)
+    expect(screen.getByRole('button', { name: 'End game' }).className).toMatch(/destructive/)
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
@@ -239,12 +284,8 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
   /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
   function menuItems(ctx: GamePageCtx) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-    return new Map(
-      (sections as { items: { id: string; label: string; icon?: unknown; disabled?: boolean; onClick: () => void }[] }[])
-        .flatMap((s) => s.items)
-        .map((i) => [i.id, i]),
-    )
+    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+    return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
   }
 
   // The InfoCol's Hint / Spoiler buttons are ICON-ONLY, so the menu row is the
@@ -254,18 +295,18 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)
-    expect(items.get('hint')?.label).toBe('Hint')
-    expect(items.get('hint')?.icon).toBeTruthy()
-    expect(items.get('spoiler')?.label).toBe('Spoiler')
-    expect(items.get('spoiler')?.icon).toBeTruthy()
+    expect(items.get('act-hint')?.label).toBe('Hint')
+    expect(items.get('act-hint')?.icon).toBeTruthy()
+    expect(items.get('act-spoiler')?.label).toBe('Spoiler')
+    expect(items.get('act-spoiler')?.icon).toBeTruthy()
   })
 
   it('the rows fire the same RPCs as the buttons, and gray once I have no guesses left', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
-    menuItems(ctx).get('hint')?.onClick()
+    menuItems(ctx).get('act-hint')?.run()
     expect(rpc).toHaveBeenCalledWith('request_hint', { target_game: 'g1' })
-    menuItems(ctx).get('spoiler')?.onClick()
+    menuItems(ctx).get('act-spoiler')?.run()
     expect(rpc).toHaveBeenCalledWith('request_reveal', { target_game: 'g1' })
 
     // Out of budget: disabled, but STILL THERE — a grayed row still teaches its
@@ -274,8 +315,8 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     const spent = makeCtx()
     render(<PlayArea {...spent} />)
     const items = menuItems(spent)
-    expect(items.get('hint')?.disabled).toBe(true)
-    expect(items.get('spoiler')?.disabled).toBe(true)
+    expect(items.get('act-hint')?.disabled).toBe(true)
+    expect(items.get('act-spoiler')?.disabled).toBe(true)
   })
 })
 
@@ -296,15 +337,12 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
  * CSS-module keys come through unscoped (see vitest.config.ts).
  */
 describe('psychicnum PlayArea — the terminal secrets reveal', () => {
-  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+  /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
+   *  draw — which is what a bound action and a hand-written row have in common. */
   function menuItems(ctx: GamePageCtx) {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-    return new Map(
-      (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
-        .flatMap((s) => s.items)
-        .map((i) => [i.id, i]),
-    )
+    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+    return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
   }
 
   /** How many board tiles currently read as secrets (green). With no guesses in
@@ -330,6 +368,11 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
+  it('draws the reveal in its own red — this uncovers more than one word', () => {
+    render(<PlayArea {...ended()} />)
+    expect(screen.getByRole('button', { name: 'Reveal secrets' }).className).toMatch(/destructive/)
+  })
+
   it('leaves the secrets hidden until this viewer asks', () => {
     render(<PlayArea {...ended()} />)
     expect(ringed()).toBe(0)
@@ -353,20 +396,25 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(ringed()).toBe(0)
   })
 
-  it('the menu twin is the same toggle, and flips its label with it', async () => {
+  it('the menu twin is the same toggle, and flips its label AND its glyph', async () => {
+    // Both faces, because the button beside it is icon-only: there the glyph is
+    // the label, and a row that kept the reveal eye while saying "Hide" would
+    // teach the wrong glyph (docs/ui.md → the menu is the legend).
     const ctx = ended()
     render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal secrets')
-    act(() => menuItems(ctx).get('reveal')!.onClick())
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal secrets')
+    const revealFace = menuItems(ctx).get('act-reveal')?.icon
+    act(() => menuItems(ctx).get('act-reveal')!.run())
     expect(ringed()).toBe(3)
-    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide secrets'))
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide secrets'))
+    expect(menuItems(ctx).get('act-reveal')?.icon).not.toBe(revealFace)
   })
 
   it('the menu twin is inert before the game is over for everyone', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     // Nothing to ring: the secrets don't reach this client until terminal.
-    expect(menuItems(ctx).get('reveal')?.disabled).toBe(true)
+    expect(menuItems(ctx).get('act-reveal')?.disabled).toBe(true)
   })
 })
 

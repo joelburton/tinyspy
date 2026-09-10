@@ -2,6 +2,7 @@
 
 import type { ComponentPropsWithRef, ReactNode } from 'react'
 import { IconGeneric, type AppIcon } from '../icons/icons'
+import { buttonIconScale } from './iconScale'
 import { cls } from '../utils/cls'
 import styles from './StandardButton.module.css'
 
@@ -156,6 +157,7 @@ export function StandardButton({
 }: StandardButtonProps) {
   const Icon = icon
   const iconOnly = show === 'icon'
+  const scale = iconScale ?? buttonIconScale(icon)
 
   // What the button is CALLED — its words, unless a `tooltip` says otherwise.
   // Back-to-club is why that override exists: it draws "Club" and is called
@@ -194,9 +196,9 @@ export function StandardButton({
         className,
       )}
       style={
-        iconScale === undefined
-          ? style
-          : { ...style, ['--standardButton-icon-scale' as string]: iconScale }
+        // A few glyphs don't read right at this size and say so in
+        // `iconScale.ts`; an explicit prop still wins over what they say.
+        scale === undefined ? style : { ...style, ['--standardButton-icon-scale' as string]: scale }
       }
       // The name has to reach the DOM somehow when the drawn words aren't it —
       // it is what the bubble says and what tests find the button by.

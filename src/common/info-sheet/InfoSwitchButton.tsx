@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
+import { useBoundAction } from '../actions/useBoundAction'
+import { actionSurface } from '../actions/actionSurface'
 import { IconInfoSheetClose, IconInfoSheetOpen } from '../icons/icons'
 import { setInfoSheetOpen } from './infoSheetStore'
 
@@ -26,19 +28,32 @@ type Props = {
  * pages and lose the muscle memory that justified consolidating it.
  *
  * A `<PageHeaderButton>`, like its neighbor the pause button: a mark in the
- * header rather than an action being offered. GamePage renders it only on
+ * header rather than a control being offered. GamePage renders it only on
  * mobile — on desktop the info column is always on screen and there is nothing
  * to switch to.
+ *
+ * **It binds `act-toggle-info-sheet`** and keeps its own look. Switching pages
+ * is a command like any other, so it belongs in the one table of them — and the
+ * day it earns a key, that is a line in the registry rather than a listener.
  */
 export function InfoSwitchButton({ open }: Props) {
+  // The label names the DESTINATION, not the state — it's a navigation control,
+  // and "Game info" / "Back to board" are what the tap gets you.
+  const actToggleInfoSheet = useBoundAction('act-toggle-info-sheet', {
+    describe: () => ({
+      state: 'active',
+      label: open ? 'Back to board' : 'Game info',
+      icon: open ? IconInfoSheetClose : IconInfoSheetOpen,
+    }),
+    run: () => setInfoSheetOpen(!open),
+  })
+  const { label, icon, buttonProps } = actionSurface(actToggleInfoSheet)
   return (
     <PageHeaderButton
-      icon={open ? IconInfoSheetClose : IconInfoSheetOpen}
-      // The label names the DESTINATION, not the state — it's a navigation
-      // control, and "Game info" / "Back to board" are what the tap gets you.
-      label={open ? 'Back to board' : 'Game info'}
+      icon={icon ?? IconInfoSheetOpen}
+      label={label}
       aria-expanded={open}
-      onClick={() => setInfoSheetOpen(!open)}
+      {...buttonProps}
     />
   )
 }

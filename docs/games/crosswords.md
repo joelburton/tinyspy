@@ -365,7 +365,7 @@ sizing).
     its deps. **⌥M menu is NOT wired** (the shell exposes no programmatic menu
     open); note the check/reveal *puzzle* scope has no shortcut (menu-only),
     matching crossplay. Two more shortcuts are shell-global (any game): **⌥⌫**
-    End/Concede, **⇧<** Back to club — see [ui.md → GamePage menu](../ui.md#gamepage-menu).
+    End/Concede, **`<`** Back to club — see [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
   letter/word/grid scope (scope resolved client-side via `cursor.ts`).
   **Reveal at GRID scope is confirmed through the styled modal**; letter and
@@ -509,7 +509,7 @@ Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) / Scratchpad 
 / Print (⌥ none) / Download as .ipuz / Print answer key (PDF) · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
 Reveal letter (⌥R) / word (⌥⇧R) / puzzle *(whole section coop-only)* · Clear
 board / Reveal board / New game · **End game / Concede game** (⌥⌫) · **Back to
-club** (⇧<).
+club** (`<`).
 The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
 rebuses** is a display-only toggle (persisted per browser) that shows multi-char
 rebus fills as just their first letter; **Download as .ipuz** emits the current

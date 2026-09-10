@@ -46,6 +46,18 @@ describe('ActionButton', () => {
     expect(screen.getByRole('button', { name: /new game/i }).dataset.tooltip).toBe('New game · +')
   })
 
+  it('says which action it is, for a stylesheet or a test to find', () => {
+    render(<Harness id="act-shuffle" live={{}} />)
+    expect(document.querySelector('[data-action="act-shuffle"]')).toBeTruthy()
+  })
+
+  it('shows the key beside the name, wherever a control asks for it', () => {
+    // The same helper the round shuffle pill uses, so a bespoke control and a
+    // standard one say the key one way.
+    render(<Harness id="act-shuffle" live={{}} />)
+    expect(screen.getByRole('button', { name: /shuffle/i }).dataset.tooltip).toBe('Shuffle · ⌥Z')
+  })
+
   it('runs the action when clicked', async () => {
     const run = vi.fn()
     render(<Harness id="act-shuffle" live={{ run }} />)

@@ -960,3 +960,54 @@ and their tests; every other file, test and guard is green.
 - **Two `menu/todo.md` items are answered and deleted.** A row grays while its
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
+
+## Step 5 — the first game: psychicnum
+
+Its PlayArea, BoardCol, InfoCol and tests are converted; 35 of 35 pass and its
+type errors are gone. What the first conversion taught:
+
+- **The `actionsRef` disappears rather than being replaced.** It existed so a
+  menu effect written ABOVE the handlers could reach them; with bindings the
+  menu is a list of values, so the effect simply moves below them. Its dep array
+  went from seventeen entries to twelve stable ones.
+- **Both exits are placed unconditionally**, in the menu and in the info column,
+  because each hides itself in the mode that isn't its own. The `isCompete ? … :
+  …` branch that picked one is gone from both.
+- **A button is still called what it is called.** The tooltip carries the key
+  ("End game · ⌥⌫"), and `StandardButton` takes its accessible name from the
+  tooltip when there is one — which silently renamed every icon-only action
+  button and broke a dozen tests. `<ActionButton>` now passes `aria-label`
+  explicitly, so the key is a hint and not part of the name.
+- **A component test that fires a confirming action must mount
+  `<ConfirmationHost />`.** The host lives in `App.tsx`, so a test rendering a
+  PlayArea alone gets a question nobody can answer — which the service reports
+  and answers "no". Two psychicnum tests now render it and click through the
+  modal, the way the End-game test already did.
+- **`describe()` may return a GLYPH as well as words** (Joel, 2026-09-10), which
+  is what let Reveal secrets convert like everything else. A toggle has two faces
+  and on an icon-only control the glyph IS the label, so words that moved without
+  the glyph would have the two saying different things at the same moment. §2's
+  "its name, glyph and keys" is narrowed to what it meant: **how an action looks
+  may vary; what it IS — its name, keys, tone and question — does not.** The
+  alternative, two actions for one toggle, would have pushed "which action goes
+  in this row?" back into the game, which is the branch this plan removes.
+  psychicnum's Reveal is an `<ActionButton>` now; `RevealButton` retires when the
+  last of its five other callers converts.
+- **`<ActionButton>` takes a `tooltip` override**, for a REASON the placement
+  knows and the action does not: "Can't reveal until all end", on a button gray
+  because the race is still running. Rare by construction — an action that is
+  merely unavailable needs no explaining.
+- **A named button's TONE is part of what it means, and the registry had to
+  learn it.** Hint and Spoiler are caution-amber, Reveal is destructive-red, and
+  the first conversion drew all three action-blue because the rows carried no
+  `tone` — Joel caught it on sight. Nine registry entries gained one, and
+  psychicnum's tests now assert the three that regressed. **Every remaining game
+  must carry its buttons' tones across the same way**: the named button is where
+  they are written down until it retires.
+- **Shuffle moved from Space to `⌥Z`** (§6), and psychicnum's own window
+  listener for it is gone. The round Shuffle button is not an `<ActionButton>` —
+  it is a board control with its own look — so it stays live at terminal and
+  while viewing history, as documented, while the key is disabled in the viewer.
+- **Three e2e specs pressed chords the shift rule changed** (`Alt+Backquote`,
+  `Alt+Equal` twice) and one pressed Space to shuffle. All four are updated;
+  none has been run.

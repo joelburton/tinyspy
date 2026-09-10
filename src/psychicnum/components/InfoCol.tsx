@@ -2,15 +2,10 @@
 
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { HintButton } from '@/common/buttons/HintButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { SpoilerButton } from '@/common/buttons/SpoilerButton'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
@@ -23,10 +18,12 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Every
- * mutation is a named callback up (`onHint`/`onSpoiler`/`onReveal`/`onEndGame`/`onConcede`/
- * `onSelectTurn`); PlayArea owns the RPCs + coordination. Shared between coop and
- * compete: `isCompete` picks the OpponentStrip + Concede (vs End). Prop names match
- * the other games' columns for the same idea (docs/playarea.md).
+ * command is a BOUND ACTION the PlayArea handed down (`actHint`, `actEndGame`, …),
+ * so this column places buttons and decides nothing about them — an action that
+ * does not apply here draws nothing, which is how one row serves coop and compete.
+ * What is still a callback is what isn't a command: the history-viewer selection,
+ * and the local secrets toggle. Prop names match the other games' columns for the
+ * same idea (docs/playarea.md).
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below), so
@@ -46,19 +43,14 @@ export function InfoCol({
   selfId,
   playerBudgets,
   concededIds,
-  onHint,
-  hinting,
-  onSpoiler,
-  spoiling,
-  onReveal,
-  secretsShown,
-  secretsAlreadyShown,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
+  actHint,
+  actSpoiler,
+  actReveal,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   setupRows,
   guesses,
   isTerminal,
@@ -95,32 +87,29 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (Hint / Reveal + End/Concede, back-to-club at terminal) ──
-  onHint: () => void
-  hinting: boolean
+  /** Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
+   *  worth teaching either way. */
+  actHint: BoundAction
   /** Mid-game cheat: hand over the answer word for one board word (the amber
-   *  bare-eye SpoilerButton). Logs to the turn log like a hint does. */
-  onSpoiler: () => void
-  spoiling: boolean
+   *  bare-eye glyph). Logs to the turn log like a hint does. */
+  actSpoiler: BoundAction
   /** Ring the three secrets at game-over — or un-ring them. A local display
-   *  toggle shared with the menu twin; nothing is written, no peer affected. */
-  onReveal: () => void
-  /** Are the secrets ringed right now? Swaps the button to its Hide face. */
-  secretsShown: boolean
-  /** Are they ringed because this player found all three? Then the control has
-   *  nothing to do — every secret's tile is already green. */
-  secretsAlreadyShown: boolean
-  onEndGame: () => void
-  onConcede: () => void
-  /** Hunt the SAME board + secrets again from scratch (the menu's Restart item;
-   *  unconfirmed at terminal since there's no progress left to lose). */
-  onRestart: () => void
-  /** Start a fresh follow-up game — same setup + roster, a new board + secrets. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
+   *  toggle shared with the menu twin; nothing is written, no peer affected. It
+   *  carries its own two faces, so this column places one button either way. */
+  actReveal: BoundAction
+  /** The whole table stops, with no result. Hidden in a race that doesn't
+   *  offer it — so the pair below can be placed unconditionally. */
+  actEndGame: BoundAction
+  /** Drop out of a race; the others keep going. Hidden outside one. */
+  actConcede: BoundAction
+  /** Hunt the SAME board + secrets again from scratch. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup + roster, a new board + secrets.
+   *  Disables itself while the create is in flight, so a slow network reads as
+   *  "working" rather than "nothing happened". */
+  actNewGame: BoundAction
+  /** Leave for the club page — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
@@ -137,16 +126,17 @@ export function InfoCol({
   onSelectTurn: (index: number) => void
 }) {
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of
-  // the race → psychicnum.concede); solo / coop use the neutral "End" (a mutual
-  // "we're done" → end_game). Two components because they're semantically distinct
-  // actions. Shared by the "playing" and the "out of guesses / conceded" action rows.
-  // Icon-only (the canonical action-row treatment): the styled tooltip carries
-  // the label.
-  const endButton = isCompete ? (
-    <ConcedeGameButton show="icon" onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
-  ) : (
-    <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
+  // The exit — error-toned (red), and BOTH are placed: compete's CONCEDE (drop
+  // out of the race → psychicnum.concede) and coop's neutral "End" (a mutual
+  // "we're done" → end_game) are semantically distinct acts, and each hides
+  // itself in the mode that isn't its own. Shared by the "playing" and the "out
+  // of guesses / conceded" rows. Icon-only (the canonical action-row
+  // treatment): the styled tooltip carries the label and the key.
+  const exits = (
+    <>
+      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+    </>
   )
 
   // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
@@ -204,21 +194,18 @@ export function InfoCol({
             LOOK (a bold status line + the action on the right) so the state change
             reads loudly, not as a silently-swapped help line. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): hunt this board
                 again, or deal a new one. */}
             {/* Reveal first: it acts on THIS finished board. Restart / New game
                 are both "move on", and they leave. */}
-            <RevealButton
-              show="icon"
-              label="Reveal secrets"
-              revealedLabel="Hide secrets"
-              revealed={secretsShown}
-              alreadyShown={secretsAlreadyShown}
-              onClick={onReveal}
-            />
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            {/* Leaving, last — and a button like the rest of them now. The
+                chevron draws a shade smaller than an object glyph, which the
+                button reads off `buttons/iconScale.ts` rather than being told. */}
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : canGuess ? (
           <div className={shared.infoActions}>
@@ -226,11 +213,11 @@ export function InfoCol({
                 itself. Both log to the turn log, cost nothing — and both are
                 warning-toned (amber) via the semantic button components; the
                 lightbulb-vs-bare-eye glyph is what separates them. The boxed-eye
-                RevealButton is a different thing entirely (the whole solution,
+                Reveal is a different thing entirely (the whole solution,
                 terminal only) and never appears in this row. */}
-            <HintButton show="icon" onClick={onHint} disabled={hinting} className={shared.helperButton} />
-            <SpoilerButton show="icon" onClick={onSpoiler} disabled={spoiling} className={shared.helperButton} />
-            {endButton}
+            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+            <ActionButton action={actSpoiler} show="icon" className={shared.helperButton} />
+            {exits}
           </div>
         ) : (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
@@ -240,8 +227,8 @@ export function InfoCol({
                 a player who dropped out can't spoil a live race. Present
                 rather than absent so the row doesn't change shape when the
                 last racer finishes — the button is simply enabled then. */}
-            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
-            {endButton}
+            <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+            {exits}
           </LocalTerminalRow>
         )}
 

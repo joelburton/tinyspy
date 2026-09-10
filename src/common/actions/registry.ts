@@ -13,6 +13,7 @@ import {
 import {
   IconAI,
   IconBack,
+  IconDelete,
   IconChat,
   IconConcede,
   IconEndGame,
@@ -141,10 +142,18 @@ export const ACTIONS = {
     inField: 'game-inputs',
   },
   'act-help': { label: 'Help', icon: IconHelp },
+  // Two marks in the game header. Neither has a key today; both are commands a
+  // player invokes, so they are actions — which is what makes giving one a key
+  // later a one-line change in this table rather than a new listener.
+  'act-pause': { label: 'Pause game' },
+  'act-toggle-info-sheet': { label: 'Game info' },
 
   // ─── Leaving where you are ─────────────────────────────────────────────
-  'act-back-to-home': { label: 'Back to home', icon: IconBack, keys: [char('<', '⇧<')] },
-  'act-back-to-club': { label: 'Back to club', icon: IconBack, keys: [char('<', '⇧<')] },
+  // Shown as `<`, not `⇧<`: a chord written as a character names the character,
+  // and shift is how you make one. `⇧` is written only where it does NOT change
+  // what the key produces — `⇧⌫` beside `⌫`.
+  'act-back-to-home': { label: 'Back to home', icon: IconBack, keys: [char('<')] },
+  'act-back-to-club': { label: 'Back to club', icon: IconBack, keys: [char('<')] },
 
   // ─── The club and account rows ─────────────────────────────────────────
   'act-edit-club': { label: 'Edit club' },
@@ -198,14 +207,17 @@ export const ACTIONS = {
     keys: [named('Enter', '↵'), named(' ', 'Space')],
   },
   'act-submit': { label: 'Submit', icon: IconSubmit, keys: [named('Enter', '↵')] },
-  'act-reveal': { label: 'Reveal', icon: IconRevealSolution },
-  'act-hint': { label: 'Hint', icon: IconHint },
+  // Red, like the boxed eye it wears: this uncovers MORE THAN ONE WORD — a
+  // whole grid, a partner's key, three secrets. Its quieter sibling is the
+  // spoiler: amber, bare eye, one item, mid-game.
+  'act-reveal': { label: 'Reveal', icon: IconRevealSolution, tone: 'destructive' },
+  'act-hint': { label: 'Hint', icon: IconHint, tone: 'caution' },
   'act-exchange': { label: 'Exchange', icon: IconExchange },
-  'act-pass': { label: 'Pass', icon: IconEndTurn },
+  'act-pass': { label: 'Pass', icon: IconEndTurn, tone: 'caution' },
   'act-end-turn': { label: 'End turn', icon: IconEndTurn },
-  'act-spoiler': { label: 'Spoiler', icon: IconSpoiler },
+  'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
   'act-share-preview': { label: 'Share preview', icon: IconShare },
-  'act-suggest-move': { label: 'Suggest a move', icon: IconAI },
+  'act-suggest-move': { label: 'Suggest a move', icon: IconAI, tone: 'caution' },
   'act-print-board': { label: 'Print board (PDF)', icon: IconPrint },
 
   // ─── Crosswords' commands ──────────────────────────────────────────────
@@ -213,11 +225,11 @@ export const ACTIONS = {
   'act-check-letter': { label: 'Letter', icon: IconWordCheck, keys: [alt('KeyC', '⌥C')] },
   'act-check-word': { label: 'Word', icon: IconWordCheck, keys: [altShift('KeyC', '⌥⇧C')] },
   'act-check-puzzle': { label: 'Puzzle', icon: IconWordCheck },
-  'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, keys: [alt('KeyR', '⌥R')] },
-  'act-reveal-word': { label: 'Word', icon: IconRevealSolution, keys: [altShift('KeyR', '⌥⇧R')] },
-  'act-reveal-puzzle': { label: 'Puzzle', icon: IconRevealSolution },
+  'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, tone: 'destructive', keys: [alt('KeyR', '⌥R')] },
+  'act-reveal-word': { label: 'Word', icon: IconRevealSolution, tone: 'destructive', keys: [altShift('KeyR', '⌥⇧R')] },
+  'act-reveal-puzzle': { label: 'Puzzle', icon: IconRevealSolution, tone: 'destructive' },
   'act-show-note': { label: 'Show note', keys: [alt('KeyN', '⌥N')] },
-  'act-explain-clue': { label: 'Explain cryptic clue', icon: IconAI, keys: [alt('KeyX', '⌥X')] },
+  'act-explain-clue': { label: 'Explain cryptic clue', icon: IconAI, tone: 'caution', keys: [alt('KeyX', '⌥X')] },
   'act-open-scratchpad': { label: 'Scratchpad', icon: IconScratchpad, keys: [alt('KeyS', '⌥S')] },
   // ⇧Enter, deliberately: a bare Enter is a no-op in crosswords, because
   // solvers hit it reflexively at a word's end.
@@ -228,20 +240,20 @@ export const ACTIONS = {
 
   // ─── Typing into an entry ──────────────────────────────────────────────
   'act-type-letter': { label: 'Type a letter', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
-  'act-delete-last': { label: 'Delete the last letter', keys: [named('Backspace', '⌫')], repeat: true },
-  'act-submit-entry': { label: 'Submit', keys: [named('Enter', '↵')] },
+  'act-delete-last': { label: 'Delete the last letter', icon: IconDelete, keys: [named('Backspace', '⌫')], repeat: true },
+  'act-submit-entry': { label: 'Submit', icon: IconSubmit, keys: [named('Enter', '↵')] },
   'act-recall-last': { label: 'Recall your last entry', keys: [named('ArrowUp', '↑')] },
   'act-clear-entry': { label: 'Clear the entry', keys: [named('ArrowDown', '↓')] },
 
   // ─── Working a board directly ──────────────────────────────────────────
   'act-move-cursor': { label: 'Move the cursor', keys: [{ pattern: 'arrow', shift: false, label: '↑ ↓ ← →' }], repeat: true },
   'act-place-tile': { label: 'Place a tile', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
-  'act-remove-tile': { label: 'Take the tile back', keys: [named('Backspace', '⌫')], repeat: true },
+  'act-remove-tile': { label: 'Take the tile back', icon: IconDelete, keys: [named('Backspace', '⌫')], repeat: true },
   'act-pick-tile': { label: 'Play that tile', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-extend-trace': { label: 'Extend the trace', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
-  'act-drop-last-cell': { label: 'Drop the last tile', keys: [named('Backspace', '⌫')] },
-  'act-clear-selection': { label: 'Clear the selection', keys: [named('Backspace', '⌫')] },
+  'act-drop-last-cell': { label: 'Drop the last tile', icon: IconDelete, keys: [named('Backspace', '⌫')] },
+  'act-clear-selection': { label: 'Clear the selection', icon: IconDelete, keys: [named('Backspace', '⌫')] },
 
   // ─── Crosswords' grid ──────────────────────────────────────────────────
   'act-fill-cell': { label: 'Fill the cell', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },

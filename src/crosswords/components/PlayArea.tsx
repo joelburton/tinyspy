@@ -376,7 +376,6 @@ export function PlayArea(ctx: GamePageCtx) {
             onReveal: mode === 'coop' ? (scope) => actionsRef.current?.reveal(scope) : null,
             onShowNote: hasNote ? () => actionsRef.current?.showNote() : null,
             onExplain: hasNote ? () => actionsRef.current?.explain() : null,
-            onScratchpad: () => setScratchpadOpen(true),
           }
         : null
   }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen, mode, hasNote])

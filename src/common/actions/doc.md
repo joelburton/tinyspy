@@ -34,12 +34,21 @@ available is simply what is mounted. That is also what makes the help list
 trustworthy, since the list and the dispatcher read the same registrations.
 
 A bound action answers one question, `describe()`, with `active`, `hidden` or
-`disabled` — and optionally with different words for this moment. One answer,
-read by everything: a menu row grays, a button disables and a key does nothing
-for the same stated reason, and they cannot disagree. `hidden` and `disabled`
-say different things and the distinction matters: hidden is "not here at this
-moment", which is how a play-only action leaves at terminal, while disabled is
-"here, and not right now", which is Submit with an empty entry.
+`disabled` — and optionally with different words, or a different glyph, for this
+moment. One answer, read by everything: a menu row grays, a button disables and
+a key does nothing for the same stated reason, and they cannot disagree.
+`hidden` and `disabled` say different things and the distinction matters: hidden
+is "not here at this moment", which is how a play-only action leaves at
+terminal, while disabled is "here, and not right now", which is Submit with an
+empty entry.
+
+The line that answer sits on is **how an action looks now versus what it is**. A
+toggle has two faces — "Reveal secrets" with the boxed eye, "Hide secrets" with
+the crossed-out one — and both halves move together, because on an icon-only
+control the glyph is the label and letting the words move alone would have the
+two saying different things. What never moves is the action's name, its keys,
+its tone and its question: those are what make it the same command in all
+sixteen games, and none of them depends on the moment.
 
 Keys go through one listener at the app root. It matches the keystroke against
 what is bound, innermost first, and fires the one action that answers. Nothing
@@ -76,6 +85,19 @@ consumes the keystroke (the press that gets you back to the live board must not
 also play a move), while dismissing a message does not, which is why a key can
 clear the last verdict and still type its letter. That is `consumes`, and it is
 why the dispatcher runs the non-consuming watchers first and separately.
+
+**A control that isn't a standard button can still BE an action.** The board's
+round shuffle pill, the header's pause and page-switch marks keep their own
+markup and their own look, and take what they do, what they are called, whether
+they are live and which key also does it from `actionSurface(action)` — the
+props to spread on their own `<button>`. `<ActionButton>` is the ordinary way to
+place an action; this is the door for the deliberate exceptions, and it is why a
+bespoke look is not a reason to write a command down twice.
+
+**A button says which action it is**, as `data-action="act-shuffle"` — the
+escape hatch for styling one button in particular, and a stable handle for a
+test that would otherwise hunt by wording. An attribute rather than a global
+class, matching every other marker the app leaves for a stylesheet to read.
 
 **The confirmation is asked by the shared run**, not by the callback. New game
 always asks the new-game question and always only mid-game, because at terminal

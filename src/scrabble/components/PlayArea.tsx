@@ -406,7 +406,7 @@ type Suggested =
     // The FULL scrabble menu: Help (top) + the Print item + the End/Concede +
     // Back-to-club tail, all from `buildGameMenu`. End/Concede dispatch through
     // the stable `actionsRef` so this effect needn't depend on the (later-declared)
-    // handlers. ⌥⌫ / ⇧< are wired globally by the shell — no shortcuts here.
+    // handlers. ⌥⌫ / `<` are wired globally by the shell — no shortcuts here.
     menu.setGameSections(
       buildGameMenu({
         menu,

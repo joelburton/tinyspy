@@ -1,12 +1,16 @@
 // cs-unmet
 
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useDismissLocalFeedbackOnKey } from './useDismissLocalFeedbackOnKey'
+import { useActionDispatcher } from '../actions/dispatcher'
 
-/** Dispatch a bubbling keydown whose `target` is the given element. */
-function press(target: EventTarget, init: KeyboardEventInit = {}) {
-  target.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, ...init }))
+/** Dispatch a bubbling keydown whose `target` is the given element. Awaited:
+ *  an action's run settles a microtask after the key. */
+async function press(target: EventTarget, init: KeyboardEventInit = {}) {
+  await act(async () => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, ...init }))
+  })
 }
 
 describe('useDismissLocalFeedbackOnKey', () => {
@@ -14,30 +18,39 @@ describe('useDismissLocalFeedbackOnKey', () => {
     document.body.innerHTML = ''
   })
 
-  it('clears local feedback on a bare keypress with nothing focused', () => {
+  it('clears local feedback on a bare keypress with nothing focused', async () => {
     const clear = vi.fn()
-    renderHook(() => useDismissLocalFeedbackOnKey(clear))
-    press(document.body)
+    renderHook(() => {
+      useActionDispatcher()
+      useDismissLocalFeedbackOnKey(clear)
+    })
+    await press(document.body)
     expect(clear).toHaveBeenCalledTimes(1)
   })
 
-  it('ignores modifier chords (Cmd-R / Ctrl-C etc. are not a move)', () => {
+  it('ignores modifier chords (Cmd-R / Ctrl-C etc. are not a move)', async () => {
     const clear = vi.fn()
-    renderHook(() => useDismissLocalFeedbackOnKey(clear))
-    press(document.body, { metaKey: true })
-    press(document.body, { ctrlKey: true })
-    press(document.body, { altKey: true })
+    renderHook(() => {
+      useActionDispatcher()
+      useDismissLocalFeedbackOnKey(clear)
+    })
+    await press(document.body, { metaKey: true })
+    await press(document.body, { ctrlKey: true })
+    await press(document.body, { altKey: true })
     expect(clear).not.toHaveBeenCalled()
   })
 
-  // Inherited from useGlobalKeyHandler: a key aimed at a focused field (chat, a
+  // Inherited from the dispatcher: a key aimed at a focused field (chat, a
   // game input) never reaches here — so typing in chat can't wipe game feedback.
-  it('ignores keystrokes aimed at a focused text field', () => {
+  it('ignores keystrokes aimed at a focused text field', async () => {
     const clear = vi.fn()
-    renderHook(() => useDismissLocalFeedbackOnKey(clear))
+    renderHook(() => {
+      useActionDispatcher()
+      useDismissLocalFeedbackOnKey(clear)
+    })
     const input = document.createElement('input')
     document.body.append(input)
-    press(input)
+    await press(input)
     expect(clear).not.toHaveBeenCalled()
   })
 })

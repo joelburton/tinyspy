@@ -413,7 +413,7 @@ function GamePageInner({
   const goToGame = useCallback((gametype: string, gameId: string) => {
     navigate(gamePath(gametype, gameId))
   }, [])
-  // "Back to club" for the menu + ⇧< shortcut. Three shapes:
+  // "Back to club" for the menu + its `<` key. Three shapes:
   //   - TERMINAL: direct navigation, no dialog, no broadcast — the game is
   //     over, leaving affects nobody else.
   //   - SOLO mid-game: suspend immediately, no dialog — the confirm exists
@@ -427,7 +427,7 @@ function GamePageInner({
     else if (players.length <= 1) sendSuspend()
     else setConfirmingSuspend(true)
   }, [clubHandle, isGameOver, players.length, sendSuspend])
-  // ⇧< → Back to club. The menu's row is this same binding, which is what makes
+  // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBoundAction('act-back-to-club', {
     describe: () => 'active',

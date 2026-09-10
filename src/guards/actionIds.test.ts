@@ -71,6 +71,12 @@ describe('every chord says what shift is doing', () => {
         if (!character && key.shift === undefined) {
           wrong.push(`${id}: ${key.label} must say whether shift is held`)
         }
+        // …and a character chord is LABELED with the character alone. `⇧` is
+        // how you make a `<`, so writing it reads as a second key to press —
+        // and `+` beside it would then have to say `⇧+` to match.
+        if (character && key.label.includes('⇧')) {
+          wrong.push(`${id}: ${key.label} spells ⇧ on a character chord — the character is the instruction`)
+        }
       }
     }
     expect(wrong, wrong.join('\n')).toEqual([])

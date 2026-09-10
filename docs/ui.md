@@ -312,9 +312,9 @@ longer exists (End the game, then Reveal), and Clear board became Restart.
 
 macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", the `<CelebrationBlockingModal>`'s "Nice!") right-justify the lone button. One shared rule draws the row — [`modalActions.module.css`](../src/common/floating-panels/modalActions.module.css), imported directly and applied as `actionRow.modalActions` — carrying the `0.75rem` gap and the `6rem` button floor for every dialog. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
 
-The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only [`<HelpButton>`](../src/common/buttons/HelpButton.tsx) (`IconHelp`) is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
+The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only Help button — `act-help`, the same command the in-game menu's Help row is — is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
 
-**Back to club** — the one button that recurs across surfaces (**every** game's terminal row, icon-only + `primary`, via `<TerminalActionRow>` — crosswords' hand-rolled terminal row matches it; plus the *playing* action row in the seven entry-row games, where the row has space for it. The other six reach the club through the game menu's Back-to-club item (⇧<), which is the universal route in every game) is the shared [`<BackToClubButton>`](../src/common/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so the control announces itself as "Back to club" and nothing else), its spacing, and the label stay identical everywhere. It DRAWS "Club" and is CALLED "Back to club" — the short word is its `label`, the sentence its `tooltip`, which is the hover bubble and the accessible name. Pass `show="icon"` for the square, which the terminal rows do to fit the row, or a `label` of your own where there is room (the pause overlay draws the whole "Suspend and return to club"). `weight` only swaps the fill: the terminal row passes `primary` (filled accent), and `secondary` (outline) is the default everywhere else. The GamePage *menu* item is plain text, not this button.
+**Back to club** — the one button that recurs across surfaces (**every** game's terminal row, icon-only + `primary`, via `<TerminalActionRow>` — crosswords' hand-rolled terminal row matches it; plus the *playing* action row in the seven entry-row games, where the row has space for it. The other six reach the club through the game menu's Back-to-club item (`<`), which is the universal route in every game) is the shared [`<BackToClubButton>`](../src/common/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so the control announces itself as "Back to club" and nothing else), its spacing, and the label stay identical everywhere. It DRAWS "Club" and is CALLED "Back to club" — the short word is its `label`, the sentence its `tooltip`, which is the hover bubble and the accessible name. Pass `show="icon"` for the square, which the terminal rows do to fit the row, or a `label` of your own where there is room (the pause overlay draws the whole "Suspend and return to club"). `weight` only swaps the fill: the terminal row passes `primary` (filled accent), and `secondary` (outline) is the default everywhere else. The GamePage *menu* item is plain text, not this button.
 
 ### Existing offenders to retrofit
 
@@ -1176,7 +1176,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
 
-**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `⇧<`) and `ctx.menu.actChat`, which is bound at the app root.
+**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `<`) and `ctx.menu.actChat`, which is bound at the app root.
 
 ```
 [logo ▼]   ← click
@@ -1188,7 +1188,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          │ …game sections…      │
          ├──────────────────────┤
          │ End game / Concede ⌥⌫│
-         │ Back to club       ⇧<│
+         │ Back to club        <│
          └──────────────────────┘
 ```
 
@@ -1196,11 +1196,11 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 
 **A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its key hint and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
 
-**Shortcut hints** are the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **⇧<** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
+**Shortcut hints** are the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **`<`** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
 **⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'` + Shift, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
 
-**⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* row carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are.
+**`<` means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* row carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are.
 
 API on `GamePageCtx`:
 
@@ -1208,7 +1208,7 @@ API on `GamePageCtx`:
 menu: {
   setGameSections: (sections: MenuSection[]) => void
   actHelp: BoundAction          // this game's rules
-  actBackToClub: BoundAction    // terminal-nav or suspend-confirm, and ⇧<
+  actBackToClub: BoundAction    // terminal-nav or suspend-confirm, and `<`
   actChat: BoundAction | null   // bound at the app root; null with no chat panel
 }
 ```
@@ -2081,8 +2081,8 @@ and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
 
 **One glyph names a direction, not a thing: `IconBack`.** Every other name in
 the registry names an action or an object; the chevron names "up one level"
-(game → club, and club → home behind `⇧<`). That is deliberate — the ups never
-co-occur, and the chevron is the only thing on screen that teaches `⇧<` — and
+(game → club, and club → home behind `<`). That is deliberate — the ups never
+co-occur, and the chevron is the only thing on screen that teaches `<` — and
 the full argument sits beside the export in `icons.ts`. Read it before "fixing"
 the glyph into a `House` and a `Users`.
 

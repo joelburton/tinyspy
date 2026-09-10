@@ -5,6 +5,8 @@ import { setChatOpen, useChatOpen } from '../chat/chatOpenStore'
 import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnread'
+import { useAppAction } from '../actions/useBoundAction'
+import { nameWithKey } from '../actions/nameWithKey'
 import styles from './ChatButton.module.css'
 
 /**
@@ -20,11 +22,17 @@ import styles from './ChatButton.module.css'
  * Stays in place when the panel opens, per docs/ui.md →
  * "Layout stability." The bubble's position in the header is
  * fixed; the panel pops open / closes elsewhere.
+ *
+ * **It shows the key but does not fire it.** `/` is its own command — reach
+ * chat, and stay there if you are already in it — while this mark TOGGLES, so
+ * clicking it is how you close the panel. Two behaviors, deliberately; the
+ * bubble reads the chord off the action so it can't drift from the binding.
  */
 export function ChatButton() {
   const open = useChatOpen()
   const { count, color } = useChatUnread()
   const showBadge = !open && count > 0
+  const actOpenChat = useAppAction('act-open-chat')
   return (
     <PageHeaderButton
       icon={IconChat}
@@ -32,7 +40,7 @@ export function ChatButton() {
       label={
         open ? 'Close chat' : showBadge ? `Open chat, ${count} unread` : 'Open chat'
       }
-      tooltip="Chat"
+      tooltip={actOpenChat ? nameWithKey('Chat', actOpenChat) : 'Chat'}
       aria-pressed={open}
       onClick={() => setChatOpen(!open)}
       className={styles.bubble}

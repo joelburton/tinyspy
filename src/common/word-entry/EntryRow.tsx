@@ -57,8 +57,6 @@ type Props = {
   onAnyKey?: () => void
   /** What may be entered (default lowercase A–Z). spellingbee/boggle pass upper. */
   charFor?: (key: string) => string | null
-  /** Extra keys beyond the universal set (spellingbee's Space = shuffle). */
-  onExtraKey?: (e: KeyboardEvent) => boolean
   /** Last submitted value, for ArrowUp recall (the universal last-move history). */
   recall?: string
   /** Extra class on the row — e.g. a per-game `--entryBox-font-size` override. */
@@ -104,7 +102,6 @@ export function EntryRow({
   submitDisabled = false,
   onAnyKey,
   charFor,
-  onExtraKey,
   recall,
   className,
 }: Props) {
@@ -115,12 +112,11 @@ export function EntryRow({
   // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
   // EntryRow IS the EntryBox). They gate together: no arrows while disabled/busy.
   //
-  // `submitDisabled` vetoes only the submit, not editing: Enter routes to `noop`
-  // so it can't fire (matching the disabled Submit button below), while typing +
-  // Delete stay live so the player can fix the value.
-  useCaptureKeys({
-    value, onChange, onSubmit: submitDisabled ? noop : onSubmit,
-    disabled, busy, onAnyKey, charFor, onExtraKey,
+  // `submitDisabled` vetoes only the submit, not editing — and it goes to the
+  // hook rather than being applied here, so the key and the button read the one
+  // answer instead of each working it out.
+  const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
+    value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
   useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
 
@@ -132,20 +128,8 @@ export function EntryRow({
     )
   }
 
-  const empty = value === ''
-  const handleDelete = () => {
-    onAnyKey?.() // a Delete click is a move too — dismiss sticky feedback like a key
-    onChange(value.slice(0, -1))
-  }
-
   return (
-    <MoveRow
-      className={className}
-      onDelete={handleDelete}
-      onSubmit={onSubmit}
-      deleteDisabled={empty || disabled}
-      submitDisabled={empty || disabled || busy || submitDisabled}
-    >
+    <MoveRow className={className} actDelete={actDeleteLast} actSubmit={actSubmitEntry}>
       <EntryBox value={value} placeholder={placeholder}>
         {children}
       </EntryBox>

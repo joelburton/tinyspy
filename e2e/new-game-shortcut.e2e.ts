@@ -79,14 +79,14 @@ test('“⌥+” confirms, then opens the setup dialog on the club page', async 
 
   // Mid-play it asks the same question `+` does — an accidental chord shouldn't
   // move you off the board either.
-  await page.keyboard.press('Alt+Equal')
+  await page.keyboard.press('Alt+Shift+Equal')
   await expect(page.getByText('Start a new game?')).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: 'Keep playing' }).click()
   await expect(page).toHaveURL(new RegExp(game.id))
 
   // Confirming lands on the CLUB page with the setup dialog already open on this
   // gametype — the game isn't created until you press Start in there.
-  await page.keyboard.press('Alt+Equal')
+  await page.keyboard.press('Alt+Shift+Equal')
   await expect(page.getByText('Start a new game?')).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: 'Start new game' }).click()
   await expect(page).toHaveURL(new RegExp(`/c/${club.handle}`), { timeout: 20000 })

@@ -2,18 +2,18 @@
 
 import { IconShuffle } from '../icons/icons'
 import { cls } from '../utils/cls'
+import { actionSurface } from '../actions/actionSurface'
+import type { BoundAction } from '../actions/useBoundAction'
 import styles from './ShuffleButton.module.css'
 
 type Props = {
-  onShuffle: () => void
-  /** Disable the control (e.g. an empty tile set). Defaults to enabled —
-   *  shuffling is harmless, so even a locked/terminal game can leave it on
-   *  as a post-game fidget. */
-  disabled?: boolean
-  /** The hover bubble and the accessible name — the same word `tooltip` means
-   *  on a `<StandardButton>`, which is why it is spelled that way here even
-   *  though this control is its own `<button>`. Nothing is ever drawn, so
-   *  there is no `label` to be confused with. Defaults to "Shuffle". */
+  /** The action this pill fires — `act-shuffle`, or boggle's `act-rotate`. Its
+   *  key rides in the hover bubble, and its state decides whether the control is
+   *  live, so the pill and the key can't disagree. */
+  action: BoundAction
+  /** What to CALL it here, when the action's own word isn't specific enough:
+   *  "Shuffle the words", "Shuffle rack". The key is appended either way.
+   *  Defaults to the action's label. */
   tooltip?: string
   /** Extra class for the caller's layout (margins/placement). */
   className?: string
@@ -26,9 +26,16 @@ type Props = {
  * who learns it in one game knows it in the next. See docs/ui.md →
  * Consistency across games.
  *
- * Shuffling is always local and harmless (no server write, no broadcast), so
- * the control stays enabled by default even when the rest of the game is
- * locked. Callers pass `disabled` only when there's nothing to shuffle.
+ * **Not a `<StandardButton>`, and driven by an action anyway.** The round pill,
+ * the spinning glyph and the focus suppression are its own (docs/ui.md's button
+ * taxonomy lists it among the families that are not the standard button) — but
+ * what it DOES, what it is called and which key also does it come from the
+ * binding it is given, like any other surface. A bespoke look is not a reason to
+ * write a command down twice.
+ *
+ * Shuffling is always local and harmless (no server write, no broadcast), so an
+ * action that offers it usually stays `active` even at terminal — the post-game
+ * fidget is deliberate.
  *
  * The glyph rotates on hover; the rotation lives on the inner span so the pill
  * itself stays put (rotating the button would spin the whole control, which
@@ -36,16 +43,16 @@ type Props = {
  * focus from a game's keyboard-handler attachment point (spellingbee captures typed
  * letters and must keep focus where keydown is bound).
  */
-export function ShuffleButton({ onShuffle, disabled, tooltip = 'Shuffle', className }: Props) {
+export function ShuffleButton({ action, tooltip, className }: Props) {
+  const { hidden, buttonProps } = actionSurface(action, tooltip)
+  if (hidden) return null
+
   return (
     <button
       type="button"
       className={cls(styles.shuffle, className)}
-      onClick={onShuffle}
       onMouseDown={(e) => e.preventDefault()}
-      disabled={disabled}
-      aria-label={tooltip}
-      data-tooltip={tooltip}
+      {...buttonProps}
     >
       {/* The glyph spins on hover via the .glyph span (rotating the button
        *  would spin the whole pill). IconShuffle is the rotate glyph — chosen

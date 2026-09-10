@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useGlobalKeyHandler } from '../keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '../actions/useBoundAction'
 
 export type ArrowHistoryOptions = {
   /**
@@ -25,21 +25,21 @@ export type ArrowHistoryOptions = {
  * uses the core alone and never wires this, so it gets no arrow behavior. Keeping
  * it separate is what makes that boundary obvious (docs/ui.md → Text entry).
  *
- * Rides `useGlobalKeyHandler`, so it inherits the focused-input guard (arrows in
- * chat / a game input aren't hijacked) and the once-registered listener; it adds
- * the modifier bail and `preventDefault`s the arrows so they never scroll the
- * page while the entry owns the keyboard.
+ * Two bound actions, so the arrows appear in the game's key list beside its
+ * commands, and so an arrow that has nothing to do says so: recall with no last
+ * entry is disabled rather than silently inert.
  */
 export function useArrowHistory({ recall, onChange, enabled = true }: ArrowHistoryOptions): void {
-  useGlobalKeyHandler((e: KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    if (!enabled) return
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
+  useBoundAction('act-recall-last', {
+    // Nothing submitted yet, nothing to bring back.
+    describe: () => (!enabled ? 'hidden' : recall ? 'active' : 'disabled'),
+    run: () => {
       if (recall) onChange(recall)
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      onChange('')
-    }
+    },
+  })
+
+  useBoundAction('act-clear-entry', {
+    describe: () => (enabled ? 'active' : 'hidden'),
+    run: () => onChange(''),
   })
 }

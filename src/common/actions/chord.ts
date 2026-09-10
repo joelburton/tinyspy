@@ -45,8 +45,13 @@ export type Chord = {
   // Left out on a chord written as a CHARACTER, where ⇧ is already spent
   // producing the character and asking about it again says nothing.
   shift?: boolean
-  // What a tooltip, a menu row and the help list SHOW — '⌥Z', '⇧<', '+'.
+  // What a tooltip, a menu row and the help list SHOW — '⌥Z', '<', '+'.
   // Written here rather than derived, so the app spells a key one way.
+  //
+  // A chord written as a CHARACTER is labeled with that character and no `⇧`,
+  // because shift is how the character is made: `+`, `<`, `~`, `#`. `⇧` is
+  // written only where it does not change what the key produces — `⇧⌫`, `⇧↵`,
+  // `⇧Space`, `⇧` + an arrow — which is exactly where the chord checks it.
   label: string
 }
 

@@ -1,6 +1,8 @@
 // cs-blessed-buttons
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
+import { useBoundAction } from '../actions/useBoundAction'
+import { actionSurface } from '../actions/actionSurface'
 import styles from './PauseButton.module.css'
 
 type Props = {
@@ -48,19 +50,35 @@ type Props = {
  * grows into.
  *
  * A `<PageHeaderButton>` rather than a toned one: it is a mark in the header, not
- * an action being offered (docs/ui.md → "What a `<button>` is"). The resume face
+ * a control being offered (docs/ui.md → "What a `<button>` is"). The resume face
  * is green — see the module.
+ *
+ * **It binds `act-pause`** and keeps that look. Pausing is a command like any
+ * other, so it belongs in the one table of them — and the day it earns a key,
+ * that is a line in the registry rather than a listener. The action carries the
+ * whole three-state rule: pause, resume, or gray while somebody else's absence
+ * is what stopped the game.
  */
 export function PauseButton({ paused, manual, onPause, onUnpause }: Props) {
   const resumable = paused && manual
+  const actPause = useBoundAction('act-pause', {
+    // A presence-pause is nobody's to lift — it ends when the missing player
+    // comes back — so the control is present and gray rather than absent.
+    describe: () => ({
+      state: paused && !manual ? 'disabled' : 'active',
+      label: paused ? (manual ? 'Resume game' : 'Waiting for a player') : 'Pause game',
+      icon: paused ? PlayGlyph : PauseGlyph,
+    }),
+    run: () => (resumable ? onUnpause() : onPause()),
+  })
+  const { label, icon, buttonProps } = actionSurface(actPause)
   return (
     <PageHeaderButton
-      icon={paused ? PlayGlyph : PauseGlyph}
+      icon={icon ?? PauseGlyph}
       iconSize={20}
-      label={paused ? (manual ? 'Resume game' : 'Waiting for a player') : 'Pause game'}
+      label={label}
       className={resumable ? styles.resume : undefined}
-      disabled={paused && !manual}
-      onClick={resumable ? onUnpause : onPause}
+      {...buttonProps}
     />
   )
 }

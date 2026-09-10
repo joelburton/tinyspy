@@ -25,10 +25,6 @@ export function BackToClubButton({
   tooltip = 'Back to club',
   icon = IconBack,
   tone = 'normal',
-  // A shade smaller than the default: a direction mark should not take as much
-  // room as an object glyph. It reads at that size because the glyph carries a
-  // heavier stroke than the rest — see IconBack in the registry.
-  iconScale = 0.9,
   ...rest
 }: PurposeButtonProps) {
   return (
@@ -37,7 +33,6 @@ export function BackToClubButton({
       tooltip={tooltip}
       icon={icon}
       tone={tone}
-      iconScale={iconScale}
       {...rest}
     />
   )

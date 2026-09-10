@@ -1,12 +1,18 @@
 // cs-unmet
 
 import { StandardButton, type StandardButtonProps } from '../buttons/StandardButton'
+import { nameWithKey } from './nameWithKey'
 import type { BoundAction } from './useBoundAction'
 
-type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick' | 'tooltip'> & {
+type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick'> & {
   // The action this button IS. Its words, glyph, tone, key and availability all
   // come from here — the button decides none of them.
   action: BoundAction
+  // A REASON this placement can give and the action can't — psychicnum's
+  // "Can't reveal until all end", on a button that is gray because the race is
+  // still running. Replaces the bubble that would otherwise name the action and
+  // its key. Rare: an action that is merely unavailable needs no explaining.
+  tooltip?: string
 }
 
 /**
@@ -25,8 +31,8 @@ type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick' | '
  * its hover bubble says the key, which is the only place a player finds out
  * that New game is `+`.
  */
-export function ActionButton({ action, ...rest }: Props) {
-  const { state, label } = action.describe()
+export function ActionButton({ action, tooltip, ...rest }: Props) {
+  const { state, label, icon } = action.describe()
   if (state === 'hidden') return null
 
   const { spec } = action
@@ -36,12 +42,29 @@ export function ActionButton({ action, ...rest }: Props) {
   return (
     <StandardButton
       label={words}
-      icon={spec.icon}
+      // A toggle's face, when it has one: on an icon-only button the glyph is
+      // the label, so it moves with the words or the two disagree.
+      icon={icon ?? spec.icon}
       tone={spec.tone}
       // The bubble teaches the key. Without a key there is nothing to add, so
       // the button keeps StandardButton's own rule (the name, when the words
       // aren't already on screen).
-      tooltip={chord === undefined ? undefined : `${words} · ${chord}`}
+      tooltip={tooltip ?? (chord === undefined ? undefined : nameWithKey(words, action))}
+      // …but the button is still CALLED "End game", not "End game · ⌥⌫". A
+      // standard button takes its accessible name from the tooltip when it has
+      // one, which is right where the tooltip renames it ("Club" / "Back to
+      // club") and wrong here, where the tooltip only adds a hint.
+      aria-label={typeof words === 'string' ? words : undefined}
+      // WHICH action this is, in the DOM — the escape hatch for styling one
+      // button in particular (`[data-action='act-peel'] { … }`), and a stable
+      // handle for a test that would otherwise search by wording.
+      //
+      // An attribute rather than a global class, matching every other marker
+      // the app leaves for a stylesheet to ask about (`data-icon-only`,
+      // `data-board`, `data-floating-panel`): a class here could only be a
+      // literal string in the global namespace, which is the one thing the
+      // module-CSS rule exists to avoid.
+      data-action={action.id}
       disabled={state === 'disabled' || action.pending}
       onClick={() => action.run()}
       {...rest}

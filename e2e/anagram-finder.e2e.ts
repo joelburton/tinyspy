@@ -5,7 +5,7 @@ import { createSoloClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The ⌥` anagram finder, end to end: the REAL chord (Alt+Backquote — the
+ * The ⌥~ anagram finder, end to end: the REAL chord (Alt+Shift+Backquote — the
  * binding matches e.code, so this exercises the mac dead-key path the unit
  * tests can only simulate), the real `common.anagrams` RPC against the
  * imported dictionary, and the pin semantics from the feature's own spec:
@@ -25,7 +25,7 @@ test('open with the chord, pin a letter, scroll a long list', async ({ browser }
   // ("this box IS the dialog") — so it is reached by its form name.
   const input = page.locator('input[name="letters"]')
   await expect(async () => {
-    await page.keyboard.press('Alt+Backquote')
+    await page.keyboard.press('Alt+Shift+Backquote')
     await expect(input).toBeVisible({ timeout: 300 })
   }).toPass({ timeout: 10_000 })
 

@@ -10,10 +10,12 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
+import { useActionDispatcher } from '../actions/dispatcher'
 
-/** Dispatch a window keydown, the way useGlobalKeyHandler listens for it. */
-function press(key: string) {
-  act(() => {
+/** Dispatch a window keydown, the way the dispatcher listens for it. Awaited,
+ *  because an action's run settles a microtask after the key. */
+async function press(key: string) {
+  await act(async () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
   })
 }
@@ -30,9 +32,13 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
     onAnyKey,
     ...initial,
   }
-  const { rerender } = renderHook((props: CaptureKeysOptions) => useCaptureKeys(props), {
-    initialProps: base,
-  })
+  const { rerender } = renderHook(
+    (props: CaptureKeysOptions) => {
+      useActionDispatcher()
+      useCaptureKeys(props)
+    },
+    { initialProps: base },
+  )
   return {
     onChange,
     onSubmit,
@@ -42,63 +48,35 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
 }
 
 describe('useCaptureKeys — core entry', () => {
-  it('appends a letter (default lowercase charFor)', () => {
+  it('appends a letter (default lowercase charFor)', async () => {
     const { onChange } = setup({ value: 'ca' })
-    press('t')
+    await press('t')
     expect(onChange).toHaveBeenCalledWith('cat')
   })
 
-  it('Backspace deletes the last character', () => {
+  it('Backspace deletes the last character', async () => {
     const { onChange } = setup({ value: 'cat' })
-    press('Backspace')
+    await press('Backspace')
     expect(onChange).toHaveBeenCalledWith('ca')
   })
 
-  it('Enter submits a non-empty value, but not an empty one', () => {
+  it('Enter submits a non-empty value, but not an empty one', async () => {
     const { onSubmit, update } = setup({ value: 'cat' })
-    press('Enter')
+    await press('Enter')
     expect(onSubmit).toHaveBeenCalledTimes(1)
     update({ value: '' })
-    press('Enter')
+    await press('Enter')
     expect(onSubmit).toHaveBeenCalledTimes(1) // unchanged — empty Enter doesn't submit
   })
 
-  it('disabled stops the ENTRY dead (no edits, no submit, no dismissal)', () => {
+  it('disabled stops the ENTRY dead (no edits, no submit, no dismissal)', async () => {
     const { onChange, onAnyKey, onSubmit } = setup({ value: 'ca', disabled: true })
-    press('t')
-    press('Backspace')
-    press('Enter')
+    await press('t')
+    await press('Backspace')
+    await press('Enter')
     expect(onChange).not.toHaveBeenCalled()
     expect(onSubmit).not.toHaveBeenCalled()
     // The dismissal is gated too, so a stray key can't wipe the terminal pill.
     expect(onAnyKey).not.toHaveBeenCalled()
-  })
-
-  /**
-   * ...but an EXTRA key is a BOARD key, and the board outlives the entry.
-   *
-   * The only two are spellingbee's and wordwheel's Space-shuffles: a view-only
-   * rearrange of the letters. Its BUTTON is deliberately live at terminal ("a
-   * harmless rearrange"), and until 2026-08-16 the key sat below the disabled
-   * bail — so on a finished board you could shuffle by clicking but not by
-   * pressing Space. Reported as a bug, and it was: two controls for one action
-   * disagreeing about when they work.
-   */
-  it('an extra key still fires when the entry is disabled', () => {
-    const onExtraKey = vi.fn((e: KeyboardEvent) => e.key === ' ')
-    const { onChange, onAnyKey } = setup({ value: 'ca', disabled: true, onExtraKey })
-    press(' ')
-    expect(onExtraKey).toHaveBeenCalled()
-    // …and claiming the key still stops everything below it.
-    expect(onChange).not.toHaveBeenCalled()
-    expect(onAnyKey).not.toHaveBeenCalled()
-  })
-
-  it('an unclaimed extra key falls through to the entry as before', () => {
-    const onExtraKey = vi.fn(() => false)
-    const { onChange } = setup({ value: 'ca', onExtraKey })
-    press('t')
-    expect(onExtraKey).toHaveBeenCalled()
-    expect(onChange).toHaveBeenCalledWith('cat')
   })
 })

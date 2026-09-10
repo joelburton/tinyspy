@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { ACTIONS, type ActionId, type ActionSpec } from './registry'
+import type { AppIcon } from '../icons/icons'
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
@@ -37,10 +38,28 @@ import { useSingleFlight } from '../single-flight/useSingleFlight'
  *  now" — Submit with an empty entry. */
 export type ActionState = 'active' | 'hidden' | 'disabled'
 
-/** What a binding says about itself when asked. The label is optional and falls
- *  back to the registry's, so an action whose words never change answers with a
- *  bare state. */
-export type Described = { state: ActionState; label?: string }
+/**
+ * What a binding says about itself when asked.
+ *
+ * The words and the glyph are optional and fall back to the registry's, so an
+ * action that always looks the same answers with a bare state.
+ *
+ * **What may vary is how an action LOOKS right now; what it IS does not.** A
+ * toggle has two faces — "Reveal secrets" with the boxed eye, "Hide secrets"
+ * with the crossed-out one — and on an icon-only control the glyph IS the
+ * label, so letting the words move without the glyph would have the two saying
+ * different things at the same moment. Its name, its keys, its tone and its
+ * question never move: those are what make it the same command in every game,
+ * and none of them depends on the moment.
+ */
+export type Described = {
+  state: ActionState
+  label?: string
+  // The face to wear right now — from `common/icons/icons.ts`, like the
+  // registry's own. For a toggle, and nothing else: an action that draws an
+  // unrelated glyph here is a different action wearing this one's name.
+  icon?: AppIcon
+}
 
 /** The live half a binding supplies. */
 export type LiveAction = {
@@ -141,10 +160,25 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
 
   // The live half changes every render (it closes over the game's state), so it
   // is read through a ref and nothing below has to be rebuilt when it does.
+  //
+  // Refreshed DURING the render, not in an effect. `describe()` is read while
+  // the tree is rendering — a game's info column asks about an action its
+  // PlayArea bound in the same pass — so an effect-refreshed ref would answer
+  // from the render before, and every surface would show the previous moment's
+  // truth for a beat: the row saying the game is over beside a button still
+  // saying it is not. (An effect IS right for a value only a listener reads,
+  // which is why `useGlobalKeyHandler` and `useTabRing` use one.)
+  //
+  // The rule this waives guards against a render being discarded and its writes
+  // outliving it. Nothing here is at risk: what the ref holds is only ever read
+  // BACK during the same render, or later at keypress. The write exists because
+  // the bound action must ALSO keep a stable identity — a game's menu effect
+  // lists it in its deps, and `setGameSections` is a setState, so an object that
+  // changed every render would loop. `common/menu/todo.md` carries the fix that
+  // removes the reason for both waivers.
   const liveRef = useRef(live)
-  useEffect(() => {
-    liveRef.current = live
-  })
+  // eslint-disable-next-line react-hooks/refs -- read back in this same render
+  liveRef.current = live
 
   // The run every surface shares: ask the action's question, then do the thing.
   // Asking here rather than in the callback is what stops sixteen games from
@@ -171,12 +205,12 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
     [id, spec, run, describe, pending],
   )
 
-  // The stack entry. Refreshed after each render rather than during it — the
-  // same indirection, and for the same reason, as `useGlobalKeyHandler`.
+  // The stack entry, refreshed during the render for the same reason as above:
+  // the help list draws from this stack while rendering, and the dispatcher
+  // reads it at keypress — both want the newest one, neither wants last one.
   const boundRef = useRef(bound)
-  useEffect(() => {
-    boundRef.current = bound
-  })
+  // eslint-disable-next-line react-hooks/refs -- the stack must hold this render's
+  boundRef.current = bound
 
   // Join the stack for as long as this is mounted — binding is offering, and
   // leaving is what takes the key back. Empty deps: the entry is the ref, so

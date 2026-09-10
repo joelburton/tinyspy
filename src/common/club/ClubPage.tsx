@@ -404,7 +404,7 @@ export function ClubPage({ handle, session }: Props) {
     [allowedGametypes],
   )
 
-  // ⇧< → Back to home (the club list), mirroring the game menu's ⇧< → Back to
+  // `<` → Back to home (the club list), mirroring the game menu's `<` → Back to
   // club. One key, one meaning: "up a level from wherever I am". It is also the
   // menu's row, which is what makes the key discoverable — the row shows it.
   const actBackToHome = useBoundAction('act-back-to-home', {
@@ -899,7 +899,7 @@ export function ClubPage({ handle, session }: Props) {
   // click still has visible feedback. See docs/ui.md → "ClubPage
   // header" for the spec.
   const menuSections: MenuSection[] = [
-    // Each row IS its action — its words, its glyph and its `⇧<` come from the
+    // Each row IS its action — its words, its glyph and its `<` come from the
     // registry, so the row and the key cannot disagree about any of them.
     { items: [actHelp, actBackToHome, actEditClub, actRenameClub] },
     // The account submenu, last — the least club-y thing in the menu. Same row

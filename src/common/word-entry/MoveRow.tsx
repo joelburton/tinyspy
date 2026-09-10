@@ -2,22 +2,19 @@
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
-import { DeleteButton } from '../buttons/DeleteButton'
-import { SubmitButton } from '../buttons/SubmitButton'
+import { ActionButton } from '../actions/ActionButton'
+import type { BoundAction } from '../actions/useBoundAction'
 import styles from './MoveRow.module.css'
 
 type Props = {
   /** The entry display this row wraps — an `<EntryBox>`, a grid of slots, … */
   children: ReactNode
-  /** Take back the last thing entered (a character, a tile, a traced cell). */
-  onDelete: () => void
-  /** Commit what's entered. */
-  onSubmit: () => void
-  /** Nothing to take back (an empty entry), or entry is frozen. */
-  deleteDisabled?: boolean
-  /** Nothing to submit, entry is frozen, a submit is in flight, or the value
-   *  itself is vetoed (wordwheel's un-spellable word). */
-  submitDisabled?: boolean
+  /** Take back the last thing entered (a character, a tile, a traced cell) —
+   *  the same binding as the `⌫` key, so the two cannot disagree about when
+   *  there is anything to take back. */
+  actDelete: BoundAction
+  /** Commit what's entered — the same binding as `Enter`. */
+  actSubmit: BoundAction
   /** Extra class on the row — e.g. a per-game font-size override. */
   className?: string
 }
@@ -29,7 +26,7 @@ type Props = {
  *
  * This is the LAYOUT half of word entry, split out from `<EntryRow>` so the
  * games that can't use EntryRow's *keyboard* half can still be the same control.
- * Three games render it and they are entering genuinely different things:
+ * Three surfaces render it and they are entering genuinely different things:
  *
  *   - **EntryRow** (every typing game) — an `<EntryBox>` over a text buffer,
  *     with `useCaptureKeys` + the history arrows layered on.
@@ -40,6 +37,11 @@ type Props = {
  *     of the three `A`s?), so the string is an output, and EntryRow's
  *     string-in/string-out contract runs backwards.
  *
+ * **The two buttons ARE the two keys.** Each takes the bound action its key
+ * fires, so "is there anything to delete?" and "may this submit?" are answered
+ * once, by the action, rather than by a `deleteDisabled` prop the caller works
+ * out again — which is what let a button and its key disagree.
+ *
  * Extracted rather than copied because the copies had already started: the row
  * is three files' worth of "which button on which side, what gap, when is each
  * disabled", and that is exactly the kind of agreement that drifts silently
@@ -47,19 +49,13 @@ type Props = {
  * varies — what's being entered, what a keystroke means, whether a feedback pill
  * replaces this row or sits below it — stays with the caller.
  */
-export function MoveRow({
-  children,
-  onDelete,
-  onSubmit,
-  deleteDisabled = false,
-  submitDisabled = false,
-  className,
-}: Props) {
+export function MoveRow({ children, actDelete, actSubmit, className }: Props) {
   return (
     <div className={cls(styles.moveRow, className)}>
-      <DeleteButton show="icon" onClick={onDelete} disabled={deleteDisabled} />
+      <ActionButton action={actDelete} show="icon" />
       {children}
-      <SubmitButton show="icon" onClick={onSubmit} disabled={submitDisabled} />
+      {/* Filled: committing is the row's main act, and the ⌫ beside it is not. */}
+      <ActionButton action={actSubmit} show="icon" weight="primary" />
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -13,12 +13,10 @@ import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
 import { memberById } from '@/common/members/memberList'
@@ -93,7 +91,6 @@ export function PlayArea({
   setup,
   status,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -105,12 +102,8 @@ export function PlayArea({
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // opened from the hook's "Game info" menu item. Desktop is unchanged.
+  // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
-
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team finds the third secret (the winning guess
@@ -178,20 +171,6 @@ export function PlayArea({
   const [hinting, setHinting] = useState(false)
   const [spoiling, setSpoiling] = useState(false)
 
-  // The End / Concede action handlers, held in a stable ref so the game-menu
-  // effect's onClick closures can call them without depending on the concrete
-  // handlers (whose closures change each render). Populated by the effect just
-  // below `useGlobalKeyHandler`, like the crosswords `actionsRef` pattern.
-  const actionsRef = useRef<{
-    end: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-    reveal: () => void
-    hint: () => void
-    spoiler: () => void
-  } | null>(null)
-
   // ─── Terminal secrets reveal ─────────────────────────────────────
   // The three secrets are NOT ringed just because the game ended:
   // `replay_board` hunts the SAME board and the SAME three secrets again (see
@@ -219,81 +198,6 @@ export function PlayArea({
       mine: iFoundThemAll,
     }),
   })
-  // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
-  // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
-  // builds its model from the live state (RLS already scoped `guesses`/`results`
-  // to what I may see) and hands it to the jsPDF renderer — a snapshot at click
-  // time, so it works mid-game or at the end. End/Concede dispatch through the
-  // stable `actionsRef` so this effect needn't depend on the later handlers.
-  useEffect(() => {
-    if (!game) return
-    // The board/turn/score judgment (whose marks belong on whose board — one
-    // merged track in coop, one PER PLAYER at compete terminal) lives in the
-    // pure builder; see pdf/model.ts.
-    const model = buildPsychicnumPrintModel({
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      mode: mode ?? 'coop',
-      isTerminal,
-      words: game.words,
-      guesses,
-      players,
-      selfId: session.user.id,
-      setup: summaryRows,
-    })
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        mode: mode ?? 'coop',
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.end(),
-        onConcede: () => actionsRef.current?.concede(),
-        extra: [
-          // The menu twins of the info column's two help buttons. The row is
-          // what NAMES those glyphs (docs/ui.md → the menu is the legend), so
-          // it's grayed rather than dropped when you can't ask: a disabled row
-          // still teaches the lightbulb and the bare eye.
-          {
-            items: [
-              { id: 'hint', icon: IconHint, label: 'Hint', disabled: !canGuess || hinting, onClick: () => actionsRef.current?.hint() },
-              { id: 'spoiler', icon: IconSpoiler, label: 'Spoiler', disabled: !canGuess || spoiling, onClick: () => actionsRef.current?.spoiler() },
-            ],
-          },
-          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
-          {
-            items: [
-              // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-              // The menu twin of the terminal row's boxed-eye button — the same
-              // local toggle, so a player who's scrolled past the row can still
-              // reach it. Inert mid-game: there's nothing to ring until the
-              // server unshields the secrets at terminal.
-              {
-                id: 'reveal',
-                // The same two faces as the terminal row's button — one toggle.
-                // The View glyph, not EyeOff, once solving put it there — see
-                // RevealButton for why the inert face keeps the plain eye.
-                icon: secretsShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
-                label: impliedBySolve
-                  ? 'Solution already shown'
-                  : secretsShown
-                    ? 'Hide secrets'
-                    : 'Reveal secrets',
-                disabled: !isTerminal || impliedBySolve,
-                onClick: () => actionsRef.current?.reveal(),
-              },
-            ],
-          },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, impliedBySolve, canGuess, hinting, spoiling, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
-
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
@@ -315,8 +219,8 @@ export function PlayArea({
   // on this page means the whole solution at game-over.
   //
   // Both are useCallbacks up here (not plain functions below the early returns)
-  // so the actionsRef effect can list them — the InfoCol buttons and their menu
-  // twins then share ONE pair of handlers, the way End / Concede already do.
+  // because the bindings below close over them, and a binding is what the
+  // button and its menu twin both read.
   const getHint = useCallback(async () => {
     setHinting(true)
     const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
@@ -434,22 +338,16 @@ export function PlayArea({
   // Click a turn-log #N to replay that turn's board (the tiles decided up to that
   // turn, with that turn's guessed tile ringed history-blue). Keyed by log
   // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
-  // click anywhere / the banner ✕); a keystroke also exits — the entry's capture is
-  // frozen while viewing (see `disabled` below), so exitOnKey has the keys to itself.
-  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
-    useHistoryViewer<number>()
-  useGlobalKeyHandler(exitOnKey)
+  // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds
+  // an any-key action that CONSUMES the press, so the key that brings the board
+  // back doesn't also play on it.
+  const { viewing, viewingId, select: selectTurn, exitViewing } = useHistoryViewer<number>()
 
-  // Keep the End / Concede handlers current in the stable ref the game-menu
-  // effect's onClick closures read (so that effect needn't depend on these,
-  // and so it lives above the early returns without a Rules-of-Hooks snag).
-  // The menu (⌥⌫ + the End/Concede item) and InfoCol's buttons share ONE pair
-  // of handlers — hoisted above the early returns as useCallbacks so the ref
-  // can list them in its deps. (The crosswords `actionsRef` pattern.)
-  //
-  // End / Concede / Replay come from the shared `useStandardGameActions`;
-  // psychicnum's own bits are the replay sentence and the post-replay cleanup
-  // (leave the turn-history view, clear the pill).
+  // End / Concede / Restart come from the shared `useStandardGameActions` as
+  // bound actions — the menu row, the button and ⌥⌫ are all the same binding, so
+  // there is nothing to keep in step. psychicnum's own bits are which `db` they
+  // call and the post-replay cleanup (leave the turn-history view, clear the
+  // pill).
   //
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
   //  server-side, so the same three secrets are hunted blind again.)
@@ -461,12 +359,12 @@ export function PlayArea({
     // exactly why this is spelled out.
     resetSecrets()
   }, [exitViewing, clearLocalFeedback, resetSecrets])
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: mode ?? 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
     onRestarted,
   })
@@ -478,11 +376,6 @@ export function PlayArea({
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
   const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!mode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -509,22 +402,109 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback])
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
+  // read as "I just lost my game" — the copy says shelved, not ended) and goes
+  // straight through at terminal, and the shared run's single flight is what
+  // stops a second press dealing a second game.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
+  // The two help asks. Grayed rather than dropped when you can't ask: the menu
+  // row is what NAMES those glyphs (docs/ui.md → the menu is the legend), so a
+  // disabled row still teaches the lightbulb and the bare eye.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => (canGuess && !hinting ? 'active' : 'disabled'),
+    run: getHint,
+  })
+  const actSpoiler = useBoundAction('act-spoiler', {
+    describe: () => (canGuess && !spoiling ? 'active' : 'disabled'),
+    run: getSpoiler,
+  })
+
+  // Print builds its model from the live state at CLICK time (RLS already
+  // scoped `guesses`/`results` to what I may see), so it works mid-game or at
+  // the end — and so the menu needn't rebuild when the board changes.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      // The board/turn/score judgment (whose marks belong on whose board — one
+      // merged track in coop, one PER PLAYER at compete terminal) lives in the
+      // pure builder; see pdf/model.ts.
+      printPsychicnumPdf(
+        buildPsychicnumPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          mode: mode ?? 'coop',
+          isTerminal,
+          words: game.words,
+          guesses,
+          players,
+          selfId: session.user.id,
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // Ring the three secrets at game-over — or un-ring them. A LOCAL toggle: mine
+  // alone, nothing written, no peer affected, so a teammate can go on eyeing the
+  // board while I look. Its two faces are what `describe` is for — the words and
+  // the glyph move together, because on the icon-only button the glyph is the
+  // label. Inert mid-game: there is nothing to ring until the server unshields
+  // the secrets at terminal, and nothing to do once solving has shown them.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (!isTerminal) return 'disabled'
+      return secretsShown
+        ? { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
+        : { state: 'active', label: 'Reveal secrets' }
+    },
+    run: toggleSecrets,
+  })
+
+  // The FULL psychicnum game menu. `buildGameMenu` supplies the framing (Help +
+  // chat above, Back to club below); the middle is this game's own rows, each
+  // one a binding it already made — so a row's words, glyph, key and
+  // availability come from the action rather than being typed here a second
+  // time. The effect re-runs only when the SHAPE changes, which is why every
+  // dep is a stable value.
   useEffect(() => {
-    actionsRef.current = {
-      end: endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-      reveal: toggleSecrets,
-      hint: () => void getHint(),
-      spoiler: () => void getSpoiler(),
-    }
-  }, [endGame, concede, restart, handleNewGame, toggleSecrets, getHint, getSpoiler])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        // Both exits, in reading order; each hides itself in the mode that
+        // isn't its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
+        extra: [
+          // The menu twins of the info column's two help buttons.
+          { items: [actHint, actSpoiler] },
+          { items: [actPrintBoard] },
+          {
+            items: [
+              // The same pair the terminal action row offers, reachable mid-game too.
+              actRestart,
+              actNewGame,
+              // The menu twin of the terminal row's boxed-eye button — the same
+              // binding, so a player who has scrolled past the row reaches the
+              // identical toggle, wearing the identical face.
+              actReveal,
+            ],
+          },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actPrintBoard,
+      actRestart, actNewGame, actReveal])
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -598,12 +578,9 @@ export function PlayArea({
   const totalGuesses = psychicnumSetup.guesses
   const guessesUsed = totalGuesses - selfBudget
 
-  // (canGuess, and the Hint / Spoiler handlers behind it, are hoisted above the
-  // early returns so the game menu can name and gray them in step with the
-  // InfoCol buttons — see the actionsRef block.)
-
-  // (endGame / handleConcede are hoisted above the early returns — see the
-  // actionsRef block — so the menu, ⌥⌫, and InfoCol's buttons share one pair.)
+  // (Every command this game offers is bound above the early returns, where the
+  // menu is assembled from those same bindings — so a row, a button and a key
+  // are one thing rather than three that have to agree.)
 
   // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
   // null in a free-for-all game, so this is false there — the pill's presence is
@@ -687,20 +664,15 @@ export function PlayArea({
         selfId={session.user.id}
         playerBudgets={playerBudgets}
         concededIds={concededIds}
-        // ── Action row ──
-        onHint={() => void getHint()}
-        hinting={hinting}
-        onSpoiler={() => void getSpoiler()}
-        spoiling={spoiling}
-        onReveal={toggleSecrets}
-        secretsShown={secretsShown}
-        secretsAlreadyShown={impliedBySolve}
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
+        // ── Action row — the same bindings the menu rows are ──
+        actHint={actHint}
+        actSpoiler={actSpoiler}
+        actReveal={actReveal}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setupRows={summaryRows}
         // ── Turn-history log ──
@@ -721,7 +693,6 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }

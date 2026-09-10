@@ -11,7 +11,7 @@ import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { EntryRow } from '@/common/word-entry/EntryRow'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
 import { stickyPill, terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import { Board } from './Board'
@@ -174,30 +174,21 @@ export function BoardCol({
   }, [wordsKey, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
-  // SPACE shuffles, the same board key spellingbee, wordwheel and connections
-  // have: a fresh visual scan of the SAME words, never a move.
+  // ⌥Z shuffles — a fresh visual scan of the SAME words, never a move. Bound
+  // HERE rather than in the PlayArea because this column owns the display
+  // order, and bound at all (rather than hung off the entry) because the
+  // <EntryRow> is UNMOUNTED once you can't guess — at terminal, while viewing
+  // history, on someone else's turn — and shuffling is worth having in every one
+  // of those states. Hence plainly active, always: the round pill below is this
+  // same binding, and it is documented as live even on a finished board.
   //
-  // A window handler rather than the capture entry's `onExtraKey` (where the
-  // other two games put theirs), because psychicnum's <EntryRow> is UNMOUNTED
-  // once you can't guess — at terminal, while viewing history, on someone
-  // else's turn — and the Shuffle button is live in every one of those states
-  // ("Always present, even at terminal"). Hanging the key off the entry would
-  // make it disagree with its own button exactly when the board is most worth
-  // re-reading. Only `viewing` stops it: a keystroke in the history viewer
-  // means "back to live".
-  //
-  // The shared hook already ignores keys aimed at a text field or a floating
-  // panel, so chat and the setup dialog keep their own Space.
-  useGlobalKeyHandler(
-    useCallback(
-      (e: KeyboardEvent) => {
-        if (viewing || e.key !== ' ') return
-        e.preventDefault()
-        handleShuffle()
-      },
-      [viewing, handleShuffle],
-    ),
-  )
+  // While a past turn is open the keystroke never gets here — the viewer's
+  // any-key action consumes it, which is what "a key in the viewer means back to
+  // live" now is. The BUTTON still shuffles there, as it always did.
+  const actShuffle = useBoundAction('act-shuffle', {
+    describe: () => 'active',
+    run: handleShuffle,
+  })
 
   // A user-driven entry change — typing a letter, or clicking a board tile — also
   // dismisses a sticky own-move result, so route both through here: clear the flash,
@@ -305,7 +296,7 @@ export function BoardCol({
         // into Board so it anchors to the visual board, not the column.
         floatingControl={
           <ShuffleButton
-            onShuffle={handleShuffle}
+            action={actShuffle}
             tooltip="Shuffle the words"
             className={shared.floatingShuffle}
           />

@@ -268,7 +268,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(check.find((i) => i.id === 'check-letter')?.shortcut).toBe('⌥C')
     expect(check.find((i) => i.id === 'check-word')?.shortcut).toBe('⌥⇧C')
     expect(items.find((i) => i.id === 'check')?.shortcut).toBeUndefined()
-    expect(items.find((i) => i.id === 'back')?.shortcut).toBe('⇧<')
+    expect(items.find((i) => i.id === 'back')?.shortcut).toBe('<')
     expect(items.find((i) => i.id === 'end-game')?.shortcut).toBe('⌥⌫')
     // All the former placeholders are now wired (enabled).
     expect(items.find((i) => i.id === 'collapse-rebuses')?.disabled).toBeFalsy()

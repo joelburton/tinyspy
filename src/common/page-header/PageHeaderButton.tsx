@@ -1,12 +1,15 @@
 // cs-unmet
 
-import type { ButtonHTMLAttributes, ComponentType, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cls } from '../utils/cls'
+import type { AppIcon } from '../icons/icons'
 import styles from './PageHeaderButton.module.css'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  /** The glyph. Takes `size` — lucide's icons and our own inline ones both do. */
-  icon: ComponentType<{ size?: number | string; 'aria-hidden'?: boolean }>
+  /** The glyph. The icon registry's own type, so a glyph held as an `AppIcon`
+   *  (an action's face, a menu row's) can be handed straight here; our inline
+   *  ones (the pause bars) satisfy it too, since they take `size`. */
+  icon: AppIcon
   /** Per-glyph display size. Here rather than in the icons registry: the same
    *  glyph appears at different sizes in different places. */
   iconSize?: number
