@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { colorVarFor } from '@/common/members/memberColor'
+import { ActorDot } from '@/common/turn-log/ActorMention'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { NewGameButton } from '@/common/buttons/NewGameButton'
@@ -140,21 +140,15 @@ export function InfoCol({
         {viewerFinished && (
           <div className={styles.finishedNote}>
             All your agents have been found! From here{' '}
-            {peer ? (
-              <strong style={{ color: colorVarFor(peer.color) }}>{peer.username}</strong>
-            ) : (
-              'your partner'
-            )}{' '}
+            {/* `show="both"` on both banners: they are sentences, and a phone
+                dropping the name would leave "From here ● gives every…". */}
+            {peer ? <ActorDot actor={peer} show="both" /> : 'your partner'}{' '}
             gives every remaining clue — keep guessing to find theirs.
           </div>
         )}
         {peerFinished && (
           <div className={styles.peerDoneNote}>
-            {peer ? (
-              <strong style={{ color: colorVarFor(peer.color) }}>{peer.username}</strong>
-            ) : (
-              'Your partner'
-            )}{' '}
+            {peer ? <ActorDot actor={peer} show="both" /> : 'Your partner'}{' '}
             has found all their agents — you give every remaining clue now, and they do
             the guessing.
           </div>

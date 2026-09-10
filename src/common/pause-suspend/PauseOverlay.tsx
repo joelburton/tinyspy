@@ -1,8 +1,8 @@
 // cs-unmet
 
 import type { Member } from '../members/member'
-import { colorVarFor } from '../members/memberColor'
 import { Dot } from '../members/Dot'
+import { ActorDot } from '../turn-log/ActorMention'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
@@ -52,8 +52,12 @@ type Props = {
  * The roster (shown whenever anyone's absent) lists the WHOLE expected
  * team, not just the missing — so a waiting player sees who's already
  * here (their color dot) alongside who we're still waiting on (a hollow
- * gray ring). Names stay black; the dot alone carries presence, the
- * same identity-disc grammar as the club-page `PageHeaderPlayersStrip`.
+ * gray ring).
+ *
+ * Names stay black wherever the overlay writes one — the roster's rows and the
+ * "X paused the game" line alike. The disc alone carries identity, the same
+ * grammar as the club-page `PageHeaderPlayersStrip` (docs/ui.md → "Player
+ * identity = a colored disc").
  *
  * Paused ≠ suspended. Paused is the transient gameplay-pause
  * state — same UX as a video player's pause: clock stops, no
@@ -110,10 +114,9 @@ export function PauseOverlay({
         )}
         {manuallyPausedBy && (
           <strong>
-            <span style={{ color: colorVarFor(manuallyPausedBy.color) }}>
-              {manuallyPausedBy.username}
-            </span>{' '}
-            paused the game.
+            {/* `show="both"` because this is a sentence, not a pill: dropping the
+                name on a phone would leave "● paused the game." */}
+            <ActorDot actor={manuallyPausedBy} show="both" /> paused the game.
           </strong>
         )}
         <p className="muted">

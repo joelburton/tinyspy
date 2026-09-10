@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
-import { colorVarFor } from '../members/memberColor'
+import { ActorDot } from '../turn-log/ActorMention'
 import { linkify } from '../utils/linkify'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import type { ClubMessage } from './useClubChat'
@@ -125,12 +125,9 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
           const display = important ? m.content.slice(1).trimStart() : m.content
           return (
             <div key={m.id} className={styles.message}>
-              <span
-                className={styles.senderName}
-                style={{ color: colorVarFor(sender?.color) }}
-              >
-                {sender?.username ?? '?'}:
-              </span>{' '}
+              {/* `show="both"`: a chat line without its sender's name is
+                  unreadable, so the name survives on a phone. */}
+              <ActorDot actor={sender} fallback="?" show="both" />:{' '}
               <span
                 className={important ? styles.importantContent : undefined}
               >
