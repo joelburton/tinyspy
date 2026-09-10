@@ -802,3 +802,58 @@ Update `src/common/keyboard/doc.md` to describe the folder as it is then
 - `docs/ui.md`'s button taxonomy beyond the sections that name the retired
   buttons.
 - Anything in `src/common/devtools/`.
+
+---
+
+# Part III — notes from building
+
+## Answers before step 1 (Joel, 2026-09-09)
+
+Seven questions from the first read of Part II. Each answer amends the part it
+names; where they disagree, these win.
+
+1. **The menu reads its rows when it OPENS, and does not track them.** Two
+   kinds of change, two channels. SHAPE — which rows exist, in what order — is
+   the game's and still arrives through `setGameSections`, which now carries
+   references to bound actions rather than snapshots of label and disabled.
+   LIVENESS — what a row says and whether it is usable — is never sent: the
+   menu calls `describe()` as it builds its rows, which is when it opens, and
+   asks nothing in between.
+
+   Nothing is lost while it is open, because nothing the player does can reach
+   past it: a row activation closes the menu before it runs the action
+   (`Menu.tsx` → `activateRow`), and the popover stops its keydowns from
+   reaching the board. So no `describe()` runs while you type in crosswords or
+   arrow around a board — the rows are not rendered then.
+
+   What this gives up is small and deliberate: a change that arrives WITHOUT
+   the player — a peer ending the game over realtime — can leave a row looking
+   enabled for the seconds the menu stays open. Closing and reopening the menu
+   is the fix. Clicking the stale row is safe regardless: `run` reads the live
+   ref, and the callbacks guard themselves. If that ever becomes a real
+   annoyance, investigate something more complex then.
+2. **The confirmation becomes an app-level service.** `useConfirmation` is a
+   local hook returning JSX, and seventeen components render their own modal;
+   a shared `run` cannot reach any of them. One module store plus one host
+   mounted in `App.tsx`, so `run` asks without a prop and a game cannot forget.
+   **Concede and Restart move onto the styled modal at the same time** — the
+   two `window.confirm` calls in `useStandardGameActions.ts` go, closing the
+   follow-up that hook's docstring names. Bespoke confirmations (crosswords,
+   strands, the word-edit dialog) stay in their callbacks.
+3. **The flight opens on the confirm, not after it.** `useSingleFlight` already
+   closes its gate before the dialog resolves, and that is the wanted behavior:
+   a button on screen behind the question reads gray rather than live.
+4. **A dot is not an action.** The account row's member-color disc is a
+   non-action menu row the menu keeps holding. `Described` stays
+   `{ state, label? }`.
+5. **`KeyList` mounts in step 1** and fills in as keys convert. Part I §6's
+   "it ships when the last keys are in" was about a player trusting a partial
+   list; nobody but Joel sees it mid-conversion, and seeing it work early is
+   worth more.
+6. **A stop for review at the end of every step**, plus one inside step 5 after
+   the first game (boggle), so the shape is approved before it is repeated
+   fifteen times.
+7. **`Chord` keeps `ctrl`, and the guard does not reject it.** Build the
+   machine general; whether a `Ctrl` chord is a good idea on Windows and Linux
+   is a question to investigate before any action takes one. `Cmd` is still
+   never ours.
