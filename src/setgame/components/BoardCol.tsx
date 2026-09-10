@@ -2,14 +2,15 @@
 
 import { cls } from '@/common/utils/cls'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
-import { HintButton } from '@/common/buttons/HintButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { Card as CardCode } from '../lib/cards'
 import type { FlashKind } from '../lib/flash'
 import { Board } from './Board'
 import { Counts } from './Counts'
-import { countsFor, hintLabel } from '../lib/readouts'
+import { countsFor } from '../lib/readouts'
 import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -26,8 +27,10 @@ type Props = {
   teamFound: number
   deckLeft: number
   hintsUsed: number
-  canHint: boolean
-  onHint: () => void
+  /** Ask for a hint. The SAME binding the info column places, so the two copies
+   *  can't come to say different things — including the gray "No hints when
+   *  competing" face, which the action carries. */
+  actHint: BoundAction
   onCardClick: (card: CardCode) => void
   /** The own-move verdict, the terminal line, or the your-turn prompt. */
   pill: GenericFeedbackMsg | null
@@ -52,8 +55,7 @@ type Props = {
  * to read their own score — and, in this game, to ask for a hint. **The hint
  * button is duplicated there on purpose**: asking is a routine move here, not a
  * rescue, and routine moves belong on the play surface. Both copies are the same
- * component with the same `hintLabel`, so they cannot come to say different
- * things.
+ * BOUND ACTION, so they cannot come to say different things.
  */
 export function BoardCol({
   board,
@@ -66,8 +68,7 @@ export function BoardCol({
   teamFound,
   deckLeft,
   hintsUsed,
-  canHint,
-  onHint,
+  actHint,
   onCardClick,
   pill,
   onDismissPill,
@@ -80,13 +81,7 @@ export function BoardCol({
           {/* Rendered in compete too, disabled and saying why — the same call
               the info column's copy makes, for the same reason: a button that
               vanishes leaves a player hunting for a feature they know exists. */}
-          <HintButton
-            show="icon"
-            className={shared.helperButton}
-            onClick={onHint}
-            disabled={isCompete || !canHint}
-            label={hintLabel(isCompete)}
-          />
+          <ActionButton action={actHint} show="icon" className={shared.helperButton} />
         </div>
       </MobileStatusBar>
 

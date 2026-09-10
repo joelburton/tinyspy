@@ -3,21 +3,17 @@
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
-import { HintButton } from '@/common/buttons/HintButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
 import type { EventRow } from '../hooks/useGame'
 import { Counts } from './Counts'
-import { countsFor, hintLabel } from '../lib/readouts'
+import { countsFor } from '../lib/readouts'
 import { GameTurnLog } from './GameTurnLog'
 import { LastSet } from './LastSet'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -44,20 +40,25 @@ type Props = {
   foundByUser: ReadonlyMap<string, number>
   concededIds: Set<string>
   // ── Hint (coop only) ──
-  canHint: boolean
-  onHint: () => void
+  /** Ask for a hint. The SAME binding the board column's mobile copy places;
+   *  it carries its own gray "No hints when competing" face. */
+  actHint: BoundAction
   hintsUsed: number
   // ── Turn log ──
   viewingIndex: number | null
   onSelectTurn: (index: number | null) => void
   // ── Actions ──
-  onEndGame: () => void
-  onConcede: () => void
-  onRestart: () => void
-  onNewGame: () => void
-  startingNewGame?: boolean
-  onBackToClub: () => void
-  onRequestBackToClub: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Deal this board again from scratch. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup, new deal + id. Disables itself
+   *  while the create is in flight, so a slow network reads as "working". */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
   // ── Setup echo ──
   setupRows: SetupRow[]
 }
@@ -91,18 +92,15 @@ export function InfoCol({
   selfId,
   foundByUser,
   concededIds,
-  canHint,
-  onHint,
+  actHint,
   hintsUsed,
   viewingIndex,
   onSelectTurn,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   setupRows,
 }: Props) {
   return (
@@ -144,13 +142,16 @@ export function InfoCol({
         )}
 
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+          <TerminalActionRow over={over}>
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede disables itself once conceded — the row keeps its shape
+                and the button says why it can't be pressed again. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
@@ -163,19 +164,12 @@ export function InfoCol({
                 has; a disabled one with a reason answers the question before
                 it is asked. (The ban itself is the priced-help rule: free
                 generative help decides a race.) */}
-            <HintButton
-              show="icon"
-              className={shared.helperButton}
-              onClick={onHint}
-              disabled={isCompete || !canHint}
-              label={hintLabel(isCompete)}
-            />
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-            )}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

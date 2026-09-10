@@ -1,8 +1,7 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -13,10 +12,9 @@ import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/local
 import { waitingTurnPill, yourTurnPill } from '@/common/turn-log/turnCopy'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -27,6 +25,7 @@ import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { CLAIM_SIZE, liveSelection, toggleCard } from '../lib/selection'
 import { ARRIVE_MS, claimTransition, DEPART_MS, type FlashKind } from '../lib/flash'
 import { slotForKey } from '../lib/letters'
+import { hintLabel } from '../lib/readouts'
 import { setupRows } from '../lib/setupSummary'
 import { paletteOf, type SetgameSetup } from '../lib/setup'
 import { buildPrintModel } from '../pdf/model'
@@ -87,7 +86,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
     useGame(gameId, session.user.id)
@@ -106,15 +105,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const viewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
-
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-  } | null>(null)
 
   const myConceded = players.find((m) => m.user_id === selfId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -290,43 +281,32 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── Keyboard ──────────────────────────────────────────
-  // A letter under each card, typing toggles it, Backspace clears. Not
-  // `useCaptureKeys`: that helper accumulates TEXT (a value, an onChange, an
-  // Enter to submit), and a letter here is a toggle on a card, not a character
-  // appended to a word. The layer below it brings the focused-field gate along,
-  // so typing in chat never reaches the board.
-  useGlobalKeyHandler(
-    useCallback(
-      (e: KeyboardEvent) => {
-        // Tab is swallowed outright. Nothing on this surface takes focus — the
-        // cards are clickable but never focusable — so a Tab that did anything
-        // would only move a focus ring somewhere the player can't use it.
-        if (e.key === 'Tab') {
-          e.preventDefault()
-          return
-        }
-        // While replaying a past turn, the next key returns to the live board
-        // and is CONSUMED — otherwise the same press would also toggle a card
-        // on a board the player has only just got back.
-        if (viewer.exitOnKey(e)) return
-        if (e.metaKey || e.ctrlKey || e.altKey) return
-        if (!active) return
-        if (e.key === 'Backspace') {
-          e.preventDefault()
-          setPicked([])
-          clearLocalFeedback()
-          return
-        }
-        const slot = slotForKey(e.key)
-        if (slot < 0 || slot >= shown.length) return
-        e.preventDefault()
-        // An empty slot's letter does nothing — there is no card there yet.
-        const card = shown[slot]
-        if (card !== null) onCardClick(card)
-      },
-      [active, shown, onCardClick, clearLocalFeedback, viewer],
-    ),
-  )
+  // A letter under each card, and Backspace clears the picks. Two bound
+  // actions, so the keys and the cards say the same thing: `act-toggle-card`
+  // is a PATTERN action — it is handed whichever letter fired it, which is what
+  // makes twenty-one cards one binding rather than twenty-one.
+  //
+  // Both hide while a past turn is open, so the key falls through to the
+  // viewer's own any-key exit — otherwise this board is bound deeper than the
+  // viewer and would toggle a card on a board the player has only just got back.
+  useSwallowTab()
+  useBoundAction('act-toggle-card', {
+    describe: () => (active && !viewer.viewing ? 'active' : 'hidden'),
+    run: (key) => {
+      const slot = slotForKey(key ?? '')
+      if (slot < 0 || slot >= shown.length) return
+      // An empty slot's letter does nothing — there is no card there yet.
+      const card = shown[slot]
+      if (card !== null) onCardClick(card)
+    },
+  })
+  useBoundAction('act-clear-selection', {
+    describe: () => (active && !viewer.viewing ? 'active' : 'hidden'),
+    run: () => {
+      setPicked([])
+      clearLocalFeedback()
+    },
+  })
 
   // ─── Hint (coop only), computed HERE ───────────────────
   // The board is face-up and lib/cards.ts holds the same algebra the server
@@ -379,26 +359,36 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [game, gameId, ring, submitClaim, showLocalFeedback])
 
-  // Single-flight, because a press takes a round trip to record and the button
-  // stays live meanwhile. Without it a fast second press runs a second ladder
-  // against the ring and board of the first — the stale-state half of the same
-  // bug `nextHint` guards from the other side.
-  const [requestHint] = useSingleFlight(askHint)
+  // Hint — RENDERED IN COMPETE TOO, disabled and saying why. Hiding it would
+  // leave a player hunting for a button they know this game has; a gray one
+  // with a reason answers the question before it is asked. (The ban itself is
+  // the priced-help rule: free generative help decides a race.) The shared
+  // run's single flight is what stops a fast second press running a second
+  // ladder against the ring and board of the first.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => ({
+      state: isCompete || !active ? 'disabled' : 'active',
+      label: hintLabel(isCompete),
+    }),
+    run: askHint,
+  })
 
   // ─── End / Concede / Restart — the shared trio ─────────
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
     onRestarted: () => setPicked([]),
   })
 
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -425,18 +415,17 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('create_game', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
-
-  useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, handleNewGame])
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
+  // rather than ending it) and goes straight through at terminal. The shared
+  // run's single flight is what stops a second press dealing a second board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
   const leaderboard = useMemo(
     () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
@@ -456,47 +445,52 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [rows])
 
   // ─── GamePage menu ─────────────────────────────────────
+  // Print the board — a snapshot at CLICK time (docs/pdf.md), so the menu needn't
+  // rebuild as cards are claimed.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printSetgamePdf(
+        buildPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          mode: game.mode,
+          isTerminal,
+          teamFound,
+          deckLeft: game.deck_left,
+          players,
+          foundByUser,
+          hintsByUser,
+          events,
+          palette: paletteOf(setgameSetup),
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // The FULL setgame menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The effect
+  // re-runs only when the SHAPE changes, which is why every dep is stable.
   useEffect(() => {
-    if (!game) return
-    const printModel = buildPrintModel({
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      mode: game.mode,
-      isTerminal,
-      teamFound,
-      deckLeft: game.deck_left,
-      players,
-      foundByUser,
-      hintsByUser,
-      events,
-      palette: paletteOf(setgameSetup),
-      setup: summaryRows,
-    })
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: game.mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-            ],
-          },
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printSetgamePdf(printModel) }] },
+          { items: [actRestart, actNewGame] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, game, isTerminal, myConceded, brand, title, teamFound,
-    players, foundByUser, hintsByUser, events, setgameSetup, summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Peer narration (coop, free-for-all only) ──────────
   // A teammate's claim, in the global header. Coop only: in compete the
@@ -612,8 +606,7 @@ export function PlayArea(ctx: GamePageCtx) {
         teamFound={teamFound}
         deckLeft={game.deck_left}
         hintsUsed={rows.reduce((n, p) => n + p.hints_used, 0)}
-        canHint={active}
-        onHint={() => void requestHint()}
+        actHint={actHint}
         onCardClick={onCardClick}
         pill={
           viewing
@@ -653,21 +646,17 @@ export function PlayArea(ctx: GamePageCtx) {
           selfId={selfId}
           foundByUser={foundByUser}
           concededIds={concededIds}
-          canHint={active}
-          onHint={() => void requestHint()}
+          actHint={actHint}
           hintsUsed={rows.reduce((n, p) => n + p.hints_used, 0)}
-          onEndGame={endGame}
-          onConcede={concede}
-          onRestart={restart}
-          onNewGame={handleNewGame}
-          startingNewGame={startingNewGame}
-          onBackToClub={goToClub}
-          onRequestBackToClub={menu.requestBackToClub}
+          actEndGame={actEndGame}
+          actConcede={actConcede}
+          actRestart={actRestart}
+          actNewGame={actNewGame}
+          actBackToClub={menu.actBackToClub}
           setupRows={summaryRows}
         />
       </InfoSheet>
 
-      {confirmationModal}
     </div>
   )
 }

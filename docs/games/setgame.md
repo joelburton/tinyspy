@@ -432,9 +432,11 @@ nothing is live on paper, so the reason to hold it back doesn't apply
 ### The keyboard
 
 A letter under every card, typing toggles it, Backspace clears, and the third
-selected card submits. `useGlobalKeyHandler`, not the shared `useCaptureKeys` —
-that helper accumulates *text*, and a letter here is a toggle on a card, not a
-character appended to a word.
+selected card submits. Two bound actions — `act-toggle-card` and
+`act-clear-selection` — not the shared `useCaptureKeys`: that helper accumulates
+*text*, and a letter here is a toggle on a card, not a character appended to a
+word. `act-toggle-card` is a PATTERN action, handed whichever letter fired it,
+which is what makes twenty-one cards one binding rather than twenty-one.
 
 The letters are a **fixed 3 × 7 grid** (`lib/letters.ts`), of which only the
 dealt columns are shown:
@@ -486,8 +488,9 @@ label alone would leave the space reserved).
 `Found · Hints` and a **second copy of the hint button**. The info column is
 off-canvas in the `<InfoSheet>` down here, so without it both reading your score
 and asking for a hint cost a sheet-open — and in this game asking is a routine
-move, not a rescue. The info column keeps its own button; both are the same
-component fed the same `hintLabel`, so they cannot come to say different things.
+move, not a rescue. The info column keeps its own button; both place the same
+BOUND ACTION, so they cannot come to say different things — the gray "No hints
+when competing" face included.
 `Deck remaining` is the one readout the bar drops: it is the longest and the
 least urgent, and the bar must never wrap.
 

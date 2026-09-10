@@ -241,8 +241,9 @@ control).
 ## setgame
 
 **No text entry at all.** A claim is three cards, so there is nothing to type
-INTO — the letters are addresses, not characters. `useGlobalKeyHandler` directly
-rather than the shared `useCaptureKeys`, which accumulates a value.
+INTO — the letters are addresses, not characters. So it binds `act-toggle-card`
+(a pattern action, handed whichever letter fired it) rather than the shared
+`useCaptureKeys`, which accumulates a value.
 
 Every card carries a letter, laid out on a **fixed 3 × 7 grid** of which only
 the dealt columns show:
@@ -270,11 +271,12 @@ read off a card rather than a sequence to recite.
 The letters are **hidden on mobile**: no keyboard to use them with, and the row
 they occupy is height the board needs.
 
-Two states where a letter does nothing else: **while a past turn is open in the
-history viewer**, the next key returns to the live board and is CONSUMED (the
-same press must not also toggle a card on a board you have only just got back),
-and **when it isn't your turn** in turn-by-turn coop, where the board is inert
-and visibly faded.
+Two states where a letter does nothing else, and both are the actions saying so
+rather than a branch in a handler: **while a past turn is open in the history
+viewer**, the card keys hide themselves, so the press reaches the viewer's own
+any-key exit and returns to the live board (the same press must not also toggle
+a card on a board you have only just got back); and **when it isn't your turn**
+in turn-by-turn coop, where the board is inert and visibly faded.
 
 ## psychicnum
 
