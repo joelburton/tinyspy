@@ -54,7 +54,17 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
  * puzzle's answers, a solver's expected output — British spellings in these are
  * data, and "correcting" them would break the fixtures they exist to pin.
  */
-const WORD_DATA = ['supabase/data/', '.fixture.ts', '.jsonl']
+const WORD_DATA = [
+  'supabase/data/',
+  '.jsonl',
+  // The two solver fixtures are NAMED rather than matched on `.fixture.ts`:
+  // what earns the exemption is holding expected WORDS, not being a fixture.
+  // A fixture that builds objects is ordinary prose-bearing code and stays
+  // covered — so a new word fixture fails this guard until it is listed here,
+  // which is the direction an exemption should fail in.
+  'src/boggle/lib/solver.fixture.ts',
+  'src/strands/lib/oracle.fixture.ts',
+]
 
 /** Binary and generated files, where a match would be a coincidence of bytes. */
 const NOT_TEXT = ['.png', '.jpg', '.ico', '.puz', '.ipuz', '.woff', '.woff2', '.ttf']

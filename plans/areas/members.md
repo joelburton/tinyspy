@@ -24,7 +24,7 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 | `src/common/members/memberColor.test.ts` | tests for two of those four helpers; all four after F-members-8 | `cs-audited-members` |
 | `src/guards/memberPalette.test.ts` | WRITTEN by this area (F-members-8) — the five spellings of the palette agree | `cs-audited-members` |
 | `src/common/members/memberList.ts` | `orderSelfFirst` and `memberById` — reading order, and the who-is-this lookup | `cs-audited-members` |
-| `src/common/members/gamePlayers.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test | `cs-audited-members` |
+| `src/common/members/gamePlayer.fixture.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test. Renamed from `gamePlayers.ts` by F-members-9 | `cs-audited-members` |
 | `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
 | `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-audited-members` |
 | `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | DELETED (F-members-1) |
@@ -280,6 +280,20 @@ already has a shape for this: `boggle/lib/solver.fixture.ts`,
 builder's name is a fixture idiom (sixteen call sites, terse by design); leave
 it or lengthen it — Joel's call.
 
+**WORKED 2026-09-09.** `git mv` plus one import rewrite across the importers;
+`gp` keeps its name, which was not part of the instruction.
+
+**The rename would have opened a hole in another guard**, and that is the part
+worth remembering. `americanSpelling.test.ts` exempted anything matching
+`.fixture.ts`, for the reason its own docstring gives — a solver's expected
+word output is DATA, and correcting a British spelling in it breaks the thing
+it pins. A fixture that builds player objects is nothing of the sort, so the
+rename would have quietly moved a prose-bearing file out of the guard that
+CLAUDE.md says covers the whole repo. The exemption now NAMES the two solver
+fixtures instead of matching the suffix, so a new word fixture fails until it
+is listed — the direction an exemption should fail in. Verified by planting a
+British spelling in the renamed file and watching the guard catch it.
+
 ### F-members-10 · `member-docstrings-duplicate-and-underdocument` · `member.ts` says the same thing twice and leaves a field undocumented
 
 - The file docstring and the `Member` docstring both explain member-vs-player
@@ -336,7 +350,7 @@ The type is `RichMessageType`; `RichMessage` is the component. Trivial.
 ### F-members-14 · `doc-lede-omits-half-the-folder` · `members/doc.md` describes the types, the color and the disc, and not the list operations or the fixture
 
 *"Who someone is, the color that identifies them, and the disc that shows
-it."* `memberList.ts` (reading order, lookup) and `gamePlayers.ts` are in the
+it."* `memberList.ts` (reading order, lookup) and the `GamePlayer` fixture are in the
 folder and not in the sentence. The Design is owed and is where the folder's
 one real idea goes: identity is a name plus a color, the color is a NAME the
 DB constrains and the FE resolves, and the disc is the only thing that carries

@@ -13,7 +13,7 @@
 import { render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { WordListRow } from './WordList'
-import { gp } from '../members/gamePlayers'
+import { gp } from '../members/gamePlayer.fixture'
 import { filterOptions, closedSelects, pickFilter } from '../lists/filterSelectHelpers'
 import { useWordListFilter } from './useWordListFilter'
 

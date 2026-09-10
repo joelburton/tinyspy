@@ -20,7 +20,7 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import { gp } from '@/common/members/gamePlayers'
+import { gp } from '@/common/members/gamePlayer.fixture'
 import type { ProgressRow } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 

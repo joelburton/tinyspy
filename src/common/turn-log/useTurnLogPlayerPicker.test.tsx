@@ -14,7 +14,7 @@
 import { render, renderHook, screen } from '@testing-library/react'
 import { filterOptions, pickFilter } from '../lists/filterSelectHelpers'
 import { describe, expect, it } from 'vitest'
-import { gp } from '../members/gamePlayers'
+import { gp } from '../members/gamePlayer.fixture'
 import { useTurnLogPlayerPicker } from './useTurnLogPlayerPicker'
 
 type Row = { user_id: string; word: string }
