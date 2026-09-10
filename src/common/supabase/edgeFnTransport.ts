@@ -38,8 +38,16 @@ export async function edgeFnTransport(
   // without the marker a function's prose answer is indistinguishable from a
   // dead connection (`DbError` in dbEnvelope.ts). The HTTP status rides along
   // for the diagnostics line; it exists only on this path.
-  const ctx = (error as { context?: Response }).context
-  if (ctx) {
+  // **`context` is only a Response when the server ANSWERED.** functions-js puts
+  // something different on every failure it reports: a non-2xx carries the
+  // Response, and a request that never went out (the network is off, DNS fails)
+  // carries the original fetch error. Reading the second as the first is what
+  // made an offline New game silent — `ctx.json()` threw, and the catch below
+  // reached for `ctx.headers` and threw again, out of this function entirely,
+  // past the wrapper that would have reported it. So the type is CHECKED rather
+  // than assumed, and anything else falls through to the no-reply return.
+  const ctx = (error as { context?: unknown }).context
+  if (ctx instanceof Response) {
     try {
       const parsed = (await ctx.json()) as { error?: string; code?: string } | null
       if (parsed && typeof parsed.error === 'string') {
@@ -97,12 +105,13 @@ export async function edgeFnTransport(
   // NOTHING replied there is no code to give: `FE001` vs `FE002` turns on
   // `navigator.onLine`, which `nothingReachedUs` asks at the moment it builds
   // the envelope.
+  const replied = ctx instanceof Response ? ctx : undefined
   return {
     data: null,
     error: {
       message: error.message,
-      ...(ctx ? { code: NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown.code } : {}),
-      status: ctx?.status ?? 0,
+      ...(replied ? { code: NO_ANSWER_TO_CODE_AND_TEXT.upstreamDown.code } : {}),
+      status: replied?.status ?? 0,
     },
   }
 }
