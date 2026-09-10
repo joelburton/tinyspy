@@ -1,7 +1,7 @@
 // cs-blessed-buttons
 
-import type { ComponentPropsWithRef, ComponentType, ReactNode } from 'react'
-import { IconGeneric } from '../icons/icons'
+import type { ComponentPropsWithRef, ReactNode } from 'react'
+import { IconGeneric, type AppIcon } from '../icons/icons'
 import { cls } from '../utils/cls'
 import styles from './StandardButton.module.css'
 
@@ -35,13 +35,10 @@ export type ButtonTone = 'quiet' | 'normal' | 'caution' | 'destructive' | 'succe
  */
 export type ButtonShow = 'icon' | 'label' | 'both'
 
-/** The glyph type: a component that takes a `size`. Widened past Lucide's own
- *  because the registry now defines glyphs of its own as well as aliasing
- *  lucide's — `IconBack` is a component, not an alias, so a type demanding
- *  lucide's forwardRef shape would refuse it. The `size` prop is never passed
- *  (the module sizes the glyph in `em`); it stays in the type because Lucide's
- *  components declare it. */
-export type ButtonIcon = ComponentType<{ size?: number | string; 'aria-hidden'?: boolean }>
+/** The glyph type — the icon registry's own `AppIcon`, under the name a button
+ *  call site reads it by. One type, so a glyph held as an `AppIcon` (a menu
+ *  row's, an action's) can be handed straight to a button. */
+export type ButtonIcon = AppIcon
 
 /**
  * What every standard button takes — the native <button> attributes plus the

@@ -857,3 +857,37 @@ names; where they disagree, these win.
    machine general; whether a `Ctrl` chord is a good idea on Windows and Linux
    is a question to investigate before any action takes one. `Cmd` is still
    never ours.
+
+## Step 1 — what was built, and where it deviates
+
+`src/common/actions/` holds `chord.ts`, `registry.ts`, `useBoundAction.ts`,
+`dispatcher.ts`, `ActionButton.tsx`, `KeyList.tsx` and the folder's two docs,
+with a test beside each. The app-level confirmation service is
+`common/floating-panels/confirmationService.ts` + `ConfirmationHost.tsx`, and
+`App.tsx` mounts the host and the dispatcher. Nothing binds an action yet, so
+the app behaves exactly as it did.
+
+Four places where the built thing differs from II.1, each on purpose:
+
+- **`shift` is a real field, not only `shiftAgnostic`.** Crosswords needs `⌫`
+  and `⇧⌫` to be different commands, and Space and `⇧Space` likewise, so a
+  chord checks shift exactly unless it says otherwise. The agnostic flag stays
+  for chords written as a character, where the layout decides the shift state.
+- **`consumes` is on the SPEC, not the binding.** Whether a wildcard claims the
+  key it sees is a fact about the action — the viewer exit always consumes,
+  feedback dismissal never does — and no game would set it differently.
+- **Non-consuming wildcards run in a pass of their own**, before the walk,
+  rather than during it. In one walk, whether "dismiss the message" ran would
+  depend on which component happened to bind first, which is a bug waiting for
+  the first reordering.
+- **`ButtonIcon` became an alias of the icon registry's `AppIcon`.** They
+  described the same thing in two slightly different ways, and the difference
+  was enough to stop an action's glyph being handed to a button.
+
+Two shared-predicate readers in game folders changed import path only
+(`crosswords/hooks/useGridKeyboard.ts`, `bananagrams/hooks/usePlayerBoard.ts`),
+per II.1's instruction to leave one copy of `isEditableField`. **No other game
+code is touched, and no game behavior changes.** The concede confirm's move
+onto the styled modal (decision 2) waits for step 4, where concede converts
+with the rest of the game work; until then the registry writes its question
+inline rather than beside its three siblings.

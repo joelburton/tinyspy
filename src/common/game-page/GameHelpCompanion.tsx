@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { Companion } from '../floating-panels/Companion'
+import { KeyList } from '../actions/KeyList'
 import { HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './GameHelpCompanion.module.css'
 import { StandardButton } from '../buttons/StandardButton'
@@ -56,6 +57,8 @@ export function GameHelpCompanion({
       minHeight={minSize.height}
     >
       {children}
+      {/* The keys that work on this page, generated from what is bound. */}
+      <KeyList />
       <div className={styles.gotItRow}>
         <StandardButton show="label" label="Got it" weight="primary" autoFocus onClick={onClose} />
       </div>

@@ -1,6 +1,7 @@
 // cs-audited-keyboard
 
 import { useEffect, useRef } from 'react'
+import { isEditableField } from './editableField'
 
 /**
  * Window-level keydown listener with a stable ref-dispatch.
@@ -50,15 +51,7 @@ export function useGlobalKeyHandler(handler: (e: KeyboardEvent) => void): void {
     function dispatch(e: KeyboardEvent) {
       // Let a focused text field keep its own keystrokes (see above).
       const t = e.target as HTMLElement | null
-      if (
-        t &&
-        (t.tagName === 'INPUT' ||
-          t.tagName === 'TEXTAREA' ||
-          t.tagName === 'SELECT' ||
-          t.isContentEditable)
-      ) {
-        return
-      }
+      if (isEditableField(t)) return
       // Likewise, when focus is inside a floating panel / modal (a suspend confirm,
       // Setup, Help…), that panel owns the keyboard: Enter should activate its
       // focused button and Tab should move between its controls. The game's capture

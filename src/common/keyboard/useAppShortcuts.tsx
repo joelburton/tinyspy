@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnagramDialog } from '../anagram-finder/AnagramDialog'
 import { WordLookupDialog } from '../definitions/WordLookupDialog'
+import { isNonGameField } from './editableField'
 import { setChatOpen } from '../chat/chatOpenStore'
 import { openPageMenu } from '../menu/pageMenuStore'
 
@@ -124,21 +125,3 @@ export function useAppShortcuts(opts: { chat?: boolean } = {}): ReactNode {
   )
 }
 
-/**
- * Is the event aimed at a text field that should keep `/`, `?`, and `~`
- * as literal characters? True for an editable element (input / textarea
- * / select / contenteditable) that is NOT marked `data-game-input`.
- *
- * Game input fields opt in via `data-game-input` so the shortcuts still
- * work while you're typing a clue/guess; everything else (setup forms,
- * the chat box, a scratchpad) is a non-game field that owns its keys.
- */
-export function isNonGameField(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  const editable =
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT' ||
-    target.isContentEditable === true
-  return editable && target.dataset.gameInput === undefined
-}

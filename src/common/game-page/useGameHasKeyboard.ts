@@ -1,25 +1,7 @@
 // cs-unmet
 
 import { useEffect, useState } from 'react'
-
-/**
- * Is `el` a focused text field that owns its own keystrokes? True for an
- * editable element — `<input>` / `<textarea>` / `<select>` / contenteditable.
- *
- * This is the same predicate `useGlobalKeyHandler` uses to decide whether to
- * route a keystroke to the game (it declines while such a field is focused)
- * and that `isNonGameField` (useAppShortcuts) builds on. Kept here as the one
- * shared definition; those two are candidates to consolidate onto it.
- */
-export function isEditableField(el: EventTarget | null): boolean {
-  if (!(el instanceof HTMLElement)) return false
-  return (
-    el.tagName === 'INPUT' ||
-    el.tagName === 'TEXTAREA' ||
-    el.tagName === 'SELECT' ||
-    el.isContentEditable
-  )
-}
+import { isEditableField } from '../keyboard/editableField'
 
 /**
  * True while the *game* owns the keyboard — i.e. no text field is focused.

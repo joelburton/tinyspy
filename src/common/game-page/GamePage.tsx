@@ -16,6 +16,7 @@ import type { MenuApi, MenuSection } from '../menu/menuModel'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../menu/gameMenu'
 import { getNotOkFeedback } from '../feedback/genericPills'
 import { useAppShortcuts } from '../keyboard/useAppShortcuts'
+import { isEditableField } from '../keyboard/editableField'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore'
@@ -442,11 +443,7 @@ function GamePageInner({
       // last in the club list and toasting every peer. One line, all four
       // shortcuts.
       if (e.repeat) return
-      const t = e.target
-      const editable =
-        t instanceof HTMLElement &&
-        (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
-      if (editable) return
+      if (isEditableField(e.target)) return
       if (e.metaKey || e.ctrlKey) return
       if (e.key === '<' && !e.altKey) {
         e.preventDefault()

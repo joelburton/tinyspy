@@ -26,7 +26,7 @@ import {
 import { useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
-import { isEditableField } from '@/common/game-page/useGameHasKeyboard'
+import { isEditableField } from '@/common/keyboard/editableField'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**

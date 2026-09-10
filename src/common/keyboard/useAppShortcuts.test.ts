@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isNonGameField, useAppShortcuts } from './useAppShortcuts'
+import { useAppShortcuts } from './useAppShortcuts'
 import { getChatOpen, setChatOpen } from '../chat/chatOpenStore'
 import { registerPageMenu } from '../menu/pageMenuStore'
 
@@ -12,30 +12,6 @@ let releaseMenu: (() => void) | undefined
 function press(key: string, target: EventTarget) {
   target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
 }
-
-describe('isNonGameField', () => {
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('is false for non-editable targets (the board / page body)', () => {
-    expect(isNonGameField(document.body)).toBe(false)
-    expect(isNonGameField(document.createElement('div'))).toBe(false)
-    expect(isNonGameField(null)).toBe(false)
-  })
-
-  it('is true for a plain input / textarea / select (setup forms, chat)', () => {
-    for (const tag of ['input', 'textarea', 'select'] as const) {
-      expect(isNonGameField(document.createElement(tag))).toBe(true)
-    }
-  })
-
-  it('is false for an input opted in with data-game-input', () => {
-    const input = document.createElement('input')
-    input.setAttribute('data-game-input', '')
-    expect(isNonGameField(input)).toBe(false)
-  })
-})
 
 describe('useAppShortcuts', () => {
   beforeEach(() => {

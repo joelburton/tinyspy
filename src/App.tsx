@@ -25,6 +25,8 @@ import { diagnosticsLine } from './common/supabase/dbLog'
 import { TooltipHost } from './common/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/keyboard/useBacktickEscape'
+import { useActionDispatcher } from './common/actions/dispatcher'
+import { ConfirmationHost } from './common/floating-panels/ConfirmationHost'
 import { usePath } from './common/routing/router'
 import { matchClubRoute, matchGameRoute } from './common/routing/routes'
 import { gametypes } from './gametypes'
@@ -78,6 +80,10 @@ export default function App() {
   // Let `` ` `` stand in for Escape app-wide (keyboards without a physical
   // Esc key). Window-level, so it's mounted here at the root — see the hook.
   useBacktickEscape()
+  // The app's one key listener: every keystroke, matched against the actions
+  // whatever is mounted has bound. Window-level, so it lives at the root — see
+  // the dispatcher.
+  useActionDispatcher()
   // Edit-profile popup, opened from the account submenu in whichever page menu
   // is on screen. Still mounted HERE, not in the menu: it's a <FloatingPanel>,
   // and react-rnd positions one from its static flow position — mounted inside
@@ -218,6 +224,10 @@ export default function App() {
           above everything, portaled to <body>). */}
       <GameInvitations session={session} />
       <ToastHost />
+
+      {/* The one host for a question asked from outside a component — an
+          action's shared run asks before it fires, wherever it was bound. */}
+      <ConfirmationHost />
 
       {/* The ONE fault-modal host (docs/ui.md → Faults): every sink routes
           fault-classified failures into the shared fault store; this renders
