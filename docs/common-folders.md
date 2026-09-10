@@ -101,8 +101,6 @@ The rules that have bitten before:
 - A **toast** (bottom-right announcement) is NOT feedback → `toasts/`.
   **Feedback** is specifically the near-input validity pill and its
   local/global state.
-- A **generic text renderer** (`RichMessage`) is NOT feedback just because an
-  error happens to use it → `text/`.
 - **A generic primitive is common regardless of how many games use it**
   (`useArrowHistory` has one caller and is still an input helper), and **a game
   mechanic is shared regardless of how many use it** (`RankBar` would still be
@@ -271,7 +269,6 @@ area is audited. No sweep.
 | `single-flight` | one run of an async action at a time — a second click while the first is in flight is dropped |
 | `supabase` | the client, the envelope wrappers, the DB handle |
 | `terminal` | what shows when a game ends |
-| `text` | inline rich text |
 | `themes` | the theme files and the loader |
 | `timer` | the game clock |
 | `toasts` | the bottom-right stack |
@@ -311,8 +308,6 @@ from everyone else.
   (its job is "the common game," realtime is the mechanism).
 - **`GameLogo`** → `branding/` with the app logo. It's a logo (rendered in the
   game header AND on club cards), grouped with `PuzpuzpuzLogo` by that shape.
-- **`RichMessage`** → `text/`. General-purpose; it renders setup errors today
-  but its job is inline player-segment text, not feedback.
 - **`gameManifest.ts` and `gamePageCtx.ts`** are THE contract a game is written
   against, so they keep dead-obvious paths: the manifest in `manifest/`, the
   context in `game-page/` with the page that builds it. The manifest LIST is

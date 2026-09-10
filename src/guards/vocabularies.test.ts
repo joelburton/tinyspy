@@ -331,7 +331,6 @@ const VOCABULARIES: Vocabulary[] = [
       // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt traveled, it did not grow.
       'src/common/fields/PlayersField.module.css': ['0.5rem'],
-      'src/common/text/RichMessage.module.css': ['0.25rem'],
       'src/common/toasts/Toast.module.css': ['0.7rem'],
       'src/common/toasts/ToastHost.module.css': ['0.6rem'],
     },

@@ -379,9 +379,7 @@ the terminal/eliminated message are the shared `<FeedbackPill>` (sticky, dismiss
 the next tile click); action buttons are the semantic components (`HintButton` /
 `ClearButton` / `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes
 render as `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
-compete shows a **Found** opponent strip in the info column. The setup dialog
-surfaces a rich roster-mismatch error (`<RichMessage>`) when a puzzle already has a
-game with a different roster.
+compete shows a **Found** opponent strip in the info column.
 
 ### Board feedback: the shared vocabulary
 

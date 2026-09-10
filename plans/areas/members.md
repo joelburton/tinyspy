@@ -5,8 +5,12 @@ The folders it reads: `members` · `text`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN (2026-09-08).** Roster agreed and stamped
-`cs-audited-members`; every file read end to end; fifteen findings recorded,
-none worked. It was the next row after `buttons` closed.
+`cs-audited-members`; every file read end to end; fifteen findings recorded. It
+was the next row after `buttons` closed.
+
+**`src/common/text/` is deleted (2026-09-09, Joel).** F-members-1 is worked, and
+F-members-7, -11, -12 and -13 close as moot with it — they were all
+`RichMessage`. What remains of F-members-14 is the `members` half.
 
 ## The roster
 
@@ -22,14 +26,15 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 | `src/common/members/gamePlayers.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test | `cs-audited-members` |
 | `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
 | `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-audited-members` |
-| `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | `cs-audited-members` |
-| `src/common/text/RichMessage.module.css` | the segment's inline-flex and its disc size | `cs-audited-members` |
+| `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | DELETED (F-members-1) |
+| `src/common/text/RichMessage.module.css` | the segment's inline-flex and its disc size | DELETED (F-members-1) |
 | `src/common/members/doc.md` · `todo.md` | the lede; the Soon item about bare `.dot` classes | (no stamp — markdown) |
-| `src/common/text/doc.md` · `todo.md` | the lede; empty | (no stamp — markdown) |
+| `src/common/text/doc.md` · `todo.md` | the lede; empty | DELETED (F-members-1) |
 
-The folder's `todo.md` was read first. Its one Soon item — ten consumer
-modules style `<Dot>` as a bare `.dot` where half the app uses a qualified
-class — is inherited, and one of the ten is on this roster (F-members-12).
+The folder's `todo.md` was read first. Its one Soon item — consumer modules
+style `<Dot>` as a bare `.dot` where half the app uses a qualified class — is
+inherited. One of them was on this roster (F-members-12) and went with the
+folder.
 
 ## Findings
 
@@ -55,6 +60,25 @@ nothing uses.
 primitive on purpose — in which case its docstring must stop citing a producer
 that no longer exists, and F-members-7, -11, -12 and -13 get worked. Joel's
 call; nothing is removed unprompted.
+
+**WORKED 2026-09-09 — deleted, on Joel's call.** The history settled it. The
+component had exactly one render site for its whole life, and it was never a
+feedback pill: born 2026-06-29 (`96b1d13e`) rendering connections'
+`rosterMismatchError()` on the setup dialog's error line; the producer went
+2026-08-13 (`53e71cc1`), leaving the union's array half unreachable; the render
+site went 2026-08-27 (`1273fe96`), when the dialog became an ordinary
+`StandardForm`. Nothing has named it since. And the slot it filled is now shaped
+against it — `SetupGameModal.tsx` puts `result.message` on a form line, and an
+envelope's `message` is a `string`, so reviving the component would take a
+change to the envelope shape rather than to the component.
+
+Removed with it: `src/common/text/` entire (four files), the `common/text` row
+in `folderDocs.test.ts`'s `DESIGNS_OWED`, the `RichMessage.module.css` row in
+`vocabularies.test.ts`'s spacing pending list, the `text` row and the two
+`RichMessage` bullets in `docs/common-folders.md` (the folder table, the
+"generic text renderer is NOT feedback" classification rule, the judgment
+call), and the roster-mismatch sentence in `docs/games/connections.md`. The
+area row in `app-audit.md` now says the folder is gone.
 
 ### F-members-2 · `docstring-recommends-coloring-text` · `colorVarFor`'s docstring tells callers to color the name text, which docs/ui.md forbids
 
@@ -142,7 +166,9 @@ saying why. Joel's call.
 `RichMessage.tsx:15–19`: *"It lived in `lib/games.ts` until the split, where
 this file was its only importer — and imported it back out under exactly this
 alias."* Archaeology; the durable half is one clause — named `RichMessageType`
-because the component owns the plain name. Moot if F-members-1 deletes.
+because the component owns the plain name.
+
+**CLOSED MOOT 2026-09-09** — the file is gone with F-members-1.
 
 ### F-members-8 · `test-covers-half-the-module` · `memberColor.test.ts` tests two of four exports and re-spells the palette
 
@@ -189,19 +215,25 @@ it or lengthen it — Joel's call.
 point is inline text is the one that opts out of tracking it. `core-css/todo.md`
 already holds the app-wide em-versus-rem question for `--dot-size`; this is
 this roster's own instance. Also `gap: 0.25rem` sits on the `vocabularies`
-pending list and IS `--spacer-5` — a straight conversion. Moot if F-members-1
-deletes.
+pending list and IS `--spacer-5` — a straight conversion.
+
+**CLOSED MOOT 2026-09-09** — the stylesheet is gone with F-members-1, and its
+pending row with it. `core-css/todo.md` still holds the app-wide question.
 
 ### F-members-12 · `bare-dot-class` · `RichMessage.module.css` is one of the ten bare `.dot` modules the todo names
 
 The inherited Soon item. `Dot.module.css` owns `.dot` legitimately; a consumer
 naming its size-override class `.dot` too is the drift. `.playerDot` or
-`.segmentDot`. Moot if F-members-1 deletes.
+`.segmentDot`.
+
+**CLOSED MOOT 2026-09-09** — gone with F-members-1. The inherited item stays in
+`members/todo.md` for the consumers outside this roster.
 
 ### F-members-13 · `props-doc-names-the-wrong-type` · `RichMessage`'s `message` prop says "a `RichMessage` array"
 
-The type is `RichMessageType`; `RichMessage` is the component. Trivial; moot if
-F-members-1 deletes.
+The type is `RichMessageType`; `RichMessage` is the component. Trivial.
+
+**CLOSED MOOT 2026-09-09** — gone with F-members-1.
 
 ### F-members-14 · `doc-lede-omits-half-the-folder` · `members/doc.md` describes the types, the color and the disc, and not the list operations or the fixture
 
@@ -210,7 +242,7 @@ it."* `memberList.ts` (reading order, lookup) and `gamePlayers.ts` are in the
 folder and not in the sentence. The Design is owed and is where the folder's
 one real idea goes: identity is a name plus a color, the color is a NAME the
 DB constrains and the FE resolves, and the disc is the only thing that carries
-it. `text/doc.md` depends on F-members-1.
+it. (`text/doc.md` is gone with F-members-1; only the `members` half is left.)
 
 ### F-members-15 · `two-fallbacks-for-nobody` · The helpers fall back to `--page-text-color`; `chatUnread.ts` picks `--page-text-muted-color` for the same case
 
