@@ -448,6 +448,9 @@ game needing its own copy. The full set:
 | `pgtapIncludes` | every pgTAP file `\ir`s the file defining each helper it uses |
 | `rawStorage` | every `localStorage` / `sessionStorage` touch in `src/` goes through `common/lib/util/storage.ts` |
 | `csStamps` | every file in the sprint's scope carries a valid `cs-` stamp |
+| `folderDocs` | every feature folder's `doc.md` + `todo.md` are in shape |
+| `actionIds` | an action's two spellings agree — `act-new-game` ⇄ `actNewGame` |
+| `registeredChords` | nothing outside `common/actions/` matches a registered chord by hand |
 
 Two placement notes for a new guard:
 

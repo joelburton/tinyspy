@@ -108,6 +108,16 @@ The exception is a MENU SUBMENU parent ("Check", "Reveal"), which carries none:
 its id names a grouping rather than a command, and its words are the grouping's
 own — they do not vary, so naming them is safe.
 
+**Two guards hold the system's shape**, both in `src/guards/`. `actionIds`
+keeps an action's two spellings together — `act-new-game` in the registry and
+`actNewGame` for the value a component binds it to — so either one finds every
+trace of the action. `registeredChords` keeps the registry the only place a
+chord is matched: a handler comparing `e.code === 'KeyZ'` by hand would get the
+same keystroke to the same place while belonging to no action, so the key list
+would not know about it, no bubble would say it, and the dispatcher could not
+tell it to stand down inside a chat box. That is the one way back to what this
+replaced, and it looks perfectly reasonable in a diff.
+
 **The confirmation is asked by the shared run**, not by the callback. New game
 always asks the new-game question and always only mid-game, because at terminal
 there is nothing left to interrupt — so the registry carries the question and

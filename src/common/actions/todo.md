@@ -15,10 +15,6 @@
   **The FE is already built for it.** When a game gains one it passes
   `offersEndForAll`, and its Concede grows the second answer — no registry
   change, no new component, no per-game branch.
-- **A game file may not catch a registered chord by hand.** The only way to bind
-  shuffle is to bind the action; a handler matching `⌥Z` in a game's own code
-  defeats that. A grep-based guard over the literals the registry owns is the
-  shape, if it stays short.
 - **`helperButton` is on some action-row buttons and not others, and nobody
   decided which.** `.helperButton` (`common/game-page/PlayArea.module.css`) is
   `flex: 0 0 auto` + `white-space: nowrap` — written for a LABELED button, so a
