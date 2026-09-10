@@ -48,8 +48,8 @@ export function Help({ onClose, brand }: Props) {
       </ul>
       <p>
         Click the letters or just type. Use Backspace to delete,
-        Enter to submit, and Space (or the ⟲ button) to shuffle
-        the outer letters.
+        Enter to submit, and the ⟲ button to shuffle the outer
+        letters.
       </p>
     </GameHelpCompanion>
   )

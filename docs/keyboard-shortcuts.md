@@ -376,7 +376,7 @@ Same shape as spellingbee, its fork parent.
 | `A`–`Z` | Type into the entry (stored uppercase). |
 | `⌫` / `Enter` | Delete / submit. `Enter` is **inert** when the typed word can't be spelled from the wheel's tiles — editing stays live so you can fix it, rather than the word submitting and coming back "not a word". |
 | `↑` `↓` | Recall your last word / clear the entry. |
-| `Space` | Shuffle the wheel — same board key as spellingbee's, live at terminal too. |
+| `⌥Z` | Shuffle the wheel — the same key spellingbee's hive takes, local to you and live at terminal. The ⟲ pill over the wheel does the same thing. |
 
 Wheel tiles are pointer-only (no `tabIndex`, no `role`), so no keystroke types a
 letter from one — clicking does.

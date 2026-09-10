@@ -6,6 +6,7 @@ import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { terminalPill } from '@/common/feedback/localPills'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
@@ -35,7 +36,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  *
  * It owns the **local outer-letter shuffle** (a per-player view-only rearrange — never
  * persisted or shared), a click on an outer/center letter appending to the word, and
- * the Space-shuffles capture extra key. The word-entry ENGINE (`useWordSubmit`: the
+ * The word-entry ENGINE (`useWordSubmit`: the
  * typed word, the submit RPC, the feedback) stays in PlayArea, because its feedback
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry
  * primitives (`word` / `onChange` / `onSubmit` / `localPill` / …) DOWN and this column
@@ -139,19 +140,14 @@ export function BoardCol({
     return m
   }, [word])
 
-  // Space shuffles the outer letters — wordwheel's one capture-entry extra key (the
-  // shared <EntryRow> owns the rest of the keyboard).
-  const handleEntryExtraKey = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === ' ') {
-        e.preventDefault()
-        handleShuffle()
-        return true
-      }
-      return false
-    },
-    [handleShuffle],
-  )
+  // ⌥Z shuffles — a fresh visual scan of the SAME letters, never a move. Bound
+  // HERE rather than in the PlayArea because this column owns the display order,
+  // and plainly active: shuffling writes nothing and reaches nobody else, so the
+  // post-game fidget is deliberate — the round pill below is this same binding.
+  const actShuffle = useBoundAction('act-shuffle', {
+    describe: () => 'active',
+    run: handleShuffle,
+  })
 
   return (
     <div className={cls(shared.boardCol, surface.boardCol)}>
@@ -183,14 +179,14 @@ export function BoardCol({
         // wheel, not the column.
         floatingControl={
           <ShuffleButton
-            onShuffle={handleShuffle}
+            action={actShuffle}
             tooltip="Shuffle outer letters"
             className={shared.floatingShuffle}
           />
         }
       />
       {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
-          + icon-only Submit + the capture keyboard; Space shuffles via onExtraKey).
+          + icon-only Submit + the capture keyboard).
           The EntryBox renders the per-character illegal-letter dim via <TypedWord>.
           When `pill` is set, EntryRow shows it in place of the controls (same slot, no
           reflow): the terminal verdict (permanent fill) takes precedence over an
@@ -205,7 +201,6 @@ export function BoardCol({
             disabled={isTerminal}
             onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
-            onExtraKey={handleEntryExtraKey}
             recall={lastWord}
             // Veto submit when the typed word can't be spelled from the wheel's
             // tiles (an off-wheel letter, or a letter used more times than it has

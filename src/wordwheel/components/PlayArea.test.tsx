@@ -24,6 +24,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { WordwheelGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -100,9 +103,23 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Any test that TYPES needs it: the entry's letters, Backspace and Enter are
+ *  bound actions now, and a bare `render` binds them with nothing feeding them
+ *  keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 /** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
@@ -199,13 +216,15 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
  * mode, then ctx.goToGame.
  */
 describe('wordwheel PlayArea — icon-only action rows', () => {
-  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+  it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
+    // ONE binding for both rows: it navigates directly at terminal and routes
+    // through the suspend-confirm flow mid-game, so the game no longer picks
+    // between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
-    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
-    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+    expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
   it('terminal Restart calls replay_board WITHOUT confirming', async () => {
@@ -244,7 +263,7 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
 describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => {
   it('accepts a required word: optimistic pill + submit_word call', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bead{Enter}')
     expect(screen.getByText(/BEAD — \+1/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith(
@@ -255,7 +274,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('shows the bonus dot for a bonus word', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bcdfge{Enter}')
     expect(screen.getByText(/BCDFGE • — \+6/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
@@ -263,7 +282,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('shows the pangram flourish for a pangram', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('abcdefg{Enter}')
     expect(screen.getByText(/pangram \+17/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_pangram: true }))
@@ -271,7 +290,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('blocks submitting a word with an off-wheel letter (inert, not a reject)', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('zzzz{Enter}') // z isn't a puzzle letter — the wheel can't spell it
     // The submit is vetoed, not rejected: no RPC, and crucially NO misleading
     // "not a word" pill (which read as "ZZZZ isn't in the dictionary").
@@ -282,7 +301,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('names the missing center letter (a fitting word still submits + rejects)', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('bcdf{Enter}') // valid tiles, but no center 'e' — fits the wheel, so it submits
     // The letter itself, quoted — not the rule ("missing center letter").
     expect(screen.getByText(/missing "E"/)).toBeInTheDocument()
@@ -291,7 +310,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('blocks submitting a word that over-uses a tile (two e, one e-tile)', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('beed{Enter}') // two e's, but the wheel has one e-tile
     // Over-count = can't be spelled from the tiles, so submit is inert (no pill).
     expect(rpc).not.toHaveBeenCalled()
@@ -301,7 +320,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
 
   it('dims a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     // `data-disabled` is the spent marker (it replaced aria-disabled — the tiles
     // carry no ARIA role, see Tile.tsx).
     const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
@@ -324,7 +343,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     // typing one 'e' must spend the center (the mandatory-use tile), leaving
     // its outer twin clickable; a second 'e' spends the twin too.
     h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     // Two tiles share the letter, so the center is told apart by `data-center`
     // rather than by an accessible name — which is also the only reason those
     // names existed (Tile.tsx).
@@ -445,14 +464,28 @@ describe('wordwheel PlayArea — concede', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(<PlayArea {...makeCtx({ players: twoMembers, setup: competeSetup })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers, setup: competeSetup })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons

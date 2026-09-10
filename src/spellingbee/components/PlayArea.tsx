@@ -233,8 +233,8 @@ export function PlayArea(ctx: GamePageCtx) {
     return s
   }, [game])
 
-  // (The local outer-letter shuffle + the letter-click / Space-shuffle input moved
-  // into BoardCol, beside the honeycomb + entry.)
+  // (The local outer-letter shuffle + the letter-click input moved into BoardCol,
+  // beside the honeycomb + entry.)
 
   // ─── Move entry + own-move feedback (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
