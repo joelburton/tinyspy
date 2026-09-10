@@ -350,8 +350,9 @@ export function BoardCol({
   // ─── The board's three commands ────────────────────────
   // Each is ONE binding behind both its button and its key, so the two can't
   // disagree about whether it applies. All three are hidden while a past turn is
-  // open: a keystroke there means "back to live", which is the history viewer's
-  // own action, and hiding these lets it have the key.
+  // open — not to give the viewer its keystroke (the dispatcher does that: an
+  // any-key action is a MODE and outranks a particular key), but because a live
+  // Submit over a frozen historical board would be lying about what it can do.
   //
   // Enter submits the current selection from ANYWHERE on the board, not just
   // when a tile happens to hold keyboard focus. (macOS doesn't focus a <button>

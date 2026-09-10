@@ -110,9 +110,10 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   }, [])
 
   // A KEYSTROKE RETURNS TO LIVE, and the press is spent doing it — the same key
-  // must not also play a move on a board you have only just got back. That is
-  // the whole of `consumes` in the registry: this wildcard runs before the
-  // board's own keys are offered the keystroke, and stops the walk.
+  // must not also play a move on a board you have only just got back. An
+  // any-key action that CONSUMES is how a surface says it is in a mode, and the
+  // dispatcher runs those ahead of every particular key, wherever each is
+  // bound — so this wins the press without the board having to stand aside.
   useBoundAction('act-exit-viewer', {
     describe: () => (viewingId === null ? 'hidden' : 'active'),
     run: exitViewing,

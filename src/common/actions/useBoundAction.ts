@@ -87,13 +87,26 @@ export type BoundAction = {
 }
 
 /**
- * THE STACK OF LIVE BINDINGS, innermost last.
+ * THE STACK OF LIVE BINDINGS, **innermost FIRST**.
  *
- * Ordered by mount, the same as the tab ring's stack of rings and for the same
- * reason: a page binds its commands, a component mounted inside it binds its
- * entry keys, and the inner one should win a key they both want. Module-level
- * rather than a context because the reader that has to decide is a window
- * listener, and a window listener sits in no subtree.
+ * A page binds its commands, a component mounted inside it binds its entry
+ * keys, and the inner one should win a key they both want — so the dispatcher
+ * walks this forward. Module-level rather than a context because the reader
+ * that has to decide is a window listener, and a window listener sits in no
+ * subtree.
+ *
+ * **Why innermost is first and not last.** An entry joins here from an effect,
+ * and React runs effects CHILDREN FIRST, so a child's binding is already in the
+ * array by the time its parent's arrives. The order is a fact about effects
+ * rather than a choice, which is why it is written down here rather than
+ * assumed: this file said "innermost last" for a while and the dispatcher
+ * walked backward to match, and the two together gave the OUTER binding the
+ * key. Nothing caught it, because no two bindings had yet wanted the same key
+ * at the same moment (`dispatcher.test.ts` now holds both directions).
+ *
+ * Two bindings in the SAME component are in call order, which makes the earlier
+ * call the "inner" one — arbitrary, and not something to lean on: two actions
+ * that can be live together must not share a chord (`todo.md`).
  *
  * Each entry holds a REF, refreshed every render, so a listener reading it at
  * keypress gets the current closure without anything re-registering.
@@ -119,7 +132,7 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-/** Every binding on the page right now, innermost last. Re-renders the caller
+/** Every binding on the page right now, innermost first. Re-renders the caller
  *  when a binding joins or leaves — not when one changes what it would say, so
  *  a surface built from this asks each action as it draws. */
 export function useBoundActions(): BoundAction[] {
@@ -127,8 +140,9 @@ export function useBoundActions(): BoundAction[] {
   return bindings.map((b) => b.current)
 }
 
-/** Every binding on the page right now, for a reader that is not a component —
- *  the key dispatcher. Read at the moment of the keystroke, never held. */
+/** Every binding on the page right now, innermost first, for a reader that is
+ *  not a component — the key dispatcher. Read at the moment of the keystroke,
+ *  never held. */
 export function liveBindings(): BoundAction[] {
   return bindings.map((b) => b.current)
 }

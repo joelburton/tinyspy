@@ -7,7 +7,7 @@
  * Each test binds real actions off the registry and presses a real window
  * keydown, so what is exercised is the whole path a keystroke actually takes.
  */
-import { act, renderHook } from '@testing-library/react'
+import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from './dispatcher'
 import { useBoundAction, type ActionState, type LiveAction } from './useBoundAction'
@@ -91,11 +91,14 @@ describe('the dispatcher — state', () => {
     view.unmount()
   })
 
-  it('gives the key to the innermost binding that wants it', async () => {
-    const { runs, view } = setup(['act-submit', {}], ['act-submit-entry', {}])
+  // Two bindings in ONE component are in call order, and the earlier is the
+  // "inner" one — see the stack's docstring. It is arbitrary and nothing should
+  // lean on it; it is pinned only so a change to the walk is visible.
+  it('gives the key to the first binding that wants it, within one component', async () => {
+    const { runs, view } = setup(['act-submit-entry', {}], ['act-submit', {}])
     await press({ key: 'Enter' })
-    expect(runs[1]).toHaveBeenCalledTimes(1)
-    expect(runs[0]).not.toHaveBeenCalled()
+    expect(runs[0]).toHaveBeenCalledTimes(1)
+    expect(runs[1]).not.toHaveBeenCalled()
     view.unmount()
   })
 })
@@ -173,6 +176,44 @@ describe('the dispatcher — the watchers', () => {
     await press({ key: 'q' })
     expect(runs[1]).toHaveBeenCalledTimes(1)
     expect(runs[0]).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('a consuming wildcard beats an INNER binding too — a mode is not a key', async () => {
+    // The order the real games are in: the viewer belongs to the page and the
+    // board's keys to a column inside it, so the inner one would win on
+    // position. It must not: while a past turn is open the next keystroke means
+    // "back to the live board", whoever else is listening.
+    const { runs, view } = setup(['act-exit-viewer', {}], ['act-type-letter', {}])
+    await press({ key: 'q' })
+    expect(runs[0]).toHaveBeenCalledTimes(1)
+    expect(runs[1]).not.toHaveBeenCalled()
+    view.unmount()
+  })
+})
+
+describe('the dispatcher — a child outranks its page', () => {
+  // The rule the stack exists for, and the one thing `setup` above cannot say:
+  // its bindings all sit in ONE component, where order is just call order. A
+  // binding joins from an effect and React runs effects children first, so a
+  // child is already in the stack when its parent arrives.
+  function Child({ onRun }: { onRun: () => void }) {
+    useBoundAction('act-submit-entry', { run: onRun, describe: () => 'active' })
+    return null
+  }
+  function Page({ onPage, onChild }: { onPage: () => void; onChild: () => void }) {
+    useActionDispatcher()
+    useBoundAction('act-submit', { run: onPage, describe: () => 'active' })
+    return <Child onRun={onChild} />
+  }
+
+  it('a component inside the page wins a key they both want', async () => {
+    const onPage = vi.fn()
+    const onChild = vi.fn()
+    const view = render(<Page onPage={onPage} onChild={onChild} />)
+    await press({ key: 'Enter' })
+    expect(onChild).toHaveBeenCalledTimes(1)
+    expect(onPage).not.toHaveBeenCalled()
     view.unmount()
   })
 })

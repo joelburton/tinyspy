@@ -599,9 +599,10 @@ are added only if each is a short test; Joel is happy to manage those by hand.
 
 **Tests**: `chord.test.ts`, `useBoundAction.test.ts` (registers on mount,
 leaves on unmount, single-flight, confirm asked only when not terminal,
-shorthand state), `dispatcher.test.ts` (gates, repeat, innermost wins, a
-disabled entry lets the key fall through, a non-consuming wildcard runs
-alongside, `preventDefault` on a match), `ActionButton.test.tsx`,
+shorthand state), `dispatcher.test.tsx` (gates, repeat, innermost wins — a
+child of the page included, a consuming wildcard outranks both, a disabled entry
+lets the key fall through, a non-consuming wildcard runs alongside,
+`preventDefault` on a match), `ActionButton.test.tsx`,
 `KeyList.test.tsx`.
 
 **Predicted breaks at the end of step 1:** none — nothing calls it yet.

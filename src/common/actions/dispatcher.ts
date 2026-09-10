@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
-import { isPattern, matches, type KeySpec } from './chord'
+import { isPattern, isWildcard, matches, type KeySpec } from './chord'
 import { liveBindings, type BoundAction } from './useBoundAction'
 
 /**
@@ -21,13 +21,29 @@ import { liveBindings, type BoundAction } from './useBoundAction'
  * cannot move a board cursor. The field gate is the one an action can opt out
  * of, per its `inField`; the panel gate is absolute.
  *
- * **Then order.** Non-consuming wildcards run first and claim nothing: that is
- * how any key dismisses the last message and still types its letter. After
- * them, the innermost binding whose key matches and whose state is `active`
- * runs, stops the keystroke, and ends the walk. A hidden or disabled binding is
- * skipped rather than swallowing the key, so a key can fall through to an outer
- * binding that wants it. Anything matching nothing goes to the browser, which
- * is what keeps Cmd-R and Ctrl-Tab working.
+ * **Then three passes, because a keystroke can mean three different kinds of
+ * thing.**
+ *
+ *   1. **Watchers** — a wildcard that consumes nothing. Every active one runs
+ *      and the key carries on to whoever really wanted it: that is how any key
+ *      dismisses the last message and still types its letter. Position in the
+ *      stack is deliberately not consulted — "dismiss the message" happens on
+ *      every key there is, so making it depend on which component bound it
+ *      first would be a bug waiting for the first reordering.
+ *   2. **Interceptors** — a wildcard that DOES consume. The surface has
+ *      declared a MODE: while it holds, the next keystroke means one thing and
+ *      nothing else. `act-exit-viewer` is the one we have — a key with a past
+ *      turn open means "back to the live board", whatever else is bound. That
+ *      is a claim about the moment rather than about specificity, so it is
+ *      settled here rather than by where the action happens to be bound.
+ *   3. **Commands** — everything with a real key, INNERMOST FIRST: a component
+ *      mounted inside a page may hold a more specific binding than the page,
+ *      and it should win.
+ *
+ * In every pass a hidden or disabled binding is skipped rather than swallowing
+ * the key, so a key falls through to an outer binding that wants it. Anything
+ * matching nothing goes to the browser, which is what keeps Cmd-R and Ctrl-Tab
+ * working.
  */
 export function useActionDispatcher(): void {
   useEffect(function attachActionDispatcher() {
@@ -66,26 +82,36 @@ export function useActionDispatcher(): void {
 
       const live = liveBindings()
 
-      // The watchers, first and all of them: a wildcard that claims nothing
-      // sees the key go past whatever else answers it. Position in the stack is
-      // deliberately not consulted — "dismiss the message" happens on every key
-      // there is, so making it depend on which component bound it first would
-      // be a bug waiting for the first reordering.
+      // 1. The watchers, all of them, claiming nothing.
       for (const action of live) {
         if (action.spec.consumes === false && takes(action)) action.run(e.key)
       }
 
-      // Then the one action that answers, innermost first.
-      for (let i = live.length - 1; i >= 0; i -= 1) {
-        const action = live[i]!
-        if (action.spec.consumes === false) continue
-        const key = takes(action)
-        if (!key) continue
-        e.preventDefault()
-        // A pattern action is told which key it got; a chord already knows.
-        action.run(isPattern(key) ? e.key : undefined)
-        return
+      // 2. An interceptor, if a surface has one live: a consuming wildcard is a
+      //    MODE, and a mode outranks any particular key.
+      // 3. Otherwise the command that answers.
+      //
+      // Both walk innermost first. A binding joins the stack from an effect and
+      // React runs effects CHILDREN FIRST, so a child's entry lands EARLIER than
+      // its parent's — which makes "innermost first" a forward walk, not a
+      // backward one. (Two bindings in the SAME component are in call order, and
+      // two that can be live at once must not share a chord anyway; see
+      // `common/actions/todo.md`.)
+      const answers = (wildcard: boolean) => {
+        for (const action of live) {
+          if (action.spec.consumes === false) continue
+          if ((action.spec.keys?.some(isWildcard) ?? false) !== wildcard) continue
+          const key = takes(action)
+          if (!key) continue
+          e.preventDefault()
+          // A pattern action is told which key it got; a chord already knows.
+          action.run(isPattern(key) ? e.key : undefined)
+          return true
+        }
+        return false
       }
+      if (answers(true)) return
+      answers(false)
     }
 
     window.addEventListener('keydown', onKeyDown)

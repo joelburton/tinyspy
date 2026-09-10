@@ -286,9 +286,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // is a PATTERN action — it is handed whichever letter fired it, which is what
   // makes twenty-one cards one binding rather than twenty-one.
   //
-  // Both hide while a past turn is open, so the key falls through to the
-  // viewer's own any-key exit — otherwise this board is bound deeper than the
-  // viewer and would toggle a card on a board the player has only just got back.
+  // Both hide while a past turn is open. The viewer's exit does not depend on
+  // that — the dispatcher gives an any-key MODE priority over a particular key —
+  // but a live card key over a frozen historical board would be lying about
+  // what it can do.
   useSwallowTab()
   useBoundAction('act-toggle-card', {
     describe: () => (active && !viewer.viewing ? 'active' : 'hidden'),

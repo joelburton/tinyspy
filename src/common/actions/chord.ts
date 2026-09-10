@@ -80,6 +80,13 @@ export function isPattern(spec: KeySpec): spec is KeyPattern {
   return (spec as KeyPattern).pattern !== undefined
 }
 
+/** Does this key answer to ANYTHING? The two behaviors that do are the ones
+ *  that aren't about a particular key at all — dismissing the last message, and
+ *  leaving the history viewer — and the dispatcher sorts them by it. */
+export function isWildcard(spec: KeySpec): boolean {
+  return isPattern(spec) && spec.pattern === 'any'
+}
+
 /** The four arrow keys, as `e.key` spells them. */
 const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
 
