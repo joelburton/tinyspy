@@ -192,11 +192,14 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   //
   // The rule this waives guards against a render being discarded and its writes
   // outliving it. Nothing here is at risk: what the ref holds is only ever read
-  // BACK during the same render, or later at keypress. The write exists because
-  // the bound action must ALSO keep a stable identity — a game's menu effect
-  // lists it in its deps, and `setGameSections` is a setState, so an object that
-  // changed every render would loop. `common/menu/todo.md` carries the fix that
-  // removes the reason for both waivers.
+  // BACK during the same render, or later at keypress.
+  //
+  // It also keeps the bound action's IDENTITY still, which a game's menu effect
+  // lists in its deps. That used to be the difference between working and
+  // hanging — pushing a menu was a `setState` on the whole page, so a row
+  // rebuilt each render would set state, re-render, rebuild and loop. It is now
+  // only an optimization (`gameMenuStore`), and the cheap kind: without it every
+  // keystroke in a game would rebuild that game's twenty menu rows.
   const liveRef = useRef(live)
   // eslint-disable-next-line react-hooks/refs -- read back in this same render
   liveRef.current = live

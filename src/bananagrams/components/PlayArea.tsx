@@ -277,12 +277,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // over — otherwise a terminal print still shows one column, the very bug the
   // per-player columns fix.
   //
-  // A ref rather than effect deps, and that distinction is load-bearing:
-  // `ctx.players` is a fresh array identity most renders, so listing it would
-  // re-run the menu effect on every render — and that effect calls
-  // `menu.setGameSections`, i.e. setState, which re-renders. It spun exactly
-  // that way when tried: the menu never settled and the print item became
-  // unclickable (docs — "no setState in effects").
+  // A ref rather than effect deps: `ctx.players` is a fresh array identity most
+  // renders, so listing it would rebuild this game's whole menu on every one of
+  // them. It used to be worse than wasteful — pushing a menu was a setState on
+  // the page, and it spun: the menu never settled and the print item became
+  // unclickable. `gameMenuStore` ended the spin; the waste is reason enough to
+  // keep the ref.
   const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.session.user.id })
   useEffect(() => {
     printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.session.user.id }

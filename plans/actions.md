@@ -963,6 +963,38 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## After the last game — pushing a menu stops re-rendering the game
+
+`menu/todo.md`'s one item, and the last structural debt the conversion left.
+A game's sections were `useState` on `GamePage`, so every push re-rendered the
+whole page and the board with it — and, worse, made the IDENTITY of a menu row
+load-bearing: a game's menu effect lists its rows in its deps, so a row rebuilt
+each render would set state, re-render, rebuild and loop. That is a trap laid
+for whoever writes the next row.
+
+They live in `gameMenuStore` now, and `<GameHeaderMenu>` is the only subscriber
+— a component of its own precisely so that `GamePage` does not read them. Two
+things fell out on the way: a `gameSectionsRef` mirror kept for the old ⌥⌫
+listener, which nothing had read since End became an action, and the
+`setGameSectionsApi` wrapper that existed only to give the setState a stable
+identity.
+
+**Identity is still worth keeping, and the reason changed.** The todo expected
+both `useBoundAction` waivers to go with the setState. They stay: writing the
+refs during render is what lets a surface asking `describe()` mid-render get
+THIS moment's answer rather than the last one, which has nothing to do with the
+menu. What the store removes is the cliff — an unstable row now rebuilds the
+menu more often than it needs to, where before it hung the app. The comments say
+that instead.
+
+**An e2e cannot see this, and it took a plant to notice.** With the notify
+stubbed out, every spec that opens a game menu still passed: a game page
+re-renders constantly (realtime, the clock, presence), so the menu picks up new
+sections on the next render whether or not anything told it to. A broken
+subscription looks fine on screen and strands the menu the one time the page is
+still. `gameMenuStore.test.ts` asserts the push alone re-renders a subscriber,
+and fails under that plant.
+
 ## After the last game — the e2e stops hunting by wording
 
 The sweep `todo.md` filed, done in one pass: every e2e lookup for an action

@@ -12,7 +12,7 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import type { GamePageCtx } from './gamePageCtx'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '../feedback/genericFeedback'
-import type { MenuApi, MenuSection } from '../menu/menuModel'
+import type { MenuApi } from '../menu/menuModel'
 import { getNotOkFeedback } from '../feedback/genericPills'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useAppAction, useBoundAction } from '../actions/useBoundAction'
@@ -37,7 +37,8 @@ import { InfoSwitchButton } from '../info-sheet/InfoSwitchButton'
 import { cls } from '../utils/cls'
 import { Link } from '../routing/Link'
 import { PageHeader } from '../page-header/PageHeader'
-import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
+import { GameHeaderMenu } from './GameHeaderMenu'
+import { setGameMenuSections } from '../menu/gameMenuStore'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from '../pause-suspend/SuspendConfirmationBlockingModal'
 import { Loading } from '../loading/Loading'
@@ -104,7 +105,9 @@ type Props = {
  * (usually via the `buildGameMenu` helper, which frames Help +
  * End/Concede + Back-to-club around the game's own items). The whole
  * menu disappears during pause because PlayArea unmounts and its
- * `setGameSections([])` cleanup clears it.
+ * `setGameSections([])` cleanup clears it. The sections live in
+ * `gameMenuStore` rather than in this component's state, so a game pushing its
+ * menu re-renders the menu and not the board.
  *
  * Help is a per-game contract on the manifest. Every game declares
  * `help: ComponentType<{ onClose: () => void }>`; the menu's Help
@@ -280,13 +283,10 @@ function GamePageInner({
   // its own items + End/Concede + Back-to-club — usually assembled with
   // `buildGameMenu`); the shell no longer injects a common section. Reset
   // to [] on PlayArea unmount so a pause empties the menu.
-  const [gameSections, setGameSections] = useState<MenuSection[]>([])
-  // A ref mirror so the global ⌥⌫ shortcut listener (registered once) can
-  // read the latest sections to find the end/concede item.
-  const gameSectionsRef = useRef<MenuSection[]>([])
-  useEffect(() => {
-    gameSectionsRef.current = gameSections
-  }, [gameSections])
+  // A game's menu sections live in `gameMenuStore`, not here: only the menu
+  // reads them, so a push must not re-render the page and the board with it.
+  // Cleared on unmount, so a menu cannot outlive the game that pushed it.
+  useEffect(() => () => setGameMenuSections([]), [])
 
   // Fire the timeout-loss when the countdown hits 0 — on the expired
   // TRANSITION (false → true), not the level. A true EDGE (prevExpiredRef)
@@ -373,12 +373,6 @@ function GamePageInner({
     [globalFeedbackShow, globalFeedbackClear],
   )
 
-  // Stable identity for the menu API exposed to PlayArea. The PlayArea
-  // calls setGameSections in an effect; its cleanup return calls
-  // setGameSections([]) so unmount empties the menu.
-  const setGameSectionsApi = useCallback((sections: MenuSection[]) => {
-    setGameSections(sections)
-  }, [])
   // Help for THIS game — the manifest's rules component. Bound here rather than
   // in each PlayArea because the page is what mounts it, and handed down on the
   // menu API for the game to place.
@@ -430,8 +424,8 @@ function GamePageInner({
   })
 
   const menuApi = useMemo<MenuApi>(
-    () => ({ setGameSections: setGameSectionsApi, actHelp, actChat, actBackToClub }),
-    [setGameSectionsApi, actHelp, actChat, actBackToClub],
+    () => ({ setGameSections: setGameMenuSections, actHelp, actChat, actBackToClub }),
+    [actHelp, actChat, actBackToClub],
   )
 
   // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the setup
@@ -533,7 +527,6 @@ function GamePageInner({
   // The account submenu is appended by the SHELL, not by `buildGameMenu` — so
   // all fourteen games get it without fourteen edits, and a game can't forget
   // it. It goes last: it's the least game-y thing in the menu.
-  const sections: MenuSection[] = [...gameSections, accountSection]
 
   return (
     <div className={styles.frame}>
@@ -590,15 +583,7 @@ function GamePageInner({
           </>
         }
       >
-        <PageHeaderMenu
-          logo={<GameLogo manifest={manifest} />}
-          sections={sections}
-          label="Game menu"
-          // The game menu sits over boards that read window keydowns for play
-          // (crosswords' cursor). A focused trigger would swallow those keys /
-          // reopen the menu, so let focus fall back to the board on close.
-          returnFocusOnClose={false}
-        />
+        <GameHeaderMenu logo={<GameLogo manifest={manifest} />} accountSection={accountSection} />
         {/* The menu is the one thing on BOTH pages — it's how you leave the
             game, and stranding it on one page is what the old full-height
             sheet did (it covered the header outright). */}

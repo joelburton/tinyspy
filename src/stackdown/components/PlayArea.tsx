@@ -481,9 +481,9 @@ export function PlayArea({
   // row offers, so they're reachable mid-game too. (The reveal/hint cheats stay
   // in the info-column action row, not the menu.) Placed after the action
   // handlers so they're in scope for the deps; all deps here are stable (the
-  // useCallback handlers + primitives + the memoized menuSections), so
-  // setGameSections — a setState — runs only when the mode/terminal/conceded
-  // facts actually change, not every render. `game?.mode` is null until loaded;
+  // useCallback handlers + primitives + the memoized menuSections), so the
+  // menu is rebuilt only when the mode/terminal/conceded facts actually change,
+  // not every render. `game?.mode` is null until loaded;
   // default to coop so the menu exists during the loading beat and re-runs once
   // the real mode arrives.
   // Words cleared. Coop counts the shared valid submissions; compete reads the
