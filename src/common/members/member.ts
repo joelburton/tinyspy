@@ -15,9 +15,6 @@
  * cycle, whatever else moves later. The one VALUE that reads these types was
  * put in `common/terminal/terminalOutcomeVerb.ts` precisely so it stays out of
  * this file. Keep it that way: no functions, no constants.
- *
- * The naming convention — `members` in club code, `players` in game code, for
- * the same shape — is docs/naming.md → "member" and "player".
  */
 
 /**
@@ -35,9 +32,9 @@
 export type Member = {
   user_id: string
   username: string
-  // Palette name from `common.profiles.color`. Pass through
-  // `colorVarFor` (src/common/members/memberColor.ts) for the
-  // matching CSS variable.
+  // A palette NAME from `common.profiles.color` — 'red' … 'pink', never a
+  // hex. `colorVarFor` resolves it to the fill variable, `borderVarFor` to
+  // the paired edge.
   color: string
 }
 
@@ -51,9 +48,15 @@ export type Member = {
  * same roster.
  *
  *   - `conceded`     — this player willfully quit a compete race
- *                      (common.concede). Drives the OpponentStrip
- *                      "out" marker and the "Quit at …" vs "Lost at
- *                      …" terminal wording.
+ *                      (common.concede) and is out of it, while the
+ *                      game continues for everyone still racing. It
+ *                      drives the OpponentStrip's "out" marker —
+ *                      rendered by each game's own `metricFor`, so
+ *                      the strip itself never names this field — and
+ *                      the "Quit at …" vs "Lost at …" terminal verb.
+ *   - `conceded_at`  — when they quit, or null. Written with the flag
+ *                      and cleared with it, so a true `conceded`
+ *                      always carries one.
  *   - `result`       — the per-player end-state jsonb from
  *                      common.game_players.result; null until the
  *                      game ends.

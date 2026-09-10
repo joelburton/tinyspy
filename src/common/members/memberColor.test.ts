@@ -1,15 +1,29 @@
 // cs-audited-members
 
 import { describe, expect, it } from 'vitest'
-import { colorByUserIdMap, colorVarFor } from './memberColor'
+import {
+  MEMBER_COLORS,
+  borderVarFor,
+  colorByUserIdMap,
+  colorVarFor,
+  defaultColorFor,
+} from './memberColor'
 
 /**
- * `colorVarFor` and `colorByUserIdMap` are the two pure
- * helpers that translate profile color names into CSS values
- * the FE can drop into style props. The DB's CHECK constraint
- * keeps the palette closed, but these helpers defend in depth:
- * unknown names fall through to body text rather than producing
- * a broken `var(--member-undefined-fill-color)` reference.
+ * The module turns profile color NAMES into things the rest of the app can
+ * use: the two CSS-variable resolvers and the map built from them, plus the
+ * hash that picks a starting color for a new player.
+ *
+ * The DB's CHECK constraint keeps the palette closed, but the resolvers defend
+ * in depth: an unknown name falls through to body text rather than producing a
+ * broken `var(--member-undefined-fill-color)` reference.
+ *
+ * **The palette is spelled out here on purpose.** A test that imports
+ * `MEMBER_COLORS` and checks `colorVarFor` against it proves only that the
+ * function interpolates, whatever the list happens to say — so the eight names
+ * are written by hand below. Whether every spelling of them across the app
+ * agrees is a separate question with its own guard,
+ * `src/guards/memberPalette.test.ts`.
  */
 
 describe('colorVarFor', () => {
@@ -40,6 +54,49 @@ describe('colorVarFor', () => {
     expect(colorVarFor(null)).toBe('var(--page-text-color)')
     expect(colorVarFor(undefined)).toBe('var(--page-text-color)')
     expect(colorVarFor('')).toBe('var(--page-text-color)')
+  })
+})
+
+describe('borderVarFor', () => {
+  it('returns the paired EDGE var, not the fill', () => {
+    // The two resolvers answer different halves of the same name, and the
+    // whole point of the pair is that a disc can draw both at once.
+    expect(borderVarFor('yellow')).toBe('var(--member-yellow-edge-color)')
+    expect(colorVarFor('yellow')).toBe('var(--member-yellow-fill-color)')
+  })
+
+  it('falls back to body text color on the same terms as colorVarFor', () => {
+    expect(borderVarFor('chartreuse')).toBe('var(--page-text-color)')
+    expect(borderVarFor(null)).toBe('var(--page-text-color)')
+    expect(borderVarFor(undefined)).toBe('var(--page-text-color)')
+    expect(borderVarFor('')).toBe('var(--page-text-color)')
+  })
+})
+
+describe('defaultColorFor', () => {
+  it('always returns a palette name', () => {
+    // The claim form sends whatever this returns straight to `claim_username`,
+    // which rejects anything outside the palette (PN015) — so an off-palette
+    // answer would be a fault raised on a value no player chose.
+    for (const name of ['a', 'joel', 'moth', 'leah', '', 'ZZZZZZZZZZZZ', '🎲']) {
+      expect(MEMBER_COLORS).toContain(defaultColorFor(name))
+    }
+  })
+
+  it('gives the same username the same color every time', () => {
+    // Stability is the contract: a player who reloads the claim form before
+    // submitting should not watch their pre-selected color change.
+    expect(defaultColorFor('joel')).toBe(defaultColorFor('joel'))
+    expect(defaultColorFor('moth')).toBe(defaultColorFor('moth'))
+  })
+
+  it('spreads across the whole palette rather than favoring a few', () => {
+    // A hash that reached only three colors would still be "deterministic and
+    // in-palette" while making the pre-selection nearly useless. Every name in
+    // MEMBER_COLORS should be reachable.
+    const seen = new Set<string>()
+    for (let i = 0; i < 200; i++) seen.add(defaultColorFor(`player${i}`))
+    expect([...seen].sort()).toEqual([...MEMBER_COLORS].sort())
   })
 })
 

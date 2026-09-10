@@ -21,7 +21,8 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 |---|---|---|
 | `src/common/members/member.ts` | the `Member` / `GamePlayer` types — who someone is; types only | `cs-audited-members` |
 | `src/common/members/memberColor.ts` | `MEMBER_COLORS` and the four helpers that turn a palette name into a CSS reference | `cs-audited-members` |
-| `src/common/members/memberColor.test.ts` | tests for two of those four helpers | `cs-audited-members` |
+| `src/common/members/memberColor.test.ts` | tests for two of those four helpers; all four after F-members-8 | `cs-audited-members` |
+| `src/guards/memberPalette.test.ts` | WRITTEN by this area (F-members-8) — the five spellings of the palette agree | `cs-audited-members` |
 | `src/common/members/memberList.ts` | `orderSelfFirst` and `memberById` — reading order, and the who-is-this lookup | `cs-audited-members` |
 | `src/common/members/gamePlayers.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test | `cs-audited-members` |
 | `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
@@ -245,6 +246,30 @@ because the component owns the plain name.
   to *"keep in sync."* Guard the vocabulary: a test that reads the two SQL
   lists off disk and asserts equality with `MEMBER_COLORS`.
 
+  **It was FIVE places, not three** (found 2026-09-09, planting a failure into
+  the guard: the plant hit two matches where one was expected). The two the
+  read missed are both in `common.sql` — `claim_username`'s PN015 allow-list
+  (`:2425`) and the array `common.color_for_username` picks from (`:550`). The
+  second is the interesting one: it carries the palette's LENGTH as well as its
+  names, as the `% 8` that indexes the array, so a ninth color added to the
+  other four would leave that function unable to ever return it.
+
+**WORKED 2026-09-09.** `src/guards/memberPalette.test.ts` reads all four SQL
+sites off disk and compares each as a SET with `MEMBER_COLORS` — order is
+meaningless in three membership tests and a hash bucket, and `MEMBER_COLORS`'s
+own order belongs to the picker. It asserts the modulo separately, and it
+asserts that each list was FOUND, because a reworded anchor would otherwise
+leave it comparing two empty arrays and passing. Verified by planting four
+failures (a name added to the FE, a name dropped from PN015, a changed modulo,
+a reworded anchor); each failed with the message that names the cause.
+
+`memberColor.test.ts` gains `borderVarFor` (the edge var, and the same
+fallback contract) and `defaultColorFor` (always in-palette, stable per
+username, and reaching all eight over 200 names). Its docstring now says why
+the palette is spelled by hand there — a test that imports the list it checks
+proves only that the function interpolates — and points at the guard for the
+agreement question.
+
 ### F-members-9 · `fixture-named-like-a-module` · `gamePlayers.ts` is a test fixture wearing a module's name
 
 The file name says "game players"; the contents are one function, `gp()`, and
@@ -255,18 +280,31 @@ already has a shape for this: `boggle/lib/solver.fixture.ts`,
 builder's name is a fixture idiom (sixteen call sites, terse by design); leave
 it or lengthen it — Joel's call.
 
-### F-members-10 · `member-docstrings-overclaim` · `member.ts` says the same thing twice and one claim is false
+### F-members-10 · `member-docstrings-duplicate-and-underdocument` · `member.ts` says the same thing twice and leaves a field undocumented
 
 - The file docstring and the `Member` docstring both explain member-vs-player
   naming and both cite docs/naming.md. One copy.
-- `GamePlayer`'s bullets: *"Drives the OpponentStrip 'out' marker"* —
-  `OpponentStrip.tsx` never reads `conceded` and draws no such marker. The
-  readers are the per-game PlayAreas (`myConceded` / `concededIds`) and
-  bananagrams' `PeersStrip`; the "Quit at …" vs "Lost at …" words live in
-  `terminalOutcomeVerb`. The bullets list `conceded` and `result` and skip
-  `conceded_at`.
+- ~~`GamePlayer`'s bullets: *"Drives the OpponentStrip 'out' marker"* —
+  `OpponentStrip.tsx` never reads `conceded` and draws no such marker.~~
+  **WRONG, and the docstring was right** (found 2026-09-09, working the
+  finding). `OpponentStrip` takes a `metricFor(player, isSelf)` callback and
+  seven games return the string `'out'` from it when `concededIds.has(...)`
+  (`connections/components/InfoCol.tsx:193` + six siblings). The field really
+  does drive the marker; the strip simply never names it, which is what an
+  `OpponentStrip.tsx` grep looks like and how this was misread. The docstring
+  now says who renders it, so the next grep does not end the same way. The same
+  claim appears in ~15 doc sentences and in
+  `20260615000000_common.sql:533` — all of them accurate, none to touch.
+- The bullets list `conceded` and `result` and skip `conceded_at`.
 - The `color` field's `//` note points at `colorVarFor` by full path; the
   short form is enough inside the same folder.
+
+**WORKED 2026-09-09.** The naming rule keeps one copy, in `Member`'s docstring,
+because that is the one a hover shows. `conceded_at` gets a bullet saying it is
+written and cleared with the flag, so a true `conceded` always carries one
+(`common.sql:1562`, and `reset_game` clears the pair). The `color` note now
+says what the field IS — a palette name, never a hex — and names both resolvers
+rather than one file path.
 
 ### F-members-11 · `richmessage-defeats-em-sizing` · Dot's default size is em so an inline dot tracks its text; `RichMessage`, an inline text row, overrides it to `0.6rem`
 
@@ -321,8 +359,9 @@ wrong is a look-at-it question, not a read one; recorded so it is asked.
 - **`onColor` has one caller** (psychicnum's Board); `hollow` has two
   (PageHeaderPlayersStrip, WordList). `hollow` + `onColor` together would draw a
   dark ring on a colored tile; no site does it.
-- **The palette CHECK, the RPC allow-list and `MEMBER_COLORS` agree today**,
-  same eight names, same order. F-members-8 is about keeping it that way.
+- **Every spelling of the palette agrees today**, same eight names, same order
+  — and there are five of them, not the three the read found. F-members-8's
+  guard is what keeps it that way.
 - **`fixed.css`'s header** said the member colors paint *"bold name labels
   (chat usernames)"* — a `corecss` sentence, and F-members-2 made it false the
   day it landed. Fixed there rather than noted, and called out for `corecss`.
