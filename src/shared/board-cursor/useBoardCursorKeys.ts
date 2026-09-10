@@ -69,7 +69,10 @@ export function useBoardCursorKeys({
     const k = e.key
     if (k === 'Enter' || (enterOnSpace && k === ' ')) {
       // A focused <button> already ran its native Enter/Space activation — don't
-      // fire the commit a second time.
+      // fire the commit a second time. This guard does NOT survive into bound
+      // actions: nothing on a play surface should hold focus in the first place
+      // (Joel, 2026-09-10), so the two raw buttons that still can are the fix,
+      // not a button-shaped gate in the key dispatcher.
       if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return
       e.preventDefault()
       onEnter()

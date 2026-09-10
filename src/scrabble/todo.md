@@ -28,6 +28,20 @@
   trap, no Esc, and a scrim click CANCELS, the opposite of every other
   modal's contract). Long recorded as the ladder's known anomaly; it wants a
   look, not a reflex bump. On the z-index guard's pending list until then.
+
+  **Settle it when scrabble's keys become bound actions**, because the keyboard
+  makes it concrete: the app's one key dispatcher stands down for anything
+  inside a `[data-floating-panel]`, and this overlay is not one — so while it is
+  open, a keystroke still reaches the board underneath. Whether it ends up
+  blocking or not was never decided; deciding it is what says who owns the
+  keyboard while a blank is being declared.
+- **Two raw `<button>`s take focus on click**, where every `StandardButton`
+  suppresses it: the AI suggestion rows (`InfoCol.tsx`) and the history banner's
+  ✕ (`BoardCol.tsx`). The suggestion row is the one that lingers — clicking it
+  stages the move and the list stays up, so the row keeps focus and the next
+  Enter re-activates it natively. Nothing on a play surface should hold focus
+  (Joel, 2026-09-10); the fix belongs with this game's tab ring rather than to
+  a special case in the key dispatcher.
 - **`shuffle` in `lib/policy.ts` is a hand-written Fisher–Yates** —
   `src/common/utils/shuffle.ts` is the same function with the rng optional,
   so the local one goes and its one seeded call site (the self-play bag)
