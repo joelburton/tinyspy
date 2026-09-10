@@ -103,7 +103,7 @@ test.describe('spellingbee custom letters', () => {
     await page.locator('input[name="custom_letters"]').fill('a-chirot')
 
     // Start → the edge function builds the board + lands us on the game.
-    await page.getByRole('button', { name: /^Start FreeBee/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
 
     // The honeycomb renders with EXACTLY our letters: center A, outers C/H/I/R/O/T.
     // Selected by `data-hex` — a hex is pointer-only and carries no ARIA role

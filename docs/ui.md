@@ -206,7 +206,7 @@ Game-end UI splits along one line: **the moment** (a win worth marking, which ha
 - `message` → the **info-column outcome line** in `<TerminalActionRow>`. Shorter still: "You won!" / "Out of guesses" / "Game over".
 - `tone` (`won` / `lost` / `neutral`) colors both. The neutral manual-end copy is shared outright (`endedCopy()`) — the friends agreed to stop, so nobody won and nobody lost.
 
-**`<TerminalActionRow>`** (`common/terminal/`) is the shared info-column game-over row: the outcome line, then any per-game terminal actions as children, then a primary Back-to-Club. Every game passes `backShow="icon"` so the row survives a ~22rem column (`RestartButton` + `RevealButton` + `NewGameButton` + Back-to-Club is four items in a `nowrap` row — see [Button iconography](#button-iconography)). Its neutral twin **`<LocalTerminalRow>`** covers *locally* terminal states — a compete player who conceded or ran out while the others race on — so dropping out reads as loudly as a real ending without claiming the game is over.
+**`<TerminalActionRow>`** (`common/terminal/`) is the shared info-column game-over row: the outcome line, then any per-game terminal actions as children, then a primary Back-to-Club. Every game passes `backShow="icon"` so the row survives a ~22rem column (Restart + Reveal + New game + Back to club is four items in a `nowrap` row — see [Button iconography](#button-iconography)). Its neutral twin **`<LocalTerminalRow>`** covers *locally* terminal states — a compete player who conceded or ran out while the others race on — so dropping out reads as loudly as a real ending without claiming the game is over.
 
 Neither replaces the page: it stays in *review mode* (the final board, connections' revealed categories, and — once asked for — codenamesduet's partner key card or psychicnum's ringed secrets; see [Don't reveal the solution on a loss](#terminal-results--the-moment-vs-the-record) below). And per [Layout stability](#layout-stability), the terminal row **rotates into a reserved slot** — it never adds or removes a flow element, which would let the `flex: 1` board grow.
 
@@ -225,7 +225,7 @@ Neither replaces the page: it stays in *review mode* (the final board, connectio
 Three properties, and each one is a decision (`common/hooks/game/useSolutionReveal.ts` holds all three):
 
 - **Personal.** My looking doesn't open the answer on a partner who is still turning the loss over. It used to be a shared flag — one player pressed Reveal and every board opened — which reads generous and plays badly: a post-mortem is people thinking out loud, and one impatient click ended everyone else's thinking. Each player now looks when they're ready.
-- **Temporary.** The same control puts it away: `RevealButton` takes `revealed` and swaps to `EyeOff` / *Hide*. This is the one that mattered most. For the games whose reveal **rewrites the board** — crosswords (fills the grid), strands (draws the unfound words), waffle (swaps in the solved grid), connections (bands replace the tiles) — a permanent reveal destroyed the only record of *how far the players actually got*. Now the board they finished with is always one click back.
+- **Temporary.** The same control puts it away: `act-reveal`'s `describe()` carries both faces, and swaps to `EyeOff` / *Hide* once the answer is up. This is the one that mattered most. For the games whose reveal **rewrites the board** — crosswords (fills the grid), strands (draws the unfound words), waffle (swaps in the solved grid), connections (bands replace the tiles) — a permanent reveal destroyed the only record of *how far the players actually got*. Now the board they finished with is always one click back.
 - **Unpersisted.** No RPC, no column, nothing on realtime, nothing to un-write on a replay, and a reload lands back on the board as it ended. What each game *does* still owe is dropping the local reveal in its `onRestarted` — a replay of the same board must start blind, and no server flag remembers that for it any more.
 
 **A game you SOLVED starts revealed.** Six of the ten have a **clear win** — you can only reach the end by producing the answer — so asking the solver to press Reveal is asking them to uncover what they're looking at: **strands** (the theme words tile the board exactly, so solving consumes every cell), **psychicnum** (finding all three IS the win, and a found secret is already green), **stackdown** (you played all six words), **waffle** (your solved grid IS the solution), **connections** (each match resolves into a band, so all four are up), **wordle** (you typed it). Their Reveal goes **inert with "Solution already shown"** — present, never absent, so the row keeps its shape against a game that ended some other way. It keeps the **plain View eye, not EyeOff**: both readings are technically true (you can't hide what the win put there, and you can't show what's already shown), but a solver never pressed Reveal, so there is no "on" state for a struck-through eye to be the "off" of — it reads as a state they don't recognize.
@@ -245,7 +245,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **The reveal is terminal-only**, and that part is still enforced by the server: each gametype's shield hands the solution over at `is_terminal` — ended for *everyone* — so a compete player who conceded, was eliminated, or finished early can't pull the answer while the others are still playing. There is no per-game "am I locally done?" reasoning anywhere in the path. Where a game shows a locally-terminal row, it keeps the control visible but disabled, tooltipped **"Can't reveal until all end"**: the row must not change shape when the last racer finishes, and "not yet" beats a control that vanished. That's also why the button never disables itself once used — it toggles instead.
 
-**Every gated game offers the reveal twice** — a `RevealButton` in the terminal action row *and* a game-menu item, both wearing the same two faces — so a player who's scrolled past the row, or who is on the mobile layout where the info column is off-canvas, can still get to it.
+**Every gated game offers the reveal twice** — an `<ActionButton>` in the terminal action row *and* a game-menu item, both placing the SAME `act-reveal` binding, so the two faces cannot come apart — so a player who's scrolled past the row, or who is on the mobile layout where the info column is off-canvas, can still get to it.
 
 **Showing the answer means the whole answer.** crosswords learned this one late: its reveal filled the blanks but left a wrong letter standing, which is a half-corrected grid rather than the solution. The author's letter now replaces the player's in every cell, grayed — gray meaning "this letter is the author's, not yours", so the key doubles as a diff — and Hide brings their fill, marks and all, straight back. Overwriting what's on screen is only safe *because* it comes back.
 
@@ -253,7 +253,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **codenamesduet is gated for a different reason**, and it's the clearest illustration of why the reveal is personal. It has no replay to protect (its board *is* the secret). The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. When the reveal was shared, one player opening the card ended the other's half of that conversation mid-sentence.
 
-**Restart** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log.
+**Restart** (`act-restart` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log.
 
 **All sixteen games have it.** The three that once didn't (restored 2026-08-03) were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
 
@@ -261,7 +261,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 - **bananagrams** — no shared puzzle, so a restart deals what New game would. Kept anyway because of the missing-affordance problem above, and built as a *real* reset (same row, same hands re-dealt from the immutable `bunch_seed`) rather than an alias, so the club list doesn't grow an entry.
 - **crosswords** — "can't surprise you twice once the answers have been read" (decided 2026-07-31, reversed 2026-08-03). It turned out to already *have* the feature under another name: **Clear board** wiped the fill and kept the grid. That's a restart with a different label and one missing power — it couldn't un-terminal a finished puzzle. Clear board is gone; Restart is the one name and one path.
 
-**Two surfaces, one rule.** The `RestartButton` shows **only at terminal**, so mid-game boards aren't cluttered with an action nobody's reaching for. The **game-menu item is always there** — that's where a mid-game restart lives — and mid-game it asks `RESTART_CONFIRM` first ("This clears everyone's progress and starts the same board again — you can't undo it"). At terminal it goes straight through, because there's nothing left to lose. No `replay_board` guards on `play_state`: it's a restart, and the confirm is the protection.
+**Two surfaces, one rule.** The Restart **button** shows only at terminal, so mid-game boards aren't cluttered with an action nobody's reaching for — the terminal row is the only place it is placed. The **game-menu item is always there** — that's where a mid-game restart lives — and mid-game the shared run asks `RESTART_CONFIRM` first ("This clears everyone's progress and starts the same board again — you can't undo it"). At terminal it goes straight through, because there's nothing left to lose. No `replay_board` guards on `play_state`: it's a restart, and the confirm is the protection.
 
 **One answer, one refusal.** `replay_board` returns `{ result: 'replayed' }` and has no gates of its own — it is legal mid-game and at terminal, in both modes, for any player, and a replayed board is itself a perfectly legal thing to replay. The only thing that can refuse it is the game having been **deleted** underneath the page: `common.delete_game` is granted to any club member for any game in the club, so a friend tidying the list while you have it open really does take the row out from under you. That answers **PN485 "That game was already deleted"** — the words and the red of `delete_game`'s own PN010, since it is the same news. It is checked BEFORE membership, deliberately: the delete cascades `game_players` too, so a membership-first order answered "You are not in this game", which is true of the rows and false of the player (fixed 2026-09-01; [`gameDeletedFirst.test.ts`](../src/guards/gameDeletedFirst.test.ts) holds the order).
 
@@ -2121,8 +2121,8 @@ the glyph into a `House` and a `Users`.
   drawn. A surface needing a different box re-points the size token in its own
   class. **Not** for `ShuffleButton`, the board's round pill — a separate
   fixed-size circular shape that styles itself, and the only one of its kind:
-  the header's marks are `<PageHeaderButton>`s and `ZoomFitButton` is an
-  ordinary icon-only square.
+  the header's marks are `<PageHeaderButton>`s and bananagrams' zoom-to-fit is
+  an ordinary icon-only square.
 - **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
   A move-submit "sends" the move up to the other players (our boards put YOU at
   the bottom, others above — codenamesduet's keycards literally so), and pointing
@@ -2132,23 +2132,28 @@ the glyph into a `House` and a `Users`.
   = `RotateCw`** (read clearer than the crossing-arrows `Shuffle`, and spins
   nicely on the existing hover-spin).
 
-**Peel** (bananagrams) is now the semantic **`PeelButton`** (primary weight,
-`IconPeel` = Lucide `Banana` — on-brand for MonkeyGrams and reads as its own
-action, not a generic submit). The `🍌` emoji survives only in the **feedback
-pill** copy ("🍌 Peel! You drew 1 tile"), not the button. **`ZoomFitButton`**
-(`IconZoomFit` = `Fullscreen`) is bananagrams's zoom-to-fit — a plain square
-icon-only button. bananagrams's **dump** uses `ArrowLeftRight` (`IconExchange`),
+**Peel** (bananagrams) is `act-peel` (primary weight, `IconPeel` = Lucide
+`Banana` — on-brand for MonkeyGrams and reads as its own action, not a generic
+submit). The `🍌` emoji survives only in the **feedback pill** copy ("🍌 Peel!
+You drew 1 tile"), not the button. **`act-zoom-fit`** (`IconZoomFit` =
+`Fullscreen`) is bananagrams's zoom-to-fit — a plain square icon-only button. bananagrams's **dump** uses `ArrowLeftRight` (`IconExchange`),
 the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete: every game-move / end / hint / reveal / concede is a
-named button from [`common/buttons/`](../src/common/buttons/doc.md), and **End
-(or Concede)** is an info-column action-row *button*, never a GamePage-menu
-item. That folder's own doc lists what is there and which of them stand apart —
-the board's round pill and the header's pause mark are their own controls, not
-standard buttons. Still on their old glyphs / pending: the chat bubble, the `×`
-close, and the `✓`/`✗` marks.
+**Rollout.** Complete, and then superseded: every game-move / end / hint /
+reveal / concede used to be a named button from `common/buttons/`, one file per
+command. Those are **actions** now ([`common/actions/`](../src/common/actions/doc.md)) —
+the registry says what a command is called, what it wears and what it answers
+to, and `<ActionButton>` draws it — so a command's appearance is still decided
+once, just one layer up, where the menu row and the key read the same entry. End
+and Concede appear in BOTH the info-column action row and the game menu, which
+is the point: they are one binding placed twice. What is left in
+[`common/buttons/`](../src/common/buttons/doc.md) is chrome — cancel, the form
+commit, close, delete — plus the two bespoke controls (the board's round pill
+and the score-carrying submit) that read an action but keep their own markup.
+Still on their old glyphs / pending: the chat bubble, the `×` close, and the
+`✓`/`✗` marks.
 
 **Two axes + natural width.** A named button carries **weight** (`primary` = the
 filled-accent main action like Submit; `secondary` = the outline everything else
@@ -2183,13 +2188,12 @@ primary/secondary, and the property is always a background. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
 **not** stretch to equal widths or the column's right edge: equalizing widths clipped
 a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the
-short one"). Need a button with no named component yet? **Create one** (a
-one-line wrapper) — never hand-roll a one-off `<button>` in a game.
+short one"). Need a command that has no registry row yet? **Add one** — never
+hand-roll a one-off `<button>` in a game.
 
-**End vs Concede** are distinct components for distinct actions: **End**
-(`EndGameButton`) is the neutral mutual "we're done" that stops the game for
-everyone; **Concede** (`ConcedeGameButton`) is one player dropping out of a race
-that continues without them. They were near-identical buttons — same flag, same
+**End vs Concede** are distinct actions: **End** (`act-end-game`) is the neutral
+mutual "we're done" that stops the game for everyone; **Concede**
+(`act-concede`) is one player dropping out of a race that continues without them. They were near-identical buttons — same flag, same
 red — on the assumption that a game shows one *or* the other. **bananagrams
 shows both at once** (its compete row has End alongside Concede), where two red
 flags read as the same act twice, so they diverge:

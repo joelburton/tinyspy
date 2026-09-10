@@ -57,9 +57,9 @@ test.describe('club page keyboard nav', () => {
 
     // Enter on a start item opens the setup dialog; Escape closes it.
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('button', { name: /^Start / })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: 'Start' })).toBeVisible({ timeout: 5000 })
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('button', { name: /^Start / })).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Start' })).toBeHidden()
 
     // "/" (a global shortcut) still opens chat; typing Tab INSIDE the chat
     // input keeps native behavior (the list-toggle doesn't hijack overlays).

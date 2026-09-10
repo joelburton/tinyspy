@@ -411,7 +411,7 @@ src/spellingbee/
                           useCaptureKeys in PlayArea.
                           (The Delete / Shuffle / Enter controls are no longer a per-game
                           Actions.tsx: they're the shared semantic buttons —
-                          <DeleteButton> + <SubmitButton> flanking the EntryBox in the input
+                          act-delete-last + act-submit-entry flanking the EntryBox in the input
                           row, and a floating <ShuffleButton> over the board's top-right.)
                           (The own-move result pill is no longer a per-game Feedback.tsx:
                           it's the shared GenericFeedbackPill, sticky, rendered in the below-board

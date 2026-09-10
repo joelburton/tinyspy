@@ -60,7 +60,7 @@ async function restart(page: Page) {
 /**
  * Reveal the answer if this game offers it, wherever it lives. Two homes across
  * the roster: strands + wordle carry a "Reveal answer" MENU item; the others put
- * a RevealButton in the terminal action row. `count()` first, always — a
+ * an `act-reveal` button in the terminal action row. `count()` first, always — a
  * zero-match locator makes `isEnabled()`/`click()` auto-wait to the timeout.
  */
 async function revealIfOffered(page: Page) {

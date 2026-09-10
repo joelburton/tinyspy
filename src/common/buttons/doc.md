@@ -1,9 +1,9 @@
 # buttons
 
-The app's one general button, the named buttons built from it, and the one
-control family close enough to belong beside them. What a button LOOKS like is
-decided here; the taxonomy around it — the kinds of control the app has, which
-glyph means what, when a button is offered at all — is
+The app's one general button, the handful of named buttons built from it, and
+the one control family close enough to belong beside them. What a button LOOKS
+like is decided here; the taxonomy around it — the kinds of control the app has,
+which glyph means what, when a button is offered at all — is
 [ui.md](../../../docs/ui.md).
 
 ## Design
@@ -11,18 +11,29 @@ glyph means what, when a button is offered at all — is
 A button in this app carries no logic. It does not know what an RPC is, whether
 the game is over, or who is allowed to press it; a caller hands it a click
 handler and a disabled flag and it draws. That is the whole reason these files
-live together rather than beside the screens that use them: what a Restart
-button looks like is not a fact about waffle, and a folder organized by caller
+live together rather than beside the screens that use them: what a Cancel button
+looks like is not a fact about the club page, and a folder organized by caller
 would have the same button drawn four ways.
 
 So there is exactly one general button component, and everything else here is
-that button with a name and some defaults. A named button — Restart, Trash,
-Cancel — exists so an action's appearance is decided once and stays decided: a
-Trash is red BEFORE you press it, because an irreversible act should look
-irreversible while you can still change your mind, and that is true wherever one
-appears. None of them overrides anything; each supplies defaults that a call site
-can still replace, so packaging an action never costs a caller the ability to
-deviate.
+that button with a name and some defaults. A named button — Trash, Cancel, the
+form commit — exists so a recurring control's appearance is decided once and
+stays decided: a Trash is red BEFORE you press it, because an irreversible act
+should look irreversible while you can still change your mind, and that is true
+wherever one appears. None of them overrides anything; each supplies defaults a
+call site can still replace, so packaging a control never costs a caller the
+ability to deviate.
+
+**What is NOT here any more is a game's commands.** There used to be a named
+button per command — Restart, New game, Concede, Hint, Peel, Reveal — and each
+was a second place an action's words, glyph and tone were written down. Those are
+[actions](../actions/doc.md) now: the registry holds what a command IS, a
+component binds what it does, and `<ActionButton>` draws it. So a button file
+here names a piece of CHROME (dismiss, cancel, commit a form, delete a row) —
+the things that are not commands a player invokes in a game. The two
+exceptions are the bespoke controls, `ShuffleButton` and `SubmitWithScore`,
+which ARE driven by actions but keep their own markup because neither is
+shaped like a standard button; they read their action through `actionSurface`.
 
 The prop names carry the folder's one real distinction, which is between what a
 button IS and what it DRAWS. Those come apart more often than you would expect —
@@ -36,8 +47,8 @@ glyph means.
 
 `show` is required at every call site and no component defaults it. That is a
 deliberate cost — it makes call sites longer — and it buys the thing that
-matters more: reading `<RestartButton show="icon" />` you know what appears
-without opening `RestartButton`. A default here means two call sites that look
+matters more: reading `<TrashButton show="icon" />` you know what appears
+without opening `TrashButton`. A default here means two call sites that look
 identical draw different things, which is a question you can only answer by
 leaving the file you are reading.
 

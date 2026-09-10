@@ -4,22 +4,19 @@ import { IconEndGame } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * End-the-game button — the manual "we're done" stop for solo / coop. It is
- * the irreversible action in the row and is colored to say so before the press.
- * Its glyph is the crossed-out stop sign and Concede's is the flag, because
- * bananagrams shows both buttons at once and two red flags read as one act
- * repeated.
+ * End-the-game button, for the ONE surface that cannot reach the action: the
+ * pause overlay. It is the irreversible act in the row and is colored to say so
+ * before the press; its glyph is the crossed-out stop sign.
  *
- * Label is always **"End game"** — the same in every game (compete uses
- * `ConcedeGameButton` instead). Don't pass a custom
- * `label`: the whole point is that this button reads the same everywhere. It's
- * the full phrase rather than a bare "End" because most games render it
- * icon-only, where the label IS the accessible name and the tooltip — and "End"
- * alone doesn't say end *what*.
+ * **In a game, End is `act-end-game`** — bound by `useStandardGameActions` and
+ * placed with `<ActionButton>`, which is where its words, glyph, tone, key and
+ * confirmation come from. The overlay is the exception because it REPLACES the
+ * play area: while the game is paused the PlayArea is unmounted, so its binding
+ * is not on the stack and there is no action to place. Hence a callback and
+ * this button, which keeps the two looking identical.
  *
- * Thin for now. The confirm-before-ending dialog + irreversibility (identical
- * everywhere this is used) will move INTO this component later — which is exactly
- * why it's its own file from the start.
+ * Label is always **"End game"** — the full phrase rather than a bare "End",
+ * because "End" alone doesn't say end *what*.
  */
 export function EndGameButton({
   label = 'End game',

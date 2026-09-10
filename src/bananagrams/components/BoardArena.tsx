@@ -2,7 +2,8 @@
 
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { GRID, MAX_CELL } from '../lib/board'
-import { ZoomFitButton } from '@/common/buttons/ZoomFitButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import {
   LETTER_SCALE,
@@ -32,7 +33,7 @@ export function BoardArena({
   cell,
   minCell,
   onZoom,
-  onCenterFit,
+  actZoomFit,
   board,
   cursor,
   hover,
@@ -46,7 +47,9 @@ export function BoardArena({
   cell: number
   minCell: number
   onZoom: (next: number) => void
-  onCenterFit: () => void
+  // Re-center the board and fit it to the viewport. `usePlayerBoard` binds it;
+  // this places it.
+  actZoomFit: BoundAction
   /** The placement grid (`GRID*GRID` chars, '.' = empty). */
   board: string
   cursor: Cursor
@@ -136,7 +139,7 @@ export function BoardArena({
           aria-label="Zoom"
           title="Zoom"
         />
-        <ZoomFitButton show="icon" onClick={onCenterFit} />
+        <ActionButton action={actZoomFit} show="icon" />
       </div>
     </div>
   )

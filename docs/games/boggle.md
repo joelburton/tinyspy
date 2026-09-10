@@ -458,7 +458,7 @@ board), swapped in for spellingbee's hex flower.
   terminal pill (they replace each other so the board never reflows).
   - **Move entry** is the shared **capture model** (`useCaptureKeys` + a chrome-less
     `<EntryBox>` display, same as spellingbee): window key-capture, letters stored
-    UPPERCASE, the icon-only `DeleteButton` + `SubmitButton` flanking the box. Enter
+    UPPERCASE, the icon-only `act-delete-last` + `act-submit-entry` flanking the box. Enter
     submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
     clears (the universal `useCaptureKeys` last-move history). Words can also be built
     by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see

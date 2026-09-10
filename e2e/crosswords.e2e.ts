@@ -470,7 +470,7 @@ test.describe('crosswords play loop', () => {
     })
 
     // Start → land on the game with a rendered grid.
-    await page.getByRole('button', { name: /^Start CrossPlay/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
     await expect(page.locator('[data-xw-cell]').first()).toBeVisible({ timeout: 15000 })
   })
 

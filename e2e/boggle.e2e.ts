@@ -194,7 +194,7 @@ test.describe('boggle custom board', () => {
     await page.locator('input[name="custom_board"]').fill(CUSTOM_BOARD)
 
     // Start → the edge function solves exactly this board and lands us on it.
-    await page.getByRole('button', { name: /^Start MothCubes/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
 
     const tiles = page.locator('[data-boggle-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 20000 })

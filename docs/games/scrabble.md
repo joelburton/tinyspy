@@ -508,7 +508,7 @@ more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finis
 picks the winner among **non-conceded** players (a drop-out forfeits even a tying
 score), and `scrabble.concede` hands the turn off if it was the conceder's, or
 ends the game (final scoring, nobody eligible to win) when the last active player
-drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip
+drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip
 (and `Quit · score` at terminal via `terminalOutcomeVerb`), input disabled once
 conceded. See [common.md → Concede](../common.md#concede--per-player-drop-out).
 pgTAP: `concede_test.sql`. All the terminal paths do the realtime-touch self-write
@@ -737,7 +737,7 @@ coop is always-live (race to commit).
 ### Show a move (coop)
 
 In coop (≥2 players) a player building a word can click **Share** (the info-tone,
-icon-only `SharePreviewButton`, beside Recall) to broadcast their **staged tiles** to
+icon-only `act-share-preview`, beside Recall) to broadcast their **staged tiles** to
 teammates, who see them laid on their own board in a **read-only preview** — the
 deliberate **twin of the turn-history viewer**: the shared `historyViewer` chrome
 (framed board + a banner `● moth showing: +18 BERRY`, input frozen) and the same
@@ -893,7 +893,7 @@ the single source of truth for geometry + scoring.)
 
 ## 11. The move suggester (AI)
 
-Coop's info column has a **Suggest** button (the shared `AIButton`); it returns
+Coop's info column has a **Suggest** button (`act-suggest-move`, sparkles + amber); it returns
 the top-5 legal moves, and clicking one **stages** that move's tiles — the same
 staging state a hand-placed move uses, reviewed and committed through the
 normal play flow. The suggester is advisory: it never submits.
@@ -1038,8 +1038,8 @@ GAMEPLAY decision with a second question inside it: compete's pass feeds
 `consecutive_passes`, the blocked-end counter, and coop has no blocked end. So
 a coop pass either stays a pure hand-off — the shape letterboxed's undo takes,
 priced at one turn — or it becomes a way for a coop game to end in a stalemate,
-which is a rule this game does not have today. The FE renders `PassButton` only
-in compete, so nothing is broken meanwhile; the refusal is a fault (PN452) for
+which is a rule this game does not have today. The FE's `act-pass` is hidden in
+coop, so nothing is broken meanwhile; the refusal is a fault (PN452) for
 exactly that reason.
 
 **The AI suggest-a-move box is the one SelectionList site that didn't convert,

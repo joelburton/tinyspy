@@ -51,7 +51,7 @@
 }
 
 /* ── The Hint button's two states ─────────────────────────────
- * The shared HintButton is an outline+orange `secondary`, which is right for a
+ * A hint's shared look is an outline+orange `secondary`, which is right for a
  * button you MIGHT press. Here the whole hint economy exists to reach one
  * moment — the bar filling — and an outline button changing from 50% to 100%
  * opacity is far too quiet an announcement for it.

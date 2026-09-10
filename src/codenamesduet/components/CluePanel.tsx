@@ -6,7 +6,8 @@ import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
 import { DotActor, ActorDot } from '@/common/members/ActorMention'
-import { SubmitButton } from '@/common/buttons/SubmitButton'
+import { FormSubmitButton } from '@/common/buttons/FormSubmitButton'
+import { IconSubmit } from '@/common/icons/icons'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
@@ -380,11 +381,12 @@ function ClueForm({
           className={styles.wordInput}
           data-game-input
         />
-        {/* Submit — the shared primary SubmitButton (its IconSubmit up-triangle
-            "sends this clue up to your partner"). type="submit" so the form's
-            onSubmit still fires (StandardButton defaults to type="button"). */}
-        <SubmitButton
-          type="submit"
+        {/* Submit — the clue box is a REAL form (docs/ui.md → Real forms), so
+            this is the form's commit rather than a bound action: it submits, and
+            the game's own `onSubmit` reads the two fields. The up-triangle says
+            "sends this clue up to your partner". */}
+        <FormSubmitButton
+          icon={IconSubmit}
           label={busy ? 'Submitting…' : 'Submit'}
           show={isPhone ? 'icon' : 'both'}
           disabled={eitherBusy || !submittable}

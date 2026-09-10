@@ -90,7 +90,7 @@ test('“⌥+” confirms, then opens the setup dialog on the club page', async 
   await expect(page.getByText('Start a new game?')).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: 'Start new game' }).click()
   await expect(page).toHaveURL(new RegExp(`/c/${club.handle}`), { timeout: 20000 })
-  await expect(page.getByRole('button', { name: /^Start / })).toBeVisible({ timeout: 10000 })
+  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible({ timeout: 10000 })
 
   // Backing out of setup just leaves you on the club page, as usual.
   await page.getByRole('button', { name: /^cancel$/i }).click()

@@ -12,7 +12,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { StandardButton } from './StandardButton'
-import { RestartButton } from './RestartButton'
+import { TrashButton } from './TrashButton'
 import { CancelButton } from './CancelButton'
 import { BackToClubButton } from './BackToClubButton'
 import { IconEndGame } from '../icons/icons'
@@ -77,17 +77,17 @@ describe('StandardButton — label, show, tooltip', () => {
 
 describe('purpose buttons', () => {
   it('supply their own label, and stay overridable on every axis', () => {
-    const { rerender } = render(<RestartButton show="both" />)
-    expect(screen.getByRole('button', { name: 'Restart' })).toBeInTheDocument()
-    rerender(<RestartButton show="both" label="Start over" />)
-    expect(screen.getByRole('button', { name: 'Start over' })).toBeInTheDocument()
+    const { rerender } = render(<TrashButton show="both" />)
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    rerender(<TrashButton show="both" label="Remove" />)
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument()
   })
 
   it('an explicitly-passed undefined takes the default, the way omitting it does', () => {
     // What default parameters give us, and why purpose buttons declare their
     // defaults that way rather than spreading over them.
-    render(<RestartButton show="both" label={undefined} />)
-    expect(screen.getByRole('button', { name: 'Restart' })).toBeInTheDocument()
+    render(<TrashButton show="both" label={undefined} />)
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
   it('a Cancel is a standard button whose glyph is never drawn', () => {

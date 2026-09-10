@@ -84,7 +84,7 @@ test.describe('puzzle pickers', () => {
     const firstText = (await first.textContent())!
 
     // Start with nothing picked — the whole point.
-    await page.getByRole('button', { name: /^Start PaulPath/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
 
     // Re-open: the club has now played that one, so the offer must move on.
@@ -109,7 +109,7 @@ test.describe('puzzle pickers', () => {
     await openPuzzle(page)
     await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
 
-    await page.getByRole('button', { name: /^Start WordKnit/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/connections_coop\//, { timeout: 20000 })
 
     await ctx.close()
@@ -241,7 +241,7 @@ test.describe('puzzle pickers', () => {
 
     await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
     await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
-    await page.getByRole('button', { name: /^Start PaulPath/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
     const firstUrl = page.url()
 
@@ -251,7 +251,7 @@ test.describe('puzzle pickers', () => {
     await open()
     await page.locator('input[name="puzzle_id"]').fill('2025-06-15')
     await expect(nextUpLine(page)).toContainText(CLUE, { timeout: 10000 })
-    await page.getByRole('button', { name: /^Start PaulPath/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
     await expect(page).toHaveURL(/\/g\/strands_coop\//, { timeout: 20000 })
     expect(page.url()).not.toBe(firstUrl)
 

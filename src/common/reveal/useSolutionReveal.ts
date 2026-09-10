@@ -5,7 +5,8 @@ import { useCallback, useState } from 'react'
 /** What `useSolutionReveal` hands back — see the hook. */
 export interface SolutionReveal {
   /** Is the solution on screen for ME, right now? Gates whatever this game
-   *  draws as its answer, and drives `<RevealButton revealed={…}>`. */
+   *  draws as its answer, and picks which face the game's `act-reveal` binding
+   *  wears — "Reveal solution" or "Hide solution". */
   revealed: boolean
   /** The button's onClick — show it, or put it away again. */
   toggle: () => void

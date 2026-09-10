@@ -24,8 +24,8 @@ export type ButtonTone = 'quiet' | 'normal' | 'caution' | 'destructive' | 'succe
  * WHAT THE BUTTON DRAWS — its glyph, its words, or both.
  *
  * Every call site says this out loud, and that is the whole point: reading
- * `<RestartButton show="icon" />` you know what appears without opening
- * `RestartButton`. No component defaults it, deliberately — a default here
+ * `<TrashButton show="icon" />` you know what appears without opening
+ * `TrashButton`. No component defaults it, deliberately — a default here
  * means two call sites that look alike draw different things, and you cannot
  * tell which without leaving the file you are reading.
  *
@@ -43,7 +43,7 @@ export type ButtonIcon = AppIcon
 
 /**
  * What every standard button takes — the native <button> attributes plus the
- * axes below. A PURPOSE BUTTON (`RestartButton`, `TrashButton`, …) takes this
+ * axes below. A PURPOSE BUTTON (`TrashButton`, `CancelButton`, …) takes this
  * same type, supplies defaults for some of it, and overrides nothing: every
  * axis stays reachable at every call site.
  *
@@ -128,9 +128,14 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'label'> & { label?: 
  *
  * ONE button, not a family: an info-column action, a form's Cancel and a
  * dialog's acknowledgment are this control wearing different tones. Reach for a
- * purpose button (`RestartButton`, `CancelButton`, `FormSubmitButton`, …) when
+ * purpose button (`CancelButton`, `FormSubmitButton`, `TrashButton`, …) when
  * one names what you are doing; reach for this directly for a one-off whose
  * words appear nowhere else — a dialog's "Got it", "Reload", "Try again".
+ *
+ * **A game's COMMANDS do not come through here.** New game, Concede, Shuffle
+ * and the rest are actions (`common/actions`), placed with `<ActionButton>`,
+ * which is where their words, glyph, tone and key come from. The purpose
+ * buttons that used to name them are gone.
  *
  * Everything a standard button looks like lives in its module. There are no
  * global button classes to compose.

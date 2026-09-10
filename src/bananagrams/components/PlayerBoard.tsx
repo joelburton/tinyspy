@@ -117,7 +117,7 @@ export function PlayerBoard({
           cell={arena.cell}
           minCell={arena.minCell}
           onZoom={arena.onZoom}
-          onCenterFit={arena.centerAndFit}
+          actZoomFit={arena.actZoomFit}
           board={arena.board}
           cursor={arena.cursor}
           hover={arena.hover}

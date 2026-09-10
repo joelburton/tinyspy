@@ -254,7 +254,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
   the board, turn log, and terminal state reset **live for every player**. Two
   FE entry points, one handler: the game-menu item (any state) and the terminal
-  action row's **`RestartButton`** (`SkipBack` glyph, `info` tone, left of
+  action row's **Restart** (`act-restart`) (`SkipBack` glyph, `info` tone, left of
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.

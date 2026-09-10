@@ -55,7 +55,7 @@ export {
   // IconRestart's rewind-to-start reads as all of them.
   Undo2 as IconUndo,
   // swap/exchange tiles for new ones — the two-way horizontal arrows are the
-  // near-universal "exchange" idiom (ExchangeButton, labeled "Swap"). Distinct
+  // near-universal "exchange" idiom (`act-exchange`, labeled "Swap"). Distinct
   // from IconShuffle's single rotate glyph (reorder my OWN tiles, no server
   // trade).
   ArrowLeftRight as IconExchange,
@@ -64,7 +64,7 @@ export {
   // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
   // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
   // lineage (bananagrams) and reads as its own distinct action, not a
-  // generic submit. Local to the PeelButton — no other game peels.
+  // generic submit. Local to `act-peel` — no other game peels.
   Banana as IconPeel,
   // share your in-progress move with coop teammates (scrabble's "show a move" —
   // broadcasts your staged tiles for the team to preview read-only). The share
@@ -76,7 +76,7 @@ export {
   // end the current turn without making (another) move — a stop-sign octagon.
   // The plain half of the octagon pair (see IconEndGame below): this stops just
   // your turn and hands play on, so it carries no X and wears amber rather than
-  // red. Worn by both EndTurnButton and PassButton.
+  // red. Worn by both `act-end-turn` and `act-pass`.
   Octagon as IconEndTurn,
   // End the GAME: an octagon with an X — the stop sign, crossed out. It sits
   // next to IconEndTurn's plain octagon (Pass / end just your turn) on purpose:
@@ -91,12 +91,12 @@ export {
   // flag: surrender, one player, not a stop for the table. Distinct from
   // IconEndGame since bananagrams shows BOTH in one row.
   Flag as IconConcede,
-  // restart THIS board from scratch — RestartButton, and every game's menu. The
+  // restart THIS board from scratch — `act-restart`, in every game's menu. The
   // skip-back "jump to the start" transport glyph: it rewinds to the beginning
   // of the same board, distinct from IconShuffle's rotate (rearrange, new look).
   SkipBack as IconRestart,
   // start a FRESH follow-up game, same setup but a new board + id —
-  // NewGameButton, and every game's menu. The square-plus "create new" glyph:
+  // `act-new-game`, in every game's menu. The square-plus "create new" glyph:
   // adds a NEW thing, distinct from IconRestart's rewind-the-same-thing.
   SquarePlus as IconNewGame,
 
@@ -111,7 +111,7 @@ export {
   // The three eyes, and the differences between them are load-bearing:
   //
   //   IconSpoiler (bare Eye)  — mid-game "just tell me THIS one": one item,
-  //     while the game is live. Worn by SpoilerButton.
+  //     while the game is live. Worn by `act-spoiler`.
   //   IconRevealSolution (boxed View) — post-game "show me the whole solution".
   //     The box is the magnitude signal: same eye, but framed, so it reads as
   //     MORE without needing a caption (and still reads as more in grayscale).

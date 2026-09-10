@@ -4,10 +4,15 @@ import { IconBack } from '../icons/icons'
 import { StandardButton, type PurposeButtonProps } from './StandardButton'
 
 /**
- * THE WAY OUT OF A GAME, back to the club it belongs to. Every exit-to-club
- * affordance routes through here — each game's playing action row, and its
- * terminal row via `<TerminalActionRow>` — so the glyph, the spacing and the
- * name are identical everywhere.
+ * The way out of a game, for the two surfaces that cannot reach the action: the
+ * pause overlay and the desktop-only notice. Both REPLACE the play area, so the
+ * game's binding is not on the stack and there is no action to place — they get
+ * a callback and this button, which keeps them looking like the real one.
+ *
+ * **Everywhere else it is `act-back-to-club`**, bound once by `GamePage` and
+ * handed to a game on `ctx.menu`, which is what knows to suspend mid-game and
+ * to go straight there at terminal — a choice a caller here would have to make
+ * for itself, and could make wrong.
  *
  * It DRAWS "Club" and is CALLED "Back to club", which is the one place in the
  * folder those differ: the chevron carries the "back", and the button spends

@@ -280,13 +280,13 @@ TS WK the data was FE-readable all along. The trusting-commit games also
 reveal at terminal — missed words for MC FB MW, the best possible word for
 WW — same story: a display choice, not a security boundary.)
 
-## Restart (`<gametype>.replay_board` + the terminal `RestartButton`)
+## Restart (`<gametype>.replay_board` + `act-restart` in the terminal row)
 PN WK FB MC RA SD SS WN MW WW PP SB HT
 Deliberately without: TS (the board IS the secret), MG (no puzzle to re-run —
 its New game is the fresh deal), CP (a re-read grid can't surprise you twice —
 Clear board covers a fresh grid, New game covers another puzzle)
 
-## New game from the terminal row (`NewGameButton`)
+## New game from the terminal row (`act-new-game`)
 Everything. CP is the odd one: its button opens the club's SETUP dialog
 (`/c/<handle>?new=<gametype>`) instead of creating a game directly, because
 `setup` names a puzzle rather than a shuffle. PP is the other library game and

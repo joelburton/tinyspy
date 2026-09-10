@@ -525,7 +525,7 @@ test.describe('letterboxed custom board', () => {
     const rollPage = await rollCtx.newPage()
     await rollPage.goto(`/c/${rollClub.handle}`)
     await startGameRow(rollPage, /SnakeBox/).click()
-    await rollPage.getByRole('button', { name: /^Start SnakeBox/ }).click()
+    await rollPage.getByRole('button', { name: 'Start' }).click()
     await boardReady(rollPage, rollPage.locator('svg text').first(), 20000)
     await expect(rollPage.locator('svg text')).toHaveCount(12)
     const rolled = await readBoard(rollPage)
@@ -549,7 +549,7 @@ test.describe('letterboxed custom board', () => {
     // The separators STAY on screen: you typed a board, so you should see one.
     await expect(field).toHaveValue(written)
 
-    await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
 
     // The board IS the one typed — same letters, same sides, same positions.
     await boardReady(page, page.locator('svg text').first(), 20000)
@@ -582,7 +582,7 @@ test.describe('letterboxed custom board', () => {
     await startGameRow(page, /SnakeBox/).click()
     await page.getByText('Board (optional)').click()
     await page.locator('input[name="custom_sides"]').fill('BFG-JKP-QVW-XYZ')
-    await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
+    await page.getByRole('button', { name: 'Start' }).click()
 
     // The SERVER'S sentence, carried on the envelope — not a raw Postgres
     // message, and not a fault: this is a real answer to a real request.
