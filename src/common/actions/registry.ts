@@ -101,6 +101,17 @@ const CONCEDE_CONFIRM: ConfirmOptions = {
   cancelLabel: 'Keep playing',
 }
 
+/** The whole-grid reveal's question. The other two scopes ask nothing: Letter
+ *  and Word are the ordinary help ladder, and confirming a hint you just asked
+ *  for is noise. Filling every answer is the one that ends the puzzle for the
+ *  whole table, and its row sits one mis-click below "Word". */
+const REVEAL_GRID_CONFIRM: ConfirmOptions = {
+  title: 'Reveal the whole grid?',
+  message: "This fills in every answer, for everyone — the puzzle is over, and you can't undo it.",
+  confirmLabel: 'Reveal grid',
+  cancelLabel: 'Keep playing',
+}
+
 /** ⌥ plus a physical key, ⇧ UP. Every Option chord matches on `code`, because
  *  Option changes the character: ⌥Z is `Ω`, ⌥= is `≠`, ⌥` is a dead key. */
 const alt = (code: string, label: string): KeySpec => ({ code, alt: true, shift: false, label })
@@ -235,10 +246,15 @@ export const ACTIONS = {
   'act-pencil': { label: 'Pencil', keys: [alt('KeyP', '⌥P')] },
   'act-check-letter': { label: 'Letter', icon: IconWordCheck, keys: [alt('KeyC', '⌥C')] },
   'act-check-word': { label: 'Word', icon: IconWordCheck, keys: [altShift('KeyC', '⌥⇧C')] },
-  'act-check-puzzle': { label: 'Puzzle', icon: IconWordCheck },
+  'act-check-puzzle': { label: 'Grid', icon: IconWordCheck },
   'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, tone: 'destructive', keys: [alt('KeyR', '⌥R')] },
   'act-reveal-word': { label: 'Word', icon: IconRevealSolution, tone: 'destructive', keys: [altShift('KeyR', '⌥⇧R')] },
-  'act-reveal-puzzle': { label: 'Puzzle', icon: IconRevealSolution, tone: 'destructive' },
+  'act-reveal-puzzle': {
+    label: 'Grid',
+    icon: IconRevealSolution,
+    tone: 'destructive',
+    confirm: REVEAL_GRID_CONFIRM,
+  },
   'act-show-note': { label: 'Show note', keys: [alt('KeyN', '⌥N')] },
   'act-explain-clue': { label: 'Explain cryptic clue', icon: IconAI, tone: 'caution', keys: [alt('KeyX', '⌥X')] },
   'act-open-scratchpad': { label: 'Scratchpad', icon: IconScratchpad, keys: [alt('KeyS', '⌥S')] },

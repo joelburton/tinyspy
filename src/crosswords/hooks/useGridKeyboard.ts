@@ -1,7 +1,6 @@
 // cs-unmet
 
-import { useEffect, type RefObject } from 'react'
-import { isNonGameField } from '@/common/keyboard/editableField'
+import { useBoundAction, type ActionState, type BoundAction } from '@/common/actions/useBoundAction'
 import {
   advanceAfterFill,
   jumpClue,
@@ -12,244 +11,223 @@ import {
   type ArrowKey,
   type Cursor,
 } from '../lib/cursor'
-import type { Cell } from '../lib/types'
+import type { Cell, MarkSide } from '../lib/types'
 
-/** The current, mutable play state the window handler reads on each event
- *  (via a ref, to dodge stale closures). PlayArea rebuilds it every render. */
-export type GridKeyboard = {
+/** The live play state the grid's keys act on. PlayArea passes it fresh every
+ *  render — there is no ref, because a binding is asked what it does at the
+ *  moment the key is pressed. */
+export type GridKeysOptions = {
+  /** May the board be worked at all? False while the game is paused or this
+   *  player has conceded mid-race — every key below goes disabled, which also
+   *  leaves the keystroke for whoever else wants it. */
   enabled: boolean
-  /** The board is frozen (terminal) but still navigable: movement keys
-   *  (arrows, Tab, Space, `#`, Shift+Space peek) work so the solver can walk
-   *  the revealed grid, while anything that would WRITE (letters, Backspace,
-   *  rebus, edge marks) is ignored. */
+  /** The board is frozen (terminal) but still navigable: the movement keys work
+   *  so the solver can walk the revealed grid, while anything that would WRITE
+   *  (letters, ⌫, rebus, edge marks) is disabled. */
   readOnly: boolean
-  /** A modal (rebus overlay / number-jump popup) owns the keyboard — bail
-   *  entirely so board keys don't fire in parallel (mirrors crossplay's
-   *  `numberJumpOpenRef` guard). */
+  /**
+   * One of crosswords' OWN overlays has the keyboard — the rebus box or the
+   * number-jump popup. Both are focused inputs, so the dispatcher's field gate
+   * already stops the letters; what it does not stop is Tab, the one key an
+   * action may claim from inside a field. Without this, tabbing out of the
+   * number-jump popup would walk the clue underneath it.
+   */
   suspended: boolean
-  grid: Cell[][]
-  cursor: Cursor
+  /** Null until the puzzle loads; every key is disabled until then. */
+  grid: Cell[][] | null
+  cursor: Cursor | null
   pencil: boolean
   setCursor: (c: Cursor) => void
-  /** Current fill at a cell (null if empty); used for Backspace's two-step. */
+  /** Current fill at a cell (null if empty); ⌫'s two-step needs it. */
   fillAt: (row: number, col: number) => string | null
   isGiven: (row: number, col: number) => boolean
   setCell: (row: number, col: number, fill: string | null, pencil: boolean) => void
   /** Open the rebus (multi-char) overlay over a cell. */
   onRebus: (row: number, col: number) => void
-  /** Open the jump-to-clue-number popup (`#`). */
+  /** Open the jump-to-clue-number popup. */
   onNumberJump: () => void
-  /** Show a read-only zoom-peek of the current cell's fill (Shift+Space). */
+  /** Show a read-only zoom-peek of the current cell's fill. */
   onPeek: (row: number, col: number) => void
-  /** Dismiss the peek — called before every other handled key so it doesn't
-   *  linger over the new cursor position. */
+  /** Put the peek away — every other key here drops it, so it can't linger over
+   *  a cursor that has moved on. */
   clearPeek: () => void
-  /** Cycle the cryptic edge mark on one side of a cell (`|` = right,
-   *  `_` = bottom). The consumer reads the current mark + advances it. */
-  onMark: (row: number, col: number, side: 'right' | 'bottom') => void
-  /** ⌥-letter shortcuts (crossplay parity — the port's identity is
-   *  keyboard-first). Each mirrors a Controls-bar / game-menu action; the
-   *  hook keys them on `e.code` (so Mac ⌥ dead-keys don't matter) and only
-   *  fires them while the board is writable (not terminal / conceded).
-   *  A null callback = that action isn't available here (reveal in compete,
-   *  note/explain when the puzzle carries no setter note). */
-  onTogglePencil: () => void
-  onCheck: (scope: 'letter' | 'word' | 'puzzle') => void
-  onReveal: ((scope: 'letter' | 'word' | 'puzzle') => void) | null
-  onShowNote: (() => void) | null
-  onExplain: (() => void) | null
+  /** Cycle the cryptic edge mark on one side of a cell. The consumer reads the
+   *  current mark and advances it. */
+  onMark: (row: number, col: number, side: MarkSide) => void
 }
 
-const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+/** What the caller gets back: the rebus binding, which is also a menu row. The
+ *  other twelve are keys with no control of their own — nothing on screen "is"
+ *  the left arrow. */
+export type GridKeys = {
+  actRebus: BoundAction
+}
 
 /**
- * The crossword keyboard, ported from crossplay's PuzzleView (grid keys
- * only — the ⌥ chat/menu shortcuts belong to the PupGames shell). A single
- * window `keydown` listener reads the latest state from `ref`.
+ * The crossword grid's keys, as the thirteen actions they are — the port of
+ * crossplay's PuzzleView keyboard.
  *
- * The full grid key set:
- *   - letter → fill + advance (given cells slide off)
- *   - Backspace → clear-in-place then retreat (two-step); Shift+Backspace
- *     clears the whole current word
- *   - Space → advance one cell; Shift+Space → read-only zoom-peek of the fill
- *   - arrows → move; Shift+arrows → jump to the word edge
- *   - Tab / Shift+Tab → next / previous clue
- *   - Shift+Enter → rebus (multi-char) overlay; `#` → jump-to-number popup
- *   - `|` / `_` → cycle a cryptic word-break / hyphen mark on the right /
- *     bottom edge of the cursor cell
+ * A letter fills the cell under the cursor and moves on; ⌫ clears it and
+ * retreats; Space steps forward and ⇧Space peeks at the fill; the arrows move
+ * and ⇧ + an arrow jumps to the word's edge; Tab walks the clues; ⇧↵ opens the
+ * rebus overlay; `#` jumps to a clue number; `|` and `_` cycle a cryptic
+ * word-break mark on a cell's right / bottom edge.
  *
- * Bails when disabled, when a modal is `suspended`-ing the board, when focus
- * is in an editable field (except Tab, which always navigates clues), and on
- * Ctrl/Meta/Alt chords (except `#`, checked first for Shift+3 layouts). Shift
- * is a play modifier, so it's otherwise allowed through.
+ * **Nothing here reads the window.** Each key is a bound action, so the gates
+ * this hook used to spell out belong to the one dispatcher: a modified chord
+ * never matches a pattern key, a keystroke aimed at chat never reaches an
+ * action, and a floating panel with focus stops every one of them.
  *
- * In `readOnly` (terminal), the navigation keys keep working — walking the
- * revealed grid is part of the post-game — but the writing keys are ignored.
+ * Contrast `shared/board-cursor/useBoardCursorKeys`, which is the same idea for
+ * the tile-placement games: a cursor, letters and a commit. This one is
+ * crosswords' own because the grid is the game — the two-step ⌫, the given cells
+ * you slide off, the clue walk and the edge marks have no sibling.
  */
-export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const k = ref.current
-      if (!k || !k.enabled) return
-      // A crosswords-OWN modal owns the keyboard — bail entirely (rebus input /
-      // number-jump, which set `suspended`).
-      if (k.suspended) return
-      // A shared floating panel / modal (the Back-to-club suspend confirm, Help,
-      // Setup…) likewise owns the keyboard while focus is inside it — bail so its
-      // Enter (confirm) and Tab (move between buttons) reach its OWN controls
-      // instead of this grid handler eating them (it preventDefaults both below).
-      // Mirrors the same `[data-floating-panel]` guard in the shared
-      // useGlobalKeyHandler; crosswords has its own window listener, so it needs
-      // the guard too. These panels don't flip `suspended`.
-      if (e.target instanceof Element && e.target.closest('[data-floating-panel]')) return
-      // Tab still navigates clues even from a field; everything else bails.
-      if (isNonGameField(e.target) && e.key !== 'Tab') return
+export function useGridKeyboard({
+  enabled,
+  readOnly,
+  suspended,
+  grid,
+  cursor,
+  pencil,
+  setCursor,
+  fillAt,
+  isGiven,
+  setCell,
+  onRebus,
+  onNumberJump,
+  onPeek,
+  clearPeek,
+  onMark,
+}: GridKeysOptions): GridKeys {
+  const ready = grid !== null && cursor !== null && enabled && !suspended
+  /** Walking the grid: alive at terminal too, since reading back a solved
+   *  puzzle is part of the post-game. */
+  const nav = (): ActionState => (ready ? 'active' : 'disabled')
+  /** Changing the grid: everything `nav` allows, minus the frozen board. */
+  const write = (): ActionState => (ready && !readOnly ? 'active' : 'disabled')
 
-      const {
-        grid, cursor, pencil, setCursor, fillAt, isGiven, setCell,
-        onRebus, onNumberJump, onPeek, clearPeek, onMark,
-        onTogglePencil, onCheck, onReveal, onShowNote, onExplain,
-      } = k
-      const { row, col } = cursor
-
-      // `#` opens the jump-to-clue-number popup. Checked before the chord bail
-      // so it works on layouts where `#` is Shift+3.
-      if (e.key === '#' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        e.preventDefault()
-        onNumberJump()
-        return
-      }
-
-      // ⌥-letter shortcuts (mirror the Controls bar + game menu). Handled
-      // BEFORE the generic Ctrl/Meta/Alt bail below, and keyed on `e.code`
-      // (physical key) so Mac ⌥ dead-keys — ⌥C = ç, ⌥N = ˜ — don't matter.
-      // Shift widens check/reveal from the word to the whole grid.
-      if (e.altKey && !e.metaKey && !e.ctrlKey) {
-        // Check / reveal / pencil are writes — inert once the board is
-        // read-only (terminal). Note / explain are fine any time.
-        const writable = !k.readOnly
-        switch (e.code) {
-          case 'KeyP':
-            if (writable) { e.preventDefault(); onTogglePencil() }
-            return
-          case 'KeyC':
-            // ⌥C = check letter, ⌥⇧C = check word (crossplay bindings). Check
-            // puzzle has no shortcut — it's a menu-only action.
-            if (writable) { e.preventDefault(); onCheck(e.shiftKey ? 'word' : 'letter') }
-            return
-          case 'KeyR':
-            // ⌥R = reveal letter, ⌥⇧R = reveal word (coop only).
-            if (writable && onReveal) { e.preventDefault(); onReveal(e.shiftKey ? 'word' : 'letter') }
-            return
-          case 'KeyN':
-            if (onShowNote) { e.preventDefault(); onShowNote() }
-            return
-          case 'KeyX':
-            if (onExplain) { e.preventDefault(); onExplain() }
-            return
-          default:
-            return // any other ⌥ combo: bail, as before
-        }
-      }
-
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-
-      // Shift+Space: peek at the current cell's fill in a read-only zoom box.
-      // It does NOT take focus, so subsequent navigation still flows through
-      // this handler; every other branch below clears the peek first. The
-      // cursor only ever sits on a fillable cell, so no block guard is needed.
-      if (e.key === ' ' && e.shiftKey) {
-        e.preventDefault()
-        onPeek(row, col)
-        return
-      }
-      // Any other handled key drops a lingering peek.
+  /** Every body below is written against a loaded board, and every one of them
+   *  drops the peek first — the zoom box describes the cell you were on. */
+  const onBoard =
+    (fn: (grid: Cell[][], cursor: Cursor, key: string) => void) =>
+    (key?: string) => {
+      if (!grid || !cursor) return
       clearPeek()
-
-      // Bare Space: step one cell forward, same word-edge stop as a letter.
-      if (e.key === ' ') {
-        e.preventDefault()
-        setCursor(advanceAfterFill(grid, cursor))
-        return
-      }
-
-      // Shift+Enter opens the rebus overlay over an editable cell. Bare Enter
-      // is a no-op (solvers hit it reflexively at a word's end).
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        if (e.shiftKey && !k.readOnly && !isGiven(row, col)) onRebus(row, col)
-        return
-      }
-
-      if (ARROWS.has(e.key as ArrowKey)) {
-        e.preventDefault()
-        const key = e.key as ArrowKey
-        setCursor(e.shiftKey ? jumpWordEdge(grid, cursor, key) : moveCursor(grid, cursor, key))
-        return
-      }
-
-      if (e.key === 'Tab') {
-        e.preventDefault()
-        setCursor(jumpClue(grid, cursor, e.shiftKey ? -1 : 1))
-        return
-      }
-
-      // Letters: fill + advance. A given cell is immutable — slide off it.
-      // Read-only: the whole gesture is ignored (no fill, no advance).
-      if (/^[a-zA-Z]$/.test(e.key)) {
-        if (k.readOnly) return
-        e.preventDefault()
-        if (!isGiven(row, col)) setCell(row, col, e.key.toUpperCase(), pencil)
-        setCursor(advanceAfterFill(grid, cursor))
-        return
-      }
-
-      // Cryptic edge marks: `|` cycles the right-edge mark, `_` the bottom-edge
-      // mark, each none → break → hyphen → none. Marks live on fillable cells
-      // only (plan option A), so a given cell is a no-op. The cursor does not
-      // move — you're annotating a boundary, not filling.
-      if (e.key === '|' || e.key === '_') {
-        if (k.readOnly) return
-        e.preventDefault()
-        if (!isGiven(row, col)) onMark(row, col, e.key === '|' ? 'right' : 'bottom')
-        return
-      }
-
-      if (e.key === 'Backspace') {
-        if (k.readOnly) return
-        e.preventDefault()
-        // Shift+Backspace: clear every fillable, non-given cell in the current
-        // word, then drop the cursor on the word's first editable cell so the
-        // solver can re-type immediately (crossplay PuzzleView).
-        if (e.shiftKey) {
-          const word = wordCells(grid, row, col, cursor.dir)
-          for (const p of word) {
-            if (!isGiven(p.row, p.col) && fillAt(p.row, p.col) != null) {
-              setCell(p.row, p.col, null, false)
-            }
-          }
-          const first = word.find((p) => !isGiven(p.row, p.col))
-          if (first) setCursor({ ...cursor, row: first.row, col: first.col })
-          return
-        }
-        if (isGiven(row, col)) {
-          setCursor(retreatForBackspace(grid, cursor))
-        } else if (fillAt(row, col) != null) {
-          // Clear the current cell in place.
-          setCell(row, col, null, false)
-        } else {
-          // Empty already — retreat and clear the cell we land on.
-          const prev = retreatForBackspace(grid, cursor)
-          if ((prev.row !== row || prev.col !== col) && !isGiven(prev.row, prev.col)) {
-            setCell(prev.row, prev.col, null, false)
-          }
-          setCursor(prev)
-        }
-        return
-      }
+      fn(grid, cursor, key ?? '')
     }
 
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [ref])
+  useBoundAction('act-move-cursor', {
+    describe: nav,
+    run: onBoard((g, c, key) => setCursor(moveCursor(g, c, key as ArrowKey))),
+  })
+
+  useBoundAction('act-jump-word-edge', {
+    describe: nav,
+    run: onBoard((g, c, key) => setCursor(jumpWordEdge(g, c, key as ArrowKey))),
+  })
+
+  // Space steps on with the same word-edge stop a filled letter takes.
+  useBoundAction('act-advance-cell', {
+    describe: nav,
+    run: onBoard((g, c) => setCursor(advanceAfterFill(g, c))),
+  })
+
+  // ⇧Space peeks, and is the one key that does NOT clear the peek — it is the
+  // one that opens it. The cursor only ever sits on a fillable cell, so there
+  // is nothing to guard against.
+  useBoundAction('act-peek-cell', {
+    describe: nav,
+    run: () => {
+      if (cursor) onPeek(cursor.row, cursor.col)
+    },
+  })
+
+  useBoundAction('act-next-clue', {
+    describe: nav,
+    run: onBoard((g, c) => setCursor(jumpClue(g, c, 1))),
+  })
+
+  useBoundAction('act-previous-clue', {
+    describe: nav,
+    run: onBoard((g, c) => setCursor(jumpClue(g, c, -1))),
+  })
+
+  useBoundAction('act-jump-to-number', {
+    describe: nav,
+    run: onBoard(() => onNumberJump()),
+  })
+
+  // A letter fills and advances. A given cell is the author's and immutable, so
+  // the cursor slides off it without writing.
+  useBoundAction('act-fill-cell', {
+    describe: write,
+    run: onBoard((g, c, key) => {
+      if (!isGiven(c.row, c.col)) setCell(c.row, c.col, key.toUpperCase(), pencil)
+      setCursor(advanceAfterFill(g, c))
+    }),
+  })
+
+  // ⌫ in two steps: clear where you are, and only then retreat — so a solver
+  // fixing the last letter doesn't lose the one before it as well.
+  useBoundAction('act-clear-cell', {
+    describe: write,
+    run: onBoard((g, c) => {
+      if (isGiven(c.row, c.col)) {
+        setCursor(retreatForBackspace(g, c))
+        return
+      }
+      if (fillAt(c.row, c.col) != null) {
+        setCell(c.row, c.col, null, false)
+        return
+      }
+      // Empty already — retreat and clear the cell we land on.
+      const prev = retreatForBackspace(g, c)
+      if ((prev.row !== c.row || prev.col !== c.col) && !isGiven(prev.row, prev.col)) {
+        setCell(prev.row, prev.col, null, false)
+      }
+      setCursor(prev)
+    }),
+  })
+
+  // ⇧⌫ blanks the whole current word, then drops the cursor on its first
+  // editable cell so the solver can re-type straight away.
+  useBoundAction('act-clear-word', {
+    describe: write,
+    run: onBoard((g, c) => {
+      const word = wordCells(g, c.row, c.col, c.dir)
+      for (const p of word) {
+        if (!isGiven(p.row, p.col) && fillAt(p.row, p.col) != null) {
+          setCell(p.row, p.col, null, false)
+        }
+      }
+      const first = word.find((p) => !isGiven(p.row, p.col))
+      if (first) setCursor({ ...c, row: first.row, col: first.col })
+    }),
+  })
+
+  const actRebus = useBoundAction('act-rebus', {
+    describe: write,
+    run: onBoard((_g, c) => {
+      if (!isGiven(c.row, c.col)) onRebus(c.row, c.col)
+    }),
+  })
+
+  // Marks live on fillable cells only, and the cursor does not move — you are
+  // annotating a boundary, not filling one.
+  useBoundAction('act-mark-right-edge', {
+    describe: write,
+    run: onBoard((_g, c) => {
+      if (!isGiven(c.row, c.col)) onMark(c.row, c.col, 'right')
+    }),
+  })
+
+  useBoundAction('act-mark-bottom-edge', {
+    describe: write,
+    run: onBoard((_g, c) => {
+      if (!isGiven(c.row, c.col)) onMark(c.row, c.col, 'bottom')
+    }),
+  })
+
+  return { actRebus }
 }

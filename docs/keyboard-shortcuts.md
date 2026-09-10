@@ -10,28 +10,39 @@ crosswords is keyboard-first by design, and every word game takes physical keys.
 There is almost no `onKeyDown` on the board. A play surface has nothing
 meaningful to focus, so keys are read off `window`.
 
-**The app-wide keys are actions** ([`common/actions`](../src/common/actions/doc.md)):
-a surface binds an action, which is what gives it a key, a menu row and a
-button at once, and one dispatcher at the app root fires whichever bound action
-answers the keystroke. The shell's four keys work this way today; the games'
-commands and board keys are being converted, and until then they go through the
-older path below.
+**Every key is an action** ([`common/actions`](../src/common/actions/doc.md)): a
+surface binds an action, which is what gives it a key, a menu row and a button
+at once, and ONE listener at the app root
+([`useActionDispatcher`](../src/common/actions/dispatcher.ts)) fires whichever
+bound action answers the keystroke. There is no second list of "which keys this
+page wants" — the keys that work here are exactly the actions bound here, which
+is what makes the generated key list in Help honest.
 
-Games still listen on `window` through one shared dispatcher,
-[`useGlobalKeyHandler`](../src/common/keyboard/useGlobalKeyHandler.ts). Four
-gates apply before a key ever reaches game code:
+Two gates apply before any action is consulted:
 
 | gate | effect |
 |---|---|
-| **focused text field** | A focused `<input>` / `<textarea>` / `<select>` / contenteditable owns its keys outright — typing "hello" into chat never spells it onto the board. |
-| **floating panel** | Focus inside `[data-floating-panel]` (a confirm dialog, Help, Setup) hands the keyboard to that panel, so its Enter and Tab work. |
-| **modifier bail** | `Cmd` / `Ctrl` / `Alt` chords go to the browser untouched (`⌥` is the one deliberate exception — crosswords and the shell use it for real shortcuts). |
-| **open menu** | An open `<Menu>` `stopPropagation()`s every key, so window listeners never see them. |
+| **focused text field** | A focused `<input>` / `<textarea>` / `<select>` / contenteditable owns its keys outright — typing "hello" into chat never spells it onto the board. An action opts out per its `inField`: the shell's `/ ? ~` reach chat from a game's own input, and crosswords' Tab works even in one. |
+| **floating panel** | Focus inside `[data-floating-panel]` (a confirm dialog, Help, Setup) hands the keyboard to that panel, so its Enter and Tab work. Absolute — no action opts out. |
+
+Then three passes, because a keystroke can mean three kinds of thing:
+**watchers** (a wildcard that claims nothing — dismissing the last message runs
+and lets the letter through), then **interceptors** (a wildcard that DOES claim,
+which is a mode: a key with a past turn open means "back to the live board"),
+then the **commands**, innermost binding first. A hidden or disabled binding is
+skipped rather than swallowing the key, and anything matching nothing goes to
+the browser — which is what keeps Cmd-R working.
+
+`Cmd` chords match nothing, ever. `⌥` and `Ctrl` are ordinary modifiers an
+action may ask for (`⌥` widely, `Ctrl` nowhere yet); a pattern key — "any
+letter", "any arrow" — matches only an unmodified press, so `⌥L` is never a
+letter someone is typing. An open `<Menu>` `stopPropagation()`s every key, so
+the dispatcher never sees them either.
 
 **Why the gates look like this** — see [ui.md → Real forms, and everything
-else](ui.md#real-forms-and-everything-else). Two of these gates are that design
-rule in code: the floating-panel gate *is* "this is a real form, the panel owns
-the keyboard", and the focused-text-field gate is what makes category 3 (chat,
+else](ui.md#real-forms-and-everything-else). Both gates are that design rule in
+code: the floating-panel gate *is* "this is a real form, the panel owns the
+keyboard", and the focused-text-field gate is what makes category 3 (chat,
 scratchpad, clue fields) work. Note the `<select>` in the first row is now
 almost vestigial outside real forms: gameplay and club-page dropdowns are
 [`FilterSelect`](../src/common/lists/FilterSelect.tsx), which never
@@ -79,9 +90,6 @@ doesn't answer that key. All bail inside any editable field (so `⌥⌫` stays
 "delete word" while typing a clue), ignore `Cmd`, and ignore auto-repeat —
 every one is a discrete command, and holding `+` would otherwise start dozens
 of games.
-
-**Mid-conversion:** the games have not bound theirs yet, so `+` and `⌥⌫` are
-live only where a game has converted.
 
 | key | what it does |
 |---|---|
@@ -202,20 +210,21 @@ writing key goes inert.
 | `⇧` + arrow | Jump to the word edge. |
 | `Tab` / `⇧Tab` | Next / previous clue. |
 | `⇧Enter` | Open the **rebus** (multi-character) overlay. Bare `Enter` is a deliberate no-op — solvers hit it reflexively at a word's end. |
-| `#` | Jump-to-clue-number popup. Checked before the modifier bail so it works on layouts where `#` is `⇧3`. |
+| `#` | Jump-to-clue-number popup. Written as the CHARACTER, so it works on layouts where `#` is `⇧3` — shift was already spent making it. |
 | `\|` | Cycle the cryptic word-break / hyphen mark on the cell's **right** edge (none → break → hyphen). The cursor doesn't move. |
 | `_` | Same, on the **bottom** edge. |
 
-**Actions** (each mirrors a menu item, which advertises the shortcut)
+**Actions** (each is the same bound action as its menu row and its square in the
+tool bar, which is why all three agree about what it is called and when it works)
 
 | key | what it does |
 |---|---|
-| `⌥P` | Toggle pencil mode. |
-| `⌥C` / `⌥⇧C` | Check letter / check word. (Check puzzle is menu-only.) |
-| `⌥R` / `⌥⇧R` | Reveal letter / reveal word — **coop only**. |
+| `⌥P` | Switch between pen and pencil. |
+| `⌥C` / `⌥⇧C` | Check letter / check word. (Check grid is menu- and bar-only.) |
+| `⌥R` / `⌥⇧R` | Reveal letter / reveal word — **coop only**. Reveal grid asks first. |
 | `⌥N` | Show the setter's note (when the puzzle carries one). |
 | `⌥X` | Explain this clue (the AI explainer). |
-| `⌥S` | Open the scratchpad. |
+| `⌥S` | Open the scratchpad — the header mark's key, not crosswords' own. |
 
 **Rebus overlay**: `Enter` commits and advances · `Tab` / `⇧Tab` commit and jump
 to the next / previous clue · `Esc` cancels (so does clicking away).

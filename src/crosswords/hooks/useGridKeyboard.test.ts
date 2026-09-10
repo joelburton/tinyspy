@@ -1,22 +1,24 @@
 // cs-unmet
 
 /**
- * Tests for useGridKeyboard — crosswords' single window keydown handler (a port of
- * crossplay's PuzzleView keys). It's one of the two most intricate hooks in the
- * codebase (the twin is bananagrams' usePlayerBoard) — a big key→action switch with
- * several guards (disabled / suspended / floating-panel / editable-field / modifier chords)
- * and a readOnly mode where navigation still works but writes are ignored.
+ * Tests for the crossword grid's keys — which keystroke does which thing, and
+ * that the frozen board keeps navigating while nothing writes.
  *
  * The pure cursor math (moveCursor/advanceAfterFill/jumpClue/…) is covered by
- * cursor.test.ts, so here we assert the DISPATCH: which key fires which callback,
- * and that the guards bail. State is fed through a ref of spies (the way PlayArea
- * rebuilds it each render); we dispatch real KeyboardEvents and check the spies.
+ * cursor.test.ts, so what's asserted here is the DISPATCH: real keydowns on a
+ * real dispatcher, against spies for the state the hook is handed.
+ *
+ * The gates are NOT retested here. They stopped being this hook's work when its
+ * keys became bound actions: a modified chord never matches a pattern key, a
+ * keystroke aimed at chat never reaches an action, and a floating panel with
+ * focus stops all of them. `chord.test.ts` and `dispatcher.test.tsx` own that.
  */
 
-import { renderHook, act } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
 import type { Cell } from '../lib/types'
-import { useGridKeyboard, type GridKeyboard } from './useGridKeyboard'
+import { useGridKeyboard, type GridKeysOptions } from './useGridKeyboard'
 
 /** ASCII → Cell[][] (same builder as cursor.test.ts): `#` block, `.` open, A–Z filled. */
 function grid(rows: string[]): Cell[][] {
@@ -35,16 +37,17 @@ function grid(rows: string[]): Cell[][] {
   )
 }
 
-function makeState(over: Partial<GridKeyboard> = {}): GridKeyboard {
-  return {
-    enabled: true,
-    readOnly: false,
-    suspended: false,
-    grid: grid(['...', '...', '...']),
-    cursor: { row: 0, col: 0, dir: 'across' },
-    pencil: false,
+/** A real window keydown. Awaited: an action's run settles a microtask later. */
+async function press(init: KeyboardEventInit) {
+  await act(async () => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }))
+  })
+}
+
+function setup(over: Partial<GridKeysOptions> = {}) {
+  const spies = {
     setCursor: vi.fn(),
-    fillAt: vi.fn(() => null),
+    fillAt: vi.fn(() => null as string | null),
     isGiven: vi.fn(() => false),
     setCell: vi.fn(),
     onRebus: vi.fn(),
@@ -52,199 +55,180 @@ function makeState(over: Partial<GridKeyboard> = {}): GridKeyboard {
     onPeek: vi.fn(),
     clearPeek: vi.fn(),
     onMark: vi.fn(),
-    onTogglePencil: vi.fn(),
-    onCheck: vi.fn(),
-    onReveal: vi.fn(),
-    onShowNote: vi.fn(),
-    onExplain: vi.fn(),
-    ...over,
   }
-}
-
-let ref: { current: GridKeyboard }
-
-function mount(state = makeState()) {
-  ref = { current: state }
-  renderHook(() => useGridKeyboard(ref))
-  return ref.current
-}
-
-/** Dispatch a keydown at `target` (default window); the window listener sees it. */
-function press(init: KeyboardEventInit, target: EventTarget = window) {
-  act(() => {
-    target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }))
+  const view = renderHook(() => {
+    useActionDispatcher()
+    return useGridKeyboard({
+      enabled: true,
+      readOnly: false,
+      suspended: false,
+      grid: grid(['...', '...', '...']),
+      cursor: { row: 0, col: 0, dir: 'across' },
+      pencil: false,
+      ...spies,
+      ...over,
+    })
   })
+  return { ...spies, view }
 }
-
-afterEach(() => {
-  vi.restoreAllMocks()
-  document.body.innerHTML = ''
-})
 
 describe('writing keys', () => {
-  it('a letter fills the cursor cell (uppercased) and advances', () => {
-    const s = mount()
-    press({ key: 'a' })
+  it('a letter fills the cursor cell (uppercased) and advances', async () => {
+    const s = setup()
+    await press({ key: 'a' })
     expect(s.setCell).toHaveBeenCalledWith(0, 0, 'A', false)
     expect(s.setCursor).toHaveBeenCalledTimes(1)
+    s.view.unmount()
   })
 
-  it('a letter passes the pencil flag through', () => {
-    const s = mount(makeState({ pencil: true }))
-    press({ key: 'q' })
+  it('a letter passes the pencil flag through', async () => {
+    const s = setup({ pencil: true })
+    await press({ key: 'q' })
     expect(s.setCell).toHaveBeenCalledWith(0, 0, 'Q', true)
+    s.view.unmount()
   })
 
-  it('a given cell is not written, but the cursor still slides off it', () => {
-    const s = mount(makeState({ isGiven: () => true }))
-    press({ key: 'a' })
+  it('a given cell is not written, but the cursor still slides off it', async () => {
+    const s = setup({ isGiven: () => true })
+    await press({ key: 'a' })
     expect(s.setCell).not.toHaveBeenCalled()
     expect(s.setCursor).toHaveBeenCalledTimes(1)
+    s.view.unmount()
   })
 
-  it('Shift+Enter opens the rebus overlay on an editable cell', () => {
-    const s = mount()
-    press({ key: 'Enter', shiftKey: true })
+  it('⇧Enter opens the rebus overlay on an editable cell', async () => {
+    const s = setup()
+    await press({ key: 'Enter', shiftKey: true })
     expect(s.onRebus).toHaveBeenCalledWith(0, 0)
+    s.view.unmount()
   })
 
-  it('bare Enter is a no-op', () => {
-    const s = mount()
-    press({ key: 'Enter' })
+  it('bare Enter is a no-op — solvers hit it reflexively at a word’s end', async () => {
+    const s = setup()
+    await press({ key: 'Enter' })
     expect(s.onRebus).not.toHaveBeenCalled()
     expect(s.setCursor).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('| and _ cycle the right/bottom edge marks', () => {
-    const s = mount()
-    press({ key: '|' })
-    press({ key: '_' })
+  it('| and _ cycle the right/bottom edge marks', async () => {
+    const s = setup()
+    await press({ key: '|' })
+    await press({ key: '_' })
     expect(s.onMark).toHaveBeenNthCalledWith(1, 0, 0, 'right')
     expect(s.onMark).toHaveBeenNthCalledWith(2, 0, 0, 'bottom')
+    s.view.unmount()
   })
 
-  it('Backspace clears a filled cell in place (no retreat)', () => {
-    const s = mount(makeState({ fillAt: () => 'X' }))
-    press({ key: 'Backspace' })
+  it('⌫ clears a filled cell in place (no retreat)', async () => {
+    const s = setup({ fillAt: () => 'X' })
+    await press({ key: 'Backspace' })
     expect(s.setCell).toHaveBeenCalledWith(0, 0, null, false)
     expect(s.setCursor).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('Backspace on an empty cell retreats', () => {
-    const s = mount(makeState({ fillAt: () => null }))
-    press({ key: 'Backspace' })
+  it('⌫ on an empty cell retreats', async () => {
+    const s = setup({ fillAt: () => null })
+    await press({ key: 'Backspace' })
     expect(s.setCursor).toHaveBeenCalledTimes(1)
+    s.view.unmount()
+  })
+
+  it('⇧⌫ blanks the whole word — a different command from ⌫', async () => {
+    const s = setup({ fillAt: () => 'X', cursor: { row: 0, col: 1, dir: 'across' } })
+    await press({ key: 'Backspace', shiftKey: true })
+    // The across word is the whole three-cell row.
+    expect(s.setCell).toHaveBeenCalledTimes(3)
+    s.view.unmount()
   })
 })
 
 describe('navigation keys', () => {
-  it('arrows and Tab and Space move the cursor', () => {
-    const s = mount()
-    press({ key: 'ArrowRight' })
-    press({ key: 'Tab' })
-    press({ key: ' ' })
+  it('arrows and Tab and Space move the cursor', async () => {
+    const s = setup()
+    await press({ key: 'ArrowRight' })
+    await press({ key: 'Tab' })
+    await press({ key: ' ' })
     expect(s.setCursor).toHaveBeenCalledTimes(3)
+    s.view.unmount()
   })
 
-  it('Shift+Space peeks without moving; a later key clears the peek', () => {
-    const s = mount()
-    press({ key: ' ', shiftKey: true })
+  it('⇧Space peeks without moving; a later key clears the peek', async () => {
+    const s = setup()
+    await press({ key: ' ', shiftKey: true })
     expect(s.onPeek).toHaveBeenCalledWith(0, 0)
     expect(s.clearPeek).not.toHaveBeenCalled()
-    press({ key: 'ArrowLeft' })
+    await press({ key: 'ArrowLeft' })
     expect(s.clearPeek).toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('# opens the number-jump popup', () => {
-    const s = mount()
-    press({ key: '#' })
+  it('# opens the number-jump popup', async () => {
+    const s = setup()
+    await press({ key: '#' })
     expect(s.onNumberJump).toHaveBeenCalled()
-  })
-})
-
-describe('⌥ shortcuts (keyed on physical code)', () => {
-  it('⌥P toggles pencil; ⌥C checks letter; ⌥⇧C checks word', () => {
-    const s = mount()
-    press({ altKey: true, code: 'KeyP', key: 'π' })
-    press({ altKey: true, code: 'KeyC', key: 'ç' })
-    press({ altKey: true, code: 'KeyC', key: 'ç', shiftKey: true })
-    expect(s.onTogglePencil).toHaveBeenCalled()
-    expect(s.onCheck).toHaveBeenNthCalledWith(1, 'letter')
-    expect(s.onCheck).toHaveBeenNthCalledWith(2, 'word')
-  })
-
-  it('⌥R reveals a letter', () => {
-    // ⌥S is no longer here: the scratchpad mark binds it, so the key works in
-    // any game with a scratchpad rather than only in this one's grid.
-    const s = mount()
-    press({ altKey: true, code: 'KeyR', key: '®' })
-    expect(s.onReveal).toHaveBeenCalledWith('letter')
-  })
-
-  it('⌥R is inert when reveal is unavailable (compete)', () => {
-    const s = mount(makeState({ onReveal: null }))
-    press({ altKey: true, code: 'KeyR', key: '®' })
-    // no throw, nothing to assert beyond "did not crash" — the branch guards on null
-    expect(s.setCell).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 })
 
 describe('readOnly (terminal): navigation works, writes are ignored', () => {
-  it('ignores a letter, Backspace, rebus, and marks', () => {
-    const s = mount(makeState({ readOnly: true }))
-    press({ key: 'a' })
-    press({ key: 'Backspace' })
-    press({ key: 'Enter', shiftKey: true })
-    press({ key: '|' })
+  it('ignores a letter, ⌫, the rebus and the marks', async () => {
+    const s = setup({ readOnly: true })
+    await press({ key: 'a' })
+    await press({ key: 'Backspace' })
+    await press({ key: 'Enter', shiftKey: true })
+    await press({ key: '|' })
     expect(s.setCell).not.toHaveBeenCalled()
     expect(s.onRebus).not.toHaveBeenCalled()
     expect(s.onMark).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('still moves the cursor with arrows', () => {
-    const s = mount(makeState({ readOnly: true }))
-    press({ key: 'ArrowDown' })
+  it('still moves the cursor with arrows — reading back a solved grid is the point', async () => {
+    const s = setup({ readOnly: true })
+    await press({ key: 'ArrowDown' })
     expect(s.setCursor).toHaveBeenCalledTimes(1)
+    s.view.unmount()
   })
 })
 
-describe('guards', () => {
-  it('does nothing when disabled', () => {
-    const s = mount(makeState({ enabled: false }))
-    press({ key: 'a' })
+describe('when there is nothing to work on', () => {
+  it('is inert while disabled', async () => {
+    const s = setup({ enabled: false })
+    await press({ key: 'a' })
+    await press({ key: 'ArrowRight' })
     expect(s.setCell).not.toHaveBeenCalled()
+    expect(s.setCursor).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('does nothing while a modal has suspended the board', () => {
-    const s = mount(makeState({ suspended: true }))
-    press({ key: 'a' })
+  it('is inert before the puzzle loads', async () => {
+    const s = setup({ grid: null, cursor: null })
+    await press({ key: 'a' })
     expect(s.setCell).not.toHaveBeenCalled()
+    s.view.unmount()
   })
 
-  it('bails on a Meta/Ctrl chord', () => {
-    const s = mount()
-    press({ key: 'a', metaKey: true })
+  // The field gate stops the letters by itself, but Tab is the one key an
+  // action may claim from inside a field — so tabbing out of the number-jump
+  // popup must not walk the clue underneath it.
+  it('is inert while one of the game’s own overlays has the keyboard', async () => {
+    const s = setup({ suspended: true })
+    await press({ key: 'Tab' })
+    await press({ key: 'a' })
+    expect(s.setCursor).not.toHaveBeenCalled()
     expect(s.setCell).not.toHaveBeenCalled()
+    s.view.unmount()
   })
+})
 
-  it('bails when focus is in an editable field — except Tab, which navigates clues', () => {
-    const s = mount()
-    const input = document.createElement('input')
-    document.body.appendChild(input)
-    press({ key: 'a' }, input)
-    expect(s.setCell).not.toHaveBeenCalled()
-    press({ key: 'Tab' }, input)
-    expect(s.setCursor).toHaveBeenCalledTimes(1)
-  })
-
-  it('bails when the event originates inside a floating panel', () => {
-    const s = mount()
-    const panel = document.createElement('div')
-    panel.setAttribute('data-floating-panel', '')
-    const btn = document.createElement('button')
-    panel.appendChild(btn)
-    document.body.appendChild(panel)
-    press({ key: 'a' }, btn)
-    expect(s.setCell).not.toHaveBeenCalled()
+describe('the rebus binding', () => {
+  it('comes back, so PlayArea can place it as a menu row', async () => {
+    const s = setup()
+    expect(s.view.result.current.actRebus.id).toBe('act-rebus')
+    await act(async () => s.view.result.current.actRebus.run())
+    expect(s.onRebus).toHaveBeenCalledWith(0, 0)
+    s.view.unmount()
   })
 })

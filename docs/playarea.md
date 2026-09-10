@@ -1024,9 +1024,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **Exiting the viewer is intrinsic to `useHistoryViewer` — no per-game wiring.**
   Three exits, all shared: (1) a **keystroke** — the hook binds `act-exit-viewer`,
-  whose any-key wildcard consumes the press while a turn is open; a game not yet on
-  bound actions wires the hook's `exitOnKey` into its own key handler instead;
-  (2) a **click
+  whose any-key wildcard consumes the press while a turn is open; (2) a **click
   anywhere** — a document-level listener *inside the hook* that exits on any click
   except one on a `#N` handle (`[data-turn-number]`, which selects that turn); (3)
   the banner **✕**. For the click path to also cover the board, the shared

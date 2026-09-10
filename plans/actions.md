@@ -962,6 +962,42 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## Step 6 — the last game: crosswords
+
+The sixteenth and hardest: fourteen grid keys, six ⌥ shortcuts and a dozen menu
+commands, all of which were one window listener reading a ref. Every game is
+converted now. What this one turned up:
+
+- **`suspended` stays, and Tab is why.** The plan said the rebus overlay and the
+  number-jump popup would become a `describe` returning hidden, and it looked at
+  first as though neither was needed: both are focused inputs, so the
+  dispatcher's field gate already stops the letters. But `act-next-clue` is the
+  one action in the app with `inField: 'always'` — it has to be, Tab IS the clue
+  walk — so without the flag, tabbing out of the number-jump popup would move the
+  cursor underneath it. It is now one option that disables all thirteen, rather
+  than a shape rebuilt in an effect. (The popup is also NOT a `<BlockingModal>`
+  despite its name; converting it is `crosswords/todo.md`'s.)
+- **"Any other key drops the peek" is not a wildcard.** The plan had it as a
+  non-consuming `any` action live while peeking. It is one line in the helper
+  every grid binding already goes through, which needs no registry entry and
+  cannot fire when nothing is peeking.
+- **A two-destination toggle is still ONE action.** The tool bar's pen and
+  pencil caps are a segmented control, not two commands: both are
+  `actionSurface(actPencil, …)` under different names, and each fires the toggle
+  only when it would actually change the state. The menu row is the same action
+  saying "Switch to pen" / "Switch to pencil".
+- **A submenu empties itself.** Reveal is coop-only, and in a race all three of
+  its children describe themselves hidden — `menuRow` already drops a submenu
+  with nothing left to show, so the `mode === 'coop' ? [...] : []` that built the
+  row conditionally is gone.
+- **Two labels converged on the rest of the roster.** The same toggle said
+  "Reveal board" in the menu and "Reveal solution" on the button; it now says
+  what stackdown and letterboxed say. And "Print / Save as PDF" became
+  `act-print-board`'s "Print board (PDF)". Two e2e lookups follow.
+- **`useGlobalKeyHandler` is down to the two Tab clauses the plan predicted** —
+  `useSwallowTab` and `useCaptureKeys`, both in `common/keyboard/` — and no game
+  calls it any more. Left alone: Tab is `plans/tab-rings.md`'s.
+
 ## Step 5 — game 2: waffle
 
 The second conversion, and the first that was mostly mechanical: menu rows to

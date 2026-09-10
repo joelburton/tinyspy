@@ -1,30 +1,23 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconScratchpad } from '@/common/icons/icons'
-import type { GameStopResult } from '@/common/manifest/gameManifest'
+import { IconHideSolution } from '@/common/icons/icons'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import { useAppAction, useBoundAction, type ActionState } from '@/common/actions/useBoundAction'
+import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '@/common/floating-panels/useConfirmation'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { navigate } from '@/common/routing/router'
 import { clubPath } from '@/common/routing/routes'
-import { setScratchpadOpen } from '@/common/scratchpad/scratchpadOpenStore'
 import { writeIpuz } from '../lib/parse/ipuz'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
@@ -42,7 +35,7 @@ import {
   type Cursor,
 } from '../lib/cursor'
 import type { CellPos } from '../lib/cursor'
-import { SCOPE_LABEL, type Cell, type Direction, type MarkSide, type PuzzleState, type PuzzleTemplate, type Scope } from '../lib/types'
+import { type Cell, type Direction, type MarkSide, type PuzzleState, type PuzzleTemplate, type Scope } from '../lib/types'
 import { nextMarkState } from '../lib/marks'
 import { printCrosswordsPdf, printCrosswordsSolutionPdf } from '../pdf/printCrosswordsPdf'
 import type { CellsMap } from '../hooks/useCells'
@@ -50,7 +43,7 @@ import { colorVarFor } from '@/common/members/memberColor'
 import { useGame } from '../hooks/useGame'
 import { cellKey, useCells } from '../hooks/useCells'
 import { usePeerCursors } from '../hooks/usePeerCursors'
-import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
+import { useGridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid, type RebusPostCommit } from './Grid'
 import { CrosswordsNumberJumpBlockingModal } from './CrosswordsNumberJumpBlockingModal'
 import { CrosswordsNoteCompanion } from './CrosswordsNoteCompanion'
@@ -62,7 +55,7 @@ import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
-import { Controls } from './Controls'
+import { Controls, type ScopeActions } from './Controls'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -109,17 +102,8 @@ type RevealAnswer = { result: 'revealed'; solved: boolean }
  *  be cast at each of the two call sites. */
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
-/** `concede` has ONE ok: you dropped out. Whether it also ended the game is
- *  not in the answer — that reaches every client by subscription. */
-type ConcedeResult = { result: 'conceded' }
-
-/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
- *  every client, this one included, learns the reset from the subscription. */
-type ReplayResult = { result: 'replayed' }
-
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
-    ctx
+  const { gameId, players, isTerminal, playState, session, status, menu, clubHandle } = ctx
   const myId = session.user.id
 
   const { game, loading, failure } = useGame(gameId)
@@ -130,10 +114,6 @@ export function PlayArea(ctx: GamePageCtx) {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
     locked: isTerminal,
   })
-
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team completes the grid — the last correct cell
@@ -316,70 +296,43 @@ export function PlayArea(ctx: GamePageCtx) {
   // items AND their ⌥N / ⌥X keyboard shortcuts.
   const hasNote = (game?.meta.note ?? '').trim().length > 0
 
-  // The ⌥-shortcut action handlers, held in a stable ref so the keyboard's
-  // kbRef can call them without listing the (later-declared) handlers in its
-  // deps. Populated by an effect once handleCheck/handleReveal/handleExplain
-  // exist (below); read at key-event time, like kbRef itself.
-  const actionsRef = useRef<{
-    togglePencil: () => void
-    check: (scope: Scope) => void
-    reveal: (scope: Scope) => void
-    enterRebus: () => void
-    showNote: () => void
-    explain: () => void
-    endGame: () => void
-    concede: () => void
-    newGame: () => void
-  } | null>(null)
+  /** Is this cell the author's? A given letter lives on the immutable template
+   *  and can never be typed over. */
+  const isGiven = (row: number, col: number) => {
+    const tile = grid?.[row]?.[col]
+    return tile?.kind === 'cell' && tile.given === true
+  }
+  /** What a cell READS right now — a given's printed letter, or the players'
+   *  fill. The peek box shows this; the writing keys ask `cells` alone. */
+  const shownFillAt = (row: number, col: number): string | null => {
+    const tile = grid?.[row]?.[col]
+    if (tile?.kind === 'cell' && tile.given === true) return tile.fill ?? null
+    return cells.get(cellKey(row, col))?.fill ?? null
+  }
 
-  // Latest play state for the window keyboard handler (dodges stale
-  // closures). Written in an effect (runs after every render), not during
-  // render — the handler reads `.current` at event time.
-  const kbRef = useRef<GridKeyboard | null>(null)
-  useEffect(() => {
-    const fillAt = (r: number, c: number) => {
-      const t = grid?.[r]?.[c]
-      if (t?.kind === 'cell' && t.given === true) return t.fill ?? null
-      return cells.get(cellKey(r, c))?.fill ?? null
-    }
-    kbRef.current =
-      grid && cursor
-        ? {
-            // Terminal keeps the keyboard ALIVE for navigation — walking the
-            // revealed grid with arrows/Tab is part of the post-game — while
-            // readOnly blocks every writing key. (Paused / conceded-mid-race
-            // stay fully disabled, as before.)
-            enabled: isPlayable || isTerminal,
-            readOnly: !isPlayable,
-            // A modal (rebus overlay / number-jump) owns the keyboard.
-            suspended: rebus !== null || numberJumpOpen,
-            grid,
-            cursor,
-            pencil,
-            setCursor,
-            fillAt: (r, c) => cells.get(cellKey(r, c))?.fill ?? null,
-            isGiven: (r, c) => {
-              const t = grid[r]?.[c]
-              return t?.kind === 'cell' && t.given === true
-            },
-            setCell: (r, c, fill, pencil) => void handleSetCell(r, c, fill, pencil),
-            onRebus: (r, c) => setRebus({ row: r, col: c }),
-            onNumberJump: () => setNumberJumpOpen(true),
-            onPeek: (r, c) => setPeek({ row: r, col: c, value: fillAt(r, c) ?? '' }),
-            clearPeek: () => setPeek(null),
-            onMark: (r, c, side) => void handleMark(r, c, side),
-            // ⌥-shortcut actions dispatch through the stable actionsRef.
-            // Nullability mirrors the Controls bar / menu: no reveal in
-            // compete, no note/explain without a setter note.
-            onTogglePencil: () => actionsRef.current?.togglePencil(),
-            onCheck: (scope) => actionsRef.current?.check(scope),
-            onReveal: mode === 'coop' ? (scope) => actionsRef.current?.reveal(scope) : null,
-            onShowNote: hasNote ? () => actionsRef.current?.showNote() : null,
-            onExplain: hasNote ? () => actionsRef.current?.explain() : null,
-          }
-        : null
-  }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen, mode, hasNote])
-  useGridKeyboard(kbRef)
+  // The grid's own keys, as the thirteen actions they are. The ref is gone — a
+  // binding is asked what it does at the moment the key lands.
+  const { actRebus } = useGridKeyboard({
+    // Terminal keeps the keys ALIVE for navigation — walking the revealed grid
+    // with arrows/Tab is part of the post-game — while `readOnly` freezes the
+    // writing half. (Paused / conceded-mid-race stay fully disabled.)
+    enabled: isPlayable || isTerminal,
+    readOnly: !isPlayable,
+    // One of this game's own overlays owns the keyboard.
+    suspended: rebus !== null || numberJumpOpen,
+    grid,
+    cursor,
+    pencil,
+    setCursor,
+    fillAt: (r, c) => cells.get(cellKey(r, c))?.fill ?? null,
+    isGiven,
+    setCell: (r, c, fill, pencilled) => void handleSetCell(r, c, fill, pencilled),
+    onRebus: (r, c) => setRebus({ row: r, col: c }),
+    onNumberJump: () => setNumberJumpOpen(true),
+    onPeek: (r, c) => setPeek({ row: r, col: c, value: shownFillAt(r, c) ?? '' }),
+    clearPeek: () => setPeek(null),
+    onMark: (r, c, side) => void handleMark(r, c, side),
+  })
 
   const handleRebusCommit = useCallback(
     (value: string, post: RebusPostCommit) => {
@@ -534,33 +487,26 @@ type Explained =
     }
   }, [gameId])
 
-  // Clear board — a destructive "start over" (blanks my grid, keeps givens +
-  // the answer). Confirm first (window.confirm, like GamePage's End action);
-  // the server restores the grid to its initial state and the CDC stream
-  // repaints. In coop this clears the SHARED grid for everyone. Declared here
-  // (above the menu effect that lists it) so it's in scope for the effect.
-  // Restart — what used to be "Clear board" (2026-08-03). Same act, the name
-  // and path every other game uses, and two things the old one couldn't do: it
-  // clears EVERY grid (a restart is for the table, not just the caller) and it
-  // un-terminals a finished puzzle, so a solved crossword can be run back.
-  // Confirmed mid-game through the styled modal, like everywhere else.
-  const handleRestart = useCallback(async () => {
-    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
-    clearLocalFeedback()
-    // The same puzzle, solved again — so put the author's answers away. Nothing
-    // on the server remembers the reveal now, which is why this is explicit.
-    // (`shownSolution` deriving from the toggle is what stops a stale cache
-    // painting the whole grid the instant Restart clears the fills.)
+  // ─── End / Concede / Restart — the shared trio ─────────
+  // Restart is what used to be "Clear board" (2026-08-03): the same wipe under
+  // the name the other fifteen games use, and two things the old one couldn't
+  // do — it clears EVERY grid (a restart is for the table, not just the caller)
+  // and it un-terminals a finished puzzle, so a solved crossword can be run
+  // back. crosswords' own bit is the cleanup: put the author's answers away, so
+  // the stale solution cache can't paint the grid the instant the fills go.
+  const onRestarted = useCallback(() => {
     hideSolution()
-    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-      // Nothing to do: the fresh board arrives through the subscription.
-    } else {
-      reportUnhandled('replay_board', res)
-    }
-  }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback, hideSolution])
+    clearLocalFeedback()
+  }, [hideSolution, clearLocalFeedback])
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    mode,
+    myConceded,
+    showError: showLocalFeedback,
+    onRestarted,
+  })
 
   // Show note — open the setter's note locally AND (in coop) broadcast so
   // teammates open it too ("read it together", crossplay's showNotes). A no-op
@@ -624,255 +570,6 @@ type Explained =
     }
   }, [gameId, showLocalFeedback])
 
-  // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
-  // current clue via a ref, so this doesn't rebuild per keystroke — only on the
-  // one-shot terminal / reveal / playable transitions.
-  useEffect(() => {
-    if (!game) return
-    const title = game.meta.title || 'crossword'
-    // The puzzle title + credits, pinned at the top of the menu — crossplay shows
-    // this "title / by author / copyright" block in its menu. Empty fields drop out.
-    const menuHeader = {
-      title: game.meta.title || 'Untitled',
-      lines: [
-        game.meta.author ? `by ${game.meta.author}` : null,
-        game.meta.copyright || null,
-      ].filter((line): line is string => line !== null),
-    }
-    // The FULL crosswords menu (crossplay order, single column): the play
-    // actions ALSO live here with their ⌥-shortcut hints (crossplay advertised
-    // them in the menu). Play actions dispatch through the stable `actionsRef`
-    // so this effect needn't depend on the later-declared handlers. Help + the
-    // End/Concede + Back-to-club tail come from `buildGameMenu`.
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
-        mode,
-        isTerminal,
-        conceded: myConceded,
-        header: menuHeader,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
-        extra: [
-          // Mobile-only "Game info" item (opens the clue-lists + controls sheet);
-          // empty on desktop where the clue columns are always visible.
-          {
-            items: [
-              {
-                id: 'pencil',
-                label: pencil ? 'Switch to pen' : 'Switch to pencil',
-                shortcut: '⌥P',
-                disabled: !isPlayable,
-                onClick: () => actionsRef.current?.togglePencil(),
-              },
-              {
-                id: 'enter-rebus',
-                label: 'Enter rebus',
-                shortcut: '⇧↵',
-                disabled: !isPlayable,
-                onClick: () => actionsRef.current?.enterRebus(),
-              },
-              {
-                // Display-only toggle: collapse multi-char rebuses to their
-                // first letter (persisted per browser).
-                id: 'collapse-rebuses',
-                label: collapseRebus ? 'Expand rebuses' : 'Collapse rebuses',
-                onClick: () => setRebusPref(collapseRebus ? 'off' : 'on'),
-              },
-            ],
-          },
-          {
-            items: [
-              { id: 'note', label: 'Show note', shortcut: '⌥N', disabled: !hasNote, onClick: handleShowNote },
-              {
-                // The AI clue-explainer is for cryptics; a setter note is the
-                // proxy (crossplay gates it the same way).
-                id: 'explain',
-                label: 'Explain cryptic clue',
-                shortcut: '⌥X',
-                disabled: !hasNote,
-                onClick: () => void handleExplain(),
-              },
-              {
-                id: 'scratchpad',
-                icon: IconScratchpad,
-                label: 'Scratchpad',
-                shortcut: '⌥S',
-                onClick: () => setScratchpadOpen(true),
-              },
-              {
-                id: 'print',
-                icon: IconPrint,
-                label: 'Print / Save as PDF',
-                onClick: () => {
-                  const s = printStateRef.current
-                  if (s) void printCrosswordsPdf(s, title)
-                },
-              },
-              { id: 'download-ipuz', label: 'Download as .ipuz', onClick: () => void handleDownloadIpuz() },
-              {
-                // Answer-key PDF. Coop: any time. Compete: only once the game
-                // is over — an answer key mid-race is a giveaway. (See
-                // handlePrintSolution: this is a UI gate, not a server one.)
-                id: 'print-solution',
-                label: 'Print answer key (PDF)',
-                disabled: mode === 'compete' && !isTerminal,
-                onClick: () => void handlePrintSolution(),
-              },
-            ],
-          },
-          // The two assistance families, each collapsed behind a submenu. They
-          // were six flat rows — a third of this menu, which already runs ~20
-          // items and scrolls. Nesting them turns that into two, and the scope
-          // becomes the CHILD's whole label ("Check › Letter") rather than being
-          // repeated in each row ("Check letter / Check word / Check grid").
-          //
-          // `disabled` sits on the PARENT only: a disabled parent can't be
-          // opened, so repeating it per child would be dead weight. The
-          // shortcuts stay on the children, where the actions are.
-          //
-          // One section, not two: they're the same family (help me with this
-          // square), and as two rows they no longer need a divider between them.
-          {
-            items: [
-              {
-                id: 'check',
-                label: 'Check',
-                disabled: !isPlayable,
-                items: [
-                  { id: 'check-letter', label: SCOPE_LABEL.letter, shortcut: '⌥C', onClick: () => actionsRef.current?.check('letter') },
-                  { id: 'check-word', label: SCOPE_LABEL.word, shortcut: '⌥⇧C', onClick: () => actionsRef.current?.check('word') },
-                  { id: 'check-puzzle', label: SCOPE_LABEL.puzzle, onClick: () => actionsRef.current?.check('puzzle') },
-                ],
-              },
-              // Reveal is coop-only (revealing your own grid would trivially win
-              // a compete race) — the whole submenu is omitted in compete.
-              ...(mode === 'coop'
-                ? [
-                    {
-                      id: 'reveal',
-                      label: 'Reveal',
-                      disabled: !isPlayable,
-                      items: [
-                        { id: 'reveal-letter', label: SCOPE_LABEL.letter, shortcut: '⌥R', onClick: () => actionsRef.current?.reveal('letter') },
-                        { id: 'reveal-word', label: SCOPE_LABEL.word, shortcut: '⌥⇧R', onClick: () => actionsRef.current?.reveal('word') },
-                        { id: 'reveal-puzzle', label: SCOPE_LABEL.puzzle, onClick: () => actionsRef.current?.reveal('puzzle') },
-                      ],
-                    },
-                  ]
-                : []),
-            ],
-          },
-          {
-            items: [
-              // Destructive "start over": blank my grid (givens + answer kept).
-              // Restart replaced "Clear board": the same wipe, under the name
-              // the other twelve games use, and reachable at terminal too.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => void handleRestart() },
-              {
-                // Post-game answer key — disabled until terminal (the server
-                // only unshields the solution then). Wears the same two faces as
-                // the strip's button, because it's the same toggle.
-                id: 'reveal-board',
-                icon: solutionShown ? IconHideSolution : IconRevealSolution,
-                label: solutionShown ? 'Hide board' : 'Reveal board',
-                disabled: !isTerminal,
-                onClick: toggleSolution,
-              },
-              {
-                // Every game carries New game in the menu; crosswords' opens the
-                // club's setup dialog (see handleNewGame) rather than creating a
-                // game directly. Also the phone route to it — the terminal row
-                // lives in the off-canvas info sheet there.
-                id: 'new-game',
-                icon: IconNewGame,
-                label: 'New game',
-                shortcut: '+',
-                onClick: () => actionsRef.current?.newGame(),
-              },
-            ],
-          },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, setRebusPref, mode, myConceded, handleShowNote, handleExplain, toggleSolution, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionShown])
-
-  const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
-    ? buildOver(playState, status, mode, myId, players)
-    : null
-
-  /**
-   * What the below-board pill slot shows. The terminal verdict wins, then an
-   * active own-move pill, then the "you're out, the rest race on" indicator for
-   * a conceded compete player (so their grayed-out input has an explanation).
-   *
-   * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
-   * wordle / waffle / spellingbee). crosswords alone used to PUSH the verdict
-   * into stored feedback from an effect, and that's what broke Restart: the
-   * store is created `locked: isTerminal`, which makes `clearLocalFeedback()` a
-   * deliberate no-op at terminal — so `handleRestart` cleared nothing, the RPC
-   * then un-terminalled the game, and the stale "Game ended" pill sat on a
-   * board that was playable again with nothing left able to remove it.
-   *
-   * Deriving fixes it by construction: the verdict is a function of
-   * `isTerminal`, so it disappears the instant the restart lands. It also drops
-   * a setState-in-effect the file had to `eslint-disable`.
-   */
-  const slotPill: GenericFeedbackMsg | null =
-    isTerminal && over
-      ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
-      : (localFeedback ?? (myConceded ? outOfRacePill(true) : null))
-
-  // Always confirmed via the shared modal — crosswords previously ended unconfirmed.
-  const handleEndGame = useCallback(async () => {
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'ended') {
-      // Nothing to do: the terminal arrives by subscription.
-    } else {
-      reportUnhandled('end_game', res)
-    }
-  }, [gameId, showLocalFeedback, confirmAction])
-
-  // No confirm and no `isTerminal` gate of its own — crosswords' menu builds
-  // Concede only in compete and only while the game is live, which is where
-  // the other games' gates come from too.
-  const handleConcede = useCallback(async () => {
-    const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'conceded') {
-      // Nothing to do: `myConceded` above, and the terminal if this was the
-      // last racer, both arrive through the game subscription.
-    } else {
-      reportUnhandled('concede', res)
-    }
-  }, [gameId, showLocalFeedback])
-
-  // New game — unlike every other game's "same setup, fresh randomness", this
-  // opens the club's SETUP dialog rather than creating a game directly. A
-  // crossword has no randomness: `setup` names a PUZZLE, so replaying it would
-  // re-serve the grid just solved (library / nyt / guardian all do), and an
-  // uploaded board is stripped before it's persisted (manifest.ts — the
-  // solution must never reach the unshielded setup blob), so there's nothing
-  // to re-send at all. Picking the next puzzle is the only sane "another one",
-  // and the setup dialog is where puzzles are picked.
-  // (`navigate` directly rather than ctx's goToClub, which takes no query.)
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
-    navigate(`${clubPath(clubHandle)}?new=crosswords_${mode}`)
-  }, [clubHandle, mode, confirmAction, isTerminal])
-
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
-
   // Resolve a check/reveal scope to the target coordinates the RPCs want.
   const scopeCells = useCallback(
     (scope: Scope): CellPos[] => {
@@ -932,27 +629,15 @@ type Explained =
     [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback, closeInfoSheet],
   )
 
+  // Reveal-grid's question lives in the registry, so the shared run asks it
+  // before this is ever called (`act-reveal-puzzle`): it is the one scope that
+  // ends the puzzle rather than helping with it, it writes every player's board
+  // at once, and the terminal Reveal/Hide toggle cannot take it back — the
+  // letters ARE the players' fill now.
   const handleReveal = useCallback(
     async (scope: Scope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
-      // Revealing the whole GRID is the one scope that ends the puzzle rather
-      // than helping with it, and it's a server write on everyone's board at
-      // once: `reveal_cells` fills the cells and stamps them `revealed`, which
-      // the terminal Reveal/Hide toggle can't take back — the letters ARE the
-      // players' fill now. It also sits one menu row below "Word" and one
-      // mis-click away from it. Letter and Word stay unconfirmed: they're the
-      // ordinary help ladder, and confirming a hint you asked for is noise.
-      if (
-        scope === 'puzzle'
-        && !(await confirmAction({
-          title: 'Reveal the whole grid?',
-          message:
-            "This fills in every answer, for everyone — the puzzle is over, and you can't undo it.",
-          confirmLabel: 'Reveal grid',
-          cancelLabel: 'Keep playing',
-        }))
-      ) return
       // See handleCheck: close the covering sheet so the revealed cells (and any
       // error pill) are visible. No-op on desktop / when already closed.
       closeInfoSheet()
@@ -975,24 +660,218 @@ type Explained =
         return
       }
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet, confirmAction],
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet],
   )
 
-  // Keep the ⌥-shortcut action handlers current (read by the keyboard's kbRef
-  // via the stable actionsRef). setPencil / setNoteOpen are stable setters.
+  // ─── The commands, bound ───────────────────────────────
+  // Each one is offered exactly once here and placed twice — a menu row and a
+  // square in the tool bar — so the two can't disagree about what it is called,
+  // whether it applies or which key also does it.
+
+  /** The help ladder applies while the board is writable, and grays with it. */
+  const helpState = (): ActionState => (isPlayable ? 'active' : 'disabled')
+  /** …and Reveal is coop-only: revealing your own grid would trivially win a
+   *  race, so in compete it isn't there at all. */
+  const revealState = (): ActionState => (mode === 'coop' ? helpState() : 'hidden')
+
+  const actPencil = useBoundAction('act-pencil', {
+    // Named in both faces: this row says where ⌥P takes you, and a row that
+    // fell back to the registry's "Pencil" in one branch would rename itself.
+    describe: () => ({ state: helpState(), label: pencil ? 'Switch to pen' : 'Switch to pencil' }),
+    run: () => setPencil((p) => !p),
+  })
+
+  const actCheckLetter = useBoundAction('act-check-letter', {
+    describe: helpState,
+    run: () => handleCheck('letter'),
+  })
+  const actCheckWord = useBoundAction('act-check-word', {
+    describe: helpState,
+    run: () => handleCheck('word'),
+  })
+  const actCheckPuzzle = useBoundAction('act-check-puzzle', {
+    describe: helpState,
+    run: () => handleCheck('puzzle'),
+  })
+  const actRevealLetter = useBoundAction('act-reveal-letter', {
+    describe: revealState,
+    run: () => handleReveal('letter'),
+  })
+  const actRevealWord = useBoundAction('act-reveal-word', {
+    describe: revealState,
+    run: () => handleReveal('word'),
+  })
+  const actRevealPuzzle = useBoundAction('act-reveal-puzzle', {
+    describe: revealState,
+    run: () => handleReveal('puzzle'),
+  })
+  const check: ScopeActions = { letter: actCheckLetter, word: actCheckWord, puzzle: actCheckPuzzle }
+  const reveal: ScopeActions = { letter: actRevealLetter, word: actRevealWord, puzzle: actRevealPuzzle }
+
+  // The setter's note, and the AI explainer that needs one. The explainer is for
+  // cryptics and a note is the proxy, which is how crossplay gates it too.
+  const actShowNote = useBoundAction('act-show-note', {
+    describe: () => (hasNote ? 'active' : 'disabled'),
+    run: handleShowNote,
+  })
+  const actExplainClue = useBoundAction('act-explain-clue', {
+    describe: () => (hasNote ? 'active' : 'disabled'),
+    run: handleExplain,
+  })
+
+  // Display-only, and persisted per browser: collapse a multi-char rebus fill to
+  // its first letter. Nothing about the game changes, so it is live at terminal.
+  const actCollapseRebuses = useBoundAction('act-collapse-rebuses', {
+    describe: () => ({ state: 'active', label: collapseRebus ? 'Expand rebuses' : 'Collapse rebuses' }),
+    run: () => setRebusPref(collapseRebus ? 'off' : 'on'),
+  })
+
+  const actDownloadIpuz = useBoundAction('act-download-ipuz', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: handleDownloadIpuz,
+  })
+
+  // Print the puzzle — a snapshot at CLICK time (docs/pdf.md), which is what
+  // `printStateRef` holds.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      const state = printStateRef.current
+      if (state) void printCrosswordsPdf(state, game?.meta.title || 'crossword')
+    },
+  })
+
+  // The answer key. Coop: any time. Compete: only once the game is over — an
+  // answer key mid-race is a giveaway. (See handlePrintSolution: this is a UI
+  // gate, not a server one.)
+  const actPrintSolution = useBoundAction('act-print-solution', {
+    describe: () => (mode === 'compete' && !isTerminal ? 'disabled' : 'active'),
+    run: handlePrintSolution,
+  })
+
+  // The post-game answer grid — the same toggle in the menu and in the terminal
+  // row, wearing the same two faces, so a player who dismissed one can reach the
+  // other. Inert until terminal: the server only unshields the solution then.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
+      // Named in the inert case too — the registry's bare "Reveal" would make
+      // the row change its words as the game ended.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal solution' }
+    },
+    run: toggleSolution,
+  })
+
+  // New game — unlike every other game's "same setup, fresh randomness", this
+  // opens the club's SETUP dialog rather than creating a game directly. A
+  // crossword has no randomness: `setup` names a PUZZLE, so replaying it would
+  // re-serve the grid just solved (library / nyt / guardian all do), and an
+  // uploaded board is stripped before it's persisted (manifest.ts — the
+  // solution must never reach the unshielded setup blob), so there's nothing
+  // to re-send at all. Picking the next puzzle is the only sane "another one",
+  // and the setup dialog is where puzzles are picked.
+  // (`navigate` directly rather than ctx's goToClub, which takes no query.)
+  //
+  // The registry asks NEW_GAME_CONFIRM mid-play — starting one SHELVES this
+  // game (create_game clears the club's current-view flag, so it stays resumable
+  // from the club page) and the copy says shelved, not ended.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: () => navigate(`${clubPath(clubHandle)}?new=crosswords_${mode}`),
+  })
+
+  // ⌥S is bound by the header's scratchpad mark, so this row is a reference to
+  // that action rather than a second copy of it — and drops out on a page that
+  // has no scratchpad.
+  const actOpenScratchpad = useAppAction('act-open-scratchpad')
+
+  // The FULL crosswords menu (crossplay order, single column): the play actions
+  // ALSO live here, each advertising its own key, because crossplay's menu is
+  // where a solver learns them. `buildGameMenu` supplies the framing (Help +
+  // chat above, the exits + Back to club below).
   useEffect(() => {
-    actionsRef.current = {
-      togglePencil: () => setPencil((p) => !p),
-      check: handleCheck,
-      reveal: handleReveal,
-      enterRebus: () => cursor && setRebus({ row: cursor.row, col: cursor.col }),
-      showNote: handleShowNote,
-      explain: () => void handleExplain(),
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      newGame: handleNewGame,
+    if (!game) return
+    // The puzzle title + credits, pinned at the top of the menu — crossplay shows
+    // this "title / by author / copyright" block in its menu. Empty fields drop out.
+    const menuHeader = {
+      title: game.meta.title || 'Untitled',
+      lines: [
+        game.meta.author ? `by ${game.meta.author}` : null,
+        game.meta.copyright || null,
+      ].filter((line): line is string => line !== null),
     }
-  }, [handleCheck, handleReveal, handleShowNote, handleExplain, handleEndGame, handleConcede, handleNewGame, cursor])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        header: menuHeader,
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
+        extra: [
+          { items: [actPencil, actRebus, actCollapseRebuses] },
+          {
+            items: [
+              actShowNote,
+              actExplainClue,
+              ...(actOpenScratchpad ? [actOpenScratchpad] : []),
+              actPrintBoard,
+              actDownloadIpuz,
+              actPrintSolution,
+            ],
+          },
+          // The two assistance families, each collapsed behind a submenu. They
+          // were six flat rows — a third of this menu, which already runs ~20
+          // items and scrolls. Nesting them turns that into two, and the scope
+          // becomes the CHILD's whole label ("Check › Letter") rather than being
+          // repeated in each row ("Check letter / Check word / Check grid").
+          //
+          // `disabled` sits on the PARENT only: a disabled parent can't be
+          // opened, so repeating it per child would be dead weight. In compete
+          // all three Reveal children hide, and a submenu with nothing left to
+          // show is not a row you can open — so the whole family drops out
+          // without this asking which mode it is.
+          //
+          // One section, not two: they're the same family (help me with this
+          // square), and as two rows they no longer need a divider between them.
+          {
+            items: [
+              { id: 'check', label: 'Check', disabled: !isPlayable, items: [actCheckLetter, actCheckWord, actCheckPuzzle] },
+              { id: 'reveal', label: 'Reveal', disabled: !isPlayable, items: [actRevealLetter, actRevealWord, actRevealPuzzle] },
+            ],
+          },
+          { items: [actRestart, actReveal, actNewGame] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, game, actConcede, actEndGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isPlayable])
+
+  const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
+    ? buildOver(playState, status, mode, myId, players)
+    : null
+
+  /**
+   * What the below-board pill slot shows. The terminal verdict wins, then an
+   * active own-move pill, then the "you're out, the rest race on" indicator for
+   * a conceded compete player (so their grayed-out input has an explanation).
+   *
+   * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
+   * wordle / waffle / spellingbee). crosswords alone used to PUSH the verdict
+   * into stored feedback from an effect, and that's what broke Restart: the
+   * store is created `locked: isTerminal`, which makes `clearLocalFeedback()` a
+   * deliberate no-op at terminal — so Restart cleared nothing, the RPC
+   * then un-terminalled the game, and the stale "Game ended" pill sat on a
+   * board that was playable again with nothing left able to remove it.
+   *
+   * Deriving fixes it by construction: the verdict is a function of
+   * `isTerminal`, so it disappears the instant the restart lands. It also drops
+   * a setState-in-effect the file had to `eslint-disable`.
+   */
+  const slotPill: GenericFeedbackMsg | null =
+    isTerminal && over
+      ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
+      : (localFeedback ?? (myConceded ? outOfRacePill(true) : null))
 
   if (loading) {
     return (
@@ -1104,19 +983,13 @@ type Explained =
             <div className={styles.strip}>
               {isTerminal ? (
                 <div className={styles.actions}>
-                  <RevealButton
-                    label="Reveal solution"
-                    revealedLabel="Hide solution"
-                    revealed={solutionShown}
-                    show="icon"
-                    // Icon-only, so both faces occupy the same fixed box: the
-                    // strip cannot change width under a click, and this layout
-                    // is precise.
-                    onClick={toggleSolution}
-                  />
-                  <RestartButton show="icon" onClick={() => void handleRestart()} />
-                  <NewGameButton show="icon" onClick={handleNewGame} disabled={startingNewGame} />
-                  <BackToClubButton onClick={goToClub} weight="primary" show="icon" />
+                  {/* Icon-only, so the toggle's two faces occupy the same fixed
+                      box: the strip cannot change width under a click, and this
+                      layout is precise. */}
+                  <ActionButton action={actReveal} show="icon" />
+                  <ActionButton action={actRestart} show="icon" />
+                  <ActionButton action={actNewGame} show="icon" />
+                  <ActionButton action={menu.actBackToClub} show="icon" weight="primary" />
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">
@@ -1125,28 +998,18 @@ type Explained =
                       is_terminal), so a player who dropped out can't spoil a
                       live race — and the row keeps its shape for when the last
                       solver finishes. */}
-                  <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
-                  <ConcedeGameButton show="icon" disabled />
+                  <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+                  <ActionButton action={actConcede} show="icon" />
                 </LocalTerminalRow>
               ) : (
                 <div className={styles.toolRow}>
                   {/* End / Concede rides INSIDE the bar as icon-only children,
                       in its own rule-separated group — one row of uniform
-                      squares, grouped by what they do. */}
-                  <Controls
-                    mode={mode}
-                    pencil={pencil}
-                    onPencilChange={setPencil}
-                    onCheck={(scope) => void handleCheck(scope)}
-                    onReveal={(scope) => void handleReveal(scope)}
-                    disabled={!isPlayable}
-                  >
-                    {isPlayable &&
-                      (mode === 'compete' ? (
-                        <ConcedeGameButton show="icon" onClick={() => void handleConcede()} />
-                      ) : (
-                        <EndGameButton show="icon" onClick={() => void handleEndGame()} />
-                      ))}
+                      squares, grouped by what they do. Both are placed; the one
+                      this mode doesn't offer hides itself. */}
+                  <Controls pencil={pencil} actPencil={actPencil} check={check} reveal={reveal}>
+                    <ActionButton action={actConcede} show="icon" />
+                    <ActionButton action={actEndGame} show="icon" />
                   </Controls>
                 </div>
               )}
@@ -1191,7 +1054,6 @@ type Explained =
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }

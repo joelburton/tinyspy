@@ -14,6 +14,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import type { CrosswordsGame } from '../hooks/useGame'
@@ -97,9 +101,22 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   }
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Any test that TYPES needs it: the grid's keys are bound actions, and a bare
+ *  `render` binds them with nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 /** What each RPC answers on the happy path, by name. */
@@ -226,109 +243,118 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
   })
 
-  /** Flatten the last setGameSections call into a flat item array. */
-  type TestItem = { id: string; label?: string; disabled?: boolean; shortcut?: string; items?: TestItem[] }
-
-  /** Every TOP-LEVEL row, in order. A submenu parent appears once, as itself —
-   *  its children are reached via `.items` (see `submenuOf`). */
-  function lastMenuItems(setGameSections: ReturnType<typeof vi.fn>): TestItem[] {
-    const sections = setGameSections.mock.calls.at(-1)?.[0] as Array<{ items: TestItem[] }>
-    return sections.flatMap((s) => s.items)
+  /** Every TOP-LEVEL row the menu would draw, in order — a row is a bound
+   *  action now, so its words, glyph, key hint and availability come from the
+   *  action rather than from the list. A hidden row is dropped, the way the menu
+   *  drops it. A submenu parent appears once, as itself; its children are on
+   *  `.children`. */
+  function menuRows(ctx: GamePageCtx): MenuRow[] {
+    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+    return sections.flatMap((s) => s.items).map(menuRow).filter((r) => !r.hidden)
   }
 
+  const rowsById = (ctx: GamePageCtx) => new Map(menuRows(ctx).map((r) => [r.id, r]))
+
   /** The children of one submenu parent, by id. */
-  function submenuOf(setGameSections: ReturnType<typeof vi.fn>, parentId: string): TestItem[] {
-    return lastMenuItems(setGameSections).find((i) => i.id === parentId)?.items ?? []
+  function submenuOf(ctx: GamePageCtx, parentId: string): MenuRow[] {
+    return rowsById(ctx).get(parentId)?.children ?? []
   }
 
   it('populates the full crossplay-order menu with shortcut hints (coop)', () => {
-    const setGameSections = vi.fn()
-    render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
-    const items = lastMenuItems(setGameSections)
-    // Check + Reveal are now ONE row each — six flat rows collapsed into two
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    // Check + Reveal are ONE row each — six flat rows collapsed into two
     // submenus (this menu already runs long enough to scroll).
-    expect(items.map((i) => i.id)).toEqual([
-      // help + chat are `buildGameMenu`'s framing pair, above every game's own
+    expect(menuRows(ctx).map((r) => r.id)).toEqual([
+      // Help + chat are `buildGameMenu`'s framing pair, above every game's own
       // sections: chat has a header bubble and a `/` shortcut, and this row is
       // the labeled twin that writes that shortcut down (gameMenu.ts).
-      'help', 'chat',
-      'pencil', 'enter-rebus', 'collapse-rebuses',
-      'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
+      'act-help', 'act-open-chat',
+      'act-pencil', 'act-rebus', 'act-collapse-rebuses',
+      // No Scratchpad row: ⌥S is the header mark's binding, and nothing binds it
+      // in a bare PlayArea render.
+      'act-show-note', 'act-explain-clue', 'act-print-board', 'act-download-ipuz', 'act-print-solution',
       'check', 'reveal',
-      'restart', 'reveal-board', 'new-game',
-      'end-game', 'back',
+      'act-restart', 'act-reveal', 'act-new-game',
+      // Concede hides itself in coop, so the exits are End + Back to club.
+      'act-end-game', 'act-back-to-club',
     ])
     // The scope is the CHILD's whole label, so the rows read "Check › Letter"
     // rather than repeating the verb.
-    expect(submenuOf(setGameSections, 'check').map((i) => i.label)).toEqual(['Letter', 'Word', 'Grid'])
-    expect(submenuOf(setGameSections, 'reveal').map((i) => i.label)).toEqual(['Letter', 'Word', 'Grid'])
-    // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word. They ride
-    // the CHILDREN — a submenu parent isn't a command, so it carries none.
-    const check = submenuOf(setGameSections, 'check')
-    expect(check.find((i) => i.id === 'check-letter')?.shortcut).toBe('⌥C')
-    expect(check.find((i) => i.id === 'check-word')?.shortcut).toBe('⌥⇧C')
-    expect(items.find((i) => i.id === 'check')?.shortcut).toBeUndefined()
-    expect(items.find((i) => i.id === 'back')?.shortcut).toBe('<')
-    expect(items.find((i) => i.id === 'end-game')?.shortcut).toBe('⌥⌫')
-    // All the former placeholders are now wired (enabled).
-    expect(items.find((i) => i.id === 'collapse-rebuses')?.disabled).toBeFalsy()
-    expect(items.find((i) => i.id === 'download-ipuz')?.disabled).toBeFalsy()
+    expect(submenuOf(ctx, 'check').map((r) => r.label)).toEqual(['Letter', 'Word', 'Grid'])
+    expect(submenuOf(ctx, 'reveal').map((r) => r.label)).toEqual(['Letter', 'Word', 'Grid'])
+    // The hints ride the CHILDREN — a submenu parent isn't a command, so it
+    // carries none. ⌥C = check letter, ⌥⇧C = check word.
+    const check = new Map(submenuOf(ctx, 'check').map((r) => [r.id, r]))
+    expect(check.get('act-check-letter')?.shortcut).toBe('⌥C')
+    expect(check.get('act-check-word')?.shortcut).toBe('⌥⇧C')
+    const rows = rowsById(ctx)
+    expect(rows.get('check')?.shortcut).toBeUndefined()
+    expect(rows.get('act-back-to-club')?.shortcut).toBe('<')
+    expect(rows.get('act-end-game')?.shortcut).toBe('⌥⌫')
+    expect(rows.get('act-pencil')?.shortcut).toBe('⌥P')
+    expect(rows.get('act-rebus')?.shortcut).toBe('⇧↵')
+    expect(rows.get('act-collapse-rebuses')?.disabled).toBe(false)
+    expect(rows.get('act-download-ipuz')?.disabled).toBe(false)
     // Restart (what "Clear board" became) is live mid-game — it's confirmed,
-    // not disabled; Reveal-board stays terminal-only.
-    expect(items.find((i) => i.id === 'restart')?.disabled).toBeFalsy()
-    expect(items.find((i) => i.id === 'reveal-board')?.disabled).toBe(true)
+    // not disabled; the solution reveal stays terminal-only.
+    expect(rows.get('act-restart')?.disabled).toBe(false)
+    expect(rows.get('act-reveal')?.disabled).toBe(true)
+    expect(rows.get('act-reveal')?.label).toBe('Reveal solution')
     // Answer-key PDF is always available in coop (even mid-play).
-    expect(items.find((i) => i.id === 'print-solution')?.disabled).toBeFalsy()
+    expect(rows.get('act-print-solution')?.disabled).toBe(false)
   })
 
-  it('omits the coop-only Reveal section and shows Concede in compete', () => {
+  it('names the pencil toggle for where it takes you', async () => {
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    expect(rowsById(ctx).get('act-pencil')?.label).toBe('Switch to pencil')
+    act(() => rowsById(ctx).get('act-pencil')!.run())
+    await waitFor(() => expect(rowsById(ctx).get('act-pencil')?.label).toBe('Switch to pen'))
+  })
+
+  it('omits the coop-only Reveal submenu and shows Concede in compete', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    const setGameSections = vi.fn()
-    render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
-    const ids = lastMenuItems(setGameSections).map((i) => i.id)
-    // The whole Reveal submenu is gone — not just emptied.
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    const ids = menuRows(ctx).map((r) => r.id)
+    // All three Reveal children hide themselves, and a submenu with nothing left
+    // to show is not a row you can open — so the whole family is gone.
     expect(ids).not.toContain('reveal')
-    expect(submenuOf(setGameSections, 'reveal')).toEqual([])
     // Check + pencil still present; compete shows Concede (not End game).
     expect(ids).toContain('check')
-    expect(submenuOf(setGameSections, 'check').map((i) => i.id)).toContain('check-letter')
-    expect(ids).toContain('pencil')
-    expect(ids).toContain('concede')
-    expect(ids).not.toContain('end-game')
+    expect(submenuOf(ctx, 'check').map((r) => r.id)).toContain('act-check-letter')
+    expect(ids).toContain('act-pencil')
+    expect(ids).toContain('act-concede')
+    expect(ids).not.toContain('act-end-game')
   })
 
   it('gates the answer-key PDF in compete: disabled mid-play, enabled at terminal', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     // Mid-play: an answer key would give away the race, so it's disabled.
-    const playing = vi.fn()
-    render(<PlayArea {...makeCtx({ menu: { setGameSections: playing, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
-    expect(lastMenuItems(playing).find((i) => i.id === 'print-solution')?.disabled).toBe(true)
+    const playing = makeCtx()
+    const { unmount } = render(<PlayArea {...playing} />)
+    expect(rowsById(playing).get('act-print-solution')?.disabled).toBe(true)
+    unmount()
 
     // Terminal: the game's over, so it's allowed.
-    const done = vi.fn()
-    render(
-      <PlayArea
-        {...makeCtx({
-          isTerminal: true,
-          playState: 'won_compete',
-          menu: { setGameSections: done, openHelp: vi.fn(), requestBackToClub: vi.fn() },
-        })}
-      />,
-    )
-    expect(lastMenuItems(done).find((i) => i.id === 'print-solution')?.disabled).toBeFalsy()
+    const done = makeCtx({ isTerminal: true, playState: 'won_compete' })
+    render(<PlayArea {...done} />)
+    expect(rowsById(done).get('act-print-solution')?.disabled).toBe(false)
   })
 })
 
-describe('crosswords PlayArea — keyboard hook wiring (isNonGameField)', () => {
+describe('crosswords PlayArea — the grid keys, through the one dispatcher', () => {
   it('a letter typed on the board fills the cursor cell', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { key: 'A' })
     // The cursor seeds at the first fillable cell (0,0); a letter writes it.
     expect(h.setCell).toHaveBeenCalledWith(0, 0, 'A', false)
   })
 
   it('a letter typed inside a text input (e.g. chat) is ignored', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     const input = document.createElement('input')
     document.body.appendChild(input)
     input.focus()
@@ -339,10 +365,8 @@ describe('crosswords PlayArea — keyboard hook wiring (isNonGameField)', () => 
 })
 
 describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)', () => {
-  /** The ctx of the CURRENT render, for the tests that reach into its menu. */
-  let lastCtx: GamePageCtx | null = null
   it('⌥C checks the letter; ⌥⇧C checks the word', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
     expect(rpcNames()).toContain('check_cells')
     // ⌥C = letter scope = just the cursor cell (1); ⌥⇧C = word scope (2 here).
@@ -356,32 +380,33 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   })
 
   it('⌥R reveals in coop', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     expect(rpcNames()).toContain('reveal_cells')
   })
 
   /** Fire the whole-grid reveal from the game menu's Reveal ▸ Grid row. */
-  type MenuRow = { id: string; onClick: () => void; items?: MenuRow[] }
-  const revealGrid = async () => {
-    const menuCalls = (lastCtx!.menu.setGameSections as unknown as ReturnType<typeof vi.fn>).mock.calls
-    const sections = menuCalls.at(-1)![0] as { items: MenuRow[] }[]
+  const revealGrid = async (ctx: GamePageCtx) => {
+    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
     const row = sections
       .flatMap((sec) => sec.items)
-      .find((i) => i.id === 'reveal')!
-      .items!.find((i) => i.id === 'reveal-puzzle')!
-    await act(async () => { row.onClick() })
+      .map(menuRow)
+      .find((r) => r.id === 'reveal')!
+      .children!.find((r) => r.id === 'act-reveal-puzzle')!
+    await act(async () => { row.run() })
   }
 
   it('revealing the whole GRID asks first — and canceling writes nothing', async () => {
-    lastCtx = makeCtx()
-    render(<PlayArea {...lastCtx} />)
+    const ctx = makeCtx()
+    render(<><PlayArea {...ctx} /><ConfirmationHost /></>)
     h.rpc.mockClear()
 
-    await revealGrid()
+    await revealGrid(ctx)
 
     // The modal, not the RPC: filling every answer ends the puzzle for the
-    // whole table, and the row sits one mis-click below "Word".
+    // whole table, and the row sits one mis-click below "Word". The question is
+    // the registry's, asked by the shared run.
     expect(await screen.findByText('Reveal the whole grid?')).toBeInTheDocument()
     expect(rpcNames()).not.toContain('reveal_cells')
 
@@ -390,17 +415,20 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   })
 
   it('…and confirming it goes through', async () => {
-    lastCtx = makeCtx()
-    render(<PlayArea {...lastCtx} />)
+    const ctx = makeCtx()
+    render(<><PlayArea {...ctx} /><ConfirmationHost /></>)
     h.rpc.mockClear()
-    await revealGrid()
+    await revealGrid(ctx)
     await screen.findByText('Reveal the whole grid?')
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal grid' }))
+    // The tool bar's own "Reveal grid" square shares the name — which is the
+    // point, they are the same action — so take the modal's, last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'Reveal grid' })
+    await userEvent.click(confirms[confirms.length - 1]!)
     await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
   })
 
   it('a single-letter reveal is NOT confirmed — it is the ordinary help ladder', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<><WithKeys {...makeCtx()} /><ConfirmationHost /></>)
     h.rpc.mockClear()
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     expect(screen.queryByText('Reveal the whole grid?')).not.toBeInTheDocument()
@@ -409,20 +437,20 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
 
   it('⌥R does NOT reveal in compete (reveal is coop-only)', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     expect(rpcNames()).not.toContain('reveal_cells')
   })
 
   it('⌥N opens the note dialog when the puzzle has a setter note', () => {
     h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Theme: fruit' } }
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyN', key: '˜', altKey: true })
     expect(screen.getByText('Theme: fruit')).toBeInTheDocument()
   })
 
   it('⌥ shortcuts are inert at terminal (read-only board)', () => {
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
     expect(rpcNames()).not.toContain('check_cells')
   })
@@ -431,13 +459,13 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
 describe('crosswords PlayArea — peer broadcasts (note + reveal flash)', () => {
   it('Show note broadcasts so teammates open it too (coop)', () => {
     h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Theme: fruit' } }
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyN', key: '˜', altKey: true })
     expect(h.broadcastNote).toHaveBeenCalled()
   })
 
   it('a coop reveal flashes the revealed cells on teammates’ grids', async () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     // handleReveal awaits the RPC, then broadcasts the revealed coords.
     await waitFor(() => expect(h.broadcastFills).toHaveBeenCalled())
@@ -446,7 +474,7 @@ describe('crosswords PlayArea — peer broadcasts (note + reveal flash)', () => 
 
   it('a failed reveal does not broadcast a flash', async () => {
     h.rpc.mockResolvedValue({ error: { message: 'nope' } })
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
     expect(h.broadcastFills).not.toHaveBeenCalled()

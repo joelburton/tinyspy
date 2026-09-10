@@ -91,13 +91,13 @@ test.describe('crosswords play loop', () => {
     await page.getByRole('button', { name: 'Check letter' }).click()
     await expect(cell10).toHaveAttribute('data-wrong', '', { timeout: 8000 })
 
-    // Mid-game "Reveal board" is disabled (the solution is still shielded).
+    // Mid-game "Reveal solution" is disabled (the solution is still shielded).
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Reveal board' })).toBeDisabled()
+    await expect(page.getByRole('menuitem', { name: 'Reveal solution' })).toBeDisabled()
     await page.keyboard.press('Escape')
 
     // Give up (coop End) → terminal, but the blanks do NOT auto-fill; the
-    // answers wait behind the "Reveal board" menu item.
+    // answers wait behind the "Reveal solution" menu item.
     const cell11 = page.locator('[data-xw-cell][data-row="1"][data-col="1"]')
     await page.getByRole('button', { name: 'End game' }).first().click()
     // End now confirms through the shared modal (docs/ui.md → Confirm modals).
@@ -107,24 +107,24 @@ test.describe('crosswords play loop', () => {
     await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 8000 })
     await expect(cell11).toHaveAttribute('data-fill', '')
 
-    // "Reveal board" shows the author's grid EXACTLY as shipped: blanks fill in
+    // "Reveal solution" shows the author's grid EXACTLY as shipped: blanks fill in
     // (S here), and a wrong letter is CORRECTED rather than left standing — a
     // half-corrected grid isn't the solution, and seeing what the answer was is
     // the entire reason to look. The wrong-mark goes with it: that verdict was
     // about a letter no longer on screen.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Reveal board' }).click()
+    await page.getByRole('menuitem', { name: 'Reveal solution' }).click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
     await expect(cell10).toHaveAttribute('data-fill', 'T')
     await expect(cell10).not.toHaveAttribute('data-wrong', '')
 
-    // …and "Hide board" takes them straight back off, leaving the fill the
+    // …and "Hide solution" takes them straight back off, leaving the fill the
     // players actually left. That matters more here than anywhere else: a
     // crossword grid can legitimately differ from the author's (rebuses,
     // quantum clues), so overwriting it permanently would destroy the only
     // record of what the solvers wrote.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Hide board' }).click()
+    await page.getByRole('menuitem', { name: 'Hide solution' }).click()
     await expect(cell11).toHaveAttribute('data-fill', '', { timeout: 8000 })
     // …including the wrong letter and its mark — overwriting the fill on screen
     // is only safe BECAUSE this comes back.
@@ -132,7 +132,7 @@ test.describe('crosswords play loop', () => {
     await expect(cell10).toHaveAttribute('data-wrong', '')
     // Show it again — from the cache this time, no refetch.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Reveal board' }).click()
+    await page.getByRole('menuitem', { name: 'Reveal solution' }).click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
 
     // …and Restart from HERE must hand back a blank grid, not the answers.
@@ -200,7 +200,7 @@ test.describe('crosswords play loop', () => {
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     const download = page.waitForEvent('download')
-    await page.getByText('Print / Save as PDF').click()
+    await page.getByRole('menuitem', { name: 'Print board (PDF)' }).click()
     expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
   })
 

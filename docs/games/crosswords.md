@@ -123,7 +123,7 @@ plain RPCs — no edge function needed. The one exception is
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
-| `end_game(target_game)` | Coop mutual give-up → neutral `ended` (`outcome: 'manual'`). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
+| `end_game(target_game)` | Coop mutual give-up → neutral `ended` (`outcome: 'manual'`). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal solution" menu item (§7 → Terminal). |
 | `library_for_club(target_club)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Sorted **alphabetically by title** (case-insensitive, `created_at desc` breaking ties) — the picker is a list you scan by name, where import order was an accident of how the files landed. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and `ended` shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function where connections uses a view (`connections.club_game_status`): the join to `play_state` is cross-schema *and* has to be OUTER, and the club is an input to it — a view exposing `club_handle` from the games side is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<SetupTimerSection>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
@@ -348,36 +348,42 @@ sizing).
   CDC row payloads **directly** (per-cell `version` "newer wins") with optimistic
   `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
 - **`useGridKeyboard`** — the full grid key set (ported from crossplay's
-  PuzzleView): letters (fill + advance), Backspace (two-step) / Shift+Backspace
-  (clear word), Space (advance) / Shift+Space (read-only zoom-peek of a squeezed
-  rebus), arrows / Shift+arrows (word edge), Tab / Shift+Tab (jump clue),
-  Shift+Enter (rebus overlay), `#` (jump-to-number popup), `|` / `_` (cycle the
-  right / bottom cryptic edge mark → `set_mark`). Bails inside inputs
-  (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta.
+  PuzzleView) as thirteen **bound actions** (`common/actions`): letters (fill +
+  advance), Backspace (two-step) / Shift+Backspace (clear word), Space (advance)
+  / Shift+Space (read-only zoom-peek of a squeezed rebus), arrows /
+  Shift+arrows (word edge), Tab / Shift+Tab (jump clue), Shift+Enter (rebus
+  overlay), `#` (jump-to-number popup), `|` / `_` (cycle the right / bottom
+  cryptic edge mark → `set_mark`). Nothing here reads the window: the app's one
+  dispatcher stands down inside a text field and inside any floating panel, so
+  the hook's own modifier / field / panel guards are gone. What stayed is
+  `suspended`, which disables all thirteen while the rebus box or the
+  number-jump popup is up — those are focused inputs, and Tab is the one key an
+  action may claim from inside one. Navigation stays live at terminal (walking a
+  solved grid is part of the post-game) while every writing key describes itself
+  disabled.
   - **⌥-letter shortcuts** (crossplay parity — the port's identity is
     keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check letter / word,
     **⌥R** / **⌥⇧R** reveal letter / word (coop only), **⌥N** show note, **⌥X**
-    explain cryptic clue, **⌥S** scratchpad. Handled before the Ctrl/Meta/Alt
-    bail and keyed on `e.code` (physical key) so Mac ⌥ dead-keys (⌥C = ç,
-    ⌥N = ˜) don't matter; the write actions are inert once the board is
-    read-only (terminal). They dispatch through a stable `actionsRef` so the
-    keyboard hook needn't list the (later-declared) Controls/menu handlers in
-    its deps. **⌥M menu is NOT wired** (the shell exposes no programmatic menu
-    open); note the check/reveal *puzzle* scope has no shortcut (menu-only),
-    matching crossplay. Two more shortcuts are shell-global (any game): **⌥⌫**
-    End/Concede, **`<`** Back to club — see [ui.md → GamePage menu](../ui.md#gamepage-menu).
+    explain cryptic clue, **⌥S** scratchpad (the header mark's own binding, so
+    it works in every game that has one). Each chord is matched on `e.code`
+    (physical key) so Mac ⌥ dead-keys (⌥C = ç, ⌥N = ˜) don't matter, and each is
+    the SAME action as its menu row and its square in the tool bar. **⌥M menu is
+    NOT wired** (the shell exposes no programmatic menu open); the check/reveal
+    *grid* scope has no shortcut, matching crossplay. Two more are shell-global
+    (any game): **⌥⌫** End/Concede, **`<`** Back to club — see
+    [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
-  letter/word/grid scope (scope resolved client-side via `cursor.ts`).
-  **Reveal at GRID scope is confirmed through the styled modal**; letter and
-  word go straight through. It's the one scope that ends the puzzle rather than
-  helping with it, `reveal_cells` writes the answers onto *everyone's* board and
-  stamps them `revealed` (so the terminal Reveal/Hide toggle can't take it back
-  — those letters are the players' fill now), and the row sits one mis-click
-  below "Word". The
-  **same actions are ALSO listed in the game menu** with their ⌥-shortcut hints
-  (`MenuItem.shortcut`) — crossplay advertised them there, and the menu is where
-  a mouse user discovers the shortcut. Both surfaces dispatch through the shared
-  `actionsRef`, so there's one binding, two entry points.
+  letter/word/grid scope (scope resolved client-side via `cursor.ts`). Every
+  square IS its action, so the bar decides nothing: Reveal's three hide
+  themselves in a race and take their group's label and rule with them, and a
+  frozen board grays the rest. The pen/pencil pair is two destinations for ONE
+  toggle — clicking the one you're already on is nothing to do.
+  **Reveal at GRID scope is confirmed**, by the registry's own question rather
+  than by this game: it's the one scope that ends the puzzle rather than helping
+  with it, `reveal_cells` writes the answers onto *everyone's* board and stamps
+  them `revealed` (so the terminal Reveal/Hide toggle can't take it back — those
+  letters are the players' fill now), and the row sits one mis-click below
+  "Word". Letter and word go straight through: they're the ordinary help ladder.
 - **Puzzle-info menu header** — the game menu opens with the loaded puzzle's
   **title + credits** (`title`, `by {author}`, `copyright`), a non-clickable block
   pinned above Help — crossplay's menu shows the same. It rides the shared menu's
@@ -419,7 +425,7 @@ sizing).
   the states vocabulary (compete writes `won_compete`), at the moment of the
   flip, never on opening an already-solved game. The board is **not**
   auto-revealed at game end: the blanks stay blank until THIS viewer picks the
-  **"Reveal board"** game-menu item, which fetches `games_state.solution` and
+  **"Reveal solution"** game-menu item, which fetches `games_state.solution` and
   draws the author's grid **exactly as shipped** — blanks fill in, and a wrong
   letter is *corrected* rather than left standing beside them (a half-corrected
   grid isn't the solution, and what the answer was is the whole reason to look).
@@ -504,28 +510,32 @@ giveaway to someone else's disadvantage. Both PDFs are exposed as
 **The game menu** is the fullest in the app — crosswords builds its whole menu
 via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see
 [ui.md → GamePage menu](../ui.md#gamepage-menu)), reproducing crossplay's
-single-column layout in order: **Help** · pencil (⌥P) / Enter rebus (⇧↵) /
-Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) / Scratchpad (⌥S)
-/ Print (⌥ none) / Download as .ipuz / Print answer key (PDF) · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
-Reveal letter (⌥R) / word (⌥⇧R) / puzzle *(whole section coop-only)* · Clear
-board / Reveal board / New game · **End game / Concede game** (⌥⌫) · **Back to
-club** (`<`).
-The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
+single-column layout in order: **Help** / Open chat (`/`) · Switch to pencil
+(⌥P) / Enter rebus (⇧↵) / Collapse rebuses · Show note (⌥N) / Explain cryptic
+clue (⌥X) / Scratchpad (⌥S) / Print board (PDF) / Download as .ipuz / Print
+answer key (PDF) · **Check ▸** Letter (⌥C) / Word (⌥⇧C) / Grid · **Reveal ▸**
+Letter (⌥R) / Word (⌥⇧R) / Grid *(the whole submenu drops out in compete, since
+all three children hide themselves)* · Restart / Reveal solution / New game (`+`)
+· **Concede game / End game** (⌥⌫) · **Back to club** (`<`).
+Every row is a bound action, so its words, glyph, key hint and availability come
+from the action rather than being typed here a second time — which is what makes
+a row and the square beside it in the tool bar the same thing. Notables: **Collapse
 rebuses** is a display-only toggle (persisted per browser) that shows multi-char
 rebus fills as just their first letter; **Download as .ipuz** emits the current
 board — template + fills + the answer grid (fetched via the `export_solution` RPC,
 which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
 to continue; **Show note** (`CrosswordsNoteCompanion`) also
 broadcasts a `showNotes` event in coop so teammates open it together;
-**Restart** is the destructive "start over" — `replay_board`, confirmed through
-the styled modal mid-game, straight through at terminal. It replaced **Clear
-board** on 2026-08-03: the same wipe under the name every other game uses, plus
-two powers the old one lacked — it clears EVERY grid (a restart is for the
-table, so a compete restart re-opens the race) and it un-terminals a finished
-puzzle, which is what let crosswords join the other twelve in having a replay at
-all ([ui.md → Restart](../ui.md#terminal-results--the-moment-vs-the-record)).
-**Reveal board** is the terminal-only answer key (see *Terminal* above). The menu
-is long, so the popover scrolls — the page never does.
+**Restart** is the destructive "start over" — `replay_board` through the shared
+`useStandardGameActions`, confirmed mid-game and straight through at terminal.
+It replaced **Clear board** on 2026-08-03: the same wipe under the name every
+other game uses, plus two powers the old one lacked — it clears EVERY grid (a
+restart is for the table, so a compete restart re-opens the race) and it
+un-terminals a finished puzzle, which is what let crosswords join the rest of
+the roster in having a replay at all
+([ui.md → Restart](../ui.md#terminal-results--the-moment-vs-the-record)).
+**Reveal solution** is the terminal-only answer key (see *Terminal* above). The
+menu is long, so the popover scrolls — the page never does.
 
 Because the board reads `window` keydowns for cursor movement, the shared
 `Menu` is given **`returnFocusOnClose={false}`** by GamePage: on close the
