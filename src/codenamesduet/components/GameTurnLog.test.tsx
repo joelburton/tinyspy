@@ -130,7 +130,7 @@ describe('GameTurnLog', () => {
     expect(rows).toHaveLength(4)
 
     // Turn 1 (oldest) first: clue row carries #1 / TOOLS / the clue-giver (ada
-    // via ActorTag); its guess row carries HAMMER.
+    // via ActorDot); its guess row carries HAMMER.
     expect(rows[0]).toHaveTextContent('#1')
     expect(rows[0]).toHaveTextContent('TOOLS')
     expect(rows[0]).toHaveTextContent('ada')

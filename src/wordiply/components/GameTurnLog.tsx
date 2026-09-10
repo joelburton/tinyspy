@@ -50,7 +50,7 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  *     something the dictionary just rejected would be a dead end.
  *   - **length / reason** — an accepted guess shows its LENGTH (wordiply's one
  *     live readout; scores stay terminal-only). A reject shows why instead.
- *   - **who** — the actor's `<ActorTag>`, right-aligned so the discs line up.
+ *   - **who** — the actor's `<ActorDot>`, right-aligned so the discs line up.
  *
  * **No `#N` handle.** The seven history-viewer games make the number clickable
  * to replay the board at that turn; wordiply has no viewer and doesn't want one

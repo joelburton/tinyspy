@@ -1,7 +1,7 @@
 /* cs-audited-members */
 
 /* Actor mention — a player's name + identity disc, in either order. Backs the two
- * widgets in ActorMention.tsx (ActorTag = name-then-dot, DotActor = dot-then-name).
+ * widgets in ActorMention.tsx (ActorDot = name-then-dot, DotActor = dot-then-name).
  * The disc carries the identity; the name stays plain text so the two never fight
  * for the color (docs/ui.md → "Player identity = a colored disc"). */
 /* Plain `inline`, NOT `inline-flex`. A mention sits INSIDE a sentence ("● joel is

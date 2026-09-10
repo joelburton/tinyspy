@@ -27,7 +27,7 @@ Agreed 2026-09-08 — every source file of `src/common/members/` and
 | `src/common/members/gamePlayer.fixture.ts` | `gp()`, a `GamePlayer` fixture builder; every importer is a test. Renamed from `gamePlayers.ts` by F-members-9 | `cs-audited-members` |
 | `src/common/members/Dot.tsx` | the identity disc | `cs-audited-members` |
 | `src/common/members/Dot.module.css` | its geometry and the three per-site knobs | `cs-audited-members` |
-| `src/common/members/ActorMention.tsx` | `<ActorTag>` / `<DotActor>` — the disc-plus-name pair. MOVED here from `turn-log` during the area; joined the roster at the closing re-read | `cs-audited-members` |
+| `src/common/members/ActorMention.tsx` | `<ActorDot>` / `<DotActor>` — the disc-plus-name pair. MOVED here from `turn-log` during the area; joined the roster at the closing re-read | `cs-audited-members` |
 | `src/common/members/ActorMention.module.css` | the mention's inline layout and the name/dot gap | `cs-audited-members` |
 | `src/common/text/RichMessage.tsx` | `RichMessageType` + the component that renders it — text with inline player segments | DELETED (F-members-1) |
 | `src/common/text/RichMessage.module.css` | the segment's inline-flex and its disc size | DELETED (F-members-1) |
@@ -121,12 +121,12 @@ dropped to the mention's 500 (chat was 600, the two banners were `<strong>`);
 `ChatBody.module.css` lost `.senderName` with its only caller.
 
 The docstring is rewritten too: `colorVarFor` now says the reference paints a
-SHAPE and never a name, and points at `<ActorTag>` / `<DotActor>`.
+SHAPE and never a name, and points at `<ActorDot>` / `<DotActor>`.
 
 Two sentences that described the old state went with it. `docs/ui.md:1350` said
 *"several older logs still encode the actor by coloring the name text …
 tracked as a consistency follow-up"* — nothing does now, so the follow-up is
-gone and the paragraph names both widgets instead of only `<ActorTag>`. And
+gone and the paragraph names both widgets instead of only `<ActorDot>`. And
 `core-css/fixed.css`'s MEMBER header said the fills paint *"bold name labels
 (chat usernames)"* — **that file belongs to the paused `corecss` area**, whose
 re-read is done and whose blessing is pending, so Joel should know it was

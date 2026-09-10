@@ -29,7 +29,7 @@ import styles from './GameTurnLog.module.css'
  * the cheat requests, so asking for a hint reads as having "cost a turn" rather
  * than being free.
  *
- * Every row names its player (the shared `<ActorTag>`), unconditionally — the
+ * Every row names its player (the shared `<ActorDot>`), unconditionally — the
  * v3 log shape. **Whose rows** are shown is picked by the shared
  * `useTurnLogPlayerPicker` dropdown in the header, one vocabulary across every
  * turn-log game: solo is your handle, coop is "Team" plus each player, compete

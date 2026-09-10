@@ -53,7 +53,7 @@ const VALID = new Set<string>(MEMBER_COLORS)
  * The reference paints a SHAPE the player owns — a disc's fill, a glyph, a
  * tile tint. It does not paint their NAME: identity rides the disc and never
  * the text (docs/ui.md → "Player identity = a colored disc"), so a name beside
- * a disc stays body-text color. Reach for `<ActorTag>` / `<DotActor>`
+ * a disc stays body-text color. Reach for `<ActorDot>` / `<DotActor>`
  * (`common/members/ActorMention`) when what you want is the pair.
  */
 export function colorVarFor(name: string | null | undefined): string {

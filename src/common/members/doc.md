@@ -63,8 +63,9 @@ disc sitting on a saturated tile, where the ring goes to the on-dark ink because
 white is what separates any disc from a strong fill.
 
 **The mention comes in two orders and one of them is not decoration.**
-`<ActorTag>` reads name-then-disc, which is what a table row wants;
-`<DotActor>` leads with the disc, which is what a sentence wants. What makes
+Each is named in the order it draws: `<ActorDot>` is actor-then-dot, which is
+what a table row wants; `<DotActor>` is dot-then-actor, which is what a
+sentence wants. What makes
 the pair worth a component rather than two spans is the `show` prop: because
 the name is a real element rather than text baked into a string, a phone can
 drop it globally and leave the disc, which is the fallback the whole

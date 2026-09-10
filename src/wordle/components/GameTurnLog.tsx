@@ -44,7 +44,7 @@ type Props = {
  *     on an opponent's read-only log (compete) it's a plain muted number.
  *   - **the squares** — the guess + its g/y/x feedback; the row's headline, so it
  *     takes the slack-absorbing `turnLog.main` column (keeping `who` snug right).
- *   - **who** — the guesser's `<ActorTag>` in the right-aligned `turnLog.who`
+ *   - **who** — the guesser's `<ActorDot>` in the right-aligned `turnLog.who`
  *     column, so the identity discs line up down the log.
  *
  * The who column is rendered **unconditionally**, like every other v3 turn log:

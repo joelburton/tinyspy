@@ -405,7 +405,7 @@ consistent without imposing structure:
   `.main`, **not** `.who` — a `width: 100%` on `.who` would steal it and wrap a
   sibling (the connections "Not a match" bug).
 - **Emphasis class** — `.primary` (the bold lead value) — plus the shared
-  [`<ActorTag>`](ui.md#player-identity--a-colored-disc) for the actor (name + identity
+  [`<ActorDot>`](ui.md#player-identity--a-colored-disc) for the actor (name + identity
   disc). Bare names, read as `turnLog.primary` (namespaced by the import alias).
   Reach for an existing class/component before inventing one.
 - **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px

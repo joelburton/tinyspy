@@ -144,7 +144,7 @@
  * Compose row cells from these so similar pieces look the same across games,
  * instead of each game styling its own. Bare names (read as `turnLog.primary`
  * at the call site). The set grows as new shapes recur. (The actor name + disc
- * cluster moved to the shared <ActorTag>.)
+ * cluster moved to the shared <ActorDot>.)
  *
  * The COLUMN-SIZING classes form a small model for a row's cells: an optional
  * `<TurnLogBar>` (col 0), an optional `.meta` (a turn number, …), one (or more)
@@ -205,7 +205,7 @@
   color: black;
 }
 
-/* The right-aligned "who" column. Shrinks to its content (the `<ActorTag>`'s
+/* The right-aligned "who" column. Shrinks to its content (the `<ActorDot>`'s
  * "name ●"), so the discs line up at the right edge across rows and the slack
  * goes to `.main` instead — NOT `width: 100%`, which would steal the slack and
  * wrap a sibling. Never wraps the name. */

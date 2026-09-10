@@ -55,7 +55,7 @@ type Props = {
  * Stateless + presentational. codenamesduet *chooses* a **two-`<tr>`** turn (the
  * row anatomy is the game's — see TurnLog.tsx) so the pieces sit in real table
  * columns: row 1 is `[bar] | # | count WORD | clue-giver` (the bar `rowSpan`s the
- * whole turn; the `<ActorTag>` right-aligned via the shared `.who` column), and
+ * whole turn; the `<ActorDot>` right-aligned via the shared `.who` column), and
  * row 2 spans those three content columns with the turn's guesses — each word
  * colored by its reveal outcome (agent green / neutral tan / assassin red), the
  * same vocabulary the board uses. The `.turnLogDivider` on row 1 draws the

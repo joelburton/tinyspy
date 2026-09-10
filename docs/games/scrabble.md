@@ -696,7 +696,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   dragged blank's letter on drop), `GameTurnLog` (the move log on the shared
   `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
   exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
-  `<ActorTag>`; words click-to-define via the common `DefinitionPopover`. The
+  `<ActorDot>`; words click-to-define via the common `DefinitionPopover`. The
   header carries the shared "whose moves?" picker (`useTurnLogPlayerPicker`),
   bent twice for scrabble: it defaults to the aggregate in BOTH modes
   (`competeSharesOneGame` — even compete is one public board, so "All" is what

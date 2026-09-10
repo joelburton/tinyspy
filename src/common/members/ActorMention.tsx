@@ -31,8 +31,12 @@ type Props = {
  * The shared **actor mention** — a person's name and their identity disc, the
  * app-wide "who did this" marker. Two exported widgets differ only in ORDER, so
  * the pieces (the `.name` span, the `<Dot>`) and the show/hide logic live here
- * once: use `<ActorTag>` when the name reads first (turn logs — "moth ●"),
- * `<DotActor>` when the disc anchors a peer message ("● moth is guessing").
+ * once.
+ *
+ * **Each is named in the order it draws**, which is the whole way to tell them
+ * apart: `<ActorDot>` is actor-then-dot ("moth ●"), what a turn-log row wants
+ * with its discs lined up in a column; `<DotActor>` is dot-then-actor
+ * ("● moth is guessing"), what a sentence wants.
  *
  * The `show` prop is the point of the pair: keeping the name a real element (not
  * baked into a text string) is what lets us drop it to just a dot on phones —
@@ -66,7 +70,7 @@ function Mention({
 
 /** Name-then-dot ("moth ●"). Default `show="both"` — its main use is turn logs,
  *  which keep their names; feedback callers pass `show="auto"`. */
-export function ActorTag(props: Props) {
+export function ActorDot(props: Props) {
   return <Mention {...props} dotFirst={false} show={props.show ?? 'both'} />
 }
 

@@ -5,7 +5,7 @@ import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent 
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
-import { DotActor, ActorTag } from '@/common/members/ActorMention'
+import { DotActor, ActorDot } from '@/common/members/ActorMention'
 import { SubmitButton } from '@/common/buttons/SubmitButton'
 import { AIButton } from '@/common/buttons/AIButton'
 import { EndTurnButton } from '@/common/buttons/EndTurnButton'
@@ -176,7 +176,7 @@ function PeerActivity({
 }
 
 /** "Waiting for <peer> to <action>…" — the peer's identity via the shared
- *  <ActorTag> (name + colored disc); falls back to "your partner" when the peer
+ *  <ActorDot> (name + colored disc); falls back to "your partner" when the peer
  *  hasn't loaded yet. Still the sentence form: this state OWNS the whole
  *  below-board row (no clue display, no buttons beside it), so it has the room. */
 function PeerWaiting({
@@ -190,7 +190,7 @@ function PeerWaiting({
     <span className={cls('muted', styles.waiting)}>
       {/* show="auto": on a phone the name drops to just the dot ("Waiting for ● to
           give a clue…") so a long username can't overflow this tight row. */}
-      Waiting for <ActorTag actor={peer} fallback="your partner" show="auto" /> to {action}…
+      Waiting for <ActorDot actor={peer} fallback="your partner" show="auto" /> to {action}…
     </span>
   )
 }

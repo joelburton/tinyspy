@@ -4,7 +4,7 @@
  * chrome, the row look (outcome bar, divider), the two-row-entry hugging
  * (`.entryHead`/`.entryCont`), and the column-sizing classes (`.meta` / `.main` /
  * `.who`) — is shared in common/turn-log/TurnLog; the clue-giver name + disc is
- * the shared <ActorTag>. The ONLY codenamesduet-specific styling is the colored
+ * the shared <ActorDot>. The ONLY codenamesduet-specific styling is the colored
  * clue/guess words below. */
 
 /* Turn-history: the turn is opened on the board viewer by clicking its "#N" handle

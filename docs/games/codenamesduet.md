@@ -435,7 +435,7 @@ src/codenamesduet/
                           [<TurnLogBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
                           history handle, keyed by turn_number — click to replay that
                           turn on the board) | {count} {WORD} | the
-                          clue-giver via <ActorTag> (right-aligned via turnLog.who);
+                          clue-giver via <ActorDot> (right-aligned via turnLog.who);
                           row 2 spans those content columns with the guesses (each
                           colored by reveal outcome) — or "(clue given)" while the
                           turn is still live, "(no guesses)" once it ended empty.
@@ -512,7 +512,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
-codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsises the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsises the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorDot>` puts the disc *after* the name — a deliberate placement difference.)
 
 **Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 

@@ -20,7 +20,7 @@ const aiId = (seat: number | null) => `ai:${seat}`
  * row shape — docs/playarea.md → Turn log): the outcome bar (green for a
  * played word, neutral for an exchange / pass, red for a coop forfeit), the turn
  * number ("#<seq>") in the muted `.meta` column, the move in `.main`, and the
- * actor's `<ActorTag>` right-aligned in `.who`. Newest at the bottom; the shared
+ * actor's `<ActorDot>` right-aligned in `.who`. Newest at the bottom; the shared
  * `<TurnLog>` auto-snaps to the latest row.
  *
  * A word reads "+<score> <WORD> …" — the score green, each word bold and

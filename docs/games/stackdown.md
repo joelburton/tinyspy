@@ -484,7 +484,7 @@ pill.
   the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar:
   valid words green + clickable to define, invalid attempts red + struck through +
   tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
-  "Revealed: <WORD>"); every row names its actor via the shared `<ActorTag>`, in
+  "Revealed: <WORD>"); every row names its actor via the shared `<ActorDot>`, in
   both modes. The header carries the shared "whose turns?" picker
   (`useTurnLogPlayerPicker` — Team/All + each player); in compete an opponent's
   rows are RLS-hidden during play and open at terminal, which the picker's empty

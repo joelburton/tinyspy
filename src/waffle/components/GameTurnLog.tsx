@@ -36,7 +36,7 @@ type Props = {
  * divs, which throw away the column alignment the table exists for): the outcome
  * bar, the turn number ("#N", `.meta`), the move ("A (A1) ↔ B (C2)" — swapped
  * letters leading, coordinates receding — in `.main` so it absorbs the row's
- * slack), and the swapper's `<ActorTag>` right-aligned (`.who`). `.turnLogDivider`
+ * slack), and the swapper's `<ActorDot>` right-aligned (`.who`). `.turnLogDivider`
  * draws the between-turns line.
  *
  * **Both modes** since 2026-08-02 (compete used to write no swaps at all). Whose
