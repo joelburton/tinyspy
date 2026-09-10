@@ -257,11 +257,14 @@ iconography](../ui.md#button-iconography)):
    `hintPrefix` in `lib/help.ts`, the ONE definition of the rule).
 2. **`spoiler`** — the word itself.
 
-Both rungs also appear as **menu rows** ("Hint" / "Show the word"), coop-only
-like the buttons — the menu is where their lightbulb and bare-eye glyphs get
-named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The menu
-carries **Reveal solution** for the same reason: the terminal row's boxed-eye
-button had no legend row, the only reveal-capable game missing one.
+Both rungs also appear as **menu rows** ("Hint" / "Show the word") — the menu is
+where their lightbulb and bare-eye glyphs get named ([ui.md → the menu is the
+legend](../ui.md#button-iconography)). Row and button are the SAME bound action
+(`act-hint` / `act-spoiler`), which is what makes them coop-only in one place:
+each hides itself in compete, where the server refuses it too, so neither the
+row nor the button asks about mode. The menu carries **Reveal solution**
+(`act-reveal`) for the same reason: the terminal row's boxed-eye button had no
+legend row, the only reveal-capable game missing one.
 
 Both call `log_help`, which bumps `hints_used` and writes an `events` row.
 

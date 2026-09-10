@@ -9,14 +9,8 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
-import { HintButton } from '@/common/buttons/HintButton'
-import { SpoilerButton } from '@/common/buttons/SpoilerButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { useDefinePopover } from '@/common/definitions/useDefinePopover'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -62,17 +56,15 @@ export function InfoCol({
   // ── Setup disclosure ──
   setupRows,
   // ── Action row ──
-  onHint,
-  onSpoiler,
-  onReveal,
+  actHint,
+  actSpoiler,
+  actReveal,
   solutionShown,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   // ── Turn-history viewer ──
   viewingIndex,
   onSelectTurn,
@@ -104,21 +96,28 @@ export function InfoCol({
    *  the two can't drift. Built in PlayArea, which holds mode + roster. */
   setupRows: SetupRow[]
   // ── Action row ──
-  /** Coop only — both refused server-side in compete. */
-  onHint: () => void
-  onSpoiler: () => void
-  /** Show the seeded pair — or put it away again. A local display toggle
-   *  shared with the menu twin; nothing is written and no peer is affected. */
-  onReveal: () => void
-  /** Is the pair on screen right now? Swaps the button to its Hide face. */
+  /** The two rungs of the help ladder. Both hide themselves in compete, where
+   *  the server refuses them too, so this column places them without asking. */
+  actHint: BoundAction
+  actSpoiler: BoundAction
+  /** Show the seeded pair — or put it away again. A local display toggle shared
+   *  with the menu twin; nothing is written and no peer is affected, and it
+   *  carries its own two faces. */
+  actReveal: BoundAction
+  /** Is the pair on screen right now? Not the button's business (the action
+   *  carries its own two faces) — this column reads it to draw the pair itself. */
   solutionShown: boolean
-  onEndGame: () => void
-  onConcede: () => void
-  onRestart: () => void
-  onNewGame: () => void
-  startingNewGame: boolean
-  onBackToClub: () => void
-  onRequestBackToClub: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Play this board again from scratch. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup, new board + id. Disables itself
+   *  while the create is in flight, so a slow network reads as "working". */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
   // ── Turn-history viewer ──
   /** The move open on the board, or null when live. */
   viewingIndex: number | null
@@ -177,44 +176,30 @@ export function InfoCol({
             / Club. CONCEDED (others race on): the terminal look + a disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
-            <RestartButton show="icon" onClick={onRestart} />
-            <RevealButton
-              show="icon"
-              label="Reveal solution"
-              revealedLabel="Hide solution"
-              revealed={solutionShown}
-              onClick={onReveal}
-            />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+          <TerminalActionRow over={over}>
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede disables itself once conceded — the row keeps its shape
+                and the button says why it can't be pressed again. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {/* The two rungs of the help ladder, icon-only like everything
-                else in this row. Coop only: in compete "first past the bar
-                wins" would make either a win button, and the server refuses
-                them there too. */}
-            {!isCompete && (
-              <>
-                <HintButton show="icon" className={shared.helperButton} onClick={onHint} />
-                <SpoilerButton
-                  show="icon"
-                  label="Show the word"
-                  className={shared.helperButton}
-                  onClick={onSpoiler}
-                />
-              </>
-            )}
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-            )}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            {/* The two rungs of the help ladder, icon-only like everything else
+                in this row. Each hides itself in compete, so this row places
+                them and asks nothing. */}
+            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+            <ActionButton action={actSpoiler} show="icon" className={shared.helperButton} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

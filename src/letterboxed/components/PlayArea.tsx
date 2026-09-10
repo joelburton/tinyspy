@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -22,16 +22,14 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { chainAt, describeAt } from '../lib/history'
 import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { buildLetterboxedPrintModel } from '../pdf/model'
 import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -102,7 +100,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
 
@@ -120,7 +118,6 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
   const leaderboard = useMemo(
@@ -140,16 +137,6 @@ export function PlayArea(ctx: GamePageCtx) {
           leaderboard.some((e) => e.won && e.user_id === session.user.id))),
   )
 
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-    hint: () => void
-    spoiler: () => void
-    reveal: () => void
-  } | null>(null)
-
   // Only the letters the player typed/clicked. The mandatory first letter is
   // DERIVED from the chain each render (see BoardCol), so playing a word
   // re-seeds the entry without an effect and without stale state.
@@ -158,17 +145,16 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Turn-history viewer, keyed by POSITION in the rows the log is showing (the
   // log hands them up, so both sides index the same list).
+  // BoardCol freezes the entry's capture while viewing, so the viewer's own
+  // any-key action has the keys to itself: any keystroke returns to the live
+  // board instead of typing behind the banner (the hook binds
+  // `act-exit-viewer`; docs/keyboard-shortcuts.md → the viewer contract).
   const {
     viewingId: viewingIndex,
     viewing,
     select: selectTurn,
     exitViewing,
-    exitOnKey,
   } = useHistoryViewer<number>()
-  // BoardCol freezes the entry's capture while viewing, so exitOnKey has the
-  // keys to itself: any keystroke returns to the live board instead of typing
-  // behind the banner (docs/keyboard-shortcuts.md → the viewer contract).
-  useGlobalKeyHandler(exitOnKey)
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
@@ -421,12 +407,12 @@ export function PlayArea(ctx: GamePageCtx) {
     useSolutionReveal()
 
   // ─── End / Concede / Replay — the shared trio ──────────
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
     // The same board and the same seeded pair, hunted again — so put the pair
     // away. Nothing on the server remembers the reveal any more (it's local
@@ -434,11 +420,11 @@ export function PlayArea(ctx: GamePageCtx) {
     onRestarted: hideSolution,
   })
 
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (it stays resumable from
-    // the club page). Confirm so an accidental `+` doesn't read as a loss.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return
     const res = await runEdgeFn<CreatedGame>(
       'letterboxed-build-board',
@@ -465,97 +451,102 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('letterboxed-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Single-flight: "New game" has three triggers (terminal button, menu item,
-  // the global `+`) and create_game is NOT idempotent — guarding the handler
-  // covers all three at once, which a `disabled` button could not.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
+  // rather than ending it) and goes straight through at terminal. The shared
+  // run's single flight is what covers all three triggers at once, which a
+  // `disabled` button could not.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
+  // ─── The help ladder ───────────────────────────────────
+  // Two rungs, COOP ONLY: in a race "first past the bar wins" would make either
+  // one a win button, and the server refuses them there too. Hiding rather than
+  // disabling is deliberate — a control that named a glyph the surface never
+  // shows would teach a lie (crosswords drops its Reveal submenu in compete for
+  // the same reason). Both go inert at terminal: there is nothing left to help.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => {
+      if (game?.mode === 'compete') return 'hidden'
+      return isTerminal ? 'disabled' : 'active'
+    },
+    run: takeHint,
+  })
+  const actSpoiler = useBoundAction('act-spoiler', {
+    describe: () => {
+      if (game?.mode === 'compete') return 'hidden'
+      return { state: isTerminal ? 'disabled' : 'active', label: 'Show the word' }
+    },
+    run: takeSpoiler,
+  })
+
+  // Reveal the seeded pair — the same toggle wearing the same two faces in the
+  // menu and in the terminal row, so a player who scrolled past the row can
+  // still reach it. Inert until the game is over for EVERYONE.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal solution' }
+    },
+    run: toggleSolution,
+  })
+
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). What it may SHOW
+  // is decided in pdf/model.ts — notably that the solution prints only once the
+  // players have revealed it on screen, which has to hold on paper too.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printLetterboxedPdf(
+        buildLetterboxedPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          sides: game.sides,
+          mode: game.mode,
+          solution: game.solution,
+          solutionRevealed: solutionShown,
+          players,
+          playerRows,
+          events,
+          selfId: session.user.id,
+          summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // The FULL letterboxed menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The help ladder
+  // hides itself in compete, which is why this list is the same in both modes.
+  // The effect re-runs only when the SHAPE changes, hence every dep is stable.
   useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-      hint: takeHint,
-      spoiler: takeSpoiler,
-      reveal: toggleSolution,
-    }
-  }, [endGame, concede, restart, handleNewGame, takeHint, takeSpoiler, toggleSolution])
-
-  // ─── GamePage menu ─────────────────────────────────────
-  // The print model is built HERE, from live state, and is a snapshot at click
-  // time (docs/pdf.md). What it may SHOW is decided in pdf/model.ts — notably
-  // that the solution prints only once the players have revealed it on screen,
-  // which has to hold on paper too.
-  useEffect(() => {
-    if (!game) return
-    const printModel = buildLetterboxedPrintModel({
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      sides: game.sides,
-      mode: game.mode,
-      solution: game.solution,
-      solutionRevealed: solutionShown,
-      players,
-      playerRows,
-      events,
-      selfId: session.user.id,
-      summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
-      setup: summaryRows,
-    })
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: game.mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          // The menu twins of the info column's help ladder. COOP ONLY — the
-          // whole pair is omitted in compete, where the buttons don't render
-          // either (in a race "first past the bar wins" would make either one a
-          // win button, and the server refuses them there too). A menu that
-          // named a glyph the surface never shows would teach a lie; crosswords
-          // drops its Reveal submenu in compete for exactly this reason.
-          ...(game.mode === 'coop'
-            ? [{
-              items: [
-                { id: 'hint', icon: IconHint, label: 'Hint', disabled: isTerminal, onClick: () => actionsRef.current?.hint() },
-                { id: 'spoiler', icon: IconSpoiler, label: 'Show the word', disabled: isTerminal, onClick: () => actionsRef.current?.spoiler() },
-              ],
-            }]
-            : []),
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-              // The menu twin of the terminal row's boxed-eye button — the same
-              // toggle wearing the same two faces, reachable the whole time so
-              // a player who scrolled past the row can still get to it. Inert
-              // until the game is over for EVERYONE.
-              {
-                id: 'reveal',
-                icon: solutionShown ? IconHideSolution : IconRevealSolution,
-                label: solutionShown ? 'Hide solution' : 'Reveal solution',
-                disabled: !isTerminal,
-                onClick: () => actionsRef.current?.reveal(),
-              },
-            ],
-          },
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printLetterboxedPdf(printModel) }] },
+          { items: [actHint, actSpoiler] },
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, game, isTerminal, myConceded, brand, title, solutionShown,
-    players, playerRows, events, session.user.id, letterboxedSetup, summaryRows,
-    lettersCovered, chain.length, maxWords,
-  ])
+  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop peer narration (global header) ───────────────
   // In coop the chain is shared, so a teammate's word changes MY board; say so.
@@ -717,17 +708,15 @@ export function PlayArea(ctx: GamePageCtx) {
           coveredByUser={coveredByUser}
           concededIds={concededIds}
           setupRows={summaryRows}
-          onHint={takeHint}
-          onSpoiler={takeSpoiler}
-          onReveal={toggleSolution}
+          actHint={actHint}
+          actSpoiler={actSpoiler}
+          actReveal={actReveal}
           solutionShown={solutionShown}
-          onEndGame={endGame}
-          onConcede={concede}
-          onRestart={restart}
-          onNewGame={handleNewGame}
-          startingNewGame={startingNewGame}
-          onBackToClub={goToClub}
-          onRequestBackToClub={menu.requestBackToClub}
+          actEndGame={actEndGame}
+          actConcede={actConcede}
+          actRestart={actRestart}
+          actNewGame={actNewGame}
+          actBackToClub={menu.actBackToClub}
           viewingIndex={viewingIndex}
           onSelectTurn={selectTurn}
         />
@@ -741,7 +730,6 @@ export function PlayArea(ctx: GamePageCtx) {
       {celebration.show && (
         <CelebrationBlockingModal title="All twelve! 🐍" onClose={celebration.close} />
       )}
-      {confirmationModal}
     </div>
   )
 }

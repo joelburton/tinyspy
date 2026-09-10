@@ -19,6 +19,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -94,22 +96,25 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     brand: 'SnakeBox',
     title: 'New game',
     ...over,
   } as unknown as GamePageCtx
 }
 
-/** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+/** Flatten what PlayArea handed `menu.setGameSections` into id → ROW — what the
+ *  menu would actually draw, since a row is a bound action now and its words,
+ *  glyph and availability come from the action rather than the list. */
 function menuItems(ctx: GamePageCtx) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-  const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-  return new Map(
-    (sections as { items: { id: string; label: string; icon?: unknown; disabled?: boolean; onClick: () => void }[] }[])
-      .flatMap((s) => s.items)
-      .map((i) => [i.id, i]),
-  )
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
 beforeEach(() => {
@@ -124,25 +129,28 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)
-    expect(items.get('hint')?.label).toBe('Hint')
-    expect(items.get('hint')?.icon).toBeTruthy()
-    expect(items.get('spoiler')?.label).toBe('Show the word')
-    expect(items.get('spoiler')?.icon).toBeTruthy()
+    expect(items.get('act-hint')?.label).toBe('Hint')
+    expect(items.get('act-hint')?.icon).toBeTruthy()
+    expect(items.get('act-spoiler')?.label).toBe('Show the word')
+    expect(items.get('act-spoiler')?.icon).toBeTruthy()
   })
 
   it('compete omits the ladder entirely — the buttons never render there either', () => {
+    // The rows are still HANDED to the menu; each says it is hidden, and the
+    // menu drops a hidden row when it draws. That is the same answer the info
+    // column's buttons read, which is what keeps the two from disagreeing.
     h.result = loaded(loadedGame({ mode: 'compete' }))
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)
-    expect(items.has('hint')).toBe(false)
-    expect(items.has('spoiler')).toBe(false)
+    expect(items.get('act-hint')?.hidden).toBe(true)
+    expect(items.get('act-spoiler')?.hidden).toBe(true)
   })
 
   it('names the terminal Reveal solution — grayed while the game is live', () => {
     const live = makeCtx()
     render(<PlayArea {...live} />)
-    const reveal = menuItems(live).get('reveal')
+    const reveal = menuItems(live).get('act-reveal')
     expect(reveal?.label).toBe('Reveal solution')
     expect(reveal?.icon).toBeTruthy()
     // Present-but-disabled, not absent: a grayed row still teaches its glyph.
@@ -151,7 +159,7 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
 
     const done = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...done} />)
-    expect(menuItems(done).get('reveal')?.disabled).toBe(false)
+    expect(menuItems(done).get('act-reveal')?.disabled).toBe(false)
   })
 
   it('the Reveal row is a local toggle — no RPC, and its label flips', async () => {
@@ -160,14 +168,14 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)
 
-    act(() => menuItems(ctx).get('reveal')!.onClick())
+    act(() => menuItems(ctx).get('act-reveal')!.run())
     // The seeded pair is on screen for ME. No RPC: no peer's board opened.
     expect(screen.getByText('Solvable in two')).toBeInTheDocument()
     expect(commonDb.rpc).not.toHaveBeenCalled()
-    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide solution'))
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
 
     // ...and the same row puts it away again.
-    act(() => menuItems(ctx).get('reveal')!.onClick())
+    act(() => menuItems(ctx).get('act-reveal')!.run())
     expect(screen.queryByText('Solvable in two')).not.toBeInTheDocument()
   })
 
@@ -178,7 +186,7 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'won' })
     render(<PlayArea {...ctx} />)
     expect(screen.queryByText('Solvable in two')).not.toBeInTheDocument()
-    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal solution')
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
 })
 
@@ -197,7 +205,7 @@ describe('letterboxed PlayArea — why there is no hint', () => {
    *  the feedback state lands before the assertion — the row's onClick is a
    *  plain handler call, not a React-dispatched event. */
   function askHint(ctx: GamePageCtx) {
-    act(() => menuItems(ctx).get('hint')?.onClick())
+    act(() => menuItems(ctx).get('act-hint')?.run())
   }
 
   it('stuck: names the letter nothing follows', () => {
@@ -258,7 +266,7 @@ describe('letterboxed PlayArea — why there is no hint', () => {
  */
 describe('letterboxed PlayArea — the accept list is wider than the hint list', () => {
   function askHint(ctx: GamePageCtx) {
-    act(() => menuItems(ctx).get('hint')?.onClick())
+    act(() => menuItems(ctx).get('act-hint')?.run())
   }
 
   it('a word only the ACCEPT list has is never handed over by the SPOILER', () => {
@@ -277,7 +285,7 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
     h.result.playerRows = [h.result.myRow]
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('spoiler')?.onClick())
+    act(() => menuItems(ctx).get('act-spoiler')?.run())
     expect(screen.queryByText('CDEFGHIJKL'), 'the spoiler handed over an unclean word').toBeNull()
     // ...and says so, rather than silently doing nothing.
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
@@ -394,7 +402,7 @@ describe('letterboxed PlayArea — the hint corpus when clean_words is empty', (
     }))
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('hint')?.onClick())
+    act(() => menuItems(ctx).get('act-hint')?.run())
     // Something is offered — the exact word doesn't matter, only that the
     // search ran against a non-empty corpus.
     expect(screen.queryByText('No words to play')).toBeNull()
@@ -412,7 +420,7 @@ describe('letterboxed PlayArea — the hint corpus when clean_words is empty', (
     h.result.playerRows = [h.result.myRow]
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
-    act(() => menuItems(ctx).get('hint')?.onClick())
+    act(() => menuItems(ctx).get('act-hint')?.run())
     // Tail is D. 'dig' is in the accept list and NOT in the clean list, so a
     // fallback would have SUGGESTED it. Instead we get the unreachable line —
     // which proves both mechanisms at once: the search ran on the clean list
