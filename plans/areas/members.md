@@ -387,6 +387,31 @@ pseudo-member. `common/chat/chatUnread.ts:102` answers muted text for a sender
 not in the roster. Two answers to "no member here." Whether one of them is
 wrong is a look-at-it question, not a read one; recorded so it is asked.
 
+**DECIDED 2026-09-09 (Joel): keep both colors.** Asked, looked at, and the two
+stand as they are; the reason is now written at the divergence in
+`chatUnread.ts` so it does not get re-litigated as an inconsistency. They are
+not the same question — the chat fill claims to name a SENDER and should stop
+claiming when there is nobody to name, while a `<Dot>` still stands for a
+person who is present.
+
+**What the asking turned up, which was more interesting than the color.** The
+fallback's dominant trigger is not an unknown person at all, it is LOADING:
+`useClubRoster` starts at `[]` and fills after two sequential round trips, so
+every sender on screen is unresolved for the first frames of every page load.
+Second is a failed first read, which `useClubRoster` leaves as `[]` on purpose
+(the right call for a refetch, permanent on a first load) — a `club` concern,
+noted there rather than here.
+
+**And "a departed member" cannot happen**, though `memberList.ts`'s
+`memberById` and `turn-log/ActorMention.tsx` both name it as the case.
+`common.messages.user_id` is `on delete cascade` from `common.profiles`, so a
+deleted account takes its messages with it; and nothing removes a row from
+`clubs_members` — two `insert`s in `common.sql`, no delete and no delete
+policy — so a club member cannot stop being one. Two docstrings describe a
+state the schema forbids. **Open, not worked**: either they should say "a
+roster that hasn't loaded" and stop there, or leaving a club is a real gap and
+the sentences are aspirational. Joel's, and not this finding's to settle.
+
 ## Notes
 
 - **`borderVarFor` has one caller, `Dot.tsx`.** Not a finding — the disc is

@@ -99,6 +99,13 @@ export function computeUnread(
   const member = members.find((mm) => mm.user_id === latest.user_id)
   return {
     count: unread.length,
+    // Muted rather than `colorVarFor`'s body-text fallback, which is the other
+    // answer in the app to "no member here." Deliberate, and the two are not
+    // the same question: this fill claims to name a SENDER, so with nobody to
+    // name it should stop claiming — while a `<Dot>` still stands for a person
+    // who is there. The roster arrives a beat after the messages do, so this is
+    // what the bubble looks like on an ordinary page load, not only when a
+    // sender is genuinely unresolvable.
     color: member ? colorVarFor(member.color) : 'var(--page-text-muted-color)',
   }
 }
