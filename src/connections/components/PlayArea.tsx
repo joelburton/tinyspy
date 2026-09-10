@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHint, IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
@@ -17,10 +17,8 @@ import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { memberById } from '@/common/members/memberList'
 import { DotActor } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
@@ -29,6 +27,7 @@ import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
@@ -42,7 +41,6 @@ import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Four categories to find, four mistakes allowed — the NYT Connections
@@ -108,7 +106,6 @@ export function PlayArea({
   currentTurnUserId,
   setup,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -163,7 +160,6 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
   // ─── Coop-win celebration ──────────────────────────────
@@ -212,11 +208,11 @@ export function PlayArea({
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn (the bands matched before it + this
   // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
-  // Keyed by log position. Exit is intrinsic to the hook (a click anywhere / the
-  // banner ✕); a keystroke also exits (connections has no keyboard input to clash).
-  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+  // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
+  // banner ✕, or any key — the hook binds `act-exit-viewer` itself, and the
+  // board's own commands hide while a turn is open so the key reaches it).
+  const { viewing, viewingId, select: selectTurn, exitViewing } =
     useHistoryViewer<number>()
-  useGlobalKeyHandler(exitOnKey)
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess is narrated in the GamePage header: correct →
@@ -305,13 +301,12 @@ export function PlayArea({
     }),
   })
 
-  const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
-    useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
       db,
       gameId,
       isTerminal,
+      mode: game?.mode === 'compete' ? 'compete' : 'coop',
       myConceded,
-      confirm: confirmAction,
       showError: showLocalFeedback,
       onRestarted: () => {
         exitViewing()
@@ -351,13 +346,12 @@ export function PlayArea({
   // Running out is now a server raise (`no-unplayed-puzzle|`) rather than a
   // pre-flight check, so it can't race a peer starting the last puzzle
   // between our two reads and the create.
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so the values it closes over are whatever the last realtime refetch
+  // left, and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
 
     // Ask what we'd get, purely so running out can be a NOTICE rather than an
@@ -432,44 +426,43 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, acknowledge, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
-
-  // ─── Header menu ("each game owns its whole menu") ─────
-  // The shell no longer injects a common Help / Back-to-club section; connections
-  // builds its FULL menu via buildGameMenu. connections has no game-specific menu
-  // actions (Hints + End live as info-column buttons), so `extra` is empty — the
-  // menu is just Help + the End(coop)/Concede(compete) + Back-to-club tail.
-  //
-  // The end/concede handlers dispatch through a stable `actionsRef` so this
-  // effect can depend on STABLE values only (setGameSections is a setState — a
-  // handler in the deps would re-run it every render → loop). The ref is
-  // repopulated in the effect below whenever a handler identity changes. Mode is
-  // read off the loaded game; before it loads we default to coop, then the effect
-  // re-runs once `game` arrives. Placed above the early returns so hook order is
-  // stable.
-  const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-  }>({
-    endGame: () => {},
-    concede: () => {},
-    restart: () => {},
-    newGame: () => {},
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press taking two puzzles out of the archive.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
   })
-  useEffect(() => {
-    actionsRef.current = {
-      endGame: handleEndGame,
-      concede: handleConcede,
-      restart: handleRestart,
-      newGame: () => void handleNewGame(),
-    }
-  }, [handleEndGame, handleConcede, handleRestart, handleNewGame])
+
+  // Hints — the inline per-player reveal list, unfolded under the action row.
+  // A toggle, so its words move with it; the list itself is InfoCol's.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => ({ state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' }),
+    run: () => setHintsOpen((o) => !o),
+  })
+
+  // Reveal the categories nobody got — a LOCAL display toggle: it swaps what the
+  // board draws, writes nothing, and affects no peer. Terminal-only, so a player
+  // who dropped out can't spoil a race still running.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (solutionShown) return { state: 'active', label: 'Hide categories', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal categories' }
+    },
+    run: toggleSolution,
+  })
+
+  // Mode is read off the loaded game; before it loads we default to coop.
+  const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
   // Board derivations, hoisted ABOVE the early return so the print-model build
   // in the menu effect (a hook, so it can't live below one) reads the SAME
   // values the render does rather than a second copy that could drift.
@@ -494,62 +487,59 @@ export function PlayArea({
     }
   }, [game, isEliminated, myConceded, solutionShown, matchedCategories])
 
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). The bands, the
+  // remaining tiles and the log all come from what the VIEWER may see, so RLS
+  // scoping carries onto paper for free. Built inside `run` rather than in the
+  // menu effect, so the menu needn't rebuild as the board moves.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game && boardView ? 'active' : 'hidden'),
+    run: () => {
+      if (!game || !boardView) return
+      printConnectionsPdf(
+        buildConnectionsPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          categories: game.board.categories,
+          matched: matchedCategories,
+          unmatched: boardView.unmatched,
+          remainingTiles: boardView.remainingTiles,
+          guesses,
+          players,
+          selfId: session.user.id,
+          mode,
+          isTerminal,
+          mistakes: mistakeCount,
+          maxMistakes: MISTAKE_BUDGET,
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // The FULL connections menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The effect
+  // re-runs only when the SHAPE changes, which is why every dep is stable.
+  //
+  // Hints is a MENU row as well as an info-column button: that button is
+  // icon-only, so the row is where its name is taught beside its glyph.
   useEffect(() => {
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The bands,
-    // the remaining tiles and the log all come from what the VIEWER may see, so
-    // RLS scoping carries onto paper for free.
-    const printModel =
-      game && boardView
-        ? buildConnectionsPrintModel({
-            brand,
-            gameTitle: title,
-            date: new Date().toLocaleDateString(),
-            categories: game.board.categories,
-            matched: matchedCategories,
-            unmatched: boardView.unmatched,
-            remainingTiles: boardView.remainingTiles,
-            guesses,
-            players,
-            selfId: session.user.id,
-            mode,
-            isTerminal,
-            mistakes: mistakeCount,
-            maxMistakes: MISTAKE_BUDGET,
-            setup: summaryRows,
-          })
-        : null
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current.endGame(),
-        onConcede: () => actionsRef.current.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          {
-            items: [
-              // The info column's Hints button is icon-only, so this is where its
-              // name lives — and the glyph beside it is what teaches the pairing.
-              { id: 'hints', icon: IconHint, label: 'Hints', onClick: () => setHintsOpen((o) => !o) },
-              // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printConnectionsPdf(printModel) }] }]
-            : []),
+          { items: [actHint, actRestart, actNewGame] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, mode, isTerminal, myConceded,
-    game, boardView, brand, title, matchedCategories, guesses, players,
-    session.user.id, mistakeCount,
-    summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actHint, actRestart, actNewGame, actPrintBoard])
 
   // Hints + End live in the info-column action row (buttons), not the GamePage
   // menu — see the .infoActions block below. Hints toggles the inline HintList
@@ -703,18 +693,15 @@ export function PlayArea({
         // ── Action row ──
         categories={game.board.categories}
         hintsOpen={hintsOpen}
-        onHints={() => setHintsOpen((o) => !o)}
         revealedHints={revealedHints}
         onRevealHint={revealHint}
-        onEndGame={handleEndGame}
-        onConcede={handleConcede}
-        onRestart={handleRestart}
-        onReveal={toggleSolution}
-        solutionShown={solutionShown}
-        solutionAlreadyShown={impliedBySolve}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
+        actHint={actHint}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actReveal={actReveal}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={connSetup}
         setupRows={summaryRows}
@@ -737,7 +724,6 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
       {acknowledgeModal}
     </div>
   )

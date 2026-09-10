@@ -2,14 +2,10 @@
 
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { HintButton } from '@/common/buttons/HintButton'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
@@ -25,10 +21,12 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * connections's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Shared
- * between coop and compete: `isCompete` picks the OpponentStrip + Concede (vs End).
- * Every mutation is a named callback up (`onHints`/`onEndGame`/`onConcede`/
- * `onSelectTurn`); PlayArea owns the RPCs + coordination. Prop names match the other
- * games' columns for the same idea (docs/playarea.md).
+ * between coop and compete: `isCompete` picks the OpponentStrip, and the two exits
+ * hide themselves. Every command arrives as a bound action this column simply
+ * places — what it does, whether it applies right now and which key also fires it
+ * are the action's own business; the plain callbacks left (`onSelectTurn`,
+ * `onRevealHint`) are coordination rather than commands. Prop names match the
+ * other games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below), so
@@ -52,16 +50,13 @@ export function InfoCol({
   hintsOpen,
   revealedHints,
   onRevealHint,
-  onHints,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onReveal,
-  solutionShown,
-  solutionAlreadyShown,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
+  actHint,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actReveal,
+  actNewGame,
+  actBackToClub,
   setupRows,
   guesses,
   viewingIndex,
@@ -103,29 +98,24 @@ export function InfoCol({
    *  Restart can clear them (see <HintList>'s `revealed` prop). */
   revealedHints: ReadonlySet<CategoryRank>
   onRevealHint: (rank: CategoryRank) => void
-  onHints: () => void
-  onEndGame: () => void
-  onConcede: () => void
-  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle
-   *  (the menu's replay-board; unconfirmed at terminal, nothing left to lose). */
-  onRestart: () => void
+  /** Unfold / fold the inline hint list. Carries its own two faces. */
+  actHint: BoundAction
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle. */
+  actRestart: BoundAction
   /** Show the categories nobody solved — or put them away, bringing back the
-   *  board as the game ended. A local display toggle; nothing is written. */
-  onReveal: () => void
-  /** Are the unsolved categories on the board right now? Swaps the button to
-   *  its Hide face. */
-  solutionShown: boolean
-  /** Did this player match all four — in which case every band is already up
-   *  and the control has nothing left to show? */
-  solutionAlreadyShown: boolean
+   *  board as the game ended. A local display toggle; nothing is written, and it
+   *  carries its own two faces (see PlayArea's useSolutionReveal). */
+  actReveal: BoundAction
   /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
-   *  this walks forward rather than re-rolling a board. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
+   *  this walks forward rather than re-rolling a board. Disables itself while
+   *  the create is in flight, so a slow network reads as "working". */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   setup: ConnectionsSetup
@@ -147,10 +137,15 @@ export function InfoCol({
   // done" → end_game). Shared by the playing and the locally-terminal action rows.
   // Icon-only (the canonical action-row treatment): the styled tooltip carries
   // the label.
-  const endButton = isCompete ? (
-    <ConcedeGameButton show="icon" onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
-  ) : (
-    <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
+  // Both exits are placed and each hides itself in the mode that isn't its own
+  // (compete CONCEDES — drop out of the race; coop ENDS — a mutual "we're done"),
+  // so this row asks nothing. Shared by the playing and locally-terminal rows.
+  // Icon-only (the canonical action-row treatment): the tooltip carries the label.
+  const endButton = (
+    <>
+      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+    </>
   )
 
   return (
@@ -204,20 +199,14 @@ export function InfoCol({
             status ("You're out" / "You conceded") + Concede. Terminal: the outcome
             line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): see the
                 categories you didn't get, run this puzzle back, or move on to
                 the next unplayed date. */}
-            <RevealButton
-              show="icon"
-              label="Reveal categories"
-              revealedLabel="Hide categories"
-              revealed={solutionShown}
-              alreadyShown={solutionAlreadyShown}
-              onClick={onReveal}
-            />
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : !showInput ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
@@ -228,10 +217,9 @@ export function InfoCol({
             <div className={shared.infoActions}>
               {/* Hints toggles the inline HintList below (warning-toned, amber);
                   aria-pressed reflects whether the list is currently unfolded. */}
-              <HintButton
+              <ActionButton
+                action={actHint}
                 show="icon"
-                label="Hints"
-                onClick={onHints}
                 aria-pressed={hintsOpen}
                 className={shared.helperButton}
               />

@@ -8,10 +8,9 @@ import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { TerminalCopy, TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { SubmitButton } from '@/common/buttons/SubmitButton'
-import { ClearButton } from '@/common/buttons/ClearButton'
+import { ActionButton } from '@/common/actions/ActionButton'
 import { StrikeMarks } from './StrikeMarks'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } from '../lib/evaluate'
@@ -241,11 +240,9 @@ export function BoardCol({
     ? reconcileLocalOrder(localOrder, remainingTiles)
     : remainingTiles
 
-  // One shuffle, two triggers (the floating button + the Space key), so they
-  // can't drift into rearranging different things.
+  // One shuffle behind both triggers (the floating pill and ⌥Z), so they can't
+  // drift into rearranging different things — they are one binding now.
   const handleShuffle = () => setLocalOrder(shuffleTiles(displayedTiles))
-
-  const canSubmit = unionTiles.length === 4 && !submitting && showInput && isMyTurn
 
   async function handleSubmit() {
     if (submitting || unionTiles.length !== 4) return
@@ -350,33 +347,45 @@ export function BoardCol({
     }
   }
 
-  // Enter submits the current selection from ANYWHERE on the board, not just when
-  // a tile happens to hold keyboard focus. (macOS doesn't focus a <button> on
-  // click, so the per-tile Enter never fired after mouse selection — the whole
-  // "click four tiles, hit Return" flow was dead.) Gated to live input: not while
-  // viewing a past turn (a keystroke there exits the viewer instead). `handleSubmit`
-  // self-guards on the 4-tile / in-flight conditions, so a stray Enter with an
-  // incomplete selection is a harmless no-op. The shared hook already ignores keys
-  // aimed at a focused text field (chat, etc.). (Hints is now an inline info-column
-  // list, not a board modal, so it no longer needs to suppress Enter.)
+  // ─── The board's three commands ────────────────────────
+  // Each is ONE binding behind both its button and its key, so the two can't
+  // disagree about whether it applies. All three are hidden while a past turn is
+  // open: a keystroke there means "back to live", which is the history viewer's
+  // own action, and hiding these lets it have the key.
   //
-  // SPACE shuffles, the same board key spellingbee and wordwheel have: a fresh
-  // visual scan of the SAME sixteen tiles, never a move. Deliberately NOT gated
-  // on `showInput` the way Enter is — the Shuffle BUTTON is live whenever there
-  // are tiles to rearrange, including on a finished board, and a key that
-  // disagreed with its own button is the bug this pairs with (see
-  // useCaptureKeys' extra-key note). Only `viewing` stops it, since a keystroke
-  // in the history viewer means "back to live".
-  useGlobalKeyHandler((e) => {
-    if (viewing) return
-    if (e.key === ' ') {
-      e.preventDefault()
-      handleShuffle()
-      return
-    }
-    if (e.key !== 'Enter' || !showInput || !isMyTurn) return
-    e.preventDefault()
-    void handleSubmit()
+  // Enter submits the current selection from ANYWHERE on the board, not just
+  // when a tile happens to hold keyboard focus. (macOS doesn't focus a <button>
+  // on click, so a per-tile Enter never fired after mouse selection — the whole
+  // "click four tiles, hit Return" flow was dead.) An incomplete selection
+  // leaves it gray rather than firing a no-op.
+  const actSubmit = useBoundAction('act-submit', {
+    describe: () => {
+      if (!showInput || !isMyTurn || viewing) return 'hidden'
+      if (submitting) return { state: 'disabled', label: 'Submitting…' }
+      return unionTiles.length === 4 ? 'active' : 'disabled'
+    },
+    run: handleSubmit,
+  })
+
+  // Clear drops the selection — and BROADCASTS, so a teammate's board drops it
+  // too. Its ⌫ comes with the action; connections had no key for it before.
+  const actClearSelection = useBoundAction('act-clear-selection', {
+    describe: () => {
+      if (!showInput || !isMyTurn || viewing) return 'hidden'
+      return unionTiles.length === 0 ? 'disabled' : 'active'
+    },
+    run: sendClear,
+  })
+
+  // ⌥Z shuffles — a fresh visual scan of the SAME sixteen tiles, never a move
+  // (the selection survives it). Not gated on `isMyTurn`: rearranging your own
+  // view is not acting on the board.
+  const actShuffle = useBoundAction('act-shuffle', {
+    describe: () => {
+      if (!showInput || viewing) return 'hidden'
+      return displayedTiles.length === 0 ? 'disabled' : 'active'
+    },
+    run: handleShuffle,
   })
 
   // Tile click: dismiss any lingering own-result flash first (the commit buttons
@@ -455,8 +464,7 @@ export function BoardCol({
           showInput &&
           !viewing && (
             <ShuffleButton
-              onShuffle={handleShuffle}
-              disabled={displayedTiles.length === 0}
+              action={actShuffle}
               tooltip="Shuffle tiles"
               className={shared.floatingShuffle}
             />
@@ -510,17 +518,15 @@ export function BoardCol({
                   {phone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
                   <StrikeMarks used={mistakeCount} total={mistakeBudget} />
                 </div>
-                <ClearButton
+                <ActionButton
+                  action={actClearSelection}
                   show={phone ? 'icon' : 'both'}
-                  onClick={sendClear}
-                  disabled={unionTiles.length === 0}
                   className={styles.inputButton}
                 />
-                <SubmitButton
-                  label={submitting ? 'Submitting…' : 'Submit'}
+                <ActionButton
+                  action={actSubmit}
                   show={phone ? 'icon' : 'both'}
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
+                  weight="primary"
                   className={styles.inputButton}
                 />
               </div>

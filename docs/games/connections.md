@@ -304,7 +304,7 @@ not "you've played them all", which reads as a lie to whoever hasn't).
 
 The **End button** in the info-column action row fires this — the manual, **neutral** stop, shown in **coop** (compete shows **Concede** instead — see below). Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders a neutral-toned "Game ended" below-board pill (the shared `endedCopy`), not a red loss verdict, and no celebration; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
 
-**`connections.concede(target_game)`** is the compete counterpart: a per-player "I quit, the others keep going". connections is an **elimination** game (a player is out at 4 mistakes without the table ending), so concede can't use the generic `common.concede` — it calls `common._set_conceded` then re-runs `connections._maybe_finish_compete`, which counts a conceder as "not alive" alongside the eliminated (the game ends when nobody's alive; a conceder forfeits). The FE shows `<ConcedeGameButton>` in compete, marks a conceder "out" in the OpponentStrip, and folds them into the existing "eliminated, others race" locally-terminal look. Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
+**`connections.concede(target_game)`** is the compete counterpart: a per-player "I quit, the others keep going". connections is an **elimination** game (a player is out at 4 mistakes without the table ending), so concede can't use the generic `common.concede` — it calls `common._set_conceded` then re-runs `connections._maybe_finish_compete`, which counts a conceder as "not alive" alongside the eliminated (the game ends when nobody's alive; a conceder forfeits). The FE places `act-concede`, which hides itself outside a race, marks a conceder "out" in the OpponentStrip, and folds them into the existing "eliminated, others race" locally-terminal look. Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
 Same shape as `submit_timeout`, plus the **Realtime touch** at the tail — a no-op self-write on `connections.games` (`set club_handle = club_handle`) so the FE's schema-scoped `useGame` subscription (postgres_changes on `connections.{games,guesses,players}`) wakes and the terminal UI lands without a reload. (`submit_guess`/`submit_timeout` each touch a `connections` table on their way through, so they wake naturally; `end_game` writes only `common.games`, hence the explicit self-set.) This is the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). Idempotent — a second call raises `P0001 "game is not in progress"`, which the FE swallows.
 
@@ -376,8 +376,10 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback +
 the terminal/eliminated message are the shared `<FeedbackPill>` (sticky, dismissed on
-the next tile click); action buttons are the semantic components (`HintButton` /
-`ClearButton` / `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes
+the next tile click); every command — Hints, Clear, Submit, End, Concede, Restart,
+New game, Reveal — is an `<ActionButton>` over a bound action, so its words, glyph,
+availability and key are stated once ([common/actions](../../src/common/actions/doc.md));
+mistakes
 render as `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
 compete shows a **Found** opponent strip in the info column.
 

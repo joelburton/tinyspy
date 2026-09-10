@@ -23,8 +23,8 @@ import { signIn } from './helpers/session'
  *
  * A focused tile is worse than cosmetic. It answers Space and Enter natively, so
  * it can fire a phantom move — connections carried a `preventDefault` for Enter
- * for exactly that reason, and left Space toggling the focused tile, which would
- * now fight the shuffle key.
+ * for exactly that reason. With no focus to land, nothing of the sort is
+ * reachable, which is what lets Enter mean "submit the four" from anywhere.
  *
  * Two mechanisms, because waffle's tiles DRAG and a `preventDefault` on mousedown
  * stops `dragstart` firing at all (measured):
@@ -59,7 +59,7 @@ const focusState = (page: Page, tileSel: string) =>
     }
   }, tileSel)
 
-test('connections: clicking a tile leaves no focus behind, and Space shuffles', async ({
+test('connections: clicking a tile leaves no focus behind, and ⌥Z shuffles', async ({
   browser,
 }) => {
   const club = await createSoloClub('bfcn')
@@ -75,11 +75,11 @@ test('connections: clicking a tile leaves no focus behind, and Space shuffles', 
   // The tile IS still selected — the click did its job; only the focus went.
   await expect(page.locator('[data-tile][class*="selected"]')).toHaveCount(1)
 
-  // SPACE shuffles: the same sixteen tiles, a new order.
+  // ⌥Z shuffles: the same sixteen tiles, a new order.
   const order = () => page.$$eval('[data-tile]', (ts) => ts.map((t) => t.textContent).join(''))
   const before = await order()
   for (let i = 0; i < 8 && (await order()) === before; i++) {
-    await page.keyboard.press(' ')
+    await page.keyboard.press('Alt+KeyZ')
     await page.waitForTimeout(120)
   }
   expect(await order()).not.toBe(before)

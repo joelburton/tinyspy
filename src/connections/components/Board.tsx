@@ -341,13 +341,12 @@ export function Board({
               // click focuses silently, the next keystroke promotes it to
               // `:focus-visible`, and a stray ring sits on the tile until you
               // click elsewhere. Nothing here needs focus: tiles are clicked,
-              // Enter submits from anywhere (the window handler in BoardCol),
-              // and Space shuffles.
+              // and Enter submits from anywhere (`act-submit`, bound in
+              // BoardCol).
               //
               // This also retired a per-tile `onKeyDown` that preventDefault'd
-              // Enter so a focused tile wouldn't self-activate. Its own comment
-              // noted "Space still toggles" — which would now fight the shuffle
-              // key. With no focus to land, neither is reachable.
+              // Enter so a focused tile wouldn't self-activate. With no focus to
+              // land, it isn't reachable.
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
             >

@@ -173,10 +173,13 @@ window-level board keys.
 
 | key | what it does |
 |---|---|
-| `Enter` | Submit the selected four **from anywhere on the board** — not just when a tile holds focus (macOS doesn't focus a button on click, which used to kill the whole click-four-then-Return flow). Harmless no-op with an incomplete selection. |
-| `Space` | **Shuffle the tiles** — a fresh visual scan of the same sixteen, never a move (the selection survives it). The same board key spellingbee and wordwheel have; it matches the floating Shuffle button, which is live whenever there are tiles, a finished board included. (psychicnum's is `⌥Z` now — the key every game's shuffle takes as it converts.) |
+| `Enter` | Submit the selected four **from anywhere on the board** — not just when a tile holds focus (macOS doesn't focus a button on click, which used to kill the whole click-four-then-Return flow). Gray with an incomplete selection, so it fires nothing. |
+| `⌫` | Clear the selection — and the clear BROADCASTS, so a teammate's board drops it too. |
+| `⌥Z` | **Shuffle the tiles** — a fresh visual scan of the same sixteen, never a move (the selection survives it). The ⟲ pill over the board does the same thing. |
 
-It used to say "`Space` on a focused tile toggles it (native button activation)". That's gone: board tiles are no longer focus targets in any game (see [ui.md → Terminal results](ui.md) and the note on `Board.tsx`), which is what freed `Space` to mean the same thing here as everywhere else.
+All three are hidden while a past turn is open in the history viewer, so a
+keystroke there means "back to live" rather than a move. Board tiles are not
+focus targets in any game, so no keystroke reaches one.
 
 ## crosswords
 
