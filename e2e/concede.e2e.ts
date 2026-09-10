@@ -13,8 +13,13 @@ import { signIn } from './helpers/session'
  * representative; the flow is identical everywhere it's wired.
  *
  * Two players, BOTH connected (so the game isn't presence-paused). Alice concedes
- * (through the window.confirm) → her board goes locally-terminal ("You conceded")
- * while Bob keeps playing (no terminal for him, his Concede still live).
+ * (through the shared confirmation) → her board goes locally-terminal ("You
+ * conceded") while Bob keeps playing (no terminal for him, his Concede still
+ * live).
+ *
+ * wordwheel has no whole-table stop, so its question is the plain two-button
+ * CONCEDE_CONFIRM. bananagrams' spec covers the other shape — the same action
+ * with ending for everyone as its second answer.
  */
 test.describe('concede (compete)', () => {
   test('a conceding player goes out; the other keeps racing', async ({ browser }) => {
@@ -38,19 +43,18 @@ test.describe('concede (compete)', () => {
     await expect(pageA.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
     await expect(pageB.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
 
-    // Concede goes through window.confirm — auto-accept it on Alice's page.
-    pageA.on('dialog', (d) => void d.accept())
-
     // Alice concedes (Playwright retries the click until it's actionable, so a brief
-    // startup pause before Bob's presence registers self-heals).
-    await pageA.getByRole('button', { name: 'Concede' }).click()
+    // startup pause before Bob's presence registers self-heals), then answers the
+    // question. Scoped to the panel: the board's own button shares the word.
+    await pageA.getByRole('button', { name: 'Concede game' }).click()
+    await pageA.locator('[data-floating-panel]').getByRole('button', { name: 'Concede' }).click()
 
     // Alice is now locally terminal — "You conceded" (LocalTerminalRow).
     await expect(pageA.getByText('You conceded')).toBeVisible({ timeout: 15000 })
 
     // Bob keeps racing: no conceded/terminal state for him, and his Concede is live.
     await expect(pageB.getByText('You conceded')).toBeHidden()
-    await expect(pageB.getByRole('button', { name: 'Concede' })).toBeEnabled()
+    await expect(pageB.getByRole('button', { name: 'Concede game' })).toBeEnabled()
 
     await ctxA.close()
     await ctxB.close()

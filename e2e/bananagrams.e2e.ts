@@ -380,11 +380,14 @@ test.describe('bananagrams new game', () => {
  * table agreeing there's no result.
  *
  * Asserted through the UI rather than the RPC because the wiring is the part
- * that was missing (`buildGameMenu` offered End in coop only, and bananagrams
- * is compete — it needs the opt-in `offerEndInCompete`).
+ * that was missing: bananagrams is compete, and a race's exit is Concede, so
+ * ending for everyone reaches the player as Concede's SECOND answer (the
+ * `offersEndForAll` opt-in). One row, one button, one key — the question is
+ * where the two are told apart, since two red squares on the board could only
+ * name them.
  */
 test.describe('bananagrams end game', () => {
-  test('the menu offers End alongside Concede, and it ends the table neutrally', async ({ browser }) => {
+  test('Concede offers ending for everyone, and it ends the table neutrally', async ({ browser }) => {
     const club = await createSoloClub('bgend')
     const game = await createBananagramsGame(club)
     const ctx = await browser.newContext()
@@ -393,13 +396,16 @@ test.describe('bananagrams end game', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
 
-    // Both exits present — the compete tail used to be Concede alone.
+    // ONE exit row, and its words say it carries both endings.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Concede game' })).toBeVisible()
-    await page.getByRole('menuitem', { name: 'End game' }).click()
+    await expect(page.getByRole('menuitem', { name: 'End game', exact: true })).toHaveCount(0)
+    await page.getByRole('menuitem', { name: 'Concede / End game' }).click()
 
-    // Irreversible, so it asks first (the shared END_GAME_CONFIRM modal).
-    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+    // Irreversible either way, so it asks — and this question has two ways to
+    // say yes, which is the whole point of it being a question.
+    const panel = page.locator('[data-floating-panel]')
+    await expect(panel.getByText('Concede, or end the game?')).toBeVisible()
+    await panel.getByRole('button', { name: 'End for everyone' }).click()
 
     // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
     await expect(page.getByRole('button', { name: /New game/ })).toBeVisible({ timeout: 15000 })
