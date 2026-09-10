@@ -382,7 +382,8 @@ live instead of typing behind the banner.
 | `↑` `↓` | Recall your last guess / clear — handy here, since the next guess is often the last one plus a letter. |
 
 Shares the on-screen `GuessKeyboard` with wordle (untinted — wordiply has no
-per-letter feedback).
+per-letter feedback), so its Enter and ⌫ caps are the same two bound actions
+these keys answer to.
 
 ## wordwheel
 

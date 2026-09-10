@@ -4,14 +4,10 @@ import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
@@ -39,7 +35,7 @@ export function InfoCol({
   isCompete,
   isTerminal,
   solutionShown,
-  onReveal,
+  actReveal,
   over,
   isLocallyDone,
   currentTurnUserId,
@@ -58,13 +54,11 @@ export function InfoCol({
   scoreByUser,
   concededIds,
   // ── Action row ──
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   // ── Setup disclosure ──
   setupRows,
   allGuesses,
@@ -75,9 +69,10 @@ export function InfoCol({
    *  until THIS viewer presses Reveal — wordiply used to show it the moment
    *  the game ended (see the button). Also swaps that button's face. */
   solutionShown: boolean
-  /** Show the best possible word — or put it away again. A local display
-   *  toggle shared with the menu twin; nothing is written, no peer affected. */
-  onReveal: () => void
+  /** Show the best possible word — or put it away again. A local display toggle
+   *  shared with the menu twin; nothing is written, no peer affected, and it
+   *  carries its own two faces. */
+  actReveal: BoundAction
   over: TerminalCopy | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
   isLocallyDone: boolean
@@ -109,16 +104,19 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row ──
-  onEndGame: () => void
-  onConcede: () => void
-  onRestart: () => void
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
-  onRequestBackToClub: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Play this base again from scratch. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup, new base + id. Disables itself
+   *  while the create is in flight. */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+   *  for both rows: it navigates directly at terminal and routes through the
+   *  suspend-confirm flow mid-game. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   setup: WordiplySetup
@@ -187,34 +185,30 @@ export function InfoCol({
             / Club. CONCEDED (others race on): the terminal look + disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
-            <RestartButton show="icon" onClick={onRestart} />
+          <TerminalActionRow over={over}>
+            <ActionButton action={actRestart} show="icon" />
             {/* The best possible word, hidden until asked for. wordiply used to
                 hand it over the moment the game ended; a score you can read
                 without being told the answer is a puzzle you can keep chewing
                 on, so it waits for this button now (and the same button takes
                 it back). */}
-            <RevealButton
-              show="icon"
-              label="Reveal best word"
-              revealedLabel="Hide best word"
-              revealed={solutionShown}
-              onClick={onReveal}
-            />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede disables itself once conceded — the row keeps its shape
+                and the button says why it can't be pressed again. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-            )}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

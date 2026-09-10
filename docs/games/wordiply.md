@@ -98,7 +98,7 @@ guess row). The two aggregate readouts — **length score %** and **letter count
 ("that's 78% of the best") lands at terminal.
 
 The **longest possible word** goes one step further: even at terminal it waits for the
-**Reveal best word** button (`RevealButton`, action row + menu twin — [ui.md → Terminal
+**Reveal best word** button (`act-reveal`, one bound action carrying both faces — the action row and the menu twin place the SAME one — see [ui.md → Terminal
 results](../ui.md#terminal-results--the-moment-vs-the-record)). wordiply used to hand it
 over the moment the game ended, which is the whole reason to change it: the score says how
 well you did *without naming the answer*, so a table that wants to keep guessing at
@@ -492,7 +492,8 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
     shared **`common/…/entry/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
     extracted so wordle + wordiply share one; wordle themes its per-key tints via `--kbd-*`
     CSS vars, wordiply uses neutral keys). A physical keyboard still works via `useCaptureKeys`
-    feeding the same `word` state. The keyboard sits **below** the grid and **doubles as the
+    feeding the same `word` state — and the Enter and ⌫ CAPS are the two bound actions that
+    hook hands back, so a cap and its key can't disagree about whether the move is available. The keyboard sits **below** the grid and **doubles as the
     feedback area**: a soft-reject line above the keys, and at terminal the keyboard is
     replaced by the verdict pill.
   - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD layout-stability rule; compact
@@ -510,9 +511,9 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   the **`<LengthScoreBar>`** (percent fill to `max_word_length`, "best 7 / possible 9") + the
   **letter-count** stat. Then **`<OpponentStrip>`** (compete; mid-game `metricLabel="Guesses"`,
   value = each opponent's `n/5`; at terminal switch to length score %), then the **action row** —
-  ICON-ONLY: playing = End (coop) / Concede (compete) + back-to-club; terminal = the outcome
-  line + `RestartButton` / `RevealButton` / `NewGameButton` / primary Club via
-  `TerminalActionRow` with `backShow="icon"`;
+  ICON-ONLY: playing = both exits, each hiding itself in the mode that isn't its own, +
+  back-to-club; terminal = the outcome line + Restart / Reveal / New game / primary Club —
+  every one an `<ActionButton>` over a bound action;
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
   + the below-board out-of-race pill —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**

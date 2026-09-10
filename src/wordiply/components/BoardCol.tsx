@@ -67,13 +67,11 @@ export function BoardCol({
     },
     [clearLocalFeedback, onChange],
   )
-  const backspace = useCallback(() => {
-    clearLocalFeedback()
-    onChange((w) => w.slice(0, -1))
-  }, [clearLocalFeedback, onChange])
-
-  // Physical keyboard (desktop convenience) drives the SAME word + submit.
-  useCaptureKeys({
+  // Physical keyboard (desktop convenience) drives the SAME word + submit — and
+  // hands back the two bindings the ⌫ and Enter caps below place, so a cap and
+  // its key are one thing. (No `backspace` twin: `act-delete-last` already
+  // dismisses the sticky reject on its way through.)
+  const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value: word,
     onChange,
     onSubmit,
@@ -114,7 +112,12 @@ export function BoardCol({
             <div className={styles.kbFeedback}>
               {rejectPill && <GenericFeedbackPill msg={rejectPill} onClose={clearLocalFeedback} />}
             </div>
-            <GuessKeyboard onKey={typeLetter} onEnter={onSubmit} onBackspace={backspace} disabled={entryDisabled} />
+            <GuessKeyboard
+              onKey={typeLetter}
+              actSubmit={actSubmitEntry}
+              actDelete={actDeleteLast}
+              disabled={entryDisabled}
+            />
           </>
         )}
       </div>

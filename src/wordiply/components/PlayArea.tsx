@@ -1,7 +1,7 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
+import { useEffect, useMemo, type ReactNode } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -23,12 +23,11 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
@@ -79,7 +78,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
 
@@ -94,15 +93,6 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
-
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    reveal: () => void
-    newGame: () => void
-  } | null>(null)
 
   // ─── The best possible word shows only when asked ──────
   // wordiply used to hand it over the moment the game ended (it was one of the
@@ -222,25 +212,37 @@ export function PlayArea(ctx: GamePageCtx) {
   // The byte-identical shared handlers (useStandardGameActions); only the
   // failure-pill format + the replay sentence are wordiply's. New game stays
   // below — its create path diverges per game.
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
     // The same base, extended again — so put the best word away. Nothing on the
     // server remembers the reveal any more, which is why this is explicit.
     onRestarted: hideSolution,
   })
 
+  // Reveal the best possible word — a LOCAL display toggle: it shows the word to
+  // me alone, writes nothing, and affects no peer. Inert until the game is over
+  // for everyone, so a player who conceded can't spoil a race.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (solutionShown) return { state: 'active', label: 'Hide best word', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal best word' }
+    },
+    run: toggleSolution,
+  })
+
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return
     const res = await runEdgeFn<CreatedGame>(
       'wordiply-build-board',
@@ -263,20 +265,19 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('wordiply-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
-
-  useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      reveal: toggleSolution,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, toggleSolution, handleNewGame])
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press dealing a second base.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
   // Compete leaderboard (off the live status jsonb) → per-player metrics.
   // Memoized because the print model (and so the menu effect) depends on it: the
@@ -288,69 +289,59 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── GamePage menu ─────────────────────────────────────
-  // The "Print board (PDF)" model is built HERE, from the live state, and is a
-  // snapshot at click time (docs/pdf.md). What it may show is decided in
-  // pdf/model.ts — notably wordiply's terminal-only reveal, which has to hold on
-  // paper too. RLS already scopes `guesses` to what I may see, so a mid-game
-  // compete print carries only my own rows without needing a filter here.
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). What it may show is
+  // decided in pdf/model.ts — notably wordiply's terminal-only reveal, which has
+  // to hold on paper too. RLS already scopes `guesses` to what I may see, so a
+  // mid-game compete print carries only my own rows without needing a filter.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printWordiplyPdf(
+        buildWordiplyPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          base,
+          maxWordLength: game.max_word_length,
+          longestWord: game.longestWords[0] ?? null,
+          solutionRevealed: solutionShown,
+          mode: game.mode,
+          isTerminal,
+          guesses,
+          players,
+          selfId: session.user.id,
+          guessesUsed,
+          maxGuesses: MAX_GUESSES,
+          lengthScore: lengthScore(longest, game.max_word_length),
+          letterCount: letters,
+          leaderboard,
+          setup: summaryRows,
+        }),
+      )
+    },
+  })
+
+  // The FULL wordiply menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. Reveal wears the
+  // same two faces here as on the terminal button, because it IS that binding.
   useEffect(() => {
-    if (!game) return
-    const printModel = buildWordiplyPrintModel({
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      base,
-      maxWordLength: game.max_word_length,
-      longestWord: game.longestWords[0] ?? null,
-      solutionRevealed: solutionShown,
-      mode: game.mode,
-      isTerminal,
-      guesses,
-      players,
-      selfId: session.user.id,
-      guessesUsed,
-      maxGuesses: MAX_GUESSES,
-      lengthScore: lengthScore(longest, game.max_word_length),
-      letterCount: letters,
-      leaderboard,
-      setup: summaryRows,
-    })
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: game.mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-              // The menu twin of the terminal row's boxed-eye button — the same
-              // toggle, wearing the same two faces. Inert until the game is
-              // over for everyone, so a player who conceded can't spoil a race.
-              {
-                id: 'reveal',
-                icon: solutionShown ? IconHideSolution : IconRevealSolution,
-                label: solutionShown ? 'Hide best word' : 'Reveal best word',
-                disabled: !isTerminal,
-                onClick: () => actionsRef.current?.reveal(),
-              },
-            ],
-          },
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWordiplyPdf(printModel) }] },
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, game, isTerminal, solutionShown, myConceded,
-    brand, title, base, guesses, players, session.user.id, guessesUsed,
-    longest, letters, leaderboard, wordiplySetup,
-    summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop peer-guess narration (global header) ─────────
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
@@ -458,7 +449,6 @@ export function PlayArea(ctx: GamePageCtx) {
           maxWordLength={game.max_word_length}
           longestWord={game.longestWords[0] ?? null}
           solutionShown={solutionShown}
-          onReveal={toggleSolution}
           base={base}
           opponentReveal={opponentReveal}
           players={players}
@@ -466,13 +456,12 @@ export function PlayArea(ctx: GamePageCtx) {
           guessesByUser={guessesByUser}
           scoreByUser={scoreByUser}
           concededIds={concededIds}
-          onEndGame={endGame}
-          onConcede={concede}
-          onRestart={restart}
-          onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-          onBackToClub={goToClub}
-          onRequestBackToClub={menu.requestBackToClub}
+          actReveal={actReveal}
+          actEndGame={actEndGame}
+          actConcede={actConcede}
+          actRestart={actRestart}
+          actNewGame={actNewGame}
+          actBackToClub={menu.actBackToClub}
           setup={wordiplySetup}
           setupRows={summaryRows}
         />
@@ -481,7 +470,6 @@ export function PlayArea(ctx: GamePageCtx) {
           shown in the below-board pill (BoardCol) + the info column (score bar,
           letters, reveal), so a modal would just interrupt. wordiply has no win
           state, so there's no celebration either. */}
-      {confirmationModal}
     </div>
   )
 }
