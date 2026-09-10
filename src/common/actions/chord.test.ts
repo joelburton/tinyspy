@@ -20,10 +20,10 @@ function press(init: Partial<KeyboardEvent> & { key: string }): KeyboardEvent {
   } as KeyboardEvent
 }
 
-const PLUS: KeySpec = { key: '+', shiftAgnostic: true, label: '+' }
-const ALT_Z: KeySpec = { code: 'KeyZ', alt: true, shiftAgnostic: true, label: '⌥Z' }
+const PLUS: KeySpec = { key: '+', label: '+' }
+const ALT_Z: KeySpec = { code: 'KeyZ', alt: true, shift: false, label: '⌥Z' }
 const SHIFT_BACKSPACE: KeySpec = { key: 'Backspace', shift: true, label: '⇧⌫' }
-const BACKSPACE: KeySpec = { key: 'Backspace', label: '⌫' }
+const BACKSPACE: KeySpec = { key: 'Backspace', shift: false, label: '⌫' }
 
 describe('matches — a chord', () => {
   it('matches the character it names', () => {
@@ -31,9 +31,9 @@ describe('matches — a chord', () => {
     expect(matches(PLUS, press({ key: '=' }))).toBe(false)
   })
 
-  it('ignores shift when the chord is shift-agnostic', () => {
-    // `+` is Shift-Equal on a US layout and unshifted elsewhere, so the shift
-    // state says nothing about whether the player pressed the key they meant.
+  it('does not ask about shift on a chord written as a character', () => {
+    // Shift was already spent producing the `+`; asking again says nothing, and
+    // which physical keys make a `+` is a layout fact.
     expect(matches(PLUS, press({ key: '+', shiftKey: true }))).toBe(true)
     expect(matches(PLUS, press({ key: '+', shiftKey: false }))).toBe(true)
   })
@@ -56,14 +56,22 @@ describe('matches — a chord', () => {
   it('matches the PHYSICAL key when the chord names a code', () => {
     // Option changes the character: ⌥Z is Ω and ⌥= is ≠, so `e.key` is useless
     // here and `e.code` is the only stable half of the event.
-    const altEqual: KeySpec = { code: 'Equal', alt: true, shiftAgnostic: true, label: '⌥+' }
-    expect(matches(altEqual, press({ key: '≠', code: 'Equal', altKey: true }))).toBe(true)
+    const altEqual: KeySpec = { code: 'Equal', alt: true, shift: true, label: '⌥+' }
     expect(matches(altEqual, press({ key: '±', code: 'Equal', altKey: true, shiftKey: true }))).toBe(true)
   })
 
+  it('tells ⌥+ from ⌥= — one physical key, two chords', () => {
+    // The shifted one is the chord we bind and the name we show; the unshifted
+    // one is a different chord that nothing binds.
+    const altPlus: KeySpec = { code: 'Equal', alt: true, shift: true, label: '⌥+' }
+    expect(matches(altPlus, press({ key: '≠', code: 'Equal', altKey: true }))).toBe(false)
+  })
+
   it('matches the anagram chord, whose key arrives as Dead on macOS', () => {
-    const anagram: KeySpec = { code: 'Backquote', alt: true, shiftAgnostic: true, label: '⌥~' }
-    expect(matches(anagram, press({ key: 'Dead', code: 'Backquote', altKey: true }))).toBe(true)
+    const anagram: KeySpec = { code: 'Backquote', alt: true, shift: true, label: '⌥~' }
+    expect(matches(anagram, press({ key: 'Dead', code: 'Backquote', altKey: true, shiftKey: true }))).toBe(true)
+    // ⌥` — the unshifted twin — is not it.
+    expect(matches(anagram, press({ key: 'Dead', code: 'Backquote', altKey: true }))).toBe(false)
   })
 
   it('never matches while Cmd is held', () => {
@@ -76,7 +84,7 @@ describe('matches — a chord', () => {
 describe('matches — a pattern', () => {
   const letter: KeySpec = { pattern: 'letter', label: 'A–Z' }
   const digit: KeySpec = { pattern: 'digit', label: '0–9' }
-  const arrow: KeySpec = { pattern: 'arrow', label: '↑ ↓ ← →' }
+  const arrow: KeySpec = { pattern: 'arrow', shift: false, label: '↑ ↓ ← →' }
   const any: KeySpec = { pattern: 'any', label: 'any key' }
 
   it('matches its own class and nothing else', () => {
@@ -93,6 +101,17 @@ describe('matches — a pattern', () => {
   it('takes any key at all, for the any-key behaviors', () => {
     expect(matches(any, press({ key: 'Escape' }))).toBe(true)
     expect(matches(any, press({ key: 'F5' }))).toBe(true)
+  })
+
+  it('tells an arrow from a shifted arrow, so a cursor move is not a word jump', () => {
+    const jump: KeySpec = { pattern: 'arrow', shift: true, label: '⇧ + arrow' }
+    expect(matches(arrow, press({ key: 'ArrowLeft', shiftKey: true }))).toBe(false)
+    expect(matches(jump, press({ key: 'ArrowLeft', shiftKey: true }))).toBe(true)
+    expect(matches(jump, press({ key: 'ArrowLeft' }))).toBe(false)
+  })
+
+  it('lets a letter be a capital — shift is what makes one', () => {
+    expect(matches(letter, press({ key: 'Q', shiftKey: true }))).toBe(true)
   })
 
   it('is not a key someone is typing once a modifier is held', () => {

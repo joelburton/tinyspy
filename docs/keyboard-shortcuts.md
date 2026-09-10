@@ -8,7 +8,16 @@ crosswords is keyboard-first by design, and every word game takes physical keys.
 ## How a keystroke is routed
 
 There is almost no `onKeyDown` on the board. A play surface has nothing
-meaningful to focus, so games listen on `window` and share one dispatcher,
+meaningful to focus, so keys are read off `window`.
+
+**The app-wide keys are actions** ([`common/actions`](../src/common/actions/doc.md)):
+a surface binds an action, which is what gives it a key, a menu row and a
+button at once, and one dispatcher at the app root fires whichever bound action
+answers the keystroke. The shell's four keys work this way today; the games'
+commands and board keys are being converted, and until then they go through the
+older path below.
+
+Games still listen on `window` through one shared dispatcher,
 [`useGlobalKeyHandler`](../src/common/keyboard/useGlobalKeyHandler.ts). Four
 gates apply before a key ever reaches game code:
 
@@ -46,18 +55,20 @@ Two consequences worth knowing:
 
 ## Global — any page with chat and the logo menu (club page + play area)
 
-From [`useAppShortcuts`](../src/common/keyboard/useAppShortcuts.tsx). These
-fire when nothing is focused **and** while a *game* input is focused
-(codenamesduet's clue field, psychicnum's guess box — they opt in with
-`data-game-input`), so you can hit `/` to chat without clicking away first. They
-type literally in a non-game field (chat, a setup form, the scratchpad).
+Bound at the app root by
+[`AppActionsHost`](../src/common/actions/AppActionsHost.tsx). These fire when
+nothing is focused **and** while a *game* input is focused (codenamesduet's clue
+field, psychicnum's guess box — they opt in with `data-game-input`), so you can
+hit `/` to chat without clicking away first. They type literally in a non-game
+field (chat, a setup form, the scratchpad). `/` is not bound at all on a page
+with no chat panel: the home page.
 
 | key | what it does |
 |---|---|
 | `/` | Open club chat and focus its input. Already-open stays open and refocuses. |
 | `?` | Open the logo / game menu. |
 | `~` | Open the free-form **look up a word** dialog. |
-| `⌥~` | Toggle the **anagram finder** — enter letters, get every word of exactly that length. Lowercase letters float, `?` is a wildcard, an UPPERCASE letter is pinned to its position (`Acer` → acer + acre, never race). Matched on the physical key (`e.code === 'Backquote'` + Option): on macOS the chord is the dead-key accent composer, so `e.key` is `'Dead'` — the `⌥+`/`Equal` trick again. |
+| `⌥~` | Toggle the **anagram finder** — enter letters, get every word of exactly that length. Lowercase letters float, `?` is a wildcard, an UPPERCASE letter is pinned to its position (`Acer` → acer + acre, never race). Matched on the physical key (`e.code === 'Backquote'` + Option + Shift): on macOS the chord is the dead-key accent composer, so `e.key` is `'Dead'` — the `⌥+`/`Equal` trick again. `⌥\``, without the shift, is a different chord and is unbound. |
 
 ## Global — any play area
 
@@ -70,7 +81,7 @@ and holding `+` would otherwise start dozens of games.
 |---|---|
 | `⇧<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
 | `+` | **New game** — dispatched through the game's own New game menu item, so it inherits that item's disabled state and its mid-game confirm. |
-| `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key, so `⌥=` and `⌥⇧=` both work. |
+| `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key (`Equal` + Option + Shift), since Option changes the character; `⌥=` is a different chord and is unbound. |
 | `⌥⌫` | **End game**, or **Concede** in a compete game that offers both (the shortcut follows the mode's primary exit). Disabled at terminal / once conceded. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |

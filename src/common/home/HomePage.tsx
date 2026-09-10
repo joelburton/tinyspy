@@ -19,7 +19,6 @@ import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { PageHeader } from '../page-header/PageHeader'
 import { PageHeaderMenu } from '../page-header/PageHeaderMenu'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
-import { useAppShortcuts } from '../keyboard/useAppShortcuts'
 import { StandardButton } from '../buttons/StandardButton'
 import { CreateClubModal } from '../club/CreateClubModal'
 import styles from './HomePage.module.css'
@@ -157,10 +156,6 @@ export function HomePage({ session }: Props) {
 
   const accountSection = useAccountMenuSection()
 
-  // `?` opens the menu and `~` opens word-lookup, as on every other real page.
-  // `chat: false` — chat is club-scoped and no panel is mounted here, so binding
-  // `/` would swallow the key and show nothing (see the hook).
-  const lookupDialog = useAppShortcuts({ chat: false })
 
   return (
     <div className="pageHeaderAndMainArea">
@@ -262,8 +257,6 @@ export function HomePage({ session }: Props) {
         />
       )}
 
-      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null when shut. */}
-      {lookupDialog}
     </div>
   )
 }

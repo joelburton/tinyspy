@@ -72,3 +72,38 @@ export function setChatOpen(next: boolean): void {
 export function useChatOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }
+
+/**
+ * IS THERE A CHAT PANEL ON THIS PAGE AT ALL?
+ *
+ * Chat is club-scoped — `<Chat>` mounts on the club page and the game page, and
+ * nowhere else — so on the home page opening it would flip a flag nothing
+ * renders. The `/` action reads this and is simply not offered there, which is
+ * better than a key that appears to do nothing: an unbound key sends the next
+ * person debugging it to the right question.
+ */
+let mounted = false
+const mountedListeners = new Set<() => void>()
+
+/** Say a chat panel is on screen, and return the release. `<Chat>` calls it
+ *  from an effect, so the flag follows the panel's own lifetime. */
+export function registerChatMounted(): () => void {
+  mounted = true
+  for (const listener of mountedListeners) listener()
+  return () => {
+    mounted = false
+    for (const listener of mountedListeners) listener()
+  }
+}
+
+export function useChatMounted(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      mountedListeners.add(listener)
+      return () => {
+        mountedListeners.delete(listener)
+      }
+    },
+    () => mounted,
+  )
+}

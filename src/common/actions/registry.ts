@@ -10,16 +10,6 @@ import {
   RESTART_CONFIRM,
 } from '../floating-panels/useConfirmation'
 
-/** Concede's question. Written here rather than beside its three siblings in
- *  `useConfirmation.tsx` because concede still asks through `window.confirm`,
- *  which takes a sentence and not an options object; it joins them when the
- *  games convert. */
-const CONCEDE_CONFIRM: ConfirmOptions = {
-  title: 'Concede the game?',
-  message: 'You drop out and the others keep playing.',
-  confirmLabel: 'Concede',
-  cancelLabel: 'Keep playing',
-}
 import {
   IconAI,
   IconBack,
@@ -71,9 +61,9 @@ export type ActionSpec = {
   // The button tone. Destructive for the two acts that cannot be undone;
   // everything else takes StandardButton's `normal`.
   tone?: ButtonTone
-  // Every key that fires it, FIRST ONE SHOWN. Two entries are two genuinely
-  // different keys (Enter and Space both peel); one entry marked
-  // `shiftAgnostic` covers a key whose character depends on the layout.
+  // Every key that fires it, FIRST ONE SHOWN. Two keys that should both fire it
+  // are two entries — Enter and Space both peel, and `⌥+` and `⌥=` would be two
+  // if we ever wanted both.
   keys?: KeySpec[]
   // The question asked before the action runs, by the shared run rather than by
   // the game — so a game cannot forget to ask. Skipped at terminal, where
@@ -98,13 +88,32 @@ export type ActionSpec = {
   consumes?: boolean
 }
 
-/** ⌥ plus a physical key. Every Option chord matches on `code`, because Option
- *  changes the character: ⌥Z is `Ω`, ⌥= is `≠`, ⌥` is a dead key. */
-const alt = (code: string, label: string): KeySpec => ({ code, alt: true, shiftAgnostic: true, label })
+/** Concede's question. Written here rather than beside its three siblings in
+ *  `useConfirmation.tsx` because concede still asks through `window.confirm`,
+ *  which takes a sentence and not an options object; it joins them when the
+ *  games convert. */
+const CONCEDE_CONFIRM: ConfirmOptions = {
+  title: 'Concede the game?',
+  message: 'You drop out and the others keep playing.',
+  confirmLabel: 'Concede',
+  cancelLabel: 'Keep playing',
+}
 
-/** A chord written as the character it produces. Shift-agnostic, always: which
- *  physical keys make a `+` is a keyboard-layout fact. */
-const char = (key: string, label = key): KeySpec => ({ key, shiftAgnostic: true, label })
+/** ⌥ plus a physical key, ⇧ UP. Every Option chord matches on `code`, because
+ *  Option changes the character: ⌥Z is `Ω`, ⌥= is `≠`, ⌥` is a dead key. */
+const alt = (code: string, label: string): KeySpec => ({ code, alt: true, shift: false, label })
+
+/** ⌥⇧ plus a physical key — a different chord from the same key without ⇧, and
+ *  named for the character ⇧ makes: `⌥+` is Option-Shift-Equal. */
+const altShift = (code: string, label: string): KeySpec => ({ code, alt: true, shift: true, label })
+
+/** A chord written as the character it produces, which is all it takes: ⇧ was
+ *  already spent making the character, so nothing here asks about it. */
+const char = (key: string, label = key): KeySpec => ({ key, label })
+
+/** A named key — Enter, Space, ⌫, Tab, an arrow. ⇧ is stated because it makes a
+ *  different chord here: `⇧⌫` clears the word where `⌫` clears the cell. */
+const named = (key: string, label: string, shift = false): KeySpec => ({ key, shift, label })
 
 export const ACTIONS = {
   // ─── The shell, on every page ──────────────────────────────────────────
@@ -126,7 +135,9 @@ export const ACTIONS = {
   },
   'act-anagram-finder': {
     label: 'Anagram finder',
-    keys: [alt('Backquote', '⌥~')],
+    // Option-SHIFT-Backquote: the chord is `⌥~`, and `⌥\`` is a different one
+    // that nothing binds.
+    keys: [altShift('Backquote', '⌥~')],
     inField: 'game-inputs',
   },
   'act-help': { label: 'Help', icon: IconHelp },
@@ -152,7 +163,9 @@ export const ACTIONS = {
   'act-new-game-from-setup': {
     label: 'New game from setup',
     icon: IconNewGame,
-    keys: [alt('Equal', '⌥+')],
+    // Option-SHIFT-Equal: the chord is `⌥+`, the shifted twin of the plain `+`
+    // that starts a game with this one's setup. `⌥=` is a different chord.
+    keys: [altShift('Equal', '⌥+')],
     confirm: NEW_GAME_CONFIRM,
   },
   'act-restart': {
@@ -181,9 +194,10 @@ export const ACTIONS = {
   'act-peel': {
     label: 'Peel',
     icon: IconPeel,
-    keys: [{ key: 'Enter', label: '↵' }, { key: ' ', label: 'Space' }],
+    // Two genuinely different keys, so two entries.
+    keys: [named('Enter', '↵'), named(' ', 'Space')],
   },
-  'act-submit': { label: 'Submit', icon: IconSubmit, keys: [{ key: 'Enter', label: '↵' }] },
+  'act-submit': { label: 'Submit', icon: IconSubmit, keys: [named('Enter', '↵')] },
   'act-reveal': { label: 'Reveal', icon: IconRevealSolution },
   'act-hint': { label: 'Hint', icon: IconHint },
   'act-exchange': { label: 'Exchange', icon: IconExchange },
@@ -196,46 +210,48 @@ export const ACTIONS = {
 
   // ─── Crosswords' commands ──────────────────────────────────────────────
   'act-pencil': { label: 'Pencil', keys: [alt('KeyP', '⌥P')] },
-  'act-check-letter': { label: 'Letter', icon: IconWordCheck, keys: [{ code: 'KeyC', alt: true, label: '⌥C' }] },
-  'act-check-word': { label: 'Word', icon: IconWordCheck, keys: [{ code: 'KeyC', alt: true, shift: true, label: '⌥⇧C' }] },
+  'act-check-letter': { label: 'Letter', icon: IconWordCheck, keys: [alt('KeyC', '⌥C')] },
+  'act-check-word': { label: 'Word', icon: IconWordCheck, keys: [altShift('KeyC', '⌥⇧C')] },
   'act-check-puzzle': { label: 'Puzzle', icon: IconWordCheck },
-  'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, keys: [{ code: 'KeyR', alt: true, label: '⌥R' }] },
-  'act-reveal-word': { label: 'Word', icon: IconRevealSolution, keys: [{ code: 'KeyR', alt: true, shift: true, label: '⌥⇧R' }] },
+  'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, keys: [alt('KeyR', '⌥R')] },
+  'act-reveal-word': { label: 'Word', icon: IconRevealSolution, keys: [altShift('KeyR', '⌥⇧R')] },
   'act-reveal-puzzle': { label: 'Puzzle', icon: IconRevealSolution },
   'act-show-note': { label: 'Show note', keys: [alt('KeyN', '⌥N')] },
   'act-explain-clue': { label: 'Explain cryptic clue', icon: IconAI, keys: [alt('KeyX', '⌥X')] },
   'act-open-scratchpad': { label: 'Scratchpad', icon: IconScratchpad, keys: [alt('KeyS', '⌥S')] },
-  'act-rebus': { label: 'Enter rebus', keys: [{ key: 'Enter', shift: true, label: '⇧↵' }] },
+  // ⇧Enter, deliberately: a bare Enter is a no-op in crosswords, because
+  // solvers hit it reflexively at a word's end.
+  'act-rebus': { label: 'Enter rebus', keys: [named('Enter', '⇧↵', true)] },
   'act-collapse-rebuses': { label: 'Collapse rebuses' },
   'act-download-ipuz': { label: 'Download as .ipuz' },
   'act-print-solution': { label: 'Print answer key (PDF)', icon: IconPrint },
 
   // ─── Typing into an entry ──────────────────────────────────────────────
   'act-type-letter': { label: 'Type a letter', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
-  'act-delete-last': { label: 'Delete the last letter', keys: [{ key: 'Backspace', label: '⌫' }], repeat: true },
-  'act-submit-entry': { label: 'Submit', keys: [{ key: 'Enter', label: '↵' }] },
-  'act-recall-last': { label: 'Recall your last entry', keys: [{ key: 'ArrowUp', label: '↑' }] },
-  'act-clear-entry': { label: 'Clear the entry', keys: [{ key: 'ArrowDown', label: '↓' }] },
+  'act-delete-last': { label: 'Delete the last letter', keys: [named('Backspace', '⌫')], repeat: true },
+  'act-submit-entry': { label: 'Submit', keys: [named('Enter', '↵')] },
+  'act-recall-last': { label: 'Recall your last entry', keys: [named('ArrowUp', '↑')] },
+  'act-clear-entry': { label: 'Clear the entry', keys: [named('ArrowDown', '↓')] },
 
   // ─── Working a board directly ──────────────────────────────────────────
-  'act-move-cursor': { label: 'Move the cursor', keys: [{ pattern: 'arrow', label: '↑ ↓ ← →' }], repeat: true },
+  'act-move-cursor': { label: 'Move the cursor', keys: [{ pattern: 'arrow', shift: false, label: '↑ ↓ ← →' }], repeat: true },
   'act-place-tile': { label: 'Place a tile', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
-  'act-remove-tile': { label: 'Take the tile back', keys: [{ key: 'Backspace', label: '⌫' }], repeat: true },
+  'act-remove-tile': { label: 'Take the tile back', keys: [named('Backspace', '⌫')], repeat: true },
   'act-pick-tile': { label: 'Play that tile', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-extend-trace': { label: 'Extend the trace', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
-  'act-drop-last-cell': { label: 'Drop the last tile', keys: [{ key: 'Backspace', label: '⌫' }] },
-  'act-clear-selection': { label: 'Clear the selection', keys: [{ key: 'Backspace', label: '⌫' }] },
+  'act-drop-last-cell': { label: 'Drop the last tile', keys: [named('Backspace', '⌫')] },
+  'act-clear-selection': { label: 'Clear the selection', keys: [named('Backspace', '⌫')] },
 
   // ─── Crosswords' grid ──────────────────────────────────────────────────
   'act-fill-cell': { label: 'Fill the cell', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
-  'act-clear-cell': { label: 'Clear the cell', keys: [{ key: 'Backspace', label: '⌫' }], repeat: true },
-  'act-clear-word': { label: 'Clear the word', keys: [{ key: 'Backspace', shift: true, label: '⇧⌫' }] },
-  'act-advance-cell': { label: 'Move on one cell', keys: [{ key: ' ', label: 'Space' }], repeat: true },
-  'act-peek-cell': { label: 'Peek at the cell', keys: [{ key: ' ', shift: true, label: '⇧Space' }] },
-  'act-jump-word-edge': { label: 'Jump to the word edge', keys: [{ pattern: 'arrow', label: '⇧ + arrow' }] },
-  'act-next-clue': { label: 'Next clue', keys: [{ key: 'Tab', label: '⇥' }], inField: 'always' },
-  'act-previous-clue': { label: 'Previous clue', keys: [{ key: 'Tab', shift: true, label: '⇧⇥' }], inField: 'always' },
+  'act-clear-cell': { label: 'Clear the cell', keys: [named('Backspace', '⌫')], repeat: true },
+  'act-clear-word': { label: 'Clear the word', keys: [named('Backspace', '⇧⌫', true)] },
+  'act-advance-cell': { label: 'Move on one cell', keys: [named(' ', 'Space')], repeat: true },
+  'act-peek-cell': { label: 'Peek at the cell', keys: [named(' ', '⇧Space', true)] },
+  'act-jump-word-edge': { label: 'Jump to the word edge', keys: [{ pattern: 'arrow', shift: true, label: '⇧ + arrow' }] },
+  'act-next-clue': { label: 'Next clue', keys: [named('Tab', '⇥')], inField: 'always' },
+  'act-previous-clue': { label: 'Previous clue', keys: [named('Tab', '⇧⇥', true)], inField: 'always' },
   'act-jump-to-number': { label: 'Jump to a clue number', keys: [char('#')] },
   'act-mark-right-edge': { label: 'Mark the right edge', keys: [char('|')] },
   'act-mark-bottom-edge': { label: 'Mark the bottom edge', keys: [char('_')] },

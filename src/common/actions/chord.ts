@@ -35,13 +35,16 @@ export type Chord = {
   // for a friend on a PC. The field exists so the machine can express one, not
   // as an invitation.
   ctrl?: boolean
-  // ⇧ must be held (or, when false, must be up). Absent is the same as false.
+  // ⇧ must be held, or — when false — must be up. REQUIRED on a chord that
+  // names a `code` or a named key (Enter, Space, ⌫, Tab, an arrow), because
+  // there ⇧ is a modifier that makes a different chord: `⌥+` is Shift-Equal and
+  // `⌥=` is not, and `⇧⌫` is a different command from `⌫`. Two chords that
+  // should both fire an action are two entries in its `keys`, never one entry
+  // that shrugs.
+  //
+  // Left out on a chord written as a CHARACTER, where ⇧ is already spent
+  // producing the character and asking about it again says nothing.
   shift?: boolean
-  // IGNORE ⇧ entirely. For a chord written as a character, because which
-  // physical keys make that character is a keyboard-layout fact and not
-  // something the binding gets to have an opinion about: `+` is Shift-Equal on
-  // a US layout and unshifted on a German one. Also how `⌥Z` accepts `⌥⇧Z`.
-  shiftAgnostic?: boolean
   // What a tooltip, a menu row and the help list SHOW — '⌥Z', '⇧<', '+'.
   // Written here rather than derived, so the app spells a key one way.
   label: string
@@ -55,6 +58,11 @@ export type KeyPattern = {
   // arrow keys. `any` = anything at all, for the two behaviors that answer to
   // every key (dismissing feedback, leaving the history viewer).
   pattern: 'letter' | 'digit' | 'arrow' | 'any'
+  // ⇧ must be held, or must be up — same rule as a chord's, and the arrows are
+  // why it is here: crosswords walks the cursor with an arrow and jumps to the
+  // word edge with ⇧ and the same arrow. Left out for a letter, where ⇧ is what
+  // makes the capital.
+  shift?: boolean
   // What the help list shows — 'A–Z', '↑ ↓ ← →', 'any key'.
   label: string
 }
@@ -76,9 +84,15 @@ const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
  * **Cmd is never ours** — reload, new tab, the address bar — so a keystroke
  * holding it matches nothing, chord and pattern alike. A pattern additionally
  * matches only an unmodified key: Option-L is not a letter someone is typing.
+ *
+ * **⇧ is matched when the key says so and ignored when it doesn't**, which is
+ * the whole of the rule: a chord on a physical key or a named key states it,
+ * because there ⇧ makes a different chord; a chord written as a character
+ * leaves it out, because ⇧ was already spent producing the character.
  */
 export function matches(spec: KeySpec, e: KeyboardEvent): boolean {
   if (e.metaKey) return false
+  if (spec.shift !== undefined && e.shiftKey !== spec.shift) return false
 
   if (isPattern(spec)) {
     if (e.altKey || e.ctrlKey) return false
@@ -96,6 +110,5 @@ export function matches(spec: KeySpec, e: KeyboardEvent): boolean {
 
   if (e.altKey !== (spec.alt ?? false)) return false
   if (e.ctrlKey !== (spec.ctrl ?? false)) return false
-  if (!spec.shiftAgnostic && e.shiftKey !== (spec.shift ?? false)) return false
   return spec.code !== undefined ? e.code === spec.code : e.key === spec.key
 }

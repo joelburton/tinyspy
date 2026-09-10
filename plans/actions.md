@@ -869,10 +869,14 @@ the app behaves exactly as it did.
 
 Four places where the built thing differs from II.1, each on purpose:
 
-- **`shift` is a real field, not only `shiftAgnostic`.** Crosswords needs `⌫`
-  and `⇧⌫` to be different commands, and Space and `⇧Space` likewise, so a
-  chord checks shift exactly unless it says otherwise. The agnostic flag stays
-  for chords written as a character, where the layout decides the shift state.
+- **There is no `shiftAgnostic`, and the plan's one mention of it is
+  superseded** (Joel, 2026-09-10). A chord states shift wherever shift makes a
+  different chord — `⌥+` is Option-Shift-Equal and `⌥=` is another chord, `⇧⌫`
+  is not `⌫` — and says nothing about it when the chord is written as a
+  character, where shift was already spent producing it. Two presses that
+  should both fire one action are two entries in `keys`. **The two chords that
+  accepted either press are now shifted-only**: `⌥+` (new game from setup) and
+  `⌥~` (the anagram finder), which is what their labels always said.
 - **`consumes` is on the SPEC, not the binding.** Whether a wildcard claims the
   key it sees is a fact about the action — the viewer exit always consumes,
   feedback dismissal never does — and no game would set it differently.
@@ -884,10 +888,43 @@ Four places where the built thing differs from II.1, each on purpose:
   described the same thing in two slightly different ways, and the difference
   was enough to stop an action's glyph being handed to a button.
 
-Two shared-predicate readers in game folders changed import path only
+Two shared-predicate readers in game folders changed import path only (step 1)
 (`crosswords/hooks/useGridKeyboard.ts`, `bananagrams/hooks/usePlayerBoard.ts`),
 per II.1's instruction to leave one copy of `isEditableField`. **No other game
 code is touched, and no game behavior changes.** The concede confirm's move
 onto the styled modal (decision 2) waits for step 4, where concede converts
 with the rest of the game work; until then the registry writes its question
 inline rather than beside its three siblings.
+
+## Step 2 — the shell binds, and the menu reads bound actions
+
+The four app-wide keys are actions now, bound at the app root by
+`AppActionsHost`, which also owns the lookup and anagram dialogs; three pages
+stopped arranging that themselves and `useAppShortcuts` is deleted. The club
+page binds its `⇧<` and its four menu rows; the account submenu's three rows are
+actions too. **The home page, the club page and their menus run on the new
+machinery; the game page and the games do not yet.**
+
+- **The menu reads a ROW, not an item.** `menuModel.menuRow()` is the one place
+  a bound action is read on its way into a menu, and `<Menu>` lays out rows —
+  so it never asks what kind of row it has. A hidden action drops out before
+  anything counts rows for keyboard navigation, which is how "Add word" is
+  absent for a non-editor rather than present and refusing.
+- **Three row shapes coexist**, as §9 said they would: a bound action, a
+  submenu, and the hand-written row the unconverted surfaces still write. The
+  last one goes with the last game.
+- **The open submenu is held by id, not by the row.** Rows are re-read every
+  render, so holding one would be holding what it said when it opened.
+- **The account row stays a submenu and keeps its dot** — decision 4. It shows
+  WHO you are, and an action says what you can do.
+- **A binding whose only purpose is its key is assigned to nothing**, and the id
+  guard no longer insists otherwise: the shell's four are bound by a host that
+  places neither a button nor a row for them, and `void actX` lines to satisfy a
+  guard would be noise.
+- **`<Chat>` says when it is mounted** (a flag on `chatOpenStore`), so `act-open-chat`
+  is hidden on the home page. The `chat: false` option and its paragraph are
+  gone — the page-dependent key became a state, as §3 said.
+- **The club's help gained the generated key list.** It is a different frame
+  from the games' help, so it needed the mount of its own. Its prose still names
+  `/`, `?` and `~` by hand a paragraph above the list — Joel's copy, left alone,
+  and worth a look now that the list says the same thing.

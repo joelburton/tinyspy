@@ -627,17 +627,11 @@ This **replaces the previous ClubPage auto-nav** (a club-games subscription that
 
 ### App-level keyboard shortcuts
 
-One hook — [`useAppShortcuts`](../src/common/keyboard/useAppShortcuts.tsx) — owns the shortcuts available on every "real" page (any ClubPage / GamePage, as opposed to the login / claim-handle screens). Both pages call it; the keys behave identically everywhere:
+Four keys work on every "real" page (any ClubPage / GamePage, as opposed to the login / claim-handle screens): `/` opens chat and focuses its input, `?` opens the logo menu, `~` opens the free-form **word-lookup** dialog, and `⌥~` toggles the **anagram finder**. They are actions ([`common/actions`](../src/common/actions/doc.md)), bound once at the app root by [`AppActionsHost`](../src/common/actions/AppActionsHost.tsx), which also owns the two dialogs — so a page gets all four by existing, and word-lookup is available almost everywhere with zero per-page wiring (see [Word definitions](#word-definitions-click-to-define--lookup)).
 
-| key | does | how |
-|---|---|---|
-| `/` | open chat + focus its input | flips the `chatOpenStore`, then rAF-focuses `[data-chat-input]` |
-| `?` | open the logo menu | calls the `openMenu` callback the page wires to its `<Menu ref>` |
-| `~` | open the free-form **word-lookup** dialog | the hook owns the open/closed state and **returns** the `WordLookupDialog` node for the page to render |
+`/` is simply not offered on a page with no chat panel — the home page — because a key that flips a flag nothing renders is worse than an unbound one. That is the action's own state, not a page passing a flag.
 
-The first two delegate to the caller (chat is a global store; the menu differs per page). The `~` lookup dialog is identical on every page, so the hook owns it outright — it holds the state and returns the dialog node, and each page just renders `{lookupDialog}` in its tree. That's why word-lookup is available almost everywhere with zero per-game wiring (see [Word definitions](#word-definitions-click-to-define--lookup)).
-
-All three fire when nothing is focused (the mid-game common case, where word games read keys off `window`) **and** when a *game* input is focused (codenamesduet's clue field, psychicnum's guess field — opted in with `data-game-input`), but **not** when a non-game field has focus (a setup form, the chat box itself) — there the keys type literally. The gate is `isNonGameField`, shared with the same hook. Escape is deliberately not handled here; it stays "close the topmost open modal," owned by the dialogs.
+They fire when nothing is focused (the mid-game common case, where word games read keys off `window`) **and** when a *game* input is focused (codenamesduet's clue field, psychicnum's guess field — opted in with `data-game-input`), but **not** when a non-game field has focus (a setup form, the chat box itself) — there the keys type literally. That is the actions' `inField: 'game-inputs'`, applied by the dispatcher. Escape is deliberately not handled here; it stays "close the topmost open modal," owned by the dialogs.
 
 **The panel ⇄ game round trip: `/` takes the keyboard, Tab hands it back.** `/` focuses the chat entry whether or not chat was already open (the rAF focus covers the already-open case, where there's no remount to trigger `ChatBody`'s mount-focus). Going the other way is [`handOffKeyboardOnTab`](../src/common/keyboard/keyboardHandoff.ts), shared by the two panels you type into mid-game — the chat box and the **scratchpad**: **Tab blurs the field**, which is what "focus the board" actually means here. Every game reads keys off `window` and the dispatcher declines while *any* field is focused, so handing the keyboard back is a matter of having none focused, not of focusing something. (Same move bananagrams makes on a board pointer-down, `blurActiveField`.) Native Tab instead walked to the next control in the focus order — the header's User menu button, and from there into the browser's URL bar — where typing reached neither the panel nor the game. Shift+Tab is left native so a panel's own ✕ stays keyboard-reachable, and a half-typed message or note survives the excursion in both directions. Pinned by [`chat-keyboard.e2e.ts`](../e2e/chat-keyboard.e2e.ts) — the chat loop against boggle (a pure capture-model game, so "did the board get that keystroke?" is unambiguous) and the scratchpad against crosswords (the only game whose manifest enables it).
 
@@ -752,12 +746,12 @@ Below the definition, `DefinitionView` also shows a small muted line of the word
 
 **Click-to-define wiring (per-game).** `WordList` rows (spellingbee), `GameTurnLog` rows (stackdown), and the move log (scrabble) are click/keyboard-activatable → `DefinitionPopover`. This stays per-game because *which* words are clickable is game-specific.
 
-**The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/input/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
+**The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's one action bound at the app root alongside `/` (chat), `?` (menu) and `⌥~` (the anagram finder), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). `AppActionsHost` owns the dialog's open/closed state and renders it; there's nothing per-page to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
 
 ## The ⌥` anagram finder
 
 The lookup dialog's sibling: a global popup (`AnagramDialog` — same
-FloatingPanel chrome, same type-and-Enter shape, owned by `useAppShortcuts`
+FloatingPanel chrome, same type-and-Enter shape, owned by `AppActionsHost`
 the same way) that anagrams a letters pattern into every dictionary word of
 **exactly** that length, band number muted beside each word, in a list that
 scrolls inside the fixed panel. Result words are click-to-define.

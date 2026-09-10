@@ -14,12 +14,10 @@ import { navigate } from '../routing/router'
 import { gamePath } from '../routing/routes'
 import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
-import { useAppShortcuts } from '../keyboard/useAppShortcuts'
-import { isNonGameField } from '../keyboard/editableField'
+import { useBoundAction } from '../actions/useBoundAction'
 import { useTabRing } from '../keyboard/useTabRing'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useStickyChoice } from '../web-storage/useStickyChoice'
-import { IconBack, IconHelp } from '../icons/icons'
 import { MODE_LABEL, playerCountFits, playerCountLabel } from '../manifest/gameManifest'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
@@ -190,11 +188,6 @@ export function ClubPage({ handle, session }: Props) {
   // game. Drives the member-strip dots + the abandoned-game heal.
   const presence = useClubPresence(handle, null, selfId)
 
-  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens the club
-  // menu, "~" opens the word-lookup dialog (the hook owns + returns that
-  // dialog; we render it below). Same hook the GamePage uses. Declared
-  // above the loading early returns so the hook order stays stable.
-  const lookupDialog = useAppShortcuts()
   const accountSection = useAccountMenuSection()
 
   const presentUserIds = useMemo(
@@ -412,26 +405,31 @@ export function ClubPage({ handle, session }: Props) {
   )
 
   // ⇧< → Back to home (the club list), mirroring the game menu's ⇧< → Back to
-  // club. One key, one meaning: "up a level from wherever I am". Both are the
-  // keyboard twin of a menu item that already existed, so the shortcut is
-  // discoverable — the label renders beside it in the menu.
-  //
-  // The same overlay guard `useTabToLists` applies: a text field owns `<` as a
-  // literal character, and an open dialog / menu / floating panel owns the
-  // keyboard outright (navigating out from under an open setup dialog would be
-  // its own bug).
-  useEffect(function backToHomeShortcut() {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== '<' || e.metaKey || e.ctrlKey || e.altKey) return
-      const t = e.target instanceof Element ? e.target : null
-      if (isNonGameField(e.target)) return
-      if (t?.closest('[data-floating-panel], [role="menu"], [role="dialog"]')) return
-      e.preventDefault()
-      navigate('/')
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  // club. One key, one meaning: "up a level from wherever I am". It is also the
+  // menu's row, which is what makes the key discoverable — the row shows it.
+  const actBackToHome = useBoundAction('act-back-to-home', {
+    describe: () => 'active',
+    run: () => navigate('/'),
+  })
+
+  // The club menu's other rows. Key-less, but actions all the same: one row
+  // shape, one place that says what a row is called and whether it applies.
+  const actHelp = useBoundAction('act-help', {
+    describe: () => 'active',
+    run: () => setHelpOpen(true),
+  })
+  const actEditClub = useBoundAction('act-edit-club', {
+    describe: () => 'active',
+    run: () => setEditing(true),
+  })
+  const actRenameClub = useBoundAction('act-rename-club', {
+    describe: () => 'active',
+    run: () => setGlobalFeedback({
+      tone: 'noted',
+      text: 'Rename club: coming soon',
+      mode: { kind: 'timed' },
+    }),
+  })
 
   // The show/clear API over the single feedback slot (ClubPage sets the state
   // directly for its own toasts; this wraps it for hook consumers like chat).
@@ -901,39 +899,9 @@ export function ClubPage({ handle, session }: Props) {
   // click still has visible feedback. See docs/ui.md → "ClubPage
   // header" for the spec.
   const menuSections: MenuSection[] = [
-    {
-      items: [
-        {
-          id: 'help',
-          label: 'Help',
-          icon: IconHelp,
-          onClick: () => setHelpOpen(true),
-        },
-        {
-          id: 'home',
-          label: 'Back to home',
-          // The same chevron the game menu's "Back to club" wears: one glyph
-          // names "up one level" everywhere (docs/ui.md → Button iconography).
-          icon: IconBack,
-          shortcut: '⇧<',
-          onClick: () => navigate('/'),
-        },
-        {
-          id: 'edit',
-          label: 'Edit club',
-          onClick: () => setEditing(true),
-        },
-        {
-          id: 'rename',
-          label: 'Rename club',
-          onClick: () => setGlobalFeedback({
-            tone: 'noted',
-            text: 'Rename club: coming soon',
-            mode: { kind: 'timed' },
-          }),
-        },
-      ],
-    },
+    // Each row IS its action — its words, its glyph and its `⇧<` come from the
+    // registry, so the row and the key cannot disagree about any of them.
+    { items: [actHelp, actBackToHome, actEditClub, actRenameClub] },
     // The account submenu, last — the least club-y thing in the menu. Same row
     // in the same place as GamePage's and HomePage's.
     accountSection,
@@ -1179,10 +1147,6 @@ export function ClubPage({ handle, session }: Props) {
         members={members}
         selfId={selfId}
       />
-
-      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null
-          when closed; a FloatingPanel when open. */}
-      {lookupDialog}
 
       {/* The club Help modal — opened from the menu's "Help" item (or `?`,
           which opens the menu). Parity with each game's Help on GamePage. */}

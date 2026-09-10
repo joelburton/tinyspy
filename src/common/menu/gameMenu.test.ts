@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { buildGameMenu, END_OR_CONCEDE_IDS } from './gameMenu'
-import type { MenuItem } from './menuModel'
+import { menuRow, type MenuItem, type MenuRow } from './menuModel'
 
 /**
  * What the shared menu framing puts on screen, and in what order.
@@ -30,8 +30,10 @@ function idsOf(sections: { items: MenuItem[] }[]): string[] {
   return sections.flatMap((s) => s.items).map((i) => i.id)
 }
 
-function itemOf(sections: { items: MenuItem[] }[], id: string): MenuItem | undefined {
-  return sections.flatMap((s) => s.items).find((i) => i.id === id)
+/** A row as the MENU would draw it — which is where a label, a shortcut hint
+ *  and a disabled state are decided, whatever kind of item produced them. */
+function rowOf(sections: { items: MenuItem[] }[], id: string): MenuRow | undefined {
+  return sections.flatMap((s) => s.items).map(menuRow).find((r) => r.id === id)
 }
 
 describe('buildGameMenu', () => {
@@ -39,14 +41,14 @@ describe('buildGameMenu', () => {
     const sections = buildGameMenu({ menu, mode: 'coop', isTerminal: false })
     expect(idsOf(sections)).toEqual(['help', 'chat', 'end-game', 'back'])
     // Coop has one exit, so it carries the shortcut.
-    expect(itemOf(sections, 'end-game')?.shortcut).toBe('⌥⌫')
-    expect(itemOf(sections, 'back')?.shortcut).toBe('⇧<')
+    expect(rowOf(sections, 'end-game')?.shortcut).toBe('⌥⌫')
+    expect(rowOf(sections, 'back')?.shortcut).toBe('⇧<')
   })
 
   it('offers Concede instead of End in compete', () => {
     const sections = buildGameMenu({ menu, mode: 'compete', isTerminal: false })
     expect(idsOf(sections)).toEqual(['help', 'chat', 'concede', 'back'])
-    expect(itemOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
+    expect(rowOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
   })
 
   it('puts Concede FIRST when a compete game offers both exits, so ⌥⌫ finds it', () => {
@@ -60,8 +62,8 @@ describe('buildGameMenu', () => {
     expect(idsOf(sections)).toEqual(['help', 'chat', 'concede', 'end-game', 'back'])
     // The shortcut rides the mode's primary exit, and the second exit carries
     // none — two items advertising ⌥⌫ would be a lie about what it fires.
-    expect(itemOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
-    expect(itemOf(sections, 'end-game')?.shortcut).toBeUndefined()
+    expect(rowOf(sections, 'concede')?.shortcut).toBe('⌥⌫')
+    expect(rowOf(sections, 'end-game')?.shortcut).toBeUndefined()
 
     // The shell's own dispatch, reproduced: first match wins.
     const fired = sections
@@ -81,8 +83,8 @@ describe('buildGameMenu', () => {
       conceded: true,
       offerEndInCompete: true,
     })
-    expect(itemOf(sections, 'concede')?.disabled).toBe(true)
-    expect(itemOf(sections, 'end-game')?.disabled).toBe(false)
+    expect(rowOf(sections, 'concede')?.disabled).toBe(true)
+    expect(rowOf(sections, 'end-game')?.disabled).toBe(false)
   })
 
   it('disables both exits once the game is terminal', () => {
@@ -92,8 +94,8 @@ describe('buildGameMenu', () => {
       isTerminal: true,
       offerEndInCompete: true,
     })
-    expect(itemOf(sections, 'concede')?.disabled).toBe(true)
-    expect(itemOf(sections, 'end-game')?.disabled).toBe(true)
+    expect(rowOf(sections, 'concede')?.disabled).toBe(true)
+    expect(rowOf(sections, 'end-game')?.disabled).toBe(true)
   })
 
   it('drops the game its own sections between the two framing halves', () => {

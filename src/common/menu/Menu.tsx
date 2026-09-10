@@ -13,7 +13,7 @@ import {
 } from 'react'
 import { cls } from '../utils/cls'
 import { Dot } from '../members/Dot'
-import { isSubmenu, type MenuItem, type MenuSection, type MenuSubmenu } from './menuModel'
+import { menuRow, type MenuHeader, type MenuRow, type MenuSection } from './menuModel'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { IconMenuChevron } from '../icons/icons'
 import styles from './Menu.module.css'
@@ -29,12 +29,14 @@ import styles from './Menu.module.css'
  */
 type NavRow =
   | { kind: 'back' }
-  | { kind: 'item'; item: MenuItem }
+  | { kind: 'item'; row: MenuRow }
 
 /** The open submenu, plus where its parent row sat when it opened (desktop
  *  flyouts are `position: fixed`, so they need viewport coordinates). */
 type OpenSubmenu = {
-  parent: MenuSubmenu
+  /** WHICH row is open, not the row itself: rows are re-read every render, so
+   *  holding one would be holding a snapshot of what it said when it opened. */
+  parentId: string
   /** Flat index of the parent row in the TOP-LEVEL list, so closing the
    *  submenu can put focus back where it came from. */
   parentIndex: number
@@ -151,13 +153,22 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // without leaving an undefined slot.
   const itemRefsRef = useRef<Map<number, HTMLButtonElement>>(new Map())
 
-  // Flat list of every item across all sections — used for
+  // What each section DRAWS, asked once per render. A bound action answers for
+  // itself here — its words, its key, whether it applies — and a row that says
+  // it is hidden drops out before anything counts rows, so what is left is what
+  // is on screen.
+  const drawn: Array<{ header?: MenuHeader; rows: MenuRow[] }> = sections.map((s) => ({
+    header: s.header,
+    rows: s.items.map(menuRow).filter((row) => !row.hidden),
+  }))
+
+  // Flat list of every row across all sections — used for
   // keyboard navigation (which doesn't care about section
   // structure, just enabled/disabled order). Includes disabled
-  // items so the flat-index ↔ rendered-button mapping stays
+  // rows so the flat-index ↔ rendered-button mapping stays
   // stable across renders; arrow nav skips them via
   // findNextEnabled.
-  const flatItems = sections.flatMap((s) => s.items)
+  const flatRows = drawn.flatMap((s) => s.rows)
 
   /**
    * Does any row in this menu carry a glyph? If so every row reserves the
@@ -165,7 +176,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
    * no icons at all (nothing in it maps to the icon language) reserves nothing
    * and looks exactly as it did — a feature it doesn't use costs it no indent.
    */
-  const hasIcons = flatItems.some((i) => i.icon !== undefined)
+  const hasIcons = flatRows.some((r) => r.icon !== undefined)
 
   /**
    * The rows the KEYBOARD is currently walking — the single list that owns
@@ -178,12 +189,16 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
    * navigable — matching every desktop menu, where arrows move inside the open
    * submenu and ArrowLeft/Escape steps back out.
    */
-  const navRows: NavRow[] = submenu
+  // The open submenu's parent row, as it reads NOW. Gone (an action that went
+  // hidden while it was open) reads as closed.
+  const openParent = submenu ? flatRows.find((r) => r.id === submenu.parentId) ?? null : null
+
+  const navRows: NavRow[] = openParent
     ? [
       ...(isMobile ? [{ kind: 'back' } as const] : []),
-      ...submenu.parent.items.map((item) => ({ kind: 'item' as const, item })),
+      ...(openParent.children ?? []).map((row) => ({ kind: 'item' as const, row })),
     ]
-    : flatItems.map((item) => ({ kind: 'item' as const, item }))
+    : flatRows.map((row) => ({ kind: 'item' as const, row }))
 
   const closeSubmenu = useCallback((restoreFocusTo?: number) => {
     setSubmenu((cur) => {
@@ -208,10 +223,10 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   }, [returnFocusOnClose])
 
   const openMenu = useCallback(() => {
-    const firstEnabled = flatItems.findIndex((it) => !it.disabled)
+    const firstEnabled = flatRows.findIndex((r) => !r.disabled)
     setFocusedIndex(Math.max(0, firstEnabled))
     setOpen(true)
-  }, [flatItems])
+  }, [flatRows])
 
   // Let an app-level shortcut open the menu (the "?" key). Only `open`
   // is exposed — closing stays owned by the menu (Esc, click-outside,
@@ -224,7 +239,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
    * `position: fixed` — see the flyout's own comment for why it can't simply be
    * absolutely positioned inside the popover.
    */
-  const openSubmenu = useCallback((parent: MenuSubmenu, index: number, from?: HTMLElement) => {
+  const openSubmenu = useCallback((parent: MenuRow, index: number, from?: HTMLElement) => {
     // The anchor element is passed in from a click (`e.currentTarget`) rather
     // than looked up, because switching straight from one open flyout to
     // another would find the FLYOUT's button under that index, not the parent
@@ -233,14 +248,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     const el = from ?? itemRefsRef.current.get(index)
     const r = el?.getBoundingClientRect()
     setSubmenu({
-      parent,
+      parentId: parent.id,
       parentIndex: index,
       anchor: { top: r?.top ?? 0, left: r?.left ?? 0, right: r?.right ?? 0 },
     })
     // Focus the submenu's first enabled row. On mobile the Back row occupies
     // index 0, so the first real item is 1.
     const offset = isMobile ? 1 : 0
-    const firstEnabled = parent.items.findIndex((it) => !it.disabled)
+    const firstEnabled = (parent.children ?? []).findIndex((it) => !it.disabled)
     setFocusedIndex(firstEnabled < 0 ? 0 : firstEnabled + offset)
   }, [isMobile])
 
@@ -251,14 +266,13 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       closeSubmenu()
       return
     }
-    const { item } = row
-    if (item.disabled) return
-    if (isSubmenu(item)) {
-      openSubmenu(item, index, from ?? itemRefsRef.current.get(index))
+    if (row.row.disabled) return
+    if (row.row.children) {
+      openSubmenu(row.row, index, from ?? itemRefsRef.current.get(index))
       return
     }
     closeMenu()
-    item.onClick()
+    row.row.run()
   }
 
   // Focus the currently-focused item whenever it changes (or the
@@ -321,9 +335,9 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     // drill-down too (where it reads as "in" / "out" rather than left/right).
     if (e.key === 'ArrowRight') {
       const row = navRows[focusedIndex]
-      if (row?.kind === 'item' && isSubmenu(row.item) && !row.item.disabled) {
+      if (row?.kind === 'item' && row.row.children && !row.row.disabled) {
         e.preventDefault()
-        openSubmenu(row.item, focusedIndex)
+        openSubmenu(row.row, focusedIndex)
       }
       return
     }
@@ -363,8 +377,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
    */
   function renderRow(row: NavRow, navIndex: number | null, key: string): ReactNode {
     const isBack = row.kind === 'back'
-    const item = row.kind === 'item' ? row.item : null
-    const parent = item && isSubmenu(item) ? item : null
+    const item = row.kind === 'item' ? row.row : null
+    const parent = item?.children ? item : null
     const disabled = item?.disabled ?? false
     return (
       <button
@@ -381,14 +395,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           isBack && styles.itemBack,
           // The parent row of an open flyout stays lit, so it's obvious which
           // row the floating panel belongs to.
-          parent && submenu?.parent.id === parent.id && styles.itemOpen,
+          parent && submenu?.parentId === parent.id && styles.itemOpen,
         )}
         role="menuitem"
         aria-disabled={disabled || undefined}
         disabled={disabled}
         // A submenu parent is a disclosure, so it advertises itself as one.
         aria-haspopup={parent ? 'menu' : undefined}
-        aria-expanded={parent ? submenu?.parent.id === parent.id : undefined}
+        aria-expanded={parent ? submenu?.parentId === parent.id : undefined}
         // tabIndex -1 because the popover's keyboard handler
         // owns navigation; only one item is focusable at a time
         // (via programmatic .focus()), and Tab from any item
@@ -429,7 +443,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
             existed in the stylesheet — CSS Modules resolve a missing class to
             `undefined`, so it silently applied nothing.) */}
         <span>
-          {isBack ? `‹ ${submenu?.parent.label ?? 'Back'}` : item?.label}
+          {isBack ? `‹ ${openParent?.label ?? 'Back'}` : item?.label}
         </span>
         {item?.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}
         {/* The affordance that says "there's more behind this row". Purely
@@ -442,9 +456,9 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // ── The DRILL-DOWN (mobile): the submenu REPLACES the list ──
   // No sections and no dividers — a submenu is one group by construction, and
   // the Back row is the only chrome it needs.
-  if (isMobile && submenu) {
+  if (isMobile && openParent) {
     const drilledRows = navRows.map((row, i) =>
-      renderRow(row, i, row.kind === 'back' ? '__back' : row.item.id),
+      renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id),
     )
     return (
       <div className={styles.menu}>
@@ -454,7 +468,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           id={popoverId}
           className={cls(styles.popover, popoverAlign === 'right' && styles.popoverRight)}
           role="menu"
-          aria-label={submenu.parent.label}
+          aria-label={openParent.label}
           onKeyDown={onPopoverKeyDown}
         >
           {drilledRows}
@@ -470,8 +484,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // address it directly.
   const renderedItems: ReactNode[] = []
   let flatIdx = 0
-  sections.forEach((section, sectionIdx) => {
-    if (section.items.length === 0 && !section.header) return
+  drawn.forEach((section, sectionIdx) => {
+    if (section.rows.length === 0 && !section.header) return
     if (renderedItems.length > 0) {
       renderedItems.push(
         <div
@@ -496,12 +510,12 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         </div>,
       )
     }
-    section.items.forEach((item) => {
+    section.rows.forEach((row) => {
       const idx = flatIdx
       flatIdx += 1
       // While a desktop flyout is open IT owns navigation, so the rows behind it
       // pass `null` and register no ref (see renderRow).
-      renderedItems.push(renderRow({ kind: 'item', item }, submenu ? null : idx, item.id))
+      renderedItems.push(renderRow({ kind: 'item', row }, openParent ? null : idx, row.id))
     })
   })
 
@@ -523,7 +537,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           // beside empty space (crosswords' ~20-item menu really does scroll),
           // so the flyout closes rather than detaching. Cheaper and steadier
           // than re-measuring on every scroll frame.
-          onScroll={submenu ? () => closeSubmenu() : undefined}
+          onScroll={openParent ? () => closeSubmenu() : undefined}
         >
           {renderedItems}
           {/* ── The FLYOUT (desktop): a second panel beside the parent row ──
@@ -535,11 +549,11 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
               side the parent menu opens toward, so a right-aligned menu (one
               anchored at the screen's right edge) flies out leftward and can't
               run off-screen. */}
-          {submenu && (
+          {openParent && submenu && (
             <div
               className={cls(styles.flyout, popoverAlign === 'right' && styles.flyoutLeft)}
               role="menu"
-              aria-label={submenu.parent.label}
+              aria-label={openParent.label}
               style={{
                 top: submenu.anchor.top,
                 ...(popoverAlign === 'right'
@@ -548,7 +562,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
               }}
             >
               {navRows.map((row, i) =>
-                renderRow(row, i, row.kind === 'back' ? '__back' : row.item.id),
+                renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id),
               )}
             </div>
           )}
@@ -602,7 +616,7 @@ function findNextEnabled(
     const next = (((current + direction * i) % n) + n) % n
     const row = rows[next]
     // The Back row is always enabled — it's the only way out of a drill-down.
-    if (row.kind === 'back' || !row.item.disabled) return next
+    if (row.kind === 'back' || !row.row.disabled) return next
   }
   return current
 }

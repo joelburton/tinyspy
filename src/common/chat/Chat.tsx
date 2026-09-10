@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'
-import { setChatOpen, useChatOpen } from './chatOpenStore'
+import { registerChatMounted, setChatOpen, useChatOpen } from './chatOpenStore'
 import {
   computeUnread,
   getChatLastSeen,
@@ -83,6 +83,10 @@ export function Chat({
   // outside this component tree. localStorage persistence is
   // owned by the store too — no per-instance mirror needed here.
   const open = useChatOpen()
+  // Say chat is HERE for as long as this is mounted, so the `/` action can be
+  // offered on the pages that have a panel and left unbound on the one that
+  // doesn't. See the store.
+  useEffect(registerChatMounted, [])
   // useClubChat lifted from ChatBody so the force-open detector
   // runs even when the panel is closed. ChatBody now takes
   // messages + loading as props.

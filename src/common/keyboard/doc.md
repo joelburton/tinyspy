@@ -1,8 +1,8 @@
 # keyboard
 
-Every way the app listens for a key: the one window dispatcher every game
-reads through, the capture core the word games build on, Tab rings, the
-app-wide shortcuts, and backtick-as-Escape. What each key DOES is
+Every way the app listens for a key that is not an action: the one window
+dispatcher every game reads through, the capture core the word games build on,
+Tab rings, who owns a keystroke, and backtick-as-Escape. What each key DOES is
 [docs/keyboard-shortcuts.md](../../../docs/keyboard-shortcuts.md); this folder
 is how a keystroke gets there.
 
@@ -46,15 +46,20 @@ becomes a list you edit rather than a set of elements you remember to mark
 unfocusable. Rings stack by mount order, so a dialog opened over a page is
 innermost and wins until it closes, and no one writes that ordering down.
 
-The shell has a few keys of its own that work on any real page, and they live
-here because they are the same on every page: a slash to reach chat, a question
-mark for the page's menu, a tilde for word lookup, and the anagram finder.
-These use a different gate from the games, and deliberately. A game's own input
-fields opt in, so a player mid-clue can still hit slash to chat, while a form
-field or the chat box itself keeps the characters literal. Backtick standing in
-for Escape is the same idea at app scope: one listener at the root re-dispatches
-a synthetic Escape so every existing Escape handler works on a keyboard with no
-Escape key, at the cost of the backtick as a character everywhere.
+The shell's own keys — a slash to reach chat, a question mark for the page's
+menu, a tilde for word lookup, the anagram finder — are no longer here. They are
+actions (`common/actions`), bound once at the app root, because each is a
+command that also wants a menu row and a name, and writing it as a key alone
+meant writing it twice. What this folder still owns for them is the question of
+whom a keystroke belongs to: the two predicates in `editableField.ts` are what
+let a player mid-clue hit slash to chat while a form field or the chat box keeps
+the character literal.
+
+Backtick standing in for Escape stays, and is a different idea: one listener at
+the root re-dispatches a synthetic Escape so every existing Escape handler works
+on a keyboard with no Escape key, at the cost of the backtick as a character
+everywhere. It translates a key rather than doing something a button could do,
+which is why it is not an action either.
 
 Three listeners live outside this folder and belong outside it: the game
 page's menu shortcuts, the crosswords grid, and the menu. Each wants something
@@ -80,10 +85,11 @@ attribute is read by the panels' own escape and focus-trap hooks and by the
 crosswords listener, so it is the contract between this folder and the panels,
 and it is spelled by hand at every reader.
 
-**The is-this-a-text-field test is spelled in more than one place.** The
-dispatcher, the shortcuts' `isNonGameField`, `useGameHasKeyboard`'s
-`isEditableField` and the game page's menu shortcuts each write it out, and
-the last omits `<select>`. They are meant to be one predicate.
+**The is-this-a-text-field test is one predicate, in `editableField.ts`.**
+`isEditableField` is "this field owns its keys"; `isNonGameField` adds "and it
+is not the game's own input", which is the gate the app-wide keys use so slash
+still reaches chat from a clue field. Four listeners each wrote the test out
+before, and the fourth omitted `<select>`.
 
 **Modified chords belong to the browser, by convention rather than by the
 dispatcher.** Each handler bails on Cmd, Ctrl and Alt itself, so Cmd-R and
@@ -127,13 +133,6 @@ whole move. Shift+Tab is left native there so a panel's own close button stays
 reachable. The other direction is the slash shortcut, which focuses the chat
 entry from anywhere.
 
-**The app-wide shortcuts own two dialogs and return them as JSX.** The hook
-holds the open state for the lookup dialog and the anagram finder and hands the
-nodes back for the page to render, so each page mounts its own copy. The chat
-binding is switched off on a page with no chat mounted, because a key that
-flips a store nothing renders is worse than an unbound key. The anagram chord
-is matched on the physical key, since Option-backquote is a dead key on macOS
-and `e.key` arrives as `Dead`.
 
 **Backtick is lost as a character in every text field.** The listener runs in
 the capture phase on `window` and does not skip editable targets, so chat, the

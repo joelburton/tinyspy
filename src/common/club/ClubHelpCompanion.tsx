@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { Companion } from '../floating-panels/Companion'
+import { KeyList } from '../actions/KeyList'
 import { HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
 import styles from './ClubHelpCompanion.module.css'
 
@@ -46,6 +47,8 @@ export function ClubHelpCompanion({ onClose }: Props) {
           with <kbd>~</kbd>.
         </p>
       </div>
+      {/* The keys that work on this page, generated from what is bound. */}
+      <KeyList />
     </Companion>
   )
 }

@@ -12,10 +12,9 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import type { GamePageCtx } from './gamePageCtx'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '../feedback/genericFeedback'
-import type { MenuApi, MenuSection } from '../menu/menuModel'
+import { menuRow, type MenuApi, type MenuSection } from '../menu/menuModel'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../menu/gameMenu'
 import { getNotOkFeedback } from '../feedback/genericPills'
-import { useAppShortcuts } from '../keyboard/useAppShortcuts'
 import { isEditableField } from '../keyboard/editableField'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useIsMobile } from '../mobile/useIsMobile'
@@ -338,10 +337,6 @@ function GamePageInner({
     })
   }, [timer.expired, paused, commonGame, gameId, manifest])
 
-  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu,
-  // "~" opens the word-lookup dialog (the hook owns + returns that
-  // dialog; we render it below).
-  const lookupDialog = useAppShortcuts()
   const accountSection = useAccountMenuSection()
 
   // Which mobile page is showing (see infoSheetStore for why it's a store and
@@ -456,14 +451,13 @@ function GamePageInner({
         // Mid-game the game's own handler asks NEW_GAME_CONFIRM first, so a
         // stray `+` can't silently shelve a game in progress.
         e.preventDefault()
-        // `onClick` is optional on the MenuItem union — a submenu parent has
-        // none, because opening a submenu isn't a command a shortcut can fire.
-        // So the guard is a real check, not appeasement: it's what makes a
-        // shortcut silently no-op rather than crash if an id ever names one.
-        const item = gameSectionsRef.current
+        // Read as a ROW, which is what makes this work whether the game wrote
+        // a hand-written item or handed over a bound action.
+        const row = gameSectionsRef.current
           .flatMap((s) => s.items)
-          .find((i) => i.id === NEW_GAME_ID)
-        if (item && !item.disabled) item.onClick?.()
+          .map(menuRow)
+          .find((r) => r.id === NEW_GAME_ID)
+        if (row && !row.disabled) row.run()
       } else if (e.altKey && e.code === 'Equal') {
         // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the
         // setup dialog so you can change the options first (the plain `+` reuses
@@ -485,10 +479,11 @@ function GamePageInner({
         })()
       } else if (e.altKey && e.code === 'Backspace') {
         e.preventDefault()
-        const item = gameSectionsRef.current
+        const row = gameSectionsRef.current
           .flatMap((s) => s.items)
-          .find((i) => END_OR_CONCEDE_IDS.includes(i.id as (typeof END_OR_CONCEDE_IDS)[number]))
-        if (item && !item.disabled) item.onClick?.() // optional — see the `+` case above
+          .map(menuRow)
+          .find((r) => END_OR_CONCEDE_IDS.includes(r.id as (typeof END_OR_CONCEDE_IDS)[number]))
+        if (row && !row.disabled) row.run() // a row, not an item — see the `+` case above
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -735,12 +730,6 @@ function GamePageInner({
           <HelpComponent onClose={() => setHelpOpen(false)} brand={manifest.name} />
         </Suspense>
       )}
-
-      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null
-          when closed; a FloatingPanel when open. Sits at the page level
-          so it stays available in any state, including the post-game
-          reveal where chasing a "see X" definition is a prime use. */}
-      {lookupDialog}
 
       {confirmingSuspend && (
         <SuspendConfirmationBlockingModal

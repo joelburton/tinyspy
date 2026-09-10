@@ -5,6 +5,7 @@ import { useProfile } from '../session/useProfile'
 import { supabase } from '../supabase/supabase'
 import { setEditProfileOpen } from './editProfileStore'
 import { setWordEdit } from '../definitions/wordEditStore'
+import { useBoundAction } from '../actions/useBoundAction'
 import type { MenuSection } from '../menu/menuModel'
 
 /**
@@ -36,6 +37,28 @@ export function useAccountMenuSection(): MenuSection {
   const profile = useProfile()
   const username = profile?.username
   const color = profile?.color
+  // Dictionary curation is editors-only (`profiles.can_edit_words`; the RPC
+  // enforces the same gate server-side). Everyone else never sees the row —
+  // which is `hidden`, so the row simply is not there rather than being there
+  // and refusing.
+  const canEditWords = profile?.can_edit_words === true
+
+  const actEditProfile = useBoundAction('act-edit-profile', {
+    describe: () => 'active',
+    run: () => setEditProfileOpen(true),
+  })
+  const actAddWord = useBoundAction('act-add-word', {
+    describe: () => (canEditWords ? 'active' : 'hidden'),
+    run: () => setWordEdit({ mode: 'add' }),
+  })
+  const actLogOut = useBoundAction('act-log-out', {
+    describe: () => 'active',
+    run: () => {
+      supabase.auth.signOut().then(({ error }) => {
+        if (error) console.error('sign out failed', error)
+      })
+    },
+  })
 
   return useMemo<MenuSection>(
     () => ({
@@ -47,37 +70,14 @@ export function useAccountMenuSection(): MenuSection {
           // Before the profile store has resolved, "Account" is the honest
           // placeholder — better than a flash of empty label.
           label: username ?? 'Account',
-          // The dot the old fixed chip used to be — see MenuItemBase.dot.
+          // The dot the old fixed chip used to be — see MenuItemBase.dot. It is
+          // why this row is a submenu and not an action: what it shows is WHO
+          // you are, and an action says what you can do.
           dot: color,
-          items: [
-            {
-              id: 'profile',
-              label: 'Profile',
-              onClick: () => setEditProfileOpen(true),
-            },
-            // Dictionary curation — editors only (profiles.can_edit_words;
-            // the RPC enforces the same gate server-side). Everyone else
-            // never sees the item.
-            ...(profile?.can_edit_words
-              ? [{
-                  id: 'add-word',
-                  label: 'Add word',
-                  onClick: () => setWordEdit({ mode: 'add' }),
-                }]
-              : []),
-            {
-              id: 'logout',
-              label: 'Log out',
-              onClick: () => {
-                supabase.auth.signOut().then(({ error }) => {
-                  if (error) console.error('sign out failed', error)
-                })
-              },
-            },
-          ],
+          items: [actEditProfile, actAddWord, actLogOut],
         },
       ],
     }),
-    [username, color, profile?.can_edit_words],
+    [username, color, actEditProfile, actAddWord, actLogOut],
   )
 }

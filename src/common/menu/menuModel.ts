@@ -1,10 +1,11 @@
 // cs-unmet
 
 import type { AppIcon } from '../icons/icons'
+import type { BoundAction } from '../actions/useBoundAction'
 
 /**
  * What a menu is made of — the row, section and header types every `<Menu>`
- * speaks, plus the one function that tells the two kinds of row apart.
+ * speaks, plus the two functions that tell the kinds of row apart.
  *
  * Reach for this when you are BUILDING a menu: a game assembling its header
  * menu (via `buildGameMenu` in `lib/game/gameMenu.ts`), or any surface handing
@@ -65,13 +66,20 @@ type MenuItemBase = {
   icon?: AppIcon
 }
 
-/** A row that DOES something when activated. The common case. */
+/**
+ * A hand-written row that DOES something when activated.
+ *
+ * **TRANSITIONAL.** A command is an action now (`common/actions`), and a menu
+ * row is a reference to one: the label, glyph, key and availability come from
+ * the action, so nothing has to be typed twice and a row cannot disagree with
+ * the button beside it. This is the shape the surfaces that have not converted
+ * yet still write, and it goes when the last of them does.
+ */
 export type MenuAction = MenuItemBase & {
   onClick: () => void
-  // Optional keyboard-shortcut hint shown right-aligned + muted on
-  // the item (e.g. "⌥C"), matching how desktop apps annotate menu
-  // entries. Display only — the actual binding lives in the game's
-  // keyboard hook; this just advertises it.
+  // The keyboard-shortcut hint shown right-aligned + muted on the row (e.g.
+  // "⌥C"). Hand-typed, and hand-kept in step with a binding written elsewhere,
+  // which is the drift a bound action removes: it knows its own keys.
   shortcut?: string
   // Never present on an action — the discriminant.
   items?: never
@@ -87,20 +95,99 @@ export type MenuAction = MenuItemBase & {
  * `shortcut` (the row isn't a command, so there's nothing to bind).
  */
 export type MenuSubmenu = MenuItemBase & {
-  items: MenuAction[]
+  items: Array<BoundAction | MenuAction>
   onClick?: never
   shortcut?: never
 }
 
-/** One row in the GamePage menu's per-game section (and any
- *  future reuse of `<Menu>`). See docs/ui.md → "GamePage menu"
- *  for the placement + activation contract. */
-export type MenuItem = MenuAction | MenuSubmenu
+/**
+ * One row in a menu. Three kinds, and only the first is the one to write:
+ *
+ *   - a **bound action** — a reference to a command (`common/actions`), which
+ *     is where its label, glyph, key and availability come from;
+ *   - a **submenu**, holding rows of its own;
+ *   - a hand-written `MenuAction`, for the surfaces that have not converted.
+ *
+ * See docs/ui.md → "GamePage menu" for the placement + activation contract.
+ */
+export type MenuItem = BoundAction | MenuAction | MenuSubmenu
 
 /** Narrow a row to the submenu arm. A function rather than an inline
  *  `'items' in item` so the discriminant is named in one place. */
 export function isSubmenu(item: MenuItem): item is MenuSubmenu {
-  return item.items !== undefined
+  return (item as MenuSubmenu).items !== undefined
+}
+
+/** Narrow a row to the bound-action arm — the one that answers for itself. */
+export function isBoundAction(item: MenuItem): item is BoundAction {
+  return (item as BoundAction).spec !== undefined
+}
+
+/**
+ * WHAT THE MENU DRAWS for one row, whatever kind of row it is.
+ *
+ * The one place a bound action is read on its way into a menu, so `<Menu>`
+ * itself never asks what kind of row it has: it lays out labels, glyphs,
+ * shortcut hints and disabled states, and this says what those are. A hidden
+ * action becomes a row with `hidden`, which the menu drops before it counts
+ * rows for keyboard navigation.
+ */
+export type MenuRow = {
+  // Stable per row, for React keying and for naming the open submenu.
+  id: string
+  label: string
+  icon?: AppIcon
+  dot?: string
+  // The first key, as it is shown — right-aligned and muted on the row.
+  shortcut?: string
+  disabled: boolean
+  hidden: boolean
+  // The rows behind this one when it opens a submenu; null on an ordinary row.
+  children: MenuRow[] | null
+  // What activating it does. A no-op on a submenu parent, which opens instead.
+  run: () => void
+}
+
+export function menuRow(item: MenuItem): MenuRow {
+  if (isSubmenu(item)) {
+    const children = item.items.map(menuRow).filter((row) => !row.hidden)
+    return {
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      dot: item.dot,
+      disabled: item.disabled ?? false,
+      // A submenu with nothing left to show is not a row you can open.
+      hidden: children.length === 0,
+      children,
+      run: () => {},
+    }
+  }
+  if (isBoundAction(item)) {
+    const { state, label } = item.describe()
+    return {
+      id: item.id,
+      label: label ?? item.spec.label,
+      icon: item.spec.icon,
+      shortcut: item.spec.keys?.[0]?.label,
+      // An action still out is not one to fire again, and the row says so.
+      disabled: state === 'disabled' || item.pending,
+      hidden: state === 'hidden',
+      children: null,
+      run: () => item.run(),
+    }
+  }
+  return {
+    id: item.id,
+    label: item.label,
+    icon: item.icon,
+    dot: item.dot,
+    shortcut: item.shortcut,
+    disabled: item.disabled ?? false,
+    hidden: false,
+    children: null,
+    run: item.onClick,
+  }
 }
 
 /** A group of items rendered together in the menu popover.

@@ -3,7 +3,8 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { ACTIONS } from '../common/actions/registry'
+import { ACTIONS, type ActionSpec } from '../common/actions/registry'
+import { isPattern } from '../common/actions/chord'
 
 /**
  * Guard: an action is spelled the same way twice.
@@ -15,10 +16,16 @@ import { ACTIONS } from '../common/actions/registry'
  * name, so it is asserted here:
  *
  *   - every registry id is `act-` plus lowercase words;
- *   - every `useBoundAction('act-x-y', …)` in `src/` is assigned to `actXY`.
+ *   - every `useBoundAction('act-x-y', …)` in `src/` that is assigned to
+ *     anything is assigned to `actXY`.
  *
  * The second check reads the source rather than the types on purpose — the
  * variable name is not a value and there is nothing else to ask.
+ *
+ * A binding assigned to NOTHING is fine and is not checked. Some bindings are
+ * offered rather than placed — the shell's four keys, bound at the app root by
+ * a host that renders neither a button nor a row for them — and there is no
+ * second spelling to keep in step when nothing holds the value.
  *
  * What is deliberately NOT here: whether two actions that can be on screen
  * together share a chord. That depends on what is mounted, which a static check
@@ -44,6 +51,32 @@ function sourceFiles(): string[] {
     .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
 }
 
+describe('every chord says what shift is doing', () => {
+  it('states shift on a physical key or a named key, and leaves it off a character', () => {
+    // ⇧ makes a DIFFERENT chord on a physical key (`⌥+` is Option-Shift-Equal,
+    // `⌥=` is not) and on a named key (`⇧⌫` clears the word, `⌫` the cell), so
+    // those must say. A chord written as a character must not: ⇧ was already
+    // spent producing the character, and asking again would only be a claim
+    // about somebody's keyboard layout.
+    const wrong: string[] = []
+    for (const [id, spec] of Object.entries(ACTIONS)) {
+      for (const key of (spec as ActionSpec).keys ?? []) {
+        if (isPattern(key)) continue
+        // A character key is one printable character. Space is `' '`, which is
+        // a named key wearing a character's clothes.
+        const character = key.key !== undefined && key.key.length === 1 && key.key !== ' '
+        if (character && key.shift !== undefined) {
+          wrong.push(`${id}: ${key.label} is a character chord and states shift`)
+        }
+        if (!character && key.shift === undefined) {
+          wrong.push(`${id}: ${key.label} must say whether shift is held`)
+        }
+      }
+    }
+    expect(wrong, wrong.join('\n')).toEqual([])
+  })
+})
+
 describe('action ids', () => {
   it('finds files to read at all', () => {
     // Without this, a broken `git ls-files` would make the guard below pass
@@ -66,13 +99,6 @@ describe('action ids', () => {
       for (const [, variable, id] of src.matchAll(call)) {
         const want = boundName(id!)
         if (variable !== want) wrong.push(`${file}: ${variable} = useBoundAction('${id}') — want ${want}`)
-      }
-      // A bind that isn't assigned at all has no name to check, and the point
-      // of the pair is that both spellings exist.
-      const calls = [...src.matchAll(/useBoundAction\(/g)].length
-      const assigned = [...src.matchAll(call)].length
-      if (calls > assigned && !file.endsWith('useBoundAction.ts') && !file.includes('.test.')) {
-        wrong.push(`${file}: a useBoundAction(…) that isn't assigned to an act… variable`)
       }
     }
     expect(

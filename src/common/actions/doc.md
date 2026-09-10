@@ -51,12 +51,18 @@ to look for a page's keys and no way for one to escape the list.
 
 **A key is an object, not a string.** A `Chord` says which half of the event to
 compare — the character (`e.key`) or the physical key (`e.code`) — and what each
-modifier must be doing. Both matter: on macOS Option changes the character a key
-produces, so `⌥=` arrives as `≠` and `⌥\`` as `Dead`, and every Option chord
-therefore matches on `code`. Shift is the other way round. A chord written as a
-character is shift-agnostic, because which physical keys make a `+` is a
-keyboard-layout fact; a chord on a named key (Space, Backspace, Enter) checks
-shift exactly, which is how `⇧⌫` is a different command from `⌫`.
+modifier must be doing. On macOS Option changes the character a key produces, so
+`⌥=` arrives as `≠` and `⌥\`` as `Dead`, and every Option chord therefore
+matches on `code`.
+
+**Shift is stated wherever it makes a different chord, and left unsaid where it
+made the character.** `⌥+` is Option-Shift-Equal and `⌥=` is a different chord;
+`⇧⌫` clears the word where `⌫` clears the cell; `⇧`+arrow jumps to the word edge
+where the bare arrow steps. Those all say. A chord written as a character — `+`,
+`<`, `~` — says nothing about shift, because shift was already spent producing
+the character and asking again would only be a claim about somebody's keyboard
+layout. Two presses that should both fire one action are two entries in its
+`keys`, never one entry that shrugs; a guard holds the line.
 
 **Cmd is never ours** and the matcher refuses it outright. `Ctrl` is expressible
 but unused: it is free on macOS and the browser's on Windows and Linux, so a

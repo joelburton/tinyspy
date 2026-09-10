@@ -26,6 +26,7 @@ import { TooltipHost } from './common/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/keyboard/useBacktickEscape'
 import { useActionDispatcher } from './common/actions/dispatcher'
+import { AppActionsHost } from './common/actions/AppActionsHost'
 import { ConfirmationHost } from './common/floating-panels/ConfirmationHost'
 import { usePath } from './common/routing/router'
 import { matchClubRoute, matchGameRoute } from './common/routing/routes'
@@ -224,6 +225,11 @@ export default function App() {
           above everything, portaled to <body>). */}
       <GameInvitations session={session} />
       <ToastHost />
+
+      {/* The four keys every real page has — chat, the menu, word lookup, the
+          anagram finder — and the two dialogs they open. Mounted after the
+          gates, so they exist on every real page and on neither auth screen. */}
+      <AppActionsHost />
 
       {/* The one host for a question asked from outside a component — an
           action's shared run asks before it fires, wherever it was bound. */}
