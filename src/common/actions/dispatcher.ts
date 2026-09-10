@@ -5,6 +5,38 @@ import { isEditableField, isNonGameField } from '../keyboard/editableField'
 import { isPattern, isWildcard, matches, type KeySpec } from './chord'
 import { liveBindings, type BoundAction } from './useBoundAction'
 
+/** Ties already reported, so holding a key doesn't fill the console with the
+ *  same sentence. Keyed by the ids, since that pair IS the finding. */
+const reportedTies = new Set<string>()
+
+/**
+ * **A development-only complaint: two actions wanted the same keystroke.**
+ *
+ * Which one got it came down to where each was bound — a fact about React's
+ * effect order, not a decision anybody made — so this is always worth a look,
+ * even where the winner happens to be the one you wanted.
+ *
+ * It is not the same as an action bound in two places. That is one command
+ * offered twice (a game's End and the pause overlay's), and those are written
+ * so they are never live together; this fires on two DIFFERENT commands, which
+ * is the case nothing else can catch. A static check cannot: whether two
+ * actions can be on screen at once depends on what is mounted and on what each
+ * one's `describe` says at that moment.
+ */
+function reportChordTie(claimants: BoundAction[]): void {
+  const ids = claimants.map((a) => a.id)
+  if (new Set(ids).size < 2) return
+  const seen = ids.join(' ')
+  if (reportedTies.has(seen)) return
+  reportedTies.add(seen)
+  console.warn(
+    `[actions] ${ids.join(' and ')} are both live and both answer ` +
+      `${claimants[0]!.spec.keys?.[0]?.label ?? 'this key'} — ${ids[0]} won because of ` +
+      'where it was bound, which is not a decision. Give one of them a different key, ' +
+      'or make sure they cannot be active at the same time.',
+  )
+}
+
 /**
  * The app's one key listener: every keystroke, matched against whatever actions
  * are bound right now.
@@ -44,6 +76,10 @@ import { liveBindings, type BoundAction } from './useBoundAction'
  * the key, so a key falls through to an outer binding that wants it. Anything
  * matching nothing goes to the browser, which is what keeps Cmd-R and Ctrl-Tab
  * working.
+ *
+ * **In development it also complains when two commands claim one keystroke** —
+ * see `reportChordTie`. Position in the stack decides that today, and position
+ * is a fact about effect order rather than a decision.
  */
 export function useActionDispatcher(): void {
   useEffect(function attachActionDispatcher() {
@@ -98,17 +134,26 @@ export function useActionDispatcher(): void {
       // two that can be live at once must not share a chord anyway; see
       // `common/actions/todo.md`.)
       const answers = (wildcard: boolean) => {
+        const claimants: BoundAction[] = []
+        let first: KeySpec | null = null
         for (const action of live) {
           if (action.spec.consumes === false) continue
           if ((action.spec.keys?.some(isWildcard) ?? false) !== wildcard) continue
           const key = takes(action)
           if (!key) continue
-          e.preventDefault()
-          // A pattern action is told which key it got; a chord already knows.
-          action.run(isPattern(key) ? e.key : undefined)
-          return true
+          claimants.push(action)
+          if (first === null) first = key
+          // In production the walk stops at the winner. In development it keeps
+          // going, for the sole purpose of noticing a tie — see `reportChordTie`.
+          if (!import.meta.env.DEV) break
         }
-        return false
+        const winner = claimants[0]
+        if (!winner || first === null) return false
+        if (import.meta.env.DEV && claimants.length > 1) reportChordTie(claimants)
+        e.preventDefault()
+        // A pattern action is told which key it got; a chord already knows.
+        winner.run(isPattern(first) ? e.key : undefined)
+        return true
       }
       if (answers(true)) return
       answers(false)

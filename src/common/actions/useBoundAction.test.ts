@@ -12,14 +12,14 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { liveBindings, useBoundAction, type LiveAction } from './useBoundAction'
 
-const askConfirmation = vi.fn(async () => true)
+const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
 }))
 
 beforeEach(() => {
   askConfirmation.mockClear()
-  askConfirmation.mockResolvedValue(true)
+  askConfirmation.mockResolvedValue('confirm')
 })
 
 /** Bind one action, with the parts a test cares about defaulted. */
@@ -93,7 +93,7 @@ describe('useBoundAction — the shared run', () => {
   })
 
   it('does nothing when the question is answered no', async () => {
-    askConfirmation.mockResolvedValue(false)
+    askConfirmation.mockResolvedValue(null)
     const { run, view } = bind('act-new-game')
     await act(async () => view.result.current.run())
     expect(run).not.toHaveBeenCalled()

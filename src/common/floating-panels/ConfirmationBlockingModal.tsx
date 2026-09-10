@@ -13,9 +13,14 @@ type Props = {
   /** The confirm button's label ("End game", "Suspend"). Deliberately never
    *  a bare "OK" — the button should name the act. */
   confirmLabel: string
+  /** The SECOND way to say yes, drawn between Cancel and the confirm. Pass it
+   *  with `onAlternative` or neither; see `ConfirmOptions.alternativeLabel`. */
+  alternativeLabel?: string
   /** The dismiss button's label. Defaults to "Cancel". */
   cancelLabel?: string
   onConfirm: () => void
+  /** Called when the second positive answer is picked. */
+  onAlternative?: () => void
   /** Called on Cancel, Esc, or the titlebar ✕. */
   onCancel: () => void
   /**
@@ -35,9 +40,15 @@ type Props = {
  * in-game decisions (ending a game, suspending it, restarting it).
  *
  * **The shape is baked and there is no slot**, unlike the `<BlockingModal>` it
- * renders into: a confirmation is always a question, a body, and exactly two
- * buttons in a row. Every caller passing its own footer would be sixteen
- * chances for the pair to disagree about order, weight or wording.
+ * renders into: a confirmation is always a question, a body, and the answers in
+ * a row. Every caller passing its own footer would be sixteen chances for them
+ * to disagree about order, weight or wording.
+ *
+ * Two answers, or three where a question has two ways to say YES — conceding a
+ * race and ending it are both things to do, and they differ in what they do.
+ * The body is where the difference is explained, which is what a question can
+ * do and two buttons on the board cannot. It stops at three: past two positive
+ * answers this is a menu, not a question.
  *
  * A **question**, which is the whole of what separates it from its sibling: if
  * there is nothing to answer — one button, one way out — that is an
@@ -52,8 +63,10 @@ export function ConfirmationBlockingModal({
   title,
   message,
   confirmLabel,
+  alternativeLabel,
   cancelLabel = 'Cancel',
   onConfirm,
+  onAlternative,
   onCancel,
   primaryButton = 'confirm',
 }: Props) {
@@ -72,6 +85,17 @@ export function ConfirmationBlockingModal({
             onClick={onCancel}
             autoFocus={!confirmIsPrimary}
           />
+          {alternativeLabel && onAlternative && (
+            // Secondary in both arrangements: it is a way to say yes, but not
+            // the one the action is named for, and never the Enter target.
+            <StandardButton
+              show="label"
+              label={alternativeLabel}
+              weight="secondary"
+              tone="destructive"
+              onClick={onAlternative}
+            />
+          )}
           <StandardButton
             show="label"
             label={confirmLabel}

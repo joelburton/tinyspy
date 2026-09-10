@@ -4,11 +4,17 @@
 
 ## Soon
 
-- **Two actions that can be on screen together must not share a chord**, and
-  nothing checks it. End and Concede share `⌥⌫` legitimately (never both
-  active), as do Shuffle and Rotate, so the check has to know what can be live
-  at once — which is a runtime fact. A development-time warning from the
-  dispatcher when two active bindings match one keystroke is the cheap version.
+- **Every race should be able to stop the whole table, and most cannot.**
+  `offersEndForAll` is bananagrams-only: the other races have no whole-table
+  stop, so a group that has simply lost interest can only close the game by
+  every player conceding it. Each schema defines `end_game`, but a race wiring
+  it up needs its own decision about what the terminal says (nobody won, and
+  that is not the same as everyone losing), so this is per-game SQL rather than
+  a sweep.
+
+  **The FE is already built for it.** When a game gains one it passes
+  `offersEndForAll`, and its Concede grows the second answer — no registry
+  change, no new component, no per-game branch.
 - **A game file may not catch a registered chord by hand.** The only way to bind
   shuffle is to bind the action; a handler matching `⌥Z` in a game's own code
   defeats that. A grep-based guard over the literals the registry owns is the

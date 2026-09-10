@@ -2191,22 +2191,32 @@ a longer label's icon, and unequal widths actually *aid* recognition ("Hint is t
 short one"). Need a command that has no registry row yet? **Add one** — never
 hand-roll a one-off `<button>` in a game.
 
-**End vs Concede** are distinct actions: **End** (`act-end-game`) is the neutral
+**End vs Concede** are distinct acts: **End** (`act-end-game`) is the neutral
 mutual "we're done" that stops the game for everyone; **Concede**
-(`act-concede`) is one player dropping out of a race that continues without them. They were near-identical buttons — same flag, same
-red — on the assumption that a game shows one *or* the other. **bananagrams
-shows both at once** (its compete row has End alongside Concede), where two red
-flags read as the same act twice, so they diverge:
+(`act-concede`) is one player dropping out of a race that continues without
+them. **A game draws one or the other, never both** — coop ends, a race
+concedes — which is why they share the `⌥⌫` chord and the same white-flag glyph
+with nothing to arbitrate.
 
-- **End** took `OctagonX` — the stop sign, crossed out — putting it in a family
-  with `IconEndTurn`'s plain octagon (Pass ends just your turn; the X marks the
-  bigger stop). Both are on screen together in scrabble, and they also differ by
-  tone: Pass is amber, End is red.
-- **Concede** kept the **flag**: surrender, one player, not a stop for the table.
+**A race that can ALSO stop the whole table asks instead of drawing two
+buttons.** bananagrams is the one today: conceding costs you the game while the
+others play on, ending gives nobody a result, and the difference is subtle
+enough that two red squares side by side can only name it. So Concede's question
+carries both answers and explains each — "Conceding puts you out and the others
+play on… Ending stops the game now for everyone, with no winner" — and its row
+reads "Concede / End game". That is `ConfirmOptions.alternativeLabel`: a
+confirmation with two ways to say yes, declared in the registry
+(`ActionSpec.confirmChoice`) and asked only where the binding has a body for the
+second answer. It stops at three buttons; past two positive answers it would be
+a menu, not a question.
 
-They still share the `destructive` red — both are irreversible — and stay
-separate components so they can diverge further (a concede should hand the
-opponent the win).
+The one place End resurfaces in a race is for a player who has **already
+conceded**: their Concede is spent, and the question that carried both endings
+with it, so the table stop comes back out on its own. Choosing to end stays
+freely open to a conceder — they are still in the conversation — and the two are
+still never live at once.
+
+Both are `destructive` red, because both are irreversible.
 
 **End's label is the full "End game"**, not a bare "End". Most games draw it as
 a glyph alone, where the label *is* the accessible name and the tooltip, and

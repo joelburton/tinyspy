@@ -267,7 +267,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   (the RPC doesn't branch on mode; any game player, idempotent on the
   `playing` check). The FE surfaces it in **coop only**: compete's action row
   and menu offer Concede instead (`buildGameMenu` would add a compete End item
-  only behind the `offerEndInCompete` opt-in, which stackdown doesn't pass).
+  only behind the `offersEndForAll` opt-in, which stackdown doesn't pass).
   So the `stackdown_compete | ended — manual end` labels row is server-reachable
   but has no FE button today — same posture as scrabble.
 - **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `submissions` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.

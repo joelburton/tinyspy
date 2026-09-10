@@ -15,18 +15,18 @@ import { StandardButton } from './StandardButton'
 import { TrashButton } from './TrashButton'
 import { CancelButton } from './CancelButton'
 import { BackToClubButton } from './BackToClubButton'
-import { IconEndGame } from '../icons/icons'
+import { IconConcede } from '../icons/icons'
 
 describe('StandardButton — label, show, tooltip', () => {
   it('show="both" draws the words and the glyph', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="both" />)
+    render(<StandardButton label="End" icon={IconConcede} show="both" />)
     const btn = screen.getByRole('button', { name: 'End' })
     expect(btn).toHaveTextContent('End')
     expect(btn.querySelector('svg')).not.toBeNull()
   })
 
   it('show="icon" draws no words, and the label survives as the bubble', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="icon" />)
+    render(<StandardButton label="End" icon={IconConcede} show="icon" />)
     const btn = screen.getByRole('button', { name: 'End' })
     expect(btn).toHaveTextContent('')
     expect(btn).toHaveAttribute('aria-label', 'End')
@@ -34,12 +34,12 @@ describe('StandardButton — label, show, tooltip', () => {
   })
 
   it('show="label" draws no glyph', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="label" />)
+    render(<StandardButton label="End" icon={IconConcede} show="label" />)
     expect(screen.getByRole('button', { name: 'End' }).querySelector('svg')).toBeNull()
   })
 
   it('drawn words get NO bubble — one that repeated them would be noise', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="both" />)
+    render(<StandardButton label="End" icon={IconConcede} show="both" />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('data-tooltip')
   })
 
@@ -47,7 +47,7 @@ describe('StandardButton — label, show, tooltip', () => {
     render(
       <StandardButton
         label="End"
-        icon={IconEndGame}
+        icon={IconConcede}
         show="both"
         tooltip="End the game for everyone"
       />,
@@ -58,19 +58,19 @@ describe('StandardButton — label, show, tooltip', () => {
   })
 
   it('no tooltip and drawn words: the text names it, with no aria-label repeating it', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="both" />)
+    render(<StandardButton label="End" icon={IconConcede} show="both" />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('aria-label')
   })
 
   it('tooltip={null} suppresses the bubble but not the name', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="icon" tooltip={null} />)
+    render(<StandardButton label="End" icon={IconConcede} show="icon" tooltip={null} />)
     const btn = screen.getByRole('button', { name: 'End' })
     expect(btn).not.toHaveAttribute('data-tooltip')
     expect(btn).toHaveAttribute('aria-label', 'End')
   })
 
   it('never carries a native title — two bubbles would race', () => {
-    render(<StandardButton label="End" icon={IconEndGame} show="icon" />)
+    render(<StandardButton label="End" icon={IconConcede} show="icon" />)
     expect(screen.getByRole('button', { name: 'End' })).not.toHaveAttribute('title')
   })
 })

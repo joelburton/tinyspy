@@ -29,10 +29,12 @@ export function ConfirmationHost() {
       title={pending.title}
       message={pending.message}
       confirmLabel={pending.confirmLabel}
+      alternativeLabel={pending.alternativeLabel}
       cancelLabel={pending.cancelLabel}
       primaryButton={pending.primaryButton}
-      onConfirm={() => settleConfirmation(true)}
-      onCancel={() => settleConfirmation(false)}
+      onConfirm={() => settleConfirmation('confirm')}
+      onAlternative={pending.alternativeLabel ? () => settleConfirmation('alternative') : undefined}
+      onCancel={() => settleConfirmation(null)}
     />
   )
 }

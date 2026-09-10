@@ -16,7 +16,7 @@ import type { ActionId } from './registry'
 // The questions actions ask are `useBoundAction`'s subject, not this one's —
 // mocked so a keystroke's whole path can be tested without a modal in it.
 vi.mock('../floating-panels/confirmationService', () => ({
-  askConfirmation: async () => true,
+  askConfirmation: async () => 'confirm',
 }))
 
 /** A keydown on the window, optionally aimed at an element. Awaited, because a
@@ -214,6 +214,60 @@ describe('the dispatcher — a child outranks its page', () => {
     await press({ key: 'Enter' })
     expect(onChild).toHaveBeenCalledTimes(1)
     expect(onPage).not.toHaveBeenCalled()
+    view.unmount()
+  })
+})
+
+/**
+ * The development complaint. Two commands claiming one keystroke is settled by
+ * where each was bound — React's effect order — which is not a decision anybody
+ * made, so it is worth saying out loud while it can still be fixed.
+ *
+ * Each of these uses its own pair of ids: the warning reports a pair once per
+ * session, so a shared pair would make the second test depend on the first.
+ */
+describe('the dispatcher — the chord-tie warning', () => {
+  it('names both commands when two live ones want the same key', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // The real case this was built for: bananagrams offers End alongside
+    // Concede, and the registry gives both ⌥⌫.
+    const { view } = setup(['act-end-game', {}], ['act-concede', {}])
+    // ⌥⌫ matches on the PHYSICAL key — Option changes the character.
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('act-end-game')
+    expect(warn.mock.calls[0]![0]).toContain('act-concede')
+    warn.mockRestore()
+    view.unmount()
+  })
+
+  it('says nothing when only one of them is live', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // Shuffle and Rotate are the other legitimate pair on one chord: a game
+    // has one or the other, never both.
+    const { runs, view } = setup(
+      ['act-shuffle', {}],
+      ['act-rotate', { describe: () => 'disabled' as ActionState }],
+    )
+    await press({ key: 'Ω', code: 'KeyZ', altKey: true })
+    expect(warn).not.toHaveBeenCalled()
+    // …and the live one still answered, so the silence is not the key going
+    // nowhere.
+    expect(runs[0]).toHaveBeenCalledTimes(1)
+    warn.mockRestore()
+    view.unmount()
+  })
+
+  it('says nothing about one command offered twice — that pair is written not to collide', async () => {
+    // A game's End and the pause overlay's are the same command in two places.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { runs, view } = setup(['act-new-game', {}], ['act-new-game', {}])
+    await press({ key: '+' })
+    expect(warn).not.toHaveBeenCalled()
+    // One of them answers, once — the tie is silent, not undecided.
+    expect(runs[0]).toHaveBeenCalledTimes(1)
+    expect(runs[1]).not.toHaveBeenCalled()
+    warn.mockRestore()
     view.unmount()
   })
 })

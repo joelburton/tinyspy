@@ -7,6 +7,18 @@ export type ConfirmOptions = {
   title: string
   message: ReactNode
   confirmLabel: string
+  /**
+   * A SECOND way to say yes, drawn between Cancel and the confirm.
+   *
+   * For a question with two answers that both DO something and differ in what
+   * they do — conceding a race puts you out while the others play on; ending it
+   * stops the game for everyone. Two buttons on the board can only name those;
+   * a question can explain them, which is the whole reason to ask.
+   *
+   * Omit it and the box is the ordinary two-button confirmation. There is no
+   * third: past two ways to say yes it is a menu, not a question.
+   */
+  alternativeLabel?: string
   /** Omit for "Cancel". There is no "no cancel" — a box with one way out is
    *  not a question, and it has its own hook (`useAcknowledge`). */
   cancelLabel?: string
@@ -14,13 +26,17 @@ export type ConfirmOptions = {
   primaryButton?: 'confirm' | 'cancel'
 }
 
+/** What a question was answered with — the act to do, or `null` for "no". */
+export type ConfirmAnswer = 'confirm' | 'alternative' | null
+
 type Pending = ConfirmOptions & { resolve: (confirmed: boolean) => void }
 
 /** The canonical end-game confirm — one copy object so every game's End (the
  *  info-row button, the menu item, the pause overlay's escape hatch) asks the
  *  identical question. Ending is the one always-confirmed act: it's terminal
  *  for the whole group, even solo/coop (unlike suspend, which is confirmed
- *  only when there are peers to surprise). */
+ *  only when there are peers to surprise). A RACE never asks this one — there
+ *  the way out is Concede, whose question offers ending as its alternative. */
 export const END_GAME_CONFIRM: ConfirmOptions = {
   title: 'End this game?',
   message: "This ends the game for everyone — you can't undo it.",

@@ -16,7 +16,6 @@ import {
   IconDelete,
   IconChat,
   IconConcede,
-  IconEndGame,
   IconEndTurn,
   IconExchange,
   IconHelp,
@@ -73,6 +72,16 @@ export type ActionSpec = {
   // there is nothing left to interrupt. A bespoke question that only one game
   // asks stays inside that game's callback instead.
   confirm?: ConfirmOptions
+  // The question asked INSTEAD when the binding offers a second act — a
+  // confirmation with two ways to say yes (`ConfirmOptions.alternativeLabel`).
+  //
+  // Which one is asked is not the registry's to know: it depends on what this
+  // game can do, so the BINDING decides by supplying `runAlternative` or not.
+  // Concede is the one that has this — a race that can also stop the whole
+  // table offers that here rather than putting a second red button on the
+  // board, because the difference between the two wants explaining and only a
+  // question has room to explain it.
+  confirmChoice?: ConfirmOptions
   // May a HELD key fire it over and over? False for every command — holding
   // `+` would otherwise start games at the OS repeat rate — and true for the
   // entry keys, where repeating is the point.
@@ -91,13 +100,33 @@ export type ActionSpec = {
   consumes?: boolean
 }
 
-/** Concede's question. Written here rather than beside its three siblings in
- *  `useConfirmation.tsx`, which is where the shape came from — it asked through
- *  `window.confirm` until the last game that hand-rolled a concede converted. */
+/** Concede's question, for a race whose only way out is dropping out. Written
+ *  here rather than beside its three siblings in `useConfirmation.tsx`, which is
+ *  where the shape came from — it asked through `window.confirm` until the last
+ *  game that hand-rolled a concede converted. */
 const CONCEDE_CONFIRM: ConfirmOptions = {
   title: 'Concede the game?',
   message: 'You drop out and the others keep playing.',
   confirmLabel: 'Concede',
+  cancelLabel: 'Keep playing',
+}
+
+/**
+ * Concede's question in a race that ALSO offers to stop the whole table.
+ *
+ * The two are different acts and the difference is subtle — which is exactly
+ * why it is asked rather than drawn. Two red buttons side by side can only name
+ * them; this can say what each one does, once, at the moment somebody is
+ * choosing. (bananagrams is the only game offering both today; the rest of the
+ * roster asks `CONCEDE_CONFIRM` above and sees no difference at all.)
+ */
+const CONCEDE_OR_END_CONFIRM: ConfirmOptions = {
+  title: 'Concede, or end the game?',
+  message:
+    'Conceding puts you out and the others play on — it counts as a loss for you. ' +
+    'Ending stops the game now for everyone, with no winner.',
+  confirmLabel: 'Concede',
+  alternativeLabel: 'End for everyone',
   cancelLabel: 'Keep playing',
 }
 
@@ -194,9 +223,13 @@ export const ACTIONS = {
     icon: IconRestart,
     confirm: RESTART_CONFIRM,
   },
+  // End and Concede share `⌥⌫`, and can because they are the two modes' ways
+  // out: coop ends, a race concedes, and no game is both. A race that also
+  // wants the whole-table stop does NOT place End beside Concede — it offers
+  // ending as Concede's alternative, below.
   'act-end-game': {
     label: 'End game',
-    icon: IconEndGame,
+    icon: IconConcede,
     tone: 'destructive',
     keys: [alt('Backspace', '⌥⌫')],
     confirm: END_GAME_CONFIRM,
@@ -207,6 +240,7 @@ export const ACTIONS = {
     tone: 'destructive',
     keys: [alt('Backspace', '⌥⌫')],
     confirm: CONCEDE_CONFIRM,
+    confirmChoice: CONCEDE_OR_END_CONFIRM,
   },
 
   // ─── What a game offers over its board ─────────────────────────────────

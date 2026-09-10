@@ -1,12 +1,12 @@
 // cs-unmet
 
 import { useSyncExternalStore } from 'react'
-import type { ConfirmOptions } from './useConfirmation'
+import type { ConfirmAnswer, ConfirmOptions } from './useConfirmation'
 
 /**
  * Ask a confirmation question from anywhere, with no component in the way:
  *
- *     if (!(await askConfirmation(END_GAME_CONFIRM))) return
+ *     if ((await askConfirmation(END_GAME_CONFIRM)) !== 'confirm') return
  *
  * Reach for this where the code that asks is not a component and cannot render
  * a modal — the shared run behind every action asks here, which is what makes
@@ -22,7 +22,7 @@ import type { ConfirmOptions } from './useConfirmation'
  * safe direction: an unanswerable question is not consent.
  */
 
-type Pending = ConfirmOptions & { resolve: (confirmed: boolean) => void }
+type Pending = ConfirmOptions & { resolve: (answer: ConfirmAnswer) => void }
 
 let pending: Pending | null = null
 let hosted = false
@@ -39,23 +39,26 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-/** Ask the question. Resolves true on confirm, false on cancel, Escape, the ✕,
- *  a superseding question, or no host mounted. */
-export function askConfirmation(opts: ConfirmOptions): Promise<boolean> {
+/**
+ * Ask the question. Resolves to the act the player picked — `'confirm'`, or
+ * `'alternative'` where the question offers a second way to say yes — and to
+ * `null` on cancel, Escape, the ✕, a superseding question, or no host mounted.
+ */
+export function askConfirmation(opts: ConfirmOptions): Promise<ConfirmAnswer> {
   if (!hosted) {
     console.error('askConfirmation: no <ConfirmationHost> is mounted — answering no', opts.title)
-    return Promise.resolve(false)
+    return Promise.resolve(null)
   }
-  return new Promise<boolean>((resolve) => {
-    pending?.resolve(false) // a superseded question answers "no"
+  return new Promise<ConfirmAnswer>((resolve) => {
+    pending?.resolve(null) // a superseded question answers "no"
     pending = { ...opts, resolve }
     notify()
   })
 }
 
-/** Answer the pending question. The host's two buttons, and nothing else. */
-export function settleConfirmation(confirmed: boolean): void {
-  pending?.resolve(confirmed)
+/** Answer the pending question. The host's buttons, and nothing else. */
+export function settleConfirmation(answer: ConfirmAnswer): void {
+  pending?.resolve(answer)
   pending = null
   notify()
 }

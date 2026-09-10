@@ -251,12 +251,13 @@ export function PlayArea(ctx: GamePageCtx) {
     seenTilesLen.current = tiles.length
   }, [tiles, loading, showLocalFeedback])
 
-  // ─── End / Concede / Restart — the shared trio ─────────────────────────
-  // bananagrams is compete-only and offers BOTH exits, which is exactly what
-  // `offerEndInCompete` is for: conceding is a loss on your record and it takes
-  // every player doing it to close a game the group has lost interest in, while
-  // ending is the group agreeing there is no result. Each carries its own
-  // question, asked by the shared run mid-game and skipped at terminal.
+  // ─── Concede / Restart — the shared exits ──────────────────────────────
+  // bananagrams is compete-only and is the one game that can ALSO stop the
+  // whole table, which is what `offersEndForAll` says: conceding is a loss on
+  // your record and it takes every player doing it to close a game the group
+  // has lost interest in, while ending is the group agreeing there is no
+  // result. Both live behind Concede — its question is where the difference is
+  // explained, rather than two red buttons on the board naming it and hoping.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -266,7 +267,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // below also ANDs `!isTerminal`, for the frozen-board LOOK; the action wants
     // the plain fact, and grays itself at terminal on its own.
     myConceded: !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded,
-    offerEndInCompete: true,
+    offersEndForAll: true,
     showError: showLocalFeedback,
   })
 
@@ -391,9 +392,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The FULL bananagrams menu. `buildGameMenu` supplies the framing (Help + chat
   // above, Back to club below); the middle is this game's own rows, each one a
-  // binding it already made. The game is compete-only, so the tail leads with
-  // Concede — and End is placed too, because this game opts into the whole-table
-  // stop (see useStandardGameActions' offerEndInCompete).
+  // binding it already made. The game is compete-only, so the only exit row is
+  // Concede — which here reads "Concede / End game", because this game offers
+  // both endings inside its question (useStandardGameActions' offersEndForAll).
   useEffect(() => {
     menu.setGameSections(
       buildGameMenu({

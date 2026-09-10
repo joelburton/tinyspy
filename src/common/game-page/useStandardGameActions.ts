@@ -74,7 +74,7 @@ export function useStandardGameActions({
   mode,
   myConceded,
   selfSolved,
-  offerEndInCompete,
+  offersEndForAll,
   showError,
   onRestarted,
 }: {
@@ -97,13 +97,17 @@ export function useStandardGameActions({
    */
   selfSolved?: boolean
   /**
-   * Compete: ALSO offer the whole-table End beneath Concede. They're different
-   * acts — conceding is a loss on your record and it takes every player doing it
-   * to close a game the group has simply lost interest in; ending is the group
-   * agreeing there's no result. Opt-in per game: every schema defines
-   * `end_game`, but most races have no use for a whole-table stop.
+   * Compete: this game can ALSO stop the whole table, so Concede's question
+   * offers that as its second answer.
+   *
+   * They're different acts — conceding is a loss on your record and it takes
+   * every player doing it to close a game the group has simply lost interest
+   * in; ending is the group agreeing there's no result — and the difference is
+   * subtle enough that the question explains it rather than the board drawing
+   * two red buttons and hoping. Opt-in per game: every schema defines
+   * `end_game`, but most races have no use for a whole-table stop yet.
    */
-  offerEndInCompete?: boolean
+  offersEndForAll?: boolean
 
   /** The game's local-feedback sink. Receives the full classified message so
    *  tone and fault styling survive the trip (see the docstring above). */
@@ -111,35 +115,56 @@ export function useStandardGameActions({
   /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
   onRestarted?: () => void
 }): StandardGameActions {
-  // End — the coop exit, and the opt-in second exit in a race. Irreversible,
-  // so the registry gives it the confirm; the shared run asks.
+  // Stop the whole table. The body of coop's End, and — where a race offers it —
+  // of Concede's second answer, so the two say the identical thing to the
+  // server and read the identical answer back.
+  const endForAll = async () => {
+    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      // The one race is `isTerminal` losing to the subscription that feeds it:
+      // somebody else stopped the game while the question was open.
+      showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+    } else if (res.type === 'ok' && res.data?.result === 'ended') {
+      // Nothing to do: the terminal arrives by subscription.
+    } else {
+      reportUnhandled('end_game', res)
+    }
+  }
+
+  // End — coop's exit. A race normally never draws it: its way out is Concede,
+  // whose question offers ending as the alternative where the game has one.
+  //
+  // The exception is a racer who has ALREADY conceded. Choosing to end is
+  // freely open to them — ending is the group agreeing there is no result, and
+  // a conceder is still in the conversation (Joel, 2026-09-04) — but their
+  // Concede is spent, and with it the question that used to carry both. So the
+  // table stop comes back out on its own. The two are still never live at once,
+  // which is what lets them share `⌥⌫`.
+  //
+  // Irreversible, so the registry gives it the confirm and the shared run asks.
   const actEndGame = useBoundAction('act-end-game', {
     terminal: isTerminal,
     describe: (): ActionState => {
-      if (mode === 'compete' && !offerEndInCompete) return 'hidden'
+      if (mode === 'compete' && !(offersEndForAll && myConceded)) return 'hidden'
       return isTerminal ? 'disabled' : 'active'
     },
-    run: async () => {
-      const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
-      if (res.type === 'not-ok') {
-        // The one race is `isTerminal` losing to the subscription that feeds
-        // it: somebody else stopped the game while the confirm was open.
-        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-      } else if (res.type === 'ok' && res.data?.result === 'ended') {
-        // Nothing to do: the terminal arrives by subscription.
-      } else {
-        reportUnhandled('end_game', res)
-      }
-    },
+    run: endForAll,
   })
 
-  // Concede — a real loss for the conceder; the others keep racing.
+  // Concede — a real loss for the conceder; the others keep racing. In a game
+  // that can also stop the table, this is the ONE way out and its question is
+  // where the two are told apart: `runAlternative` is what makes the registry
+  // ask the two-answer version, so there is no flag to disagree with a body.
   const actConcede = useBoundAction('act-concede', {
     terminal: isTerminal,
-    describe: (): ActionState => {
+    describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
-      return isTerminal || myConceded || selfSolved ? 'disabled' : 'active'
+      const state: ActionState = isTerminal || myConceded || selfSolved ? 'disabled' : 'active'
+      // Named in both branches: a row that fell back to the registry's "Concede
+      // game" in one of them would rename itself as the game changed.
+      return { state, label: offersEndForAll ? 'Concede / End game' : 'Concede game' }
     },
+    runAlternative: offersEndForAll ? endForAll : undefined,
     run: async () => {
       const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
       if (res.type === 'not-ok') {

@@ -14,7 +14,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStandardGameActions } from './useStandardGameActions'
 
-const askConfirmation = vi.fn(async () => true)
+const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
 }))
@@ -26,15 +26,25 @@ type Overrides = {
   isTerminal?: boolean
   mode?: 'coop' | 'compete'
   myConceded?: boolean
-  offerEndInCompete?: boolean
+  offersEndForAll?: boolean
   confirmed?: boolean
+  /** What the question is answered with, for the two-ending case. */
+  answer?: 'confirm' | 'alternative' | null
+}
+
+/** The question that was asked — the mock's args are typed away, so the cast
+ *  lives here once rather than at each assertion. */
+function lastQuestion(): Record<string, unknown> {
+  return (askConfirmation.mock.calls.at(-1) as unknown as [Record<string, unknown>])[0]
 }
 
 function setup(overrides: Overrides = {}) {
   const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
   const showError = vi.fn()
   const onRestarted = vi.fn()
-  askConfirmation.mockResolvedValue(overrides.confirmed ?? true)
+  askConfirmation.mockResolvedValue(
+    overrides.answer ?? (overrides.confirmed === false ? null : 'confirm'),
+  )
   const { result } = renderHook(() =>
     useStandardGameActions({
       db: { rpc },
@@ -42,7 +52,7 @@ function setup(overrides: Overrides = {}) {
       isTerminal: overrides.isTerminal ?? false,
       mode: overrides.mode ?? 'coop',
       myConceded: overrides.myConceded ?? false,
-      offerEndInCompete: overrides.offerEndInCompete,
+      offersEndForAll: overrides.offersEndForAll,
       showError,
       onRestarted,
     }),
@@ -52,7 +62,7 @@ function setup(overrides: Overrides = {}) {
 
 beforeEach(() => {
   askConfirmation.mockClear()
-  askConfirmation.mockResolvedValue(true)
+  askConfirmation.mockResolvedValue('confirm')
 })
 
 /** The two arms `concede` can answer with, as PostgREST hands them over. */
@@ -93,25 +103,39 @@ describe('which exit a game offers', () => {
     expect(result.current.actEndGame.describe().state).toBe('hidden')
   })
 
-  it('a race that opts in offers both', () => {
-    const { result } = setup({ mode: 'compete', offerEndInCompete: true })
+  it('a race that can stop the table puts BOTH behind Concede, not beside it', () => {
+    // One row, one button, one key. The second ending lives inside the
+    // question — which is where the difference between them gets explained.
+    const { result } = setup({ mode: 'compete', offersEndForAll: true })
     expect(result.current.actConcede.describe().state).toBe('active')
-    expect(result.current.actEndGame.describe().state).toBe('active')
+    expect(result.current.actConcede.describe().label).toBe('Concede / End game')
+    expect(result.current.actEndGame.describe().state).toBe('hidden')
   })
 
-  it('disables both exits once the game is terminal', () => {
-    const { result } = setup({ mode: 'compete', isTerminal: true, offerEndInCompete: true })
+  it('says only "Concede game" in a race that cannot stop the table', () => {
+    // Named in both branches, so the row cannot rename itself as state changes.
+    const { result } = setup({ mode: 'compete' })
+    expect(result.current.actConcede.describe().label).toBe('Concede game')
+  })
+
+  it('disables the exit once the game is terminal', () => {
+    const { result } = setup({ mode: 'compete', isTerminal: true, offersEndForAll: true })
     expect(result.current.actConcede.describe().state).toBe('disabled')
-    expect(result.current.actEndGame.describe().state).toBe('disabled')
   })
 
-  it('disables Concede for a player who has already conceded, and leaves End alone', () => {
+  it('hands the table stop BACK to a player who has already conceded', () => {
     // A decision, not an oversight (Joel, 2026-09-04): ending is the group
     // agreeing there is no result, and choosing it is freely open — a conceder
-    // is still in the conversation.
-    const { result } = setup({ mode: 'compete', myConceded: true, offerEndInCompete: true })
+    // is still in the conversation. Their Concede is spent, and the question
+    // that carried both endings went with it, so End comes back out on its own.
+    const { result } = setup({ mode: 'compete', myConceded: true, offersEndForAll: true })
     expect(result.current.actConcede.describe().state).toBe('disabled')
     expect(result.current.actEndGame.describe().state).toBe('active')
+  })
+
+  it('leaves a conceder nothing extra in a race that cannot stop the table', () => {
+    const { result } = setup({ mode: 'compete', myConceded: true })
+    expect(result.current.actEndGame.describe().state).toBe('hidden')
   })
 
   it('offers Restart at terminal too — a replayed board is a legal thing to replay', () => {
@@ -175,6 +199,54 @@ describe('concede', () => {
     await flush()
     expect(showError).toHaveBeenCalledTimes(1)
     expect(showError.mock.calls[0]![0]).toMatchObject({ mode: { kind: 'sticky' } })
+  })
+
+  /**
+   * The two endings behind one action. Which question gets asked is decided by
+   * whether there is a body for the second one, so a game cannot end up
+   * offering an answer it can't carry out.
+   */
+  describe('in a race that can also stop the table', () => {
+    it('asks the two-answer question, not the plain one', () => {
+      const { result } = setup({ mode: 'compete', offersEndForAll: true })
+      act(() => result.current.actConcede.run())
+      expect(lastQuestion()).toMatchObject({
+        title: 'Concede, or end the game?',
+        confirmLabel: 'Concede',
+        alternativeLabel: 'End for everyone',
+      })
+    })
+
+    it('fires end_game when the alternative is picked', async () => {
+      const { result, rpc } = setup({
+        mode: 'compete',
+        offersEndForAll: true,
+        answer: 'alternative',
+      })
+      rpc.mockResolvedValue(ENDED_OK)
+      act(() => result.current.actConcede.run())
+      await flush()
+      expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+      expect(rpc).not.toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    })
+
+    it('fires concede when the primary answer is picked', async () => {
+      const { result, rpc } = setup({ mode: 'compete', offersEndForAll: true })
+      rpc.mockResolvedValue(CONCEDED_OK)
+      act(() => result.current.actConcede.run())
+      await flush()
+      expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    })
+  })
+
+  it('asks the PLAIN question where the game cannot stop the table', () => {
+    const { result } = setup({ mode: 'compete' })
+    act(() => result.current.actConcede.run())
+    expect(lastQuestion()).toMatchObject({
+      title: 'Concede the game?',
+      confirmLabel: 'Concede',
+    })
+    expect(lastQuestion()).not.toHaveProperty('alternativeLabel')
   })
 })
 

@@ -66,6 +66,13 @@ export type LiveAction = {
   // Do the thing. A pattern action (any letter, any arrow) receives the key
   // that fired it. May be async; the wrapper waits for it.
   run: (key?: string) => void | Promise<void>
+  // The SECOND act, for an action whose registry entry has a `confirmChoice`:
+  // supply this and the question with two ways to say yes is the one asked,
+  // leave it out and the ordinary `confirm` is. So "does this game offer the
+  // second act" is answered by whether there is a body for it, rather than by a
+  // flag that could disagree with one. Concede is the only user: a race that
+  // can also stop the whole table passes the end-for-everyone call here.
+  runAlternative?: () => void | Promise<void>
   // What the action looks like right now. Called at read time, so it may read
   // anything the component can see. A bare state is shorthand for `{ state }`.
   describe: () => Described | ActionState
@@ -200,7 +207,18 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   const ask = useCallback(
     async (key?: string) => {
       const now = liveRef.current
-      if (spec.confirm && !now.terminal && !(await askConfirmation(spec.confirm))) return
+      // Which question, if any: the one with two ways to say yes when this
+      // binding has a body for the second act, otherwise the plain one. At
+      // terminal neither is asked — there is nothing left to interrupt.
+      const question = now.runAlternative ? (spec.confirmChoice ?? spec.confirm) : spec.confirm
+      if (question && !now.terminal) {
+        const answer = await askConfirmation(question)
+        if (answer === null) return
+        if (answer === 'alternative' && now.runAlternative) {
+          await now.runAlternative()
+          return
+        }
+      }
       await now.run(key)
     },
     [spec],

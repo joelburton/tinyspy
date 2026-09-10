@@ -74,22 +74,18 @@ export {
   // four-corners fullscreen glyph is the near-universal "fit to view" idiom.
   Fullscreen as IconZoomFit,
   // end the current turn without making (another) move — a stop-sign octagon.
-  // The plain half of the octagon pair (see IconEndGame below): this stops just
-  // your turn and hands play on, so it carries no X and wears amber rather than
+  // It stops just your turn and hands play on, so it wears amber rather than
   // red. Worn by both `act-end-turn` and `act-pass`.
   Octagon as IconEndTurn,
-  // End the GAME: an octagon with an X — the stop sign, crossed out. It sits
-  // next to IconEndTurn's plain octagon (Pass / end just your turn) on purpose:
-  // one family, "stop", with the X marking the bigger stop. Both are visible at
-  // once in scrabble (Pass in the board controls, End in the info column), so
-  // they also differ by tone — Pass is amber, End is destructive red.
+  // STOP PLAYING — worn by `act-end-game` and `act-concede` alike, since a game
+  // offers one or the other and never both at once (a race that can also stop
+  // the whole table asks about it inside Concede's question).
   //
-  // Not the flag: Concede wears that (below), and two red flag buttons in the
-  // same row read as the same act.
-  OctagonX as IconEndGame,
-  // Concede — drop out of a race while it continues without you. The white
-  // flag: surrender, one player, not a stop for the table. Distinct from
-  // IconEndGame since bananagrams shows BOTH in one row.
+  // The white flag, which reads as "I'm out" at a glance where the crossed-out
+  // octagon it replaced did not: an octagon-with-an-X beside `IconEndTurn`'s
+  // plain octagon — both on screen in scrabble — is a difference nobody can see
+  // at 24px. The two glyphs were split when bananagrams drew End and Concede
+  // side by side; that row is one button now, so the reason went with it.
   Flag as IconConcede,
   // restart THIS board from scratch — `act-restart`, in every game's menu. The
   // skip-back "jump to the start" transport glyph: it rewinds to the beginning

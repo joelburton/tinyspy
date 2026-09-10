@@ -33,6 +33,16 @@ then the **commands**, innermost binding first. A hidden or disabled binding is
 skipped rather than swallowing the key, and anything matching nothing goes to
 the browser — which is what keeps Cmd-R working.
 
+**"Innermost first" is a fact about React, not a decision**, so when two
+different commands are live and both answer one keystroke, the dispatcher says
+so in the console (development only). Two actions may share a chord — End and
+Concede share `⌥⌫`, Shuffle and Rotate share `⌥Z` — on the understanding that a
+game offers one or the other; the warning is what notices when that stops being
+true, and it is how End and Concede were caught both live in bananagrams — now
+one action there, with both endings inside its question. Nothing static can
+catch this: whether two actions are on screen together depends on what is
+mounted and on what each one's `describe` says at that moment.
+
 `Cmd` chords match nothing, ever. `⌥` and `Ctrl` are ordinary modifiers an
 action may ask for (`⌥` widely, `Ctrl` nowhere yet); a pattern key — "any
 letter", "any arrow" — matches only an unmodified press, so `⌥L` is never a
@@ -96,7 +106,7 @@ of games.
 | `<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
 | `+` | **New game** — the game's own action, so it carries that action's availability and its mid-game confirm wherever it is shown. |
 | `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key (`Equal` + Option + Shift), since Option changes the character; `⌥=` is a different chord and is unbound. |
-| `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. Disabled at terminal / once conceded. |
+| `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. In a race that can also stop the whole table, Concede's question carries both endings rather than a second key existing. Disabled at terminal / once conceded. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
 | *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Games with a viewer: codenamesduet, connections, letterboxed, psychicnum, scrabble, stackdown, strands, waffle, wordle. Clicking anywhere exits too. |

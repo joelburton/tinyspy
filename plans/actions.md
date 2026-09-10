@@ -963,6 +963,38 @@ and their tests; every other file, test and guard is green.
   action is in flight (one rule, in `menuRow`, rather than sixteen opinions),
   and the New-game id contract that fifteen games typed by hand is gone.
 
+## After the last game — a question with two ways to say yes
+
+The dispatcher's new chord-tie warning found `⌥⌫` doing the wrong thing in
+bananagrams: End and Concede were both live there (`offerEndInCompete`), both
+carried the chord, and End won on where it happened to be bound. The fix Joel
+picked is not a second chord — it is one control per mode, with the fork inside
+the question:
+
+- **`ConfirmOptions.alternativeLabel`** — a confirmation may offer a SECOND way
+  to say yes. `askConfirmation` answers `'confirm' | 'alternative' | null`
+  instead of a boolean, and `<ConfirmationBlockingModal>` grows a third button.
+  It stops there: past two positive answers it is a menu, not a question.
+- **`ActionSpec.confirmChoice`** — the two-answer question, asked INSTEAD of
+  `confirm`. Which one applies is not the registry's to know, so the BINDING
+  decides, by supplying `LiveAction.runAlternative` or not. There is no flag,
+  which means no flag can disagree with whether a body exists.
+- **`useStandardGameActions`**: `offerEndInCompete` becomes `offersEndForAll`
+  and changes job — it no longer places a second button, it gives Concede its
+  second answer. A race draws one exit; coop draws the other.
+- **One glyph.** End and Concede both wear the white flag now. The crossed-out
+  octagon was chosen when bananagrams drew the two side by side; that row is one
+  button, so the reason went with it — and the octagon was never legible beside
+  `IconEndTurn`'s plain one anyway. `IconEndGame` is deleted.
+
+**The existing tests caught a regression mid-build**, which is the best argument
+for the ones that pin a ruling rather than a behavior: "disables Concede for a
+player who has already conceded, and leaves End alone" (Joel, 2026-09-04 —
+a conceder is still in the conversation). Folding End into Concede's question
+took the table stop away from exactly that player, since their Concede is
+disabled. So End resurfaces on its own for a conceder in a race that offers it,
+and the two are still never live at once.
+
 ## After the last game — the hand-written menu row goes
 
 `MenuAction` is deleted. `MenuItem` is two arms now — an action, or a submenu

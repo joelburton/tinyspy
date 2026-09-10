@@ -501,7 +501,7 @@ stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player
 `{won: false}` and **no scoring** — the group agreeing there's no result.
 The FE **menu** surfaces one exit per mode: **End game** in coop, **Concede**
 in compete (`buildGameMenu` offers compete's whole-table End only behind the
-opt-in `offerEndInCompete`, which scrabble doesn't pass — so the neutral
+opt-in `offersEndForAll`, which scrabble doesn't pass — so the neutral
 compete branch is live server-side but has no FE button today).
 `scrabble.concede` is the per-player "I quit, the others keep playing". Because scrabble is turn-based, concede is
 more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finish`
