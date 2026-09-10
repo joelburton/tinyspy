@@ -192,7 +192,7 @@ export function InfoCol({
                 than absent so the row doesn't change shape when the last racer
                 finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
@@ -200,15 +200,15 @@ export function InfoCol({
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
                 name the glyph would take from `label` alone. */}
-            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+            <ActionButton action={actHint} show="icon" />
             {/* The bare eye, not the boxed one: this hands over ONE word of a
                 live game. The boxed-eye Reveal is reserved for the whole
                 solution at game-over (see the icon registry). */}
-            <ActionButton action={actSpoiler} show="icon" className={shared.helperButton} />
+            <ActionButton action={actSpoiler} show="icon" />
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </div>
         ) : null}
 

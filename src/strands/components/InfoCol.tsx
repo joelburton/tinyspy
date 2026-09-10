@@ -191,14 +191,14 @@ export function InfoCol({
           <LocalTerminalRow label={iSolved ? 'You solved it — waiting' : 'You conceded'}>
             {/* Concede grays itself once you have solved or dropped out — the
                 row keeps its shape and the button says why. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}

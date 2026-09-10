@@ -175,10 +175,10 @@ export function PlayerBoard({
               whatever `setup.word_check` says (that option governs when the
               SERVER enforces words, not whether you may ask). */}
           {!isTerminal && !isConceded && (
-            <ActionButton action={arena.actCheckBoard} show="icon" className={shared.helperButton} />
+            <ActionButton action={arena.actCheckBoard} show="icon" />
           )}
           {onPeel && !isTerminal && !isConceded && (
-            <ActionButton action={arena.actPeel} show="both" className={shared.helperButton} />
+            <ActionButton action={arena.actPeel} show="both" />
           )}
         </div>
       </div>

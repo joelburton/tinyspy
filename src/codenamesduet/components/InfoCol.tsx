@@ -171,8 +171,8 @@ export function InfoCol({
                 It reads distinctly from this game's "Pass & end turn" below the
                 board (a different glyph), so it keeps the same wording as every
                 other v3 game. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}

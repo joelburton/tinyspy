@@ -81,7 +81,7 @@ export function BoardCol({
           {/* Rendered in compete too, disabled and saying why — the same call
               the info column's copy makes, for the same reason: a button that
               vanishes leaves a player hunting for a feature they know exists. */}
-          <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+          <ActionButton action={actHint} show="icon" />
         </div>
       </MobileStatusBar>
 

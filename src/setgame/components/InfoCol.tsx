@@ -151,7 +151,7 @@ export function InfoCol({
           <LocalTerminalRow label="You conceded">
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
@@ -164,11 +164,11 @@ export function InfoCol({
                 has; a disabled one with a reason answers the question before
                 it is asked. (The ban itself is the priced-help rule: free
                 generative help decides a race.) */}
-            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
+            <ActionButton action={actHint} show="icon" />
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}

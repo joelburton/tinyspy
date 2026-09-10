@@ -180,9 +180,10 @@ placement is the rule, not redundancy to trim.
   answer reveal is NOT one of these — it's progressive and shows all game, part
   of the status readout.)
 
-Shared in `common/components/game/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
-`.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
-`.terminalExtra`. connections
+Shared in `common/game-page/PlayArea.module.css` — `.infoSetup` / `.infoState` /
+`.infoHelp` / `.infoActions` / `.terminalActions` / `.outcome_*` /
+`.terminalExtra`. A button in the row carries nothing of its own: it is an
+`<ActionButton>`, sized by its own icon and label. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
 "N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
 buttons (both moved off the GamePage menu into the action row). codenamesduet

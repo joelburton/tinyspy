@@ -200,14 +200,14 @@ export function InfoCol({
           <LocalTerminalRow label="You conceded">
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}

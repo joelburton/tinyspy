@@ -134,8 +134,8 @@ export function InfoCol({
   // treatment): the styled tooltip carries the label and the key.
   const exits = (
     <>
-      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+      <ActionButton action={actConcede} show="icon" />
+      <ActionButton action={actEndGame} show="icon" />
     </>
   )
 
@@ -215,8 +215,8 @@ export function InfoCol({
                 lightbulb-vs-bare-eye glyph is what separates them. The boxed-eye
                 Reveal is a different thing entirely (the whole solution,
                 terminal only) and never appears in this row. */}
-            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
-            <ActionButton action={actSpoiler} show="icon" className={shared.helperButton} />
+            <ActionButton action={actHint} show="icon" />
+            <ActionButton action={actSpoiler} show="icon" />
             {exits}
           </div>
         ) : (

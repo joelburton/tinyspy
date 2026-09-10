@@ -146,8 +146,8 @@ export function InfoCol({
   // arrangement): the styled tooltip carries the label.
   const endButton = (
     <>
-      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+      <ActionButton action={actConcede} show="icon" />
+      <ActionButton action={actEndGame} show="icon" />
     </>
   )
 

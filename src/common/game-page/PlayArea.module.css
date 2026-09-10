@@ -368,20 +368,6 @@
   flex-wrap: nowrap;
 }
 
-/* A labeled action button in the info-column action row. The icon+label look
- * comes from the global `.icon-button` class (composed via cls() at the call
- * site); this is just the action-row MODIFIER. NATURAL WIDTH (`flex: 0 0 auto`),
- * NOT stretched to equal sizes: seeing each button's full icon + label matters
- * more than a tidy right edge (equalizing widths clipped "Concede"'s flag), and
- * unequal widths actually aid recognition — the brain picks out "Hint is the
- * short one". They sit left-aligned with a consistent gap (`.infoActions` `gap`)
- * and wrap when the row runs out; they deliberately don't stretch to the column's
- * right margin, which is fine. nowrap keeps each label on one line. */
-/* @@ */ .helperButton {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
 /* The terminal outcome line — bold, color-coded by result; grows so the
  * back-to-club button sits at the right edge. */
 /* @@ */ .outcome {

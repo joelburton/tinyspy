@@ -143,8 +143,8 @@ export function InfoCol({
   // Icon-only (the canonical action-row treatment): the tooltip carries the label.
   const endButton = (
     <>
-      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
-      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+      <ActionButton action={actConcede} show="icon" />
+      <ActionButton action={actEndGame} show="icon" />
     </>
   )
 
@@ -221,7 +221,6 @@ export function InfoCol({
                 action={actHint}
                 show="icon"
                 aria-pressed={hintsOpen}
-                className={shared.helperButton}
               />
               {endButton}
             </div>

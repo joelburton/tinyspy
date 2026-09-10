@@ -585,8 +585,8 @@ export function PlayArea(ctx: GamePageCtx) {
     // Concede drops just you (a loss, and the others race on). End sits first
     // because it's the gentler of the two.
     <>
-      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
-      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" />
+      <ActionButton action={actConcede} show="icon" />
     </>
   )
 
