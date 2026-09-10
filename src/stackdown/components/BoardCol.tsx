@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
 import { useFlash } from '@/common/move-flash/useFlash'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
@@ -143,42 +143,47 @@ export function BoardCol({
     retractTo(currentWord.length - 1)
   }, [canDelete, clearLocalFeedback, retractTo, currentWord.length])
 
-  // ─── Physical keyboard ────────────────────────────────────────
-  // Enter submits (below five tiles it's a deliberate no-op, matching the
-  // disabled Submit button — there's nothing to say, so it says nothing).
-  // Backspace returns the most recent tile; a letter key plays the matching tile —
-  // but ONLY if exactly one exposed tile bears it (the word is the selection order,
-  // so an ambiguous letter can't pick for you). 0 matches is an error; >1 flashes
-  // the candidates and asks you to click one. useGlobalKeyHandler reads this closure
-  // fresh each render and ignores keys aimed at chat / inputs.
-  useGlobalKeyHandler((e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    // While viewing a past turn, any (non-modifier) key returns to the live board
-    // (navigation is by clicking log rows) and consumes the key — checked before the
-    // readOnly gate, since viewing can be active while it's still your turn.
-    if (viewing) {
-      onExitViewing()
-      return
-    }
-    if (readOnly) return // not viewing ⇒ readOnly === "can't play right now"
-    // Any handled keystroke is a "next move" — clear the previous local pill. The
-    // no-match / ambiguous branches below set a fresh one after this.
-    clearLocalFeedback()
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      submitWord()
-      return
-    }
-    if (e.key === 'Backspace') {
-      e.preventDefault()
-      deleteLast()
-      return
-    }
-    if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-      const letter = e.key.toUpperCase()
-      // Exposed tiles still on the board. While live (the only time we get here),
-      // `offBoard` already excludes the tiles removed so far + the ones picked into
-      // the word, so it's exactly the set the exposure check needs.
+  // ─── The board's three keys ───────────────────────────────────
+  // Each is ONE binding behind both its control and its key. DISABLED rather
+  // than hidden where they don't apply: the ⌫ / Submit buttons keep their slot
+  // so the region never reflows (the reserve-the-slot rule, docs/ui.md). The
+  // history viewer's any-key exit needs no help from this — the dispatcher gives
+  // a MODE priority over a particular key — but a control that stayed live over
+  // a frozen board would be lying about what it can do.
+  //
+  // `readOnly` is already `viewing || !canPlay` (PlayArea sets it), so this one
+  // flag covers both the frozen board and the open past turn.
+  const playable = !readOnly
+
+  const actSubmit = useBoundAction('act-submit', {
+    describe: () => (playable && canSubmit ? 'active' : 'disabled'),
+    run: submitWord,
+  })
+
+  const actDeleteLast = useBoundAction('act-delete-last', {
+    // A word here is picked-up TILES, so this returns the last one rather than
+    // erasing a letter — the registry's name would say the wrong thing.
+    describe: () => ({
+      state: playable && canDelete ? 'active' : 'disabled',
+      label: 'Return the last tile',
+    }),
+    run: deleteLast,
+  })
+
+  // A letter plays the matching tile — but ONLY if exactly one exposed tile
+  // bears it: the word is the selection order, so an ambiguous letter can't
+  // pick for you. 0 matches is an error; >1 flashes the candidates and asks you
+  // to click one. A pattern action, so it is handed whichever letter fired it.
+  useBoundAction('act-pick-tile', {
+    describe: () => (playable ? 'active' : 'disabled'),
+    run: (key) => {
+      const letter = (key ?? '').toUpperCase()
+      // Any handled keystroke is a "next move" — clear the previous local pill.
+      // The no-match / ambiguous branches below set a fresh one after this.
+      clearLocalFeedback()
+      // Exposed tiles still on the board. While live (the only time we get
+      // here), `offBoard` already excludes the tiles removed so far + the ones
+      // picked into the word, so it's exactly the set the exposure check needs.
       const exposed = exposedIds(tiles, offBoard)
       const matches = tiles.filter((t) => exposed.has(t.id) && t.letter === letter)
       if (matches.length === 1) {
@@ -190,7 +195,7 @@ export function BoardCol({
         flashTiles(matches.map((m) => m.id))
         showLocalFeedback(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
       }
-    }
+    },
   })
 
   return (
@@ -241,13 +246,7 @@ export function BoardCol({
             reflows (the reserve-the-slot rule, docs/ui.md). The ⌫ is the
             touch-reachable twin of physical Backspace, which is the real gain:
             stackdown has a supported phone layout and no keyboard there. */}
-        <MoveRow
-          className={styles.moveArea}
-          onDelete={deleteLast}
-          onSubmit={submitWord}
-          deleteDisabled={!canDelete}
-          submitDisabled={!canSubmit}
-        >
+        <MoveRow className={styles.moveArea} actDelete={actDeleteLast} actSubmit={actSubmit}>
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}

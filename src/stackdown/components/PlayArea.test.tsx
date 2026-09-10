@@ -20,6 +20,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, SubmissionRow } from '../hooks/useGame'
 import type { Tile } from '../lib/board'
 import { db } from '../db'
@@ -99,9 +103,31 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
+}
+
+/** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
+ *  — a row is a bound action now, so its words, glyph and availability come from
+ *  the action rather than from the list. */
+function menuItems(ctx: GamePageCtx) {
+  const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Any test that TYPES needs it: the board's tile keys are bound actions, and a
+ *  bare `render` binds them with nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 beforeEach(() => {
@@ -115,14 +141,28 @@ describe('stackdown PlayArea — concede', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons
@@ -237,10 +277,13 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     }
   }
 
+  // The keystroke half needs the dispatcher: exiting the viewer is the hook's own
+  // bound action now, and the board's tile keys go DISABLED while a turn is open
+  // so the press falls through to it.
   it('clicking a word row replays that turn; a keystroke returns to live', async () => {
     const user = userEvent.setup()
     h.result = historyHook()
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ players: twoMembers })} />)
 
     // Live: CLEAR's tiles are off the board (L is one of them).
     expect(screen.queryByText('L')).not.toBeInTheDocument()
@@ -285,17 +328,6 @@ describe('stackdown PlayArea — turn-history viewer', () => {
 })
 
 describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
-  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
-  function menuItems(ctx: GamePageCtx) {
-    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-    return new Map(
-      (sections as { items: { id: string; label: string; icon?: unknown; disabled?: boolean; onClick: () => void }[] }[])
-        .flatMap((s) => s.items)
-        .map((i) => [i.id, i]),
-    )
-  }
-
   // Both cheats are ICON-ONLY buttons in the info column, so the menu row is the
   // only place their lightbulb and bare eye get named (docs/ui.md → the menu is
   // the legend) — a row without its glyph would teach nothing.
@@ -303,14 +335,14 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)
-    expect(items.get('hint')?.label).toBe('Hint for next word')
-    expect(items.get('hint')?.icon).toBeTruthy()
-    expect(items.get('spoiler')?.label).toBe('Cheat for next word')
-    expect(items.get('spoiler')?.icon).toBeTruthy()
+    expect(items.get('act-hint')?.label).toBe('Hint for next word')
+    expect(items.get('act-hint')?.icon).toBeTruthy()
+    expect(items.get('act-spoiler')?.label).toBe('Cheat for next word')
+    expect(items.get('act-spoiler')?.icon).toBeTruthy()
 
-    items.get('hint')?.onClick()
+    items.get('act-hint')?.run()
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' }))
-    items.get('spoiler')?.onClick()
+    items.get('act-spoiler')?.run()
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_word', { target_game: 'g1' }))
   })
 
@@ -318,8 +350,8 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)
-    expect(items.get('hint')?.disabled).toBe(true)
-    expect(items.get('spoiler')?.disabled).toBe(true)
+    expect(items.get('act-hint')?.disabled).toBe(true)
+    expect(items.get('act-spoiler')?.disabled).toBe(true)
   })
 })
 
@@ -330,17 +362,6 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
  * an answer left on screen would make Restart theater.
  */
 describe('stackdown PlayArea — the terminal solution reveal', () => {
-  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
-  function menuItems(ctx: GamePageCtx) {
-    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-    return new Map(
-      (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
-        .flatMap((s) => s.items)
-        .map((i) => [i.id, i]),
-    )
-  }
-
   /** A finished game whose six words have reached this client (the server
    *  unshields `solution` at is_terminal — stackdown._solution_for). */
   const solved = () =>
@@ -352,7 +373,7 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = solved()
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reveal' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('a coop WIN shows them unasked — the stack was cleared, so you saw all six', () => {
@@ -371,7 +392,7 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = solved()
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
     // The absent RPC is the assertion: no peer's board opened.
     expect(rpc).not.toHaveBeenCalled()
@@ -382,8 +403,8 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = solved()
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal' }))
-    await user.click(screen.getByRole('button', { name: 'Hide' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
+    await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
   })
 
@@ -392,10 +413,10 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = solved()
     render(<PlayArea {...ctx} />)
 
-    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal solution')
-    act(() => menuItems(ctx).get('reveal')!.onClick())
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
+    act(() => menuItems(ctx).get('act-reveal')!.run())
     expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
-    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide solution'))
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
   })
 
   it('the menu twin is inert before the game is over for everyone', () => {
@@ -403,7 +424,7 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     render(<PlayArea {...ctx} />)
     // Nothing to show: the words don't reach this client until is_terminal, so
     // a player who dropped out can't spoil a race still running.
-    expect(menuItems(ctx).get('reveal')?.disabled).toBe(true)
+    expect(menuItems(ctx).get('act-reveal')?.disabled).toBe(true)
   })
 
   it('a Restart puts the words away again', async () => {
@@ -411,7 +432,7 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = solved()
     const { rerender } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))

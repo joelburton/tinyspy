@@ -500,14 +500,15 @@ pill.
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
   word-difficulty band + timer — the board is dealt at random from the chosen
   band's pool), `Help`.
-- **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
+- **Keyboard input** (in `BoardCol`, as three bound actions — `act-pick-tile`,
+  `act-delete-last`, `act-submit` — so each key and its control are one thing):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
   order, so an ambiguous letter can't pick for you). No match shows a local
   **error** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
   ("N 'X' tiles are on top — click one") AND briefly outlines the candidate tiles
-  in red (a `highlight` set passed to `Board`). The handler ignores keys aimed at
-  chat / inputs.
+  in red (a `highlight` set passed to `Board`). Keys aimed at chat or an input
+  never reach an action at all — that gate is the dispatcher's.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 

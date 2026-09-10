@@ -322,13 +322,20 @@ letter from one — clicking does.
 
 ## stackdown
 
-No text entry — a letter names a *tile*, not a character.
+No text entry — a letter names a *tile*, not a character, so it binds
+`act-pick-tile` (a pattern action, handed whichever letter fired it) rather than
+the shared capture keyboard.
 
 | key | what it does |
 |---|---|
 | `A`–`Z` | Play the matching exposed tile — but only if **exactly one** exposed tile bears that letter (the word is the selection order, so an ambiguous letter can't pick for you). Zero matches → an error pill; more than one → the candidates flash and you're asked to click one. |
 | `⌫` | Return the most recently picked tile. The ⌫ button left of the word slots does the same thing (and is how you do it on a phone). |
-| `Enter` | Submit the word. A word is exactly five tiles, so below five this is a **deliberate no-op** — it matches the disabled Submit button rather than explaining itself. Filling the fifth slot does NOT submit: the word waits for you, so a wrong fifth tile is recoverable. |
+| `Enter` | Submit the word. A word is exactly five tiles, so below five it is **gray rather than absent** — the same answer the Submit button reads, so neither explains itself. Filling the fifth slot does NOT submit: the word waits for you, so a wrong fifth tile is recoverable. |
+
+All three go DISABLED rather than hidden while the board is frozen or a past
+turn is open, which is what keeps the ⌫ / Submit buttons in their slot — and a
+disabled action doesn't swallow its key, so the press still reaches the viewer's
+any-key exit.
 
 ## strands
 

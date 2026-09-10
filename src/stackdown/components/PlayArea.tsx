@@ -2,7 +2,7 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconRevealSolution, IconSpoiler } from '@/common/icons/icons'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -16,8 +16,8 @@ import { printStackdownPdf } from '../pdf/printStackdownPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
@@ -31,7 +31,6 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { DotActor } from '@/common/members/ActorMention'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
@@ -103,7 +102,6 @@ export function PlayArea({
   setup,
   status,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -161,7 +159,6 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team clears the stack — the sixth word flips
@@ -376,14 +373,49 @@ export function PlayArea({
     // the list.
     resetSolution()
   }, [exitViewing, clearLocalFeedback, resetSolution])
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: isCompete ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showMsg,
     onRestarted,
+  })
+
+  // ─── The help ladder ─────────────────────────────────────────
+  // Two rungs, both grayed rather than dropped once you can't ask: the row is
+  // what NAMES those glyphs (docs/ui.md → the menu is the legend), and a
+  // disabled row still teaches the lightbulb and the bare eye. The labels say
+  // which word each acts on, which the icon-only buttons have no room for.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => ({
+      state: canAskHelp ? 'active' : 'disabled',
+      label: 'Hint for next word',
+    }),
+    run: revealHint,
+  })
+  const actSpoiler = useBoundAction('act-spoiler', {
+    describe: () => ({
+      state: canAskHelp ? 'active' : 'disabled',
+      label: 'Cheat for next word',
+    }),
+    run: spoilNext,
+  })
+
+  // Reveal the six words — the same toggle wearing the same two faces in the
+  // menu and in the terminal row, so a player who dismissed the row can still
+  // reach it. Inert mid-game: there is nothing to reveal until the server
+  // unshields, and nothing left to show once solving has put them all up.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal solution' }
+    },
+    run: toggleSolution,
   })
 
   // New game — a FRESH game (new id, a newly claimed board) with THIS game's
@@ -393,13 +425,12 @@ export function PlayArea({
   // (common.create_game un-currents this game into the club list), so no
   // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
   // game-invitation toast.
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -426,10 +457,19 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press claiming a second board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
   // ─── Header menu (every game owns its whole menu now) ─────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -469,14 +509,18 @@ export function PlayArea({
   )
 
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
-  useEffect(() => {
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
-    // scopes the submissions to what the viewer may see, the SERVER withholds
-    // `solution` until terminal, and `solutionShown` withholds it until this
-    // viewer asks — so a printout carries the answer only if the page in front
-    // of them does, and can't spoil a stack they're about to run back.
-    const printModel = game
-      ? buildStackdownPrintModel({
+
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scopes
+  // the submissions to what the viewer may see, the SERVER withholds `solution`
+  // until terminal, and `solutionShown` withholds it until this viewer asks — so
+  // a printout carries the answer only if the page in front of them does, and
+  // can't spoil a stack they're about to run back.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printStackdownPdf(
+        buildStackdownPrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
@@ -494,69 +538,33 @@ export function PlayArea({
           found: foundCount,
           target: SOLUTION_WORDS,
           setup: summaryRows,
-        })
-      : null
+        }),
+      )
+    },
+  })
+
+  // The FULL stackdown menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The help rungs
+  // and Reveal are the menu twins of the info column's buttons: the row is what
+  // NAMES those glyphs, which is why they gray rather than drop.
+  useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: menuMode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: endGame,
-        onConcede: concede,
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          // The menu twins of the info column's two cheats. The row is what
-          // NAMES those glyphs (docs/ui.md → the menu is the legend), so it's
-          // grayed rather than dropped once you can't ask: a disabled row still
-          // teaches the lightbulb and the bare eye. The labels are the buttons'
-          // richer tooltip copy, not their terse aria-labels — a menu has room
-          // to say which word it acts on.
-          {
-            items: [
-              { id: 'hint', icon: IconHint, label: 'Hint for next word', disabled: !canAskHelp, onClick: () => void revealHint() },
-              { id: 'spoiler', icon: IconSpoiler, label: 'Cheat for next word', disabled: !canAskHelp, onClick: () => void spoilNext() },
-            ],
-          },
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
-              // Same setup + roster, a freshly claimed board, a NEW game id.
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
-              // The menu twin of the terminal row's boxed-eye button — the same
-              // toggle, wearing the same two faces, reachable from the menu the
-              // whole time so a player who dismissed the row can still get to
-              // it. Mid-game it's inert: there's nothing to reveal until the
-              // server unshields.
-              {
-                id: 'reveal',
-                // The View glyph, not EyeOff, once solving put it there — see
-                // RevealButton for why the inert face keeps the plain eye.
-                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
-                label: impliedBySolve
-                  ? 'Solution already shown'
-                  : solutionShown
-                    ? 'Hide solution'
-                    : 'Reveal solution',
-                disabled: !isTerminal || impliedBySolve,
-                onClick: toggleSolution,
-              },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printStackdownPdf(printModel) }] }]
-            : []),
+          { items: [actHint, actSpoiler] },
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    toggleSolution, solutionShown, impliedBySolve, canAskHelp, revealHint, spoilNext,
-    // The print model's inputs. It's rebuilt whenever the printable state moves,
-    // which is what makes the snapshot current at click time.
-    brand, title, game, currentWord, submissions, players, session.user.id, foundCount, setup,
-    summaryRows,
-  ])
+  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -699,19 +707,16 @@ export function PlayArea({
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
-        onHint={() => void revealHint()}
-        onSpoiler={() => void spoilNext()}
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
+        actHint={actHint}
+        actSpoiler={actSpoiler}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         setup={setup as unknown as StackdownSetup}
         solution={solutionShown ? game.solution : null}
-        onReveal={toggleSolution}
-        solutionShown={solutionShown}
-        solutionAlreadyShown={impliedBySolve}
+        actReveal={actReveal}
         submissions={logWords}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
@@ -728,7 +733,6 @@ export function PlayArea({
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }

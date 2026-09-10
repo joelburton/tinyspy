@@ -13,6 +13,27 @@
   shuffle is to bind the action; a handler matching `⌥Z` in a game's own code
   defeats that. A grep-based guard over the literals the registry owns is the
   shape, if it stays short.
+- **e2e finds action buttons by their WORDS, which are the half that moves.**
+  `<ActionButton>` writes `data-action="act-…"`, and that is the handle a test
+  wants: what a control is CALLED is `describe()`'s to vary per game and per
+  state — one action reads "Reveal answer", "Reveal secrets", "Hide solution"
+  and "Solution already shown" — so a spec keyed to the wording breaks the first
+  time a game says it better. It already has: stackdown's ⌫ lookups went stale
+  when `<MoveRow>` started placing `act-delete-last`, and nobody noticed for six
+  commits because the spec had not been run.
+
+  Sweep the lookups that name an action whose label varies — the Reveal/Hide
+  family (about fourteen, across seven spellings) and the remaining `'Delete'` —
+  over to `[data-action="…"]`. The stable registry labels (`End game`,
+  `Restart`, `New game`, `Submit`) can stay as they are; no game overrides them.
+
+  **Keep the name where the name is the SUBJECT.** waffle's "the SAME button,
+  now wearing its Hide face" is asserting the wording on purpose, and should go
+  on doing it.
+
+  Best done in one pass rather than per game, EXCEPT `e2e/strands-typing.e2e.ts`,
+  whose `'Delete'` is stale in the same way and belongs with that game's
+  conversion.
 - **`helperButton` is on some action-row buttons and not others, and nobody
   decided which.** `.helperButton` (`common/game-page/PlayArea.module.css`) is
   `flex: 0 0 auto` + `white-space: nowrap` — written for a LABELED button, so a

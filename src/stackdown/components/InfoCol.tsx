@@ -5,14 +5,9 @@ import type { Member } from '@/common/members/member'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import { HintButton } from '@/common/buttons/HintButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { SpoilerButton } from '@/common/buttons/SpoilerButton'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
@@ -26,7 +21,7 @@ import styles from './InfoCol.module.css'
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
  * words reveal → GameTurnLog log. Every mutation is a named callback up
- * (`onHint`/`onSpoiler`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
+ * (`onSelectTurn`); every COMMAND arrives as a bound action this column places. PlayArea owns the
  * RPCs and the coordination state. See docs/playarea.md.
  */
 export function InfoCol({
@@ -45,19 +40,16 @@ export function InfoCol({
   selfId,
   playerStates,
   concededIds,
-  onHint,
-  onSpoiler,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
+  actHint,
+  actSpoiler,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actBackToClub,
   setupRows,
   solution,
-  onReveal,
-  solutionShown,
-  solutionAlreadyShown,
+  actReveal,
   submissions,
   viewingIndex,
   onSelectTurn,
@@ -94,23 +86,24 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (cheats + End/Concede, back-to-club at terminal) ──
-  onHint: () => void
-  /** Mid-game cheat: hand over the next word (the amber bare-eye SpoilerButton).
-   *  Named for what it does to a LIVE game — distinct from `onReveal` below,
-   *  which opens the whole solution once the game is over. */
-  onSpoiler: () => void
-  onEndGame: () => void
-  onConcede: () => void
-  /** Restart THIS stack — same tiles, same solution — from scratch (the menu's
-   *  replay-board, unconfirmed at terminal since there's no progress left to lose). */
-  onRestart: () => void
-  /** Start a fresh follow-up game — same setup + roster, a newly claimed board. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  onBackToClub: () => void
+  /** The two rungs of the help ladder — a hint toward the next word, or the
+   *  word itself. Both carry their own "which word" wording. */
+  actHint: BoundAction
+  /** Mid-game cheat: hand over the next word (the amber bare eye). Named for
+   *  what it does to a LIVE game — distinct from `actReveal` below, which opens
+   *  the whole solution once the game is over. */
+  actSpoiler: BoundAction
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** Restart THIS stack — same tiles, same solution — from scratch. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup + roster, a newly claimed board.
+   *  Disables itself while the create is in flight. */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
@@ -120,14 +113,10 @@ export function InfoCol({
    *  them. Hidden by default at every terminal, a win included, so Restart
    *  (same stack, same solution) stays a genuine second try. */
   solution: string[] | null
-  /** Show the words — or put them away again. A local display toggle shared
-   *  with the menu twin; nothing is written and no peer is affected. */
-  onReveal: () => void
-  /** Are the words on screen right now? Swaps the button to its Hide face. */
-  solutionShown: boolean
-  /** Are they on screen because this player CLEARED the stack? Then the control
-   *  has nothing to do — it goes inert and says so. */
-  solutionAlreadyShown: boolean
+  /** Show the words — or put them away again. A local display toggle shared with
+   *  the menu twin; nothing is written and no peer is affected, and it carries
+   *  its own faces, the inert "solution already shown" included. */
+  actReveal: BoundAction
 
   // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
@@ -182,19 +171,15 @@ export function InfoCol({
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
                 Restart / New game are both "move on", and they leave. */}
-            <RevealButton
-              show="icon"
-              revealed={solutionShown}
-              alreadyShown={solutionAlreadyShown}
-              onClick={onReveal}
-            />
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
@@ -206,8 +191,8 @@ export function InfoCol({
                 player who dropped out can't spoil a live race. Present rather
                 than absent so the row doesn't change shape when the last racer
                 finishes — the button is simply enabled then. */}
-            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
@@ -215,26 +200,15 @@ export function InfoCol({
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
                 name the glyph would take from `label` alone. */}
-            <HintButton
-              show="icon"
-              onClick={onHint}
-              className={shared.helperButton}
-              tooltip="Hint for next word"
-            />
+            <ActionButton action={actHint} show="icon" className={shared.helperButton} />
             {/* The bare eye, not the boxed one: this hands over ONE word of a
-                live game. The boxed-eye RevealButton is reserved for the whole
+                live game. The boxed-eye Reveal is reserved for the whole
                 solution at game-over (see the icon registry). */}
-            <SpoilerButton
-              show="icon"
-              onClick={onSpoiler}
-              className={shared.helperButton}
-              tooltip="Cheat for next word"
-            />
-            {isCompete ? (
-              <ConcedeGameButton show="icon" onClick={onConcede} className={shared.helperButton} />
-            ) : (
-              <EndGameButton show="icon" onClick={onEndGame} className={shared.helperButton} />
-            )}
+            <ActionButton action={actSpoiler} show="icon" className={shared.helperButton} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
           </div>
         ) : null}
 
