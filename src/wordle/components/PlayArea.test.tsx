@@ -21,6 +21,10 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
@@ -82,9 +86,22 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   }
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Any test that TYPES needs it: wordle's guess keys are bound actions, and a
+ *  bare `render` binds them with nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 beforeEach(() => {
@@ -160,14 +177,16 @@ describe('wordle PlayArea — render smoke', () => {
  * ctx.goToGame.
  */
 describe('wordle PlayArea — icon-only action rows', () => {
-  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+  it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
+    // ONE binding for both rows: it navigates directly at terminal and routes
+    // through the suspend-confirm flow mid-game, so the game no longer picks
+    // between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
-    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
-    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+    expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
   it('terminal "Reveal answer" shows the word for ME, with no RPC and no confirm', async () => {
@@ -262,11 +281,13 @@ describe('wordle PlayArea — icon-only action rows', () => {
  * toggle (useSolutionReveal), no RPC and no peer affected.
  */
 describe('wordle PlayArea — terminal flow', () => {
-  /** The game sections most recently pushed to the menu, flattened to items. */
+  /** The game sections most recently pushed to the menu, as the ROWS the menu
+   *  would draw — a row is a bound action now, so its words, glyph and
+   *  availability come from the action rather than from the list. */
   const menuItems = (ctx: GamePageCtx) => {
     const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
-    const sections = calls.at(-1)![0] as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[]
-    return sections.flatMap((s) => s.items)
+    const sections = (calls.at(-1)![0] ?? []) as MenuSection[]
+    return sections.flatMap((s) => s.items).map(menuRow)
   }
 
   it('hides the word on a coop loss (and pops no modal)', () => {
@@ -286,14 +307,14 @@ describe('wordle PlayArea — terminal flow', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
 
-    const reveal = menuItems(ctx).find((i) => i.id === 'reveal')!
+    const reveal = menuItems(ctx).find((i) => i.id === 'act-reveal')!
     expect(reveal.disabled).toBeFalsy() // terminal → offered
     expect(reveal.label).toBe('Reveal answer')
-    act(() => reveal.onClick())
+    act(() => reveal.run())
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
     // The menu is rebuilt on the state flip, so the item now offers the way back.
     await waitFor(() =>
-      expect(menuItems(ctx).find((i) => i.id === 'reveal')!.label).toBe('Hide answer'),
+      expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.label).toBe('Hide answer'),
     )
     // No RPC and no confirm: this is local display state, not a game move.
     expect(commonRpc).not.toHaveBeenCalled()
@@ -307,7 +328,7 @@ describe('wordle PlayArea — terminal flow', () => {
     render(<PlayArea {...ctx} />)
     // Nothing to show yet: wordle._target_for withholds the target until the
     // race is over for everyone, so a player who's done can't peek at a live one.
-    expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)
+    expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.disabled).toBe(true)
   })
 
   it('a Restart puts the answer away again', async () => {
@@ -334,7 +355,7 @@ describe('wordle PlayArea — terminal flow', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
 
-    act(() => menuItems(ctx).find((i) => i.id === 'restart')!.onClick())
+    act(() => menuItems(ctx).find((i) => i.id === 'act-restart')!.run())
     // confirm returned false — the RPC firing anyway proves it was skipped.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     expect(confirm).not.toHaveBeenCalled()
@@ -362,20 +383,20 @@ describe('wordle PlayArea — terminal flow', () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
     const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
     h.result = loaded(game)
-    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    const user = userEvent.setup()
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
 
     // Submit "crane" — BoardCol holds it as the pending row...
-    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
-    fireEvent.keyDown(window, { key: 'Enter' })
+    await user.keyboard('crane{Enter}')
     await waitFor(() => expect(rpc).toHaveBeenCalled())
     // ...its colored server row lands...
     h.result = loaded(game, [
       { user_id: 'u1', seq: 1, guess: 'crane', colors: 'xxxxx', is_correct: false },
     ])
-    rerender(<PlayArea {...makeCtx()} />)
+    rerender(<WithKeys {...makeCtx()} />)
     // ...then replay wipes the guesses (rows shrink to empty).
     h.result = loaded(game, [])
-    rerender(<PlayArea {...makeCtx()} />)
+    rerender(<WithKeys {...makeCtx()} />)
 
     // Entirely blank board, and input is live again.
     const grid = screen.getByRole('grid', { name: /board/i })
@@ -549,15 +570,29 @@ describe('wordle PlayArea — concede', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons
@@ -594,10 +629,12 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
   it('builds a guess from window keydowns and submits it on Enter', async () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
-    render(<PlayArea {...makeCtx()} />)
-    // The capture core reads keydowns off the window (no focused input).
-    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
-    fireEvent.keyDown(window, { key: 'Enter' })
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    // Typed with nothing focused, so the keys go to the window — which is where
+    // the one dispatcher listens. (`userEvent`, not `fireEvent`: each letter is
+    // an action's run, and the entry has to re-render between them.)
+    await user.keyboard('crane{Enter}')
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
     )
@@ -605,7 +642,7 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
 
   it('ignores keystrokes aimed at a focused text field (chat isolation)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     const input = document.createElement('input')
     document.body.append(input)
     for (const key of ['c', 'r', 'a', 'n', 'e', 'Enter']) fireEvent.keyDown(input, { key })
@@ -616,12 +653,12 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
   it('has NO ArrowUp-recall / ArrowDown-clear (wordle is not an EntryBox)', async () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
-    render(<PlayArea {...makeCtx()} />)
-    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('crane')
     // In an EntryBox game ArrowDown would clear the entry; here it must do nothing,
     // so Enter still submits the intact "crane".
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
-    fireEvent.keyDown(window, { key: 'Enter' })
+    await user.keyboard('{ArrowDown}{Enter}')
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
     )
@@ -722,7 +759,7 @@ describe('wordle Board — the reveal flip is keyed to the CAUSE', () => {
       { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
       { user_id: 'u1', seq: 1, guess: 'crane', colors: 'ggggg', is_correct: true },
     ])
-    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
     // Rows already on the board at mount don't flip — they arrived before anyone
     // was watching.
     expect(tiles()[0].className).not.toMatch(/reveal/)

@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
+import { actionSurface } from '@/common/actions/actionSurface'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { TileColor } from '../wordle-style/tileColor'
 import styles from './GuessKeyboard.module.css'
 
@@ -23,8 +25,17 @@ export type KeyTone = Exclude<TileColor, 'blank'>
 
 type Props = {
   onKey: (letter: string) => void
-  onEnter: () => void
-  onBackspace: () => void
+  /** Submit the guess, and delete its last letter. The SAME two bindings the
+   *  physical keyboard answers to (`useCaptureKeys` hands them back), so a cap
+   *  and its key can't disagree about whether the move is available — including
+   *  the empty-guess case, where both are gray.
+   *
+   *  The 26 letters are NOT actions and shouldn't be: a letter cap is a KEY,
+   *  not a command. The one action behind them is the pattern `act-type-letter`,
+   *  which is handed whichever letter fired it — twenty-six bindings each
+   *  hard-coding its own letter would be a registry entry per keycap. */
+  actSubmit: BoundAction
+  actDelete: BoundAction
   disabled?: boolean
   /** The game is finished. The keyboard is WITHDRAWN rather than disabled — see
    *  `.gameOver` in the stylesheet — while keeping the space it occupied, so the
@@ -53,12 +64,19 @@ type Props = {
  */
 export function GuessKeyboard({
   onKey,
-  onEnter,
-  onBackspace,
+  actSubmit,
+  actDelete,
   disabled = false,
   gameOver = false,
   keyStates,
 }: Props) {
+  // A keycap keeps its own chrome and takes what it DOES from the binding — the
+  // same bargain the board's round shuffle pill makes. `aria-label` stays the
+  // cap's own ("Backspace", not "Delete the last letter"): what is written on a
+  // key is the key, and the tooltip carries the action's name.
+  const submit = actionSurface(actSubmit)
+  const del = actionSurface(actDelete)
+
   return (
     <div className={cls(styles.keyboard, gameOver && styles.gameOver)} aria-label="Keyboard">
       {ROWS.map((row, i) => (
@@ -67,8 +85,8 @@ export function GuessKeyboard({
             <button
               type="button"
               className={cls(styles.key, styles.wide)}
-              onClick={onBackspace}
-              disabled={disabled}
+              {...del.buttonProps}
+              disabled={disabled || del.buttonProps.disabled}
               aria-label="Backspace"
               // NOT a focus target, by two means — the same pair the board tiles
               // use. `tabIndex={-1}` keeps 28 keys out of the tab order (they
@@ -79,6 +97,8 @@ export function GuessKeyboard({
               // last tapped until you click elsewhere. Nothing here needs focus —
               // this keyboard exists so a player without a physical one can type,
               // and a player WITH one just types.
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
             >
               ⌫
             </button>
@@ -104,8 +124,9 @@ export function GuessKeyboard({
             <button
               type="button"
               className={cls(styles.key, styles.wide, styles.wideText, styles.enter)}
-              onClick={onEnter}
-              disabled={disabled}
+              {...submit.buttonProps}
+              disabled={disabled || submit.buttonProps.disabled}
+              aria-label="Enter"
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
             >

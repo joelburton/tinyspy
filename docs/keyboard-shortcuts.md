@@ -363,10 +363,15 @@ universal things: dismiss feedback, and exit the turn-history viewer.
 | `A`–`Z` | Type the guess (capped at 5 — letters land on the **board**, not an entry box). |
 | `⌫` / `Enter` | Delete / submit. |
 
-The on-screen QWERTY keyboard drives exactly the same pending guess. There is
-**no** `↑`/`↓` history here — that's an EntryBox affordance and wordle isn't one.
-Capture freezes while viewing history so a keystroke returns you to live instead
-of typing behind the banner.
+The on-screen QWERTY keyboard drives exactly the same pending guess: its Enter
+and ⌫ caps ARE the two bound actions the physical keys answer to, so a cap and
+its key can't disagree about whether the move is available. The 26 letter caps
+stay plain buttons — a letter cap is a key, not a command, and the one action
+behind them is the pattern that is handed whichever letter fired it.
+
+There is **no** `↑`/`↓` history here — that's an EntryBox affordance and wordle
+isn't one. Capture freezes while viewing history so a keystroke returns you to
+live instead of typing behind the banner.
 
 ## wordiply
 

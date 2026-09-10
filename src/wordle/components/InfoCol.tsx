@@ -2,14 +2,10 @@
 
 import { cls } from '@/common/utils/cls'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { useDefinePopover } from '@/common/definitions/useDefinePopover'
@@ -26,8 +22,9 @@ import styles from './InfoCol.module.css'
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * OpponentStrip (compete) → action row → help → setup disclosure → terminal answer
- * reveal → the turn log. Every mutation is a named callback up (`onEndGame` /
- * `onConcede` / `onBackToClub` / `onSelectTurn`); PlayArea owns the RPCs + the history
+ * reveal → the turn log. Every COMMAND arrives as a bound action this column
+ * places; `onSelectTurn` stays a callback, being coordination rather than a
+ * command. PlayArea owns the RPCs + the history
  * coordination. Prop names match the other games' columns for the same idea (docs/
  * playarea.md).
  */
@@ -49,16 +46,12 @@ export function InfoCol({
   playerStates,
   concededIds,
   // ── Action row ──
-  onEndGame,
-  onConcede,
-  onRestart,
-  onRevealAnswer,
-  answerShown,
-  answerAlreadyShown,
-  onNewGame,
-  startingNewGame,
-  onBackToClub,
-  onRequestBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actReveal,
+  actNewGame,
+  actBackToClub,
   // ── Setup disclosure ──
   setupRows,
   // ── Terminal answer reveal ──
@@ -101,32 +94,24 @@ export function InfoCol({
   // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
   //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
   //    Restart + Reveal + New game + back-to-club.) ──
-  onEndGame: () => void
-  onConcede: () => void
-  /** Restart THIS game — same word — from scratch (the menu's Restart item,
-   *  unconfirmed at terminal since there's no progress left to lose). */
-  onRestart: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete, and
+   *  gray once you have SOLVED it (conceding would forfeit a banked win). */
+  actConcede: BoundAction
+  /** Restart THIS game — same word — from scratch. */
+  actRestart: BoundAction
   /** Show the word — or put it away again. A local display toggle, no RPC (see
-   *  PlayArea's useSolutionReveal). Rendered only in the terminal row. */
-  onRevealAnswer: () => void
-  /** Is the word on screen right now? Swaps the button to its Hide face, and
-   *  the menu item with it. */
-  answerShown: boolean
-  /** Is it on screen because this player SOLVED it? Then the control has
-   *  nothing to do — it goes inert and says so. */
-  answerAlreadyShown: boolean
-  /** Start a fresh follow-up game — same setup, new target + id. */
-  onNewGame: () => void
-  /** New game is mid-flight — disables the button so a slow network reads as
-   *  "working", not "nothing happened". Paired with the menu item's own
-   *  `disabled`; see useSingleFlight in this game's PlayArea. */
-  startingNewGame?: boolean
-  /** Direct navigation to the club — terminal only (nothing to lose). */
-  onBackToClub: () => void
-  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
-   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
-   *  shelves it. */
-  onRequestBackToClub: () => void
+   *  PlayArea's useSolutionReveal); it carries its own faces, the inert
+   *  "solution already shown" included. */
+  actReveal: BoundAction
+  /** Start a fresh follow-up game — same setup, new target + id. Disables itself
+   *  while the create is in flight. */
+  actNewGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
+   *  for both rows: it navigates directly at terminal and routes through the
+   *  suspend-confirm flow mid-game. */
+  actBackToClub: BoundAction
 
   // ── Setup disclosure ──
   setup: WordleSetup
@@ -154,19 +139,16 @@ export function InfoCol({
   // lookup waffle's SolutionReveal and stackdown's turn log use).
   const { define, popover } = useDefinePopover()
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of the
-  // race → wordle.concede); coop uses the neutral "End" (a mutual "we're done" →
-  // end_game). Shared by the playing and the locally-terminal action rows.
-  // Icon-only (the waffle arrangement): the styled tooltip carries the label.
-  const endButton = isCompete ? (
-    <ConcedeGameButton
-      onClick={onConcede}
-      show="icon"
-      className={shared.helperButton}
-      disabled={myConceded}
-    />
-  ) : (
-    <EndGameButton onClick={onEndGame} show="icon" className={shared.helperButton} />
+  // Both exits, error-toned (red), placed together and each hiding itself in the
+  // mode that isn't its own: compete CONCEDES (drop out of the race →
+  // wordle.concede), coop ENDS (a mutual "we're done" → end_game). Shared by the
+  // playing and the locally-terminal action rows. Icon-only (the waffle
+  // arrangement): the styled tooltip carries the label.
+  const endButton = (
+    <>
+      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+    </>
   )
 
   return (
@@ -213,19 +195,13 @@ export function InfoCol({
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
             hint/reveal). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
+          <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): restart this
                 word, see the answer, or spin up the next game. */}
-            <RestartButton show="icon" onClick={onRestart} />
-            <RevealButton
-              show="icon"
-              label="Reveal answer"
-              revealedLabel="Hide answer"
-              revealed={answerShown}
-              alreadyShown={answerAlreadyShown}
-              onClick={onRevealAnswer}
-            />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
@@ -236,13 +212,13 @@ export function InfoCol({
                 dropped out can't spoil a live race. Present rather than absent
                 so the row doesn't change shape when the last racer finishes;
                 the button is simply enabled then. */}
-            <RevealButton show="icon" disabled tooltip="Can't reveal until all end" />
+            <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {endButton}
-            <BackToClubButton show="icon" onClick={onRequestBackToClub} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

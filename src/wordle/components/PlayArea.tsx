@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
+import { useCallback, useEffect, useMemo } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
@@ -16,12 +16,10 @@ import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { DotActor } from '@/common/members/ActorMention'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
@@ -75,7 +73,6 @@ export function PlayArea({
   setup,
   status,
   globalFeedback,
-  goToClub,
   clubHandle,
   goToGame,
   menu,
@@ -98,7 +95,6 @@ export function PlayArea({
 
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
@@ -111,10 +107,10 @@ export function PlayArea({
   // Click a turn-log #N to replay that turn's board (the guess rows up to that turn,
   // with that turn's row ringed history-yellow). Keyed by log position. Exit is
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
-  // BoardCol freezes its capture while viewing, so exitOnKey has the keys to itself.
-  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+  // BoardCol freezes its capture while viewing, so the viewer's own any-key
+  // action (bound by the hook) has the keys to itself.
+  const { viewing, viewingId, select: selectTurn, exitViewing } =
     useHistoryViewer<number>()
-  useGlobalKeyHandler(exitOnKey)
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team solves it (the winning guess flips
@@ -242,14 +238,33 @@ export function PlayArea({
     // the win-implied default, so solving the replayed word wouldn't show it.
     resetAnswer()
   }, [exitViewing, clearLocalFeedback, resetAnswer])
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
+    // Solved and waiting for the others: conceding would forfeit a win already
+    // banked, so it goes gray and you leave via Back to club.
+    selfSolved: solvedIds.includes(session.user.id),
     showError: showLocalFeedback,
     onRestarted,
+  })
+
+  // Reveal the answer — a LOCAL display toggle: it shows the word to me alone,
+  // writes nothing, and affects no peer. Terminal-only, since the target does
+  // not reach the client until the game is over for everyone
+  // (wordle._target_for), so a player who dropped out early can't peek at a
+  // live race; inert too once solving has already put the word on screen.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (answerShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal answer' }
+    },
+    run: toggleAnswer,
   })
 
   // New game — a FRESH game (new id, new random target) with THIS game's
@@ -259,13 +274,12 @@ export function PlayArea({
   // Non-destructive (common.create_game un-currents this game into the club
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `members` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -300,10 +314,19 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press dealing a second word.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
   // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
   // Terminal results). There used to be a mid-game shape too: a group give-up
@@ -317,42 +340,20 @@ export function PlayArea({
   // local state flip. No RPC, so no failure to classify, and no `async` — the
   // button and the menu item both call it directly.
 
-  // ─── Header menu (each game owns its whole menu) ───────────────
-  // The shared frame (Help / End-or-Concede / Back to club) plus wordle's two
-  // own items, "Restart" (both modes, any state) and "Reveal answer"
-  // (disabled once the word is already showing — a win, a prior reveal). All
-  // four actions dispatch through a stable `actionsRef` so this effect's deps
-  // stay stable values only (menu, mode, isTerminal, myConceded, answerShown)
-  // — it must NOT re-run per render, since `setGameSections` is a setState (a
-  // fresh handler identity each render would loop). The handlers themselves
-  // are defined above; the ref is repopulated with the current closures in a
-  // second effect.
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    reveal: () => void
-    newGame: () => void
-  }>({
-    endGame: () => {},
-    concede: () => {},
-    restart: () => {},
-    reveal: () => {},
-    newGame: () => {},
-  })
-  const mode = game?.mode
-  useEffect(() => {
-    if (!mode) return // wait for the game to load before there's a real menu
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
-    // scopes `guesses` to what the viewer may see (own only in compete until
-    // terminal), and the model refuses to print the target before terminal, so
-    // neither the boards nor the answer can leak onto paper early.
-    const printModel = game
-      ? buildWordlePrintModel({
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scopes
+  // `guesses` to what the viewer may see (own only in compete until terminal),
+  // and the model refuses to print the target before terminal, so neither the
+  // boards nor the answer can leak onto paper early.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game || !gameMode) return
+      printWordlePdf(
+        buildWordlePrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode,
+          mode: gameMode,
           isTerminal,
           maxGuesses,
           wordLength: WORD_LENGTH,
@@ -363,71 +364,31 @@ export function PlayArea({
           answerShown,
           solvedBy: new Set(solvedIds),
           setup: summaryRows,
-        })
-      : null
+        }),
+      )
+    },
+  })
+
+  // The FULL wordle menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. Reveal wears the
+  // same two faces here as on the terminal button, because it IS that binding.
+  useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current.endGame(),
-        onConcede: () => actionsRef.current.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          // Mobile-only "Game info" item (reaches the off-canvas info column);
-          // empty on desktop where the column is always visible.
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
-              // Same setup + roster, a fresh random target, a NEW game id.
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
-              {
-                id: 'reveal',
-                // The menu item wears the same two faces as the terminal
-                // button, since it fires the same toggle.
-                // The View glyph, not EyeOff, once solving put it there — see
-                // RevealButton for why the inert face keeps the plain eye.
-                icon: answerShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
-                label: impliedBySolve
-                  ? 'Solution already shown'
-                  : answerShown
-                    ? 'Hide answer'
-                    : 'Reveal answer',
-                // Terminal-only: the target doesn't reach the client until the
-                // game is over for everyone (wordle._target_for), so a player
-                // who dropped out early can't peek at a live race. Inert too
-                // once solving has already put the word on screen.
-                disabled: !isTerminal || impliedBySolve,
-                onClick: () => actionsRef.current.reveal(),
-              },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWordlePdf(printModel) }] }]
-            : []),
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [
-    menu, mode, isTerminal, myConceded, answerShown, impliedBySolve,
-    // The print model's inputs — rebuilt whenever the printable state moves, so
-    // the snapshot is current at click time.
-    brand, title, game, guesses, members, session.user.id, maxGuesses, solvedIds,
-    summaryRows,
-  ])
-
-  // Keep the ref's action closures current so the menu effect above never
-  // needs the (identity-changing) handlers in its own dep array.
-  useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      reveal: toggleAnswer,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, toggleAnswer, handleNewGame])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -581,16 +542,12 @@ export function PlayArea({
         playerStates={playerStates}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onRevealAnswer={toggleAnswer}
-        answerShown={answerShown}
-        answerAlreadyShown={impliedBySolve}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
-        onRequestBackToClub={menu.requestBackToClub}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actReveal={actReveal}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={wordleSetup}
         setupRows={summaryRows}
@@ -609,7 +566,6 @@ export function PlayArea({
           action-row outcome line, and a coop solve gets the celebration
           instead. */}
       {celebration.show && <CelebrationBlockingModal title="Solved! 🎉" onClose={celebration.close} />}
-      {confirmationModal}
     </div>
   )
 }

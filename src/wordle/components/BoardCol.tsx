@@ -212,17 +212,16 @@ export function BoardCol({
   }
 
   // ─── Edit the active row (dismisses any sticky local pill) ─────
-  // Typing a letter or backspacing is the player's "next move", so it clears the last
-  // soft-reject pill. Both the physical and on-screen keyboards route through these, so
-  // the clear lives in one place. `clearLocalFeedback` is stable (the hook memoizes
-  // it), so these stay effectively constant.
+  // Typing a letter is the player's "next move", so it clears the last
+  // soft-reject pill. Both keyboards route through here — the physical one via
+  // `act-type-letter` inside the capture hook, an on-screen cap by calling it —
+  // so the clear lives in one place. Backspace needs no twin: the ⌫ cap IS
+  // `act-delete-last`, and that binding already dismisses on the way through.
+  // `clearLocalFeedback` is stable (the hook memoizes it), so this stays
+  // effectively constant.
   const typeLetter = useCallback((ch: string) => {
     clearLocalFeedback()
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
-  }, [clearLocalFeedback])
-  const deleteLetter = useCallback(() => {
-    clearLocalFeedback()
-    setCurrent((c) => c.slice(0, -1))
   }, [clearLocalFeedback])
 
   /**
@@ -312,7 +311,7 @@ export function BoardCol({
   // EntryBox (letters land on the Board, not a box), so it uses useCaptureKeys
   // ALONE — no ArrowUp-recall / ArrowDown-clear (those are useArrowHistory, layered on
   // by <EntryRow> for the EntryBox games only).
-  useCaptureKeys({
+  const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value: current,
     onChange: setCurrent,
     onSubmit: () => void doSubmit(current),
@@ -383,8 +382,8 @@ export function BoardCol({
           <GuessKeyboard
             keyStates={keyTones}
             onKey={typeLetter}
-            onEnter={() => void doSubmit(current)}
-            onBackspace={deleteLetter}
+            actSubmit={actSubmitEntry}
+            actDelete={actDeleteLast}
             disabled={!canGuess}
             gameOver={gameOver !== null}
           />
