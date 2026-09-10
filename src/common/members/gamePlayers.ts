@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-members
 
 import type { GamePlayer } from './member'
 

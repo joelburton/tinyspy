@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-members
 
 import { borderVarFor, colorVarFor } from './memberColor'
 import { cls } from '../utils/cls'

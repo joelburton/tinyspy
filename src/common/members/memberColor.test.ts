@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-members
 
 import { describe, expect, it } from 'vitest'
 import { colorByUserIdMap, colorVarFor } from './memberColor'
