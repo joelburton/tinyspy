@@ -4,15 +4,11 @@ import type React from 'react'
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { RestartButton } from '@/common/buttons/RestartButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
-import { BackToClubButton } from '@/common/buttons/BackToClubButton'
-import { RevealButton } from '@/common/buttons/RevealButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
@@ -33,12 +29,6 @@ type Props = {
   iSolved: boolean
   isTerminal: boolean
   over: TerminalCopy | null
-  /** Are the unfound words drawn on the board right now? Swaps the button to
-   *  its Hide face. */
-  solutionShown: boolean
-  /** Is the answer up because this player SOLVED it (which consumes the board,
-   *  so there's nothing left to uncover)? The control goes inert and says so. */
-  solutionAlreadyShown: boolean
   /** The theme words, SPANGRAM FIRST — non-null only while the solution is
    *  showing, since this is the same secret the board's gray lines are. The
    *  board draws paths and never spells anything out, so without this the
@@ -61,13 +51,21 @@ type Props = {
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
   // ── Actions ──
-  onEndGame: () => void
-  onConcede: () => void
-  onRestart: () => void
-  onNewGame: () => void
-  startingNewGame: boolean
-  onReveal: () => void
-  onBackToClub: () => void
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete, and
+   *  gray once you have SOLVED it (conceding would forfeit a banked win). */
+  actConcede: BoundAction
+  /** Trace this board again from scratch. */
+  actRestart: BoundAction
+  /** Start the next puzzle nobody here has played. Disables itself while the
+   *  create is in flight. */
+  actNewGame: BoundAction
+  /** Show the unfound words — or put them away again. A local display toggle
+   *  carrying its own two faces, the inert "solution already shown" included. */
+  actReveal: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  actBackToClub: BoundAction
   // ── Turn-history viewer ──
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
@@ -91,8 +89,6 @@ export function InfoCol({
   iSolved,
   isTerminal,
   over,
-  solutionShown,
-  solutionAlreadyShown,
   solutionWords,
   currentTurnUserId,
   clue,
@@ -104,13 +100,12 @@ export function InfoCol({
   solvedIds,
   selfId,
   setupRows,
-  onEndGame,
-  onConcede,
-  onRestart,
-  onNewGame,
-  startingNewGame,
-  onReveal,
-  onBackToClub,
+  actEndGame,
+  actConcede,
+  actRestart,
+  actNewGame,
+  actReveal,
+  actBackToClub,
   viewingIndex,
   onSelectTurn,
 }: Props) {
@@ -183,33 +178,28 @@ export function InfoCol({
             nothing autoreveals — a finished board keeps its unfound words until
             the players ask. PLAYING: End + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} backShow="icon">
-            <RevealButton
-              show="icon"
-              label="Reveal answer"
-              revealedLabel="Hide answer"
-              revealed={solutionShown}
-              alreadyShown={solutionAlreadyShown}
-              onClick={onReveal}
-            />
-            <RestartButton show="icon" onClick={onRestart} />
-            <NewGameButton show="icon" onClick={onNewGame} disabled={startingNewGame} />
+          <TerminalActionRow over={over}>
+            <ActionButton action={actReveal} show="icon" />
+            <ActionButton action={actRestart} show="icon" />
+            <ActionButton action={actNewGame} show="icon" />
+            <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           /* Compete, my race over while the others play on: the terminal LOOK
              (a status line + a disabled action), so the frozen board has an
              explanation beside it. */
           <LocalTerminalRow label={iSolved ? 'You solved it — waiting' : 'You conceded'}>
-            <ConcedeGameButton show="icon" className={shared.helperButton} disabled />
+            {/* Concede grays itself once you have solved or dropped out — the
+                row keeps its shape and the button says why. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {isCompete ? (
-              <ConcedeGameButton show="icon" className={shared.helperButton} onClick={onConcede} />
-            ) : (
-              <EndGameButton show="icon" className={shared.helperButton} onClick={onEndGame} />
-            )}
-            <BackToClubButton show="icon" onClick={onBackToClub} />
+            {/* Both exits are placed; each hides itself in the mode that isn't
+                its own, so this row asks nothing about coop vs compete. */}
+            <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
+            <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+            <ActionButton action={actBackToClub} show="icon" />
           </div>
         )}
 

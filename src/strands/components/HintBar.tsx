@@ -1,7 +1,8 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { HintButton } from '@/common/buttons/HintButton'
+import { ActionButton } from '@/common/actions/ActionButton'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import styles from './HintBar.module.css'
 
 type Props = {
@@ -11,8 +12,10 @@ type Props = {
   cost: number
   /** A hint is already on the board. */
   showing: boolean
-  disabled?: boolean
-  onSpend: () => void
+  /** Cash a hint. It carries its own reason — "A hint is already showing",
+   *  "Find N more valid words", "Reveal the tiles of one theme word" — because
+   *  what this control can do depends on the economy, not on the bar. */
+  actHint: BoundAction
 }
 
 /**
@@ -36,7 +39,7 @@ type Props = {
  * never states the remaining count, so an early click is a fair question — and
  * a disabled button is the one response that can't answer it.
  */
-export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
+export function HintBar({ points, cost, showing, actHint }: Props) {
   const full = points >= cost
   const pct = Math.min(100, Math.round((points / Math.max(1, cost)) * 100))
 
@@ -55,30 +58,19 @@ export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {/* The shared HintButton — icon + label, in the roster's amber "help"
-          tone (ui.md → Button iconography). NOT icon-only: this is the one
-          control the whole hint economy exists to reach, so it says its name. */}
-      <HintButton
+      {/* `act-hint` — icon + label, in the roster's amber "help" tone (ui.md →
+          Button iconography). NOT icon-only: this is the one control the whole
+          hint economy exists to reach, so it says its name. */}
+      <ActionButton
+        action={actHint}
         show="both"
         className={cls(styles.hint, full && !showing && styles.hintReady)}
-        onClick={onSpend}
-        // A hint already on the board blocks a second one: the board can only
-        // ring one word legibly, and the server refuses anyway.
-        //
-        // An UNFILLED bar deliberately does NOT disable it. Clicking early is a
-        // question — "how many more?" — and a dead button refuses to answer;
-        // the host handles the click by saying the number in the feedback pill
-        // (see PlayArea's `spendHint`). The two states still look different:
-        // `hintReady` fills the button amber only when a hint is actually
-        // there to cash.
-        disabled={disabled || showing}
-        title={
-          showing
-            ? 'A hint is already showing'
-            : full
-              ? 'Reveal the tiles of one theme word'
-              : `Find ${cost - points} more valid word${cost - points === 1 ? '' : 's'}`
-        }
+        // A hint already on the board blocks a second one, and an UNFILLED bar
+        // deliberately does NOT: clicking early is a question — "how many
+        // more?" — and a dead button refuses to answer, so the run says the
+        // number in the feedback pill instead. Both are the action's to decide;
+        // what stays here is `hintReady`, which fills the button amber only when
+        // a hint is actually there to cash.
       />
     </div>
   )

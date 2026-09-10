@@ -353,6 +353,10 @@ meant" now happens per keystroke, and falls back to clicking exactly when it mus
 | `⌫` | Drop the last tile from the trace — a misclick costs one key, not the whole word. Same as the ⌫ button left of the word. |
 | `Enter` | Submit the trace — one of only TWO ways, with the submit button right of the word. Re-clicking the last tile used to be a third; it was removed on 2026-08-14 for firing on misclicks, and now takes that letter back instead. |
 
+⌫ and Enter go GRAY rather than absent with nothing traced or on a frozen board,
+so the row never reflows — and a disabled action leaves its key for whoever else
+wants it, which is how a keystroke reaches the history viewer's any-key exit.
+
 ## waffle
 
 No board keyboard — swapping is a drag/click gesture. Keys do only the two

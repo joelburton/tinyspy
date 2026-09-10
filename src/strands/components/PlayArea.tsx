@@ -1,8 +1,8 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution, IconPrint, IconRestart, IconRevealSolution } from '@/common/icons/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -11,18 +11,18 @@ import type { GamePlayer } from '@/common/members/member'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useFlash } from '@/common/move-flash/useFlash'
 import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/turn-log/turnCopy'
 import { memberById } from '@/common/members/memberList'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { NEW_GAME_CONFIRM, useConfirmation } from '@/common/floating-panels/useConfirmation'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
-import { buildGameMenu, NEW_GAME_ID } from '@/common/menu/gameMenu'
+import { buildGameMenu } from '@/common/menu/gameMenu'
 import { buildPrintModel } from '../pdf/model'
 import { printStrandsPdf } from '../pdf/printStrandsPdf'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -171,7 +171,7 @@ function buildOver(
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session,
-    setup, goToClub, clubHandle, goToGame, menu, brand, title,
+    setup, clubHandle, goToGame, menu, brand, title,
     isMyTurn, currentTurnUserId,
   } = ctx
 
@@ -204,7 +204,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // slot then, so a stale own-move pill must not be able to replace it.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
     useLocalFeedback({ locked: isTerminal })
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
   const { acknowledge, acknowledgeModal } = useAcknowledge()
   const infoSheet = useInfoSheet()
 
@@ -344,6 +343,24 @@ export function PlayArea(ctx: GamePageCtx) {
     if (trace.length) void submit(trace)
   }, [trace, submit])
 
+  // ⌫ and Enter, as the two bindings the move row places. ONE gate for both:
+  // with nothing traced there is nothing to take back OR submit, and a frozen
+  // board freezes them too. They go DISABLED rather than hidden, so the row
+  // keeps its slot and never reflows — and a disabled action leaves its key for
+  // whoever else wants it, which is how the history viewer gets Backspace.
+  //
+  // `describe` is read at DRAW time, so it may name values (`isLocallyDone`,
+  // `waiting`) that this file derives further down, past the loading guards.
+  const entryOff = () => trace.length === 0 || isTerminal || isLocallyDone || busy || waiting
+  const actDropLastCell = useBoundAction('act-drop-last-cell', {
+    describe: () => (entryOff() ? 'disabled' : 'active'),
+    run: deleteLast,
+  })
+  const actSubmitEntry = useBoundAction('act-submit-entry', {
+    describe: () => (entryOff() ? 'disabled' : 'active'),
+    run: submitTrace,
+  })
+
   /**
    * The board's keyboard. strands still takes no typed WORDS — a board repeats
    * letters, so a typed *string* doesn't identify a path — but a typed LETTER
@@ -366,71 +383,49 @@ export function PlayArea(ctx: GamePageCtx) {
    * holds no focus — there is no text input to type into, so there would be
    * nothing for a local handler to hang off.
    */
-  useGlobalKeyHandler(
-    useCallback(
-      (e: KeyboardEvent) => {
-        // Replaying a past turn? A bare keystroke returns to live and is
-        // CONSUMED, so the same press doesn't also start a trace.
-        if (viewer.exitOnKey(e)) return
-        // ANY key dismisses the last verdict, matching every other game: the
-        // own-move pill is `sticky`, which by convention means "stays until the
-        // next move dismisses it — a keystroke or a tile click routed through
-        // clearLocalFeedback" (common/feedback/localPills). Done first, and
-        // outside the terminal/busy gate, so the pill clears even for keys that
-        // then do nothing.
-        clearLocalFeedback()
-        if (e.key === 'Tab') {
-          e.preventDefault()
-          return
-        }
-        if (isTerminal || busy || !isMyTurn) return
-        if (e.key === 'Backspace') {
-          e.preventDefault()
-          deleteLast()
-          return
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          submitTrace()
-          return
-        }
-        if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key) && game) {
-          e.preventDefault()
-          const r = typeLetter(trace, e.key, game.board, consumed)
-          if (r.kind === 'extend') {
-            // Same as a click: this keystroke resolved things, so any rings from
-            // a previous one stop pointing.
-            flashAmbiguous([])
-            setTrace([...trace, r.at])
-          } else if (r.kind === 'ambiguous') {
-            // No pill here on purpose: this row IS the entry area, so a pill
-            // would hide the word being built to say something the board can
-            // say better. The red rings ARE the message.
-            flashAmbiguous(r.candidates)
-          } else {
-            // Nothing matched. Unlike the ambiguous case there is nothing on the
-            // board to point at, and it's nearly always a player mistake rather
-            // than a choice to make — so it gets words.
-            showLocalFeedback(
-              stickyPill(
-                'lost',
-                trace.length
-                  ? `No “${e.key.toUpperCase()}” next to that letter`
-                  : `No “${e.key.toUpperCase()}” left on the board`,
-              ),
-            )
-          }
-        }
-      },
-      // `consumed` is rebuilt each render from `found`; the found LENGTH stands
-      // in for it, exactly as in onTileClick above.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [
-        isTerminal, busy, isMyTurn, trace, game, found.length, deleteLast, submitTrace,
-        flashAmbiguous, showLocalFeedback, clearLocalFeedback, viewer,
-      ],
-    ),
-  )
+  // Any key dismisses the last verdict, matching every other game: the own-move
+  // pill is `sticky`, which by convention means "stays until the next move
+  // dismisses it". A watcher that claims nothing, so the same press still traces
+  // its letter.
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // Tab is swallowed: the tiles already left the tab order (`tabIndex={-1}`), so
+  // this is belt and braces — nothing on the board should shift focus mid-trace.
+  useSwallowTab()
+
+  // A letter EXTENDS the trace, if exactly one neighboring tile bears it. A
+  // pattern action, so it is handed whichever letter fired it. Inert while the
+  // board is not the player's to touch — and while a past turn is open, which is
+  // the viewer's key rather than the board's.
+  useBoundAction('act-extend-trace', {
+    describe: () => (isTerminal || busy || !isMyTurn || viewer.viewing ? 'disabled' : 'active'),
+    run: (key) => {
+      if (!game || !key) return
+      const r = typeLetter(trace, key, game.board, consumed)
+      if (r.kind === 'extend') {
+        // Same as a click: this keystroke resolved things, so any rings from a
+        // previous one stop pointing.
+        flashAmbiguous([])
+        setTrace([...trace, r.at])
+      } else if (r.kind === 'ambiguous') {
+        // No pill here on purpose: that row IS the entry area, so a pill would
+        // hide the word being built to say something the board can say better.
+        // The red rings ARE the message.
+        flashAmbiguous(r.candidates)
+      } else {
+        // Nothing matched. Unlike the ambiguous case there is nothing on the
+        // board to point at, and it's nearly always a player mistake rather than
+        // a choice to make — so it gets words.
+        showLocalFeedback(
+          stickyPill(
+            'lost',
+            trace.length
+              ? `No “${key.toUpperCase()}” next to that letter`
+              : `No “${key.toUpperCase()}” left on the board`,
+          ),
+        )
+      }
+    },
+  })
 
   const spendHint = useCallback(async () => {
     // Not enough points yet. The button stays CLICKABLE in this state on
@@ -459,6 +454,32 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
   }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
+
+  // Cash a hint — the hint bar's button, and nothing else (strands' hints are
+  // EARNED, so there is no key to press for one).
+  //
+  // Live on an UNFILLED bar on purpose. Clicking early is a question — "how many
+  // more?" — and a dead button refuses to answer, so `spendHint` says the number
+  // in the pill instead. A hint already on the board is the one state that does
+  // gray it: the board can only ring one word legibly, and the server refuses a
+  // second anyway.
+  const actHint = useBoundAction('act-hint', {
+    describe: () => {
+      const showing = (me?.active_hint_coords ?? null) !== null
+      const points = me?.hint_points ?? 0
+      const cost = game?.hint_cost ?? 0
+      if (isTerminal || isLocallyDone || busy || viewer.viewing || showing) {
+        return { state: 'disabled', label: showing ? 'A hint is already showing' : 'Hint' }
+      }
+      return points >= cost
+        ? { state: 'active', label: 'Reveal the tiles of one theme word' }
+        : {
+            state: 'active',
+            label: `Find ${cost - points} more valid word${cost - points === 1 ? '' : 's'}`,
+          }
+    },
+    run: spendHint,
+  })
 
   // ─── The answer shows only when I ask for it ──────────
   // Never automatically, a win included (where the board you just consumed IS
@@ -489,13 +510,30 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // End / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.
-  const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
-    useStandardGameActions({
+  // Reveal the words — a LOCAL display toggle: it shows them to me alone, writes
+  // nothing, and affects no peer. Terminal-only, since `_solution_for` withholds
+  // them until the game is over for everyone, so a rival who solved early or
+  // conceded can't pull them while the others are still tracing.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: () => {
+      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
+      if (solutionShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
+      // Named in the inert case too: the registry's bare "Reveal" would make the
+      // row change its words as the game ended, which is not what it says.
+      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal answer' }
+    },
+    run: toggleSolution,
+  })
+
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: isCompete ? 'compete' : 'coop',
     myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
-    confirm: confirmAction,
+    // Solved and waiting for the others: conceding would forfeit a win already
+    // banked, so it goes gray and you leave via Back to club.
+    selfSolved: me?.solved ?? false,
     showError: showLocalFeedback,
     // The same board, traced again — so forget my choice about the answer.
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
@@ -522,7 +560,7 @@ export function PlayArea(ctx: GamePageCtx) {
    * deliberately doesn't own it, because exactly this kind of per-game choice
    * lives in it.
    */
-  const [startNewGame, startingNewGame] = useSingleFlight(async () => {
+  const startNewGame = async () => {
     if (!game) return
 
     // WHICH puzzle is the server's call (`strands.next_puzzle_for_club`,
@@ -533,12 +571,13 @@ export function PlayArea(ctx: GamePageCtx) {
     // and spans clubs, so a puzzle you played alone can't resurface in a
     // game with friends.
     //
-    // We still ASK first, and the ask names the puzzle — "start a new game"
-    // is vague when the whole point is which one you're about to get. That
-    // needs a read, so this preview call exists purely for the wording. It
-    // can go stale in the same harmless way the setup dialog's line can (a
-    // peer starting that very puzzle in the gap), and for the same reason
-    // nothing downstream depends on it: the authority is the create below.
+    // The read is here for ONE thing: the dead end below. Which puzzle you get
+    // is the server's call and needs no announcing — "the next one nobody here
+    // has played" is the whole rule, and the registry's New-game question says
+    // the part that matters (this game is shelved, not lost). The answer can go
+    // stale in the same harmless way the setup dialog's line can (a peer
+    // starting that very puzzle in the gap), and for the same reason nothing
+    // downstream depends on it: the authority is the create below.
     const preview = await runRpc<PuzzleAnswer>(
       db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
     )
@@ -566,20 +605,11 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({ ...getNotOkFeedback(preview), mode: { kind: 'manual' } })
       return
     } else if (preview.type === 'ok' && preview.data.result === 'found') {
-      // A puzzle is waiting, so the confirm below runs.
+      // A puzzle is waiting — carry on and create.
     } else {
       reportUnhandled('next_puzzle_for_club', preview)
       return
     }
-    const next = preview.data.puzzle
-
-    if (
-      !(await confirmAction({
-        ...NEW_GAME_CONFIRM,
-        title: `Play the ${next.puzzle_date} puzzle?`,
-      }))
-    ) return
-
     // The current MODE rides along — a finished compete race's "New game" is
     // the next race, not a quiet switch to coop.
     //
@@ -615,119 +645,71 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('create_game', res)
       return
     }
+  }
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // strands' New game is the NEXT PUZZLE nobody at the table has played, which
+  // the server picks; the registry's question is the right one for it, since
+  // what matters to the player is that this game is shelved rather than lost.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: startNewGame,
   })
 
-  // The GamePage menu. Held in a ref so the effect needn't list the per-render
-  // handlers in its deps (the crosswords `actionsRef` pattern).
-  // Every action the terminal row offers is ALSO a menu item — the roster's
-  // rule, and the reason the ref carries all five rather than just the two
-  // buildGameMenu asks for. Held in a ref so the menu effect needn't list the
-  // (identity-changing) handlers in its deps.
-  const actionsRef = useRef({
-    endGame: handleEndGame,
-    concede: handleConcede,
-    restart: handleRestart,
-    newGame: startNewGame,
-    reveal: toggleSolution,
+  // Print the board — a snapshot at CLICK time (docs/pdf.md). Nothing has to be
+  // re-shielded here: `events` is already whatever RLS let through (own only, in
+  // compete, until terminal) and `game.solution` is null until the reveal, so
+  // the model simply has nothing early to leak.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      printStrandsPdf(
+        buildPrintModel({
+          header: {
+            brand,
+            gameTitle: title,
+            date: new Date().toLocaleDateString(),
+            // The clue leads, then the count. The clue is in the title too, but
+            // that truncates to clear the date — this line doesn't, so it's the
+            // one that can be relied on to carry the theme.
+            summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
+            mode: game.mode,
+            setup: summaryRows,
+          },
+          board: game.board,
+          mode: game.mode,
+          isTerminal,
+          events,
+          players,
+          playerStates,
+          selfId,
+          solution: game.solution,
+        }),
+      )
+    },
   })
-  const modeRef = useRef<'coop' | 'compete'>('coop')
-  const concededRef = useRef(false)
-  useEffect(() => {
-    actionsRef.current = {
-      endGame: handleEndGame,
-      concede: handleConcede,
-      restart: handleRestart,
-      newGame: startNewGame,
-      reveal: toggleSolution,
-    }
-    modeRef.current = isCompete ? 'compete' : 'coop'
-    concededRef.current = players.find((p) => p.user_id === selfId)?.conceded ?? false
-  })
-  useEffect(() => {
-    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). Nothing has
-    // to be re-shielded here: `events` is already whatever RLS let through
-    // (own only, in compete, until terminal) and `game.solution` is null until
-    // the reveal, so the model simply has nothing early to leak.
-    const printModel = game
-      ? buildPrintModel({
-        header: {
-          brand,
-          gameTitle: title,
-          date: new Date().toLocaleDateString(),
-          // The clue leads, then the count. The clue is in the title too, but
-          // that truncates to clear the date — this line doesn't, so it's the
-          // one that can be relied on to carry the theme.
-          summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
-          mode: game?.mode ?? 'coop',
-          setup: summaryRows,
-        },
-        board: game.board,
-        mode: game.mode,
-        isTerminal,
-        events,
-        players,
-        playerStates,
-        selfId,
-        solution: game.solution,
-      })
-      : null
 
+  // The FULL strands menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. Every action the
+  // terminal row offers is ALSO a row here, which is the roster's rule.
+  useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: modeRef.current,
-        isTerminal,
-        conceded: concededRef.current,
-        onEndGame: () => actionsRef.current.endGame(),
-        onConcede: () => actionsRef.current.concede(),
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
         extra: [
-          // Mobile-only "Game info" (reaches the off-canvas info column); empty
-          // on desktop, where that column is always visible.
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
-              // NEW_GAME_ID is a contract with the shell, not a name: the `+`
-              // shortcut finds the item by that id and inherits its disabled
-              // state. strands' New game is the NEXT DAY'S puzzle.
-              {
-                id: NEW_GAME_ID,
-                label: 'New game',
-                shortcut: '+',
-                disabled: startingNewGame,
-                onClick: () => actionsRef.current.newGame(),
-              },
-              {
-                id: 'reveal',
-                // The same two faces as the terminal row's button — one toggle.
-                // The View glyph, not EyeOff, once solving put it there — see
-                // RevealButton for why the inert face keeps the plain eye.
-                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconRevealSolution,
-                label: impliedBySolve
-                  ? 'Solution already shown'
-                  : solutionShown
-                    ? 'Hide answer'
-                    : 'Reveal answer',
-                // Terminal-only: _solution_for withholds the words until the
-                // game is over for everyone, so a rival who solved early or
-                // conceded can't pull them while the others are still tracing.
-                disabled: !isTerminal || impliedBySolve,
-                onClick: () => actionsRef.current.reveal(),
-              },
-            ],
-          },
-          ...(printModel
-            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printStrandsPdf(printModel) }] }]
-            : []),
+          { items: [actRestart, actNewGame, actReveal] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
-  }, [
-    menu, isTerminal, solutionShown, impliedBySolve, startingNewGame,
-    // The print model's inputs — rebuilt whenever the printable state moves, so
-    // the snapshot is current at click time.
-    brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,
-    summaryRows,
-  ])
+    return () => menu.setGameSections([])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -838,7 +820,6 @@ export function PlayArea(ctx: GamePageCtx) {
         // turn-gated (a team decision, not a move), so waiting must not dim
         // it — but replaying history must, or a click meant to exit the viewer
         // would irreversibly spend a hint.
-        hintDisabled={isTerminal || isLocallyDone || busy || viewer.viewing}
         viewing={viewer.viewing}
         highlight={snap?.highlight ?? []}
         viewingDescription={snap?.description ?? ''}
@@ -846,21 +827,15 @@ export function PlayArea(ctx: GamePageCtx) {
         // The word being traced. Shares its slot with the verdict pill — you are
         // either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
-        onDelete={deleteLast}
-        onSubmit={submitTrace}
-        // One gate for both controls: with nothing traced there is nothing to
-        // take back OR submit, and a frozen board freezes them too. They stay
-        // MOUNTED and merely disabled, so the slot never reflows.
-        entryDisabled={
-          trace.length === 0 || isTerminal || isLocallyDone || busy || waiting
-        }
+        actDelete={actDropLastCell}
+        actSubmit={actSubmitEntry}
         ambiguous={[...ambiguous]}
         pill={pill}
         onDismissPill={clearLocalFeedback}
         hintPoints={me?.hint_points ?? 0}
         hintCost={game.hint_cost}
         hintShowing={(me?.active_hint_coords ?? null) !== null}
-        onSpendHint={spendHint}
+        actHint={actHint}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -872,8 +847,6 @@ export function PlayArea(ctx: GamePageCtx) {
           solvedIds={new Set(playerStates.filter((p) => p.solved).map((p) => p.user_id))}
           isTerminal={isTerminal}
           over={over}
-          solutionShown={solutionShown}
-          solutionAlreadyShown={impliedBySolve}
           solutionWords={solutionWords}
           currentTurnUserId={ctx.currentTurnUserId ?? null}
           clue={game.clue}
@@ -884,19 +857,17 @@ export function PlayArea(ctx: GamePageCtx) {
           selfId={session.user.id}
           setup={strandsSetup}
           setupRows={summaryRows}
-          onEndGame={handleEndGame}
-          onConcede={handleConcede}
-          onRestart={handleRestart}
-          onNewGame={startNewGame}
-          startingNewGame={startingNewGame}
-          onReveal={toggleSolution}
-          onBackToClub={goToClub}
+          actEndGame={actEndGame}
+          actConcede={actConcede}
+          actRestart={actRestart}
+          actNewGame={actNewGame}
+          actReveal={actReveal}
+          actBackToClub={menu.actBackToClub}
           viewingIndex={viewer.viewingId}
           onSelectTurn={viewer.select}
         />
       </InfoSheet>
 
-      {confirmationModal}
       {acknowledgeModal}
       {celebration.show && (
         <CelebrationBlockingModal

@@ -5,6 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { Coord } from '../lib/board'
 import { MoveRow } from '@/common/word-entry/MoveRow'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { EntryBox } from '@/common/word-entry/EntryBox'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
@@ -21,10 +22,6 @@ type Props = {
   hintCoords: Coord[] | null
   onTileClick: (at: Coord) => void
   disabled: boolean
-  /** The hint bar's own gate — NOT `disabled`: spending isn't turn-gated (a
-   *  team decision, not a move), but it IS blocked while replaying history,
-   *  where a click means "exit the viewer", never "spend a hint". */
-  hintDisabled: boolean
   /** Replaying a past turn. */
   viewing: boolean
   /** The viewed turn's traced cells, ringed. */
@@ -34,13 +31,10 @@ type Props = {
   onExitViewing: () => void
   /** The word being traced, as text. Empty when nothing is selected. */
   echo: string
-  /** Take back the last traced cell (the ⌫ button; Backspace does the same). */
-  onDelete: () => void
-  /** Submit the trace (the Submit button; Enter
-   *  do the same). */
-  onSubmit: () => void
-  /** Nothing is being traced, or the board is frozen — both controls inert. */
-  entryDisabled: boolean
+  /** Take back the last traced cell — ⌫ and the button, one binding. */
+  actDelete: BoundAction
+  /** Submit the trace — Enter and the button, one binding. */
+  actSubmit: BoundAction
   /** Cells a typed letter matched when it matched several — ringed red for a beat. */
   ambiguous: Coord[]
   /** The pill that replaces the echo: an own-move verdict, or the terminal one. */
@@ -50,7 +44,8 @@ type Props = {
   hintPoints: number
   hintCost: number
   hintShowing: boolean
-  onSpendHint: () => void
+  /** Cash a hint — the bar's button IS this binding. */
+  actHint: BoundAction
 }
 
 /**
@@ -75,22 +70,20 @@ export function BoardCol({
   hintCoords,
   onTileClick,
   disabled,
-  hintDisabled,
   viewing,
   highlight,
   viewingDescription,
   onExitViewing,
   echo,
-  onDelete,
-  onSubmit,
-  entryDisabled,
+  actDelete,
+  actSubmit,
   ambiguous,
   pill,
   onDismissPill,
   hintPoints,
   hintCost,
   hintShowing,
-  onSpendHint,
+  actHint,
 }: Props) {
   return (
     <div className={shared.boardCol}>
@@ -150,13 +143,7 @@ export function BoardCol({
              last letter, which was removed on 2026-08-14 for being a misclick
              magnet — which makes this button load-bearing rather than a
              convenience.) */
-          <MoveRow
-            className={styles.moveRow}
-            onDelete={onDelete}
-            onSubmit={onSubmit}
-            deleteDisabled={entryDisabled}
-            submitDisabled={entryDisabled}
-          >
+          <MoveRow className={styles.moveRow} actDelete={actDelete} actSubmit={actSubmit}>
             <EntryBox value={echo} className={styles.echo} />
           </MoveRow>
         )}
@@ -166,8 +153,7 @@ export function BoardCol({
         points={hintPoints}
         cost={hintCost}
         showing={hintShowing}
-        disabled={hintDisabled}
-        onSpend={onSpendHint}
+        actHint={actHint}
       />
     </div>
   )

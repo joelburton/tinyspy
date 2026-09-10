@@ -6,6 +6,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 
@@ -111,20 +113,23 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
 }
 
-/** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+/** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would draw
+ *  — a row is a bound action now, so its words, glyph and availability come from
+ *  the action rather than from the list. */
 function menuItems(ctx: GamePageCtx) {
   const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-  const sections = setSections.mock.calls.at(-1)?.[0] ?? []
-  return new Map(
-    (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
-      .flatMap((s) => s.items)
-      .map((i) => [i.id, i]),
-  )
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
 beforeEach(() => {
@@ -147,13 +152,13 @@ describe('strands PlayArea — the three phases', () => {
     const { unmount } = render(<PlayArea {...live} />)
     // Mid-game the menu row exists but is inert — the solution isn't even on
     // this client yet (strands._solution_for gates on is_terminal).
-    expect(menuItems(live).get('reveal')?.disabled).toBe(true)
+    expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
     h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
     const done = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...done} />)
-    expect(menuItems(done).get('reveal')?.disabled).toBe(false)
+    expect(menuItems(done).get('act-reveal')?.disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
@@ -231,9 +236,9 @@ describe('strands PlayArea — the terminal reveal', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     finished()
     render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal answer')
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal answer')
 
-    act(() => menuItems(ctx).get('reveal')!.onClick())
-    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide answer'))
+    act(() => menuItems(ctx).get('act-reveal')!.run())
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide answer'))
   })
 })
