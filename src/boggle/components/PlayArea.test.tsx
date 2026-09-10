@@ -20,6 +20,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -104,9 +107,23 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
-    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
+    menu: {
+      setGameSections: vi.fn(),
+      actHelp: boundActionFixture('act-help'),
+      actChat: boundActionFixture('act-open-chat'),
+      actBackToClub: boundActionFixture('act-back-to-club'),
+    },
     ...over,
   } as unknown as GamePageCtx
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Any test that TYPES needs it: the entry's letters, Backspace and Enter are
+ *  bound actions now, and a bare `render` binds them with nothing feeding them
+ *  keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
 }
 
 /** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
@@ -224,7 +241,7 @@ describe('boggle PlayArea — render smoke', () => {
     // feedback was suppressed. The board is 'abcdefghijklmnop' (no Z), so "zzz"
     // is a non-traceable, off-board word that never reaches the server.
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('zzz{Enter}')
     expect(screen.getByText(/not on board/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
@@ -240,13 +257,15 @@ describe('boggle PlayArea — render smoke', () => {
  * then ctx.goToGame.
  */
 describe('boggle PlayArea — icon-only action rows', () => {
-  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+  it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
+    // ONE binding for both rows: it navigates directly at terminal and routes
+    // through the suspend-confirm flow mid-game, so the game no longer picks
+    // between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
-    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
-    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+    expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
   it('terminal Restart calls replay_board WITHOUT confirming', async () => {
@@ -289,7 +308,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
     // 'cat' is in the required list (membership, not traceability, drives accept),
     // so it commits optimistically with the stored points + is_bonus=false.
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('cat{Enter}')
     expect(screen.getByText(/CAT — \+1/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith(
@@ -301,7 +320,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
   it('accepts a bonus word with the trailing dot', async () => {
     h.result = loaded(loadedGame({ bonus_words: [{ word: 'dog', points: 2 }] }))
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('dog{Enter}')
     expect(screen.getByText(/DOG • — \+2/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
@@ -312,7 +331,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
     // (a→i→? — actually a,i adjacent? the board is row-major abcd/efgh/ijkl/mnop;
     // pick a word whose letters trace): use a legal-list miss that traces.
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(<WithKeys {...makeCtx()} />)
     await user.keyboard('abe{Enter}') // a(0)→b(1)→e(4): adjacent, traceable, not in the lists
     expect(screen.getByText(/not a word/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
@@ -395,14 +414,28 @@ describe('boggle PlayArea — concede', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    // The trigger and the modal's confirm share the name "Concede"; the confirm
+    // is the one the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: /concede/i }))
-    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+    const confirms = await screen.findAllByRole('button', { name: /concede/i })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx()} />)
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // The trigger and the modal's confirm now share the name "End game" (the
     // button label went from "End" to the full phrase, since icon-only buttons

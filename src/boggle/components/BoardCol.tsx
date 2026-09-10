@@ -1,12 +1,13 @@
 // cs-unmet
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { terminalPill } from '@/common/feedback/localPills'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Stats, type BoggleStats } from './Stats'
@@ -171,6 +172,21 @@ export function BoardCol({
     onSubmit()
   }
 
+  // ⌥Z rotates — a fresh visual scan of the SAME board, never a move. Bound HERE
+  // rather than in the PlayArea because this column owns the view's rotation, and
+  // plainly active: rotating writes nothing and reaches nobody else, so the
+  // post-game fidget is deliberate. Rotating invalidates the traced path's
+  // coords (they point at view positions), so clear it — the same thing the
+  // round pill below has always done, now said once for both.
+  const handleRotate = useCallback(() => {
+    setTurns((t) => (t + 1) % 4)
+    setPath([])
+  }, [])
+  const actRotate = useBoundAction('act-rotate', {
+    describe: () => 'active',
+    run: handleRotate,
+  })
+
   return (
     <div
       className={cls(shared.boardCol, styles.boardCol)}
@@ -223,14 +239,7 @@ export function BoardCol({
             both modes; never persisted, never seen by others. INSIDE the grid (its
             position anchor) so it hugs the visual board, not the column. Rotating
             invalidates the traced path's coords, so clear it. */}
-        <ShuffleButton
-          onShuffle={() => {
-            setTurns((t) => (t + 1) % 4)
-            setPath([])
-          }}
-          tooltip="Rotate board"
-          className={shared.floatingShuffle}
-        />
+        <ShuffleButton action={actRotate} tooltip="Rotate board" className={shared.floatingShuffle} />
       </div>
       {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
           + icon-only Submit, plus the capture keyboard). It renders the terminal

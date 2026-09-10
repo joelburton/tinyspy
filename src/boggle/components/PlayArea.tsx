@@ -1,7 +1,6 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -10,7 +9,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useConfirmation, NEW_GAME_CONFIRM } from '@/common/floating-panels/useConfirmation'
+import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
@@ -21,7 +20,6 @@ import { outOfRacePill } from '@/common/feedback/localPills'
 import { memberById } from '@/common/members/memberList'
 import { DotActor } from '@/common/members/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
 import { type LadderName } from '../lib/solver'
@@ -73,7 +71,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -82,10 +80,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // fills for free (a square sized min(--avail-w, --avail-h, …)); input is tile
   // taps (path-tracing, see BoardCol). Desktop is unchanged.
   const infoSheet = useInfoSheet()
-
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // ─── Coop-target celebration ───────────────────────────
   // boggle's only unambiguous win: a COOP team crossing the score target
@@ -157,19 +151,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // locally-terminal look while the others race; peers show as "out" in the strip.
   const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-
-  // The End/Concede handlers are declared BELOW the menu effect (they depend on
-  // the move-entry hook, declared later). Hold them in a stable ref — populated
-  // by its own effect once they exist — so the menu effect can call them without
-  // listing them in its deps and re-running on every render (the crosswords
-  // `actionsRef` pattern; setGameSections is a setState, so a per-render re-run
-  // would loop).
-  const actionsRef = useRef<{
-    endGame: () => void
-    concede: () => void
-    restart: () => void
-    newGame: () => void
-  } | null>(null)
 
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
     useWordSubmit({
@@ -249,110 +230,88 @@ export function PlayArea(ctx: GamePageCtx) {
     [game?.bonus_words],
   )
 
-  // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from
-  // the live state (RLS already scoped `foundWords` to what I may see — coop = the
-  // team's, compete = my own) and hands it to the jsPDF renderer. A snapshot at
-  // click time — works mid-game or at the end. See docs/pdf.md.
-  useEffect(() => {
-    if (!game) return
-    // The same reveal the on-screen list uses: at terminal every missed word folds
-    // in (`buildDisplayRows` dedups found + appends the unfound) — required always,
-    // bonus only on a board with a genuinely wider legal band; mid-game there's no
-    // reveal, so only found words show. The print follows the screen deliberately:
-    // the missed-word list IS the post-game artifact. Look up each found word's
-    // points (the shared row type carries the finder/bonus but not the score).
-    // Gated on `isTerminal`, which is the whole rule for these three word-finding
-    // games: at game over the list shows what nobody found, and the KIND filter
-    // (found / missed) is the only control anyone needs over it. They carry no
-    // Reveal button on purpose — it would be a second, confusing way to switch
-    // between the same two lists (docs/ui.md → Terminal results). If we ever
-    // wanted the answer withheld at the end, the change is the filter's DEFAULT,
-    // not a new control.
-    const revealWords = isTerminal
-      ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
-      : null
-    const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
-    const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
-      word: r.word.toUpperCase(),
-      bonus: r.isBonus ?? false,
-      // A found word carries score + finder; an unfound (missed) reveal entry is bare.
-      found:
-        r.kind === 'found'
-          ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
-          : null,
-    }))
-    const model = {
-      brand,
-      gameTitle: title,
-      date: new Date().toLocaleDateString(),
-      // Coop's counts are the TEAM's, so the header can state them. Compete's
-      // are per-player — each section carries its own — so the header states
-      // only the shared target, rather than reporting the viewer's tally as if
-      // it were the table's.
-      summary:
-        game.mode === 'compete'
-          ? `${game.required_words_count} word${game.required_words_count === 1 ? '' : 's'} to find`
-          : `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
-      board: boardToDisplay(game.board, game.n),
-      mode: game?.mode ?? 'coop',
-      setup: summaryRows,
-      // Coop prints one shared list; compete a section per player, each with
-      // its own score, plus a trailing "Not found" for the terminal reveal.
-      sections: buildWordSections(words, game.mode, players, myId),
-    }
-    // The FULL boggle menu: Help (top) + our Print item + the End/Concede +
-    // Back-to-club tail. The End/Concede handlers dispatch through the stable
-    // `actionsRef` so this effect needn't depend on them (they're declared below).
-    menu.setGameSections(
-      buildGameMenu({
-        menu,
+  // Print the board — the plain-data print model built from the live state (RLS
+  // already scoped `foundWords` to what I may see — coop = the team's, compete =
+  // my own) and handed to the jsPDF renderer. Built inside `run`, so it is a
+  // snapshot at CLICK time and the menu needn't rebuild as words are found.
+  // Works mid-game or at the end. See docs/pdf.md.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (game ? 'active' : 'hidden'),
+    run: () => {
+      if (!game) return
+      // The same reveal the on-screen list uses: at terminal every missed word folds
+      // in (`buildDisplayRows` dedups found + appends the unfound) — required always,
+      // bonus only on a board with a genuinely wider legal band; mid-game there's no
+      // reveal, so only found words show. The print follows the screen deliberately:
+      // the missed-word list IS the post-game artifact. Look up each found word's
+      // points (the shared row type carries the finder/bonus but not the score).
+      // Gated on `isTerminal`, which is the whole rule for these three word-finding
+      // games: at game over the list shows what nobody found, and the KIND filter
+      // (found / missed) is the only control anyone needs over it. They carry no
+      // Reveal button on purpose — it would be a second, confusing way to switch
+      // between the same two lists (docs/ui.md → Terminal results). If we ever
+      // wanted the answer withheld at the end, the change is the filter's DEFAULT,
+      // not a new control.
+      const revealWords = isTerminal
+        ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
+        : null
+      const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
+      const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
+        word: r.word.toUpperCase(),
+        bonus: r.isBonus ?? false,
+        // A found word carries score + finder; an unfound (missed) reveal entry is bare.
+        found:
+          r.kind === 'found'
+            ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+            : null,
+      }))
+      printBogglePdf({
+        brand,
+        gameTitle: title,
+        date: new Date().toLocaleDateString(),
+        // Coop's counts are the TEAM's, so the header can state them. Compete's
+        // are per-player — each section carries its own — so the header states
+        // only the shared target, rather than reporting the viewer's tally as if
+        // it were the table's.
+        summary:
+          game.mode === 'compete'
+            ? `${game.required_words_count} word${game.required_words_count === 1 ? '' : 's'} to find`
+            : `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
+        board: boardToDisplay(game.board, game.n),
         mode: game.mode,
-        isTerminal,
-        conceded: myConceded,
-        onEndGame: () => actionsRef.current?.endGame(),
-        onConcede: () => actionsRef.current?.concede(),
-        extra: [
-          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
-          {
-            items: [
-              // Same board, wiped finds / same setup, fresh board + id.
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
-            ],
-          },
-        ],
-      }),
-    )
-    return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, myConceded, myCount, myScore, summaryRows, myId])
+        setup: summaryRows,
+        // Coop prints one shared list; compete a section per player, each with
+        // its own score, plus a trailing "Not found" for the terminal reveal.
+        sections: buildWordSections(words, game.mode, players, myId),
+      })
+    },
+  })
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
   // failure-pill format + the replay sentence are boggle's. Its errors share the
   // same below-board pill as a word submit (via showLocalFeedback). New game
   // stays below — its create path diverges per game.
-  const { endGame, concede, restart } = useStandardGameActions({
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
+    mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    confirm: confirmAction,
     showError: showLocalFeedback,
   })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
   // Same roster + mode, in the same club, via the same boggle-build-board edge
   // function the manifest's startGameInClub uses. Non-destructive (this game
-  // un-currents into the club list), so no confirm; the creator jumps in via
-  // ctx.goToGame, peers arrive via the game-invitation toast.
+  // un-currents into the club list); the creator jumps in via ctx.goToGame,
+  // peers arrive via the game-invitation toast.
+  //
+  // A plain function, rebuilt every render: the binding below reads it at click
+  // time, so `setup` and `players` are whatever the last realtime refetch left,
+  // and the action's own identity doesn't move when they do.
   const gameMode = game?.mode
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runEdgeFn<CreatedGame>(
       'boggle-build-board',
@@ -385,21 +344,41 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('boggle-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
+  // New game — its `+`, its menu row and its terminal button, from one binding.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
+  // create_game clears the club's current-view flag, so it stays resumable — the
+  // copy says shelved, not ended) and goes straight through at terminal, where
+  // there is nothing to interrupt. The shared run's single flight is what stops a
+  // second press building a second board.
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
-  // Keep the menu's actions current (read via the stable actionsRef, so the
-  // menu effect above never re-runs to pick up a new closure).
+  // The FULL boggle menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made — so a row's words, glyph, key and availability come
+  // from the action rather than being typed here a second time. The effect
+  // re-runs only when the SHAPE changes, which is why every dep is stable.
   useEffect(() => {
-    actionsRef.current = {
-      endGame,
-      concede,
-      restart,
-      newGame: () => void handleNewGame(),
-    }
-  }, [endGame, concede, restart, handleNewGame])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        // Both exits, in reading order; each hides itself in the mode that isn't
+        // its own, so this list is the same in coop and compete.
+        exits: [actConcede, actEndGame],
+        extra: [
+          { items: [actPrintBoard] },
+          // Same board, wiped finds / same setup, fresh board + id.
+          { items: [actRestart, actNewGame] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
@@ -548,13 +527,11 @@ export function PlayArea(ctx: GamePageCtx) {
         metricByUser={scoreByUser}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={endGame}
-        onConcede={concede}
-        onRestart={restart}
-        onNewGame={handleNewGame}
-        startingNewGame={startingNewGame}
-        onBackToClub={goToClub}
-        onRequestBackToClub={menu.requestBackToClub}
+        actEndGame={actEndGame}
+        actConcede={actConcede}
+        actRestart={actRestart}
+        actNewGame={actNewGame}
+        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={boggleSetup}
         setupRows={summaryRows}
@@ -579,7 +556,6 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={celebration.close}
         />
       )}
-      {confirmationModal}
     </div>
   )
 }

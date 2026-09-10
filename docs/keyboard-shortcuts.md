@@ -154,9 +154,10 @@ shared with scrabble). Frozen once you've conceded.
 | `Enter` | Submit the word. |
 | `↑` | Recall your last submitted word (add an `S`, fix a typo). |
 | `↓` | Clear the entry. |
-| `Enter` / `Space` on a focused tile | Trace that tile. Tiles deliberately don't take focus on a tap, so this is rarely reached. |
+| `⌥Z` | Rotate the board 90° — a fresh visual scan of the same letters, local to you and live at terminal. The ⟲ pill over the board's top-right does the same thing. |
 
-Rotating the board is a click-only control.
+Boggle tiles are pointer-only (no `tabIndex`, no `role`), so no keystroke traces
+a tile — tapping does.
 
 ## codenamesduet
 
@@ -374,4 +375,6 @@ Same shape as spellingbee, its fork parent.
 | `⌫` / `Enter` | Delete / submit. `Enter` is **inert** when the typed word can't be spelled from the wheel's tiles — editing stays live so you can fix it, rather than the word submitting and coming back "not a word". |
 | `↑` `↓` | Recall your last word / clear the entry. |
 | `Space` | Shuffle the wheel — same board key as spellingbee's, live at terminal too. |
-| `Enter` / `Space` on a focused tile | Type that letter. |
+
+Wheel tiles are pointer-only (no `tabIndex`, no `role`), so no keystroke types a
+letter from one — clicking does.

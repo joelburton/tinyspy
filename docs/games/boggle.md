@@ -391,12 +391,13 @@ game is terminal, then all.
   missed words from data it already holds. `end_game` is coop's manual stop.
 - **`concede`** — the compete per-player drop-out. boggle is a timed hunt with no
   per-player elimination, so it's a **thin wrapper over `common.concede`**
-  (compete-only guard). FE shows `<ConcedeGameButton>` in compete, marks a
-  conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See
+  (compete-only guard). The FE places `act-concede`, which hides itself outside a
+  race, marks a conceder "out" in the OpponentStrip, "You conceded"
+  locally-terminal look. See
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`replay_board`** — the **"Restart"** menu item + terminal
-  `RestartButton` (spellingbee's twin — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
+- **`replay_board`** — `act-restart`, placed as both the **"Restart"** menu row
+  and the terminal button (spellingbee's twin — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
   restart the SAME board (same faces + word lists) for everyone. Clears
   `boggle.found_words` (the only working state), then `common.reset_game`
   un-terminals with the exact initial status `create_game` seeds and zeroes the
@@ -404,10 +405,12 @@ game is terminal, then all.
   touch is LOAD-BEARING**: replay only DELETEs rows and realtime filters don't
   reliably match DELETE events, so `useGame` also subscribes to `boggle.games`
   and the RPC's no-op games write wakes the refetch. pgTAP: `replay_test.sql`.
-- **"New game"** (menu item + terminal `NewGameButton`, FE-only): a fresh game —
-  new id, new board — with THIS game's setup + roster + mode via the same
-  `boggle-build-board` edge function the manifest uses; the creator jumps in
-  via `ctx.goToGame`. The action rows are **icon-only** (the waffle
+- **"New game"** (`act-new-game`, its `+` key, its menu row and its terminal
+  button all one binding; FE-only): a fresh game — new id, new board — with THIS
+  game's setup + roster + mode via the same `boggle-build-board` edge function
+  the manifest uses; the creator jumps in via `ctx.goToGame`. Mid-play it asks
+  first (starting one SHELVES this game rather than ending it); at terminal it
+  goes straight through. The action rows are **icon-only** (the waffle
   arrangement — tooltips carry the labels): playing = End/Concede +
   back-to-club via the suspend-confirm flow; terminal = the outcome line +
   Restart / New game / primary back-to-club.
@@ -445,7 +448,8 @@ board), swapped in for spellingbee's hex flower.
   gaps)`, with `--cols`/`--rows` set inline since `n` ∈ 4/5/6); the letter scales
   with each tile through `container-type: size` + `42cqmin`, kept (rather than
   waffle's column-count-tuned `--side/12`) precisely because it's **n-agnostic**.
-  The shared `ShuffleButton` (⟲) **floats over the board's top-right** and does a
+  The shared `ShuffleButton` (⟲) **floats over the board's top-right** — a bespoke
+  round pill driven by a bound action (`act-rotate`, also **⌥Z**) — and does a
   **cosmetic 90° matrix rotation** of the displayed grid — tiles reposition but each
   letter stays upright (a matrix rotation, not a CSS spin), so the board is readable
   from any side. **Local to this player in both modes**: never persisted, never seen
@@ -471,8 +475,9 @@ board), swapped in for spellingbee's hex flower.
   narrow — narrower still in the mobile status block, where this same grid is
   ALSO rendered above the board (see below). Then the compete **`OpponentStrip`**
   (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
-  the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
-  the bold outcome line + a compact back-to-club button at terminal), a **help line**,
+  the **action row** (both exits placed, each hiding itself in the mode that isn't
+  its own — coop shows End, a race shows Concede; the bold outcome line + a compact
+  back-to-club button at terminal), a **help line**,
   the **setup disclosure**, and the **`WordList`** filling the rest.
   - **The `Letters` row** leads the setup disclosure, under the roster, and the PDF
     prints the identical row (one `setupRows()` feeds both — [pdf.md → Setup
@@ -495,7 +500,8 @@ board), swapped in for spellingbee's hex flower.
 
 **End game** is surfaced in both places per the common convention (see
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
-an info-column action-row button *and* a GamePage menu item wired through `buildGameMenu`.
+an info-column action-row button *and* a GamePage menu row — the SAME bound action
+in both, arranged by `buildGameMenu`.
 The terminal copy comes from a unified `buildOver` — the shared `TerminalCopy`
 shape (`{verdict, message, tone}`, `src/common/lib/game/terminalCopy.ts`) plus
 boggle's local `verdictNode?` — driving the below-board pill + the action-row line. **No modal
