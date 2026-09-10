@@ -143,7 +143,8 @@ shared with scrabble). Frozen once you've conceded.
 | `←` `→` `↑` `↓` | Move the board cursor. |
 | `A`–`Z` | Place that tile from your hand and advance. Typing over a filled cell **swaps** — the old tile derives back into the hand. A letter you don't hold flashes the hand red. |
 | `⌫` | Return the tile under the cursor to the hand, then step back. |
-| `Enter` or `Space` | **Peel.** No-ops when a peel isn't legal. A focused Peel button won't double-fire it. |
+| `Enter` or `Space` | **Peel.** Both keys come with `act-peel`, which is also the Peel button — so the key is gray exactly when the button is, and a peel waits until every held tile is placed. |
+| `⌥Z` | Shuffle the hand — a local reorder, never a move. |
 
 ## boggle
 

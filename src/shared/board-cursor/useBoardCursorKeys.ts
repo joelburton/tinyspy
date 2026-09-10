@@ -1,15 +1,16 @@
 // cs-unmet
 
-import { useGlobalKeyHandler } from '@/common/keyboard/useGlobalKeyHandler'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 
 export type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
 
 export type BoardCursorKeysOptions = {
   /**
    * May the caller act on keys right now? scrabble: `canPlace`; bananagrams: not
-   * conceded/terminal. When false the arrows / letters / Backspace / Enter do
-   * nothing — but `onAnyKey` still runs (feedback dismissal / viewer-exit fire
-   * regardless of whether a move is legal).
+   * conceded/terminal. When false every one of these goes DISABLED — the arrows,
+   * the letters, Backspace and the commit all stop, and a disabled action leaves
+   * the keystroke for whoever else wants it.
    */
   enabled: boolean
   /** Move the board cursor (a perpendicular game may rotate first). */
@@ -19,17 +20,26 @@ export type BoardCursorKeysOptions = {
   onLetter: (letter: string) => void
   /** Backspace — remove the tile behind the cursor / the last staged one. */
   onBackspace: () => void
-  /** The commit action for Enter (and Space when `enterOnSpace`): scrabble plays
-   *  the staged word; bananagrams peels. The callback does its own "is it legal
-   *  right now" check. */
+  /** The commit action for Enter (and Space in bananagrams, whose `act-peel`
+   *  carries both): scrabble plays the staged word, bananagrams peels. The
+   *  callback does its own "is it legal right now" check. */
   onEnter: () => void
-  /** bananagrams: Space is also a peel shortcut. Default false (scrabble). */
-  enterOnSpace?: boolean
-  /** Runs on ANY key, after the modifier bail and before the `enabled` gate.
-   *  Return `true` to CONSUME the key (stop here — e.g. scrabble uses this to exit
-   *  its turn-viewer on the first keystroke). Also the place for feedback
-   *  dismissal. Optional. */
-  onAnyKey?: () => boolean | void
+  /** Which action the commit IS, since the two games commit different things:
+   *  bananagrams peels, scrabble submits. Its keys come with it — Enter alone
+   *  for a submit, Enter and Space for a peel. */
+  commit: 'act-peel' | 'act-submit'
+  /** May the commit fire right now? A NARROWER question than `enabled`: the
+   *  cursor keys stay live while the move itself isn't available — bananagrams
+   *  peels only once the hand is empty, scrabble plays only a staged word — and
+   *  the same answer grays the button. Defaults to `enabled`. */
+  canCommit?: boolean
+}
+
+/** What the caller gets back — the commit binding, to place as a button. The
+ *  other three are keys with no control of their own: nothing on screen "is"
+ *  the left arrow. */
+export type BoardCursorKeys = {
+  actCommit: BoundAction
 }
 
 /**
@@ -40,14 +50,21 @@ export type BoardCursorKeysOptions = {
  * every cell editable, type over any tile; scrabble: committed tiles are locked)
  * and what a letter / Enter *does* (place-from-hand + peel vs stage + play word).
  *
- * This owns the universal 95%: the window listener via `useGlobalKeyHandler` (so
- * both inherit the focused-input guard — a keystroke aimed at chat never reaches
- * the board — and the once-registered listener), the modifier bail, mapping the
- * four arrows to `onArrow`, `[a-zA-Z]` to `onLetter`, Backspace/Enter to their
- * callbacks, and one shared nicety: **it skips Enter/Space when a `<button>` is
- * focused**, so a focused Submit/Peel button's native activation doesn't ALSO
- * fire the commit (a double). Contrast `useCaptureKeys` (single-token entry, no
- * cursor): this is the board-cursor sibling, not a superset.
+ * This owns the universal 95% as four bound actions — `act-move-cursor`,
+ * `act-place-tile`, `act-remove-tile`, and the game's own commit. Three of them
+ * are PATTERN actions, handed whichever key fired them, which is what makes four
+ * arrows and twenty-six letters two bindings rather than thirty.
+ *
+ * **Nothing here reads the window.** The gates that used to be spelled out — the
+ * modifier bail, the focused-input guard, skipping Enter when a `<button>` holds
+ * focus — belong to the one dispatcher now: a pattern key never matches a
+ * modified chord, a keystroke aimed at chat never reaches an action, and nothing
+ * on a play surface holds focus in the first place. The any-key hook is gone the
+ * same way: dismissing feedback and leaving the turn viewer are their own
+ * actions, and the dispatcher runs both ahead of these.
+ *
+ * Contrast `useCaptureKeys` (single-token entry, no cursor): this is the
+ * board-cursor sibling, not a superset.
  */
 export function useBoardCursorKeys({
   enabled,
@@ -55,36 +72,30 @@ export function useBoardCursorKeys({
   onLetter,
   onBackspace,
   onEnter,
-  enterOnSpace = false,
-  onAnyKey,
-}: BoardCursorKeysOptions): void {
-  useGlobalKeyHandler((e: KeyboardEvent) => {
-    // Leave modified chords (Cmd-R, Ctrl-Tab, …) to the browser.
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    // Any-key hook first — it may consume the key (e.g. exit a turn-viewer) and,
-    // either way, dismiss feedback — and it runs even when a move isn't legal.
-    if (onAnyKey?.() === true) return
-    if (!enabled) return
+  commit,
+  canCommit,
+}: BoardCursorKeysOptions): BoardCursorKeys {
+  const state = () => (enabled ? 'active' : 'disabled')
 
-    const k = e.key
-    if (k === 'Enter' || (enterOnSpace && k === ' ')) {
-      // A focused <button> already ran its native Enter/Space activation — don't
-      // fire the commit a second time. This guard does NOT survive into bound
-      // actions: nothing on a play surface should hold focus in the first place
-      // (Joel, 2026-09-10), so the two raw buttons that still can are the fix,
-      // not a button-shaped gate in the key dispatcher.
-      if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return
-      e.preventDefault()
-      onEnter()
-    } else if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
-      e.preventDefault()
-      onArrow(k)
-    } else if (k === 'Backspace') {
-      e.preventDefault()
-      onBackspace()
-    } else if (k.length === 1 && /^[a-z]$/i.test(k)) {
-      e.preventDefault()
-      onLetter(k.toUpperCase())
-    }
+  useBoundAction('act-move-cursor', {
+    describe: state,
+    run: (key) => onArrow(key as ArrowKey),
   })
+
+  useBoundAction('act-place-tile', {
+    describe: state,
+    run: (key) => onLetter((key ?? '').toUpperCase()),
+  })
+
+  useBoundAction('act-remove-tile', {
+    describe: state,
+    run: onBackspace,
+  })
+
+  const actCommit = useBoundAction(commit, {
+    describe: () => (enabled && (canCommit ?? true) ? 'active' : 'disabled'),
+    run: onEnter,
+  })
+
+  return { actCommit }
 }

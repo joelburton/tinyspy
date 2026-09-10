@@ -26,6 +26,8 @@ import {
 import { useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import type { BoundAction } from '@/common/actions/useBoundAction'
 import { isEditableField } from '@/common/keyboard/editableField'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -173,6 +175,17 @@ export type PlayerBoardEngine = {
   // ── Actions ──
   declaring: boolean
   doPeel: () => Promise<void>
+  /** PEEL, as the binding behind both its key and its button — the board cursor
+   *  binds it (Enter and Space come with the action) and hands it back so the
+   *  board's action row can place the same one. */
+  actPeel: BoundAction
+  /** The hand's ⟲ rotate, and ⌥Z, as one binding. */
+  actShuffle: BoundAction
+  /** Ask the server whether the board is legal right now and paint what isn't. */
+  actCheckBoard: BoundAction
+  /** Re-center the board and fit it to the viewport. A view control, live at
+   *  every phase. */
+  actZoomFit: BoundAction
   /** Ask the server whether the board is legal right now and paint what isn't
    *  (the **Check words** button). Always offered, whatever `setup.word_check`
    *  says — that option governs when the server ENFORCES words, not whether you
@@ -548,17 +561,23 @@ export function usePlayerBoard({
     }
   }, [isTerminal, isConceded, gameId, onCheckResult, save])
 
-  // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin; it owns
-  // the modifier bail, the focused-input guard, arrows→cursor, and the skip-Enter/
-  // Space-when-a-<button>-is-focused so a focused Peel button doesn't double-fire).
-  // bananagrams supplies its 5%: EVERY cell is editable (typing over a filled cell swaps
-  // its tile back to the hand — no "committed" tiles, unlike scrabble), Backspace
-  // returns the tile under the cursor, and Enter/Space peels (`doPeel` self-no-ops when
-  // a peel isn't legal). Disabled while conceded (the board freezes; others keep
-  // racing).
-  useBoardCursorKeys({
+  // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin;
+  // it binds the arrows, the letters and Backspace as actions, and the commit as
+  // whichever action the game commits WITH). bananagrams supplies its 5%: EVERY
+  // cell is editable (typing over a filled cell swaps its tile back to the hand
+  // — no "committed" tiles, unlike scrabble), Backspace returns the tile under
+  // the cursor, and the commit is a PEEL, whose action carries Enter and Space
+  // (`doPeel` self-no-ops when a peel isn't legal). Every one goes inert while
+  // conceded: the board freezes and the others keep racing.
+  //
+  // `actPeel` comes back out so the Peel BUTTON is that same binding — one
+  // thing behind the key and the control.
+  const { actCommit: actPeel } = useBoardCursorKeys({
     enabled: !frozen,
-    enterOnSpace: true,
+    commit: 'act-peel',
+    // A peel FLUSHES the board, so it waits until every tile is placed — the
+    // same answer grays the button and stops Enter/Space firing a no-op.
+    canCommit: derivedHand.length === 0 && !declaring,
     onEnter: () => void doPeel(),
     onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
     onBackspace: () => {
@@ -566,7 +585,7 @@ export function usePlayerBoard({
       if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
       setCursor(stepBack(cur, GRID - 1))
     },
-    onLetter: (letter) => {
+    onLetter: (letter: string) => {
       const cur = cursorRef.current
       const i = idx(cur.x, cur.y)
       // Typing on a FILLED cell swaps: clear it first (its tile re-derives back into the
@@ -637,8 +656,28 @@ export function usePlayerBoard({
   // on; any edit moves `board` past it and they vanish (no effect).
   const invalidCells = invalid && invalid.board === board ? invalid.cells : NO_CELLS
 
-  // The ⟲ rotate: a local view-only shuffle of the hand order.
+  // The ⟲ rotate: a local view-only shuffle of the hand order. Bound so the pill
+  // and ⌥Z are one thing; live whenever there are tiles to rearrange, a frozen
+  // board included — reordering your own hand is not acting on the game.
   const onShuffle = () => setHandOrder(shuffleString(displayedHand))
+  const actShuffle = useBoundAction('act-shuffle', {
+    describe: () => (displayedHand.length === 0 ? 'disabled' : 'active'),
+    run: onShuffle,
+  })
+
+  // Check words — ask the server whether the board reads right now. Always
+  // offered while the game is live, whatever `setup.word_check` says.
+  const actCheckBoard = useBoundAction('act-check-board', {
+    describe: () => (frozen || checking ? 'disabled' : 'active'),
+    run: doWordCheck,
+  })
+
+  // Fit the board — a view control, so it stays live at every phase: a finished
+  // board is exactly the one you want to see all of.
+  const actZoomFit = useBoundAction('act-zoom-fit', {
+    describe: () => 'active',
+    run: centerAndFit,
+  })
 
   return {
     scrollRef,
@@ -661,6 +700,10 @@ export function usePlayerBoard({
     onShuffle,
     declaring,
     doPeel,
+    actPeel,
+    actShuffle,
+    actCheckBoard,
+    actZoomFit,
     doWordCheck,
     checking,
   }

@@ -32,6 +32,7 @@ import {
   IconSpoiler,
   IconSubmit,
   IconWordCheck,
+  IconZoomFit,
 } from '../icons/icons'
 
 /**
@@ -90,9 +91,8 @@ export type ActionSpec = {
 }
 
 /** Concede's question. Written here rather than beside its three siblings in
- *  `useConfirmation.tsx` because concede still asks through `window.confirm`,
- *  which takes a sentence and not an options object; it joins them when the
- *  games convert. */
+ *  `useConfirmation.tsx`, which is where the shape came from — it asked through
+ *  `window.confirm` until the last game that hand-rolled a concede converted. */
 const CONCEDE_CONFIRM: ConfirmOptions = {
   title: 'Concede the game?',
   message: 'You drop out and the others keep playing.',
@@ -254,6 +254,14 @@ export const ACTIONS = {
   'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
   'act-drop-last-cell': { label: 'Drop the last tile', icon: IconDelete, keys: [named('Backspace', '⌫')] },
   'act-clear-selection': { label: 'Clear the selection', icon: IconDelete, keys: [named('Backspace', '⌫')] },
+  // bananagrams asks the server whether the board reads as words RIGHT NOW —
+  // always offered, whatever the game's word-check setting says, because that
+  // setting governs when the server ENFORCES words rather than whether you may
+  // ask about your own board.
+  'act-check-board': { label: 'Check words', icon: IconWordCheck },
+  // A view control rather than a move: re-center the board and fit it to the
+  // viewport. No key yet.
+  'act-zoom-fit': { label: 'Fit the board', icon: IconZoomFit },
 
   // ─── Crosswords' grid ──────────────────────────────────────────────────
   'act-fill-cell': { label: 'Fill the cell', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },

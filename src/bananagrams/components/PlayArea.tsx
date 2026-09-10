@@ -2,22 +2,17 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '@/common/icons/icons'
-import type { CreatedGame, GameStopResult } from '@/common/manifest/gameManifest'
+import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { timerLabel } from '@/common/timer/timerLabel'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { EndGameButton } from '@/common/buttons/EndGameButton'
-import { CONCEDE_CONFIRM } from '@/common/game-page/useStandardGameActions'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { DeviceBlockNotice } from '@/common/game-page/DeviceBlockNotice'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
-import { ConcedeGameButton } from '@/common/buttons/ConcedeGameButton'
-import { NewGameButton } from '@/common/buttons/NewGameButton'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { difficultyValue } from '@/common/setup-form/difficulty'
@@ -25,6 +20,9 @@ import { IconExchange } from '@/common/icons/icons'
 import type { TerminalCopy } from '@/common/terminal/terminalCopy'
 import { outOfRacePill, terminalPill } from '@/common/feedback/localPills'
 import { buildGameMenu } from '@/common/menu/gameMenu'
+import { ActionButton } from '@/common/actions/ActionButton'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { db } from '../db'
 import { useGame, usePeerBoards, useProgress } from '../hooks/useGame'
 import type { BananagramsSetup } from '../lib/setup'
@@ -40,8 +38,6 @@ import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
-import { useConfirmation, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '@/common/floating-panels/useConfirmation'
-import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -84,14 +80,6 @@ type PeelResult =
 /** What `bananagrams.dump` puts in `data`. One answer: the swap either happens
  *  or is refused, and the new hand arrives over realtime rather than here. */
 type DumpResult = { result: 'dumped' } | null
-
-/** `concede` has ONE ok: you dropped out. Whether it also ended the game is
- *  not in the answer — that reaches every client by subscription. */
-type ConcedeResult = { result: 'conceded' }
-
-/** `replay_board` has ONE ok: the board was dealt again. Nothing else to say —
- *  every client, this one included, learns the reset from the subscription. */
-type ReplayResult = { result: 'replayed' }
 
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
@@ -263,32 +251,24 @@ export function PlayArea(ctx: GamePageCtx) {
     seenTilesLen.current = tiles.length
   }, [tiles, loading, showLocalFeedback])
 
-  // ─── Concede — drop out of the race (a real loss, others keep going) ────
-  // Confirmed because it's irreversible; an RPC failure surfaces in the local
-  // pill. A conceded player is out — the game continues for everyone else.
-  const handleConcede = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm(CONCEDE_CONFIRM)) return
-    const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'conceded') {
-      // Nothing to do: the conceded flag and the game's terminal both arrive
-      // through the subscription, this client included.
-    } else {
-      reportUnhandled('concede', res)
-    }
-  }, [gameId, isTerminal, showLocalFeedback])
-
-  // The concede thunk the game menu fires, held in a stable ref so the menu
-  // effect (a `setGameSections` setState) needn't list `handleConcede` in its
-  // deps and re-run every time that callback's identity changes. Same pattern
-  // as crosswords' `actionsRef`: populated by an effect after render, read at
-  // click time.
-  const concedeRef = useRef<() => void>(() => {})
-  useEffect(() => {
-    concedeRef.current = () => void handleConcede()
-  }, [handleConcede])
+  // ─── End / Concede / Restart — the shared trio ─────────────────────────
+  // bananagrams is compete-only and offers BOTH exits, which is exactly what
+  // `offerEndInCompete` is for: conceding is a loss on your record and it takes
+  // every player doing it to close a game the group has lost interest in, while
+  // ending is the group agreeing there is no result. Each carries its own
+  // question, asked by the shared run mid-game and skipped at terminal.
+  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    mode: 'compete',
+    // The raw roster flag (common.game_players). The stronger `isConceded`
+    // below also ANDs `!isTerminal`, for the frozen-board LOOK; the action wants
+    // the plain fact, and grays itself at terminal on its own.
+    myConceded: !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded,
+    offerEndInCompete: true,
+    showError: showLocalFeedback,
+  })
 
   // The printout's inputs, through a ref for the SAME reason as the thunks
   // above: the menu holds `doPrint` and runs it at click time, so it must read
@@ -311,69 +291,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // A FRESH game (new id, a newly dealt bunch) with THIS game's setup + roster,
   // in the same club — the "same again!" action after someone goes out. A direct
   // create_game RPC (bananagrams deals inline, no edge function) and no `mode`
-  // argument: the game is compete-only, one gametype. Non-destructive
-  // (common.create_game un-currents this game into the club's list), so no
-  // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
-  // game-invitation toast.
+  // argument: the game is compete-only, one gametype.
   //
-  // Shared confirm modal — used by the new-game question below and by Restart
-  // (mid-game). Render {confirmationModal} in the tree, as the other games do.
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
-
-  // ─── End game — the whole table stops, with no result for anyone ────────
-  // The twin of Concede, and deliberately not the same thing: conceding is a
-  // loss on your record and it takes EVERY player doing it to close a game the
-  // group has just lost interest in. Confirmed through the styled modal (it's
-  // irreversible) using the shared END_GAME_CONFIRM copy, and held in a ref for
-  // the menu effect exactly like Concede above.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'ended') {
-      // Nothing to do: the terminal arrives by subscription.
-    } else {
-      reportUnhandled('end_game', res)
-    }
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-  const endGameRef = useRef<() => void>(() => {})
-  useEffect(() => {
-    endGameRef.current = () => void handleEndGame()
-  }, [handleEndGame])
-
-  // ─── Restart — deal this game again from the same tiles ────────────────
-  // bananagrams is the game where a restart looks least necessary: with no
-  // shared puzzle it deals what a New game would. It's here anyway because
-  // every other game has one, and a player who can't find Restart where they
-  // expect it concludes the app is broken, not that this game is special
-  // (2026-08-03). `replay_board` makes it a real reset rather than an alias —
-  // same game row, same hands back — so the club list doesn't grow an entry
-  // and nobody has to re-navigate.
-  const handleRestart = useCallback(async () => {
-    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
-    const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
-    if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
-    } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-      // Nothing to do: the fresh board arrives through the subscription.
-    } else {
-      reportUnhandled('replay_board', res)
-    }
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-  const restartRef = useRef<() => void>(() => {})
-  useEffect(() => {
-    restartRef.current = () => void handleRestart()
-  }, [handleRestart])
-
-  const newGameRef = useRef<() => void>(() => {})
-  const createNewGame = useCallback(async () => {
-    // Starting a new game mid-play SHELVES this one (create_game clears the
-    // club's current-view flag; it stays resumable from the club page). Confirm
-    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
-    // copy says shelved, not ended. At terminal there's nothing to interrupt.
-    if (!ctx.isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
+  // The registry asks NEW_GAME_CONFIRM mid-play
+  // (starting one SHELVES this game: create_game clears the club's current-view
+  // flag, so it stays resumable — the copy says shelved, not ended) and goes
+  // straight through at terminal. The shared run's single flight is what stops a
+  // second press dealing a second game.
+  //
+  // A plain function, rebuilt every render: the binding reads it at click time,
+  // so `ctx` is whatever the last realtime refetch left.
+  const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: ctx.clubHandle,
@@ -398,23 +326,16 @@ export function PlayArea(ctx: GamePageCtx) {
       reportUnhandled('create_game', res)
       return
     }
-  }, [ctx, showLocalFeedback, confirmAction])
+  }
+  const actNewGame = useBoundAction('act-new-game', {
+    terminal: isTerminal,
+    describe: () => 'active',
+    run: createNewGame,
+  })
 
-  // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
-  useEffect(() => {
-    newGameRef.current = () => void handleNewGame()
-  }, [handleNewGame])
-
-  // My conceded flag off the shared roster (common.game_players), for the menu's
-  // grayed-out Concede item. The stronger `isConceded` (below the loading guard)
-  // also ANDs `!isTerminal` for the frozen-board LOOK; the menu just needs the
-  // raw flag, which `buildGameMenu` already disables at terminal itself.
-  const myConceded = !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded
-
-  // ─── "Print board (PDF)" GamePage menu item ─────────────────────────────
-  // A COLUMN PER PLAYER (docs/pdf.md → track family). The caller's own board is
-  // read from `boardRef` at CLICK time (not baked into the model here) so it's
+  // ─── "Print board (PDF)" ────────────────────────────────────────────────
+  // A COLUMN PER PLAYER (docs/pdf.md → track family), built at CLICK time. The
+  // caller's own board is read from `boardRef` then (not baked in here) so it is
   // always current; the others come from `peerBoards`, which only has rows once
   // the game is terminal — `player_boards` is owner-only while the race is on,
   // so mid-game this prints the caller's column alone.
@@ -422,10 +343,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // Words are extracted with the same rule the server's win check uses
   // (`boardWords`), then de-duped + sorted — unscored and unattributed, it's
   // just that board's vocabulary.
-  useEffect(() => {
-    // Wait for the deal — before the board loads there's nothing to print.
-    if (loading || initialBoard === null) return
-    const doPrint = () => {
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => (loading || initialBoard === null ? 'hidden' : 'active'),
+    run: () => {
       const { peerBoards: peers, players: roster, selfId } = printDataRef.current
       const nameOf = (userId: string) =>
         roster.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -453,7 +373,6 @@ export function PlayArea(ctx: GamePageCtx) {
         .map((r) => trackOf(r.user_id, r.board))
       // Roster order for the rest, so two printouts of the same game agree.
       others.sort((a, b) => a.who.localeCompare(b.who))
-      const tracks = [mine, ...others]
 
       printBananagramsPdf({
         brand,
@@ -465,36 +384,30 @@ export function PlayArea(ctx: GamePageCtx) {
         // Relevant setup only — the timer + dump destination don't describe the board.
         mode: 'compete' as const,
         setup: summaryRows,
-        tracks,
+        tracks: [mine, ...others],
       })
-    }
-    // bananagrams is compete-only, so the tail leads with Concede — but it
-    // ALSO passes onEndGame, so the menu offers the whole-table stop beneath
-    // it (see buildGameMenu). Both thunks dispatch through stable refs so this
-    // effect needn't depend on their identities.
+    },
+  })
+
+  // The FULL bananagrams menu. `buildGameMenu` supplies the framing (Help + chat
+  // above, Back to club below); the middle is this game's own rows, each one a
+  // binding it already made. The game is compete-only, so the tail leads with
+  // Concede — and End is placed too, because this game opts into the whole-table
+  // stop (see useStandardGameActions' offerEndInCompete).
+  useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: 'compete',
-        isTerminal,
-        conceded: myConceded,
-        onConcede: () => concedeRef.current(),
-        onEndGame: () => endGameRef.current(),
-        offerEndInCompete: true,
+        exits: [actConcede, actEndGame],
         extra: [
-          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: doPrint }] },
+          { items: [actPrintBoard] },
           // The same pair the terminal row offers, reachable mid-game too.
-          {
-            items: [
-              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => restartRef.current() },
-              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => newGameRef.current() },
-            ],
-          },
+          { items: [actRestart, actNewGame] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded, summaryRows])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Did I win? ────────────────────────────────────────────────────────
   // Derived UP HERE (not beside the terminal verdict below) because the
@@ -658,8 +571,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // "you're out" row keeps Club alone — the race is still running, so offering
   // to start a different game there would be a distraction.
   const infoActions = over ? (
-    <TerminalActionRow over={over} onBackToClub={ctx.goToClub} backShow="icon">
-      <NewGameButton show="icon" onClick={handleNewGame} disabled={startingNewGame} />
+    <TerminalActionRow over={over}>
+      <ActionButton action={actNewGame} show="icon" />
+      <ActionButton action={ctx.menu.actBackToClub} show="icon" weight="primary" />
     </TerminalActionRow>
   ) : isConceded ? (
     // No Concede button to carry: bananagrams' conceded row is the status line
@@ -670,8 +584,8 @@ export function PlayArea(ctx: GamePageCtx) {
     // Concede drops just you (a loss, and the others race on). End sits first
     // because it's the gentler of the two.
     <>
-      <EndGameButton show="icon" onClick={() => void handleEndGame()} className={shared.helperButton} />
-      <ConcedeGameButton show="icon" onClick={() => void handleConcede()} className={shared.helperButton} />
+      <ActionButton action={actEndGame} show="icon" className={shared.helperButton} />
+      <ActionButton action={actConcede} show="icon" className={shared.helperButton} />
     </>
   )
 
@@ -700,7 +614,6 @@ export function PlayArea(ctx: GamePageCtx) {
       {celebration.show && (
         <CelebrationBlockingModal title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
       )}
-      {confirmationModal}
     </>
   )
 }

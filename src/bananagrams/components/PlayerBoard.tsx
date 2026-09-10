@@ -1,8 +1,7 @@
 // cs-unmet
 
 import type { ReactNode, RefObject } from 'react'
-import { WordCheckButton } from '@/common/buttons/WordCheckButton'
-import { PeelButton } from '@/common/buttons/PeelButton'
+import { ActionButton } from '@/common/actions/ActionButton'
 import { cls } from '@/common/utils/cls'
 import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
@@ -151,7 +150,7 @@ export function PlayerBoard({
           errFlash={arena.errFlash}
           errNonce={arena.errNonce}
           onHandPointerDown={arena.onHandPointerDown}
-          onShuffle={arena.onShuffle}
+          actShuffle={arena.actShuffle}
           hasDump={!!onDump}
           isTerminal={!!isTerminal}
           isConceded={!!isConceded}
@@ -160,11 +159,12 @@ export function PlayerBoard({
         />
 
         {/* The bottom action row — natural-width action buttons side by side. While
-            playing: [End] [Concede] [Peel] (Peel, the primary move, on the right). The shared
-            PeelButton (primary) is enabled only once the hand is empty (it FLUSHES the
-            board first so peel's "placed == tiles" check is current; the terminal modal
-            is driven from realtime, not this click). At terminal / locally-terminal the
-            row becomes the outcome line + back-to-club (no Peel). */}
+            playing: [End] [Concede] [Peel] (Peel, the primary move, on the right).
+            Peel is enabled only once the hand is empty (it FLUSHES the board first
+            so peel's "placed == tiles" check is current; the terminal modal is
+            driven from realtime, not this click) — the action says so, and the
+            Enter/Space that also peels reads the same answer. At terminal /
+            locally-terminal the row becomes the outcome line + back-to-club. */}
         <div className={cls(shared.infoActions, (isTerminal || isConceded) && shared.terminalActions)}>
           {infoActions}
           {/* Check words sits LEFT of Peel: it's the question you ask before
@@ -175,20 +175,10 @@ export function PlayerBoard({
               whatever `setup.word_check` says (that option governs when the
               SERVER enforces words, not whether you may ask). */}
           {!isTerminal && !isConceded && (
-            <WordCheckButton
-              show="icon"
-              className={shared.helperButton}
-              disabled={arena.checking}
-              onClick={() => void arena.doWordCheck()}
-            />
+            <ActionButton action={arena.actCheckBoard} show="icon" className={shared.helperButton} />
           )}
           {onPeel && !isTerminal && !isConceded && (
-            <PeelButton
-              show="both"
-              className={shared.helperButton}
-              disabled={arena.derivedHand.length !== 0 || arena.declaring}
-              onClick={() => void arena.doPeel()}
-            />
+            <ActionButton action={arena.actPeel} show="both" className={shared.helperButton} />
           )}
         </div>
       </div>

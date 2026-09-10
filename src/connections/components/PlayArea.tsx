@@ -158,8 +158,6 @@ export function PlayArea({
   // + turn log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
   // ─── Coop-win celebration ──────────────────────────────

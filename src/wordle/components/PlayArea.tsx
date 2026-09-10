@@ -93,9 +93,6 @@ export function PlayArea({
   // keyboard always fits — lives in Board.module.css, not here.
   const infoSheet = useInfoSheet()
 
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
   // by the player's next edit (in BoardCol), the "next move dismisses it" rule. Lives

@@ -157,9 +157,6 @@ export function PlayArea({
   // terminal verdict — so the coordinator owns it and both columns write through it.
   const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
 
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
-
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team clears the stack — the sixth word flips
   // playState to 'won' on every connected client via the realtime refetch, so
