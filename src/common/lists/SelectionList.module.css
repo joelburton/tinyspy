@@ -12,9 +12,10 @@
  * container would compete with the first.
  *
  * A MODULE, not a global pattern, so nothing can wear this look without
- * rendering the component — the same rule PageHeaderButton follows. That
- * is also why `fills` and the packed density are props: a page used to
- * reach in and restyle `.item-row` from outside, and this shuts that door.
+ * rendering the component — the same rule PageHeaderButton follows. `fills`
+ * and the packed density are props for the same reason: a page asks for a
+ * variant the component defines, rather than reaching in with a descendant
+ * selector to restyle a row.
  *
  * docs/ui.md → Selection lists
  * ============================================================ */

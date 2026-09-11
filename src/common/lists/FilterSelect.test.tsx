@@ -1,14 +1,10 @@
 // cs-audited-lists
 
 /**
- * Tests for FilterSelect — the non-native dropdown the in-game info-panel
- * filters use.
+ * Tests for FilterSelect.
  *
- * The reason this component exists is a focus property, so that's what most of
- * these pin. A native `<select>` holds the keyboard (`isEditableField` counts
- * SELECT), and nothing reliably hands it back — `change` doesn't fire when you
- * re-pick the option already selected, which left the board deaf and the entry
- * caret dark. This control answers that by never taking focus at all.
+ * The component exists for one property — it never takes focus, for the
+ * reasons its own docstring gives — so that is what most of these pin.
  */
 
 import { render, screen } from '@testing-library/react'

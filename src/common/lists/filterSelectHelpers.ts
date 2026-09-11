@@ -4,25 +4,23 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 /**
- * Test helpers for driving a `<FilterSelect>` — the in-game info-panel filters
- * (the word list's KIND/WHO, the turn log's whose-moves picker).
+ * Test helpers for driving a `<FilterSelect>`.
  *
- * These used to be native `<select>`s, so tests reached for `getByRole
- * ('combobox')` + `selectOptions(…, value)`. FilterSelect is a button plus a
- * popover instead (it must never take focus — see FilterSelect.tsx), which
- * changes two things every caller has to cope with:
+ * A FilterSelect is a button plus a popover rather than a `<select>` (see
+ * FilterSelect.tsx for why), so `selectOptions` does not reach it and two
+ * things follow that every caller has to cope with:
  *
  *   - **options only exist while the picker is open**, so reading them is
  *     async and has to open it first;
  *   - **there are no values in the DOM**, only labels — so you pick by the
  *     visible label, not by the option's value.
  *
- * Shared here rather than re-derived per file because seven test files drive
- * these pickers, and "find the closed select among the buttons" is exactly the kind
- * of detail that drifts into seven slightly different versions.
+ * Shared rather than re-derived per file: "find the closed select among the
+ * buttons" is exactly the kind of detail that drifts into a slightly different
+ * version in each spec that renders a filter.
  *
- * The closed select is identified by `aria-expanded`, which only it carries — that's
- * what separates it from the option buttons once a list is open.
+ * The closed select is identified by `aria-expanded`, which only it carries —
+ * that's what separates it from the option buttons once a list is open.
  */
 
 /** Every closed FilterSelect on screen, in DOM order. */

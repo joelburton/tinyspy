@@ -157,6 +157,25 @@ ONE place — `FilterSelect`'s docstring owns it — and let the rest point.
 `FilterSelect`'s own docstring is the right length for a component whose
 whole reason is one property; the fold-in is the other files.
 
+**WORKED 2026-09-11 (Joel: "fix").** Five rewrites, none of which lost a
+reason — each says the same thing about the code in front of the reader
+instead of about how it got there:
+
+- `SelectionList`'s "why a component" paragraph is now "why `items` +
+  `renderRow` and not children", which is the question a caller actually has.
+- `frozen`'s note keeps the swallowed-click hazard as a live consequence
+  ("re-renders while the dialog is being clicked") rather than a bug it caused.
+- `SelectionList.module.css`'s header says `fills` and `packed` are props so a
+  page asks for a variant instead of reaching in with a descendant selector.
+- `filterSelectHelpers.ts` drops the native-`<select>` history and the count of
+  test files, and points at `FilterSelect.tsx` for the why.
+- `FilterSelect.test.tsx`'s header is four lines and points, where it used to
+  retell the focus story in full.
+
+`FilterSelect`'s own docstring keeps the rule at full length, as the finding
+said it should. `FilterSelect.module.css`'s header went earlier, with F-lists-8
+(filter-select-density-inverted).
+
 ## F-lists-6 · `stale-caller-claims` · Callers named that do not exist, and scope that has grown
 
 - `SelectionList.tsx` "do now" gloss: "the suggested move stages on the

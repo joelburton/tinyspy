@@ -45,9 +45,8 @@ type Props<T> = {
   // opened. While frozen it ignores every key and, crucially, does not blank
   // its cursor when focus leaves: a dialog that autofocuses a field pulls focus
   // out of here, and treating that as "the user left the list" both loses the
-  // ring behind the modal and re-renders at the worst moment. That re-render
-  // used to land BETWEEN the mousedown and the click of the dialog's own
-  // buttons and swallow the click, so Cancel did nothing.
+  // ring behind the modal and re-renders while the dialog is being clicked —
+  // which can land between a button's mousedown and its click and swallow it.
   //
   // Only a caller knows what it has open, so only a caller can say this.
   frozen?: boolean
@@ -75,13 +74,12 @@ type Props<T> = {
  * not a button — so there is no second thing to focus and no second ring to
  * explain. What Tab does *next* belongs to the page, never to this.
  *
- * **Why a component and not a CSS pattern.** The paint is four rules; the
- * behavior was written out by hand at three call sites, along with the ring
- * class, the `scrollIntoView` and a cursor index threaded down as a prop. It
- * also cannot take opaque children: given assembled elements it could count
- * them but not see inside one, so the ring, the ref, the disabled test and
- * Enter would all stay at the call site — which is the duplication being
- * removed. Hence `items` + `renderRow`.
+ * **Why `items` + `renderRow` and not children.** The paint is four rules and
+ * the behavior is the rest, so a CSS pattern would leave the ring, the
+ * scroll-into-view, the disabled test and Enter at every call site. Given
+ * assembled children this component could count them but not see inside one,
+ * which is the same thing: it has to render the row element itself to own any
+ * of that. So the caller supplies the row's CONTENTS and nothing else.
  *
  * docs/ui.md → Selection lists
  */
