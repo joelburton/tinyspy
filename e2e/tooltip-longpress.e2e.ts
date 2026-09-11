@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createWordleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
+import { actionButton } from './helpers/actions'
 
 /**
  * Long-press an icon-only button on touch to see what it does.
@@ -40,11 +41,12 @@ test('long-press names an icon-only button without pressing it', async ({ browse
   await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(400)
 
-  // "End game" — icon-only here, tooltipped, and the loudest possible detector:
-  // a leaked click opens the end-game confirm.
-  const target = page.locator('[data-tooltip="End game"]').first()
+  // "End game" — icon-only here, and the loudest possible detector: a leaked
+  // click opens the end-game confirm. Its bubble is the action's name with its
+  // key on the end, which is what the hold should show.
+  const target = actionButton(page, 'act-end-game').first()
   await expect(target).toBeVisible({ timeout: 15000 })
-  const label = 'End game'
+  const label = 'End game · ⌥⌫'
   const box = (await target.boundingBox())!
   const x = box.x + box.width / 2
   const y = box.y + box.height / 2

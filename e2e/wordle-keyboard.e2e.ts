@@ -148,6 +148,9 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
 
   const look = async (label: string) => {
     const b = key(label)
+    // Park the pointer first: the previous look left it over a key, and a key
+    // that has since gone live would read its hover fill as "resting".
+    await page.mouse.move(0, 0)
     const resting = await b.evaluate((e) => ({
       fill: getComputedStyle(e).backgroundColor,
       ink: getComputedStyle(e).color,
@@ -206,10 +209,21 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   expect(plain.resting).toEqual({ fill: await token('--kbd-key-fill-color'), ink: darkInk })
   expect(plain.hovered).toEqual({ fill: await token('--kbd-key-hover-fill-color'), ink: darkInk })
 
-  // ENTER is a Submit, so it is the action blue with white ink, and DARKENS on
-  // hover like every other filled action button. The tokens are the BUTTON
-  // vocabulary's — the key is styled as one (`--button-normal-primary-*`), which
-  // is the point: retuning the primary button retunes this key with it.
+  // ENTER is a Submit, so it is the action blue with white ink. With the entry
+  // EMPTY — as it is now, the guess having just landed — the cap is the same
+  // bound action the physical key answers to, and that action is gray with
+  // nothing to submit: no hover, the resting fill under the pointer too.
+  const idle = await look('Enter')
+  expect(idle.resting).toEqual({ fill: await token('--button-normal-primary-color'), ink: white })
+  expect(idle.hovered).toEqual(idle.resting)
+  await expect(key('Enter')).toBeDisabled()
+
+  // With a letter typed it is live, and DARKENS on hover like every other filled
+  // action button. The tokens are the BUTTON vocabulary's — the key is styled as
+  // one (`--button-normal-primary-*`), which is the point: retuning the primary
+  // button retunes this key with it.
+  await page.keyboard.press(untried)
+  await expect(key('Enter')).toBeEnabled()
   const enter = await look('Enter')
   expect(enter.resting).toEqual({ fill: await token('--button-normal-primary-color'), ink: white })
   expect(enter.hovered).toEqual({
