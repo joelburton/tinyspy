@@ -30,6 +30,13 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
+- **A conceded racer's End game has no button.** Once `myConceded` is true,
+  `act-end-game` answers `active` (the whole-table stop comes back to a
+  player whose Concede is spent), but the conceded row is
+  `<LocalTerminalRow label="You conceded" />` with no children
+  (`PlayArea.tsx`), so the stop is reachable only from the menu row and
+  `⌥⌫`. Place `<ActionButton action={actEndGame} show="icon" />` in that row,
+  the way the playing row does.
 
 ## Soon
 
