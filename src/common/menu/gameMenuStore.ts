@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-menu
 
 import { useSyncExternalStore } from 'react'
 import type { MenuSection } from './menuModel'
