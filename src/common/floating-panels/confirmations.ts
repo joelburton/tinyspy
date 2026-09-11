@@ -6,22 +6,18 @@ export type ConfirmOptions = {
   title: string
   message: ReactNode
   confirmLabel: string
-  /**
-   * A SECOND way to say yes, drawn between Cancel and the confirm.
-   *
-   * For a question with two answers that both DO something and differ in what
-   * they do — conceding a race puts you out while the others play on; ending it
-   * stops the game for everyone. Two buttons on the board can only name those;
-   * a question can explain them, which is the whole reason to ask.
-   *
-   * Omit it and the box is the ordinary two-button confirmation. There is no
-   * third: past two ways to say yes it is a menu, not a question.
-   */
+  // A SECOND way to say yes, drawn between Cancel and the confirm, for a
+  // question whose two answers both DO something and differ in what they do:
+  // conceding a race puts you out while the others play on, ending it stops the
+  // game for everyone. Two buttons on a board can only name those; a question
+  // can explain them, which is the whole reason to ask. Omit it for the
+  // ordinary two-button box. There is no third — past two ways to say yes this
+  // is a menu, not a question.
   alternativeLabel?: string
-  /** Omit for "Cancel". There is no "no cancel" — a box with one way out is
-   *  not a question, and it has its own hook (`useAcknowledge`). */
+  // Omit for "Cancel". There is no "no cancel": a box with one way out is not a
+  // question, and it has its own component (`AcknowledgeBlockingModal`).
   cancelLabel?: string
-  /** Which button is filled AND fires on Enter; see the component. */
+  // Which button is filled AND fires on Enter; see `ConfirmationBlockingModal`.
   primaryButton?: 'confirm' | 'cancel'
 }
 

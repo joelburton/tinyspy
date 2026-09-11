@@ -210,7 +210,7 @@ describe('clampToViewport when the viewport is narrower than the minimum', () =>
   }
   afterAll(() => setViewport(realW, realH))
 
-  /** BlockingModal's own numbers: 420 wide, a 320 floor, the shared gutter. */
+  // A blocking card's numbers: 420 wide, a 320 floor, the shared gutter.
   const card = (vw: number) => {
     setViewport(vw, 640)
     return clampToViewport({ x: 0, y: 0, width: 420, height: 240 }, 320, 0, 8)

@@ -54,22 +54,21 @@ type Props = {
 
 /**
  * Floating modal for collecting per-game setup options before
- * `create_game` fires. Wraps the shared `<NormalModal>` shell
- * (header + close X + ESC handling + react-rnd drag) with
- * Setup-specific config:
+ * `create_game` fires. A `<NormalModal>`, which is what decides
+ * most of its behavior — the light scrim saying "this is the
+ * focused task" while chat stays reachable above it, the drag,
+ * and opening centered every time rather than where you left it.
+ * Two things it chooses for itself:
  *
- *   - **backdrop=true** — the dim layer signals "this is the
- *     focused task" and the click-block prevents accidental
- *     Start clicks on other games behind. Chat at z-index 10000
- *     sits above the backdrop so it's still reachable mid-setup.
- *   - **draggable=true, resizable=false** — the form has natural
- *     dimensions (radios, calendar widget); resize would just
- *     create empty space. Drag lets users move the panel aside
- *     to read chat about "what timer should we pick?"
- *   - **No persistKey** — each open lands centered. Persisting
- *     would mean opening Setup once, dragging it to the corner,
- *     and forever after it lands in the corner. Surprising for
- *     a modal whose job is "appear, get the decision, close."
+ *   - **resizable=false, fitContent** — the form's height is its
+ *     own answer (radios, a calendar widget), so resize would
+ *     only add empty space. Drag survives, which is what lets
+ *     someone move it aside to read chat about "what timer
+ *     should we pick?"
+ *   - **No persistKey** — deliberate, not an omission. Persisting
+ *     would mean dragging Setup to the corner once and finding it
+ *     there forever, which is surprising for a modal whose job is
+ *     "appear, get the decision, close."
  *
  * Lifecycle model: the parent (ClubPage) conditionally renders
  * this component — mounting opens it, unmounting closes it. We

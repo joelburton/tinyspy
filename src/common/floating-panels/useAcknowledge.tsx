@@ -6,7 +6,7 @@ import { AcknowledgeBlockingModal } from './AcknowledgeBlockingModal'
 export type AcknowledgeOptions = {
   title: string
   message: ReactNode
-  /** Omit for "OK". */
+  // Omit for "OK".
   okLabel?: string
 }
 
@@ -23,11 +23,10 @@ type Pending = AcknowledgeOptions & { resolve: () => void }
  *     }
  *     // and render {acknowledgeModal} anywhere in the tree
  *
- * **The promise resolves `void`, and that is the point.** As a confirmation
- * with `cancelLabel: null` this resolved a boolean that every caller ignored,
- * because a box with one way out cannot report which way you left. Awaiting it
- * still means something — the modal has been dismissed — so a caller that wants
- * to do something afterwards can.
+ * **The promise resolves `void`, and that is the point.** A box with one way
+ * out cannot report which way you left, so there is no answer to hand back.
+ * Awaiting it still means something — the modal has been dismissed — so a
+ * caller with something to do afterwards can.
  *
  * `acknowledge`'s identity is stable, so it is safe in `useCallback` deps. A
  * second call while one is pending replaces it (the first resolves), which

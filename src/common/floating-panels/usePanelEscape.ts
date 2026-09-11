@@ -12,17 +12,15 @@ export type EscapePolicy = 'close' | 'swallow'
  * Resolve a tier expression — `'var(--z-modal-normal)'` — to the number the
  * ladder gives it.
  *
- * **Reading the real value is the point.** A hand-written rank table lived here
- * first, and it was a second copy of an order that already exists in
- * `base.css`: it disagreed with the ladder the moment Help got a rung of its
- * own, ranking BELOW the setup dialog it paints above. Escape order and paint
- * order are the same order, with exactly one stated exception (chat, below), so
- * there is no reason for a second list.
+ * **Reading the real value is the point.** Escape order and paint order are the
+ * same order, with one stated exception (chat, below), so a rank table here
+ * would be a second copy of what `base.css` already says — free to disagree
+ * with it the moment a panel gets a rung of its own.
  *
- * Cached because these never change — no theme moves a z- layer. Falls back to
- * 0 outside a browser (jsdom returns nothing for a custom property), where
- * every panel ties and mount order decides, which is a sane degradation for a
- * key nothing headless presses.
+ * Cached because these never change: no theme moves a z- layer. Falls back to 0
+ * where a custom property reads as nothing (jsdom), and every panel then ties
+ * and mount order decides — a sane degradation for a key nothing headless
+ * presses.
  */
 const rankCache = new Map<string, number>()
 function rankOf(tier: string): number {
@@ -39,13 +37,13 @@ function rankOf(tier: string): number {
 }
 
 type Entry = {
-  /** Matches the panel shell's `data-floating-panel` value. */
+  // Matches the panel shell's `data-floating-panel` value.
   id: string
-  /** The tier this panel ranks at for Escape — usually the one it paints at. */
+  // The tier this panel ranks at for Escape — usually the one it paints at.
   tier: string
   escape: EscapePolicy
   onClose: () => void
-  /** Mount order, so ties break by later-mounted-wins. */
+  // Mount order, so ties break by later-mounted-wins.
   seq: number
 }
 
@@ -99,17 +97,16 @@ function onKeyDown(e: KeyboardEvent) {
  *      breaking ties. Exactly one component ranks somewhere other than where it
  *      paints: chat, which lives above every modal so a conversation stays
  *      reachable, but ranks at its family so a modal you just opened takes
- *      Escape first (Joel, 2026-08-24).
+ *      Escape first.
  *
- * **Why this is one module-level listener and not one per panel.** It used to be
- * per-panel, and two open panels meant two listeners, so a single Escape fired
- * both: open a game's setup, open Help from its footer "?", press Escape once,
- * and BOTH close — the form you were filling in is gone. A key that
- * means "dismiss this" cannot be answered by everything at once; something has
- * to know what "this" is, and that is the registry below.
+ * ONE module-level listener, not one per panel: a key meaning "dismiss this"
+ * needs something that knows what "this" is, and a listener per panel answers
+ * with all of them at once. The registry is also the app's answer to "which
+ * movable thing is on top" (doc.md → Design).
  *
- * The registry doubles as the answer to "which movable thing is on top", which
- * §20's Open 1 needs for the same reason.
+ * It covers the shell's families only. A popover, a dropdown or a sheet is not
+ * a floating panel and keeps its own Escape — through `useDismissOnEscape`,
+ * which stops the press before it reaches here.
  */
 export function usePanelEscape(
   id: string,

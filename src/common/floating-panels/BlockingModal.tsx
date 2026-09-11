@@ -6,66 +6,44 @@ import actionRow from './modalActions.module.css'
 import styles from './BlockingModal.module.css'
 
 type Props = {
-  /** The headline — usually the question. Rendered as an `<h2>` at the top of
-   *  the body, NOT in a titlebar: a card family has none, because the titlebar
-   *  is the drag handle and this can never be dragged. Optional for a leaf that
-   *  wants to render its own (the fault's is red — that color IS the shape
-   *  test, "a box popped up, the app broke"). */
+  // The headline, usually the question. An `<h2>` at the top of the body, not
+  // a titlebar — a card has none. Omit it and the leaf renders its own: the
+  // fault's is red, and that color IS the shape test ("a box popped up, the
+  // app broke").
   title?: string
-  /** Escape. A card has no ✕, so a footer button must also route here — the
-   *  fault's Close is the only exit it has. The scrim deliberately does NOT:
-   *  see-and-acknowledge. */
+  // Escape, and whatever footer button also means "get me out" — a card has no
+  // ✕, so the fault's Close is the only exit it has. Clicking the scrim does
+  // not: see-and-acknowledge.
   onClose: () => void
-  /** The body — whatever this modal is about. */
+  // The body — whatever this modal is about.
   children: ReactNode
-  /** The footer row. Pass the buttons; the row and its layout are ours. */
+  // The footer row. Pass the buttons; the row and its layout are ours.
   actions: ReactNode
-  /**
-   * Which of the two blocking families this is. Both stop the world; the fault
-   * sits strictly above, because an error must be readable mid-question — and
-   * it SWALLOWS Escape, where a confirmation accepts it.
-   *
-   * Narrowed to the two on purpose: a `modal-normal` keeps its drag, and
-   * handing that value to this component would produce a movable "blocking"
-   * modal, which is the one thing the category cannot be.
-   */
+  // Which of the two blocking families this is. Both stop the world; the fault
+  // sits strictly above, because an error must be readable mid-question, and
+  // it SWALLOWS Escape where a confirmation accepts it.
+  //
+  // Narrowed to the two deliberately: a `modal-normal` keeps its drag, so
+  // handing that value here would make a movable "blocking" modal, which is
+  // the one thing the category cannot be.
   family?: Extract<PanelFamily, 'modal-blocking' | 'modal-fault'>
 }
 
 /**
- * **The blocking modal** — the shell for the strictest category the app has
- * (docs/ui.md → Floating panels). The world stops: nothing underneath is live,
- * and you answer it now.
+ * Reach for this to stop the world and ask something: nothing underneath is
+ * live, and the player answers it now (docs/ui.md → Floating panels).
  *
- * It exists because the category was hand-assembled at every site — four
- * `FloatingPanel` props and a footer `<div>` carrying
- * the shared class, written out separately by the confirmation and the fault.
- * Four things that had to agree, and nothing making them.
+ * Give it a `title`, a body, and the footer `actions` — every other decision
+ * the category makes is made here and is not a prop, because a blocking modal
+ * that differed from its siblings would be claiming something about itself
+ * that isn't true. doc.md → Design covers which decisions those are.
  *
- * What it fixes, and why none of these is a prop:
+ * Usually you want a MEMBER of the category rather than this directly:
+ * `ConfirmationBlockingModal` asks a question, `AcknowledgeBlockingModal`
+ * states something, and `FaultModal` is this one tier up. Reach for the shell
+ * itself when the body is something else entirely — crosswords' jump-to-number.
  *
- *   - **`backdrop`** — "dim" here must mean everything below is inert, which
- *     for this category is literally true rather than a mood.
- *   - **not draggable, not resizable** — immovability IS the visible signal.
- *     If you can drag a floating panel you can leave it for later; if you
- *     cannot, you deal with it now. A blocking modal you could shove aside
- *     would be lying about its own category.
- *   - **`fitContent`** — §20's resize test: the content knows the HEIGHT here
- *     (a modal is as tall as its message), so nobody should be picking that
- *     number. It replaces the two hand-written ones, 240 and 280.
- *   - **420 wide, and it is not a prop.** `fitContent` governs height only, so
- *     somebody still has to choose a width — but the category should be ONE
- *     width. The app had two, 420 and 460, and the 40px between them was a
- *     difference without a distinction (Joel, 2026-08-24): two hands, no
- *     decision. A modal that needs to be wider than its siblings would be
- *     saying something about itself that is not true.
- *   - **its tab ring is innermost** — the keyboard is owned outright, or
- *     "nothing underneath is live" stops being true the moment you press Tab.
- *
- * Members: `ConfirmationBlockingModal` (a question), `AcknowledgeBlockingModal`
- * (a statement), and the fault, which is this behavior one tier up.
- *
- * NOT for a modal you can move — that is a `modal-normal` (setup, edit profile,
+ * NOT for a modal you can move: that is a `modal-normal` (setup, edit profile,
  * the celebration), and its drag is the point.
  */
 export function BlockingModal({
@@ -75,9 +53,6 @@ export function BlockingModal({
   actions,
   family = 'modal-blocking',
 }: Props) {
-  // The trap works on the enclosing `[data-floating-panel]`, so it needs an
-  // anchor rendered inside the shell — this body div is it.
-
   return (
     <FloatingPanel
       family={family}

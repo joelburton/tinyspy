@@ -9,8 +9,7 @@
  *
  * Imported directly the same way setupForm.module.css / PlayArea.module.css are
  * (`import actionRow from '.../modalActions.module.css'`) and applied as
- * `actionRow.modalActions`. Replaces the per-dialog `.actions` blocks that had
- * each re-stated this with slightly different gaps / margins / button widths.
+ * `actionRow.modalActions`.
  *
  * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
  * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
@@ -38,8 +37,7 @@
  * equal action rather than the aside it is.
  *
  * Bespoke on purpose: there is no vocabulary for a control's minimum width, and
- * whether one is owed is the `forms` area's question, not this one
- * (Joel, 2026-08-25). */
+ * whether one is owed is the `forms` area's question, not this one. */
 /* @@ */ .modalActions button:not([data-icon-only]) {
   min-width: 6rem;
 }

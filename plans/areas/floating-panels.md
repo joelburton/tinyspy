@@ -5,8 +5,9 @@ The folders it reads: `floating-panels`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed (Joel: "audit the area") and
-stamped `cs-audited-floating-panels`. The audit read is done; every finding
-below is OPEN and waits on Joel's word one at a time.
+stamped `cs-audited-floating-panels`. Every finding is WORKED. What remains is
+the Closing checklist at the foot of this file — the re-read, and blessing,
+both of which are Joel's.
 
 ## The roster
 
@@ -20,11 +21,11 @@ All in `src/common/floating-panels/`:
 | `Companion.tsx` · `Dialog.tsx` · `NormalModal.tsx` | the three window families, each a family name over the shell |
 | `BlockingModal.tsx` + `.module.css` | the card shell for the two immovable families |
 | `ConfirmationBlockingModal.tsx` · `AcknowledgeBlockingModal.tsx` | a question, and a statement |
-| `useConfirmation.tsx` · `useAcknowledge.tsx` | the component-side hooks, and the three shared questions |
+| `confirmations.ts` · `useAcknowledge.tsx` | the confirm vocabulary — options, answer, the three canonical questions — and the acknowledge hook |
 | `confirmationService.ts` + `.test.ts` · `ConfirmationHost.tsx` + `.test.tsx` | asking from code that is not a component, and the root host that draws it |
 | `modalActions.module.css` | the end-aligned button row |
-| `doc.md` | lede only; Design owed |
-| `todo.md` | four Soon, three Someday |
+| `doc.md` | lede + Design (written 2026-09-11; off `DESIGNS_OWED`) |
+| `todo.md` | one Soon, three Someday |
 
 Left off: the instances that ride on the shell (chat, the help companions,
 the setup modal, the word dialogs, the scratchpad, the fault modal), and the
@@ -33,11 +34,11 @@ two e2e specs the todo names.
 **Callers, for evidence (read, not stamped).** `Companion`: seven files.
 `BlockingModal`: seven, including the fault modal. `NormalModal`: setup, edit
 profile, edit club, the celebration's sibling. `Dialog`: the three word
-tools. `useConfirmation`: five; `useAcknowledge`: connections and strands;
-`askConfirmation`: the actions run and a few game callbacks. `modalActions`:
-five modals plus codenamesduet's Help. `usePanelEscape` and
-`useDraggablePanel` are read by the shell alone. Two options have no caller
-at all: `FloatingPanelProps.phone` and `PanelOpts.edgeMargin`.
+tools. `useAcknowledge`: connections and strands; `askConfirmation`: the
+actions run, the word dialog, and a few game callbacks. `modalActions`: five
+modals plus codenamesduet's Help. `usePanelEscape` and `useDraggablePanel` are
+read by the shell alone. Two options had no caller at all —
+`FloatingPanelProps.phone` and `PanelOpts.edgeMargin` — and both are gone.
 
 **The docs.** docs/ui.md → Floating panels — five families, one shell is the
 owning doc and it holds up against the code: the families table matches the
@@ -49,7 +50,7 @@ words in it are below.
 
 ### Code and prose
 
-## F-floating-panels-1 · `docstring-marker-pass` · Fifty-three `/**` on members, and one on a parameter
+## F-floating-panels-1 · `docstring-marker-pass` · Fifty-three `/**` on members, and one on a parameter — WORKED
 
 Every props type in the folder puts `/**` on its members: `FloatingPanelProps`
 (fourteen), `FAMILY`'s record members (seven), `PanelOpts` (five), `Entry`
@@ -58,7 +59,7 @@ Every props type in the folder puts `/**` on its members: `FloatingPanelProps`
 PARAMETER, inside the signature. A note on a member or a parameter takes
 `//`; the `/**` stays on the types, the components and the hooks.
 
-## F-floating-panels-2 · `plan-and-finding-cites` · `§20` four times and `F26` once
+## F-floating-panels-2 · `plan-and-finding-cites` · `§20` four times and `F26` once — WORKED
 
 `FloatingPanel.tsx` cites "§20's rule" twice, `BlockingModal.tsx` "§20's
 resize test", `usePanelEscape.ts` "§20's Open 1", and `FloatingPanel.tsx`
@@ -66,7 +67,7 @@ line 629 "(F26)". The no-cite rule: a plan section and a finding number from
 a deleted audit, in durable files. In each the sentence carries its reason,
 or docs/ui.md → Floating panels does; the cite goes.
 
-## F-floating-panels-3 · `stale-names` · A prop, a file, a component and a modal that do not exist
+## F-floating-panels-3 · `stale-names` · A prop, a file, a component and a modal that do not exist — WORKED
 
 - **`backdrop`** — three comments in `FloatingPanel.tsx` (the `onClose` prop:
   "even when `backdrop` is set"; the scrim's "see Props.backdrop docstring";
@@ -89,11 +90,11 @@ or docs/ui.md → Floating panels does; the cite goes.
   not been done.
 - **`docs/mobile.md → "Panels on touch"`** is cited twice and exists; fine.
 
-The `FloatingPanel.tsx` entries above are FIXED (its prose pass, 2026-09-11);
-`BlockingModal.tsx`'s and docs/ui.md's are open — the latter is
-F-floating-panels-12.
+All fixed. `backdrop` reached two files beyond the list —
+`SetupGameModal.tsx`'s docstring and `docs/states.md` — and those went with it;
+see the prose-pass section below for the uses deliberately left alone.
 
-## F-floating-panels-4 · `archaeology-in-docstrings` · The folder narrates how it got here
+## F-floating-panels-4 · `archaeology-in-docstrings` · The folder narrates how it got here — WORKED
 
 The heaviest of the areas so far. Nearly every docstring explains the shape
 by the shape it replaced, and about nine carry a dated ruling in
@@ -135,7 +136,7 @@ is the drag handle; one Escape listener because a key meaning "dismiss this"
 needs one answer; the shell floors nothing because a one-line panel should be
 one line tall. Say those.
 
-## F-floating-panels-5 · `counts` · Censuses of the instances
+## F-floating-panels-5 · `counts` · Censuses of the instances — WORKED
 
 `useDraggablePanel`: "the six COMPANIONS… and the three DIALOGS".
 `FloatingPanel.tsx`: "three dialogs that forgot…, three dimmed forms…"; "the
@@ -144,7 +145,7 @@ buttons"; "a 30×-repeated fault message grew to 647px".
 `ConfirmationBlockingModal`: "sixteen chances for them to disagree". Say the
 condition, or the kind ("the word dialogs").
 
-## F-floating-panels-6 · `design-lives-in-docstrings` · The folder's Design is spread over its hovers, and `doc.md` has none
+## F-floating-panels-6 · `design-lives-in-docstrings` · The folder's Design is spread over its hovers, and `doc.md` has none — WORKED
 
 On Joel's framing from `actions`: a docstring says who calls this and how.
 Here the five families and what each claims, immovability as the signal,
@@ -166,8 +167,8 @@ pointer. Pairs with F-floating-panels-4: the cuts are the same cuts.
   (`repeat(7, minmax(0, 1fr))`, `min-width: 0` on the buttons). `phoneSheet`
   went with it: with no override it only ever restated `shape === 'window'`,
   which `PanelRnd` already knows.
-- `PanelOpts.edgeMargin` — "Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes
-  one." A dead option with its own docstring saying so.
+- `PanelOpts.edgeMargin` — **DELETED**. A dead option whose own docstring said
+  so; the hook reads `VIEWPORT_EDGE_MARGIN` directly now.
 
 ## F-floating-panels-8 · `typeof-window-guards` · The folder's own Soon — WORKED
 
@@ -294,7 +295,7 @@ rather than widen anything.
 
 ### Prose elsewhere, turned up by this area's reading
 
-## F-floating-panels-12 · `ui-md-backdrop` · docs/ui.md → Confirm modals names a prop that is not there
+## F-floating-panels-12 · `ui-md-backdrop` · docs/ui.md → Confirm modals names a prop that is not there — WORKED
 
 "A true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer
 action on the board underneath". The scrim is the family's; the sentence
@@ -328,7 +329,7 @@ The hook had NO tests of its own — `useDraggablePanel.test.ts` covered only
 the pure `clampToViewport`. Nine added, paired keyed-against-keyless so the
 shared path is what's asserted; both halves verified by planting.
 
-## F-floating-panels-14 · `dead-ref-in-the-hook` · `useDraggablePanel` syncs a ref nothing reads
+## F-floating-panels-14 · `dead-ref-in-the-hook` · `useDraggablePanel` syncs a ref nothing reads — WORKED
 
 `useDraggablePanel.ts` keeps a `rectRef` and an effect to sync it, with a
 comment saying the resize listener clamps against it. The listener lives in
@@ -365,6 +366,33 @@ F-floating-panels-13; not touched.
   sizes covers `minWidth: 320`.
 - **The two scrim shades** (40% / 45%) are the todo's Someday question and
   are not re-raised.
+
+## The prose pass, file by file
+
+F-1 through F-6 and F-12 are one job wearing seven names — the same pass done on
+`FloatingPanel.tsx`, run over the rest of the folder on 2026-09-11. Measured at
+the end rather than claimed: **zero `/**` on a member anywhere in the folder**,
+no `§20`, no `F26`, no census, and none of F-3's names.
+
+Two things worth knowing beyond the mechanical cuts:
+
+- **`useReclampOnResize`'s `recenter` had the folder's worst offender** — a
+  26-line `/**` on a PARAMETER, inside the signature. It carried the real rule
+  (re-center unless the panel remembers where you put it) plus three paragraphs
+  of how it got there. The rule stays, as `//`; the history goes.
+- **F-12's `backdrop` reached further than docs/ui.md.** The same non-existent
+  prop was named in `SetupGameModal.tsx`'s docstring (which also still claimed
+  "Chat at z-index 10000") and in `docs/states.md`. Both fixed, since a
+  docstring naming an API that does not exist is a falsehood about THIS folder
+  wherever it lives.
+
+**Not swept, and a decision if you want it made:** eight files across six other
+areas use "backdrop" as a common noun for the scrim — `FaultModal.module.css`,
+`Chat.tsx`, `SuspendConfirmationBlockingModal.tsx`, `PauseOverlay.module.css`,
+`CelebrationBlockingModal` (×2), `SetupGameModal.module.css`. None names a prop,
+so none is false; they are drift from the word the code uses (`--scrim-color`,
+`.scrimDark`). Whether "backdrop" is banned in favor of "scrim" is a vocabulary
+ruling with a guard attached, not a sweep to do quietly.
 
 ## Notes
 
@@ -405,6 +433,19 @@ F-floating-panels-13; not touched.
 - F-floating-panels-13 (panel-variant-components): none, and that was the
   risk — the merged path had no spec at all. `useDraggablePanel.test.ts` now
   covers it; the whole suite stayed green through the merge.
+
+## Files this area created or renamed
+
+Four, none of them on the roster the area opened with — so they join it at close:
+
+| file | why it exists |
+|---|---|
+| `floating-panels/confirmations.ts` | `useConfirmation.tsx` renamed once its hook was deleted. It was never a hook file in substance: eight importers, one of which wanted the hook |
+| `keyboard/useDismissOnEscape.ts` | the shared answer for an overlay that is NOT a floating panel, so one Escape dismisses one thing |
+| `keyboard/useDismissOnEscape.test.ts` | its spec, paired against a stand-in panel registry |
+| `guards/escapeListeners.test.ts` | fails a hand-rolled global Escape listener outside the three files that own the key |
+
+Deleted: `useConfirmation.tsx` (the hook; the file lives on as `confirmations.ts`).
 
 ## Closing
 

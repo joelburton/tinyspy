@@ -5,7 +5,7 @@
  * and the rounded corners live here, so every floating panel looks like one
  * thing.
  *
- * Layout structure (per ../connections' pattern):
+ * Layout structure:
  *
  *   <Rnd className=".rnd">                  // positioning only
  *     <div className=".shell">              // 100%/100% flex column wrapper
@@ -27,8 +27,8 @@
  * PAGE scroll (a hard layout rule: the page must never scroll, horizontally or
  * vertically). `pointer-events: none` so the layer itself never intercepts
  * clicks meant for the page beneath; the panel re-enables events on itself.
- * One layer per panel — its z-index stacks the whole panel; the backdrop, when
- * present, sits just below at zIndex - 1. */
+ * One layer per panel — its z-index stacks the whole panel; the scrim, when the
+ * family paints one, sits just below at zIndex - 1. */
 /* @@ */ .clipLayer {
   position: fixed;
   inset: 0;
@@ -66,10 +66,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacer-4);
-  /* ONE number sizes the strip: `--floatingPanel-titlebar-height`. The vertical
-     padding that used to set this height is gone — `align-items: center` does
-     the centering, so stating the height directly says what was previously only
-     implied by 0.3rem + a 1.4rem ✕. */
+  /* ONE number sizes the strip: `--floatingPanel-titlebar-height`, stated
+     rather than implied. `align-items: center` does the centering, so no
+     vertical padding is involved in the height. */
   height: var(--floatingPanel-titlebar-height);
   padding-inline: 0.7rem;
   border-bottom: var(--border-width-line) solid var(--page-surface-border-color);
@@ -101,9 +100,8 @@
 /* @@ */ .title {
   font-weight: 600;
   /* Derived from the bar, not from the type ramp: this is the ONE label whose
-     size is a function of the strip it sits in, and 0.45 is what it already
-     measured (0.9rem of 2rem). A global token for two readers in one file would
-     be clutter (Joel, 2026-08-25). */
+     size is a function of the strip it sits in — 0.45 of the titlebar height.
+     Not a token: two readers in one file would make it clutter. */
   font-size: calc(var(--floatingPanel-titlebar-height) * 0.45);
   /* Truncate long titles rather than blowing out the header
      width — the close button must stay reachable. */
@@ -123,10 +121,10 @@
 
      min-height: 0 here is the flex-column quirk that lets the
      scrollable child inside actually scroll instead of pushing
-     the body taller. overflow: auto means modals with long
-     content (HowToPlay) scroll naturally; chat's internal
-     layout occupies the full body and doesn't trigger this
-     scroll. */
+     the body taller. overflow: auto means a panel with long
+     content — a help guide, a long fault message — scrolls
+     naturally; chat's internal layout occupies the full body
+     and doesn't trigger this scroll. */
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -248,7 +246,8 @@
  * QuickType bar can't be hidden), so guessing it always over- or under-shoots.
  * Instead the clip layer's height/top are driven from the VISUAL viewport in JS
  * (see FloatingPanel.tsx), so the sheet ends exactly at the keyboard's top edge.
- * No CSS rule is needed here; this note marks where the old static reserve was. */
+ * There is deliberately no rule here — this note is where someone would come
+ * looking for one. */
 
 /* ── Scrims ────────────────────────────────────────────────────────────────
  * The dim a modal paints over the page. It catches pointer events on
@@ -256,11 +255,10 @@
  * deliberately unaffected — a modal-normal never claimed the world stopped).
  *
  * TWO shades, and WHICH ONE IS THE FAMILY'S CHOICE, not the component's
- * (FloatingPanel.tsx → FAMILY). Before that, every panel on this shell painted
- * the light one while the two hand-rolled modal-NORMALS elsewhere painted the
- * dark one — the shade tracked how each was built rather than what it meant.
+ * (FloatingPanel.tsx → FAMILY) — so the shade tracks what a panel MEANS rather
+ * than how it was built.
  *
- * The VALUES are still the pair they have always been, 40% and 45%, which is a
+ * The VALUES are 40% and 45%, which is a
  * difference nobody can see. The proposal on the table is roughly 35% and
  * 55% (todo.md); that is a separate decision, to be made looking at a real
  * board. */

@@ -111,7 +111,7 @@ Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** 
 
 A **fault** is a failure nobody planned for: a bug, or a request that never
 reached the server. It renders as a blocking **modal** (`<FaultModal>`, one
-host mounted in App.tsx) — dimmed backdrop, nothing outside it interactable —
+host mounted in App.tsx) — a dark scrim, nothing outside it interactable —
 deliberately unlike every normal message. The phone-line shape test got even
 easier: *"did a box pop up?"* separates **"the game refused my move"** from
 **"the app is broken"** before anyone reads a word.
@@ -129,7 +129,7 @@ Three lines (Joel's spec, 2026-08-13):
    never drift. The format is in
    [envelopes.md → the `[db]` line](envelopes.md).
 
-Dismissal: the Close button or Esc — backdrop clicks are deliberately inert
+Dismissal: the Close button or Esc — scrim clicks are deliberately inert
 (see-and-acknowledge). One fault at a time; each fault is its own modal
 (no batching); the queue caps at 5 and silently drops overflow from the UI —
 every dropped fault still has its `[db]` line, since the classifier logs
@@ -267,8 +267,8 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 In-game confirmations go through the shared
 [`<ConfirmationBlockingModal>`](../src/common/floating-panels/ConfirmationBlockingModal.tsx) — a
-true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
-on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
+true MODAL on the FloatingPanel shell: its family paints a dark scrim that
+blocks every pointer action on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
 game", "Suspend") — never a bare "OK". **One way to ask it, from anywhere:**
