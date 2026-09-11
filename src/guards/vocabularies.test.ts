@@ -366,9 +366,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       'src/common/faults/FaultModal.module.css': ['1.1rem', '0.78rem'],
-      // ErrorPage is FaultModal's twin as a PAGE (F39 `loading-and-errors`);
-      // its two sizes are copied to the digit so the two read as one event.
-      // They convert together or not at all.
+      // ErrorPage is FaultModal's twin as a PAGE; its two sizes are copied to
+      // the digit so the two read as one event. They convert together or not
+      // at all.
       'src/common/error-page/ErrorPage.module.css': ['1.1rem', '0.78rem'],
       'src/common/fields/field.module.css': ['0.9rem'],
       'src/common/fields/ReadOnlyField.module.css': ['1.05rem'],

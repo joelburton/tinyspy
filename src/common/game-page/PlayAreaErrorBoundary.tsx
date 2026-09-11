@@ -42,8 +42,7 @@ export class PlayAreaErrorBoundary extends Component<
     if (this.state.error === null) return this.props.children
     // Reload is offered ALONGSIDE the shared "← Back home", not instead of it:
     // a crashed render is the one dead end where retrying the same URL is a
-    // real fix, and the one where leaving might lose a game in progress
-    // (F39 `loading-and-errors`).
+    // real fix, and the one where leaving might lose a game in progress.
     return (
       <ErrorPage
         message={this.state.error.message}

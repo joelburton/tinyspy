@@ -77,8 +77,8 @@ export function EnvelopeErrorPage({ envelope, action }: { envelope: NotOkEnvelop
  * Every one of these carries the SAME way out, because the five it replaced had
  * three different ones and one had none at all.
  *
- * The body is a `.card` — a bordered section of a page, which is what a card is
- * (F37 `card-only-page`), and what all five of these already were. So the page
+ * The body is a `.card` — a bordered section of a page, which is what a card is,
+ * and what all five of these already were. So the page
  * still reads as white-on-gray like the modal does; only the content inside it
  * is now one shape instead of five.
  *

@@ -812,9 +812,9 @@ export function ClubPage({ handle, session }: Props) {
 
   if (loading) return <Loading />
   // The club did not load, so there is no page to put a modal over — the
-  // fault IS the route (F39 `loading-and-errors`). The sentence is for the
-  // player and the condition is for whoever reads it back; the handle is the
-  // one thing neither of them can know.
+  // fault IS the route. The sentence is for the player and the condition is
+  // for whoever reads it back; the handle is the one thing neither of them
+  // can know.
   if (fault || !club) {
     return (
       <ErrorPage

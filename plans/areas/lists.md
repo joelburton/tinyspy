@@ -109,11 +109,13 @@ clubs list is realtime and a friend's edit must not move focus.
 comment states the condition — the effect keys on first CONTENT, and keying on
 length would re-run when a friend adds you to a club.
 
-**Three more finding IDs sit in code outside this area**, same defect:
-`ClubPage.tsx:815` and `PlayAreaErrorBoundary.tsx:46` both cite
-`F39 (loading-and-errors)`, `ErrorPage.tsx:81` cites `F37 (card-only-page)`.
-Raised with Joel rather than fixed here — each needs its sentence rewritten to
-say the condition, which is judgment rather than a substitution.
+**Five more finding IDs sat in durable files outside this area**, same defect,
+and Joel said fix all: `ClubPage.tsx`, `PlayAreaErrorBoundary.tsx` and
+`vocabularies.test.ts` cited `F39 (loading-and-errors)`, `ErrorPage.tsx` cited
+`F37 (card-only-page)`, and `e2e/crosswords.e2e.ts` cited
+`F50 (puzzle-source-picks-in-a-dialog)`. In every one the surrounding sentence
+already said the condition, so the ID came out and nothing else changed.
+`grep -rn "F[0-9]\+ \`" src e2e docs scripts supabase` is now empty.
 
 ## F-lists-4 · `docstring-marker-pass` · Every prop in the folder is a `/**` field
 

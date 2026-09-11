@@ -463,9 +463,9 @@ test.describe('crosswords play loop', () => {
       .locator('input[type="file"]')
       .setInputFiles('supabase/scripts/crosswords/fixtures/sunday-sample.puz')
 
-    // A parse CLOSES the picker (F50 `puzzle-source-picks-in-a-dialog`), and
-    // the setup form's caption names both the puzzle and the file it came from
-    // — the only account of either once the picker has gone.
+    // A parse CLOSES the picker, and the setup form's caption names both the
+    // puzzle and the file it came from — the only account of either once the
+    // picker has gone.
     await expect(page.getByText(/^Puzzle: .*sunday-sample\.puz$/)).toBeVisible({
       timeout: 10000,
     })
