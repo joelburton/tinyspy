@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { readStored, writeStored } from '../web-storage/storage'

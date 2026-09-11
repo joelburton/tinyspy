@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 /**
  * Tests for the confirmation service — the imperative `askConfirmation` behind

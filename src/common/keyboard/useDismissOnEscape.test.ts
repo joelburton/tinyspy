@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-floating-panels
 
 import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'

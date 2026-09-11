@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import { useSyncExternalStore } from 'react'
 import type { ConfirmAnswer, ConfirmOptions } from './confirmations'

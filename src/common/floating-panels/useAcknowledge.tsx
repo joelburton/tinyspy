@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import { useCallback, useState, type ReactNode } from 'react'
 import { AcknowledgeBlockingModal } from './AcknowledgeBlockingModal'

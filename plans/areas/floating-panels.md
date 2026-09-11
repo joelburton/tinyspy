@@ -4,11 +4,16 @@ The folders it reads: `floating-panels`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed (Joel: "audit the area") and
-stamped `cs-audited-floating-panels`. Every finding is WORKED, the closing
-re-read is done (its findings are F-15 through F-28 below; F-29 is from
-Joel's read of the diff) and `doc.md` is
-harvested. What remains is blessing, which is Joel's.
+**Status: CLOSED 2026-09-11** (Joel: "commit, then mark all files as blessed,
+then close area") — every roster file reads `cs-blessed-floating-panels`,
+stamped at those words, and so do the three files the area created outside
+the folder (`keyboard/useDismissOnEscape.ts`, its test,
+`guards/escapeListeners.test.ts`), since created files join the roster at
+close. Opened the same day: roster agreed (Joel: "audit the area") and stamped
+`cs-audited-floating-panels`. Every finding is WORKED; the closing re-read was
+done the same day (F-15 through F-28 below; F-29 is from Joel's read of the
+diff) and `doc.md` harvested. The re-read and the harvest are committed at
+`8ce29a2a`; the blessing is the diff after it.
 
 ## The roster
 
@@ -596,5 +601,6 @@ Deleted: `useConfirmation.tsx` (the hook; the file lives on as `confirmations.ts
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (lede and
       Design brought up to the folder as it closes, 2026-09-11)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not — **Joel's;
-      every roster file still reads `cs-audited-floating-panels`**
+- [x] every file on the roster blessed, or its stamp says why not (Joel,
+      2026-09-11: "mark all files as blessed" — the nineteen roster files and
+      the three created outside the folder)

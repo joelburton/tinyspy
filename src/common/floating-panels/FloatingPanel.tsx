@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'

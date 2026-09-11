@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import type { ReactNode } from 'react'
 import { FloatingPanel, type PanelFamily } from './FloatingPanel'

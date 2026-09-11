@@ -1,4 +1,4 @@
-// cs-audited-floating-panels
+// cs-blessed-floating-panels
 
 import { useEffect } from 'react'
 import { ConfirmationBlockingModal } from './ConfirmationBlockingModal'
