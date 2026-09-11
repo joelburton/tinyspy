@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { ACTIONS, type ActionId, type ActionSpec } from './registry'
 import type { AppIcon } from '../icons/icons'
 import { askConfirmation } from '../floating-panels/confirmationService'
+import type { ConfirmAnswer } from '../floating-panels/useConfirmation'
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
 /**
@@ -206,18 +207,23 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // each remembering to ask — and stops one of them from forgetting.
   const ask = useCallback(
     async (key?: string) => {
-      const now = liveRef.current
+      const asked = liveRef.current
       // Which question, if any: the one with two ways to say yes when this
       // binding has a body for the second act, otherwise the plain one. At
       // terminal neither is asked — there is nothing left to interrupt.
-      const question = now.runAlternative ? (spec.confirmChoice ?? spec.confirm) : spec.confirm
-      if (question && !now.terminal) {
-        const answer = await askConfirmation(question)
+      const question = asked.runAlternative ? (spec.confirmChoice ?? spec.confirm) : spec.confirm
+      let answer: ConfirmAnswer = 'confirm'
+      if (question && !asked.terminal) {
+        answer = await askConfirmation(question)
         if (answer === null) return
-        if (answer === 'alternative' && now.runAlternative) {
-          await now.runAlternative()
-          return
-        }
+      }
+      // Read AGAIN after the wait: the game keeps rendering while the question
+      // is up (realtime, the clock), and the body that runs must be the one
+      // from the moment of the answer, not the moment of the press.
+      const now = liveRef.current
+      if (answer === 'alternative' && now.runAlternative) {
+        await now.runAlternative()
+        return
       }
       await now.run(key)
     },

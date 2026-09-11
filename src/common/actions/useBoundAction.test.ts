@@ -116,6 +116,27 @@ describe('useBoundAction — the shared run', () => {
     view.unmount()
   })
 
+  it('runs the body from the moment of the ANSWER, not the moment of the press', async () => {
+    // The game keeps rendering while the question is up, and a binding's
+    // callback closes over that render's state. The one that runs must be the
+    // one on the stack when the answer lands.
+    let settle: (answer: 'confirm' | null) => void = () => {}
+    askConfirmation.mockImplementation(() => new Promise((resolve) => { settle = resolve }))
+    const before = vi.fn()
+    const after = vi.fn()
+    let run = before
+    const view = renderHook(() => useBoundAction('act-new-game', { run, describe: () => 'active' }))
+
+    act(() => view.result.current.run())
+    run = after
+    view.rerender()
+    await act(async () => { settle('confirm') })
+
+    expect(after).toHaveBeenCalledTimes(1)
+    expect(before).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
   it('drops a second run while the first is still out', async () => {
     let release = () => {}
     const run = vi.fn(() => new Promise<void>((resolve) => { release = resolve }))
