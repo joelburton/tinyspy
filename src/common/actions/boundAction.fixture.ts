@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 import { vi } from 'vitest'
 import { ACTIONS, type ActionId } from './registry'

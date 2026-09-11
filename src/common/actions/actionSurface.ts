@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 import type { AppIcon } from '../icons/icons'
 import { nameWithKey } from './nameWithKey'
@@ -7,16 +7,16 @@ import type { BoundAction } from './useBoundAction'
 /** What a control needs in order to BE an action: what to draw, and the props
  *  that make its `<button>` behave like one. */
 export type ActionSurface = {
-  /** The action does not apply right now — draw nothing at all. */
+  // The action does not apply right now — draw nothing at all.
   hidden: boolean
-  /** What it is called this moment. */
+  // What it is called this moment.
   label: string
-  /** The face it wears this moment — a toggle's two faces come through here. */
+  // The face it wears this moment — a toggle's two faces come through here.
   icon?: AppIcon
-  /** Spread onto the `<button>`: it fires the action, grays when the action
-   *  says so or while a run is out, says which action it is, and carries the
-   *  bubble — the action's reason for this moment, else its name with the key
-   *  on the end. */
+  // Spread onto the `<button>`: it fires the action, grays when the action
+  // says so or while a run is out, says which action it is, and carries the
+  // bubble — the action's reason for this moment, else its name with the key
+  // on the end.
   buttonProps: {
     disabled: boolean
     onClick: () => void

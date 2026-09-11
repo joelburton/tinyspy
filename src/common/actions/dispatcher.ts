@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
@@ -47,7 +47,7 @@ function reportChordTie(claimants: BoundAction[]): void {
  * list honest: the keys that work on a page are exactly the ones registered
  * there.
  *
- * **Two gates come first, and they are the same two the app has always had.** A
+ * **Two gates come first, and they are the app's, not an action's.** A
  * keystroke aimed at a focused text field, or at anything inside a floating
  * panel, belongs to that field or that panel — a left arrow typed in chat
  * cannot move a board cursor. The field gate is the one an action can opt out

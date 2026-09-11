@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 import { useBoundActions } from './useBoundAction'
 import styles from './KeyList.module.css'
@@ -20,18 +20,24 @@ import styles from './KeyList.module.css'
  * the one the dispatcher would fire.
  */
 export function KeyList() {
-  const seen = new Set<string>()
   const rows = useBoundActions()
     .map((action) => ({ action, key: action.spec.keys?.[0], ...action.describe() }))
     .filter((row) => row.key !== undefined && row.state !== 'hidden')
-    .filter((row) => !seen.has(row.action.id) && seen.add(row.action.id))
+  // One row per command: the first binding in stack order keeps its row and
+  // any later binding of the same id is dropped.
+  const seen = new Set<string>()
+  const unique = rows.filter((row) => {
+    if (seen.has(row.action.id)) return false
+    seen.add(row.action.id)
+    return true
+  })
 
-  if (rows.length === 0) return null
+  if (unique.length === 0) return null
   return (
     <div className={styles.keyList}>
       <h3 className={styles.heading}>Keys</h3>
       <dl className={styles.rows}>
-        {rows.map((row) => (
+        {unique.map((row) => (
           <div key={row.action.id} className={styles.row}>
             <dt className={styles.key}>{row.key!.label}</dt>
             <dd className={styles.what}>{row.label ?? row.action.spec.label}</dd>

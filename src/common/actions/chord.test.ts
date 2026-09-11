@@ -1,12 +1,11 @@
-// cs-unmet
-
-import { describe, expect, it } from 'vitest'
-import { isPattern, matches, type KeySpec } from './chord'
+// cs-audited-actions
 
 /**
  * The key matcher, branch by branch — including the macOS dead-key cases that
  * are the whole reason a chord can match on the physical key.
  */
+import { describe, expect, it } from 'vitest'
+import { isPattern, matches, type KeySpec } from './chord'
 
 /** A keydown, with everything the matcher reads and nothing else. */
 function press(init: Partial<KeyboardEvent> & { key: string }): KeyboardEvent {

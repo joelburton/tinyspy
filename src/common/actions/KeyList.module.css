@@ -1,20 +1,20 @@
-/* cs-unmet */
+/* cs-audited-actions */
 
 /* The generated key list at the bottom of a game's help. Separated from the
-   rules copy above it by a rule, since it is reference rather than prose. */
-.keyList {
+   rules text above it by a rule, since it is reference rather than prose. */
+/* @@ */ .keyList {
   margin-top: var(--spacer-2);
   padding-top: var(--spacer-3);
   border-top: var(--border-width-line) solid var(--page-divider-color);
 }
 
-.heading {
+/* @@ */ .heading {
   margin: 0 0 var(--spacer-4);
   font-size: var(--font-size-2);
   color: var(--page-text-label-color);
 }
 
-.rows {
+/* @@ */ .rows {
   margin: 0;
   display: grid;
   /* The keys column is as wide as its widest key and no wider, so the names
@@ -26,18 +26,18 @@
 /* Each row is its own grid item pair, so `dt` and `dd` land in the two
    columns. `display: contents` is what lets the wrapper carry the React key
    without becoming a box of its own. */
-.row {
+/* @@ */ .row {
   display: contents;
 }
 
-.key {
+/* @@ */ .key {
   color: var(--page-text-muted-color);
   font-size: var(--font-size-2);
   font-weight: 500;
   white-space: nowrap;
 }
 
-.what {
+/* @@ */ .what {
   margin: 0;
   font-size: var(--font-size-2);
 }

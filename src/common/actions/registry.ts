@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 import type { AppIcon } from '../icons/icons'
 import type { ButtonTone } from '../buttons/StandardButton'
@@ -43,7 +43,7 @@ import {
  * DOES is the other half, supplied by whichever page or component offers it —
  * see `useBoundAction`, which joins the two. Nothing here is a function and
  * nothing here knows about a game: New game means the same thing, wears the
- * same glyph and answers to the same key in all sixteen of them.
+ * same glyph and answers to the same key in every one of them.
  *
  * **Adding an action is adding a row here.** The id is `act-<what-it-does>`,
  * and the binding that gives it a body is named `actWhatItDoes`, so both are
@@ -268,7 +268,7 @@ export const ACTIONS = {
   // scrabble's Recall: take every STAGED tile back to the rack at once. Distinct
   // from `act-remove-tile`, which takes back the last one — hence its own id
   // rather than a second meaning for ⌫, which the board cursor already owns
-  // here. Keyless: it has always been a button.
+  // here. Keyless: it is a button.
   'act-recall-tiles': { label: 'Recall', icon: IconClear },
   'act-suggest-move': { label: 'Suggest a move', icon: IconAI, tone: 'caution' },
   // codenamesduet's clue-giver asks Claude for a clue. Its own id rather than

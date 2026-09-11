@@ -71,7 +71,7 @@ the dispatcher never sees them either.
 else](ui.md#real-forms-and-everything-else). Both gates are that design rule in
 code: the floating-panel gate *is* "this is a real form, the panel owns the
 keyboard", and the focused-text-field gate is what makes category 3 (chat,
-scratchpad, clue fields) work. Note the `<select>` in the first row is now
+scratchpad, clue fields) work. Note the `<select>` in the first row is
 almost vestigial outside real forms: gameplay and club-page dropdowns are
 [`FilterSelect`](../src/common/lists/FilterSelect.tsx), which never
 takes focus, so it never trips that gate at all.

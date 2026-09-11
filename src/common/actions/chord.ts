@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-actions
 
 /**
  * The keys an action can be pressed with, and the one function that decides
@@ -13,9 +13,8 @@
  * two things that actually matter here: which half of the event to compare
  * against (`e.key`, the character produced, or `e.code`, the physical key), and
  * what each modifier must be doing. Both bite in practice — on macOS Option
- * changes the character, so `⌥=` arrives as `≠` and `⌥\`` as `Dead`, and every
- * listener that matched those by character had to explain the workaround
- * itself. Here it is one field.
+ * changes the character, so `⌥=` arrives as `≠` and `⌥\`` as `Dead` — and a
+ * chord that names the physical key instead says so in one field.
  */
 
 /** One discrete keystroke: a key, plus what the modifiers must be doing. */
