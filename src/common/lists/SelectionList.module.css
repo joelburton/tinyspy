@@ -38,8 +38,10 @@
   background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-lg);
-  /* The rows' square corners would otherwise poke past the frame's rounding at
-     the top and bottom. `hidden` on x pairs with the y-axis scroll — plain
+  /* Square row corners would otherwise poke past this rounding. The END rows
+     carry the corners themselves now (below), but a scrolled list puts an
+     ordinary square-cornered row against the curve, so the clip still earns
+     its place. `hidden` on x pairs with the y-axis scroll — plain
      `overflow: hidden` would CLIP a long list instead of letting it scroll. */
   overflow-x: hidden;
   min-height: 0;
@@ -106,6 +108,24 @@
   background: var(--page-surface-hover-color);
 }
 
+/* THE END ROWS TAKE THE FRAME'S CORNERS. Without this a square row sits inside
+   a rounded box and everything the row paints — its hover tint, and the cursor
+   ring — runs into the curve and is shaved off by the frame's clip, which reads
+   as a rendering bug rather than as a shape.
+
+   One border-width smaller than the frame's radius, which is what makes the
+   inner curve concentric with the outer one instead of subtly tighter or
+   looser. Stated on the CHILD rather than on `.row`, so it holds for the empty
+   message too and does not care how a caller nests things. */
+/* @@ */ .list > :first-child {
+  border-top-left-radius: calc(var(--radius-lg) - var(--border-width-line));
+  border-top-right-radius: calc(var(--radius-lg) - var(--border-width-line));
+}
+/* @@ */ .list > :last-child {
+  border-bottom-left-radius: calc(var(--radius-lg) - var(--border-width-line));
+  border-bottom-right-radius: calc(var(--radius-lg) - var(--border-width-line));
+}
+
 /* The second density, and the only one. The club page's rows each carry two
    lines of text, which pays for taking a little of the vertical back — a fact
    about that page rather than about either row's contents, which is why it is a
@@ -136,7 +156,9 @@
    focused, no pseudo-class can express it.
 
    Inset, because these rows abut inside a frame — an outside ring would overlap
-   its neighbor and get clipped at the first and last. */
+   its neighbor and get clipped at the first and last. An outline follows its
+   element's `border-radius`, so on the end rows it curves with the frame (see
+   the corner rules above) rather than cutting across it. */
 /* @@ */ .cursor {
   outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
