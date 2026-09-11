@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { ACTIONS, type ActionId, type ActionSpec } from './registry'
 import type { AppIcon } from '../icons/icons'
 import { askConfirmation } from '../floating-panels/confirmationService'
-import type { ConfirmAnswer } from '../floating-panels/useConfirmation'
+import type { ConfirmAnswer } from '../floating-panels/confirmations'
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
 /** Whether an action applies right now, and how. `hidden` is "not here at this

@@ -271,15 +271,13 @@ true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
 on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
-game", "Suspend") — never a bare "OK". Two ways to ask it. Code that is not a
-component — an action's shared run, a game callback — asks through
-[`askConfirmation`](../src/common/floating-panels/confirmationService.ts), which
+game", "Suspend") — never a bare "OK". **One way to ask it, from anywhere:**
+[`askConfirmation`](../src/common/floating-panels/confirmationService.ts)
 answers `'confirm'`, `'alternative'` (where the question offers a second way to
-say yes) or `null`; the one `<ConfirmationHost>` in `App.tsx` draws whatever is
-pending. A component asking its own question can still use
-[`useConfirmation`](../src/common/floating-panels/useConfirmation.tsx), a
-promise plus a `{confirmationModal}` node to render; both draw the identical
-modal.
+say yes) or `null`, and the one `<ConfirmationHost>` in `App.tsx` draws whatever
+is pending. Nobody renders the modal themselves — components await it exactly as
+an action's shared run does, which is what keeps a second way to say yes
+available to every caller rather than to some of them.
 
 The standing questions — every one the registry carries (New game, Restart,
 End game, Concede, Reveal grid) plus Suspend, which is the page's own:

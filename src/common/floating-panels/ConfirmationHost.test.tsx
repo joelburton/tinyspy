@@ -11,7 +11,7 @@ import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ConfirmationHost } from './ConfirmationHost'
 import { askConfirmation } from './confirmationService'
-import type { ConfirmAnswer, ConfirmOptions } from './useConfirmation'
+import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
 
 const QUESTION: ConfirmOptions = {
   title: 'End this game?',

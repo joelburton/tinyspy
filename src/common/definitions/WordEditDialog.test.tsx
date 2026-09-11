@@ -11,11 +11,15 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockRpc, mockWordRows, mockSetWordEdit } = vi.hoisted(() => ({
+const { mockRpc, mockWordRows, mockSetWordEdit, mockAsk } = vi.hoisted(() => ({
   mockRpc: vi.fn(),
   mockWordRows: vi.fn(),
   mockSetWordEdit: vi.fn(),
+  mockAsk: vi.fn(),
 }))
+// Delete asks before it fires, through the same `askConfirmation` every other
+// caller uses — the app-root host draws it, so there is nothing to render here.
+vi.mock('../floating-panels/confirmationService', () => ({ askConfirmation: mockAsk }))
 // Closing is a call to the store, so that is what "it closed" asserts.
 vi.mock('./wordEditStore', () => ({ setWordEdit: mockSetWordEdit }))
 vi.mock('../supabase/db', () => ({
@@ -61,6 +65,8 @@ beforeEach(() => {
   mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'added' } }, error: null })
   mockWordRows.mockReset()
   mockWordRows.mockResolvedValue({ data: [ROW], error: null })
+  mockAsk.mockReset()
+  mockAsk.mockResolvedValue('confirm')
 })
 
 /**
@@ -199,5 +205,31 @@ describe('WordEditDialog — where a validation lands', () => {
 
     await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
     expect(errorUnder('definition')).not.toBe(MESSAGE)
+  })
+})
+
+describe('WordEditDialog — Delete asks first', () => {
+  /** Open in edit mode, wait for the prefill, and press Delete. */
+  async function pressDelete() {
+    const user = userEvent.setup()
+    render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+  }
+
+  it('names the word in the question and deletes on confirm', async () => {
+    await pressDelete()
+    await waitFor(() => expect(mockAsk).toHaveBeenCalledTimes(1))
+    expect(mockAsk.mock.calls[0][0]).toMatchObject({ title: 'Delete "ACRE"?' })
+    await waitFor(() =>
+      expect(mockRpc).toHaveBeenCalledWith('delete_word', expect.objectContaining({ target_word: 'acre' })),
+    )
+  })
+
+  it('fires no RPC when the question is answered no', async () => {
+    mockAsk.mockResolvedValue(null)
+    await pressDelete()
+    await waitFor(() => expect(mockAsk).toHaveBeenCalledTimes(1))
+    expect(mockRpc).not.toHaveBeenCalled()
   })
 })

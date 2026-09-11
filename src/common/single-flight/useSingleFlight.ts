@@ -18,7 +18,7 @@ import { useCallback, useRef, useState } from 'react'
  *
  * Two facts about the timing a caller has to know. The gate closes on the FIRST
  * call, before the wrapped action's own confirm dialog resolves — ours is the
- * async styled modal (`useConfirmation`), so a second trigger can arrive while
+ * async styled modal (`askConfirmation`), so a second trigger can arrive while
  * the question is up. And it clears in a `finally`, so a failed action stays
  * retryable; a guard that wedges the control after one network blip is worse
  * than the bug.

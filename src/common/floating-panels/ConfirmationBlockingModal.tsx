@@ -56,8 +56,8 @@ type Props = {
  * (It used to be exactly that: `cancelLabel: null`, a second act smuggled
  * through a flag.)
  *
- * For the imperative `await confirm(...)` form games use in their action
- * handlers, see `useConfirmation`.
+ * Nothing renders this directly except `<ConfirmationHost>`. To ASK a question,
+ * await `askConfirmation` — that is the imperative form every caller uses.
  */
 export function ConfirmationBlockingModal({
   title,

@@ -299,11 +299,25 @@ F-floating-panels-13; not touched.
 
 - **The word "panel" alone appears nowhere in the folder** outside "floating
   panel" and "draggable panel". Good.
-- **`useConfirmation` and `confirmationService` draw the identical modal**
-  through `ConfirmationBlockingModal`, and both say so. `useConfirmation` does
-  not forward `alternativeLabel` to the modal (only the service does); no
-  component caller asks a two-yes question today, so nothing is wrong, but the
-  hook cannot ask one.
+- **`useConfirmation` is GONE** (2026-09-11), and the note that used to sit
+  here — "nothing is wrong, but the hook cannot ask one" — undersold it. Both
+  paths took the same `ConfirmOptions`, and the hook accepted `alternativeLabel`
+  and silently dropped it, with a `Promise<boolean>` that could not have named
+  the second yes anyway. A shared options type where one consumer honors a
+  field and the other ignores it is the drift `FAMILY` exists to prevent.
+
+  What decided it was that the hook's premise did not hold: `<ConfirmationHost>`
+  is mounted unconditionally at `App.tsx:236`, and `scrabble`'s Pass shows a
+  COMPONENT awaiting `askConfirmation` directly. So "for a component that can
+  render the modal itself" described a mechanism nobody needed — `WordEditDialog`
+  used the hook because it was written that way, not because it was a component.
+  Eight files imported that module and exactly one imported the hook; the rest
+  wanted the vocabulary, which is why the file is now `confirmations.ts` (types
+  and the canonical questions, no JSX) and `confirmationService.ts` no longer
+  imports its types from a file named for a hook it never called.
+
+  One way to ask, so there is nothing left to keep in sync. The delete path had
+  no test at all; two added, verified by planting.
 - **The vocabularies guard has no row for this folder**: every non-padding
   value is a token or an annotated fraction of the titlebar height.
 - **Every stylesheet rule is marked** `/* @@ */`.

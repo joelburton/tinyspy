@@ -13,8 +13,8 @@ export type AcknowledgeOptions = {
 type Pending = AcknowledgeOptions & { resolve: () => void }
 
 /**
- * `window.alert`, but the styled `<AcknowledgeBlockingModal>` — the sibling of
- * `useConfirmation`, for the case where there is nothing to decide:
+ * `window.alert`, but the styled `<AcknowledgeBlockingModal>` — `askConfirmation`'s
+ * counterpart for the case where there is nothing to decide:
  *
  *     const { acknowledge, acknowledgeModal } = useAcknowledge()
  *     if (!next) {

@@ -1,21 +1,22 @@
 // cs-audited-floating-panels
 
 import { useSyncExternalStore } from 'react'
-import type { ConfirmAnswer, ConfirmOptions } from './useConfirmation'
+import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
 
 /**
  * Ask a confirmation question from anywhere, with no component in the way:
  *
  *     if ((await askConfirmation(END_GAME_CONFIRM)) !== 'confirm') return
  *
- * Reach for this where the code that asks is not a component and cannot render
- * a modal — the shared run behind every action asks here, which is what makes
- * "the game cannot forget to ask" true. Code that IS a component can still use
- * `useConfirmation` and render its own; the two draw the identical modal.
+ * **The only way to ask.** Components call it the same way everything else does
+ * — scrabble's Pass and the word dialog's Delete are components and just await
+ * it — because the question is drawn by `<ConfirmationHost>` at the app root
+ * rather than by whoever asked. The shared run behind every action asks here,
+ * which is what makes "the game cannot forget to ask" true.
  *
  * One question at a time, app-wide. A second call while one is up supersedes it
- * and the first resolves `null`, the same rule `useConfirmation` follows — it
- * cannot happen from a modal-blocked UI, but it beats a dangling promise.
+ * and the first resolves `null` — it cannot happen from a modal-blocked UI, but
+ * it beats a dangling promise.
  *
  * `<ConfirmationHost>` in `App.tsx` is what draws the pending question. Without
  * it mounted nothing appears and every promise resolves `null`, which is the

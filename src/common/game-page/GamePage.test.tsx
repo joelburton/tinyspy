@@ -20,7 +20,7 @@ import type { GameManifest } from '../manifest/gameManifest'
 import type { Member } from '../members/member'
 import { liveBindings, type BoundAction } from '../actions/useBoundAction'
 import type { ActionId } from '../actions/registry'
-import { NEW_GAME_CONFIRM } from '../floating-panels/useConfirmation'
+import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import type { CommonGame, useCommonGame } from './useCommonGame'
 
 const { mockUseCommonGame, mockNavigate, askConfirmation } = vi.hoisted(() => ({

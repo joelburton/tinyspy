@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { readRows, runRpc } from '../supabase/dbResult'
 import { setWordEdit, type WordEditRequest } from './wordEditStore'
-import { useConfirmation } from '../floating-panels/useConfirmation'
+import { askConfirmation } from '../floating-panels/confirmationService'
 import { Dialog } from '../floating-panels/Dialog'
 import { cls } from '../utils/cls'
 import actionRow from '../floating-panels/modalActions.module.css'
@@ -136,7 +136,6 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const [loaded, setLoaded] = useState<Fields | null>(editing ? null : EMPTY)
   const [errors, setErrors] = useState<FormErrors>({})
   const [busy, setBusy] = useState(false)
-  const { confirm: confirmAction, confirmationModal } = useConfirmation()
 
   // Edit mode: prefill from a fresh read of the row (the popover's cached
   // definition may be stale, and the form needs every column anyway).
@@ -245,15 +244,12 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
    *  it and hands the current value in. */
   async function onDelete(note: string) {
     if (request.mode !== 'edit') return
-    if (
-      !(await confirmAction({
-        title: `Delete "${request.word.toUpperCase()}"?`,
-        message: 'Removes it from the dictionary for every game built from now on. The journal keeps a copy.',
-        confirmLabel: 'Delete word',
-      }))
-    ) {
-      return
-    }
+    const answer = await askConfirmation({
+      title: `Delete "${request.word.toUpperCase()}"?`,
+      message: 'Removes it from the dictionary for every game built from now on. The journal keeps a copy.',
+      confirmLabel: 'Delete word',
+    })
+    if (answer !== 'confirm') return
     setBusy(true)
     const res = await runRpc<DeleteWordAnswer>(
       commonDb.rpc('delete_word', {
@@ -414,7 +410,6 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
           )}
         </StandardForm>
       )}
-      {confirmationModal}
     </Dialog>
   )
 }

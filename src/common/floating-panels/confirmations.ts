@@ -1,7 +1,6 @@
 // cs-audited-floating-panels
 
-import { useCallback, useState, type ReactNode } from 'react'
-import { ConfirmationBlockingModal } from './ConfirmationBlockingModal'
+import type { ReactNode } from 'react'
 
 export type ConfirmOptions = {
   title: string
@@ -28,8 +27,6 @@ export type ConfirmOptions = {
 
 /** What a question was answered with — the act to do, or `null` for "no". */
 export type ConfirmAnswer = 'confirm' | 'alternative' | null
-
-type Pending = ConfirmOptions & { resolve: (confirmed: boolean) => void }
 
 /** The canonical end-game confirm — one copy object so every game's End (the
  *  info-row button, the menu item, the pause overlay's escape hatch) asks the
@@ -83,63 +80,4 @@ export const RESTART_CONFIRM: ConfirmOptions = {
     "This clears everyone's progress and starts the same board again — you can't undo it.",
   confirmLabel: 'Restart',
   cancelLabel: 'Keep playing',
-}
-
-/**
- * `window.confirm`, but the styled `<ConfirmationBlockingModal>` — for a
- * component that asks a question of its own and can render the modal itself
- * (`WordEditDialog`). A game's actions ask through the registry and
- * `confirmationService` instead, which draws the identical modal:
- *
- *     const { confirm, confirmationModal } = useConfirmation()
- *     const handleDelete = async () => {
- *       if (!(await confirm({ title: `Delete "${word}"?`, … }))) return
- *       …the RPC…
- *     }
- *     // and render {confirmationModal} anywhere in the tree
- *
- * The promise resolves true on confirm, false on Cancel/Esc/✕. `confirm`'s
- * identity is stable, so it's safe in useCallback deps. A second confirm()
- * while one is pending replaces it (the first resolves false) — can't
- * happen from a modal-blocked UI, but it beats a dangling promise. If the
- * component unmounts mid-question the promise never settles; callers are
- * fire-and-forget async handlers, so nothing leaks or retries.
- */
-export function useConfirmation(): {
-  confirm: (opts: ConfirmOptions) => Promise<boolean>
-  confirmationModal: ReactNode
-} {
-  const [pending, setPending] = useState<Pending | null>(null)
-
-  const confirm = useCallback(
-    (opts: ConfirmOptions) =>
-      new Promise<boolean>((resolve) => {
-        setPending((prev) => {
-          prev?.resolve(false) // a superseded question answers "no"
-          return { ...opts, resolve }
-        })
-      }),
-    [],
-  )
-
-  const settle = (confirmed: boolean) => {
-    setPending((prev) => {
-      prev?.resolve(confirmed)
-      return null
-    })
-  }
-
-  const confirmationModal = pending ? (
-    <ConfirmationBlockingModal
-      title={pending.title}
-      message={pending.message}
-      confirmLabel={pending.confirmLabel}
-      cancelLabel={pending.cancelLabel}
-      primaryButton={pending.primaryButton}
-      onConfirm={() => settle(true)}
-      onCancel={() => settle(false)}
-    />
-  ) : null
-
-  return { confirm, confirmationModal }
 }

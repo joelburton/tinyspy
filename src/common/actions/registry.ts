@@ -2,13 +2,13 @@
 
 import type { AppIcon } from '../icons/icons'
 import type { ButtonTone } from '../buttons/StandardButton'
-import type { ConfirmOptions } from '../floating-panels/useConfirmation'
+import type { ConfirmOptions } from '../floating-panels/confirmations'
 import type { KeySpec } from './chord'
 import {
   END_GAME_CONFIRM,
   NEW_GAME_CONFIRM,
   RESTART_CONFIRM,
-} from '../floating-panels/useConfirmation'
+} from '../floating-panels/confirmations'
 
 import {
   IconAI,
