@@ -11,8 +11,8 @@ type Props = {
   message: ReactNode
   // The button's label. Defaults to "OK".
   okLabel?: string
-  // The button, Escape, or the ✕ — all three are the same act, because there
-  // is only one way out.
+  // The button, or Escape — the same act either way, because there is only one
+  // way out. A card has no ✕.
   onAcknowledge: () => void
 }
 

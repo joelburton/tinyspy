@@ -3,15 +3,14 @@
 import { ConfirmationBlockingModal } from '../floating-panels/ConfirmationBlockingModal'
 
 type Props = {
-  /** The game's user-facing title, woven into the modal copy
-   *  so the confirm prompt names what's being suspended. */
+  // The game's user-facing title, woven into the question's text so it names
+  // what's being suspended.
   title: string
-  /** Called when the user clicks Suspend. The caller wires
-   *  this to broadcast 'suspend' + navigate self; peers
-   *  navigate themselves on receipt. */
+  // Called when the user clicks Suspend. The caller wires this to broadcast
+  // 'suspend' + navigate self; peers navigate themselves on receipt.
   onSuspend: () => void
-  /** Called when the user dismisses the modal without
-   *  suspending (Cancel, Esc, X). */
+  // Called when the user dismisses the modal without suspending — Cancel, or
+  // Escape. A card has no ✕.
   onCancel: () => void
 }
 
@@ -25,10 +24,9 @@ type Props = {
  * a terminal game (direct navigation, no broadcast).
  *
  * A thin wrapper over the shared `<ConfirmationBlockingModal>`, which supplies
- * the modal behavior: a pointer-blocking backdrop (no background
- * board actions), Tab kept inside the panel, autoFocused confirm (Enter),
- * Esc-to-cancel, and the game key-captures bailing inside
- * `[data-floating-panel]`.
+ * the modal behavior: its family's dark scrim (no background board actions),
+ * Tab kept inside the panel, autoFocused confirm (Enter), Esc-to-cancel, and
+ * the action dispatcher standing down inside `[data-floating-panel]`.
  */
 export function SuspendConfirmationBlockingModal({ title, onSuspend, onCancel }: Props) {
   return (

@@ -7,9 +7,8 @@
  * spacing above it. The panel/surface chrome stays on <FloatingPanel> (or each
  * dialog's own shell); this owns only the button row.
  *
- * Imported directly the same way setupForm.module.css / PlayArea.module.css are
- * (`import actionRow from '.../modalActions.module.css'`) and applied as
- * `actionRow.modalActions`.
+ * Imported directly (`import actionRow from '.../modalActions.module.css'`)
+ * and applied as `actionRow.modalActions`.
  *
  * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
  * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
@@ -36,8 +35,8 @@
  * NOT on an icon-only button: 6rem of button around one glyph reads as a third
  * equal action rather than the aside it is.
  *
- * Bespoke on purpose: there is no vocabulary for a control's minimum width, and
- * whether one is owed is the `forms` area's question, not this one. */
+ * Bespoke on purpose: the vocabulary has no value for a control's minimum
+ * width. */
 /* @@ */ .modalActions button:not([data-icon-only]) {
   min-width: 6rem;
 }

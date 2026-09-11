@@ -5,9 +5,10 @@ The folders it reads: `floating-panels`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed (Joel: "audit the area") and
-stamped `cs-audited-floating-panels`. Every finding is WORKED. What remains is
-the Closing checklist at the foot of this file — the re-read, and blessing,
-both of which are Joel's.
+stamped `cs-audited-floating-panels`. Every finding is WORKED, the closing
+re-read is done (its findings are F-15 through F-28 below; F-29 is from
+Joel's read of the diff) and `doc.md` is
+harvested. What remains is blessing, which is Joel's.
 
 ## The roster
 
@@ -334,8 +335,8 @@ shared path is what's asserted; both halves verified by planting.
 `useDraggablePanel.ts` keeps a `rectRef` and an effect to sync it, with a
 comment saying the resize listener clamps against it. The listener lives in
 `useReclampOnResize` now and keeps its own ref for that reason, saying so.
-The hook's own ref is written every render and read nowhere. Found working
-F-floating-panels-13; not touched.
+The hook's own ref was written every render and read nowhere. Found working
+F-floating-panels-13; removed in the prose pass.
 
 ### Ruled already, recorded so the re-read does not re-raise them
 
@@ -386,13 +387,154 @@ Two things worth knowing beyond the mechanical cuts:
   docstring naming an API that does not exist is a falsehood about THIS folder
   wherever it lives.
 
-**Not swept, and a decision if you want it made:** eight files across six other
-areas use "backdrop" as a common noun for the scrim — `FaultModal.module.css`,
-`Chat.tsx`, `SuspendConfirmationBlockingModal.tsx`, `PauseOverlay.module.css`,
-`CelebrationBlockingModal` (×2), `SetupGameModal.module.css`. None names a prop,
+**Not swept, and a decision if you want it made:** other areas' files use
+"backdrop" as a common noun for the scrim — `grep -rn backdrop src docs` finds
+them, and the closing re-read found more than the first pass listed
+(`FaultModal.module.css`, `Chat.tsx`, `PauseOverlay.module.css`, the
+celebration modal, `SetupGameModal.module.css`, codenamesduet's Help,
+crosswords' jump modal with a `.backdrop` class of its own, and the
+vocabularies guard's own message). None names a prop,
 so none is false; they are drift from the word the code uses (`--scrim-color`,
 `.scrimDark`). Whether "backdrop" is banned in favor of "scrim" is a vocabulary
 ruling with a guard attached, not a sweep to do quietly.
+
+## The closing re-read
+
+The whole area in one sitting, 2026-09-11, after the prose pass — every file on
+the roster, the four files the area created, and the two docs/ui.md sections
+the folder answers to. Fourteen things, all WORKED the same sitting. The
+pattern the process predicts held: most are claims a sibling file or a later
+fix had disproved, and four of them were written by this area.
+
+## F-floating-panels-15 · `card-has-no-close-glyph` · Three notes say a card can be left by its ✕ — WORKED
+
+`ConfirmationBlockingModal`'s `onCancel` ("Cancel, Escape, or the ✕"),
+`AcknowledgeBlockingModal`'s `onAcknowledge` ("The button, Escape, or the ✕ —
+all three") and `askConfirmation`'s docstring ("`null` on cancel, Escape, the
+✕…"). A card has no titlebar and so no ✕ — `BlockingModal`'s own `onClose`
+note says exactly that, one file over. Escape and the button are the two ways
+out.
+
+## F-floating-panels-16 · `one-renderer-claim` · "Nothing renders this directly except the host" is false — WORKED
+
+`ConfirmationBlockingModal`'s docstring said so in bold, and
+`SuspendConfirmationBlockingModal` renders it directly. docs/ui.md → Confirm
+modals said both things in one section — "nobody renders the modal themselves"
+and, below it, "the `SuspendConfirmationBlockingModal` (a wrapper over
+ConfirmationBlockingModal)". Both now state the fact: the host renders it for
+every `askConfirmation`, and the suspend question is the one still rendered by
+hand. Whether the leave flow should await `askConfirmation` like every other
+question is a decision with GamePage's flow in it, so it is handed to
+`pause-suspend/todo.md` rather than made here.
+
+## F-floating-panels-17 · `normal-modal-docstring-contradicts-itself` — WORKED
+
+"…so on `<NormalModal>` the key is accepted and then discarded at runtime.
+Here it cannot be passed at all." The first sentence names the wrong
+component — the shell is what would accept and discard it; `NormalModal` is
+the one that omits it from its props. Written by this area.
+
+## F-floating-panels-18 · `copy-for-text` · "copy" for a message's words, six times — WORKED
+
+`confirmations.ts` three times ("one copy object", "the copy REASSURES", "the
+copy WARNS") and docs/ui.md → Confirm modals three times. "Copy" is banned for
+this sense; the words of a message are its text. The other two "copy"s in the
+folder mean a duplicate and stay.
+
+## F-floating-panels-19 · `marker-claims-the-wrong-reader` · `data-floating-panel` is read by one thing, and the prose named others — WORKED
+
+`FloatingPanel.tsx` said the marker is "which the game key-capture hooks
+already look for", and lower down that "the action dispatcher and the page's
+tab ring bail for events focused inside it". Checked: the only reader outside
+this folder is `actions/dispatcher.ts`. The page's ring yields by the ring
+stack — innermost wins — and never looks at the attribute; game key capture
+goes through the dispatcher. docs/ui.md → Confirm modals made the same
+"game key-captures bail" claim. All three now name the dispatcher, and the
+shell's comment says Tab needs no marker.
+
+## F-floating-panels-20 · `stale-320-in-the-test` · The clamp test says the card asks for 320 — WORKED
+
+`useDraggablePanel.test.ts`'s narrow-viewport block: "which asks for 320", and
+"a 320 floor" in the fixture's comment. The card passes no `minWidth` since
+this area removed the stray; the fixture keeps the floor that showed the fault
+and now says so. Exactly the case the re-read exists for — a count one group
+corrected, standing in a sibling file.
+
+## F-floating-panels-21 · `misplaced-fit-comment` · A paragraph on `fitContent` sitting on the hook that doesn't take it — WORKED
+
+`FloatingPanel.tsx`'s call to `useDraggablePanel` carried a second paragraph
+on why `fitContent` is safe to forward to a persisted panel. `fitContent` is
+not an argument of that call; the paragraph was a leftover from the forwarding
+chain F-13 removed, and the prop's own `//` note already carries the rule.
+Deleted.
+
+## F-floating-panels-22 · `rank-of-rationale-in-docstring` — WORKED
+
+`usePanelEscape.ts`'s `rankOf` had two paragraphs of why in its `/**` — why it
+reads the stylesheet rather than keeping a table, why it caches, what the
+jsdom fallback means. The docstring is one sentence now, and each reason is a
+`//` on the line it defends.
+
+## F-floating-panels-23 · `layout-diagram-incomplete` — WORKED
+
+`FloatingPanel.module.css`'s header diagram showed `.rnd` → `.shell` →
+`.titlebar` / `.body`, omitting the clip layer outside and the content column
+inside — the two elements the file spends the most words on. Both drawn in.
+
+## F-floating-panels-24 · `filed-issue-in-the-scrim-comment` — WORKED
+
+The scrims' comment restated the todo's Someday item — the two values, that
+nobody can see the difference, the proposal on the table. A filed item does
+not also sit in a comment; the comment keeps the durable statement (the shade
+is the family's choice) and the todo keeps the question.
+
+## F-floating-panels-25 · `stale-sibling-and-closed-area` · `modalActions.module.css` — WORKED
+
+"Imported directly the same way setupForm.module.css / PlayArea.module.css
+are" — no file of that name exists. And the button floor's note deferred to
+"the `forms` area's question"; `forms` closed 2026-09-11 with nothing on a
+control's minimum width in its doc. The note now states the condition (the
+vocabulary has no such value) and defers to nobody.
+
+## F-floating-panels-26 · `census-in-end-game-confirm` — WORKED
+
+`END_GAME_CONFIRM`'s docstring listed End's placements ("the info-row button,
+the menu item, the pause overlay's escape hatch"). All three exist, and all
+inherit the question from the registry — which is the condition, and what the
+docstring says now.
+
+## F-floating-panels-27 · `todo-carries-a-done-report` — WORKED
+
+`todo.md`'s minimum-size item narrated the `minWidth` fix at length ("Both are
+GONE (2026-09-11)… That is fixed in the clamp"). A todo holds what is owed;
+the fix is recorded above and in the clamp's docstring. Trimmed to the
+companions still eyeballed.
+
+## F-floating-panels-28 · `area-file-said-not-touched` — WORKED
+
+F-14's heading said WORKED and its body said "not touched". The ref went in
+the prose-pass commit; the body says so now.
+
+## F-floating-panels-29 · `missing-docstrings` · Three exported types and a docstring on the wrong line — WORKED
+
+Joel, reading the diff: `ConfirmOptions` has no docstring. A scan of every
+top-level declaration in the folder and the four created files found the
+rest: `FloatingPanelProps` and `AcknowledgeOptions` had none either, and
+`rankOf`'s docstring sat above `rankCache`, documenting the cache. Six private
+helpers took a one-liner (`notify`, `subscribe`, `readRect`, `writeRect`,
+`onKeyDown`, `Entry`, the guard's `sourceFiles`). A component's `Props` block
+and the hook's `PanelOpts` take none: the docstring that answers "how do I
+call this" is the component's own. Test fixtures and module-level state left
+alone.
+
+**Two things the re-read looked at and left.** `confirmationService.ts`'s
+module docstring sits after its imports rather than before them, which is
+where the test files put theirs; nothing rules on placement, and the orphan
+guard is content. `SuspendConfirmationBlockingModal.tsx` repeated four of this
+area's faults — `backdrop`, "X" as a way out, "game key-captures" for the
+dispatcher, `/**` on props — and those are fixed (Joel: fix what is
+comments-only), a conformance edit where this area owns the rule; the file
+stays `pause-suspend`'s and `cs-unmet`, and comes off the backdrop list below.
 
 ## Notes
 
@@ -449,7 +591,10 @@ Deleted: `useConfirmation.tsx` (the hook; the file lives on as `confirmations.ts
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-11,
+      F-15 through F-28; F-29 from Joel's read of the diff)
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (lede and
+      Design brought up to the folder as it closes, 2026-09-11)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [ ] every file on the roster blessed, or its stamp says why not — **Joel's;
+      every roster file still reads `cs-audited-floating-panels`**

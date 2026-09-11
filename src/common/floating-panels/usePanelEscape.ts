@@ -8,34 +8,34 @@ import { useEffect } from 'react'
  */
 export type EscapePolicy = 'close' | 'swallow'
 
+// `rankOf`'s answers, kept: no theme moves a z- layer, so a tier's rank never
+// changes once read.
+const rankCache = new Map<string, number>()
+
 /**
  * Resolve a tier expression — `'var(--z-modal-normal)'` — to the number the
- * ladder gives it.
- *
- * **Reading the real value is the point.** Escape order and paint order are the
- * same order, with one stated exception (chat, below), so a rank table here
- * would be a second copy of what `base.css` already says — free to disagree
- * with it the moment a panel gets a rung of its own.
- *
- * Cached because these never change: no theme moves a z- layer. Falls back to 0
- * where a custom property reads as nothing (jsdom), and every panel then ties
- * and mount order decides — a sane degradation for a key nothing headless
- * presses.
+ * ladder gives it, read live from the stylesheet.
  */
-const rankCache = new Map<string, number>()
 function rankOf(tier: string): number {
   const hit = rankCache.get(tier)
   if (hit !== undefined) return hit
+  // Read from the stylesheet rather than tabulated here: Escape order and paint
+  // order are the same order (chat excepted — see `usePanelEscape`), so a rank
+  // table would be a second copy of what `base.css` already says, free to
+  // disagree with it the moment a panel gets a rung of its own.
   const token = tier.match(/--[\w-]+/)?.[0]
   const raw = token
     ? getComputedStyle(document.documentElement).getPropertyValue(token)
     : ''
   const n = Number.parseInt(raw, 10)
+  // Where a custom property reads as nothing (jsdom) every panel ties and mount
+  // order decides — a sane degradation for a key nothing headless presses.
   const rank = Number.isNaN(n) ? 0 : n
   rankCache.set(tier, rank)
   return rank
 }
 
+/** One open panel, as the registry knows it. */
 type Entry = {
   // Matches the panel shell's `data-floating-panel` value.
   id: string
@@ -74,6 +74,7 @@ function focused(): Entry | undefined {
   return open.find((e) => e.id === id)
 }
 
+/** The one listener: on Escape, hand the key to the panel it belongs to. */
 function onKeyDown(e: KeyboardEvent) {
   if (e.key !== 'Escape' || open.length === 0) return
   // Escape belongs to the panels whenever any are open, so it never falls

@@ -90,6 +90,13 @@ const FAMILY: Record<
   'modal-fault':    { density: 'loose', scrim: 'dark',  draggable: false, escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
 }
 
+/**
+ * What a floating panel is given. `family` is the one required decision; the
+ * rest are the questions a family cannot answer for its members, which the
+ * component's docstring walks through. Exported so the family-named components
+ * (`Companion`, `Dialog`, `NormalModal`) take the same props minus the one
+ * they supply.
+ */
 export type FloatingPanelProps = {
   // What KIND of panel this is — see `PanelFamily`. Required: there is no
   // sensible default, and a silent one is how a modal-normal ended up with no
@@ -226,7 +233,7 @@ export function FloatingPanel({
   // Escape: what you're IN, else what's on TOP. One listener for the whole app
   // rather than one per panel — see `usePanelEscape`. The id is how the handler
   // maps focus back to a registered panel; it is stamped on the shell as
-  // `data-floating-panel`, which the game key-capture hooks already look for.
+  // `data-floating-panel`, which the action dispatcher already looks for.
   const panelId = useId()
   usePanelEscape(
     panelId,
@@ -238,11 +245,6 @@ export function FloatingPanel({
   // WHERE the panel is. One hook for both kinds: a key means the rect is
   // remembered between opens, no key means it resets on every mount, and the
   // family is what decides which (`useDraggablePanel`).
-  //
-  // `fitContent` is forwarded to a persisted panel too. A stored height only
-  // fights the fit when the user CHOSE it — i.e. only when the panel is
-  // resizable — and every panel that persists AND resizes is a companion, none
-  // of which asks to fit.
   const { rect, setRect } = useDraggablePanel({
     persistKey: claims.remembersRect ? persistKey : undefined,
     defaultRect: resolveDefaultRect(defaultPosition, defaultSize),
@@ -481,9 +483,10 @@ function PanelRnd({
             scrollable region like chat's.
 
             `data-floating-panel` marks the subtree as "a panel owns the
-            keyboard here": the action dispatcher and the page's tab ring bail
-            for events focused inside it, so Enter activates a modal's button
-            and Tab moves between its controls rather than being swallowed. Its
+            keyboard here": the action dispatcher stands down for events
+            focused inside it, so Enter activates a modal's button rather than
+            firing a bound action. (Tab needs no marker — the panel's own ring
+            is the innermost one while it is open; see `useTabRing`.) Its
             VALUE is the panel's id, which is how `usePanelEscape` maps focus
             back to a registered panel — the selector doesn't care, since
             `[data-floating-panel]` matches with or without one. */}

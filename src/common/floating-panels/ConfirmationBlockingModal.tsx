@@ -21,7 +21,7 @@ type Props = {
   onConfirm: () => void
   // The second positive answer was picked.
   onAlternative?: () => void
-  // Cancel, Escape, or the ✕.
+  // Cancel, or Escape — a card has no ✕.
   onCancel: () => void
   // Which button is PRIMARY — filled, AND the one Enter fires. One decision,
   // never two: a filled button Enter doesn't press, or an Enter target that
@@ -35,9 +35,10 @@ type Props = {
  * The styled replacement for `window.confirm` on an in-game decision — ending a
  * game, suspending it, restarting it.
  *
- * **Nothing renders this directly except `<ConfirmationHost>`.** To ask a
- * question, await `askConfirmation`; that is the form every caller uses, and
- * these props are what it forwards.
+ * **To ask a question, await `askConfirmation`.** That is the form every caller
+ * uses; `<ConfirmationHost>` renders this with the words you passed, and these
+ * props are what it forwards. The suspend question is the one still rendered
+ * by hand (`SuspendConfirmationBlockingModal`).
  *
  * The shape is baked and takes no footer slot, unlike the `<BlockingModal>` it
  * renders into: a confirmation is always a question, a body, and the answers in

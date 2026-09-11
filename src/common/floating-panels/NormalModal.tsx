@@ -13,8 +13,8 @@ import { FloatingPanel, type FloatingPanelProps } from './FloatingPanel'
  *
  * **It takes no `persistKey`**, and that is the point of it being its own
  * component. A modal is a fresh task each time and lands centered
- * (`remembersRect: false`), so on `<NormalModal>` the key is accepted and
- * then discarded at runtime. Here it cannot be passed at all.
+ * (`remembersRect: false`), so the shell would accept the key and then discard
+ * it at runtime. Here it cannot be passed at all.
  */
 export function NormalModal(props: Omit<FloatingPanelProps, 'family' | 'persistKey'>) {
   return <FloatingPanel family="modal-normal" {...props} />

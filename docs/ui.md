@@ -269,15 +269,15 @@ In-game confirmations go through the shared
 [`<ConfirmationBlockingModal>`](../src/common/floating-panels/ConfirmationBlockingModal.tsx) — a
 true MODAL on the FloatingPanel shell: its family paints a dark scrim that
 blocks every pointer action on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
-(Enter confirms), Esc cancels, and the game key-captures bail inside
+(Enter confirms), Esc cancels, and the action dispatcher stands down inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
 game", "Suspend") — never a bare "OK". **One way to ask it, from anywhere:**
 [`askConfirmation`](../src/common/floating-panels/confirmationService.ts)
 answers `'confirm'`, `'alternative'` (where the question offers a second way to
 say yes) or `null`, and the one `<ConfirmationHost>` in `App.tsx` draws whatever
-is pending. Nobody renders the modal themselves — components await it exactly as
-an action's shared run does, which is what keeps a second way to say yes
-available to every caller rather than to some of them.
+is pending. Components await it exactly as an action's shared run does, which is
+what keeps a second way to say yes available to every caller rather than to
+some of them; the suspend question below is the one still rendered by hand.
 
 The standing questions — every one the registry carries (New game, Restart,
 End game, Concede, Reveal grid) plus Suspend, which is the page's own:
@@ -285,15 +285,15 @@ End game, Concede, Reveal grid) plus Suspend, which is the page's own:
 - **End game** — ALWAYS confirmed, in every game and every entry point (the
   info-row button, the menu item, the pause overlay's escape hatch), even
   solo/coop: ending is terminal for the whole group and irreversible. One
-  canonical copy object (`END_GAME_CONFIRM`) so the question reads identically
-  everywhere.
+  canonical question object (`END_GAME_CONFIRM`) so the question reads
+  identically everywhere.
 - **New game** — confirmed only while a game is IN PROGRESS (at terminal
   there's nothing to interrupt, so it goes straight through). `NEW_GAME_CONFIRM`
-  is the shared copy, carried by the registry on `act-new-game` and asked by
+  is the shared question, carried by the registry on `act-new-game` and asked by
   the shared run, so every placement inherits it: the terminal button, the
   menu row, and the `+` key. **⌥+** (`act-new-game-from-setup`) carries the
   same question and hands off to ClubPage's setup dialog instead of dealing a
-  board. **Its copy reassures rather than warns**, because starting a new
+  board. **Its text reassures rather than warns**, because starting a new
   game does *not* end this one — `create_game` clears the club's current-view
   flag and the old game stays resumable from the club page ("shelved, not
   lost"). Phrasing it like End game's "you can't undo it" would be false. The

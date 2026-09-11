@@ -29,10 +29,12 @@ let pending: Pending | null = null
 let hosted = false
 const listeners = new Set<() => void>()
 
+/** Tell the host the pending question changed. */
 function notify(): void {
   for (const listener of listeners) listener()
 }
 
+/** The host's subscription, in the shape `useSyncExternalStore` takes. */
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
   return () => {
@@ -43,7 +45,7 @@ function subscribe(listener: () => void): () => void {
 /**
  * Ask the question. Resolves to the act the player picked — `'confirm'`, or
  * `'alternative'` where the question offers a second way to say yes — and to
- * `null` on cancel, Escape, the ✕, a superseding question, or no host mounted.
+ * `null` on cancel, Escape, a superseding question, or no host mounted.
  */
 export function askConfirmation(opts: ConfirmOptions): Promise<ConfirmAnswer> {
   if (!hosted) {

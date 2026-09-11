@@ -52,6 +52,7 @@ const ALLOWED = new Map<string, string>([
   ['src/guards/escapeListeners.test.ts', 'this file names the shapes it looks for'],
 ])
 
+/** Every `.ts` / `.tsx` file under `dir`, recursively. */
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const full = join(dir, entry)

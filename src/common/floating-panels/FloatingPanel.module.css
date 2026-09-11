@@ -7,12 +7,15 @@
  *
  * Layout structure:
  *
- *   <Rnd className=".rnd">                  // positioning only
- *     <div className=".shell">              // 100%/100% flex column wrapper
- *       <div className=".titlebar">...        // flex-shrink: 0
- *       <div className=".body">...          // flex: 1 1 auto, scrolls if needed
- *     </div>
- *   </Rnd>
+ *   <div className=".clipLayer">            // fixed, full-viewport, clips
+ *     <Rnd className=".rnd">                // positioning only
+ *       <div className=".shell">            // 100%/100% flex column wrapper
+ *         <div className=".titlebar">...    // flex-shrink: 0; a WINDOW only
+ *         <div className=".body">           // flex: 1 1 auto, scrolls if needed
+ *           <div className=".content">...   // the parts, stacked and spaced
+ *       </div>
+ *     </Rnd>
+ *   </div>
  *
  * The inner .shell is the key — Rnd's outer element doesn't
  * reliably propagate a definite height to flex children, but a
@@ -256,12 +259,7 @@
  *
  * TWO shades, and WHICH ONE IS THE FAMILY'S CHOICE, not the component's
  * (FloatingPanel.tsx → FAMILY) — so the shade tracks what a panel MEANS rather
- * than how it was built.
- *
- * The VALUES are 40% and 45%, which is a
- * difference nobody can see. The proposal on the table is roughly 35% and
- * 55% (todo.md); that is a separate decision, to be made looking at a real
- * board. */
+ * than how it was built. */
 /* @@ */ .scrimLight,
 /* @@ */ .scrimDark {
   position: fixed;

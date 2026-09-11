@@ -3,6 +3,8 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { AcknowledgeBlockingModal } from './AcknowledgeBlockingModal'
 
+/** The words of a statement, in the form `acknowledge` takes: a title, a body,
+ *  and what the one button says. */
 export type AcknowledgeOptions = {
   title: string
   message: ReactNode

@@ -197,9 +197,10 @@ describe('clampToViewport (soft mode)', () => {
  * then placed into a space it does not fit and hangs off the edge.
  *
  * The live case was a blocking card — every confirmation and every fault modal
- * — which asks for 320 and is the one panel shape that keeps its rect on a
- * phone rather than becoming a full-screen sheet. At 320px it sat 8px off the
- * right edge.
+ * — the one panel shape that keeps its rect on a phone rather than becoming a
+ * full-screen sheet. With a 320 floor it sat 8px off the right edge of a
+ * 320px phone; the card passes no floor of its own now, and the fixture keeps
+ * the one that showed the fault.
  */
 describe('clampToViewport when the viewport is narrower than the minimum', () => {
   const realW = window.innerWidth
@@ -210,7 +211,7 @@ describe('clampToViewport when the viewport is narrower than the minimum', () =>
   }
   afterAll(() => setViewport(realW, realH))
 
-  // A blocking card's numbers: 420 wide, a 320 floor, the shared gutter.
+  // A blocking card's width, a floor wider than a phone, the shared gutter.
   const card = (vw: number) => {
     setViewport(vw, 640)
     return clampToViewport({ x: 0, y: 0, width: 420, height: 240 }, 320, 0, 8)

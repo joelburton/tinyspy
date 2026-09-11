@@ -270,6 +270,8 @@ export function clampToViewport(
   return { x, y, width, height }
 }
 
+/** The rect remembered under `key`, or null where there is none or it cannot
+ *  be read. */
 function readRect(key: string): PanelRect | null {
   // No stored rect and no storage at all both mean "open where you always do".
   const raw = readStored('local', key, null)
@@ -294,6 +296,7 @@ function readRect(key: string): PanelRect | null {
   }
 }
 
+/** Remember the rect under `key`. */
 function writeRect(key: string, rect: PanelRect): void {
   // Losing this costs the floating panel its remembered position; state still
   // drives the live one.
