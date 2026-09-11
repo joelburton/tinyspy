@@ -136,11 +136,44 @@ it pass.
 
 ## Visibility, and the two lists
 
-Identical rules for boards and for the home/club lists, because this is the part
+### The app has two kinds of cursor, and only one of them hides
+
+The rules below are about the second kind. Naming the first is what keeps
+someone from later "fixing" it into consistency with them:
+
+- A **geographic cursor** answers *where am I on this board*. The player needs
+  it to read the board at all, so it appears immediately and never hides.
+  Crosswords' grid is the clearest case — the cell you are typing into, and
+  which way the letters run — and scrabble's and bananagrams' shared
+  `gridCursor` is the same thing. These are OUT of this plan's scope and stay
+  as they are.
+- A **selection cursor** is an alternative to clicking. It answers *which row
+  or tile would Enter act on*, and a player who never touches an arrow key has
+  no use for it — which is why a mouse player should never see one. Every
+  cursor this plan adds is one, and so is `<SelectionList>`'s.
+
+The test between them: if hiding the cursor would make the board harder to
+READ, it is geographic. If hiding it only costs a keyboard affordance nobody
+using a mouse wanted, it is a selection cursor.
+
+### The rules for a selection cursor
+
+Identical for boards and for the home/club lists, because this is the part
 that will drift if it is not shared:
 
-- **The cursor is hidden until you press an arrow.** A mouse player may never
-  learn the feature exists.
+- **The cursor is hidden until the player asks for it.** A mouse player may
+  never learn the feature exists.
+- **The first press REVEALS rather than moves**, for a *relative* move — an
+  arrow, PageUp/PageDown. "One from where I am" has no honest answer before
+  there is a "where I am", so the first press paints the resting cell and the
+  next one steps.
+- **An ABSOLUTE move reveals and moves in one press.** `Home` and `End` name a
+  destination rather than a direction, so revealing at the resting row instead
+  would ignore what was asked.
+- **`Enter` may not act while the cursor is hidden** — it reveals, like an
+  arrow. This is the mirror of `Space` never activating: moving a cursor must
+  not consent to an action, and acting must not happen on a cell the player
+  cannot see. On a list that Enter would otherwise navigate you off the page.
 - **A click sets the cursor and hides it**, so switching back to keys resumes
   where your hand left off.
 - **An inert board takes no cursor at all** — not your turn, terminal, viewing
@@ -150,10 +183,13 @@ Extract *only* that (a dozen lines of state), not the steppers: 1-D clamping and
 2-D-with-absences are genuinely different, and forcing them together is
 contortion.
 
-**The lists change too**, for consistency: they show their ring as soon as the
-list takes focus today, and `Space` scrolls the page (unhelpful, and it moves the
-viewport away from the cursor). After: hidden until an arrow, set-and-hidden by a
-click, `Space` swallowed and inert. **`Enter` picks; there is no selection step**,
+**The lists changed first.** `<SelectionList>` showed its ring as soon as the
+list took focus, which meant a mouse user landing on the homepage saw a blue
+ring on the first club having touched nothing (both page lists autofocus), and
+clicking a row painted one too. It now follows the rules above — **done
+2026-09-11**, ahead of the boards, because the lists area was open and the
+behavior is the same dozen lines the boards will need. `Space` was already
+swallowed and inert there. **`Enter` picks; there is no selection step**,
 because a list row has nothing to accumulate — inventing one to complete the
 grammar would be inventing state to satisfy symmetry. The confirm step exists in
 games because 2-D stepping is imprecise and a wrong commit is costly; a list is
@@ -258,6 +294,8 @@ visibility rule, and activation. Per game that leaves a geometry, an
 
 - The **reachability invariant** over each geometry (see above).
 - Per game: arrows move, `Space` toggles, `Enter` commits, `⌫` clears, an inert
-  board ignores all four, and the mark stays hidden until an arrow.
+  board ignores all four, and the mark stays hidden until an arrow — including
+  that the FIRST arrow only reveals, that `Enter` reveals rather than commits
+  while hidden, and that a click leaves it hidden.
 - Every one verified by **planting the break first** — a guard that cannot fail is
   worse than none.

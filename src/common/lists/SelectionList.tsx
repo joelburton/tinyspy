@@ -74,6 +74,11 @@ type Props<T> = {
  * not a button — so there is no second thing to focus and no second ring to
  * explain. What Tab does *next* belongs to the page, never to this.
  *
+ * **The row ring is hidden until a key asks for it.** Focus alone warms the
+ * FRAME's border, which is what says "arrows work here"; the ring on a row
+ * only appears once the player presses one, because it is an alternative to
+ * clicking and a mouse user has no use for it.
+ *
  * **Why `items` + `renderRow` and not children.** The paint is four rules and
  * the behavior is the rest, so a CSS pattern would leave the ring, the
  * scroll-into-view, the disabled test and Enter at every call site. Given
@@ -106,14 +111,34 @@ export function SelectionList<T>({
   // here rather than at the move, because the list shrinks under the cursor.
   const [movedTo, setMovedTo] = useState(0)
   const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
-  // The ring shows whenever the container holds focus. It does NOT wait for a
-  // first arrow the way a board tile's cursor does: a tile shares its box with
-  // the game's own colors, and a row has no competing color, so an always-on
-  // ring costs nothing and answers "where am I" before you ask.
-  const showCursor = focused && cursor >= 0
+  // A SELECTION CURSOR, so it stays hidden until the player asks for it: it is
+  // an alternative to clicking, and someone using the mouse has no use for a
+  // ring. Asking means a key that implies one — see `reveal` below. Separate
+  // from `movedTo`, because a click moves the cursor without revealing it, so
+  // going back to the keys resumes where your hand left off.
+  //
+  // (The other kind is a geographic cursor — crosswords' cell, scrabble's grid
+  // — which says where you ARE and always shows. Don't make these agree.)
+  const [revealed, setRevealed] = useState(false)
+  const showCursor = focused && revealed && cursor >= 0
 
   function moveTo(next: number) {
     setMovedTo(Math.max(0, Math.min(items.length - 1, next)))
+  }
+
+  /**
+   * Take the keypress as the request to show the cursor, and say whether it
+   * ALSO gets to do its own job this time.
+   *
+   * The first press of a RELATIVE key only reveals: "one row down from where I
+   * am" has no honest answer before there is a where-I-am, so it paints the
+   * resting row and the next press steps. An ABSOLUTE key (`Home`, `End`)
+   * names a destination instead of a direction, so it reveals and goes.
+   */
+  function reveal({ alsoActs }: { alsoActs: boolean }) {
+    const wasHidden = !revealed
+    setRevealed(true)
+    return alsoActs || !wasHidden
   }
 
   /** One visible page, measured rather than guessed: a constant would be wrong
@@ -142,27 +167,32 @@ export function SelectionList<T>({
       case 'ArrowUp':
         e.preventDefault()
         // Clamped to the ends — deliberately no wrap-around.
-        moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
+        if (reveal({ alsoActs: false })) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
         break
       case 'Home':
         e.preventDefault()
+        reveal({ alsoActs: true })
         moveTo(0)
         break
       case 'End':
         e.preventDefault()
+        reveal({ alsoActs: true })
         moveTo(items.length - 1)
         break
       case 'PageDown':
         e.preventDefault()
-        moveTo(cursor + pageSize())
+        if (reveal({ alsoActs: false })) moveTo(cursor + pageSize())
         break
       case 'PageUp':
         e.preventDefault()
-        moveTo(cursor - pageSize())
+        if (reveal({ alsoActs: false })) moveTo(cursor - pageSize())
         break
       case 'Enter':
         e.preventDefault()
-        activate(cursor)
+        // Enter may not act on a row the player cannot see, so while the
+        // cursor is hidden it only reveals — the mirror of Space, which never
+        // acts at all.
+        if (reveal({ alsoActs: false })) activate(cursor)
         break
       case ' ':
         // Trapped so it cannot scroll the box, and then inert: choosing here
@@ -240,10 +270,11 @@ export function SelectionList<T>({
                 isDisabled && styles.disabled,
                 showCursor && i === cursor && styles.cursor,
               )}
-              // Clicking IS moving the cursor, so the mouse and the keyboard
-              // agree on where you are: cancel a dialog you opened from a row
-              // and the next arrow steps from that row, not from wherever the
-              // ring last sat.
+              // Clicking SETS the cursor without revealing it, so the mouse
+              // and the keyboard agree on where you are without a mouse user
+              // ever being shown a ring: cancel a dialog you opened from a row
+              // and your first arrow reveals THAT row, not wherever the ring
+              // last sat.
               onClick={() => {
                 moveTo(i)
                 activate(i)
