@@ -271,10 +271,15 @@ true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
 on the board underneath, focus is trapped, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
-game", "Suspend") — never a bare "OK". For the imperative form handlers want,
-[`useConfirmation`](../src/common/floating-panels/useConfirmation.tsx) is
-`window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
-`{confirmationModal}` node to render.
+game", "Suspend") — never a bare "OK". Two ways to ask it. Code that is not a
+component — an action's shared run, a game callback — asks through
+[`askConfirmation`](../src/common/floating-panels/confirmationService.ts), which
+answers `'confirm'`, `'alternative'` (where the question offers a second way to
+say yes) or `null`; the one `<ConfirmationHost>` in `App.tsx` draws whatever is
+pending. A component asking its own question can still use
+[`useConfirmation`](../src/common/floating-panels/useConfirmation.tsx), a
+promise plus a `{confirmationModal}` node to render; both draw the identical
+modal.
 
 The standing questions — every one the registry carries (New game, Restart,
 End game, Concede, Reveal grid) plus Suspend, which is the page's own:
@@ -1213,32 +1218,38 @@ menu: {
 }
 ```
 
-**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is either an action (`onClick`, an optional `shortcut` hint, an optional `icon`) or a submenu (`items`, one level deep). This paragraph used to be a copy of those type literals, which is exactly why it fell behind them: it still showed a plain `MenuItem` with no `icon` and no submenu arm long after both shipped. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
+**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is a bound action, or a submenu (`MenuSubmenu`: its own `label` and `icon`, and `items`, a list of bound actions, one level deep). There is no hand-written row shape: a row's words, glyph, key hint and availability are read off the action by `menuRow()` when the menu draws, and a row the action calls hidden is dropped before anything counts rows. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
 
-**Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values — which is most of what a bound action buys here: a row is a reference whose label and state are asked at draw time, so the sections only change when the SHAPE of the menu does, and nothing has to be routed through a ref to be reachable from the effect.
+**When rows are read.** The menu asks each action `describe()` as it draws its rows, which is when it opens, and not in between: nothing the player does can reach past an open menu (activating a row closes it first, and the popover keeps its keys to itself), so the only staleness reachable is a change arriving from another player while the menu sits open. Closing and reopening is the fix, and clicking a stale row is safe regardless — the run reads the live binding.
 
-**Focus.** The game menu is given `returnFocusOnClose={false}` (Menu.tsx), so closing it blurs the trigger and lets focus fall to `<body>` — a keyboard-first board (crosswords) resumes reading arrows instead of a focused logo swallowing them / reopening the menu. `Menu` also `stopPropagation`s its own keydowns so arrowing through the menu never doubles as a board move. Non-game menus (ClubPage's, HomePage's) keep the standard Esc-restores-focus a11y.
+**Stability.** `setGameSections` pushes into [`gameMenuStore`](../src/common/menu/gameMenuStore.ts), whose one subscriber is the header menu, so a push re-renders the menu and not the page or the board. A PlayArea's menu-building effect still lists its rows in its deps, and a bound action's identity is stable, so the sections change only when the SHAPE of the menu does; an unstable row would only rebuild the menu more often than it needs to.
+
+**Focus.** The game menu is given `returnFocusOnClose={false}` by [`GameHeaderMenu`](../src/common/game-page/GameHeaderMenu.tsx), so closing it blurs the trigger and lets focus fall to `<body>`. The trigger stops its own keydowns from propagating while it has focus, so a focused logo would swallow the arrows and Enter the dispatcher would otherwise deliver to a keyboard-first board (crosswords). `Menu` also stops its popover's keydowns, so arrowing through the menu never doubles as a board move. Non-game menus (ClubPage's, HomePage's) keep the standard Esc-restores-focus a11y.
 
 **Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100svh - 5rem)` and scrolls internally.
 
 **Pause behavior.** The menu is openable while paused. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu is empty until resume.
 
-**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
+**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
 
-**Submenus** are a two-shape hybrid, one level deep. A row with `items` instead of `onClick` ([`MenuSubmenu`](../src/common/menu/menuModel.ts)) opens:
+**Submenus** are a two-shape hybrid, one level deep. A row that is a [`MenuSubmenu`](../src/common/menu/menuModel.ts) rather than an action opens:
 
 - **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
 - **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
 
 The split is by viewport because a flyout has nowhere to go on a phone: the popover already runs to its `max-width` cap there, so a second panel beside it would only ever land on top of the first. Both shapes share **one** piece of state, because in both an open submenu takes over keyboard navigation entirely — so the flat-index model survives and Back is modeled as a nav row rather than special-cased. `ArrowRight`/Enter opens, `ArrowLeft`/Escape steps back out (focus returning to the parent row), and **Escape unwinds one level at a time** rather than dismissing the whole menu. Opening is by **click, not hover** — hover-open fires as you arrow past a row and means nothing on a touchscreen laptop.
 
-Two consequences worth knowing. The flyout is `position: fixed`, not absolutely positioned inside the popover: `.popover` is `overflow-y: auto`, and the spec computes `overflow-x` to `auto` alongside it, so an absolutely-positioned child would be **clipped** at the popover's edge instead of overflowing. Scrolling the parent list therefore closes the flyout rather than letting it detach (crosswords' ~20-item menu really does scroll). And a submenu parent has no `onClick`, so the shell's `+` / `⌥⌫` shortcut dispatchers call `item.onClick?.()` — a real guard, not appeasement.
+Two consequences worth knowing. The flyout is `position: fixed`, not absolutely positioned inside the popover: `.popover` is `overflow-y: auto`, and the spec computes `overflow-x` to `auto` alongside it, so an absolutely-positioned child would be **clipped** at the popover's edge instead of overflowing. Scrolling the parent list therefore closes the flyout rather than letting it detach (crosswords' ~20-item menu really does scroll). And a submenu parent is not an action: opening is its whole behavior, so it has nothing to run, no key to advertise, and no `data-action` — its words are the grouping's own.
+
+**Every row says which action it is**, as `data-action="act-…"`, the same attribute `<ActionButton>` writes. What a row is CALLED is `describe()`'s to vary per game and per state, so a test or a stylesheet that wants a particular command asks for the id, not the words; [`e2e/helpers/actions.ts`](../e2e/helpers/actions.ts) wraps both surfaces.
 
 **Z-index.** Menu takes `--z-menu` (3200) — above the board it drops over, above every floating window, and above chat, because it is the shortest-lived thing on screen and you just asked for it. Below a toast and below anything that stopped the world, neither of which can co-occur with an open menu anyway: a scrim makes the header inert. The layers are in [code-conventions.md](code-conventions.md#the-z--layers).
 
 **Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
 
-**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic PuzPuzPuz logo as the trigger and items "Help" (a placeholder `<ClubHelpCompanion>` modal, so the club menu has the same Help affordance games do — also what `?` reaches), "Back to home," "Rename club," "Delete club."
+**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic PuzPuzPuz logo as the trigger and its own bound actions as rows: Help, Back to home (`<`), Edit club and Rename club. On every page `?` opens the menu itself (`act-open-menu`); Help has no key of its own.
+
+**The keys in Help.** Every game's help companion, and the club's, ends with a generated list of the keys that work on that page — [`<KeyList>`](../src/common/actions/KeyList.tsx), a loop over the bound actions that have a key and are not hidden, one row per command however many places offer it. It reads the same registrations the dispatcher fires, which is what keeps it honest.
 
 ### ClubPage header
 
@@ -1254,10 +1265,12 @@ The club page wears the same chrome the game page does. Same "no title in the he
 
 **ClubPage menu items:**
 
-- **Help** — opens the placeholder `<ClubHelpCompanion>` modal (parity with the GamePage menu's Help; also what the `?` shortcut reaches on the club page).
-- **Back to home** — `navigate('/')`. Real link.
-- **Rename club** — placeholder. Click pops a "Coming soon" `timed` feedback pill.
-- **Delete club** — placeholder. Same.
+All four are bound actions (`act-help`, `act-back-to-home`, `act-edit-club`, `act-rename-club`), so the rows read their words and availability the way a game's do:
+
+- **Help** — opens `<ClubHelpCompanion>` (parity with the GamePage menu's Help, and like it ends with the generated key list). No key of its own: `?` opens the menu.
+- **Back to home** — `navigate('/')`, and `<`.
+- **Edit club** — opens the edit-club modal.
+- **Rename club** — placeholder. Click pops a "coming soon" `timed` feedback pill.
 
 **Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The body below the header is a two-column flex row that takes the rest of the viewport height (per [Page-height fits the viewport](#page-height-fits-the-viewport)):
 
@@ -1817,6 +1830,13 @@ button                    neutral — font: inherit · color: inherit · cursor:
 <StandardButton>          the app's general button. Its whole look lives in its
                           own module; there are no global button classes, and
                           nothing outside that folder writes those class names
+<ActionButton>            a StandardButton that IS a command: words, glyph,
+                          tone, key and availability all read off the bound
+                          action (common/actions); the placement picks `show`
+                          and `weight`
+actionSurface(action)     the same for a control that keeps its own markup —
+                          the shuffle pill, the header marks — as props to
+                          spread on its <button>
 .tile                     a game piece (each board's module)
 .key                      a keycap (module-local)
 ```
@@ -2102,8 +2122,13 @@ the glyph into a `House` and a `Users`.
   instantly on leave/blur/press/scroll). A standard button fills the attribute
   itself: its tooltip defaults to its label, so an icon-only button always
   names itself, and a caller passes `tooltip` to say something richer — or to
-  name a button whose drawn word is shorter than what it does. The controls
-  outside that component write `data-tooltip` themselves.
+  name a button whose drawn word is shorter than what it does. An action's
+  bubble is its name with its key on the end ("New game · +", through
+  `nameWithKey`), or the reason its `describe()` gives for its state ("Find 2
+  more valid words") — that is the only place a player learns a key from a
+  button. The bespoke controls get the same bubble from
+  `actionSurface().buttonProps`; anything else outside the component writes
+  `data-tooltip` itself.
   The attribute is usable on ANY element as other spots want
   tooltips later. The host measures and **clamps the bubble to the
   viewport** — above the anchor by default, flipped below near the top edge
@@ -2121,10 +2146,10 @@ the glyph into a `House` and a `Users`.
 - **The icon-and-label shape belongs to the component**, not to a class a
   caller composes: one centered row, a gap, and a fixed square when no words are
   drawn. A surface needing a different box re-points the size token in its own
-  class. **Not** for `ShuffleButton`, the board's round pill — a separate
-  fixed-size circular shape that styles itself, and the only one of its kind:
-  the header's marks are `<PageHeaderButton>`s and bananagrams' zoom-to-fit is
-  an ordinary icon-only square.
+  class. **Not** for the bespoke controls — `ShuffleButton`'s round pill and the
+  header's `<PageHeaderButton>` marks — which style themselves and take their
+  action through `actionSurface`; bananagrams' zoom-to-fit is an ordinary
+  icon-only square.
 - **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
   A move-submit "sends" the move up to the other players (our boards put YOU at
   the bottom, others above — codenamesduet's keycards literally so), and pointing
@@ -2143,30 +2168,33 @@ the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete, and then superseded: every game-move / end / hint /
-reveal / concede used to be a named button from `common/buttons/`, one file per
-command. Those are **actions** now ([`common/actions/`](../src/common/actions/doc.md)) —
+**Every game command is an action** ([`common/actions/`](../src/common/actions/doc.md)):
 the registry says what a command is called, what it wears and what it answers
-to, and `<ActionButton>` draws it — so a command's appearance is still decided
-once, just one layer up, where the menu row and the key read the same entry. End
-and Concede appear in BOTH the info-column action row and the game menu, which
-is the point: they are one binding placed twice. What is left in
+to, and `<ActionButton>` draws it — so a command's appearance is decided once,
+where the menu row and the key read the same entry. End and Concede appear in
+BOTH the info-column action row and the game menu, which is the point: they are
+one binding placed twice. What lives in
 [`common/buttons/`](../src/common/buttons/doc.md) is chrome — cancel, the form
-commit, close, delete — plus the two bespoke controls (the board's round pill
-and the score-carrying submit) that read an action but keep their own markup.
+commit, close, delete — plus the bespoke controls that read an action through
+`actionSurface` but keep their own markup: the board's round shuffle pill, the
+score-carrying submit, and the header's pause, scratchpad and page-switch marks.
 Still on their old glyphs / pending: the chat bubble, the `×` close, and the
 `✓`/`✗` marks.
 
-**Two axes + natural width.** A named button carries **weight** (`primary` = the
+**Two axes + natural width.** A general button carries **weight** (`primary` = the
 filled-accent main action like Submit; `secondary` = the outline everything else
 builds on) and **tone** (`quiet | normal | caution | destructive | success` —
 the BUTTON bucket's own vocabulary, not the outcome palette's: a control saying
 "this is irreversible" is a different question from a game saying "you lost").
 Each tone re-sets the slot tokens both treatments read, so a tone works in either
-weight. Where they land: the help ladder — Hint, Spoiler, an AI suggestion — is
-`caution`; End, Concede and Reveal are `destructive`, since all three are
-irreversible; a move commit is `primary`; a dialog's Cancel is
-`quiet`+`secondary`. `success` is wired with no caller.
+weight. For a command the two axes split: **tone is the registry's** — a fact
+about the action, which `<ActionButton>` does not even accept as a prop — and
+**weight is the placement's**, since how loud a button is depends on where it
+sits. Where they land: the help ladder — Hint, Spoiler, an AI suggestion — is
+`caution`, and so is scrabble's Pass, an uncommon act that forfeits the turn;
+End, Concede and Reveal are `destructive`, since all three are irreversible; a
+move commit, and codenamesduet's every-turn End turn, are `primary`; a dialog's
+Cancel is `quiet`+`secondary`. `success` is wired with no caller.
 
 The tone deliberately avoids the word `action`, which is one of the fourteen
 BUTTON KINDS above — one word naming a purpose in one taxonomy and a color in
