@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 /**
  * Tests for the one key listener: the two gates, auto-repeat, who wins when two

@@ -4,10 +4,14 @@ The folders it reads: `actions`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed (Joel: the two guards and the e2e
-helper stay off, "then audit the area") and stamped `cs-audited-actions`. The
-audit read is done; every finding below is OPEN and waits on Joel's word one
-at a time.
+**Status: CLOSED 2026-09-11** (Joel: "bless the files and close the area") —
+every roster file reads `cs-blessed-actions`, stamped at those words. Opened
+the same day: roster agreed (Joel: the two guards and the e2e helper stay
+off, "then audit the area") and stamped `cs-audited-actions`.
+Every audit finding is worked, ruled or withdrawn. **The whole-area re-read
+was done the same day**; it found two small things, F-actions-12 and -13
+under "The re-read" below, both worked. `doc.md` needed no other change.
+Blessed and closed on his words the same day.
 
 ## The roster
 
@@ -180,7 +184,40 @@ something better explained with context or is common between things." So
 Details keeps what needs context or is shared across files; each docstring
 shrinks to who calls it and how, with internals moved onto the lines they are
 about or replaced by a pointer at `doc.md`. The same shape as F-forms-19.
-Not yet worked.
+Joel, on the framing: "it's not that the only option is move docstring →
+doc.md; there may be times it makes more sense to keep in docstring, with the
+component. I'm just observing that you often are putting lots of design
+decisions or internal stuff in a docstring."
+
+**WORKED 2026-09-11 (Joel: "let's do f8").** File by file:
+
+- `useBoundAction.ts`: the file-level docstring was not attached to anything
+  a hover could show, so the hook's own docstring is now the example, "bind
+  once and hand it to everything", what `run` does, and a pointer. The
+  binding-stack explanation was a 25-line docstring on a module-private
+  const; it is a `//` comment, half the length, with the order rule in one
+  sentence and the rest pointed at `doc.md`. `Described`'s docstring keeps
+  the fallback rule and points at `doc.md` for what may vary. The
+  ref-during-render comment is nine lines, down from nineteen, on the line
+  it defends.
+- `dispatcher.ts`: the hook's docstring is who mounts it and the shape of
+  the routing in two sentences, down from 46 lines. What each pass does now
+  sits on the pass, in the comments that were already there, filled out.
+- `chord.ts`: the file docstring is "reach for this when giving an action a
+  key" and a pointer; `matches` says its two rules in one line, with the
+  reasons on the lines that apply them.
+- `KeyList.tsx`: "place it once in a help companion; it draws itself." The
+  one-row-per-command rule and the End-bound-twice case moved onto the
+  dedupe.
+- `ActionButton.tsx`: the `data-action` comment is three lines and points at
+  `doc.md` for the attribute-versus-class reasoning.
+- `registry.ts`: one sentence dropped. The rest is "adding an action is
+  adding a row here", which is the how-to and stays.
+- Kept as they were: `actionSurface`, `nameWithKey`, `AppActionsHost`,
+  `boundAction.fixture`, and every type member note — all already "who calls
+  this and how".
+- `doc.md` Details is untouched: now that the docstrings point at it, it is
+  the one copy rather than the second.
 
 ## F-actions-9 · `keylist-filter-side-effect` · A `filter` that writes
 
@@ -222,6 +259,47 @@ One word; the keyboard area's doc, touched because this area read it.
 
 **WORKED 2026-09-11.** The word is out.
 
+### The re-read, 2026-09-11
+
+Every file on the roster read end to end after F-actions-8, and `doc.md`
+checked against the code as the one copy the docstrings now point at. Every
+pointer the docstrings make names a phrase that is in `doc.md`. What did not
+hold up:
+
+## F-actions-12 · `any-key-behaviors-are-three` · "The two behaviors that answer to every key" — there are three
+
+`chord.ts` says it twice (`KeyPattern.pattern`'s comment: "for the two
+behaviors that answer to every key (dismissing feedback, leaving the history
+viewer)"; `isWildcard`'s docstring: "The two behaviors that do are…"), and
+`doc.md` said it once ("The two any-key behaviors differ in one property").
+The registry has three `pattern: 'any'` rows: `act-dismiss-feedback`,
+`act-exit-viewer` and crosswords' `act-drop-peek`, a non-consuming watcher
+like dismiss. A count, and already wrong.
+
+**`doc.md`'s half WORKED 2026-09-11** as part of "update the doc.md as
+needed": the paragraph names all three and keeps the one distinction
+(the viewer consumes; the other two do not). **The `chord.ts` half WORKED
+2026-09-11 (Joel: "fix f12 and f13")**: both comments name the three and
+count nothing. A fourth site turned up in the fix: the registry's section
+heading "The two behaviors that answer to any key", which groups the two the
+shell shares while crosswords' third sits in that game's section above. It
+now reads "The any-key behaviors every game shares".
+
+## F-actions-13 · `small-leftovers` · Two lines
+
+- `useBoundAction.ts`, the stack-entry comment: "both want the newest one,
+  neither wants last one" — a dropped "the".
+- `KeyList.module.css` header: "Separated from the rules text above it by a
+  rule" — "rule" twice in two senses (the game's rules, a drawn line). "By a
+  line" says it.
+
+**WORKED 2026-09-11.** "Neither the last"; "by a line".
+
+**The lede and Design need no change.** The lede still says what the folder
+is and defers what each key does to keyboard-shortcuts.md; the Design
+narrative describes the code as it is; nothing this area changed touched
+behavior.
+
 ### Ruled already, recorded so the re-read does not re-raise them
 
 - **`// eslint-disable-next-line react-hooks/refs`** twice in
@@ -235,9 +313,17 @@ One word; the keyboard area's doc, touched because this area read it.
 
 ## Notes
 
-- **`todo.md`'s three Someday items stay owed** and are not findings:
-  keyboard-shortcuts.md's per-game tables are hand-kept; the key rides
-  inside the tooltip string; the key list is one flat loop.
+- **`todo.md`'s Someday items, reviewed with Joel 2026-09-11.** The
+  tooltip item moved to `tooltips/todo.md` ("consider non-text content"),
+  which is the folder that would do it. The per-game key tables in
+  docs/keyboard-shortcuts.md: Joel — "we should get rid of these; they're not
+  needed and will definitely drift", and on the prose between them, "we can
+  do this as we hit the game" — so the section goes game by game, each
+  game's prose into its own doc; recorded in docs/deferred.md (it crosses
+  sixteen games) and out of this folder's `todo.md`. The flat key list stays
+  on the todo, reworded to what Joel meant: "the real advantage is less the
+  order but the grouping: 'General keys' with those, 'Crossword keys' with
+  those."
 - **Every `Someday` and the Bug name a real thing** — checked against the
   code; nothing in `todo.md` is stale.
 - **The vocabularies guard has no row for this folder**: `KeyList.module.css`
@@ -256,8 +342,13 @@ One word; the keyboard area's doc, touched because this area read it.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design holds up (already written); Details cut to
-      what only the folder can say
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group —
+      2026-09-11; F-actions-12 and -13 are what it found
+- [x] the folder's `doc.md` Design holds up (already written); on Joel's
+      framing the cut ran from the docstrings toward it, and it is now the one
+      copy
+- [x] `todo.md` holds everything still owed (three Someday items); nothing
+      durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not — all
+      seventeen `cs-blessed-actions`, 2026-09-11, on Joel's words "bless the
+      files"

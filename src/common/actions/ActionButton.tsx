@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import { StandardButton, type StandardButtonProps } from '../buttons/StandardButton'
 import { nameWithKey } from './nameWithKey'
@@ -53,15 +53,9 @@ export function ActionButton({ action, ...rest }: Props) {
       // one, which is right where the tooltip renames it ("Club" / "Back to
       // club") and wrong here, where the tooltip only adds a hint.
       aria-label={typeof words === 'string' ? words : undefined}
-      // WHICH action this is, in the DOM — the escape hatch for styling one
-      // button in particular (`[data-action='act-peel'] { … }`), and a stable
-      // handle for a test that would otherwise search by wording.
-      //
-      // An attribute rather than a global class, matching every other marker
-      // the app leaves for a stylesheet to ask about (`data-icon-only`,
-      // `data-board`, `data-floating-panel`): a class here could only be a
-      // literal string in the global namespace, which is the one thing the
-      // module-CSS rule exists to avoid.
+      // WHICH action this is, in the DOM — a handle for a stylesheet or a test
+      // that would otherwise search by wording (doc.md, "every surface says
+      // which action it is").
       data-action={action.id}
       disabled={state === 'disabled' || action.pending}
       onClick={() => action.run()}

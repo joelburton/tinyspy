@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 /**
  * The key matcher, branch by branch — including the macOS dead-key cases that

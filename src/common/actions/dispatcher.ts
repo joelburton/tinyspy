@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import { useEffect } from 'react'
 import { isEditableField, isNonGameField } from '../keyboard/editableField'
@@ -41,48 +41,14 @@ function reportChordTie(claimants: BoundAction[]): void {
  * The app's one key listener: every keystroke, matched against whatever actions
  * are bound right now.
  *
- * Mounted ONCE, in `App.tsx`. Nothing else calls it, and no page or game writes
- * a key branch of its own — a component gets a key by binding an action
- * (`useBoundAction`), never by listening for one. That is what makes the help
- * list honest: the keys that work on a page are exactly the ones registered
- * there.
+ * Mounted ONCE, in `App.tsx`, and by a spec that presses keys. Nothing else
+ * calls it, and no page or game writes a key branch of its own — a component
+ * gets a key by binding an action (`useBoundAction`), never by listening for
+ * one.
  *
- * **Two gates come first, and they are the app's, not an action's.** A
- * keystroke aimed at a focused text field, or at anything inside a floating
- * panel, belongs to that field or that panel — a left arrow typed in chat
- * cannot move a board cursor. The field gate is the one an action can opt out
- * of, per its `inField`; the panel gate is absolute.
- *
- * **Then three passes, because a keystroke can mean three different kinds of
- * thing.**
- *
- *   1. **Watchers** — a wildcard that consumes nothing. Every active one runs
- *      and the key carries on to whoever really wanted it: that is how any key
- *      dismisses the last message and still types its letter. Position in the
- *      stack is deliberately not consulted — "dismiss the message" happens on
- *      every key there is, so making it depend on which component bound it
- *      first would be a bug waiting for the first reordering.
- *   2. **Interceptors** — a wildcard that DOES consume. The surface has
- *      declared a MODE: while it holds, the next keystroke means one thing and
- *      nothing else. `act-exit-viewer` is the one we have — a key with a past
- *      turn open means "back to the live board", whatever else is bound. That
- *      is a claim about the moment rather than about specificity, so it is
- *      settled here rather than by where the action happens to be bound.
- *   3. **Commands** — everything with a real key, in stack order: a component
- *      mounted with its page sits ahead of the page and wins a key they both
- *      want. That is a tiebreak, not a channel — see the stack's docstring.
- *
- * In every pass a hidden or disabled binding is skipped rather than swallowing
- * the key, so a key falls through to an outer binding that wants it. When no
- * binding takes it, a DISABLED one that matched still keeps it from the
- * browser: "here, and not right now" claims the key and does nothing with it,
- * so Space with no legal peel does not scroll the page. Anything matching
- * nothing at all goes to the browser, which is what keeps Cmd-R and Ctrl-Tab
- * working.
- *
- * **In development it also complains when two commands claim one keystroke** —
- * see `reportChordTie`. Position in the stack decides that today, and position
- * is a fact about effect order rather than a decision.
+ * Two gates come first (a focused text field, a floating panel), then three
+ * passes: watchers, an interceptor, the commands. What each is and why is
+ * doc.md's; the passes below say what they do where they do it.
  */
 export function useActionDispatcher(): void {
   useEffect(function attachActionDispatcher() {
@@ -121,19 +87,24 @@ export function useActionDispatcher(): void {
 
       const live = liveBindings()
 
-      // 1. The watchers, all of them, claiming nothing.
+      // 1. The watchers, all of them, claiming nothing: that is how any key
+      //    dismisses the last message and still types its letter. Stack order
+      //    is deliberately not consulted — "dismiss" happens on every key.
       for (const action of live) {
         if (action.spec.consumes === false && takes(action)) action.run(e.key)
       }
 
       // 2. An interceptor, if a surface has one live: a consuming wildcard is a
-      //    MODE, and a mode outranks any particular key.
+      //    MODE (a past turn open means "back to the live board"), and a mode
+      //    outranks any particular key.
       // 3. Otherwise the command that answers.
       //
       // Both walk the stack forward, so a component mounted with its page wins
-      // a key they both want; one mounted later does not. What the order is and
-      // why it must not be leaned on is the stack's own docstring
-      // (`useBoundAction.ts`); two actions live at once must not share a chord.
+      // a key they both want; one mounted later does not. That order is a
+      // tiebreak, not a channel (the stack's comment in `useBoundAction.ts`);
+      // two actions live at once must not share a chord. In every pass a hidden
+      // or disabled binding is skipped, so the key falls through to an outer
+      // binding that wants it.
       const answers = (wildcard: boolean) => {
         const claimants: BoundAction[] = []
         let first: KeySpec | null = null
@@ -162,7 +133,8 @@ export function useActionDispatcher(): void {
       // Nothing live took it. A binding that is here but DISABLED still keeps
       // the key from the browser — Space with no legal peel must not scroll the
       // page — without standing in the way of a sibling that wanted it, which
-      // the walks above already gave their chance.
+      // the walks above already gave their chance. Anything matching nothing at
+      // all goes to the browser, which is what keeps Cmd-R working.
       for (const action of live) {
         if (action.spec.consumes === false || action.spec.keys?.some(isWildcard)) continue
         const key = action.spec.keys?.find((spec) => matches(spec, e))

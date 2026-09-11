@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 /**
  * Tests for the one action button: that it draws what the action says, that a

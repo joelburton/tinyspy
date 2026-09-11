@@ -142,11 +142,12 @@ not what the button is called, so `<ActionButton>` says the name itself.
 
 **A pattern is one action, not twenty-six.** "Any letter", "any arrow", "any
 key" are `KeyPattern`s, and the pressed key is handed to the action's `run`. The
-two any-key behaviors differ in one property: leaving the history viewer
-consumes the keystroke (the press that gets you back to the live board must not
-also play a move), while dismissing a message does not, which is why a key can
-clear the last verdict and still type its letter. That is `consumes`, and it is
-why the dispatcher runs the non-consuming watchers first and separately.
+any-key behaviors differ in one property: leaving the history viewer consumes
+the keystroke (the press that gets you back to the live board must not also
+play a move), while dismissing a message, or putting away crosswords' peek,
+does not, which is why a key can clear the last verdict and still type its
+letter. That is `consumes`, and it is why the dispatcher runs the non-consuming
+watchers first and separately.
 
 **A control that isn't a standard button can still BE an action.** The board's
 round shuffle pill, the header's pause and page-switch marks keep their own

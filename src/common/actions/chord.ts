@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 /**
  * The keys an action can be pressed with, and the one function that decides
@@ -7,14 +7,8 @@
  * Reach for this when you are giving an action a key: write the key as a
  * `Chord` (one discrete keystroke) or a `KeyPattern` (a whole class of keys,
  * "any letter"), put it in the action's registry entry, and the dispatcher does
- * the rest. Nothing else in the app should be comparing `e.key` by hand.
- *
- * A key is a small object rather than a string because a string cannot say the
- * two things that actually matter here: which half of the event to compare
- * against (`e.key`, the character produced, or `e.code`, the physical key), and
- * what each modifier must be doing. Both bite in practice — on macOS Option
- * changes the character, so `⌥=` arrives as `≠` and `⌥\`` as `Dead` — and a
- * chord that names the physical key instead says so in one field.
+ * the rest. Nothing else in the app should be comparing `e.key` by hand. Why a
+ * key is an object and not a string, and the shift and Cmd rules, are doc.md's.
  */
 
 /** One discrete keystroke: a key, plus what the modifiers must be doing. */
@@ -59,8 +53,8 @@ export type Chord = {
  *  key is handed to the action's `run`, so it knows which one it got. */
 export type KeyPattern = {
   // `letter` = one ASCII letter, either case. `digit` = 0–9. `arrow` = the four
-  // arrow keys. `any` = anything at all, for the two behaviors that answer to
-  // every key (dismissing feedback, leaving the history viewer).
+  // arrow keys. `any` = anything at all, for the behaviors that answer to every
+  // key (dismissing feedback, leaving the history viewer, putting a peek away).
   pattern: 'letter' | 'digit' | 'arrow' | 'any'
   // ⇧ must be held, or must be up — same rule as a chord's, and the arrows are
   // why it is here: crosswords walks the cursor with an arrow and jumps to the
@@ -79,9 +73,10 @@ export function isPattern(spec: KeySpec): spec is KeyPattern {
   return (spec as KeyPattern).pattern !== undefined
 }
 
-/** Does this key answer to ANYTHING? The two behaviors that do are the ones
- *  that aren't about a particular key at all — dismissing the last message, and
- *  leaving the history viewer — and the dispatcher sorts them by it. */
+/** Does this key answer to ANYTHING? The behaviors that do are the ones that
+ *  aren't about a particular key at all — dismissing the last message, leaving
+ *  the history viewer, putting a peek away — and the dispatcher sorts them by
+ *  it. */
 export function isWildcard(spec: KeySpec): boolean {
   return isPattern(spec) && spec.pattern === 'any'
 }
@@ -90,22 +85,19 @@ export function isWildcard(spec: KeySpec): boolean {
 const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
 
 /**
- * Does this keystroke press this key?
- *
- * **Cmd is never ours** — reload, new tab, the address bar — so a keystroke
- * holding it matches nothing, chord and pattern alike. A pattern additionally
- * matches only an unmodified key: Option-L is not a letter someone is typing.
- *
- * **⇧ is matched when the key says so and ignored when it doesn't**, which is
- * the whole of the rule: a chord on a physical key or a named key states it,
- * because there ⇧ makes a different chord; a chord written as a character
- * leaves it out, because ⇧ was already spent producing the character.
+ * Does this keystroke press this key? A keystroke holding Cmd matches nothing,
+ * chord and pattern alike; ⇧ is checked only when the key says so.
  */
 export function matches(spec: KeySpec, e: KeyboardEvent): boolean {
+  // Cmd is never ours — reload, new tab, the address bar.
   if (e.metaKey) return false
+  // ⇧ is stated on a chord where it makes a different chord (a physical or
+  // named key) and left out where it made the character (`+`, `<`).
   if (spec.shift !== undefined && e.shiftKey !== spec.shift) return false
 
   if (isPattern(spec)) {
+    // A pattern is a key someone is TYPING, so no modifier: Option-L is not a
+    // letter.
     if (e.altKey || e.ctrlKey) return false
     switch (spec.pattern) {
       case 'letter':

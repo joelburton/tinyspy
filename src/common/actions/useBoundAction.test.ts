@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 /**
  * Tests for the live half: joining and leaving the stack, the shared run's

@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import type { AppIcon } from '../icons/icons'
 import type { ButtonTone } from '../buttons/StandardButton'
@@ -42,8 +42,7 @@ import {
  * This is the table to read when you want to know what a command IS. What it
  * DOES is the other half, supplied by whichever page or component offers it —
  * see `useBoundAction`, which joins the two. Nothing here is a function and
- * nothing here knows about a game: New game means the same thing, wears the
- * same glyph and answers to the same key in every one of them.
+ * nothing here knows about a game.
  *
  * **Adding an action is adding a row here.** The id is `act-<what-it-does>`,
  * and the binding that gives it a body is named `actWhatItDoes`, so both are
@@ -352,7 +351,7 @@ export const ACTIONS = {
   'act-mark-right-edge': { label: 'Mark the right edge', keys: [char('|')] },
   'act-mark-bottom-edge': { label: 'Mark the bottom edge', keys: [char('_')] },
 
-  // ─── The two behaviors that answer to any key ──────────────────────────
+  // ─── The any-key behaviors every game shares ───────────────────────────
   'act-dismiss-feedback': {
     label: 'Dismiss the message',
     keys: [{ pattern: 'any', label: 'any key' }],

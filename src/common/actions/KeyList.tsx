@@ -1,30 +1,22 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import { useBoundActions } from './useBoundAction'
 import styles from './KeyList.module.css'
 
 /**
- * The keys that work right here, listed at the bottom of Help.
- *
- * It is generated rather than written, which is the point: a hand-kept list
- * drifts the first time a key changes, and this one cannot, because it is the
- * same registrations the dispatcher fires. It shows every bound action that has
- * a key and is not hidden — its first key and what it is called at that moment.
- *
- * ONE ROW PER COMMAND, however many places offer it. An action can be bound
- * twice: `act-end-game` is, by the game and again by the page for the pause
- * overlay, which the play area is unmounted behind. They are written so they
- * are never live together, but that is two files agreeing rather than a
- * guarantee — and a list that answers "which keys work here" should say a key
- * once regardless. The FIRST binding in stack order wins the words, which is
- * the one the dispatcher would fire.
+ * The keys that work right here, listed at the bottom of Help. Place it once
+ * in a help companion; it draws itself from the live bindings — every bound
+ * action with a key that is not hidden, its first key and its words for this
+ * moment — and renders nothing when there are none.
  */
 export function KeyList() {
   const rows = useBoundActions()
     .map((action) => ({ action, key: action.spec.keys?.[0], ...action.describe() }))
     .filter((row) => row.key !== undefined && row.state !== 'hidden')
-  // One row per command: the first binding in stack order keeps its row and
-  // any later binding of the same id is dropped.
+  // One row per command, however many places offer it (`act-end-game` is bound
+  // by the game and again by the page for the pause overlay): the first binding
+  // in stack order keeps its row — it is the one the dispatcher would fire —
+  // and any later binding of the same id is dropped.
   const seen = new Set<string>()
   const unique = rows.filter((row) => {
     if (seen.has(row.action.id)) return false

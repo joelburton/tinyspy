@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import type { AppIcon } from '../icons/icons'
 import { nameWithKey } from './nameWithKey'

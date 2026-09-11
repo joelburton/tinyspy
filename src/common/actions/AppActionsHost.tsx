@@ -1,4 +1,4 @@
-// cs-audited-actions
+// cs-blessed-actions
 
 import { useState } from 'react'
 import { AnagramDialog } from '../anagram-finder/AnagramDialog'
