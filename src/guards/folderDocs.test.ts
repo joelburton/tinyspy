@@ -76,7 +76,7 @@ const DESIGNS_OWED: string[] = [
   'common/account', 'common/anagram-finder', 'common/auth',
   'common/chat', 'common/club',
   'common/definitions', 'common/error-page', 'common/faults',
-  'common/feedback', 'common/floating-panels',
+  'common/feedback',
   'common/game-page', 'common/home', 'common/info-sheet',
   'common/invitations', 'common/loading',
   'common/manifest',

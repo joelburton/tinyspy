@@ -1,14 +1,8 @@
 // cs-audited-floating-panels
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'
-import {
-  clampToViewport,
-  useDraggablePanel,
-  useReclampOnResize,
-  VIEWPORT_EDGE_MARGIN,
-  type PanelRect,
-} from './useDraggablePanel'
+import { useDraggablePanel, VIEWPORT_EDGE_MARGIN, type PanelRect } from './useDraggablePanel'
 import { useIsCoarsePointer } from '../mobile/useIsCoarsePointer'
 import { useIsPhone } from '../mobile/useIsPhone'
 import { useVisualViewport } from '../mobile/useVisualViewport'
@@ -17,35 +11,7 @@ import { cls } from '../utils/cls'
 import { usePanelEscape } from './usePanelEscape'
 import { CloseButton } from '../buttons/CloseButton'
 import styles from './FloatingPanel.module.css'
-// (Below: a 'hard'/'soft' literal is passed to clampToViewport
-// per-call. See the ClampMode type in useDraggablePanel.)
 
-/**
- * Which KIND of floating panel this is (docs/ui.md → Floating panels).
- *
- * The five families are the app's vocabulary for what a panel claims about the
- * page underneath it, and declaring one is how a panel gets held to that claim
- * — before this prop existed the claim lived in a document and the code
- * disagreed with it in four measurable ways (a modal-normal with no scrim,
- * three dialogs that forgot the rect they are defined by, three dimmed forms
- * that let Tab walk out behind them, and a scrim shade that tracked how each
- * panel was BUILT rather than what it meant).
- *
- *   - `companion`  something you keep NEARBY while you play — open it, keep it
- *                  open, move it where you want. Chat, the scratchpad, Help, a
- *                  setter's note. Reading is the common case; writing (the
- *                  scratchpad) is the exception, which is why it is not called
- *                  a workspace.
- *   - `dialog`     a question that can WAIT. No dim, movable, and it opens
- *                  where you left it.
- *   - `modal-normal`   a question worth thinking or talking about. Dims to
- *                  focus you — but chat stays reachable, which is not a leak: a
- *                  normal modal never claimed the world stopped.
- *   - `modal-blocking` the world stops. Answer it now; nothing underneath is
- *                  live.
- *   - `modal-fault`    as blocking, but strictly above it — an error must be
- *                  readable mid-question.
- */
 /**
  * How far apart a floating panel's PARTS sit — the field row from the failure
  * line from the results, in the panel's own content column.
@@ -58,6 +24,26 @@ import styles from './FloatingPanel.module.css'
  */
 export type PanelDensity = 'tight' | 'loose'
 
+/**
+ * Which KIND of floating panel this is — the one word every caller must pick
+ * (docs/ui.md → Floating panels):
+ *
+ *   - `companion`      something you keep NEARBY while you play: chat, the
+ *                      scratchpad, Help, a setter's note.
+ *   - `dialog`         a question that can WAIT. Movable, no dim, and it opens
+ *                      where you left it.
+ *   - `modal-normal`   a question worth thinking or talking about. Dims — but
+ *                      chat stays reachable, which is not a leak: a normal
+ *                      modal never claimed the world stopped.
+ *   - `modal-blocking` the world stops. Answer it now; nothing underneath is
+ *                      live.
+ *   - `modal-fault`    as blocking, but strictly above it — an error must be
+ *                      readable mid-question.
+ *
+ * The family is what decides the scrim, the drag, Escape, the remembered rect
+ * and the layer; `FAMILY` below is the table, and doc.md → Design says why one
+ * word rather than five props.
+ */
 export type PanelFamily =
   | 'companion'
   | 'dialog'
@@ -65,60 +51,35 @@ export type PanelFamily =
   | 'modal-blocking'
   | 'modal-fault'
 
-/** What each family claims, in one place. Everything here USED to be a prop
- *  each caller passed, which is how the claims and the code drifted apart. */
+/** What each family claims, in one place — the table behind `PanelFamily`. */
 const FAMILY: Record<
   PanelFamily,
   {
-    /** Dims the page — and "dim" means everything below is INERT. */
+    // Dims the page — and "dim" means everything below is INERT.
     scrim: null | 'light' | 'dark'
-    /** How far apart the panel's parts sit, unless the panel says otherwise.
-     *  The two patient families hold answers you read or search; a modal holds a
-     *  form you fill in. A panel whose content argues the other way overrides it
-     *  — the help guides are companions and pass `loose`, being pages to read. */
+    // The family's answer unless the panel argues otherwise: the two patient
+    // families hold answers you read or search, a modal holds a form you fill
+    // in. The help guides are the panels that argue — companions, but pages to
+    // read, so they pass `loose`.
     density: PanelDensity
-    /** Immovability IS the signal: if you can drag it you can leave it for
-     *  later; if you cannot, you deal with it now. */
+    // Immovability IS the signal: if you can drag it you can leave it for
+    // later; if you cannot, you deal with it now.
     draggable: boolean
-    /** `'close'` — Escape dismisses it. `'swallow'` — Escape is consumed and
-     *  NOTHING closes, not even the panel below (closing a fault by accident is
-     *  a real problem, and closing the thing under it would be worse). */
+    // `'close'` — Escape dismisses it. `'swallow'` — Escape is consumed and
+    // NOTHING closes, not even the panel below.
     escape: 'close' | 'swallow'
-    /** Whether this family opens WHERE YOU LEFT IT. Movable-and-remembers is
-     *  the rule for the two patient families; a modal is a fresh task each
-     *  time, so it centers even though you can move it (Joel, 2026-08-24). */
+    // Whether this family opens WHERE YOU LEFT IT. A modal is a fresh task each
+    // time, so it centers even though you can move it.
     remembersRect: boolean
-    /**
-     * A WINDOW or a CARD — the second split, and it follows from the first.
-     *
-     * **The titlebar IS the drag handle** (`dragHandleClassName` names the
-     * header and nothing else carries the class), so a family that can never be
-     * dragged has no use for one: its only remaining job is a title the body
-     * shows better and bigger, and its ✕ is a third way out duplicating a button
-     * already on screen. `FaultModal` used to print "Error" in both places,
-     * four lines apart, and nobody noticed — a titlebar reads as chrome rather
-     * than as content.
-     *
-     * `'window'` — titlebar with a ✕, and a full-page sheet on a phone.
-     * `'card'` — no titlebar; the title is a heading the leaf renders; stays a
-     * card at every size, so the thing the question is ABOUT is still visible
-     * behind it.
-     */
+    // `'window'` — titlebar with a ✕, and a full-page sheet on a phone.
+    // `'card'` — no titlebar; the title is a heading the leaf renders, and it
+    // stays a card at every size. The titlebar IS the drag handle, so a family
+    // that can never be dragged has no use for one.
     shape: 'window' | 'card'
-    /**
-     * The family's layer, written out in full.
-     *
-     * **Not interpolated** (`var(--z-${family})`), which is what this looked
-     * like first. That version made the dead-token guard blind to the whole
-     * ladder: a dynamically-built `var()` name is captured as its prefix and
-     * vouches for every token extending it, so `--z-board` and `--z-ghost` —
-     * which nothing reads until the boards convert — would have read as alive
-     * forever. Spelling each one out keeps every reference exact.
-     *
-     * It is still not a table of TIERS in TypeScript, which is the thing §20
-     * bans: the code carries the NAME, `base.css` carries every VALUE, and
-     * those cannot drift apart.
-     */
+    // Written out in full rather than interpolated (`var(--z-${family})`),
+    // which would blind the dead-token guard to the whole ladder: it captures a
+    // dynamically-built name as its prefix, so every token extending `--z-`
+    // would read as alive. Spelled out, each reference is exact.
     layer: string
   }
 > = {
@@ -130,178 +91,102 @@ const FAMILY: Record<
 }
 
 export type FloatingPanelProps = {
-  /** What KIND of panel this is — see `PanelFamily`. Required: there is no
-   *  sensible default, and a silent one is how the app ended up with a
-   *  modal-normal that never dimmed. */
+  // What KIND of panel this is — see `PanelFamily`. Required: there is no
+  // sensible default, and a silent one is how a modal-normal ended up with no
+  // dim at all.
   family: PanelFamily
-  /** Override the family's default spacing between the panel's parts. The help
-   *  guides are the case: companions by family, but pages to read, so they ask
-   *  for `loose`. */
+  // Override the family's spacing between the panel's parts.
   density?: PanelDensity
-  /** Titlebar label, for the WINDOW families — it doubles as the drag handle.
-   *  A CARD family has no titlebar, so it renders its own heading in the body
-   *  and passes nothing here. */
+  // Titlebar label, for the WINDOW families — it doubles as the drag handle. A
+  // CARD family has no titlebar, renders its own heading in the body, and
+  // passes nothing here.
   title?: string
-  /** Called when the user dismisses the panel (X click in the
-   *  header, optional ESC). Backdrop click does NOT dismiss —
-   *  even when `backdrop` is set the click is consumed silently. */
+  // The ✕, and Escape where the family allows it. Clicking the scrim does NOT
+  // dismiss: the click is consumed silently.
   onClose: () => void
-  /** Initial position. `'center'` (default) computes a centered
-   *  rect on mount from the current viewport and `defaultSize`;
-   *  passing explicit coordinates overrides. Ignored if a
-   *  persisted rect exists for `persistKey`. */
+  // Where it opens. `'center'` (default) resolves against the viewport on
+  // mount; explicit coordinates override. Ignored once `persistKey` has a
+  // stored rect.
   defaultPosition?: { x: number; y: number } | 'center'
-  /** Initial size on the first mount. Subsequent mounts use the
-   *  persisted rect (if `persistKey` is set). */
+  // Size on a first mount, and the first-paint seed when `fitContent` is on.
   defaultSize?: { width: number; height: number }
-  /** When true, the panel can be resized by its corners/edges.
-   *  Default true. Modals with natural dimensions (Setup, Hint)
-   *  opt out. */
+  // Draggable by corners and edges. Default true; a panel whose content knows
+  // its own size opts out.
   resizable?: boolean
-  /** The narrowest this panel may be. Also floors the viewport clamp, so it is
-   *  the one dimension that still bites a panel nobody can resize — nothing
-   *  fits-to-WIDTH, so a width floor overrules nothing. */
+  // The narrowest this panel may be. It also floors the viewport clamp, which
+  // makes it the one dimension that still bites a panel nobody can resize —
+  // nothing fits to WIDTH, so a width floor overrules no content.
   minWidth?: number
-  /**
-   * **"You can't drag this shut."** Meaningful only alongside `resizable`, and
-   * **0 by default**.
-   *
-   * It used to default to 200 and floor the viewport clamp for EVERY panel,
-   * including the ones whose whole height is their content — which is how a
-   * confirmation ended up 81px taller than what was in it, a band of empty
-   * white under the buttons. A floating panel holding one line of text should
-   * be one line tall (Joel, 2026-08-25); a floor there is the shell overruling
-   * the content for nobody's benefit, since no one can shrink it anyway.
-   *
-   * **Where it IS legitimate, the number comes from the BODY.** A `min-height`
-   * on chat's message list in CSS cannot stop the drag — the list keeps its
-   * height and the body scrolls, so you get a stubby panel with a scrollbar
-   * instead of a floor. react-rnd only stops for a number. So the mechanism is
-   * panel-level and the justification is not: "the titlebar, the composer and
-   * four messages", not "300 felt about right".
-   */
+  // "You can't drag this shut" — so it means nothing without `resizable`, and
+  // it is 0 by default. Where a floor IS wanted, react-rnd only stops for a
+  // number: a `min-height` in CSS on chat's message list leaves the list its
+  // height and scrolls the body, giving a stubby panel with a scrollbar rather
+  // than a floor. Derive the number from what the body needs — "the titlebar,
+  // the composer and four messages".
   minHeight?: number
-  /** localStorage key under which to persist position + size. The FAMILY says
-   *  whether a panel opens where you left it; this says under what key, because
-   *  that is per-instance (the scratchpad's is per-game). Required by the two
-   *  families that remember, ignored by the three that don't.
-   *
-   *  Restoring is safe on a smaller screen than the one it was saved on: the
-   *  rect is hard-clamped into the current viewport on mount, and the STORED
-   *  value is deliberately left alone so reconnecting the big monitor puts the
-   *  panel back where you left it there. */
+  // Where a remembered rect is stored. The FAMILY decides WHETHER a panel opens
+  // where you left it; this says under what key, which is per-instance (the
+  // scratchpad's is per-game). Required by the families that remember, ignored
+  // by the rest.
+  //
+  // Restoring on a smaller screen is safe: the rect is hard-clamped into the
+  // current viewport on mount and the STORED value is left alone, so plugging
+  // the big monitor back in puts the panel where you left it there.
   persistKey?: string
-  /** When true, the panel GROWS on open to fit its natural content
-   *  height (capped to the viewport, past which the body scrolls),
-   *  instead of staying at `defaultSize.height`. `defaultSize.height`
-   *  becomes just the first-paint seed. For content-sized modals
-   *  whose height varies with what's inside — the Setup dialog, where
-   *  a game with many options must open tall enough to show them all.
-   *  Safe alongside `persistKey` when the panel is NOT resizable: a stored
-   *  height only fights the fit if the user chose it, and nobody can choose a
-   *  height they cannot drag. */
+  // Grow on open to fit the natural content height, capped to the viewport
+  // (past which the body scrolls), rather than staying at `defaultSize.height`
+  // — for a panel whose height varies with what is inside it, like setup. Safe
+  // alongside `persistKey` on a panel that is NOT resizable: a stored height
+  // only fights the fit if the user chose it, and nobody chooses a height they
+  // cannot drag.
   fitContent?: boolean
-  /**
-   * Stacking tier, as a token string.
-   *
-   * **Defaults to the FAMILY'S OWN LAYER** — `var(--z-companion)`,
-   * `var(--z-dialog)`, `var(--z-modal-normal)`, and so on — which is §20's rule
-   * that *a layer is where its family lives unless a component states
-   * otherwise*. There is no table of tiers in TypeScript: the code carries the
-   * family NAME and `base.css` carries every value, so the two cannot drift.
-   *
-   * **Two components state otherwise**, both for the same reason and both with
-   * the reason written where someone might undo it: `Chat` passes
-   * `var(--z-chat)` (a conversation must stay reachable over every dim below
-   * it, and it can open ITSELF), and `GameHelpCompanion` passes `var(--z-help)` (the
-   * rules are summoned FROM things, including the setup modal, and must never
-   * open behind the form you pressed "?" in).
-   *
-   * A STRING, not a number, because the ladder's one home is CSS: a numeric
-   * default here would be a second copy of the order, free to disagree with the
-   * tokens. The scrim's `- 1` survives as `calc()`.
-   * `guards/vocabularies.test.ts` fails on a numeric literal passed to this
-   * prop. */
+  // Stacking tier, defaulting to the family's own layer. A STRING, not a
+  // number, because the ladder's one home is `base.css` — a numeric default
+  // here would be a second copy of the order, free to disagree with the tokens.
+  // `guards/vocabularies.test.ts` fails a numeric literal passed here.
+  //
+  // Pass one only for a panel that can be summoned from inside something
+  // outranking its family — chat and the help guides — and say why at the call
+  // site. doc.md → Design covers why that case exists.
   zIndex?: string
-  /**
-   * Rank at the FAMILY's layer for Escape, rather than at the tier this panel
-   * actually paints on.
-   *
-   * **Chat is the only caller and the only reason this exists.** It paints
-   * above every modal — a conversation has to stay reachable over every dim
-   * below it — but if it also RANKED there, Escape with a setup dialog open
-   * would close the chat you have kept open all game instead of the form you
-   * just opened. So it paints high and ranks low (Joel, 2026-08-24).
-   *
-   * Nothing else should reach for this. Help paints above the setup modal AND
-   * ranks above it, which is correct and needs no prop: Escape closes the
-   * rules, leaving the form you opened them for.
-   */
+  // Rank for Escape at the FAMILY's layer rather than at the tier this panel
+  // paints on — "paints high, ranks low". Chat is the only caller and the only
+  // reason it exists: it paints above every modal so a conversation stays
+  // reachable, but ranking there would make Escape close the chat you have kept
+  // open all game instead of the form you just opened.
   escapeRank?: 'family'
-  
-  /**
-   * Force a CARD family to take the full-page phone sheet anyway, for one whose
-   * content outgrows a card.
-   *
-   * **Expected to have no callers**, and that is measured rather than hoped:
-   * `fitContent` caps at the viewport and lets the body scroll, so a card
-   * degrades into a sheet by itself exactly when the content earns one — a
-   * 30×-repeated fault message grew to 647px at a phone's height without
-   * overflowing. The one unknown is scrabble's `ScrabbleBlankPickerBlockingModal` (26 letter buttons
-   * at ~390px), still hand-rolled. **If that converts cleanly, delete this
-   * prop** rather than keep it as decoration.
-   */
-  phone?: 'sheet'
-  /** When true, a full-screen phone sheet stays clear of the
-   *  on-screen keyboard: it's sized to the measured visual viewport
-   *  (which shrinks by the keyboard), so a panel with a text input
-   *  (chat) keeps its input + content above the keyboard with
-   *  nothing hidden behind it. Phone-only; inert on tablets/desktop
-   *  (no soft keyboard → visual viewport == layout viewport).
-   *  Default false. */
+  // Keep a full-screen phone sheet clear of the on-screen keyboard by sizing it
+  // to the measured visual viewport, so a panel with a text input (chat) keeps
+  // its input and content above the keyboard. Phone-only, and inert elsewhere
+  // (no soft keyboard → visual viewport == layout viewport).
   reserveKeyboard?: boolean
-  /** Panel body content. */
+  // Panel body content.
   children: ReactNode
 }
 
 /**
- * Shared shell for every FLOATING PANEL — the window-like things that float
- * over the page: chat, the scratchpad, Help, the word dialogs, setup, and the
- * three modals. One header pattern, one drag implementation (react-rnd), one
- * Escape behavior, one scrim, one z-index axis.
+ * Reach for this to put a window-like thing over the page: chat, the
+ * scratchpad, Help, a word dialog, setup, a confirmation. It is the shell all
+ * of them share — one titlebar, one drag, one Escape, one scrim, one layer.
  *
- * **A panel declares its FAMILY and the shell enforces what follows** — the
- * scrim and its shade, whether it can be dragged, what Escape does, and whether
- * it opens where you left it. Those were separate props once, which meant as
- * many chances for a panel to claim one thing and do another; they all now come
- * from one word. See `PanelFamily`. (Tab is not among them: every family keeps
- * it, because every panel is a ring.)
+ * **Pick a `family` and the shell supplies the rest** — the scrim and its
+ * shade, whether you can drag it, what Escape does, whether it opens where you
+ * left it, and what it stacks above. That is the one decision a caller has to
+ * make; see `PanelFamily` for the five.
  *
- * Three questions remain genuinely independent, and stay props:
+ * Three questions the family can't answer stay props, because panels in the
+ * same family differ on them: who knows the SIZE (`resizable` / `fitContent` —
+ * chat and Help are both companions and disagree), under what KEY a remembered
+ * rect is stored (`persistKey`), and the geometry seeds (`defaultSize`,
+ * `minWidth` / `minHeight`).
  *
- *   - **who knows the SIZE** — `resizable` / `fitContent`. Orthogonal to
- *     family: chat (the user knows) and Help (the content knows) are both
- *     companions.
- *   - **under what KEY a remembered rect is stored** — `persistKey`.
- *   - **the geometry seeds** — `defaultSize`, `minWidth`/`minHeight`.
- *
- * Why a single shell rather than separate Modal + FloatingPanel components:
- * every panel is a floating panel under the hood, and forking the shell would
- * read as "Modal vs not" — a split the family word already makes, better.
- *
- * Drag handle: when draggable, the header bar carries the
- * `dragHandle` class and react-rnd binds drag events there. The
- * panel body and close button are NOT drag handles — clicking the
- * X reliably closes; selecting text in the body reliably selects.
- *
- * Stacking: z-index is the only mechanism, every tier is a token from
- * base.css's ladder, and the FAMILY picks it. The scrim, when present, paints
- * one below at `calc(… - 1)`.
+ * Most callers don't reach for this directly: `<Companion>`, `<Dialog>`,
+ * `<NormalModal>` and `<BlockingModal>` each name a family for you. doc.md →
+ * Design covers why one shell rather than several.
  */
 export function FloatingPanel({
   family,
   title,
-  phone,
   escapeRank,
   onClose,
   defaultPosition = 'center',
@@ -349,323 +234,76 @@ export function FloatingPanel({
     onClose,
   )
 
-  // The TITLEBAR acts as the drag handle when draggable. react-rnd identifies it
-  // by class name; the `.titlebar` / `.dragHandle` split is just so the bar can
-  // show a `cursor: move` affordance when draggable and not when not.
+  // WHERE the panel is. One hook for both kinds: a key means the rect is
+  // remembered between opens, no key means it resets on every mount, and the
+  // family is what decides which (`useDraggablePanel`).
+  //
+  // `fitContent` is forwarded to a persisted panel too. A stored height only
+  // fights the fit when the user CHOSE it — i.e. only when the panel is
+  // resizable — and every panel that persists AND resizes is a companion, none
+  // of which asks to fit.
+  const { rect, setRect } = useDraggablePanel({
+    persistKey: claims.remembersRect ? persistKey : undefined,
+    defaultRect: resolveDefaultRect(defaultPosition, defaultSize),
+    minWidth,
+    minHeight,
+    recenterOnResize,
+  })
 
   return (
     <>
       {claims.scrim && (
         <div
           className={claims.scrim === 'dark' ? styles.scrimDark : styles.scrimLight}
+          // One tier below the panel it dims, so it covers the page and nothing
+          // else.
           style={{ zIndex: `calc(${tier} - 1)` }}
           aria-hidden="true"
-          // No onClick — backdrop click is intentionally a no-op
-          // (see Props.backdrop docstring). preventDefault on mousedown so the
-          // click doesn't BLUR the panel's focused control to <body>: otherwise
-          // a modal (e.g. an End/suspend confirm) leaks subsequent keystrokes to
-          // whatever window listener sits behind it (the crossword grid).
-          // Non-backdrop panels (the scratchpad) are unaffected.
+          // No onClick: clicking the scrim is deliberately a no-op. The
+          // preventDefault stops the click BLURRING the panel's focused control
+          // to <body>, which would leak later keystrokes to whatever window
+          // listener sits behind it (the crossword grid, under a confirm).
           onMouseDown={(e) => e.preventDefault()}
         />
       )}
-      <FloatingPanelBody
-        recenterOnResize={recenterOnResize}
+      <PanelRnd
         panelId={panelId}
-        // A card stays a card on a phone unless it says otherwise; a window is
-        // always the sheet.
         shape={claims.shape}
-        phoneSheet={claims.shape === 'window' || phone === 'sheet'}
         title={title}
         onClose={onClose}
-        defaultPosition={defaultPosition}
-        defaultSize={defaultSize}
+        rect={rect}
+        setRect={setRect}
         draggable={effectiveDraggable}
         resizable={effectiveResizable}
         minWidth={minWidth}
         minHeight={minHeight}
-        persistKey={claims.remembersRect ? persistKey : undefined}
         zIndex={tier}
         fitContent={fitContent}
         density={resolvedDensity}
         reserveKeyboard={reserveKeyboard}
       >
         {children}
-      </FloatingPanelBody>
+      </PanelRnd>
     </>
   )
 }
 
-// Inner component split out so the persistence hook can branch
-// on `persistKey` without conditionally calling hooks at the
-// outer call site (rules-of-hooks).
-function FloatingPanelBody({
-  recenterOnResize,
-  panelId,
-  shape,
-  phoneSheet,
-  title,
-  onClose,
-  defaultPosition,
-  defaultSize,
-  draggable,
-  resizable,
-  minWidth,
-  minHeight,
-  persistKey,
-  zIndex,
-  fitContent,
-  density,
-  reserveKeyboard,
-  children,
-}: {
-  recenterOnResize: boolean
-  panelId: string
-  shape: 'window' | 'card'
-  phoneSheet: boolean
-  title: string | undefined
-  onClose: () => void
-  defaultPosition: { x: number; y: number } | 'center'
-  defaultSize: { width: number; height: number }
-  draggable: boolean
-  resizable: boolean
-  minWidth: number
-  minHeight: number
-  persistKey: string | undefined
-  zIndex: string
-  fitContent: boolean
-  density: PanelDensity | undefined
-  reserveKeyboard: boolean
-  children: ReactNode
-}) {
-  if (persistKey) {
-    // `fitContent` IS forwarded here, and the old comment said it could not be:
-    // "a persisted panel restores a saved height, which would fight the fit".
-    // That is true only when the user CHOSE the height — i.e. only when the
-    // panel is resizable. Measured 2026-08-25: every panel that persists AND
-    // resizes is a companion, and none of them asks to fit; the three that
-    // persist and DON'T resize are the word dialogs, where the stored height was
-    // never anyone's choice and the fit simply wins.
-    return (
-      <PersistedPanel
-        recenterOnResize={recenterOnResize}
-        panelId={panelId}
-        shape={shape}
-        phoneSheet={phoneSheet}
-        title={title}
-        onClose={onClose}
-        defaultPosition={defaultPosition}
-        defaultSize={defaultSize}
-        draggable={draggable}
-        resizable={resizable}
-        minWidth={minWidth}
-        minHeight={minHeight}
-        persistKey={persistKey}
-        zIndex={zIndex}
-        fitContent={fitContent}
-        density={density}
-        reserveKeyboard={reserveKeyboard}
-      >
-        {children}
-      </PersistedPanel>
-    )
-  }
-  return (
-    <EphemeralPanel
-      recenterOnResize={recenterOnResize}
-      panelId={panelId}
-      shape={shape}
-      phoneSheet={phoneSheet}
-      title={title}
-      onClose={onClose}
-      defaultPosition={defaultPosition}
-      defaultSize={defaultSize}
-      draggable={draggable}
-      resizable={resizable}
-      minWidth={minWidth}
-      minHeight={minHeight}
-      zIndex={zIndex}
-      fitContent={fitContent}
-      density={density}
-      reserveKeyboard={reserveKeyboard}
-    >
-      {children}
-    </EphemeralPanel>
-  )
-}
-
-// Variant with persistence — uses the shared useDraggablePanel
-// hook to restore + save the rect.
-function PersistedPanel({
-  recenterOnResize,
-  panelId,
-  shape,
-  phoneSheet,
-  fitContent,
-  density,
-  title,
-  onClose,
-  defaultPosition,
-  defaultSize,
-  draggable,
-  resizable,
-  minWidth,
-  minHeight,
-  persistKey,
-  zIndex,
-  reserveKeyboard,
-  children,
-}: {
-  recenterOnResize: boolean
-  panelId: string
-  shape: 'window' | 'card'
-  phoneSheet: boolean
-  title: string | undefined
-  onClose: () => void
-  defaultPosition: { x: number; y: number } | 'center'
-  defaultSize: { width: number; height: number }
-  draggable: boolean
-  resizable: boolean
-  minWidth: number
-  minHeight: number
-  persistKey: string
-  zIndex: string
-  fitContent: boolean
-  density: PanelDensity | undefined
-  reserveKeyboard: boolean
-  children: ReactNode
-}) {
-  const seed = resolveDefaultRect(defaultPosition, defaultSize)
-  const { rect, setRect } = useDraggablePanel({
-    persistKey,
-    defaultRect: seed,
-    minWidth,
-    minHeight,
-    recenterOnResize,
-  })
-  return (
-    <PanelRnd
-      panelId={panelId}
-      shape={shape}
-      phoneSheet={phoneSheet}
-      title={title}
-      onClose={onClose}
-      rect={rect}
-      setRect={setRect}
-      draggable={draggable}
-      resizable={resizable}
-      fitContent={fitContent}
-      density={density}
-      minWidth={minWidth}
-      minHeight={minHeight}
-      zIndex={zIndex}
-      reserveKeyboard={reserveKeyboard}
-    >
-      {children}
-    </PanelRnd>
-  )
-}
-
-// Variant without persistence — rect lives in component state,
-// reset on every mount. Used by modals where "remember position
-// across opens" would be surprising.
-function EphemeralPanel({
-  recenterOnResize,
-  panelId,
-  shape,
-  phoneSheet,
-  title,
-  onClose,
-  defaultPosition,
-  defaultSize,
-  draggable,
-  resizable,
-  minWidth,
-  minHeight,
-  zIndex,
-  fitContent,
-  density,
-  reserveKeyboard,
-  children,
-}: {
-  recenterOnResize: boolean
-  panelId: string
-  shape: 'window' | 'card'
-  phoneSheet: boolean
-  title: string | undefined
-  onClose: () => void
-  defaultPosition: { x: number; y: number } | 'center'
-  defaultSize: { width: number; height: number }
-  draggable: boolean
-  resizable: boolean
-  minWidth: number
-  minHeight: number
-  zIndex: string
-  fitContent: boolean
-  density: PanelDensity | undefined
-  reserveKeyboard: boolean
-  children: ReactNode
-}) {
-  // Lazy initializer computes the seed rect once on mount —
-  // resolves the centered/explicit default against the current
-  // viewport, then HARD-clamps so the panel appears fully
-  // inside. Subsequent drag/resize stops use the SOFT clamp
-  // (let the user park the panel partly off-screen for
-  // juggling).
-  const [rect, setRectState] = useState<PanelRect>(() =>
-    clampToViewport(
-      resolveDefaultRect(defaultPosition, defaultSize),
-      minWidth,
-      minHeight,
-      VIEWPORT_EDGE_MARGIN,
-      'hard',
-    ),
-  )
-  const setRect = (next: PanelRect) =>
-    setRectState(clampToViewport(next, minWidth, minHeight, VIEWPORT_EDGE_MARGIN, 'soft'))
-  // Stay reachable when the viewport changes under it. This panel remembers
-  // nothing, so there is nothing to write — but "it clamped once on mount" is
-  // not the same as "it is on screen", and a modal dragged toward an edge before
-  // the window shrank used to be unrecoverable (F26).
-  useReclampOnResize(
-    rect,
-    minWidth,
-    minHeight,
-    VIEWPORT_EDGE_MARGIN,
-    recenterOnResize,
-    setRectState,
-  )
-  return (
-    <PanelRnd
-      panelId={panelId}
-      shape={shape}
-      phoneSheet={phoneSheet}
-      title={title}
-      onClose={onClose}
-      rect={rect}
-      setRect={setRect}
-      draggable={draggable}
-      resizable={resizable}
-      minWidth={minWidth}
-      minHeight={minHeight}
-      zIndex={zIndex}
-      fitContent={fitContent}
-      density={density}
-      reserveKeyboard={reserveKeyboard}
-    >
-      {children}
-    </PanelRnd>
-  )
-}
-
-// The actual react-rnd render. Shared between the persisted and
-// ephemeral variants — react-rnd is opinionated about controlled
-// state, so the `rect` / `setRect` pair is the same shape in
-// both cases.
+/**
+ * Draws the panel: the react-rnd box, the titlebar, and the body its children
+ * sit in. Everything above decides WHAT a panel is; this is the only piece that
+ * puts one on screen.
+ *
+ * It takes `rect` and `setRect` rather than owning them, because react-rnd is
+ * controlled and because who supplies the rect is exactly what separates a
+ * panel that remembers its place from one that doesn't (`useDraggablePanel`).
+ *
+ * Two behaviors here are opt-in, and both are about a panel whose height isn't
+ * a fixed number: `fitContent` grows it to its content on open, and
+ * `reserveKeyboard` keeps a phone sheet above the on-screen keyboard.
+ */
 function PanelRnd({
   panelId,
   shape,
-  phoneSheet,
   title,
   onClose,
   rect,
@@ -682,7 +320,6 @@ function PanelRnd({
 }: {
   panelId: string
   shape: 'window' | 'card'
-  phoneSheet: boolean
   title: string | undefined
   onClose: () => void
   rect: PanelRect
@@ -715,25 +352,19 @@ function PanelRnd({
 
   // ── Content-fit (opt-in via `fitContent`) ──────────────────────────────
   // Grow the panel on open so its natural content is fully visible, capped to
-  // the viewport (past which the body scrolls). We measure the CONTENT wrapper
-  // (not the body, whose box is pinned to the panel height) so a lazily-loaded
-  // Suspense body swapping in re-triggers the fit. Latest rect/setRect ride in
-  // refs so the observer is installed once (no reconnect churn per fit).
+  // the viewport (past which the body scrolls). The measured element is the
+  // CONTENT wrapper, not the body, whose box is pinned to the panel height — so
+  // a lazily-loaded Suspense body swapping in re-triggers the fit.
   const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  // The panel IS a tab ring, for every family: Tab cycles what is inside the
-  // shell — the titlebar's ✕ and the body's own controls — and cannot reach the
-  // page behind it. A modal keeps the keyboard because its ring is innermost,
-  // which is the same claim its scrim makes about the pointer; a companion or a
-  // dialog keeps it because every focusable thing belongs to exactly one ring.
+  // Every panel is a tab ring: Tab cycles the ✕ and the body's own controls and
+  // cannot reach the page behind. Every family, not just the dimming ones.
   const shellRef = useRef<HTMLDivElement>(null)
   useTabRing({ within: shellRef })
-  // (No "has the user moved it?" flag: the fit anchors the panel's top wherever
-  // it currently is, so a dragged panel keeps its position for free.)
-  // Latest rect/setRect kept in refs so the observer below installs ONCE (its
-  // deps are just [fitContent]) yet always reads current values. Synced in a
-  // passive effect — never written during render (react-compiler forbids that).
+  // The latest rect and setter in refs, so the observer below installs ONCE
+  // (its deps are just [fitContent]) and still reads current values. Synced in
+  // a passive effect — never written during render (react-compiler forbids it).
   const rectRef = useRef(rect)
   const setRectRef = useRef(setRect)
   useEffect(() => {
@@ -758,8 +389,8 @@ function PanelRnd({
       // no matter the current height → converges in one step (grow OR shrink).
       const chromeAboveBody = r.height - body.clientHeight
       const desired = Math.ceil(chromeAboveBody + bodyPadV + content.offsetHeight)
-      // Capped to the viewport with the shared gutter top AND bottom — the
-      // literal here used to be 16, twice the clamp's 8, with nothing saying so.
+      // Capped to the viewport, keeping the same gutter the clamp keeps, top
+      // AND bottom — hence twice the margin.
       const target = Math.min(desired, window.innerHeight - VIEWPORT_EDGE_MARGIN * 2)
       if (Math.abs(target - r.height) <= 1) return // already fits (or capped) — don't loop
       setRectRef.current({
@@ -798,7 +429,7 @@ function PanelRnd({
       className={styles.clipLayer}
       // The phone sheet's geometry is CSS, keyed off this: a WINDOW fills the
       // viewport, a CARD stays a card at every size (see the module).
-      data-phone={phoneSheet ? 'sheet' : 'card'}
+      data-phone={shape === 'window' ? 'sheet' : 'card'}
       style={
         clampToKeyboard
           ? // Pin the layer to the visible region (above the keyboard). `top`
@@ -829,9 +460,6 @@ function PanelRnd({
         minHeight={minHeight}
         disableDragging={!draggable}
         enableResizing={resizable}
-        // Header carries the dragHandle class; clicking the body
-        // doesn't initiate a drag, and clicking the X reliably
-        // closes the panel.
         dragHandleClassName={draggable ? styles.dragHandle : undefined}
         onDragStop={(_e, d) => {
           setRect({ ...rect, x: d.x, y: d.y })
@@ -845,20 +473,19 @@ function PanelRnd({
           })
         }}
       >
-        {/* Inner shell with explicit width: 100%; height: 100% +
-            display: flex; flex-direction: column. The Rnd outer
-            element doesn't reliably propagate a definite height to
-            flex children — this 100%/100% wrapper does, which is
-            what lets the body's flex: 1 1 auto + min-height: 0
-            chain work for chat's scrollable region. Pattern
-            mirrors ../connections' ChatPanel.module.css. */}
-        {/* `data-floating-panel` marks this subtree as "a panel owns the keyboard
-            here": the action dispatcher and the page's tab ring bail
-            for events whose focus is inside it, so Enter activates a modal button
-            and Tab moves between its controls instead of being swallowed.
-            Its VALUE is the panel's id, which is how `usePanelEscape` maps focus
-            back to a registered panel; the selector is unaffected, since
-            `[data-floating-panel]` matches with or without a value. */}
+        {/* The 100%/100% flex-column wrapper the surface treatment rides on.
+            It exists because `Rnd`'s own element doesn't reliably give flex
+            children a definite height, and this one does — which is what makes
+            the body's `flex: 1 1 auto` + `min-height: 0` chain work for a
+            scrollable region like chat's.
+
+            `data-floating-panel` marks the subtree as "a panel owns the
+            keyboard here": the action dispatcher and the page's tab ring bail
+            for events focused inside it, so Enter activates a modal's button
+            and Tab moves between its controls rather than being swallowed. Its
+            VALUE is the panel's id, which is how `usePanelEscape` maps focus
+            back to a registered panel — the selector doesn't care, since
+            `[data-floating-panel]` matches with or without one. */}
         <div
           className={styles.shell}
           data-floating-panel={panelId}
@@ -867,10 +494,11 @@ function PanelRnd({
           data-shape={shape}
           ref={shellRef}
         >
-          {/* No titlebar for a CARD family. The header IS the drag handle, so a
-              panel that can never be dragged has no use for one — its title is a
-              heading the leaf renders in the body, and its ✕ would be a third
-              way out duplicating a button already on screen. */}
+          {/* No titlebar for a CARD family, which is what passing no `title`
+              means. The `.titlebar` / `.dragHandle` split is so the bar can
+              show a `cursor: move` only when there is something to drag;
+              react-rnd binds the drag to the second class, which nothing else
+              carries — so the body selects text and the ✕ closes. */}
           {title !== undefined && (
             <div
               className={`${styles.titlebar} ${draggable ? styles.dragHandle : ''}`}
@@ -905,20 +533,18 @@ function PanelRnd({
 }
 
 /**
- * The ONE key every help panel persists its rect under — the game guides and
- * the club's "About clubs" alike (Joel, 2026-08-24: *"help dialogs can share a
- * key; that's fine. They should remember the location."*).
+ * The ONE key every help panel persists its rect under — every game's guide and
+ * the club's "About clubs" alike. Pass it as `persistKey` from any of them.
  *
- * Shared rather than per-surface because help is one habit, not sixteen: park
- * it where you like reading it and every guide opens there. The cost is that
- * the remembered rect carries a SIZE too, so after the first drag a game's own
- * `defaultSize` stops applying — those seeds only ever fire on a fresh browser.
+ * Shared because help is one habit rather than one per game: park it where you
+ * like reading it and every guide opens there. The cost is that a remembered
+ * rect carries a SIZE too, so once you have dragged help anywhere, a game's own
+ * `defaultSize` stops applying — those seeds only fire on a fresh browser.
  */
 export const HELP_RECT_KEY = 'puzpuzpuz:help:rect'
 
-/** Translate the user's `defaultPosition` choice (centered, or
- *  explicit) plus `defaultSize` into a concrete rect. The center
- *  branch computes once on mount against the current viewport. */
+/** Turn a `defaultPosition` choice — centered, or explicit coordinates — plus a
+ *  `defaultSize` into the concrete rect a panel opens at. */
 function resolveDefaultRect(
   defaultPosition: { x: number; y: number } | 'center',
   defaultSize: { width: number; height: number },

@@ -12,10 +12,11 @@ export type PanelRect = {
 }
 
 type PanelOpts = {
-  /** localStorage key under which the rect is saved. Keys are
-   *  unique per panel kind (e.g. `puzpuzpuz:chat:rect`, `puzpuzpuz:
-   *  scratchpad:<gameId>`); the hook does NOT namespace for you. */
-  persistKey: string
+  /** localStorage key under which the rect is saved, or `undefined` for a
+   *  panel that remembers nothing. Keys are unique per panel kind (e.g.
+   *  `puzpuzpuz:chat:rect`, `puzpuzpuz:scratchpad:<gameId>`); the hook does
+   *  NOT namespace for you. */
+  persistKey: string | undefined
   /** Initial rect on the first mount when nothing is stored.
    *  Subsequent mounts read whatever was last saved. */
   defaultRect: PanelRect
@@ -30,16 +31,22 @@ type PanelOpts = {
 }
 
 /**
- * Persisted geometry + viewport clamping for a floating panel — the six
- * COMPANIONS, which remember both where you put them and how big you made them,
- * and the three DIALOGS, which remember only a position because they cannot be
- * resized (docs/ui.md → Floating panels).
+ * Where a floating panel IS — its rect, kept on screen, and remembered between
+ * opens if it asked to be. Every panel on the shell uses this; `persistKey` is
+ * the only thing that varies.
  *
- * State lives in React for fast re-renders during a drag/resize,
- * AND is mirrored to localStorage so closing + reopening (or
- * navigating across pages) restores the panel where it was.
- * `useState`'s lazy initializer reads localStorage exactly once on
- * mount; every change writes back synchronously.
+ * **With a key** the panel reopens where you left it: the lazy initializer
+ * reads localStorage once on mount, and every change writes back synchronously.
+ * That is what "opens where you left it" means for a companion (position and
+ * size) and for a word dialog (position only, since it cannot be resized).
+ *
+ * **Without one** the rect lives in React state and resets on every mount,
+ * which is what a modal wants — reopening a fresh question in the place you
+ * shoved the last one aside to is surprising. Nothing else changes: the same
+ * clamps, the same re-clamp on resize, the same state.
+ *
+ * Which a panel gets is its FAMILY's answer, not its own (`FAMILY` in
+ * FloatingPanel.tsx, and docs/ui.md → Floating panels).
  *
  * Viewport clamping: on mount and on every window resize, the
  * stored rect is clamped so the panel sits fully on-screen with
@@ -62,7 +69,7 @@ export function useDraggablePanel({
   recenterOnResize,
 }: PanelOpts) {
   const [rect, setRectState] = useState<PanelRect>(() => {
-    const stored = readRect(persistKey)
+    const stored = persistKey ? readRect(persistKey) : null
     const seed = stored ?? defaultRect
     return clampToViewport(seed, minWidth, minHeight, edgeMargin)
   })
@@ -90,17 +97,17 @@ export function useDraggablePanel({
         'soft',
       )
       setRectState(clamped)
-      writeRect(persistKey, clamped)
+      if (persistKey) writeRect(persistKey, clamped)
     },
     [persistKey, minWidth, minHeight, edgeMargin],
   )
 
-  // A shrunk window slides this panel inward, and writes the correction back.
-  // Recording it is not important either way (Joel, 2026-08-25) — the panel just
-  // has to stay reachable — so this keeps the write it already did.
+  // A shrunk window slides this panel inward, and a persisting one records the
+  // correction. Recording it is not important either way (Joel, 2026-08-25) —
+  // the panel just has to stay reachable.
   useReclampOnResize(rect, minWidth, minHeight, edgeMargin, recenterOnResize, (reclamped) => {
     setRectState(reclamped)
-    writeRect(persistKey, reclamped)
+    if (persistKey) writeRect(persistKey, reclamped)
   })
 
   return { rect, setRect }

@@ -1,3 +1,19 @@
 # floating-panels
 
 The shell every window-like thing floats on, and the panels that ride on it: the dialog, the blocking modals, the drag, the tab ring. `confirmationService.ts` and `<ConfirmationHost>` are what every action's question goes through — the asking code is not a component, so the host draws the pending question for it.
+
+## Design
+
+docs/ui.md → Floating panels states the rules: what the five families are, that immovability is the visible signal, what "dim" has to mean, who knows a panel's size. This is how the code answers them.
+
+The load-bearing choice is that a panel declares one word and the shell supplies everything that follows from it. `FAMILY` in `FloatingPanel.tsx` is that word's table — scrim, drag, Escape, remembered rect, shape, layer — and a caller cannot reach past it. When those were separate props, each was a chance for a panel to claim one thing and do another, and they took it: a modal that dimmed nothing, dialogs that forgot the rect they are defined by, dimmed forms Tab could walk out behind. The claims are now data, so the document and the code cannot disagree; what a family means is prose in ui.md, and what it does is this record.
+
+One shell rather than a `Modal` and a `FloatingPanel` beside it, because every one of these is a floating panel underneath and forking would put the split at "modal vs not" — a line the family word already draws, with more of the meaning on it. The three family-named components (`Companion`, `Dialog`, `NormalModal`) are thin on purpose: each names a family and forwards, so the name is what a reader sees at the call site without the shell growing a variant.
+
+Three questions stay props, because panels inside one family genuinely differ on them: who knows the size, under what key a rect is remembered, and the geometry seeds. Chat and Help are both companions and disagree about the first — the user knows how much chat history they want; Help's content knows how tall it is. A floor on that height is only meaningful on a panel you can drag, which is why `minHeight` defaults to nothing: a panel holding one line should be one line tall, and a floor there is the shell overruling content for nobody's benefit. Where a floor is wanted it comes from what the body needs — the titlebar, the composer and four messages — not from a number that looked about right.
+
+Depth is a single axis and its home is CSS. The code carries a family's layer NAME and `base.css` carries every value, so there is no ladder in TypeScript to drift from the tokens; `zIndex` is typed as a string for the same reason, and a guard fails a numeric literal passed to it. A panel overrides it when it can be summoned from inside something that outranks its family, which is the one case a family word cannot cover — chat has to stay reachable over every dim and can open itself, and the help guides are opened from things, the setup modal included, so at the companion rung the rules would appear behind the form you pressed "?" in. Chat is also the one panel that paints higher than it ranks — Escape should close the form you just opened, not the conversation you have kept open all game — and `escapeRank` exists for that one case.
+
+Escape itself is one listener for the whole app rather than one per panel, because a key meaning "dismiss this" needs a single answer: the registry knows what you are inside, and failing that, what is on top. A fault swallows it entirely, so nothing closes by accident mid-error. The registry is for the shell's families; a popover, a dropdown or a sheet has no rect and no titlebar, is not a floating panel, and keeps its own Escape.
+
+Tab is not a family's decision. Every panel is a ring, so focus cannot walk out behind any of them — which is what lets a modal's scrim claim the page is inert without the keyboard quietly disproving it.

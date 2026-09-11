@@ -150,11 +150,13 @@ pointer. Pairs with F-floating-panels-4: the cuts are the same cuts.
 
 ## F-floating-panels-7 · `todo-in-a-docstring` · Two options nobody passes, one with its deletion condition in the hover
 
-- `FloatingPanelProps.phone` — "Expected to have no callers, and that is
-  measured… If that converts cleanly, delete this prop." No caller. The
-  condition it waits on is scrabble's blank picker converting, which is
-  scrabble's area; the wait belongs in a `todo.md`, not a docstring. Delete
-  the prop now, or move the note.
+- `FloatingPanelProps.phone` — **DELETED**, its condition having been met:
+  scrabble's blank picker stopped being hand-rolled on 2026-09-10 and is a
+  `BlockingModal` now, so nothing anywhere forces a card into a phone sheet,
+  and that picker's letter grid is built to shrink into a card
+  (`repeat(7, minmax(0, 1fr))`, `min-width: 0` on the buttons). `phoneSheet`
+  went with it: with no override it only ever restated `shape === 'window'`,
+  which `PanelRnd` already knows.
 - `PanelOpts.edgeMargin` — "Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes
   one." A dead option with its own docstring saying so.
 
@@ -224,6 +226,42 @@ asked for, not taken.
 action on the board underneath". The scrim is the family's; the sentence
 should say the blocking family dims, or name the scrim.
 
+### Raised by Joel mid-area
+
+## F-floating-panels-13 · `panel-variant-components` · Three components between the shell and the render, for a branch that isn't one — WORKED
+
+Joel, 2026-09-11, asked whether `FloatingPanelBody` should collapse into
+`FloatingPanel` and whether ephemeral-vs-persisted deserved separate
+components. The chain was `FloatingPanel` → `FloatingPanelBody` →
+`PersistedPanel` / `EphemeralPanel` → `PanelRnd`.
+
+`FloatingPanelBody`'s comment said it existed so the persistence hook could
+branch "without conditionally calling hooks at the outer call site". That
+holds only if the two paths call DIFFERENT hooks, and they don't: both are
+`useState` → `useRef`+`useEffect` → `useReclampOnResize`, both render an
+identical `<PanelRnd>`, and the only difference is whether storage is read on
+mount and written on a move. So the branch was never a rules-of-hooks problem.
+
+Worked: `useDraggablePanel` takes `persistKey: string | undefined` and guards
+the read and the two writes; `FloatingPanel` calls it directly and renders
+`PanelRnd`. The three middle components are gone — 262 lines, most of them the
+same ~18-prop shape declared and forwarded four times over. The value driving
+the branch (`claims.remembersRect ? persistKey : undefined`) was already
+computed in `FloatingPanel`, one line above where it used to be passed down
+three levels to be tested.
+
+The hook had NO tests of its own — `useDraggablePanel.test.ts` covered only
+the pure `clampToViewport`. Nine added, paired keyed-against-keyless so the
+shared path is what's asserted; both halves verified by planting.
+
+## F-floating-panels-14 · `dead-ref-in-the-hook` · `useDraggablePanel` syncs a ref nothing reads
+
+`useDraggablePanel.ts` keeps a `rectRef` and an effect to sync it, with a
+comment saying the resize listener clamps against it. The listener lives in
+`useReclampOnResize` now and keeps its own ref for that reason, saying so.
+The hook's own ref is written every render and read nowhere. Found working
+F-floating-panels-13; not touched.
+
 ### Ruled already, recorded so the re-read does not re-raise them
 
 - **`escapeRank: 'family'`** exists for chat alone, and its docstring says so
@@ -256,9 +294,12 @@ should say the blocking family dims, or name the scrim.
 
 - F-floating-panels-8 (typeof-window-guards): `useDraggablePanel.test.ts`
   reads jsdom's window; unaffected.
-- F-floating-panels-7 (todo-in-a-docstring), if `phone` and `edgeMargin` go:
-  no caller, so no spec.
+- F-floating-panels-7 (todo-in-a-docstring): none — `phone` had no caller, so
+  no spec covered it. `edgeMargin`, still open, is the same.
 - F-floating-panels-1 through -6, -12: prose; nothing runs differently.
+- F-floating-panels-13 (panel-variant-components): none, and that was the
+  risk — the merged path had no spec at all. `useDraggablePanel.test.ts` now
+  covers it; the whole suite stayed green through the merge.
 
 ## Closing
 

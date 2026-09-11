@@ -1,7 +1,9 @@
 // cs-audited-floating-panels
 
-import { describe, expect, it } from 'vitest'
-import { clampToViewport } from './useDraggablePanel'
+import { act, cleanup, renderHook } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
+import { clampToViewport, useDraggablePanel, type PanelRect } from './useDraggablePanel'
 
 /**
  * `clampToViewport` is the pure geometry helper that keeps a
@@ -185,5 +187,115 @@ describe('clampToViewport (soft mode)', () => {
       'soft',
     )
     expect(out.y).toBe(VH - 60)
+  })
+})
+
+/**
+ * The hook itself, and the one thing that varies between a panel that
+ * remembers where you put it and one that doesn't: `persistKey`.
+ *
+ * Every panel on the shell runs this same code — the seed, the two clamps and
+ * the re-clamp on resize are shared — so the PAIRING below is the point. Each
+ * heading asks the same question of a keyed panel and a keyless one; a
+ * behavior that holds for one and not the other is the regression these catch.
+ *
+ * `window.localStorage` is undefined under vitest here, so the shared fake
+ * stands in (`web-storage/storage.fake.ts` says why). Without it every read
+ * returns null and the persisted half of each pair silently tests nothing.
+ */
+describe('useDraggablePanel', () => {
+  const KEY = 'puzpuzpuz:test:rect'
+  const DEFAULT: PanelRect = { x: 100, y: 100, width: 300, height: 200 }
+  const MOVED: PanelRect = { x: 300, y: 250, width: 400, height: 300 }
+  const opts = (persistKey: string | undefined) => ({
+    persistKey,
+    defaultRect: DEFAULT,
+    minWidth: 240,
+    minHeight: 0,
+    recenterOnResize: false,
+  })
+  let storage: InstalledStorage
+  const save = (rect: PanelRect) => storage.local.setItem(KEY, JSON.stringify(rect))
+  const stored = () => JSON.parse(storage.local.getItem(KEY) ?? 'null') as PanelRect | null
+
+  beforeAll(() => {
+    storage = installFakeStorage()
+  })
+
+  afterEach(() => {
+    storage.clear()
+    cleanup()
+  })
+
+  describe('the seed', () => {
+    it('is the default rect when nothing is stored', () => {
+      const { result } = renderHook(() => useDraggablePanel(opts(KEY)))
+      expect(result.current.rect).toEqual(DEFAULT)
+    })
+
+    it('is the STORED rect when there is one', () => {
+      const saved = { x: 50, y: 60, width: 320, height: 240 }
+      save(saved)
+      const { result } = renderHook(() => useDraggablePanel(opts(KEY)))
+      expect(result.current.rect).toEqual(saved)
+    })
+
+    it('is the default rect with NO key, even with a rect sitting in storage', () => {
+      save({ x: 50, y: 60, width: 320, height: 240 })
+      const { result } = renderHook(() => useDraggablePanel(opts(undefined)))
+      expect(result.current.rect).toEqual(DEFAULT)
+    })
+  })
+
+  describe('what a move records', () => {
+    it('writes the new rect when there is a key', () => {
+      const { result } = renderHook(() => useDraggablePanel(opts(KEY)))
+      act(() => result.current.setRect(MOVED))
+      expect(result.current.rect).toEqual(MOVED)
+      expect(stored()).toEqual(MOVED)
+    })
+
+    it('leaves storage alone when there is none', () => {
+      const untouched = { x: 1, y: 2, width: 333, height: 222 }
+      save(untouched)
+      const { result } = renderHook(() => useDraggablePanel(opts(undefined)))
+      act(() => result.current.setRect(MOVED))
+      expect(result.current.rect).toEqual(MOVED)
+      expect(stored()).toEqual(untouched)
+    })
+  })
+
+  describe('across a remount — the whole difference between the two', () => {
+    it('comes back where you left it with a key', () => {
+      const first = renderHook(() => useDraggablePanel(opts(KEY)))
+      act(() => first.result.current.setRect(MOVED))
+      first.unmount()
+      const { result } = renderHook(() => useDraggablePanel(opts(KEY)))
+      expect(result.current.rect).toEqual(MOVED)
+    })
+
+    it('comes back at its default without one', () => {
+      const first = renderHook(() => useDraggablePanel(opts(undefined)))
+      act(() => first.result.current.setRect(MOVED))
+      first.unmount()
+      const { result } = renderHook(() => useDraggablePanel(opts(undefined)))
+      expect(result.current.rect).toEqual(DEFAULT)
+    })
+  })
+
+  // The shared half: a move you make takes the SOFT clamp either way, so a
+  // panel can be parked half off-screen and still be grabbable. If these two
+  // ever disagree, the two kinds have stopped sharing a code path.
+  describe('a move is soft-clamped, with or without a key', () => {
+    for (const [name, key] of [
+      ['persisted', KEY],
+      ['ephemeral', undefined],
+    ] as const) {
+      it(`caps x so 60px stays visible — ${name}`, () => {
+        const { result } = renderHook(() => useDraggablePanel(opts(key)))
+        act(() => result.current.setRect({ x: 5000, y: 100, width: 400, height: 300 }))
+        expect(result.current.rect.x).toBe(VW - 60)
+      })
+    }
   })
 })
