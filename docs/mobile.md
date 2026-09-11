@@ -193,11 +193,11 @@ portrait.
    **The floor is a rule about AUTHORING, not a shared class**, and that's
    forced: `base.css` floors `input, textarea` at `max(16px, 1em)`, but any
    class that sets its own `font-size` out-ranks an element rule, so the
-   override has to sit beside the declaration that caused it. Five sites do it
-   today — `ChatBody`, `GameScratchpadCompanion`, `WordLookupDialog`, `AnagramDialog`,
-   and `FilterSelect`'s club-page trigger. **`max(16px, 1em)`, never a bare
-   `16px`**: the `1em` resolves to the inherited size, so it raises anything
-   under the floor and never shrinks a field that was already bigger.
+   override has to sit beside the declaration that caused it: every class that
+   shrinks a text field carries its own floor (`grep 'max(16px'` finds them).
+   **`max(16px, 1em)`, never a bare `16px`**: the `1em` resolves to the
+   inherited size, so it raises anything under the floor and never shrinks a
+   field that was already bigger.
 
    A `<button>` never triggers focus-zoom — only a focusable text field does. A
    touch rule on a button is tap-target sizing, a different thing that happens
@@ -269,9 +269,11 @@ belongs to the list below it; the full-width split is the tab bar's look, not
 its). Both filters are therefore in the tree twice, one instance hidden: no CSS
 relocates an element from inside a column to a sibling of the tab bar, and the
 controls are stateless, so the two instances can't disagree. The gametype
-`<select>` goes back up to full control size on touch — it's the only control
-in that row, and a sub-16px select would trigger the iOS focus-zoom trap
-(Decision #3 below), which theme.css's `input, textarea` floor doesn't cover.
+filter goes back up to full control size on touch — it's the only control in
+that row, so it reads as something you tap rather than as heading chrome. That
+is tap-target sizing and NOT the iOS focus-zoom floor: it is a `<button>` that
+declines focus, and only a focusable text field can trigger the zoom
+(Decision #3 below).
 
 ### Player strip — dots only on mobile
 
