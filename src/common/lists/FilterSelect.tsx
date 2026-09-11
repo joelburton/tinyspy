@@ -158,7 +158,9 @@ export function FilterSelect({
 }
 
 /** The little solid down-caret a native select draws — the "choices live
- *  here" mark. Inline SVG so it inherits `currentColor`. */
+ *  here" mark. NOT a registry icon: `icons.ts` names glyphs that stand for
+ *  something a reader has to learn, and this is the shape of the control
+ *  itself. Inline SVG so it inherits `currentColor`. */
 function Caret() {
   return (
     <svg className={styles.caret} width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">

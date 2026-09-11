@@ -467,6 +467,12 @@ down why a native-select-shaped triangle is the one glyph that lives with
 its component. `icons` is closed and blessed, so adding a name there is a
 two-line conformance edit, not a reopening.
 
+**CLOSED 2026-09-11 (Joel: "its fine; it's not an icon, keep it as is").** The
+glyph stays where it is. Taking the finding's other branch, the reason is now
+in `Caret`'s docstring so this is not re-raised: the registry names glyphs that
+stand for something a reader has to learn, and this is the shape of the
+control itself.
+
 ## F-lists-14 · `scroll-into-view-every-render` · The cursor row's ref is a fresh function per render
 
 `ref={showCursor && i === cursor ? (el) => el?.scrollIntoView(…) : undefined}`
