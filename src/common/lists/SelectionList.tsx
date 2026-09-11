@@ -215,7 +215,7 @@ export function SelectionList<T>({
       }}
     >
       {items.length === 0 ? (
-        <p className={cls('muted', styles.empty)}>{empty}</p>
+        <p className="emptyState">{empty}</p>
       ) : (
         items.map((item, i) => {
           const isDisabled = disabled?.(item) ?? false

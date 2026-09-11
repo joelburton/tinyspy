@@ -4,9 +4,10 @@ The folders it reads: `lists`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`;
-seventeen findings recorded, F-lists-1 (select-kind-unused) and F-lists-8
-(filter-select-density-inverted) worked.
+**Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`.
+Worked: F-lists-1 (select-kind-unused), F-lists-8
+(filter-select-density-inverted), F-lists-9 (empty-state-four-ways). F-lists-18
+(segmented-listed-as-a-pattern) was found while working the last of those.
 
 ## The roster
 
@@ -24,6 +25,12 @@ All in `src/common/lists/`:
 | `FilterSelect.test.tsx` | the one spec in the folder |
 | `doc.md` | lede only; Design owed |
 | `todo.md` | two Soon items, one Maybe |
+
+Written by this area, and so on the roster too:
+
+| file | what it is |
+|---|---|
+| `core-css/patterns/empty-state.css` | the shared `.emptyState` — F-lists-9 (empty-state-four-ways) |
 
 Left off, agreed at the opening: the e2e specs that drive these from a page
 (`club-filters`, `club-keyboard`, `home-keyboard`) and `vocabularies.test.ts`,
@@ -226,6 +233,35 @@ component rather than asked of every caller); the two readouts convert when
 `word-list` and `turn-log` open, and the item stays in their `todo.md`s.
 Decide here whether the inset is a pattern class or a token.
 
+**WORKED 2026-09-11 (Joel).** A pattern class, and all four converted now
+rather than two now and two per-area — `core-css/patterns/empty-state.css`,
+class `.emptyState`, loaded from `main.tsx`. It carries the inset
+(`--spacer-3`, my pick — between `SelectionList`'s 1rem and `TurnLog`'s
+0.6rem, and exactly `TurnLog`'s horizontal), `--page-text-muted-color`,
+`--font-size-1` (Joel's, over the `--font-size-2` first written) and
+**oblique**, which he kept and which was `WordList`'s alone. Not centered, so
+`WordList` loses its `text-align: center`.
+
+It goes in `patterns/` and not `utilities.css` because that file's own header
+draws the line: a class that names a THING goes to `patterns/`, one per file.
+
+**The class is self-sufficient and the two `muted` pairings are gone.**
+`utilities.css` loads after `patterns/`, so a leftover `muted` would have won
+the font-size at equal specificity and left two empty states a hair apart —
+which is also why the pattern owns the size rather than borrowing `.muted`'s
+off-scale `0.9rem`.
+
+`SelectionList.empty`, `WordList.empty` and `TurnLog.turnLogEmpty` are deleted;
+`SimpleScrollableList.emptyRow` survives as `height: auto` alone, exempting the
+message from `.scrollBox > *`'s fixed row height so its inset is not clipped.
+That also settles F-lists-12 (dead-declarations)'s `.emptyRow` line, which is
+now an active override rather than a duplicate.
+
+An earlier reading of this finding said `SelectionList` asked its CALLERS to
+apply `muted`. Wrong — the component applied it itself, as did `TurnLog`. The
+drift was in mechanism (two used the class, two hand-rolled the color, and so
+also differed in size), not in caller burden.
+
 ## F-lists-10 · `custom-property-spelling` · Two spellings of a scoped token in one folder
 
 `--simpleScrollableList-row-height` / `-rows` / `-pad` are camelCase-prefixed;
@@ -259,7 +295,8 @@ Per §5, silently where a value equals a step, surfaced where it does not:
   `-3` and `-2`.
 - `padding: 0.5rem 0.9rem` / `0.4rem 0.9rem` — parked (padding), and the
   module already writes the bespoke annotation by hand.
-- `.empty { padding: 1rem }` — F-lists-9 (empty-state-four-ways) decides it.
+- `.empty { padding: 1rem }` — gone with F-lists-9 (empty-state-four-ways);
+  the shared `.emptyState` uses `--spacer-3`.
 - `outline-offset: -2px` — docs/ui.md's ring table names `-2px` for "abuts";
   is that a token yet? `focus-ring.css` owns the answer.
 - `box-shadow: inset 0 0 0 2px` — gone with F-lists-1
@@ -277,6 +314,10 @@ bespoke-by-intent (the box owns the row height by design).
 `.scrollBox > *` rule that already sets it on every child. Delete the three
 lines. (Both `outline: none`s in `FilterSelect.module.css` are earned —
 the comment says why — and stay.)
+
+**The `.emptyRow` line went with F-lists-9 (empty-state-four-ways)**, and not
+by deletion: it is now `height: auto`, an exemption from `.scrollBox > *` so
+the shared inset is not clipped. `.row`'s two lines are still open.
 
 ## F-lists-13 · `caret-outside-the-registry` · `FilterSelect` draws its own glyph
 
@@ -326,6 +367,21 @@ docs/code-conventions.md → The z- layers says a host that isn't the page
 sets `--z-host`, "and exactly one does today: `.infoCol`". A census; it rots
 the day a form hosts a filter. Say the condition (a host that is not the
 page declares it) and let the reader grep.
+
+## F-lists-18 · `segmented-listed-as-a-pattern` · Two files call the segmented control a `patterns/` file
+
+docs/ui.md's `core-css/` map listed the patterns as "badge, focus-ring,
+heading, page, segmented", and `utilities.css`'s own header says a class
+naming a thing goes to "patterns/ for the badge, the segmented control, the
+heading row". There is no `patterns/segmented.css`: it is
+`common/buttons/Segmented.module.css`, a component module, which is the OTHER
+half of the same sentence's rule ("the component's own module when the thing
+has one").
+
+Found while placing `empty-state.css`, since that header is what decided where
+the new file went. The ui.md map is corrected here. The `utilities.css`
+sentence is left alone: `corecss` is PAUSED, and this is prose in a file Joel
+has said he can't review right now. It goes to that area.
 
 ### Ruled already, recorded so the re-read does not re-raise them
 

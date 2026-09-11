@@ -42,12 +42,13 @@
   height: var(--simpleScrollableList-row-height);
 }
 
-/* Nothing found. Inside the frame, because an empty list is still a list and a
-   message floating under an empty box reads as a failure instead. */
+/* Nothing found — the shared `.emptyState`
+   (core-css/patterns/empty-state.css) carries the look. All this adds is an
+   exemption from the rule above: the message is a SENTENCE, not a row, so
+   pinning it to the row height would clip its inset. The box then sizes to the
+   message, which is shorter than the cap and so never scrolls. */
 /* @@ */ .emptyRow {
-  height: var(--simpleScrollableList-row-height);
-  padding-inline: var(--spacer-5);
-  color: var(--page-text-muted-color);
+  height: auto;
 }
 
 /* The tally under the frame, right-aligned to its edge — a footnote to the

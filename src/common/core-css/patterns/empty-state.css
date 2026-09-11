@@ -1,0 +1,41 @@
+/* cs-audited-lists */
+
+/* ============================================================
+ * empty-state.css — the "there is nothing here" message.
+ *
+ * The sentence a framed list shows in place of its rows: "No games
+ * yet.", "No words.", "No puzzles match that filter.", and the busy
+ * moment before an answer arrives ("Loading puzzles…"). Nothing having
+ * landed yet, nothing matching a filter, and the fetch having failed
+ * are all the same shape on screen, so they are all this
+ * (docs/ui.md → Selection lists).
+ *
+ * It goes INSIDE the frame, always. The frame is the page's furniture
+ * and must not come and go with its contents, and a message floating
+ * under an empty box reads as a failure rather than as an answer.
+ *
+ * One pattern, one file (docs/code-conventions.md → Patterns).
+ * ============================================================ */
+
+/* SELF-SUFFICIENT: do not also pass `muted`. This says everything that class
+   says and then some, and `utilities.css` loads last — a stray `muted` would
+   quietly win the font-size and leave two empty states a hair apart.
+
+   OBLIQUE is the load-bearing part. Muted color alone reads as a quiet VALUE —
+   a real row that happens to be unimportant. The slant says this is the
+   list talking about itself rather than an entry in it, which is exactly the
+   distinction a reader needs before they go looking for rows that aren't
+   there.
+
+   NOT centered. It is a sentence in a box of left-aligned rows, and centering
+   makes it float free of the column those rows establish.
+
+   The inset is the pattern's other job: the message is the one thing in the
+   frame that is not a self-padding row, so it has to supply the space the
+   frame deliberately doesn't. */
+/* @@ */ .emptyState {
+  padding: var(--spacer-3);
+  color: var(--page-text-muted-color);
+  font-size: var(--font-size-1);
+  font-style: oblique;
+}

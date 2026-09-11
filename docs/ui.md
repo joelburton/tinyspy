@@ -583,8 +583,8 @@ common/
                      layers, the font
     utilities.css    the global classes that are ADJUSTMENTS and name nothing:
                      muted, error
-    patterns/        ONE NAMED PATTERN PER FILE — badge, focus-ring, heading,
-                     page, segmented
+    patterns/        ONE NAMED PATTERN PER FILE — badge, empty-state,
+                     focus-ring, heading, page
 <game>/
   theme.css          the game's --<game>-* brand tokens. Nothing else
 ```
@@ -1741,13 +1741,20 @@ different keyboard, not this one with a flag flipped.
   vocabulary here.
 
 **The frame is always drawn, and every no-rows state goes inside it** — the
-`empty` prop, paired with `muted`. Nothing having landed yet, nothing matching a
-filter, and the fetch having failed are all the same shape on screen: the list
-is there and it has nothing in it. Replacing the whole list with a sentence
-would make the page's furniture come and go with its contents, and it costs the
-answer a place to appear without moving anything. The message is the one thing
-in the frame that isn't a self-padding row, so it supplies the inset the frame
-deliberately doesn't.
+`empty` prop, rendered as the shared `.emptyState`
+([`patterns/empty-state.css`](../src/common/core-css/patterns/empty-state.css)).
+Nothing having landed yet, nothing matching a filter, and the fetch having
+failed are all the same shape on screen: the list is there and it has nothing in
+it. Replacing the whole list with a sentence would make the page's furniture
+come and go with its contents, and it costs the answer a place to appear without
+moving anything.
+
+`.emptyState` is muted, **oblique**, left-aligned and carries its own inset. The
+slant is what separates it from a quiet value: muted color alone reads as a real
+row that happens to be unimportant, where the slant says the list is talking
+about itself. It is self-sufficient — do not also pass `muted`, which loads
+later and would take the font-size back. Everything that draws one uses it:
+`SelectionList`, `SimpleScrollableList`, `WordList` and `TurnLog`.
 
 ### The keyboard
 

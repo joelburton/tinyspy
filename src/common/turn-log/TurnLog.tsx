@@ -101,7 +101,7 @@ export function TurnLog({
       )}
       <div ref={boxRef} className={cls(infoPanel.box, styles.turnLogBox)}>
         {empty ? (
-          <p className={cls('muted', styles.turnLogEmpty)}>{emptyText}</p>
+          <p className="emptyState">{emptyText}</p>
         ) : (
           <table className={styles.turnLogTable}>
             <tbody>{children}</tbody>

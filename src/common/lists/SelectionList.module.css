@@ -74,16 +74,11 @@
   border-color: var(--chrome-cursor-color);
 }
 
-/* The message shown when there is nothing in the list — "No games yet.", "No
-   puzzles match that filter.", and the busy moment before an answer arrives
-   ("Loading puzzles…"). It sits INSIDE the frame, so it is the one thing in
-   there that isn't a self-padding row and has to supply the inset the frame
-   deliberately doesn't. Not a row: no hairline, no hover, nothing to click.
-
-   Pair it with `muted` — the message is an absence, not a value. */
-/* @@ */ .empty {
-  padding: 1rem;
-}
+/* The "nothing here" message is the shared `.emptyState`
+   (core-css/patterns/empty-state.css), not a rule of this module's — it is the
+   same sentence in the same box wherever a framed list draws one. Nothing local
+   is layered on top: it is deliberately NOT a row, so it takes no hairline, no
+   hover and nothing to click. */
 
 /* ---------- The row ---------- */
 

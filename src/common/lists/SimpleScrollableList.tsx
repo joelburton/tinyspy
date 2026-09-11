@@ -45,7 +45,11 @@ export function SimpleScrollableList({ children, rows, empty, count, className }
         className={cls(styles.scrollBox, className)}
         style={{ ['--simpleScrollableList-rows' as string]: rows }}
       >
-        {isEmpty && empty !== undefined ? <li className={styles.emptyRow}>{empty}</li> : children}
+        {isEmpty && empty !== undefined ? (
+          <li className={cls(styles.emptyRow, 'emptyState')}>{empty}</li>
+        ) : (
+          children
+        )}
       </ul>
       {count !== undefined && <p className={styles.countLine}>{count}</p>}
     </>

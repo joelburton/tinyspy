@@ -211,7 +211,7 @@ export function WordList({
           {shown.length === 0 ? (
             // Names whichever axis emptied the list — "No words yet" is a lie when
             // you've picked Bonus and simply have none.
-            <li className={styles.empty}>{wordFilter.emptyText}</li>
+            <li className="emptyState">{wordFilter.emptyText}</li>
           ) : (
             shown.map((entry) => {
               // Unfound reveal entries — words nobody found, only ever

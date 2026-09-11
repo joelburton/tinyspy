@@ -125,18 +125,12 @@
   text-underline-offset: 3px;
 }
 
-/* When the list is empty the grid is dropped (.listEmpty) so the placeholder is a
- * normal full-width block that can center. */
+/* When the list is empty the grid is dropped so the message is a normal
+ * full-width block rather than a cell in a column of words. The message itself
+ * is the shared `.emptyState` (core-css/patterns/empty-state.css). */
 /* @@ */ .listEmpty {
   display: block;
   overflow: hidden;
-}
-
-/* @@ */ .empty {
-  font-style: oblique;
-  color: var(--page-text-muted-color);
-  text-align: center;
-  padding: 16px 8px;
 }
 
 /* Unfound required words (the post-terminal reveal — what the team / field

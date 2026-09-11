@@ -42,10 +42,6 @@
   overflow-y: auto;
 }
 
-/* @@ */ .turnLogEmpty {
-  padding: 0.6rem 0.75rem;
-}
-
 /* @@ */ .turnLogTable {
   width: 100%;
   border-collapse: collapse;

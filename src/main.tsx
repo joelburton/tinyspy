@@ -19,6 +19,7 @@ import { createRoot } from 'react-dom/client'
 import './common/core-css/fixed.css'                 // colors themes don't change
 import './common/core-css/base.css'                  // resets & non-color values
 import './common/core-css/patterns/badge.css'        // CSS patterns
+import './common/core-css/patterns/empty-state.css'
 import './common/core-css/patterns/focus-ring.css'
 import './common/core-css/patterns/heading.css'
 import './common/core-css/patterns/page.css'
