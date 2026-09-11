@@ -266,8 +266,9 @@ creation, so it's self-contained; `board_id` is provenance only.
 - **`end_game(target_game)`** — manual neutral stop → `ended`, **both modes**
   (the RPC doesn't branch on mode; any game player, idempotent on the
   `playing` check). The FE surfaces it in **coop only**: compete's action row
-  and menu offer Concede instead (`buildGameMenu` would add a compete End item
-  only behind the `offersEndForAll` opt-in, which stackdown doesn't pass).
+  and menu offer Concede instead (`useStandardGameActions` would offer ending
+  as Concede's second answer only behind the `offersEndForAll` opt-in, which
+  stackdown doesn't pass).
   So the `stackdown_compete | ended — manual end` labels row is server-reachable
   but has no FE button today — same posture as scrabble.
 - **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `submissions` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
@@ -393,9 +394,8 @@ arrow-history and string `value` have nothing to bind to. The two buttons ARE th
 shared ones, so the control reads as the same control it is elsewhere.
 
 - **Filling the fifth slot does not submit.** You commit deliberately — the
-  Submit button or `Enter`. It used to submit the moment the fifth tile landed,
-  which made a wrong fifth tile unrecoverable: the game committed under your
-  finger. Now the completed word waits, and Submit is enabled at exactly five
+  Submit button or `Enter` — so a wrong fifth tile is recoverable rather than
+  committed under your finger. The completed word waits, and Submit is enabled at exactly five
   tiles (a word is always five, so that's the entire gate).
 - **Three ways to take a tile back**, all of them kept: `⌫` or the ⌫ button
   removes the most recent, and clicking a filled slot returns that tile *and
@@ -494,7 +494,7 @@ pill.
   feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
   `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  via the semantic buttons, help, setup, the asked-for words reveal, and the GameTurnLog
+  as bound actions, help, setup, the asked-for words reveal, and the GameTurnLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
   + the history `viewingIndex`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
@@ -567,7 +567,7 @@ Vitest above.
 **entry** — the move row's affordance. That last one is e2e rather than unit
 because what it pins is spread across three places that only exist together in a
 document: the fifth tile no longer submitting (the click handler), the buttons'
-enabled-ness (derived state), and `Enter` (the global key handler). A unit test
+enabled-ness (derived state), and `Enter` (the bound submit action). A unit test
 could hold any one of them and still let the control feel wrong. It submits a
 deliberately INVALID word — the fixture board's solution letters are mostly
 buried at the start, and an invalid word exercises the whole commit path (round
@@ -593,8 +593,7 @@ overlap already says what's on top, so a shade would be decoration.
 **One column per board** ([pdf.md → body family 3](../pdf.md)): coop prints the
 single shared stack as "Team" with a log that names who played each word;
 **compete prints a board per player**, each with its own words and its own
-"n/6 cleared" line, three across a page. Compete used to print one board under a
-merged log — the viewer's stack beneath everybody's words — so a two-player race
+"n/6 cleared" line, three across a page — one board under a merged log would
 read as though one person had played alone. The per-player boards are only
 available at terminal, when RLS opens everyone's submissions; during play the
 viewer holds nobody else's, so only their own column prints (a column built from
@@ -603,9 +602,8 @@ cleared nothing" rather than "not visible yet").
 
 Which tiles print follows the screen exactly, and by construction rather than by
 hand: `lib/board.ts` exports `offBoardIds`, and the screen, the printout and each
-per-player track all call it. It used to be written twice, once per surface,
-agreeing only by hand — the same drift the [setup rows](../pdf.md#setup-rows)
-were extracted to stop. While playing, tiles spent on accepted words (and the
+per-player track all call it, so the surfaces cannot drift apart — the same
+reason the [setup rows](../pdf.md#setup-rows) are shared. While playing, tiles spent on accepted words (and the
 ones picked into the word being built) are hidden; **at terminal the board comes
 back only if it was cleared** — see the `Board` note above for why an uncleared
 board must stay as it ended.

@@ -126,7 +126,7 @@ arena** — it can't move or advance past the edge.
 
 **Getting a cursor.**
 - Click any cell (filled or empty) → a **horizontal** cursor appears there.
-- <kbd>Esc</kbd> or <kbd>Return</kbd> dismisses it; click again for a fresh one.
+- Click again for a fresh one.
 
 **Direction.** A cursor always has a direction — it starts horizontal — shown
 by its thick edges: horizontal = thick top/bottom, vertical = thick left/right.
@@ -154,16 +154,15 @@ hand, the typed letter leaves it.
 **on a tile**, that tile returns to the hand first. An empty cell just moves —
 Backspace never deletes the cell it lands on.
 
-**Keyboard focus + gating.** The board reads keys off a window listener, so two
-gates keep it from stealing keystrokes it shouldn't: (1) a **modifier bail** —
-`Cmd`/`Ctrl`/`Alt` combos pass straight through (so `Cmd-R` reloads instead of
-placing an "R"); only bare `a`–`z`, Backspace, the arrows, and Enter/Space (peel)
-are handled. (2) a **focus handoff** — the cells are non-focusable `<div>`s, so
-clicking the board (or a hand tile) explicitly **blurs a focused chat box**
-(`blurActiveField`), handing the keyboard back to the game; without it, chat kept
-focus after a board click and typed letters went to chat. (The window handler
-also declines outright whenever an editable field is focused — the standard
-`isEditableField` gate.)
+**Keyboard focus + gating.** The board's keys are bound actions, so the app's
+one dispatcher keeps them from stealing keystrokes they shouldn't: a modified
+chord never matches a pattern key (`Cmd-R` reloads instead of placing an "R");
+only bare `a`–`z`, Backspace, the arrows, and Enter/Space (peel) are bound; and a
+keystroke aimed at a focused field never reaches an action. What the game adds is
+a **focus handoff** — the cells are non-focusable `<div>`s, so clicking the board
+(or a hand tile) explicitly **blurs a focused chat box** (`blurActiveField`),
+handing the keyboard back to the game; without it, chat kept focus after a board
+click and typed letters went to chat.
 
 ## Scope
 
@@ -172,7 +171,7 @@ The game played today:
 - Each player is dealt a **starter hand** (size from setup, default 15) from a shuffled 144-tile bag; the leftover is the shared **bunch**.
 - Build your private crossword with drag + the keyboard cursor.
 - You see **peers' unplaced-tile counts only**, ticking toward zero — the race tension. You never see their boards.
-- **Peel** when your hand empties: everyone draws, or — if the bunch can't refill the table — you go out and win (**Bananas!**). **Dump** an awkward tile for three from the bunch. **⟲ Shuffle** your hand for a fresh look.
+- **Peel** when your hand empties: everyone draws, or — if the bunch can't refill the table — you go out and win (**Bananas!**). **Dump** an awkward tile for three from the bunch. **⟲ Shuffle** (`⌥Z`) your hand for a fresh look.
 - **A winning peel always requires one connected grid** — geography is structural, so even in trust-the-friends mode you can't win with scattered tiles. Requiring the **words** to be real is opt-in (setup: "Require real words to win", + a dictionary-obscurity band). Either failure flashes the offending tiles **red** until you fix them, and leaves the game in progress. Mid-play is never validated — only the peel that would end the game.
 
 The build landed in two arcs: **v1** stood up the architecture (private boards, snapshot persistence, peer signal, terminal) with a hand-empty win and no bank loop; **v2** added the bank loop (peel/dump) — which forced the `board`/`tiles` split and the derived hand — plus the shared shuffle control. Validation later landed too: a winning board is always connectivity-checked, with an opt-in dictionary check on top.
@@ -219,9 +218,9 @@ races are all against the game ENDING under you.
 
 | | | |
 |---|---|---|
-| `peel` → `dealt` · `won` · `illegal` | `ok` | three named results where the caller used to infer which from the payload. `illegal` is a verdict, not a refusal: `_win_blockers` ran and the board is the answer |
-| `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` used to be derived from a `placed` count at the call site |
-| `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops were SILENT before. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
+| `peel` → `dealt` · `won` · `illegal` | `ok` | three named results, so the caller never infers which from the payload. `illegal` is a verdict, not a refusal: `_win_blockers` ran and the board is the answer |
+| `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` is the server's answer, not a `placed` count read at the call site |
+| `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops are named, not silent. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
 | `dump` → `dumped`, `create_game` → `created`, `end_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
 | `PN339` · `PN344` "Game over" | `race` | peel and dump, against a game a peer just ended |
 | `PN340` · `PN345` "Already conceded" | `race` | your own concede landing first |
@@ -260,7 +259,7 @@ collide at ~1-in-16M, which a club of friends will never reach.
   shows only your own grid.
 - **`bananagrams/useGame`**: `useGame(gameId, userId)` reads the caller's own `player_boards` row — `board` once (for seeding; the FE owns it after) and `tiles` LIVE via a Pattern-A subscription to its own row (so a peel/dump's `tiles` change folds into the derived hand). `useProgress` subscribes to `bananagrams.progress` for peers' counts. A peer's board never crosses the wire; only your own row reaches you.
 - **`PlayerBoard` decomposition (the roster's inverted case).** Every other game splits its `PlayArea` into `BoardCol` + `InfoCol` (each column owns its own input). bananagrams **can't** — its input engine spans BOTH columns: the hand tiles (info column) are drag SOURCES that drop onto the board (board column), the dump zone (info column) is a drop TARGET during a board drag, the derived hand (`deriveHand(tiles, board)`) is a function of BOARD state, and the keyboard cursor types onto the board but checks the hand. So there's one cohesive cross-column engine. It's factored as **`usePlayerBoard` (hook, the engine)** + two thin presentational **VIEWS** — **`BoardArena`** (the board-column arena) and **`HandCard`** (the info-column hand card) — coordinated by a now-thin **`PlayerBoard`** (the two-column layout). This is the honest analog of "engine + views + thin coordinator" for a game whose columns share one engine; the views are deliberately NOT named `BoardCol`/`InfoCol` because they own no input. The DOM contract the drag gesture hit-tests (`data-cell`/`data-x`/`data-y`, `data-zone="hand"`/`"dump"`, `data-hand-tile`) lives in the views and is load-bearing. (Note the TWO-LEVEL coordinator: `PlayArea` is the OUTER coordinator — data / RPCs / feedback / verdict — above `PlayerBoard`, the columns' coordinator.)
-- **`PlayerBoard`** (owns the shared two-column shell): the fixed 25×25 arena FILLS the left board column (drag, keyboard cursor, a translucent floating **zoom** panel + **`act-zoom-fit`** — lucide `Fullscreen`, a plain square icon button) with a fixed-height **local feedback slot** below it. The board column does NOT compose the shared `.boardCol` (that hugs; bananagrams fills) — a documented deviation; it uses a self-sufficient per-game `.boardCol` (`flex: 1`) to avoid a hug-vs-fill override fight. The right/info column runs `PlayArea`'s `infoTop` (in the shared `.actionSlot`) → the **hand** → the bottom **action row**. The **hand** mirrors the shared WordList / TurnLog chrome: a plain black "Hand" heading OUTSIDE an evident 2px-framed box. Inside the box, the **dump zone** sits at the TOP of the tiles (you dump one of a few tiles often, so keep the target close), an info-blue (`--chrome-action-color`) dashed drop target (lucide `arrow-left-right` glyph + "Drag tile here to dump" at button-label size) that greens when a tile hovers it — drop from the hand *or* dragged off the board (a board-sourced dump clears its cell so `board` stays in lock-step with `tiles`); the ⟲ shuffle floats over the TILES' top-right corner (below the dump zone). The bottom **action row** is `shared.infoActions` (natural-width buttons, NOT stretched): while playing it's **[End] [Concede] [Peel]** side by side (`act-peel`, primary, enabled only when the derived hand is empty — it flushes the board first so the server's `placed == tiles` check is current; **Enter** and **Space** come with the action, so the key and the button are gray at the same moments rather than by two agreements); **[Check words]** sits between Concede and Peel — the always-available manual board check (below), icon-only like its neighbors so the row stays one line; at terminal it becomes the shared `<TerminalActionRow>` — outcome line + icon-only **New game** + back-to-club (no Peel; the locally-terminal row keeps Club alone — see [New game](#new-game--a-fresh-deal-restart--the-same-deal-again)). A **conceded** player's board is frozen: the pointer handlers bail via a ref, and the shared **`useBoardCursorKeys`** keyboard (bananagrams's + scrabble's common 2-D board-cursor entry, four bound actions — arrows move, a letter places from the hand, Backspace returns a tile, and the commit is this game's peel) is passed `enabled: !isConceded`, which grays all four. Every board mutation writes the board only — the hand re-derives.
+- **`PlayerBoard`** (owns the shared two-column shell): the fixed 25×25 arena FILLS the left board column (drag, keyboard cursor, a translucent floating **zoom** panel + **`act-zoom-fit`** — lucide `Fullscreen`, a plain square icon button) with a fixed-height **local feedback slot** below it. The board column does NOT compose the shared `.boardCol` (that hugs; bananagrams fills) — a documented deviation; it uses a self-sufficient per-game `.boardCol` (`flex: 1`) to avoid a hug-vs-fill override fight. The right/info column runs `PlayArea`'s `infoTop` (in the shared `.actionSlot`) → the **hand** → the bottom **action row**. The **hand** mirrors the shared WordList / TurnLog chrome: a plain black "Hand" heading OUTSIDE an evident 2px-framed box. Inside the box, the **dump zone** sits at the TOP of the tiles (you dump one of a few tiles often, so keep the target close), an info-blue (`--chrome-action-color`) dashed drop target (lucide `arrow-left-right` glyph + "Drag tile here to dump" at button-label size) that greens when a tile hovers it — drop from the hand *or* dragged off the board (a board-sourced dump clears its cell so `board` stays in lock-step with `tiles`); the ⟲ shuffle floats over the TILES' top-right corner (below the dump zone). The bottom **action row** is `shared.infoActions` (natural-width buttons, NOT stretched): while playing it's **[Concede / End game] [Check words] [Peel]** side by side (`act-peel`, primary, enabled only when the derived hand is empty — it flushes the board first so the server's `placed == tiles` check is current; **Enter** and **Space** come with the action, so the key and the button are gray at the same moments rather than by two agreements); **[Check words]** sits between Concede and Peel — the always-available manual board check (below), icon-only like its neighbors so the row stays one line; at terminal it becomes the shared `<TerminalActionRow>` — outcome line + icon-only **New game** + back-to-club (no Peel; the locally-terminal row keeps Club alone — see [New game](#new-game--a-fresh-deal-restart--the-same-deal-again)). A **conceded** player's board is frozen: the pointer handlers bail via a ref, and the shared **`useBoardCursorKeys`** keyboard (bananagrams's + scrabble's common 2-D board-cursor entry, four bound actions — arrows move, a letter places from the hand, Backspace returns a tile, and the commit is this game's peel) is passed `enabled: !isConceded`, which grays all four. Every board mutation writes the board only — the hand re-derives.
 - **`PlayArea`** (the v3 chrome + terminal + feedback): builds the info-column readouts `infoTop` and the bottom action row `infoActions`. **Info-column order is a DOCUMENTED EXCEPTION** to the canonical v3 order (state → opponent → actions → help → setup → log): because the hand + peel live in the info column (the other exception), the order is **state → opponents (`PeersStrip`) → help → setup → the hand card → the action row at the very bottom**. While playing, the action row is **Concede + Peel** side by side (icon-only; the exit comes from `useStandardGameActions` with `offersEndForAll`, so its question offers ending for everyone as its second answer rather than a second red button sitting beside it) — there is NO separate Dump button (the in-hand dump zone is the only dump affordance); **[Check words]** sits between Concede and Peel — the always-available manual board check (below), icon-only like its neighbors so the row stays one line; at terminal it becomes the shared `<TerminalActionRow>` (outcome line + icon-only New game + back-to-club); locally-terminal is the shared `<LocalTerminalRow>`, Club alone. The state line shows held tiles + the bunch count (the old bottom "N in bunch" is gone) plus **"N in the bag"** when the game isn't on a full bunch. The below-board **local feedback pill** carries own-move feedback (draw announcement / RPC error), the terminal fill verdict, and the locally-terminal `outOfRacePill` ("Conceded — race continues"). The **draw announcement** watches its own `tiles` length grow → a timed local pill ("🍌 Peel!" for a draw; a "Dumped 1, drew N" pill led by the lucide `arrow-left-right` glyph — matching the dump zone — when a `dumpPending` ref flags the caller's own dump; `FeedbackMsg.text` is a `ReactNode` so the pill can hold that inline icon). A player who has conceded but whose game is still live is **locally terminal**: `ctx.players[self].conceded && !isTerminal` (the flag now rides the common roster, not `progress`) → the terminal LOOK (frozen board, the shared `<LocalTerminalRow>` "You conceded", disabled Peel). The terminal verdict checks the two no-winner outcomes **first** — `status.outcome === 'timeout'` → "⏰ Time's up — no winner"; `=== 'conceded'` → "🏳️ Everyone conceded — no winner" — before the win/loss computation (neither carries a `winner_username`); the win/loss pair is "🍌 Bananas! You went out first" (winner) vs "\<name\> went out — Bananas!" (everyone else). The emoji + Bananas! flavor is deliberate; the trailing periods are not — verdicts are pill LABELS (terminalCopy.ts), so they carry none. The **winner** — and only the winner — additionally pops the shared `<CelebrationBlockingModal>` ("Bananas! 🍌" / "You went out first.") via `useCelebration(isTerminal && selfWon)`: `selfWon` reads only ctx (the games row + roster GamePage already awaited), so it's right on the first render and opening an already-won game reviews quietly ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). The `labelFor` (manifest) maps `play_state` → the club-list status line, in the app-wide grammar (see [game-status-labels.md](../game-status-labels.md)): `Playing · 12 tiles in the bunch`, `Won by alice`, `Lost (out of time) · nobody finished`, `Lost (all conceded)`, `Ended`.
 - **`PeersStrip`**: opponents' tiles-left counts sorted by closest-to-done (a **conceded** peer shows "out" and sinks to the bottom), rendered in the info column above the hand. Renders nothing in a solo game. Deliberately kept over the shared horizontal `OpponentStrip` — the vertical, race-ordered shape is a better fit for this game (and the narrow column).
 - **SetupForm**: `hand_size` (15 / 21, default 15) + `bunch_size` (number, 1–144, default 144 — fewer tiles = a shorter game) + **dump_to_bag** ("Return dumped tiles to the bag" checkbox, default off — on sends dumped tiles to the out-of-play bag reserve so the bunch depletes; a short-bunch dump can still draw from the bag) + **word_check** (a 3-way radio "Check words: Off / At win / Every peel", default Off — `off` never checks words, `win` checks every word on a winning peel only, `strict` checks on EVERY peel so you can't peel with an invalid word) **plus two always-shown shared `DictBandField` pickers** — **2-letter words** [2–6] and **longer words 3+** [1–6], since 2-letter words are a thin separate vocabulary, both default 4. The bands define what counts as a real word both for the word check (when on) and for a planned opt-in "check board" helper, so they show regardless of the mode; connectivity is always required so it's not a knob) + the shared `SetupTimerSection` (none / count-up / countdown MM:SS, default none). A countdown that runs out ends the race as a collective loss (`submit_timeout`). The bunch must hold a starter hand per player: the form shows the live "deals N" figure, and `bunchSizeError` (shared with the gate) feeds the manifest's `setupForm.validate` so the dialog **disables Start with a reason** until `bunch_size ≥ playerCount × hand_size`. Manifest compete-only; solo is N = 1.
@@ -312,26 +311,6 @@ The rest is a plain char array: the fixed 25×25 board stays a char array (a fut
   subquery — the line stays as belt-and-braces, but it isn't what's holding).
 - **Tiles have no ids:** board + hand are letter strings (tiles are interchangeable by letter).
 - **Touch input:** explicit **non-goal** — desktop-only, cursor-typing needs a keyboard.
-
-## Deferred
-
-- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer
-  peeling grows the caller's own `tiles` (everyone draws on a peel), so the
-  caller's draw-announcement watcher reads it as a draw and shows the peel pill
-  even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why
-  the pill?"). Cosmetic — the tile counts are always correct. Undecided whether to
-  reword the peer case (e.g. "🍌 &lt;name&gt; peeled — you drew N") or leave it.
-  Low priority.
-
-## Won't do
-
-Decided against, not queued — listed only so reviews don't re-propose them.
-The **Resolved decisions** above cover the design forks; these are the
-recurring suggestions.
-
-- **Touch input / a mobile layout.** Desktop-only by design — cursor-typing on
-  the 25×25 arena needs a keyboard. This is the documented v3 layout exception,
-  not an oversight; see [`mobile.md`](../mobile.md).
 - **`check_board(game)`** — the **Check words** button (2026-08-03): runs the
   same legality test a winning peel runs (one connected mass, every word real)
   against the CALLER's own board and returns `{ invalid_cells, placed }`, which
@@ -352,6 +331,26 @@ recurring suggestions.
   tile identity is only ever a multiset). Any player, mid-game or at terminal;
   mid-game the FE confirms. pgTAP: `replay_test.sql`, which also pins
   conservation (hands + bunch + bag = 144).
+
+## Deferred
+
+- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer
+  peeling grows the caller's own `tiles` (everyone draws on a peel), so the
+  caller's draw-announcement watcher reads it as a draw and shows the peel pill
+  even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why
+  the pill?"). Cosmetic — the tile counts are always correct. Undecided whether to
+  reword the peer case (e.g. "🍌 &lt;name&gt; peeled — you drew N") or leave it.
+  Low priority.
+
+## Won't do
+
+Decided against, not queued — listed only so reviews don't re-propose them.
+The **Resolved decisions** above cover the design forks; these are the
+recurring suggestions.
+
+- **Touch input / a mobile layout.** Desktop-only by design — cursor-typing on
+  the 25×25 arena needs a keyboard. This is the documented v3 layout exception,
+  not an oversight; see [`mobile.md`](../mobile.md).
 
 ## The board-feel prototype
 

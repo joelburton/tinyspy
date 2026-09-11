@@ -72,7 +72,7 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
     <div className={styles.controls}>
       <div className={styles.group} role="group" aria-label="Fill with pen or pencil">
         <span className={styles.label}>Fill:</span>
-        {/* Pencil = tentative. The glyph borrows the grid's pencilled-entry look
+        {/* Pencil = tentative. The glyph borrows the grid's penciled-entry look
             exactly (gray + italic, Grid.module.css `.pencil`), so the toggle
             previews what typing will produce. */}
         <button

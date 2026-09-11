@@ -269,13 +269,12 @@ describe('boggle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal Restart calls replay_board WITHOUT confirming', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     await user.click(screen.getByRole('button', { name: 'Restart' }))
-    // confirm returned false — the RPC firing anyway proves it was skipped.
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
-    expect(confirm).not.toHaveBeenCalled()
   })
 
   it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
@@ -411,7 +410,6 @@ describe('boggle PlayArea — concede', () => {
   // state). Coop keeps the neutral whole-table End. Mirrors spellingbee's block.
 
   it('compete shows Concede and calls boggle.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(

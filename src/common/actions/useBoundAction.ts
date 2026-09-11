@@ -77,8 +77,8 @@ export type LiveAction = {
   // supply this and the question with two ways to say yes is the one asked,
   // leave it out and the ordinary `confirm` is. So "does this game offer the
   // second act" is answered by whether there is a body for it, rather than by a
-  // flag that could disagree with one. Concede is the only user: a race that
-  // can also stop the whole table passes the end-for-everyone call here.
+  // flag that could disagree with one. Concede is where this applies: a race
+  // that can also stop the whole table passes the end-for-everyone call here.
   runAlternative?: () => void | Promise<void>
   // What the action looks like right now. Called at read time, so it may read
   // anything the component can see. A bare state is shorthand for `{ state }`.
@@ -199,18 +199,16 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // BACK during the same render, or later at keypress.
   //
   // It also keeps the bound action's IDENTITY still, which a game's menu effect
-  // lists in its deps. That used to be the difference between working and
-  // hanging — pushing a menu was a `setState` on the whole page, so a row
-  // rebuilt each render would set state, re-render, rebuild and loop. It is now
-  // only an optimization (`gameMenuStore`), and the cheap kind: without it every
-  // keystroke in a game would rebuild that game's twenty menu rows.
+  // lists in its deps. That is an optimization (`gameMenuStore`), and the cheap
+  // kind: without it every keystroke in a game would rebuild that game's menu
+  // rows.
   const liveRef = useRef(live)
   // eslint-disable-next-line react-hooks/refs -- read back in this same render
   liveRef.current = live
 
   // The run every surface shares: ask the action's question, then do the thing.
-  // Asking here rather than in the callback is what stops sixteen games from
-  // each remembering to ask — and stops one of them from forgetting.
+  // Asking here rather than in the callback is what stops every game from
+  // having to remember to ask — and stops one of them from forgetting.
   const ask = useCallback(
     async (key?: string) => {
       const asked = liveRef.current

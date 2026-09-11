@@ -6,10 +6,8 @@
  * The inventory is the spine (see `fieldNames`): these are the settings the
  * friends get, and losing one silently is the failure this catches.
  *
- * **The shortest list in the roster, and it used to be the longest file.** Four
- * puzzle sources were four tab bodies held in one component, all mounted at
- * once so the dialog never resized. They are one field now, and the whole
- * form is players, that field, and the timer.
+ * **The shortest list in the roster.** The four puzzle sources are one field,
+ * and the whole form is players, that field, and the timer.
  *
  * So the thing worth pinning here is a NEGATIVE: no `puzzle_id`, no `weekday`,
  * no `series`, no `custom_board`. Those are still setup keys — `create_game`

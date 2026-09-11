@@ -128,7 +128,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Concede state (from the common roster). A conceder can't submit and sees the
   // locally-terminal look while the others race; peers show as "out" in the strip.
-  // Declared up here (above the menu effect that grays the Concede item on it).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 

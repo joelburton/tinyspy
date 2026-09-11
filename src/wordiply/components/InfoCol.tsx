@@ -66,8 +66,8 @@ export function InfoCol({
   isCompete: boolean
   isTerminal: boolean
   /** Is the best possible word on screen right now? False at every terminal
-   *  until THIS viewer presses Reveal — wordiply used to show it the moment
-   *  the game ended (see the button). Also swaps that button's face. */
+   *  until THIS viewer presses Reveal (see the button). Also swaps that
+   *  button's face. */
   solutionShown: boolean
   /** Show the best possible word — or put it away again. A local display toggle
    *  shared with the menu twin; nothing is written, no peer affected, and it
@@ -181,17 +181,16 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / New game
-            / Club. CONCEDED (others race on): the terminal look + disabled
+        {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / Reveal /
+            New game / Club. CONCEDED (others race on): the terminal look + disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
           <TerminalActionRow over={over}>
             <ActionButton action={actRestart} show="icon" />
-            {/* The best possible word, hidden until asked for. wordiply used to
-                hand it over the moment the game ended; a score you can read
-                without being told the answer is a puzzle you can keep chewing
-                on, so it waits for this button now (and the same button takes
-                it back). */}
+            {/* The best possible word, hidden until asked for: a score you can
+                read without being told the answer is a puzzle you can keep
+                chewing on, so it waits for this button (and the same button
+                takes it back). */}
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />

@@ -33,8 +33,8 @@ first, then this for the deltas.
   earns a **+15** bonus on top of its length score. Every random board has at least
   one pangram (it's seeded from one).
 - Unlike spellingbee, **`s` is allowed** on the board and in words. spellingbee bars
-  `s` because, when letters may repeat freely, an `s` pluralises almost everything;
-  word wheel spends a tile per use, so `s` pluralises at most once per `s` tile (as
+  `s` because, when letters may repeat freely, an `s` pluralizes almost everything;
+  word wheel spends a tile per use, so `s` pluralizes at most once per `s` tile (as
   the classic wheel has it).
 
 ### The one algorithmic difference: bounded multiset, not set
@@ -515,7 +515,7 @@ border. See [docs/pdf.md](../pdf.md).
   leaving each game's shape rules local. Don't fold the whole file just because the
   skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
   the fork and this doc owns the pair's shared-vs-not ledger.)*
-- **`s`-heavy seeds**: an `s` tile lets each word pluralise once — the classic
+- **`s`-heavy seeds**: an `s` tile lets each word pluralize once — the classic
   wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`
   *center*, which makes every word an s-word) feel too plural-y in play, a
   seed-level filter (or center exclusion) is a one-line follow-up in the import /

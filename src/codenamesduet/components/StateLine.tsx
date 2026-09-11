@@ -14,10 +14,10 @@
  * read at a glance.
  *
  * **The turn counter reports turns SPENT, which is one less than the turn
- * you're on.** It used to print `turn_number` under a bare "turns" label —
- * "4/10 turns" while you were partway through the fourth — which reads as four
- * turns used when only three are gone. The two numbers on this line then
- * disagreed about what they counted: the agents are a tally of things DONE, so
+ * you're on.** Printing `turn_number` under a bare "turns" label — "4/10
+ * turns" while you are partway through the fourth — reads as four turns used
+ * when only three are gone, and the two numbers on this line would then
+ * disagree about what they count: the agents are a tally of things DONE, so
  * the turns beside them have to be as well. `turn_number` starts at 1, so
  * spent starts at 0 and the last thing shown before sudden death is
  * "9/10 turns spent" — correct, since the tenth is still being played.

@@ -3,9 +3,9 @@
 /**
  * Tests for the shared capture-key CORE — the universal pieces every key-capture
  * game relies on (so they can't drift): the letter append, Backspace, Enter, and
- * the disabled/busy gating. The hook reads keystrokes off the window via
- * useGlobalKeyHandler. The EntryBox-only history arrows are a separate layer —
- * see useArrowHistory.test.ts.
+ * the disabled/busy gating. The hook binds actions, and the keys reach them
+ * through the action dispatcher (mounted here). The EntryBox-only history
+ * arrows are a separate layer — see useArrowHistory.test.ts.
  */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

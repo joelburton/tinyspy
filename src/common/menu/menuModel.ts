@@ -14,7 +14,7 @@ import type { BoundAction } from '../actions/useBoundAction'
  * importing.
  *
  * Types only, plus `isSubmenu` and `menuRow`. The rendering lives in `Menu.tsx`
- * and the open/closed state in `pageMenuStore.ts`, both next door.
+ * and the opener `?` reaches in `pageMenuStore.ts`, both next door.
  *
  * **Why its own module.** None of these names a game: a menu is a shell
  * thing, and a surface that builds one should not have to import the manifest
@@ -189,7 +189,7 @@ export type MenuApi = {
   actChat: BoundAction | null
   // Replace the game's ENTIRE header menu. Every game owns its whole
   // menu — the shell injects nothing — so the game supplies all sections
-  // (dividers appear between them). Use the `buildGameMenu` helper (common/lib/game/
+  // (dividers appear between them). Use the `buildGameMenu` helper (common/menu/
   // gameMenu.ts) to get the standard Help + End/Concede + Back-to-club
   // framing. Pass `[]` to clear (on unmount). Identity is stable across
   // GamePage renders.

@@ -6,8 +6,8 @@ import type { KeyboardEvent } from 'react'
  * Tab inside a floating panel's text field hands the keyboard back to the GAME.
  *
  * **Why this needs code at all.** "Focus the board" isn't something you can do:
- * every game reads its keys off `window`, and the shared dispatcher
- * (`useGlobalKeyHandler`, and crosswords' own listener) deliberately declines
+ * every game reads its keys off `window`, and the action dispatcher
+ * (`common/actions/dispatcher.ts`) deliberately declines
  * while *any* text field is focused — otherwise typing "hello" into chat would
  * also spell it onto the board. So handing the keyboard back means having NO
  * field focused, and blurring is the whole move. It's the same one bananagrams
@@ -23,8 +23,8 @@ import type { KeyboardEvent } from 'react'
  *
  * Used by the two floating panels you type into while a game is running: the
  * club chat box (`ChatBody`) and the game scratchpad
- * (`GameScratchpadCompanion`). Coming back the other way is `useAppShortcuts`
- * — `/` focuses the chat entry from anywhere.
+ * (`GameScratchpadCompanion`). Coming back the other way is `act-open-chat`
+ * (bound in `AppActionsHost`) — `/` focuses the chat entry from anywhere.
  *
  * @example
  *   <textarea onKeyDown={handOffKeyboardOnTab} … />

@@ -43,10 +43,14 @@ different commands are live and both answer one keystroke, the dispatcher says
 so in the console (development only). Two actions may share a chord — End and
 Concede share `⌥⌫`, Shuffle and Rotate share `⌥Z` — on the understanding that a
 game offers one or the other; the warning is what notices when that stops being
-true, and it is how End and Concede were caught both live in bananagrams — now
-one action there, with both endings inside its question. Nothing static can
-catch this: whether two actions are on screen together depends on what is
-mounted and on what each one's `describe` says at that moment.
+true. Nothing static can catch this: whether two actions are on screen together
+depends on what is mounted and on what each one's `describe` says at that
+moment.
+
+**A held key fires only an action that declares `repeat`.** The entry keys do —
+letters, `⌫`, the arrows, Space, Tab, where repeating is the point — and the
+`⌥` command chords do not, so holding `+` cannot start games at the OS repeat
+rate.
 
 `Cmd` chords match nothing, ever. `⌥` and `Ctrl` are ordinary modifiers an
 action may ask for (`⌥` widely, `Ctrl` nowhere yet); a pattern key — "any
@@ -69,9 +73,9 @@ Two consequences worth knowing:
   only while the game actually owns the keyboard
   ([`useGameHasKeyboard`](../src/common/game-page/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
-- **Tab is not a navigation key on a board.** Fourteen of the sixteen games
-  swallow it (see the per-game table); crosswords uses it for clue navigation
-  and codenamesduet traps it inside the clue form.
+- **Tab is not a navigation key on a board.** Every game swallows it (see the
+  per-game table) except the two with somewhere for it to go: crosswords uses
+  it for clue navigation and codenamesduet traps it inside the clue form.
 
 ## Global — everywhere in the app
 
@@ -86,8 +90,9 @@ Bound at the app root by
 nothing is focused **and** while a *game* input is focused (codenamesduet's clue
 field, psychicnum's guess box — they opt in with `data-game-input`), so you can
 hit `/` to chat without clicking away first. They type literally in a non-game
-field (chat, a setup form, the scratchpad). `/` is not bound at all on a page
-with no chat panel: the home page.
+field (chat, a setup form, the scratchpad). `/` is bound everywhere but answers
+`hidden` on a page with no chat panel mounted — the home page — so the key does
+nothing there and the row is not drawn.
 
 | key | what it does |
 |---|---|
@@ -111,10 +116,10 @@ of games.
 | `<` | **Back to club.** Terminal → straight there; solo mid-game → suspends silently; multiplayer mid-game → the suspend-confirm modal. Mirrors the menu item. |
 | `+` | **New game** — the game's own action, so it carries that action's availability and its mid-game confirm wherever it is shown. |
 | `⌥+` | **New game from setup** — same fresh game, but stops at the setup dialog so you can change the options. Deliberately not a menu item; the power-user variant. Matched on the physical key (`Equal` + Option + Shift), since Option changes the character; `⌥=` is a different chord and is unbound. |
-| `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. In a race that can also stop the whole table, Concede's question carries both endings rather than a second key existing. Disabled at terminal / once conceded. |
+| `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. In a race that can also stop the whole table, Concede's question carries both endings rather than a second key existing. Disabled at terminal, and Concede once you have conceded — after which, in a race that offers the whole-table stop, End appears on its own. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
-| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Games with a viewer: codenamesduet, connections, letterboxed, psychicnum, scrabble, stackdown, strands, waffle, wordle. Clicking anywhere exits too. |
+| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Every game with a turn log has the viewer. Clicking anywhere exits too. |
 | `Tab` | **Swallowed** on most boards — a play surface is not a form, and native Tab walks focus out to the header and then into the browser's URL bar. Exceptions: crosswords (clue navigation) and codenamesduet (trapped inside the clue form). |
 
 ## Menus, dialogs, and panels
@@ -123,11 +128,13 @@ of games.
 |---|---|---|
 | Menu trigger | `↓` | Open the menu and step into it. (`Enter` / `Space` toggle it natively.) |
 | Open menu | `↑` `↓` | Move through enabled items (wraps at the ends). |
-| Open menu | `Esc` | Close. |
+| Open menu | `→` | Open the focused row's submenu. |
+| Open menu | `←` | Step back out of a submenu. |
+| Open menu | `Esc` | Unwind one level: out of a submenu first, then close the menu. |
 | Open menu | `Tab` | Close and let focus advance normally. |
 | Confirm dialog | `Enter` | Confirm — the confirm button auto-focuses. |
 | Confirm dialog | `Esc` | Cancel. |
-| Any floating panel | `Tab` / `⇧Tab` | Cycles focus **inside** the panel (focus trap). Chat and the scratchpad opt out of Esc-to-close. |
+| Any floating panel | `Tab` / `⇧Tab` | Cycles focus **inside** the panel (focus trap). `Esc` closes the panel focus is in, else the topmost open one; only the fault modal swallows it. |
 | Chat box | `Enter` | Send. |
 | Chat box / scratchpad | `Tab` | **Hands the keyboard back to the game** — blurs the field rather than walking focus onto the page chrome. `⇧Tab` is left alone so the panel's ✕ stays reachable. |
 

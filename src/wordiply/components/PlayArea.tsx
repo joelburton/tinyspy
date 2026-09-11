@@ -95,9 +95,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const infoSheet = useInfoSheet()
 
   // ─── The best possible word shows only when asked ──────
-  // wordiply used to hand it over the moment the game ended (it was one of the
-  // two games registered hides_solution = false). It doesn't now: the two
-  // readouts that matter — the length score and the letter count — say how well
+  // The two readouts that matter — the length score and the letter count — say how well
   // you did WITHOUT naming the word, so a table that wants to keep guessing at
   // it can. Local and reversible, so my looking doesn't end anyone else's think.
   const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
@@ -237,7 +235,6 @@ export function PlayArea(ctx: GamePageCtx) {
     run: toggleSolution,
   })
 
-  //
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so `setup` and `players` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.

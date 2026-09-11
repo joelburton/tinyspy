@@ -34,8 +34,7 @@ export function setupRows(
     },
   ]
   // The two bands are only meaningful when the board is checked at all, so they
-  // follow the control they qualify and vanish with it. Neither surface used to
-  // show them — the roster-wide test caught that, which is what it's for.
+  // follow the control they qualify and vanish with it.
   if (setup.word_check !== 'off') {
     rows.push(
       { key: 'dict_2', label: 'Dictionary (2-letter)', value: difficultyValue(setup.dict_2) },

@@ -2,7 +2,9 @@
 
 One run of an async action at a time: a second press while the first is still out
 is dropped, not queued. One hook, wrapped around the handler of anything whose
-second call would do real, unwanted work.
+second call would do real, unwanted work — above all the run of every bound
+action (`useBoundAction`), so a command's button, menu row and key share one
+wait.
 
 ## Design
 
@@ -28,24 +30,24 @@ slow network reads as "working" rather than "that did nothing". Ignoring
 something that happened.
 
 Reach for this where a second call does work the first one already did. A call
-every client is meant to fire (a timeout submission) is fine arriving twice, and
-an action that flips a state flag stops itself once the flag flips — End and
-Concede are guarded by the state they change. The cases that need the hook are
-the ones where nothing else is watching.
+every client is meant to fire (a timeout submission) is fine arriving twice.
+Every bound action goes through it regardless — End and Concede included, even
+though the state they flip would stop them anyway — because the gate is what
+lets a button behind an open question read gray rather than live.
 
 ## Details
 
 - **The sharp case, concretely.** `common.create_game` vacates the club's
   current-view pointer and inserts a new current game, so two calls really do
   produce two games — and a club that reaches that state stays there.
-- **A second shape uses it too**: a control that stays live across a round trip
-  and changes the board rather than leaving the page — waffle's swap, setgame's
-  hint — where the second press runs against state the first press is still
+- **A second shape uses it directly**: a control that stays live across a
+  round trip and changes the board rather than leaving the page — waffle's
+  swap — where the second press runs against state the first press is still
   changing.
 - **The gate closes on the click, not on the answer to a confirm.** Confirms
   here are an async styled modal, not a blocking `window.confirm`, so a second
   trigger can arrive while the question is on screen; closing first means one
   question rather than two stacked. Canceling clears the gate like any other
   path.
-- **Whether a MENU ROW grays while its action is out** is not settled here — see
-  `common/menu`.
+- **A MENU ROW grays while its action is out**: `menuRow` in
+  `common/menu/menuModel.ts` reads the binding's `pending`.

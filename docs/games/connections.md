@@ -67,7 +67,7 @@ In scope today:
 - Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the turn log's "whose guesses?" picker is how you compare lines afterwards — see [Turn log](#turn-log--whose-guesses)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
-- Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints button** in the info-column action row)
+- Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints** action — a button in the info-column action row and a menu row, one binding)
 - Pause-on-disconnect overlay via Presence
 - Common chat (the floating, draggable, resizable `<Chat>` panel)
 

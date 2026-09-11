@@ -229,7 +229,7 @@ reproduction and a four-step diagnosis.
 
 **Reach for e2e EARLY when triaging an integration bug — not only as a regression guard after the fix.** When a bug lives in the live-stack layer (realtime, or the auth/session boot that depends on a real JWT in localStorage + `onAuthStateChange` + a real `getUser()` round-trip), a throwaway e2e that drives the *real* flow tells you what's actually broken faster than reasoning about it or reproducing in Node — where you're guessing at supabase-js internals and error shapes. Concretely: the "stuck on the username gate" bug ate an afternoon of Node repro scripts that kept showing the code *should* work; a 30-second e2e (sign in → delete the user → reload) would have shown immediately that the deleted-user path recovers fine, redirecting to the real cause (a valid session on the gate with no escape hatch). The fixtures already exist, so the cost of standing one up is low and the signal is the real thing, not a mock. Mocked unit tests are complementary — they can pin error shapes the real backend won't produce — but they're where a *clean* mock can quietly hide the messy reality (see `useSession.test.ts`).
 
-**How it works.** No magic-link flow: `e2e/helpers/fixtures.ts` creates confirmed users + claims usernames + builds clubs/games through the admin API and the same RPCs the app uses, then `e2e/helpers/session.ts` seeds each user's Supabase session into `localStorage` (key `sb-127-auth-token`, the local-URL default) *before* the app boots, so it loads already signed in. Two `browser.newContext()`s = two independent users in one test.
+**How it works.** No magic-link flow: `e2e/helpers/fixtures.ts` creates confirmed users + claims usernames + builds clubs/games through the admin API and the same RPCs the app uses, then `e2e/helpers/session.ts` seeds each user's Supabase session into `localStorage` (key `sb-127-auth-token`, the local-URL default) *before* the app boots, so it loads already signed in. Two `browser.newContext()`s = two independent users in one test. `e2e/helpers/actions.ts` locates a command by WHICH command it is: `actionButton` / `actionRow` match `data-action="act-…"` while keeping the role, so a spec survives a game rewording its button.
 
 **Running it:**
 
@@ -248,8 +248,8 @@ writing an HTML contact sheet (`gallery/index.html`) you scroll. It lives beside
 the tests because it uses Playwright and the same fixtures — but it is **not a
 test**, and keeping it out of the suites is what keeps it cheap.
 
-**Why it exists.** Fifteen games × coop/compete × fresh/mid/won/lost/ended ×
-desktop/mobile/PDF is 480 states — more than anyone opens by hand, so cross-game
+**Why it exists.** Every game × coop/compete × fresh/mid/won/lost/ended ×
+desktop/mobile/PDF is hundreds of states — more than anyone opens by hand, so cross-game
 *drift* goes unnoticed: a heading styled differently here, a verdict phrased
 another way there, a mobile layout nobody has looked at since it shipped. The
 barrier was always setup: a compete game needs several real accounts, several

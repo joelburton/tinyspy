@@ -99,8 +99,7 @@ guess row). The two aggregate readouts — **length score %** and **letter count
 
 The **longest possible word** goes one step further: even at terminal it waits for the
 **Reveal best word** button (`act-reveal`, one bound action carrying both faces — the action row and the menu twin place the SAME one — see [ui.md → Terminal
-results](../ui.md#terminal-results--the-moment-vs-the-record)). wordiply used to hand it
-over the moment the game ended, which is the whole reason to change it: the score says how
+results](../ui.md#terminal-results--the-moment-vs-the-record)). The score says how
 well you did *without naming the answer*, so a table that wants to keep guessing at
 `_ _ _ _ _ _ _` can. The reveal is local and reversible — mine alone, and the same button
 takes it back — so one impatient player can't end everyone else's think.
@@ -235,9 +234,9 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
   - Because the FE validates locally, an *invalid* guess never reaches the server (it never
     consumes a line) — same retry-Wordiply-style behavior, now for free.
 
-  **What it answers** ([envelopes.md](../envelopes.md)). Two shapes used to share
-  `ok: false` and they split across the arms, because they differ in the one way
-  that matters — whether anything was recorded:
+  **What it answers** ([envelopes.md](../envelopes.md)). Two shapes split across
+  the arms, because they differ in the one way that matters — whether anything
+  was recorded:
 
   | | | |
   |---|---|---|
@@ -490,11 +489,13 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 - **`components/BoardCol.tsx` + the guess board**:
   - **On-screen keyboard, no text box.** wordiply plays on **touch alone** — input is the
     shared **`common/…/entry/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
-    extracted so wordle + wordiply share one; wordle themes its per-key tints via `--kbd-*`
-    CSS vars, wordiply uses neutral keys). A physical keyboard still works via `useCaptureKeys`
+    extracted so wordle + wordiply share one; wordle tints its keys from the shared
+    `--wordle-*` palette, wordiply uses neutral keys). A physical keyboard still works via `useCaptureKeys`
     feeding the same `word` state — and the Enter and ⌫ CAPS are the two bound actions that
     hook hands back, so a cap and its key can't disagree about whether the move is available — and
-    both go gray on an EMPTY entry, so Enter there does nothing rather than asking for letters. The keyboard sits **below** the grid and **doubles as the
+    both go gray on an EMPTY entry, so Enter there does nothing rather than asking for letters.
+    `↑` recalls the last word and `↓` clears the entry (`useArrowHistory`, the same two
+    actions the EntryBox games bind). The keyboard sits **below** the grid and **doubles as the
     feedback area**: a soft-reject line above the keys, and at terminal the keyboard is
     replaced by the verdict pill.
   - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD layout-stability rule; compact
@@ -573,9 +574,9 @@ a new turn, so re-submitting must not log twice, advance the turn, or re-report
 the original guard's reason — `duplicate` *is* the "you already tried that"
 answer, and it falls out of the existing `unique (game_id, user_id, word)`.
 
-**`seq` is the accepted-guess index (1–5), null on rejects.** It used to mean both
-"turn number" and "which of the five board rows"; those separate once rejects get
-rows, and letting them advance `seq` would put row 7 on a five-row board. The log
+**`seq` is the accepted-guess index (1–5), null on rejects.** It is not a turn
+number: rejects get rows too, and letting them advance `seq` would put row 7 on a
+five-row board. The log
 orders by `guessed_at`.
 
 **The log itself** is `GameTurnLog` in the info column, using the shared
@@ -680,12 +681,11 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 - `scoring.test` — `lengthScore`, `letterCount`, comparator ordering + every tie tier.
 - `DimmedBaseWord.test` — splits at the **first** base occurrence; dims exactly it; handles
   no-occurrence and a repeated base (`ana` in `banana` → only the first dimmed).
-- `PlayArea.test` — renders **5 rows always** (layout stability); the entry sits on the
-  active row; each completed row shows its **length badge**; a valid guess fires
-  `submit_guess` + shows the optimistic row; **all** rejects are local (missing base / too
-  short / duplicate / not in the shipped list) → pill with **no RPC**; **scores stay hidden
-  mid-game** (no `<LengthScoreBar>` / letter-count until terminal — only per-row lengths); the
-  terminal reveal renders the bar + letter count + longest word; no reflow play→terminal.
+- `PlayArea.test` — renders **5 rows always** (layout stability); each completed row shows
+  its **length badge**; **scores stay hidden mid-game** (no `<LengthScoreBar>` / letter-count
+  until terminal — only per-row lengths); the terminal reveal renders the bar + letter count,
+  and names the longest word only when asked; the compete terminal verdicts; the turn log
+  shows rejects with their reason and keeps them out of the guesses-used count.
 
 ---
 
@@ -701,11 +701,13 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   needs a physical keyboard).
 - **Feedback:** `useLocalFeedback` / `useGlobalFeedback` / `<GenericFeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,
-  `<TerminalActionRow>` / `<LocalTerminalRow>`, the button set
-  (End/Concede/Restart/NewGame/BackToClub). A `<LengthScoreBar>` is likely new (or a thin
+  `<TerminalActionRow>` / `<LocalTerminalRow>`, the standard actions (`act-end-game` /
+  `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each placed as an
+  `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").
 - **RPC helpers:** `makeRpcDispatcher`, `invokeStartGameEdgeFn`.
-- **Not applicable:** `useHistoryViewer` / `GameTurnLog` (no turn log), `WordList` (the
+- **Not applicable:** `useHistoryViewer` (there is a turn log but no history viewer — see
+  "A turn log, but no history viewer" above), `WordList` (the
   board rows are the words), PDF print (candidate but deferred — see below).
 
 ---

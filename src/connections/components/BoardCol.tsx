@@ -369,7 +369,7 @@ export function BoardCol({
   })
 
   // Clear drops the selection — and BROADCASTS, so a teammate's board drops it
-  // too. Its ⌫ comes with the action; connections had no key for it before.
+  // too. Its ⌫ comes with the action.
   const actClearSelection = useBoundAction('act-clear-selection', {
     describe: () => {
       if (!showInput || !isMyTurn || viewing) return 'hidden'

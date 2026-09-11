@@ -6,14 +6,14 @@ import { isEditableField } from '../keyboard/editableField'
 /**
  * True while the *game* owns the keyboard — i.e. no text field is focused.
  *
- * The capture-input games (psychicnum, and the word games on
- * `useGlobalKeyHandler`) read keystrokes off the window and show a simulated
+ * The capture-input games read keystrokes off the window (the entry actions
+ * `useCaptureKeys` binds) and show a simulated
  * caret in their entry box. That caret must be honest: it should blink only
  * when typing actually lands in the game. The moment the chat box (or a
  * dialog field) takes focus, keys go *there*, and a caret still blinking on
  * the board reads as two cursors. Gating the caret on this hook ties its
- * blink to the exact condition under which `useGlobalKeyHandler` dispatches —
- * **caret visible ⟺ keystrokes go to the game.**
+ * blink to the exact condition under which the action dispatcher fires an
+ * entry key — **caret visible ⟺ keystrokes go to the game.**
  *
  * Tracked by focus, not by "is chat open": chat can sit open beside the board
  * while you click back to type, and there the game owns the keyboard.

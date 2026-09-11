@@ -14,11 +14,11 @@ import type { ConfirmAnswer, ConfirmOptions } from './useConfirmation'
  * `useConfirmation` and render its own; the two draw the identical modal.
  *
  * One question at a time, app-wide. A second call while one is up supersedes it
- * and the first resolves false, the same rule `useConfirmation` follows — it
+ * and the first resolves `null`, the same rule `useConfirmation` follows — it
  * cannot happen from a modal-blocked UI, but it beats a dangling promise.
  *
  * `<ConfirmationHost>` in `App.tsx` is what draws the pending question. Without
- * it mounted nothing appears and every promise resolves false, which is the
+ * it mounted nothing appears and every promise resolves `null`, which is the
  * safe direction: an unanswerable question is not consent.
  */
 

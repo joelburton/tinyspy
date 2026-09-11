@@ -21,9 +21,8 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * command is a BOUND ACTION the PlayArea handed down (`actHint`, `actEndGame`, …),
  * so this column places buttons and decides nothing about them — an action that
  * does not apply here draws nothing, which is how one row serves coop and compete.
- * What is still a callback is what isn't a command: the history-viewer selection,
- * and the local secrets toggle. Prop names match the other games' columns for the
- * same idea (docs/playarea.md).
+ * What is a callback is what isn't a command: the history-viewer selection.
+ * Prop names match the other games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below), so
@@ -202,17 +201,17 @@ export function InfoCol({
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
-            {/* Leaving, last — and a button like the rest of them now. The
-                chevron draws a shade smaller than an object glyph, which the
-                button reads off `buttons/iconScale.ts` rather than being told. */}
+            {/* Leaving, last. The chevron draws a shade smaller than an object
+                glyph, which the button reads off `buttons/iconScale.ts` rather
+                than being told. */}
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </TerminalActionRow>
         ) : canGuess ? (
           <div className={shared.infoActions}>
             {/* Hint = a clue (common.words.hint); Spoiler = the answer word
-                itself. Both log to the turn log, cost nothing — and both are
-                warning-toned (amber) via the semantic button components; the
-                lightbulb-vs-bare-eye glyph is what separates them. The boxed-eye
+                itself. Both log to the turn log, cost nothing — and both wear
+                the registry's caution tone (amber); the lightbulb-vs-bare-eye
+                glyph is what separates them. The boxed-eye
                 Reveal is a different thing entirely (the whole solution,
                 terminal only) and never appears in this row. */}
             <ActionButton action={actHint} show="icon" />

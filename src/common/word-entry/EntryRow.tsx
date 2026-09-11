@@ -69,8 +69,9 @@ type Props = {
  * word game gets it for free). It bundles the three things that were being
  * duplicated:
  *
- *   1. the **capture keyboard** (`useCaptureKeys` — letters/Backspace/Enter, the
- *      ArrowUp-recall / ArrowDown-clear history, the modifier bail + Tab swallow);
+ *   1. the **capture keyboard** (`useCaptureKeys` — letters/Backspace/Enter and
+ *      the Tab swallow; `useArrowHistory` — the ArrowUp-recall / ArrowDown-clear
+ *      history);
  *   2. the **controls** — the shared `<MoveRow>` (⌫ | display | Submit) around a
  *      chrome-less `<EntryBox>`;
  *   3. the **pill swap** — when `pill` is set it replaces the controls with a

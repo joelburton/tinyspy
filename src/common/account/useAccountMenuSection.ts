@@ -10,25 +10,20 @@ import type { MenuSection } from '../menu/menuModel'
 
 /**
  * The **account submenu** — the user-focused items, as one collapsed row to
- * drop at the bottom of any page's menu.
+ * drop at the bottom of any page's menu. It binds `act-edit-profile`,
+ * `act-add-word` (editors only) and `act-log-out`.
  *
- * These used to be a separate `<UserMenu>` pinned to the top-right of the
- * viewport on every authenticated screen. It was pulled in because that fixed
- * chip forced `GamePage.module.css`'s header to carry `margin-right: 2rem` of
- * permanently reserved width for it to overlap — dead space at every viewport,
- * and space the mobile game header badly needs for feedback. Folding the items
- * into the menu that's already there reclaims all of it and removes a control
- * rather than adding one.
+ * Inside the page's menu rather than a control of its own: a fixed chip would
+ * cost the header permanently reserved width, which the mobile game header
+ * needs for feedback.
  *
- * **The row is your profile dot + your username**, not "Account" — the chip it
- * replaced was that dot, and both halves of "who am I signed in as" survive the
- * move rather than only the name.
+ * **The row is your profile dot + your username**, not "Account" — both halves
+ * of "who am I signed in as", so the menu is somewhere you see your own color.
  *
- * It stays a SUBMENU rather than a flat section even though it's two items
- * today: it's the same row in the same place on every page, and account items
- * are a different mental model from "things you can do to this game" — the
- * separation `docs/ui.md` records for the old UserMenu, kept by nesting instead
- * of by a second menu.
+ * It is a SUBMENU rather than a flat section: it's the same row in the same
+ * place on every page, and account items are a different mental model from
+ * "things you can do to this game" — a separation kept by nesting instead of
+ * by a second menu.
  *
  * @returns One `MenuSection` holding one submenu row. Spread it at the END of a
  *          page's `sections` array.
@@ -70,7 +65,7 @@ export function useAccountMenuSection(): MenuSection {
           // Before the profile store has resolved, "Account" is the honest
           // placeholder — better than a flash of empty label.
           label: username ?? 'Account',
-          // The dot the old fixed chip used to be — see MenuItemBase.dot. It is
+          // Your color, as the identity disc — see `MenuSubmenu.dot`. It is
           // why this row is a submenu and not an action: what it shows is WHO
           // you are, and an action says what you can do.
           dot: color,

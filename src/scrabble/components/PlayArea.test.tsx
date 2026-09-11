@@ -187,7 +187,7 @@ describe('scrabble PlayArea — render smoke', () => {
 
 describe('scrabble PlayArea — pass', () => {
   // Pass asks its own question, through the same modal every registry
-  // question uses — never `window.confirm`.
+  // question uses.
   it('asks first, and a cancel writes nothing', async () => {
     const user = userEvent.setup()
     h.result = loadedCompete()
@@ -281,8 +281,8 @@ describe('scrabble PlayArea — concede', () => {
   })
 
   // Pins scrabble's terminal-strip verbs — the ` · `-separated format (distinct from
-  // boggle/spellingbee's ` at `) that the shared `terminalOutcomeVerb` helper feeds. Guards the
-  // §4.7 extraction: the three outcomes must still read Won / Quit / Lost.
+  // boggle/spellingbee's ` at `) that the shared `terminalOutcomeVerb` helper feeds:
+  // the three outcomes must still read Won / Quit / Lost.
   it('stops claiming a turn once the game is over', () => {
     // The line's first clause IS the turn indicator in compete, so a finished
     // game went on saying "Your turn". It now names the state instead, keeping

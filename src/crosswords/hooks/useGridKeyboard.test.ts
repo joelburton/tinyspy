@@ -8,10 +8,10 @@
  * cursor.test.ts, so what's asserted here is the DISPATCH: real keydowns on a
  * real dispatcher, against spies for the state the hook is handed.
  *
- * The gates are NOT retested here. They stopped being this hook's work when its
- * keys became bound actions: a modified chord never matches a pattern key, a
- * keystroke aimed at chat never reaches an action, and a floating panel with
- * focus stops all of them. `chord.test.ts` and `dispatcher.test.tsx` own that.
+ * The gates are NOT retested here. They are the dispatcher's, not this hook's:
+ * a modified chord never matches a pattern key, a keystroke aimed at chat never
+ * reaches an action, and a floating panel with focus stops all of them.
+ * `chord.test.ts` and `dispatcher.test.tsx` own that.
  */
 
 import { act, renderHook } from '@testing-library/react'

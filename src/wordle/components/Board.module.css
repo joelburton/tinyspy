@@ -68,9 +68,8 @@
 
 /* Cap the board by the LEFTOVER HEIGHT — at every width, not just on a phone.
  *
- * wordle is the only game that stacks a board AND an on-screen keyboard in the
- * board column, so it's the only one where the board hugging its width can push
- * something else off-screen. The column is `100svh - chrome` tall and the
+ * wordle stacks a board AND an on-screen keyboard in the board column, so the
+ * board hugging its width can push something else off-screen. The column is `100svh - chrome` tall and the
  * keyboard + feedback slot eat a fixed ~14.65rem of it; converting what's left
  * into a width via the board's own cols/rows aspect ratio keeps the whole stack
  * on screen with square tiles. `max-width` composes with the shared

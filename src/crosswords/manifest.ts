@@ -19,7 +19,8 @@ import logoUrl from './logo.svg?url'
  * Start-game goes straight to `crosswords.create_game` (the library path,
  * like stackdown) — the puzzle already exists in the library. The
  * NYT-by-date path (the `crosswords-import-nyt` edge function) creates a
- * self-contained game inline instead; see `docs/games/crosswords.md` §6.
+ * self-contained game inline instead; see `docs/games/crosswords.md` → Server
+ * surface + parsers.
  */
 
 const helpLoader = lazy(() =>
@@ -58,11 +59,11 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // Upload: pass the parsed board inline (create_game's `board` arg). The
     // board + filename are stripped from the setup that create_game stores as
     // status / saved-default — UNCONDITIONALLY, not just for an upload. A parsed
-    // board used to be able to linger in `s` after a tab-switch; `PuzzleSourceField`
-    // clears every other source's keys when you choose one now, so this is the
+    // board could otherwise linger in `s` after a source change; `PuzzleSourceField`
+    // clears every other source's keys when you choose one, so this is the
     // second of three guards rather than the only real one. See
-    // docs/games/crosswords.md §5 and the server backstop in create_game
-    // (`setup - 'board' - 'filename'`).
+    // docs/games/crosswords.md → Puzzle sourcing and the server backstop in
+    // create_game (`setup - 'board' - 'filename'`).
     const board = s.source === 'upload' ? s.board : undefined
     const setupToStore: CrosswordsSetup = { ...s }
     delete setupToStore.board
@@ -88,11 +89,8 @@ const endGame = makeRpcDispatcher(db, 'end_game')
  * Start is blocked until a puzzle is chosen (library) / a weekday or date is
  * set (NYT) / a file is parsed (upload).
  *
- * **All four land on `source`**, which is the whole of what F50
- * (`puzzle-source-picks-in-a-dialog`) bought: they used to go to the form's
- * bottom line, because the four sources were tabs and no control carried a
- * `name` for the errors object to key on. Now there is one field, its button
- * row is always on screen whichever source you chose, and the message rings it.
+ * **All four land on `source`**: there is one field, its button row is always
+ * on screen whichever source you chose, and the message rings it.
  *
  * They ARE all one field's message, not four fields' — "you have not picked a
  * puzzle" is the same complaint however you were going to pick one.

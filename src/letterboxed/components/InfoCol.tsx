@@ -91,9 +91,9 @@ export function InfoCol({
   coveredByUser: Map<string, number>
   concededIds: Set<string>
   // ── Setup disclosure ──
-  /** What was picked at create time, recapped in the disclosure. */
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts), so
-   *  the two can't drift. Built in PlayArea, which holds mode + roster. */
+  /** What was picked at create time, recapped in the disclosure — the SAME
+   *  array the PDF prints (lib/setupSummary.ts), so the two can't drift. Built
+   *  in PlayArea, which holds mode + roster. */
   setupRows: SetupRow[]
   // ── Action row ──
   /** The two rungs of the help ladder. Both hide themselves in compete, where

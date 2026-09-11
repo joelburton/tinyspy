@@ -20,8 +20,8 @@ export type ArrowHistoryOptions = {
  * The **EntryBox history arrows** — the last-move affordance specific to the
  * single-word `<EntryBox>`: `ArrowUp` recalls your last entry, `ArrowDown` clears
  * the current one. Layered on top of the generic `useCaptureKeys` core by
- * `<EntryRow>`, so it applies to the EntryBox games (spellingbee / boggle /
- * psychicnum) and ONLY them — a key-capture game that isn't an EntryBox (wordle)
+ * `<EntryRow>`, so it applies to every game that renders an `<EntryRow>` and
+ * ONLY them — a key-capture game that isn't an EntryBox (wordle)
  * uses the core alone and never wires this, so it gets no arrow behavior. Keeping
  * it separate is what makes that boundary obvious (docs/ui.md → Text entry).
  *

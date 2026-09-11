@@ -138,7 +138,6 @@ beforeEach(() => {
 
 describe('stackdown PlayArea — concede', () => {
   it('compete shows Concede and calls stackdown.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
     render(

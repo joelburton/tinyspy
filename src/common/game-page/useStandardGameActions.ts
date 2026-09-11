@@ -22,7 +22,7 @@ type GameRpcClient = {
   // A METHOD taking a `string`, not `rpc: (fn: 'end_game' | …) => …`: each game's
   // client accepts only its own schema's names and those sets differ (duet, being
   // coop-only, has no `concede`). Method syntax is checked bivariantly, which is
-  // what lets them all fit — as a property, fifteen games stop compiling. The
+  // what lets them all fit — as a property, the games stop compiling. The
   // three names this file passes are pinned by its test.
   rpc(
     fn: string,

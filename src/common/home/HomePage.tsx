@@ -219,7 +219,7 @@ export function HomePage({ session }: Props) {
             rowKey={(c) => c.handle}
             label="Your clubs"
             // Arrows work on arrival, without a first Tab — which is just as
-            // well, since Tab does nothing on this page (useSwallowTab). An
+            // well, since Tab only cycles this page's ring (useTabRing). An
             // empty list never takes focus, so this stays inert until the clubs
             // land.
             autoFocus

@@ -320,8 +320,8 @@ export function BoardCol({
     // Hard-off when the player can't act (loading / terminal / out of guesses /
     // mid-submit) OR while viewing history — no dispatch AND no feedback dismissal (the
     // sticky verdict survives a stray key). Freezing capture while viewing lets a
-    // keystroke fall through to exitOnKey (return to live) instead of typing behind the
-    // banner. clearLocalFeedback is a no-op at terminal anyway.
+    // keystroke fall through to `act-exit-viewer` (return to live) instead of typing
+    // behind the banner. clearLocalFeedback is a no-op at terminal anyway.
     disabled: !canGuess || viewing,
     maxLength: 5, // a guess is one 5-letter word
   })

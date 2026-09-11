@@ -2,17 +2,16 @@
 
 /**
  * Tests for crosswords' `startGameInClub` — specifically the setup-leak
- * backstop (review finding 1.1).
+ * backstop.
  *
- * The bug: an uploaded `.puz`/`.ipuz` parses its whole solution grid into
- * `setup.board`. `startGameInClub` used to strip `board`/`filename` from the
- * persisted setup ONLY when the *final* source was `'upload'`. But the
- * SetupForm tab buttons spread the prior setup (`onChange({ ...s, source:
- * 'library' })`), so a parsed board survives a tab-switch — and a
- * library/NYT start would then persist the full solution into the unshielded
- * `common.games.setup` + the club's saved default, whence it self-perpetuates.
+ * The bug this pins: an uploaded `.puz`/`.ipuz` parses its whole solution grid
+ * into `setup.board`, and a parsed board can survive a switch to another
+ * source. If `startGameInClub` stripped `board`/`filename` from the persisted
+ * setup ONLY when the *final* source was `'upload'`, a library/NYT start would
+ * persist the full solution into the unshielded `common.games.setup` + the
+ * club's saved default, whence it self-perpetuates.
  *
- * The fix strips `board`/`filename` UNCONDITIONALLY (plus a server backstop in
+ * So it strips `board`/`filename` UNCONDITIONALLY (plus a server backstop in
  * create_game). These tests pin the FE half: whatever the source, the persisted
  * setup never carries the board, and a genuine upload still rides its board as
  * the separate top-level `board` arg.

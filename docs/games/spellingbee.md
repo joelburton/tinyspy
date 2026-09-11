@@ -78,7 +78,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **shipped** | Optional `setup.custom_center` + `setup.custom_letters` (a center + six other letters). Both empty → the random diverse builder; both set → the edge function builds a board from exactly those letters (no seed sampling, no overlap cap). Works in either mode. See [Custom letters](#custom-letters). |
-| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/definitions/DefinitionPopover` anchored to that row; the `~` key opens `common/components/definitions/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/input/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/common-define` edge function. |
+| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/definitions/DefinitionPopover` anchored to that row; the `~` key opens `common/components/definitions/WordLookupDialog` to define any word — and `~` is an **app-wide** action (`act-lookup-word`, bound in `src/common/actions/AppActionsHost.tsx`), not wired here. Both are backed by the `supabase/functions/common-define` edge function. |
 | **Sounds** | out of scope | spellingbee-ws doesn't have them either. |
 | **Mid-session "new board" affordance** | out of scope | PuzPuzPuz path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
 
@@ -373,7 +373,8 @@ src/spellingbee/
                           fixed order — RankBar + Stats (the "state" unit) lead, then — compete
                           only — the OpponentStrip (rank), then the action row (End / Concede),
                           then the Setup disclosure; the found-words WordList fills the rest.
-                          Every mutation is a named callback up; PlayArea owns the RPCs.
+                          Every command is a bound action PlayArea handed down; the column places
+                          `<ActionButton>`s and decides nothing about them.
                           Below --mobile the same RankBar + Stats pair is ALSO rendered above
                           the hive by BoardCol's shared <MobileStatusBar> (the info column is
                           off-canvas then) — same components, so the two can't drift; its
@@ -467,7 +468,7 @@ src/spellingbee/
                           two-table subscription on spellingbee.{games, found_words}. Reads
                           from games_state so the post-terminal wordlist reveal Just Works
                           on the next refetch.
-                          (Keyboard capture is the SHARED common/hooks/input/useCaptureKeys, called
+                          (Keyboard capture is the SHARED src/common/keyboard/useCaptureKeys.ts, called
                           from PlayArea — no longer a spellingbee-local hook.)
                           (useRecentlyFound is now SHARED: common/hooks/game/useRecentlyFound,
                           used inside the common WordList — no longer a spellingbee-local
@@ -527,7 +528,7 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 
 ### "End game" menu wiring
 
-spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/menu/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (`<`) framing. The End/Concede handlers are the same `useCallback`s that back the info-column buttons, dispatched through a stable `actionsRef` (so the menu-building effect keeps stable deps and never loops). Click → the confirm (End via the shared `END_GAME_CONFIRM` dialog; Concede still `window.confirm`, per `useStandardGameActions`) → `db.rpc('end_game' / 'concede', ...)`, disabled at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
+spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/menu/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (`<`) framing. End and Concede are the same bound actions that back the info-column buttons (`useStandardGameActions`). Click → the question the registry row carries (`END_GAME_CONFIRM` / `CONCEDE_CONFIRM`), asked by the shared run → `db.rpc('end_game' / 'concede', ...)`, disabled at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
 
 ### Terminal experience
 

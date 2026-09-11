@@ -405,7 +405,6 @@ describe('waffle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "Reveal answer" swaps in the solution for me alone — no RPC', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
@@ -419,7 +418,6 @@ describe('waffle PlayArea — icon-only action rows', () => {
     expect(screen.getByText('ABCDE')).toBeInTheDocument()
     expect(screen.getByText('QRSTU')).toBeInTheDocument()
     expect(commonRpc).not.toHaveBeenCalled()
-    expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -495,16 +493,13 @@ describe('waffle PlayArea — terminal flow', () => {
   })
 
   it('Restart at terminal calls replay_board WITHOUT confirming', async () => {
-    // Clear first: the concede tests above spied confirm too, and spy call
-    // history persists across tests in this file.
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     const user = userEvent.setup()
     h.result = loaded(solvedCoop)
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))
-    // confirm returned false — the RPC firing anyway proves it was skipped.
-    expect(confirm).not.toHaveBeenCalled()
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
   })
 

@@ -185,12 +185,12 @@ Shared in `common/game-page/PlayArea.module.css` — `.infoSetup` / `.infoState`
 `.terminalExtra`. A button in the row carries nothing of its own: it is an
 `<ActionButton>`, sized by its own icon and label. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
-"N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
-buttons (both moved off the GamePage menu into the action row). codenamesduet
+"N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hint** + **End**
+(bound actions, placed here and as menu rows). codenamesduet
 fills them with: setup = turn cap + first clue-giver; state = "{green}/15 agents ·
 turn {n}/{cap}"; help = the current phase instruction — and in **sudden death** a
-leading red **SUDDEN DEATH:** before the explanation; actions = **End** (also off
-the menu). codenamesduet's *move* controls are deliberately **not** here — the
+leading red **SUDDEN DEATH:** before the explanation; actions = **End** (the
+same bound action as its menu row). codenamesduet's *move* controls are deliberately **not** here — the
 clue form / active clue + Pass / waiting line live in the below-board input row
 (critical-to-playing belongs in the board column; see
 [Text entry](#text-entry--capture-not-input)).
@@ -202,12 +202,12 @@ boggle/spellingbee should converge on), the play surface does **not** use a real
 `<input>`. These are board-first games: the board is where the eyes and clicks
 go, and a focused `<input>` loses focus the instant you click a board tile, so
 typing silently stops. Instead we **capture keystrokes off the window** (the
-shared **`useCaptureKeys`** hook, built on `useGlobalKeyHandler`) and show the
+shared **`useCaptureKeys`** hook, which binds the entry actions) and show the
 pending value in a read-only display box (the shared **`<EntryBox>`**), so there's
 no focus to lose — typing and tile-clicks both feed one pending value, and clicking
 anywhere never interrupts entry.
 
-Every such game renders the shared **`<EntryRow>`** (`common/components/game/entry/EntryRow.tsx`):
+Every such game renders the shared **`<EntryRow>`** (`common/word-entry/EntryRow.tsx`):
 one component bundling the whole entry control so it looks + behaves identically
 everywhere — the `useCaptureKeys` keyboard, the **pill swap** (pass a `pill` and
 it renders that `<FeedbackPill>` in place of the controls — the own-move result /
@@ -216,7 +216,7 @@ the row itself. The host owns only the below-board *slot* (its board-matched
 width + reserved height) and which `pill` to show. A new word game gets the
 entire entry for free.
 
-**The row is its own component** — **`<MoveRow>`** (`…/entry/MoveRow.tsx`):
+**The row is its own component** — **`<MoveRow>`** (`common/word-entry/MoveRow.tsx`):
 `⌫ | whatever you're entering | Submit`, the two icon-only buttons at the ends
 and the display flex-filling between them. Split out from `<EntryRow>` because
 two games need that exact control *without* the capture keyboard, since a
@@ -244,7 +244,7 @@ The contract for the capture model:
   while the game owns the keyboard *and* something's been typed** — keyboard
   ownership is gated on `useGameHasKeyboard` (no
   `<input>`/`<textarea>`/`<select>`/contenteditable focused), the *same*
-  condition under which `useGlobalKeyHandler` routes keys to the game. So **caret
+  condition under which the action dispatcher fires an entry key. So **caret
   visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its gray
   placeholder (which already says "type here"), and the caret never duels with the
   chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
@@ -253,29 +253,29 @@ The contract for the capture model:
   these games are navigated by clicks + typing, not by tabbing focus between
   buttons, and a caret blinking on the board while focus sits on some button reads
   as two cursors. (Focused text fields like chat keep their own `Tab`.)
-- **Modified keystrokes pass through.** Bail before capturing anything when a
-  `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
-  the browser's.
+- **Modified keystrokes pass through.** The chord matcher (`common/actions/chord.ts`)
+  never matches a pattern key against a modified press, so `Cmd-R`, `Ctrl-Tab`,
+  etc. stay the browser's.
 - **What can be entered is per-game; the rest is shared, in two layers.** The
-  GENERIC key-capture **core** is `useCaptureKeys` (`common/hooks/input/useCaptureKeys.ts`):
-  the modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
+  GENERIC key-capture **core** is `useCaptureKeys` (`common/keyboard/useCaptureKeys.ts`):
+  the `Tab` swallow, the any-key feedback dismissal (`act-dismiss-feedback`),
   Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
   for every key-capture game. The **last-move history** — `ArrowUp` recalls the
   `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,
   which `<EntryRow>` composes on top of the core; it's specific to the single-word
   EntryBox, so it applies to those games and **only** them. A game supplies *what
   may be entered* — `charFor` (letters vs digits + the stored case; the exported
-  `asciiLetters('lower' | 'upper')` covers the word games) — plus any extra keys via
-  `onExtraKey` (spellingbee's `Space` = shuffle), the `recall` value (for the
-  ArrowUp layer), and the `disabled` (loading / terminal) / `busy` (mid-submit)
-  gates. **spellingbee, boggle, psychicnum** are the EntryBox games (core + arrows,
-  via `<EntryRow>`). **wordle uses the core ALONE** — its letters land on the
+  `asciiLetters('lower' | 'upper')` covers the word games) — plus the `recall`
+  value (for the ArrowUp layer), and the `disabled` (loading / terminal) / `busy`
+  (mid-submit) gates; a board key like shuffle (`⌥Z`) is the board's own action,
+  not the entry's. Every game that renders `<EntryRow>` is an EntryBox game
+  (core + arrows). **wordle uses the core ALONE** — its letters land on the
   Board, not an EntryBox, so it gets the shared guards / letter / dismiss but
   **no arrow behavior**. The board-cursor games (bananagrams, scrabble) are a
   different capture shape again — a 2-D cursor where arrows *move* it — with their
-  own shared hook, **`useBoardCursorKeys`** (also on `useGlobalKeyHandler`): it
-  owns the arrows→cursor / letter / Backspace / Enter dispatch + the skip-Enter-
-  when-a-button-is-focused, and each game supplies the per-cell edit rule
+  own shared hook, **`useBoardCursorKeys`** (four bound actions): it
+  owns the arrows→cursor / letter / Backspace / Enter dispatch, and each game
+  supplies the per-cell edit rule
   (bananagrams overwrites any tile; scrabble locks committed ones) and what a
   letter / Enter does (place-from-hand + peel vs stage + play word).
 - **Terminal local feedback is permanent.** `clearLocalFeedback` is a no-op once
@@ -595,7 +595,7 @@ Every game whose board can replay past turns (scrabble, stackdown, connections,
 psychicnum, codenamesduet, wordle, waffle, strands) lets you **click a past turn to
 see the board as it was then**. The affordance is shared and looks identical everywhere:
 
-- **The `#N` handle** (`<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`) — each
+- **The `#N` handle** (`<TurnLogNumber>` in `common/turn-log/TurnLog.tsx`) — each
   turn's number cell is the click target; clicking it opens that turn on the board.
   **Not** the whole row: several games render a turn as multiple `<tr>`s
   (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
@@ -788,7 +788,7 @@ layout exception — see below):
 |---|---|---|
 | **`Board`** | pure presentation of a board state | state **down**, clicks **up**. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
-| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** + a few named callbacks **up** (`onSelectTurn`, `onHint`, `onEndGame`, `onConcede`, …). Near-zero internal state. |
+| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onSelectTurn`, …). Near-zero internal state. |
 | **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `viewingSeq`) | wires `BoardCol` ↔ `InfoCol`. |
 
 ### The load-bearing contract
@@ -1012,7 +1012,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **The turn-viewer affordance is the "#N handle", shared across all history games.**
   A turn is opened on the board viewer by clicking its **`#N` number** (the shared
-  `<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`), which rings *itself* yellow
+  `<TurnLogNumber>` in `common/turn-log/TurnLog.tsx`), which rings *itself* yellow
   while that turn is open — NOT by clicking the whole row. Why: several games render a
   turn as multiple `<tr>`s (codenamesduet's clue + guess rows), where a whole-row
   "viewing" outline draws a broken box and a per-row hover lights only half the turn —
@@ -1021,7 +1021,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
   needs a `#N` cell to hang the handle on (a future history game without one must add
   it). The handle is a **`<span>`, not a `<button>`** — a focused button re-fires its
   click on Space, so pressing Space to leave the viewer would re-select the turn; a
-  span takes no keystroke, so Space falls through to the exit-on-key handler.
+  span takes no keystroke, so Space falls through to the viewer's `act-exit-viewer`.
 
 - **Exiting the viewer is intrinsic to `useHistoryViewer` — no per-game wiring.**
   Three exits, all shared: (1) a **keystroke** — the hook binds `act-exit-viewer`,
@@ -1038,7 +1038,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **`useHistoryViewer`** (rule of three): once turn-history reached three games the
   coordination itself (the `viewingId` + "am I viewing" flags + the enter/exit
-  affordances) lifted into `common/hooks/game/useHistoryViewer.ts`, pulling that growth
+  affordances) lifted into `common/turn-log/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
   `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See
   the hook's own docstring.

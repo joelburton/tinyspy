@@ -22,8 +22,8 @@ import styles from './InfoCol.module.css'
  * agent/turn state readout → finished-player banners → action row → help → setup
  * disclosure → turn log. codenamesduet has NO opponent strip (peer status rides the
  * GamePage header pill) and its finished-player banners sit right under the state
- * line they explain. Every command arrives as a bound action this column places (`actEndGame` /
- * `onSelectTurn`); PlayArea owns the RPCs + coordination. Prop names match the other
+ * line they explain. Every command arrives as a bound action this column places; the
+ * one callback up is `onSelectTurn`. PlayArea owns the RPCs + coordination. Prop names match the other
  * games' columns for the same idea (see docs/playarea.md).
  */
 export function InfoCol({

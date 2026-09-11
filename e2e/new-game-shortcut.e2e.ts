@@ -7,9 +7,9 @@ import { signIn } from './helpers/session'
 /**
  * The `+` shortcut for New game, and the confirm that guards it mid-play.
  *
- * `+` dispatches through the MENU ITEM (`NEW_GAME_ID`), the same way ⌥⌫ fires
- * End/Concede — so it works on any game that offers New game at all, including
- * one whose only affordance is the menu, with no per-game wiring.
+ * `+` is `act-new-game`, bound by the game that offers it — the same bound
+ * action as its menu row, so the key works on any game that offers New game at
+ * all, including one whose only affordance is the menu, with no per-game wiring.
  *
  * Starting a new game doesn't END the current one: `create_game` clears the
  * club's current-view flag and the old game stays resumable from the club page.
@@ -27,10 +27,9 @@ test('“+” starts a new game, after confirming mid-play', async ({ browser })
   await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 20000 })
   const originalUrl = page.url()
 
-  // Wait for the game to have PUSHED its menu sections before pressing the key:
-  // `+` resolves through the menu item, so until `setGameSections` has run there
-  // is nothing for it to find. Opening the menu and seeing "New game" is the
-  // deterministic signal (and doubles as the "it's in the menu" assertion).
+  // See "New game" in the menu before pressing the key: the row is the same
+  // bound action the key fires, so its presence says the game has bound
+  // `act-new-game` (and doubles as the "it's in the menu" assertion).
   await page.getByRole('button', { name: /game menu/i }).click()
   await expect(page.getByRole('menuitem', { name: /New game/ })).toBeVisible()
   await page.keyboard.press('Escape')

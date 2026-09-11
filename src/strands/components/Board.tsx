@@ -141,10 +141,8 @@ export function Board({
 
         {/* The most recent tile wears a second ring: it marks where the trace
             currently ENDS, which is what tells you which neighbors are live and
-            what Backspace will take. It used to advertise submission too
-            (re-clicking it sent the word); that gesture went on 2026-08-14, and
-            the ring stays because "you are here" was always the larger half of
-            what it said. */}
+            what Backspace will take. "You are here" is all it says: re-clicking
+            it takes the letter back, like any other selected tile. */}
         {trace.length > 0 && (
           <circle
             className={styles.discLastRing}

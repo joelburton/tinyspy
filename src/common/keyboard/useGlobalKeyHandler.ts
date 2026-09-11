@@ -21,11 +21,12 @@ import { isEditableField } from './editableField'
  *     any read-only closure capture, and the deps array has to enumerate
  *     every variable the handler reads.
  *
- * Used by the word games (spellingbee, wordle) for physical-keyboard input
- * alongside their on-screen keyboards. Game-specific key handling stays
- * in the handler the caller passes; only the listen-once mechanism is
- * shared. The handler is responsible for its own gating (e.g. an early
- * `return` when input isn't currently accepted).
+ * NOT how a key reaches a game — that is the action dispatcher
+ * (`common/actions/dispatcher.ts`), and a game gets a key by binding an
+ * action. What is left here is Tab, the one key that is nobody's action:
+ * `useSwallowTab` and `useCaptureKeys` each swallow it through this. The
+ * handler is responsible for its own gating (e.g. an early `return` when
+ * input isn't currently accepted).
  *
  * One gate IS built in: keystrokes aimed at a focused text field (the
  * chat box, a dialog input, a contenteditable) are never dispatched.

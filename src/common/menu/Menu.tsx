@@ -44,9 +44,9 @@ type OpenSubmenu = {
   anchor: { top: number; left: number; right: number }
 }
 
-/** Imperative handle exposed via `ref` so an app-level shortcut (the
- *  "?" key — see useAppShortcuts) can open the menu without owning
- *  its internal open state. */
+/** Imperative handle exposed via `ref` so the `?` key can open the menu without
+ *  owning its internal open state: `PageHeaderMenu` registers it in
+ *  `pageMenuStore`, and `act-open-menu` calls it. */
 export type MenuHandle = { open: () => void }
 
 type Props = {
@@ -91,9 +91,9 @@ type Props = {
 
 /**
  * Generic dropdown menu — trigger button + popover with grouped
- * items + keyboard navigation. Used by `<GamePage>` (logo →
- * game menu); will be reused by `<ClubPage>` later (club icon →
- * club menu with "Exit club," "Rename club," etc.).
+ * items + keyboard navigation. Every page's header menu is one,
+ * placed through `<PageHeaderMenu>` (logo → game menu, club menu,
+ * home menu).
  *
  * **Keyboard contract:**
  *
@@ -428,7 +428,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
             every label in the same column.
 
             The slot is reserved for EVERY row as soon as any row in the menu
-            has an icon (the legend — MenuItem.icon); a menu with none renders
+            has an icon (the legend — `MenuRow.icon`); a menu with none renders
             the disc inline exactly as it always did, so it gains no indent for
             a feature it doesn't use. Not rendered on the drill-down's Back row:
             that row names where you're going, not a person or an action. */}
@@ -446,9 +446,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         )}
         {/* A plain wrapper: the row is a flex line and `.itemShortcut` pushes
             itself right with `margin-left: auto`, so the label needs no class of
-            its own. (It carried `styles.itemLabel` for a while, which never
-            existed in the stylesheet — CSS Modules resolve a missing class to
-            `undefined`, so it silently applied nothing.) */}
+            its own. */}
         <span>
           {isBack ? `‹ ${openParent?.label ?? 'Back'}` : item?.label}
         </span>

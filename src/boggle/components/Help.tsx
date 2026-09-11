@@ -41,7 +41,7 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         own — most points wins; you see each other’s counts, not the words.
       </p>
       <p>
-        Use <strong>Rotate board</strong> to turn the grid a quarter-turn (letters
+        Use <strong>Rotate board</strong> (or <kbd>⌥Z</kbd>) to turn the grid a quarter-turn (letters
         stay upright) so it faces whoever’s reading — it’s just your view, nobody
         else’s.
       </p>

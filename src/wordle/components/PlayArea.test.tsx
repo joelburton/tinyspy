@@ -190,7 +190,6 @@ describe('wordle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "Reveal answer" shows the word for ME, with no RPC and no confirm', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
@@ -203,7 +202,6 @@ describe('wordle PlayArea — icon-only action rows', () => {
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
     expect(commonRpc).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
-    expect(confirm).not.toHaveBeenCalled()
   })
 
   it('the same button hides it again, restoring the column as the game ended', async () => {
@@ -243,12 +241,11 @@ describe('wordle PlayArea — icon-only action rows', () => {
   })
 
   it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
-    // handleNewGame calls db.rpc('create_game', …) — the RPC returns the
-    // that shape for this call only.
+    // `createNewGame` calls db.rpc('create_game', …), which answers the envelope
+    // itself as one jsonb value (no `.single()`) — mocked for this call only.
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
-        ? // envelope itself now, one jsonb value, so there is no `.single()`.
-          Promise.resolve({
+        ? Promise.resolve({
             data: { type: 'ok', data: { result: 'created', id: 'next-game-id' } },
             error: null,
           })
@@ -301,7 +298,6 @@ describe('wordle PlayArea — terminal flow', () => {
   })
 
   it('the menu item is the same toggle, and flips its label with the button', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     commonRpc.mockClear()
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
@@ -316,9 +312,8 @@ describe('wordle PlayArea — terminal flow', () => {
     await waitFor(() =>
       expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.label).toBe('Hide answer'),
     )
-    // No RPC and no confirm: this is local display state, not a game move.
+    // No RPC: this is local display state, not a game move.
     expect(commonRpc).not.toHaveBeenCalled()
-    expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -350,19 +345,17 @@ describe('wordle PlayArea — terminal flow', () => {
   })
 
   it('"Restart" at terminal calls replay_board WITHOUT confirming', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'act-restart')!.run())
-    // confirm returned false — the RPC firing anyway proves it was skipped.
+    // No ConfirmationHost is mounted, so a question would have stalled the run —
+    // the RPC firing proves the shared run asked nothing at terminal.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
-    expect(confirm).not.toHaveBeenCalled()
   })
 
   it('offers Restart in the terminal row (left of Club), calling replay_board unconfirmed', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
@@ -372,7 +365,6 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await user.click(restart)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
-    expect(confirm).not.toHaveBeenCalled()
   })
 
   it('restart resets the board fully — no stale pending row from the finished run', async () => {
@@ -567,7 +559,6 @@ describe('wordle PlayArea — turn-log picker label', () => {
 
 describe('wordle PlayArea — concede', () => {
   it('compete shows Concede and calls wordle.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
@@ -749,11 +740,12 @@ describe('wordle PlayArea — the board-scope marks', () => {
 describe('wordle Board — the reveal flip is keyed to the CAUSE', () => {
   const tiles = () => screen.getAllByRole('gridcell')
 
-  // The bug this pins: "which rows are new?" used to be answered by a row count
-  // captured at mount, and a restart DELETES the guesses — so a replayed game's
-  // first guesses sat below a stale baseline and landed with no flip at all,
-  // silently, for as many rows as the finished game had. The baseline now follows
-  // the log down, which is the same read-the-cause rule the attention flash uses.
+  // The bug this pins: if "which rows are new?" is answered by a row count
+  // captured at mount, a restart — which DELETES the guesses — leaves a replayed
+  // game's first guesses below a stale baseline, landing with no flip at all,
+  // silently, for as many rows as the finished game had. The baseline follows
+  // the log down instead, which is the same read-the-cause rule the attention
+  // flash uses.
   it('still flips the first guess of a replayed board', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },

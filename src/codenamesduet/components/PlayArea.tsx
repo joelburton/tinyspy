@@ -83,13 +83,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * everything in sync.
  */
 
-/* `ownAction` lived here — a TIMED own-move pill builder. Every caller was a
- * failed RPC, and those now come from `failureMessage`, which returns `sticky`
- * for a rejection and `manual` for a fault. So codenamesduet's errors stopped
- * auto-clearing after a beat; they wait for the next move like every other
- * game's. That's the roster convention this file was the last to hold out
- * against, and losing the builder is how it joined. */
-
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
  *  input — only terminal states appear here. Returns the shared `TerminalCopy`
  *  shape (the same psychicnum/connections use): `verdict` + `tone` drive the
@@ -142,7 +135,7 @@ function buildOver(playState: string): TerminalCopy {
  *
  * **Telegraphic on purpose** ("waiting for you", not "is waiting for your turn to
  * complete"): the header pill shares its row with the logo and chat bubble, so on
- * a 390px phone it fits ~26 characters and silently ELLIPSISES the rest — and the
+ * a 390px phone it fits ~26 characters and silently ELLIPSIZES the rest — and the
  * dot alone eats two of them. Anything longer than a few words is a message the
  * phone player never finishes reading. Keep additions this short.
  *
@@ -277,8 +270,6 @@ export function PlayArea({
   // the keyboard; it crunched the board too small and scrolled badly.)
   const infoSheet = useInfoSheet()
 
-  // The shared end-game confirm modal (replaces window.confirm — a true
-  // modal: backdrop-blocked board, dialog-owned keyboard).
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -298,12 +289,12 @@ export function PlayArea({
   // Not on a win either, where the pair contacted all fifteen and the card has
   // nothing left to say.
   //
-  // The ask is LOCAL and reversible (useSolutionReveal). It used to be shared,
-  // on the reasoning that the partner is the person you're doing the post-mortem
-  // WITH — but that cuts the other way: a Duet post-mortem is two people
-  // thinking out loud, and one of them opening the card ended the other's
-  // thinking mid-sentence. Now each of you looks when you're ready, and Hide
-  // covers it up again. Not a shield either way: both key columns are readable
+  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
+  // reasoning that the partner is the person you're doing the post-mortem
+  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
+  // loud, and one of them opening the card ends the other's thinking
+  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
+  // again. Not a shield either way: both key columns are readable
   // by every club member under the friends trust model.
   const { revealed: peerKeyShown, toggle: togglePeerKey, hide: hidePeerKey } =
     useSolutionReveal()
@@ -339,9 +330,9 @@ export function PlayArea({
   // that wraps it; the guess RPC + pending-tile state moved into BoardCol.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
     useLocalFeedback({ locked: isTerminal })
-  // Any key is the player's next move → dismiss the own-move pill. Guarded by
-  // useGlobalKeyHandler, so typing in the clue field (a focused input) never
-  // triggers it — only a key with nothing focused does. No-op at terminal (locked).
+  // Any key is the player's next move → dismiss the own-move pill. The
+  // dispatcher's field gate keeps a keystroke aimed at the clue field from
+  // reaching it — only a key with nothing focused does. No-op at terminal (locked).
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   // ─── Turn-history viewer ───────────────────────────────
@@ -359,7 +350,6 @@ export function PlayArea({
   // "type anywhere to exit" — the hook binds `act-exit-viewer` itself, and the
   // dispatcher never offers an action a keystroke aimed at a focused field, so
   // typing a clue can't kick you out of the viewer.
-  // (Click-anywhere-to-exit is intrinsic to useHistoryViewer now — no per-game wiring.)
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
   // so the <CodenamesduetAISuggestCompanion> renders at the `.layout` level — a panel
@@ -371,26 +361,14 @@ export function PlayArea({
   // (The guess dispatch — submit_guess + the pending-tile state + the in-flight
   // guard — moved into BoardCol, beside the board it gates.)
 
-  // ─── End-game action (info-column action-row button) ───
-  // The friends' explicit "we're done" affordance — an action-row button (like
-  // psychicnum/connections) rather than a GamePage menu item. codenamesduet has
-  // automatic terminals (won / lost_*), but this lets them abandon an in-progress
-  // game early — fires codenamesduet.end_game, a neutral terminal
-  // (play_state='ended', everyone {won:false}). Always confirmed via the shared
-  // modal (ending is harmful for the whole group, even coop/solo); it's
-  // irreversible. An error is an own-action error → the same local flash as a
-  // rejected guess.
-  /** Restart — run this board back with the same key cards (2026-08-03).
-   *  A MULLIGAN, not a fresh puzzle: you keep the cards, so the second run is
-   *  played knowing where the assassin sits. That's the deliberate trade — a
-   *  first-guess assassin ends a game nobody got to play, and "let's just run
-   *  it back" is what the friends actually say. Someone who wants a blind board
-   *  has New game, the next item down. Confirmed mid-game like everywhere. */
   // ─── End / Restart — the shared pair ───────────────────
   // codenamesduet is coop-only, so Concede hides itself and only End is ever
-  // placed. Restart runs the SAME board back — and since duet's whole board is
-  // the secret, the post-replay cleanup is covering the partner's key again:
-  // nothing on the server remembers the reveal.
+  // placed. Restart runs the SAME board back with the same key cards — a
+  // MULLIGAN, not a fresh puzzle: the second run is played knowing where the
+  // assassin sits, which is the deliberate trade (a first-guess assassin ends a
+  // game nobody got to play; a blind board is New game, below). Since duet's
+  // whole board is the secret, the post-replay cleanup is covering the
+  // partner's key again: nothing on the server remembers the reveal.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -407,15 +385,9 @@ export function PlayArea({
   // a trip through the club page's setup dialog. codenamesduet's create_game
   // samples its board inline, so this is a direct RPC (no edge function) and
   // takes no `mode` (the game is coop-only, one gametype). Non-destructive —
-  // common.create_game un-currents THIS game into the club's list — so no
-  // confirm; the creator jumps in via ctx.goToGame, the peer arrives via the
-  // game-invitation toast.
-  //
-  // NOTE there is deliberately no "Restart" twin here (Joel's call). The
-  // other games' replay re-runs the SAME puzzle; duet's whole board — including
-  // which words are the assassin — is the secret, so replaying it would hand
-  // both players a board they'd already learned. A new sample is the only
-  // meaningful "again".
+  // common.create_game un-currents THIS game into the club's list, so it stays
+  // resumable; the registry still asks NEW_GAME_CONFIRM mid-game. The creator
+  // jumps in via ctx.goToGame, the peer arrives via the game-invitation toast.
   //
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so the setup and roster are whatever the last realtime refetch left,

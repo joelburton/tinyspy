@@ -5,7 +5,7 @@
  * turn-log game shares (scrabble, stackdown, waffle, connections, …). The
  * subtle, intrinsic-to-the-hook behavior is the document-level
  * click-anywhere-to-exit that EXCLUDES the turn-# handles (so you can switch
- * turns without leaving the viewer), plus the modifier-aware exitOnKey. Those
+ * turns without leaving the viewer), plus the any-key `act-exit-viewer`. Those
  * are wired once here, so a regression hits every consumer at once.
  */
 
@@ -79,45 +79,11 @@ describe('useHistoryViewer', () => {
     act(() => elsewhere.click())
     expect(result.current.viewingId).toBeNull() // still live, no crash
   })
-
-  it('exitOnKey: consumes an unmodified key while viewing and returns to live', () => {
-    const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.select(1))
-
-    let consumed = false
-    act(() => {
-      consumed = result.current.exitOnKey(new KeyboardEvent('keydown', { key: 'a' }))
-    })
-    expect(consumed).toBe(true)
-    expect(result.current.viewingId).toBeNull()
-  })
-
-  it('exitOnKey: ignores a key when live', () => {
-    const { result } = renderHook(() => useHistoryViewer())
-    let consumed = true
-    act(() => {
-      consumed = result.current.exitOnKey(new KeyboardEvent('keydown', { key: 'a' }))
-    })
-    expect(consumed).toBe(false)
-  })
-
-  it('exitOnKey: leaves a modified key (e.g. Cmd+key) for the game to handle', () => {
-    const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.select(1))
-
-    let consumed = true
-    act(() => {
-      consumed = result.current.exitOnKey(new KeyboardEvent('keydown', { key: 'z', metaKey: true }))
-    })
-    expect(consumed).toBe(false)
-    expect(result.current.viewingId).toBe(1) // still viewing — Cmd+Z is the game's
-  })
 })
 
-/** The same "any key returns to live", reached the way a converted game reaches
- *  it: a real window keydown, the app-root dispatcher, `act-exit-viewer`. A game
- *  on bound actions wires nothing, so this path is the only thing holding the
- *  behavior up for it. */
+/** "Any key returns to live", reached the way a game reaches it: a real window
+ *  keydown, the app-root dispatcher, `act-exit-viewer`. A game wires nothing,
+ *  so this path is the only thing holding the behavior up. */
 describe('useHistoryViewer — act-exit-viewer', () => {
   /** Awaited: an action's run settles a microtask after the key. */
   async function press(init: KeyboardEventInit = {}) {

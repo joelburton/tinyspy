@@ -81,11 +81,9 @@ export {
   // offers one or the other and never both at once (a race that can also stop
   // the whole table asks about it inside Concede's question).
   //
-  // The white flag, which reads as "I'm out" at a glance where the crossed-out
-  // octagon it replaced did not: an octagon-with-an-X beside `IconEndTurn`'s
-  // plain octagon — both on screen in scrabble — is a difference nobody can see
-  // at 24px. The two glyphs were split when bananagrams drew End and Concede
-  // side by side; that row is one button now, so the reason went with it.
+  // The white flag, which reads as "I'm out" at a glance. Not a crossed-out
+  // octagon: that beside `IconEndTurn`'s plain octagon — both on screen in
+  // scrabble — is a difference nobody can see at 24px.
   Flag as IconConcede,
   // restart THIS board from scratch — `act-restart`, in every game's menu. The
   // skip-back "jump to the start" transport glyph: it rewinds to the beginning

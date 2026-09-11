@@ -128,7 +128,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Concede state (from the common roster). A conceder can't submit and sees the
   // locally-terminal look while the others race; peers show as "out" in the strip.
-  // Declared up here (above the menu effect that grays the Concede item on it).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
@@ -314,13 +313,12 @@ export function PlayArea(ctx: GamePageCtx) {
     })
 
   // ─── End / Concede / Replay — the shared trio ──────────
-  // End is the manual "we're done" stop (both modes; compete ends the race with
-  // everyone {won:false} — a valid outcome, not a punishment), confirmed via the
-  // styled modal. Concede (compete) is a real loss for the conceder while the
-  // others race on. Replay restarts this board, clearing everyone's finds. All
-  // three are the byte-identical shared handlers (useStandardGameActions); only
-  // the failure-pill format + the replay sentence are wordwheel's. New game stays
-  // below — its create path diverges per game.
+  // End is coop's manual "we're done" stop (everyone {won:false} — a valid
+  // outcome, not a punishment), hidden in compete. Concede (compete) is a real
+  // loss for the conceder while the others race on. Replay restarts this board,
+  // clearing everyone's finds. All three are the shared bindings
+  // (useStandardGameActions); where a not-ok lands (`showError`) is wordwheel's.
+  // New game stays below — its create path diverges per game.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,

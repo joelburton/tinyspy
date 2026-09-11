@@ -252,7 +252,7 @@ Reject reasons: not authenticated; not a game player; game not found; already te
 
 ### New game — a fresh board; Restart — the same board as a mulligan
 
-The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly sampled board) with this game's setup + roster, in the same club. A direct `create_game` RPC — codenamesduet samples its board inline, and takes no `mode` (coop-only, one gametype). Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm; the creator jumps in via `ctx.goToGame` and the peer arrives via the game-invitation toast.
+The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly sampled board) with this game's setup + roster, in the same club. A direct `create_game` RPC — codenamesduet samples its board inline, and takes no `mode` (coop-only, one gametype). Non-destructive: `common.create_game` un-currents this game into the club's list, so it stays resumable — the registry still asks `NEW_GAME_CONFIRM` mid-game; the creator jumps in via `ctx.goToGame` and the peer arrives via the game-invitation toast.
 
 **Restart** (`replay_board`, added 2026-08-03) is its twin, and it is deliberately a **mulligan** rather than a fresh puzzle. Duet was the one game with a principled reason not to have a replay: the whole board — including which word is the assassin — is the secret, so running it back hands both players a board they've partly learned. What overrules that is the accident: an assassin on the first guess ends a game nobody got to play, and *"let's just run it back"* is what the friends actually say. The key cards and the 25 words stay; every reveal, neutral, clue and guess is wiped, the turn budget is re-read from setup and seat A clues again. Someone who wants a genuinely blind board has **New game**, the next item down in the same menu. Any player, mid-game or at terminal; mid-game the FE confirms. pgTAP: `replay_test.sql`.
 
@@ -369,7 +369,7 @@ src/codenamesduet/
                           for that turn (its own cells ringed) with input frozen until
                           you leave (a keystroke / click / ✕).
                           Pops the shared `<CelebrationBlockingModal>` on a win (only) and renders
-                          the AI `<ClueSuggestionPanel>` at the `.layout` level (a
+                          the AI `<CodenamesduetAISuggestCompanion>` at the `.layout` level (a
                           floating panel must mount high — see ui.md → Components).
                           Mounted by <GamePage> as its render-prop child;
                           cross-cutting chrome (logo, chat-bubble, players strip,
@@ -414,13 +414,14 @@ src/codenamesduet/
                           `.inputRow` slot (NOT the info column). ONE horizontal
                           line per state: the clue FORM (count + word `<input>` +
                           Submit + "AI") for the giver; the active clue +
-                          Pass for the guesser; a muted "● moth guessing" /
+                          Pass (`act-end-turn`, bound by the local `PassButton`
+                          in this file) for the guesser; a muted "● moth guessing" /
                           "Waiting for moth to give a clue…" line otherwise; the
                           sudden-death notice. Live-uppercases the
                           clue. The "AI" button (`act-suggest-clue`, sparkles + amber)
                           calls the edge function and opens the
-                          AI suggestion in a <FloatingPanel> (the exported
-                          `ClueSuggestionPanel`, mounted by PlayArea at `.layout`
+                          AI suggestion in a <FloatingPanel> (the
+                          `CodenamesduetAISuggestCompanion`, mounted by PlayArea at `.layout`
                           level); errors surface in that dialog or the local flash,
                           never as a second row (the slot is fixed-height — the
                           board must not reflow).
@@ -500,7 +501,7 @@ src/codenamesduet/
     history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```
 
-**Terminal state.** **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)): a dialog would duplicate the below-board pill exactly — same verdict string, same moment — so it would only cost a dismiss. The result lives in-page, the shared way: the below-board slot swaps the clue UI for a permanent outcome-colored pill carrying the per-status verdict — "You win!" / "Lost: assassin" / "Lost: out of turns" / "Lost: out of time" / "Game ended" (terse, so the fixed-height slot doesn't wrap on a phone) — and the info-column action row swaps the End button for a bold outcome-colored line ("You won!" / "Assassin revealed" / …) + a compact back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)).
+**Terminal state.** **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)): a dialog would duplicate the below-board pill exactly — same verdict string, same moment — so it would only cost a dismiss. The result lives in-page, the shared way: the below-board slot swaps the clue UI for a permanent outcome-colored pill carrying the per-status verdict — "You win!" / "Lost: assassin" / "Lost: out of turns" / "Lost: out of time" / "Game ended" (terse, so the fixed-height slot doesn't wrap on a phone) — and the info-column action row swaps the End button for a bold outcome-colored line ("You won!" / "Assassin revealed" / …) + icon-only Reveal, Restart and New game, then the primary back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)).
 
 A **win** additionally pops the shared `<CelebrationBlockingModal>` (title "You win! 🎉"), driven by `useCelebration(playState === 'won')` — once, at the moment the 15th agent is contacted, on both clients via the realtime refetch. It deliberately never fires on mount, so opening an already-won game is quiet review. Losses and the manual end pop nothing.
 
@@ -512,7 +513,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
-codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsises the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorDot>` puts the disc *after* the name — a deliberate placement difference.)
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsizes the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorDot>` puts the disc *after* the name — a deliberate placement difference.)
 
 **Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 
@@ -538,7 +539,7 @@ During active play, each player's own `key_card` is what tints the board ([`useB
 
 Once the game is over, the partner's card becomes available — but **it is not opened automatically** (2026-08-03), and since 2026-08-15 that holds for a clean win too. Every ending waits for **Reveal**, offered both as the red boxed-eye button in the terminal action row and as a game-menu item, and **Hide** covers it up again.
 
-The reveal is **local to each player** (`useSolutionReveal` — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). It used to open the card on both screens at once via the shared `solution_revealed` flag, on the reasoning that the partner is the person you're doing the post-mortem *with*. That cuts the other way, which is why it changed: a Duet post-mortem is two people thinking out loud — *"wait, I was about to pick APPLE"* — and that conversation only happens while the card is still covered, so one player opening it ended the other's thinking mid-sentence. Now each of you looks when you're ready. Nothing is written either way; both key columns are club-readable under the friends trust model.
+The reveal is **local to each player** (`useSolutionReveal` — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). Sharing it — on the reasoning that the partner is the person you're doing the post-mortem *with* — cuts the other way: a Duet post-mortem is two people thinking out loud — *"wait, I was about to pick APPLE"* — and that conversation only happens while the card is still covered, so one player opening it would end the other's thinking mid-sentence. Each of you looks when you're ready. Nothing is written either way; both key columns are club-readable under the friends trust model.
 
 That gate is not about protecting a replay — Duet deliberately has none, its board *being* the secret. It protects the **seconds right after an assassin**: "wait, I was about to pick APPLE next" is the best part of a Duet post-mortem, and that conversation only happens while the card is still covered. Reveal opens it and the post-mortem continues with everything on the table.
 
@@ -601,7 +602,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe — plus the failed read: the envelope is kept rather than left as an empty board (verified by planting a swallowed not-ok). |
 | `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
-| `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |
+| `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `common/keyboard/editableField.test.ts`; this pins that the actual inputs carry the tag.) |
 
 **Plus four Playwright e2e specs** — each a deliberate, narrow exception to the "e2e = realtime/presence only" charter, guarding real-browser behavior jsdom can't see:
 

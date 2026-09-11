@@ -42,7 +42,8 @@ is still a named button.
 
 - **The grouping**, in `icons.ts`: a move the player makes · the app handing
   something over · a mark that is no control at all · the shell around the
-  board. A new export goes with its group rather than at the end.
+  board · the one glyph that means nothing. A new export goes with its group
+  rather than at the end.
 - **One family crosses a group boundary on purpose** — the ✕ that marks a
   verdict, the ✕ that removes an item, and the ✕ that closes a surface stay
   adjacent across the marks/shell line, because those three are only legible

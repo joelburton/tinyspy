@@ -217,9 +217,6 @@ export function InfoCol({
             now-disabled entry. */}
         {!over && isPlayer && !isLocallyDone && (
           <p className={shared.infoHelp}>
-            {/* Kept as close to the original line as the change allows: only
-                "Enter submits" is new, since submitting is now a thing the
-                player has to do rather than something that happened to them. */}
             Click exposed tiles — or type a letter — to spell a word.{' '}
             <kbd>Enter</kbd> submits; <kbd>Backspace</kbd> takes one back.
           </p>

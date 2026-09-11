@@ -110,9 +110,8 @@ export function BoardCol({
 
   // ─── Tile click → extend the word ─────────────────────────────
   // Filling the fifth slot deliberately does NOT submit: the word sits there
-  // until you commit it with the Submit button or Enter. Picking a wrong fifth
-  // tile used to be unrecoverable — the game committed under your finger — and
-  // making the last tile just another tile is most of the point of the change.
+  // until you commit it with the Submit button or Enter, so a wrong fifth tile
+  // is recoverable — the last tile is just another tile.
   const onTileClick = useCallback(
     (tileId: number) => {
       if (readOnly) return

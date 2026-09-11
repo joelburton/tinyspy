@@ -301,10 +301,10 @@ Roles, not implementations:
 
 | role | name | shared or per-game? |
 |---|---|---|
-| The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
+| The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/game-page/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameModal` | `SetupForm` | per-game |
-| End-of-game info-column row | `TerminalActionRow` | shared (`common/components/game/terminal/`); per-game callers pass the `TerminalCopy` their `buildOver()` returns + any extra terminal actions as children |
+| End-of-game info-column row | `TerminalActionRow` | shared (`common/terminal/`); per-game callers pass the `TerminalCopy` their `buildOver()` returns + any extra terminal actions as children |
 | Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
@@ -464,16 +464,17 @@ each other. Suffixed channels can't collide and keep using `removeChannel`.
 An action whose second call does real, unwanted work needs an in-flight guard,
 and the guard belongs on the **handler**, not the button: one action is reachable
 from a button, a menu row and a keyboard shortcut, and a `disabled` prop covers
-the first of those. Use
+the first of those. A bound action's run
+([`useBoundAction`](../src/common/actions/useBoundAction.ts)) already is
+single-flight, so a command placed those three ways needs nothing more; a
+control that is not an action wraps its handler in
 [`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts) — its
 docstring carries the mechanism and the cases it is not for.
 
-Don't reach for it when a state flag already gates the action — End and Concede
-stop themselves once `isTerminal` / `myConceded` flips — or for idempotent calls
-every client fires (`submit_timeout`).
+Don't reach for it for idempotent calls every client fires (`submit_timeout`).
 
-Related: `GamePage`'s global shortcut listener drops `e.repeat`, so *holding* a
-key can't machine-gun a one-shot command.
+Related: the action dispatcher drops `e.repeat` for any action that does not
+declare `repeat`, so *holding* a key can't machine-gun a one-shot command.
 
 ### CSS Modules + theme
 
@@ -673,7 +674,7 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
 | `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer, setup, goToClub, feedback, menu }`). |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer, setup, goToClub, globalFeedback, menu }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
 If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
@@ -770,9 +771,7 @@ failed` in front of players. [`noRawServerMessage.test.ts`](../src/guards/noRawS
 is the guard.
 
 A sink that takes a **string** loses the fault styling, since a string can't
-carry the flag: prefer `(msg: GenericFeedbackMsg) => void`. `showError` in
-`useStandardGameActions` is the remaining string sink, and it's why a fault
-arriving through End / Concede / Restart still wears a pill.
+carry the flag: prefer `(msg: GenericFeedbackMsg) => void`.
 
 **This is enforced, because being careful wasn't enough.**
 [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) fails on any

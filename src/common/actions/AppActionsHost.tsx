@@ -11,10 +11,8 @@ import { useBoundAction } from './useBoundAction'
  * The four keys that work on every real page — chat, the page menu, word
  * lookup, the anagram finder — and the two dialogs two of them open.
  *
- * Mounted once, at the app root, and that is the whole of their wiring: every
- * page used to hold the open state for these dialogs and render its own copy,
- * which meant three pages arranging something none of them had decided. They
- * are bound here instead, so a page gets them by existing.
+ * Mounted once, at the app root, and that is the whole of their wiring: a page
+ * gets them by existing.
  *
  * They fire while nothing is focused and from a GAME's own input — you can hit
  * `/` to chat mid-clue — but not from chat, a form or the scratchpad, where the
@@ -48,8 +46,7 @@ export function AppActionsHost() {
 
   useBoundAction('act-open-menu', {
     // Whatever menu is on screen registered itself; a page with none (or a game
-    // whose menu is gone during a pause) gets nothing, which is what the ref
-    // version did when the ref was null.
+    // whose menu is gone during a pause) gets nothing.
     describe: () => 'active',
     run: openPageMenu,
   })

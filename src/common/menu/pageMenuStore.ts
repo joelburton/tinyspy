@@ -2,13 +2,8 @@
 
 /**
  * The page's menu, so a keyboard shortcut can open it without the page acting
- * as a courier.
- *
- * **The problem it removes.** `?` opens the header menu, and it used to get
- * there by hand at every page: each declared a `useRef<MenuHandle>`, passed it
- * to `<Menu ref>`, wrapped `() => ref.current?.open()` in a `useCallback`, and
- * handed that to `useAppShortcuts`. Four lines of plumbing, three times, for one
- * app-level key — and none of it was a decision any page was making.
+ * as a courier: `PageHeaderMenu` registers its menu here, and `act-open-menu`
+ * (bound once in `AppActionsHost`) opens whatever is registered.
  *
  * **Why a module slot is safe here.** One page is mounted at a time and a page
  * has one header menu, so there is nothing to arbitrate. That is the same
@@ -18,9 +13,7 @@
  *
  * **A missing menu is a no-op, deliberately.** GamePage's menu unmounts while
  * the game is paused (PlayArea's cleanup clears its sections), so `?` during a
- * pause finds nothing registered and does nothing. That is exactly what the
- * ref version did when `ref.current` was null; the behavior is unchanged, it
- * just no longer needs three pages to arrange it.
+ * pause finds nothing registered and does nothing.
  */
 
 let open: (() => void) | null = null

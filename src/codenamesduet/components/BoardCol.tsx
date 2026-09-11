@@ -28,9 +28,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * named for the play_state they set, and the two that leave it running are
  * named for what was turned over.
  *
- * `revealed` is the key-card label the guess hit ('G' | 'N' | 'A') — the whole
- * of what this RPC used to return, now one field among the board facts the
- * reveal produced.
+ * `revealed` is the key-card label the guess hit ('G' | 'N' | 'A'), one field
+ * among the board facts the reveal produced.
  */
 type GuessAnswer =
   | {

@@ -172,7 +172,7 @@ export function Grid({
         </div>
       ) : (
         // Read-only peek: same box as the rebus input but a non-interactive
-        // div so arrows / letters still reach the window grid handler.
+        // div, so no field is focused and the grid's keys stay live.
         peek && (
           <div className={styles.rebusWrap} style={overlayStyle(peek.row, peek.col, width)}>
             <div className={cls(styles.rebusInput, styles.rebusReadonly)}>{peek.value}</div>
@@ -187,8 +187,8 @@ export function Grid({
  *  Self-contained: autofocus + select, sanitize to ≤8 uppercase letters.
  *  Enter commits + advances one cell; Tab / Shift+Tab commits + jumps to the
  *  next / previous clue (mirrors Tab elsewhere — crossplay's RebusInput); Esc
- *  / blur cancels. Key events are stopped so the window grid handler doesn't
- *  also see them (it's suspended while the overlay is open anyway). */
+ *  / blur cancels. Key events are stopped before the dispatcher sees them (the
+ *  grid's keys are suspended while the overlay is open anyway). */
 function RebusInput({
   initial, onCommit, onCancel,
 }: {

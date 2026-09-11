@@ -6,19 +6,16 @@ import type { MenuSection } from './menuModel'
 /**
  * The sections a game has pushed into the header menu.
  *
- * **Why this is not `useState` on the game page.** It was, and pushing a menu
- * therefore re-rendered the whole page — the board included — for a change that
- * only the menu can see. Worse, it made the identity of a menu row load-bearing:
- * a game's menu effect lists its rows in its deps, so a row rebuilt each render
- * would set state, re-render, rebuild and loop. (Verified 2026-09-10; the probe
- * hung.) That is a trap laid for whoever next writes a row, and nothing about
- * the menu wanted it.
+ * **Why this is not `useState` on the game page.** A push would re-render the
+ * whole page — the board included — for a change that only the menu can see,
+ * and it would make the identity of a menu row load-bearing: a game's menu
+ * effect lists its rows in its deps, so a row rebuilt each render would set
+ * state, re-render, rebuild and loop.
  *
  * Here the push notifies subscribers, and the only subscriber is the menu. A
  * game re-rendering costs the menu nothing, and a menu push costs the game
- * nothing. Identity is now an optimization — an unstable row rebuilds the menu
- * more often than it needs to — rather than the difference between working and
- * hanging.
+ * nothing. Identity is only an optimization — an unstable row rebuilds the
+ * menu more often than it needs to.
  *
  * **Why a module slot is safe.** One game page is mounted at a time and it has
  * one header menu, so there is nothing to arbitrate — the same structural

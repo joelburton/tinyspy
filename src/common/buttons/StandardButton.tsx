@@ -134,8 +134,7 @@ export type PurposeButtonProps = Omit<StandardButtonProps, 'label'> & { label?: 
  *
  * **A game's COMMANDS do not come through here.** New game, Concede, Shuffle
  * and the rest are actions (`common/actions`), placed with `<ActionButton>`,
- * which is where their words, glyph, tone and key come from. The purpose
- * buttons that used to name them are gone.
+ * which is where their words, glyph, tone and key come from.
  *
  * Everything a standard button looks like lives in its module. There are no
  * global button classes to compose.

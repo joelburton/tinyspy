@@ -90,7 +90,7 @@ test.describe('codenamesduet turn-history viewer', () => {
 
     // ── Exit path A — a keystroke returns to live. Space specifically: the handle is
     // a <span> (not a focusable button), so Space isn't captured as a re-click and
-    // falls through to the exit-on-key handler.
+    // falls through to the viewer's any-key `act-exit-viewer`.
     await pageBob.keyboard.press('Space')
     await expect(banner).toBeHidden({ timeout: 10000 })
 

@@ -258,8 +258,8 @@ export function BoardCol({
           children={<TypedWord word={word} seedLength={seed.length} />}
           onDismissPill={clearLocalFeedback}
           pill={pill}
-          // Also hard-off while a past move is open: freezing capture lets a
-          // keystroke fall through to PlayArea's exitOnKey (back to live)
+          // Also hard-off while a past move is open: freezing capture lets the
+          // viewer's `act-exit-viewer` consume the keystroke (back to live)
           // instead of editing the live draft behind the banner.
           disabled={entryDisabled || viewingDescription !== null}
           busy={busy}

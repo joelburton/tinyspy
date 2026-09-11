@@ -254,7 +254,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
   the board, turn log, and terminal state reset **live for every player**. Two
   FE entry points, one handler: the game-menu item (any state) and the terminal
-  action row's **Restart** (`act-restart`) (`SkipBack` glyph, `info` tone, left of
+  action row's **Restart** (`act-restart`) (`SkipBack` glyph, the normal tone, left of
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.
@@ -492,8 +492,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   `TerminalActionRow`'s children. Every one is an `<ActionButton>` over a bound
   action ([common/actions](../../src/common/actions/doc.md)), including
   back-to-club: ONE binding serves both rows, navigating directly at terminal
-  and routing through the shell's **suspend-confirm** flow mid-game — the
-  difference the two callbacks it replaced used to spell out by hand. Stay-here options sit left of the leave option.
+  and routing through the shell's **suspend-confirm** flow mid-game. Stay-here options sit left of the leave option.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows

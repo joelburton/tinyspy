@@ -74,8 +74,8 @@ type HintAnswer = { result: 'hint'; hint: string }
  *     render (live OR a historical snapshot) + `readOnly`; emits the completed word
  *     up (`onSubmitWord`) and "back to live" (`onExitViewing`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
- *     disclosure, terminal words reveal, and the GameTurnLog log. Emits named
- *     callbacks up (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`).
+ *     disclosure, terminal words reveal, and the GameTurnLog log. Every command
+ *     arrives as a bound action it places; the one callback up is `onSelectTurn`.
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
  * show*. That's what makes turn-history a drop-in (see docs/playarea.md).
@@ -468,7 +468,7 @@ export function PlayArea({
     run: createNewGame,
   })
 
-  // ─── Header menu (every game owns its whole menu now) ─────────
+  // ─── Header menu ──────────────────────────────────────────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
   // opened from the hook's "Game info" menu item. stackdown needs no board
@@ -476,16 +476,6 @@ export function PlayArea({
   // fits a phone on its own; the input is tile taps (no keyboard).
   const infoSheet = useInfoSheet()
 
-  // The shared frame (Help / End-or-Concede / Back to club) plus stackdown's two
-  // own items, "Restart" and "New game" — the same pair the terminal action
-  // row offers, so they're reachable mid-game too. (The reveal/hint cheats stay
-  // in the info-column action row, not the menu.) Placed after the action
-  // handlers so they're in scope for the deps; all deps here are stable (the
-  // useCallback handlers + primitives + the memoized menuSections), so the
-  // menu is rebuilt only when the mode/terminal/conceded facts actually change,
-  // not every render. `game?.mode` is null until loaded;
-  // default to coop so the menu exists during the loading beat and re-runs once
-  // the real mode arrives.
   // Words cleared. Coop counts the shared valid submissions; compete reads the
   // caller's public tally (found_count is authoritative there). Hoisted with
   // shownTiles below, for the same reason — the print model needs it.
@@ -505,6 +495,7 @@ export function PlayArea({
     [game, isTerminal, removedTileIds, currentWord],
   )
 
+  // Feeds the print model only; `game?.mode` is null until loaded.
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
 
   // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scopes
@@ -657,8 +648,8 @@ export function PlayArea({
   // slot they've been reading all game, not only in the info column.
   const localPill: GenericFeedbackMsg | null = over
     ? // over.tone (won/lost/neutral) not over.outcome, so a manual end (neutral)
-      // reads neutral here — matching the info-column line and the other games,
-      // rather than the green a `.outcome`-keyed map used to give it. The
+      // reads neutral here — matching the info-column line and the other games.
+      // The
       // `verdictNode` (a compete loss's "● moth cleared it first") wins when
       // present; the plain string is the fallback for every other case.
       terminalPill(over.tone, over.verdictNode ?? over.verdict)

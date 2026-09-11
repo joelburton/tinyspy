@@ -580,9 +580,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
     // WHICH puzzle is the server's call (`strands.next_puzzle_for_club`,
     // reached below by omitting `puzzle_id`) — the same rule, in the same
-    // place, that the setup dialog previews. This used to be two FE reads
-    // plus a pure `nextUnplayedPuzzle` helper whose rule was per-club, per
-    // MODE, and relative to the current puzzle; the server's is per-PLAYER
+    // place, that the setup dialog previews. The server's rule is per-PLAYER
     // and spans clubs, so a puzzle you played alone can't resurface in a
     // game with friends.
     //

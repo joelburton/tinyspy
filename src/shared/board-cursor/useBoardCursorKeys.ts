@@ -55,13 +55,12 @@ export type BoardCursorKeys = {
  * are PATTERN actions, handed whichever key fired them, which is what makes four
  * arrows and twenty-six letters two bindings rather than thirty.
  *
- * **Nothing here reads the window.** The gates that used to be spelled out — the
- * modifier bail, the focused-input guard, skipping Enter when a `<button>` holds
- * focus — belong to the one dispatcher now: a pattern key never matches a
- * modified chord, a keystroke aimed at chat never reaches an action, and nothing
- * on a play surface holds focus in the first place. The any-key hook is gone the
- * same way: dismissing feedback and leaving the turn viewer are their own
- * actions, and the dispatcher runs both ahead of these.
+ * **Nothing here reads the window.** The modifier bail, the focused-input guard
+ * and skipping Enter when a `<button>` holds focus belong to the one
+ * dispatcher: a pattern key never matches a modified chord, a keystroke aimed
+ * at chat never reaches an action, and nothing on a play surface holds focus in
+ * the first place. Dismissing feedback and leaving the turn viewer are their
+ * own actions, and the dispatcher runs both ahead of these.
  *
  * Contrast `useCaptureKeys` (single-token entry, no cursor): this is the
  * board-cursor sibling, not a superset.

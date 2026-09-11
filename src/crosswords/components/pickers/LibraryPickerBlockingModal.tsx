@@ -63,8 +63,8 @@ type Props = {
  * "play this" — where the same list was on `selected`/`onSelect` while it lived
  * inside the setup form and Enter had to not submit the form around it.
  *
- * Cancel is the only other way out, and it is a real one now: leaving a source
- * used to be a side effect of pressing a different tab.
+ * Cancel is the only other way out, and it is a real one: leaving a source is
+ * a decision, not a side effect of choosing another.
  */
 /** What `library_for_club` answers: one `ok`, and an EMPTY list is part of it. */
 type LibraryAnswer = {
@@ -181,10 +181,9 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
               <>
                 {/* "Has THIS club played it?" — see .stripe. */}
                 <span className={cls(styles.stripe, statusClass(p.status))} aria-hidden="true" />
-                {/* Title + author only. The grid size used to sit at the
-                    right, but it isn't something you pick a puzzle BY, and
-                    as the row's second column it fought the title for the
-                    width — which is what made the dialog too wide. */}
+                {/* Title + author only. The grid size isn't something you pick
+                    a puzzle BY, and as a second column it would fight the
+                    title for the width. */}
                 <span className={styles.itemTitle}>
                   {p.title}
                   {p.author ? ` · ${p.author}` : ''}

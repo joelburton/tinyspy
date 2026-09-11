@@ -132,11 +132,6 @@ export function InfoCol({
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of
-  // the race → connections.concede); coop uses the neutral "End" (a mutual "we're
-  // done" → end_game). Shared by the playing and the locally-terminal action rows.
-  // Icon-only (the canonical action-row treatment): the styled tooltip carries
-  // the label.
   // Both exits are placed and each hides itself in the mode that isn't its own
   // (compete CONCEDES — drop out of the race; coop ENDS — a mutual "we're done"),
   // so this row asks nothing. Shared by the playing and locally-terminal rows.
@@ -197,7 +192,7 @@ export function InfoCol({
         {/* Action row — three states. Playing: Hints + End/Concede. Locally terminal
             (out of mistakes OR conceded, the rest race on): the terminal LOOK, a bold
             status ("You're out" / "You conceded") + Concede. Terminal: the outcome
-            line + a compact back-to-club button. */}
+            line + Reveal / Restart / New game / Club. */}
         {over ? (
           <TerminalActionRow over={over}>
             {/* Stay-here options left of the leave option (Club): see the

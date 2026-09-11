@@ -75,18 +75,14 @@ const KNOWN: string[] = [
   // → e2e
   'e2e/gallery/index.ts › renderViewer',
   // → letterboxed
-  'src/letterboxed/components/InfoCol.tsx › setupRows',
   'src/letterboxed/components/PlayArea.tsx › WordAnswer',
   // → psychicnum
   'src/psychicnum/components/PlayArea.tsx › HintAnswer',
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
-  'src/scrabble/components/BoardCol.tsx › LocalFeedbackMsg',
   'src/scrabble/manifest.ts › labelFor',
   // → setgame
   'src/setgame/components/Card.tsx › flash',
-  // → spellingbee
-  'src/spellingbee/components/InfoCol.tsx › reveal',
   // → src/guards
   'src/guards/callSiteShape.test.ts › it',
   'src/guards/cssTokens.test.ts › describe',
@@ -103,8 +99,6 @@ const KNOWN: string[] = [
   'src/wordiply/components/PlayArea.tsx › GuessResult',
   // → wordle
   'src/wordle/manifest.ts › labelFor',
-  // → wordwheel
-  'src/wordwheel/components/InfoCol.tsx › reveal',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']

@@ -67,7 +67,7 @@ import { useStickyChoice } from '@/common/web-storage/useStickyChoice'
 const REBUS_KEY = 'puzpuzpuz:crosswords:collapseRebus'
 const REBUS_OPTIONS = ['off', 'on'] as const
 
-/** Timed info pill shown after a Check whose scope contained pencilled cells —
+/** Timed info pill shown after a Check whose scope contained penciled cells —
  *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
  *  Unpunctuated: the pill is a one-line LABEL, not prose. */
 const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
@@ -91,15 +91,16 @@ function fileStem(id: string | undefined): string {
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
 /** What `check_cells` answers: one `ok`, and HOW MANY cells it flagged — a
- *  number the RPC computed anyway and used to keep to itself. */
+ *  number the RPC computes anyway. */
 type CheckAnswer = { result: 'checked'; wrong_count: number }
 
 /** What `reveal_cells` answers. `solved` matters: a reveal can complete the
- *  grid, and that lands the ordinary coop `won` terminal on purpose (§9). */
+ *  grid, and that lands the ordinary coop `won` terminal on purpose — a
+ *  revealed grid is a finished one. */
 type RevealAnswer = { result: 'revealed'; solved: boolean }
 
-/** What `export_solution` answers — the solution grid, typed where it used to
- *  be cast at each of the two call sites. */
+/** What `export_solution` answers — the solution grid, typed once for its two
+ *  call sites. */
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
 export function PlayArea(ctx: GamePageCtx) {
@@ -310,8 +311,8 @@ export function PlayArea(ctx: GamePageCtx) {
     return cells.get(cellKey(row, col))?.fill ?? null
   }
 
-  // The grid's own keys, as the thirteen actions they are. The ref is gone — a
-  // binding is asked what it does at the moment the key lands.
+  // The grid's own keys, as the bound actions they are: a binding is asked what
+  // it does at the moment the key lands.
   const { actRebus } = useGridKeyboard({
     // Terminal keeps the keys ALIVE for navigation — walking the revealed grid
     // with arrows/Tab is part of the post-game — while `readOnly` freezes the
@@ -326,7 +327,7 @@ export function PlayArea(ctx: GamePageCtx) {
     setCursor,
     fillAt: (r, c) => cells.get(cellKey(r, c))?.fill ?? null,
     isGiven,
-    setCell: (r, c, fill, pencilled) => void handleSetCell(r, c, fill, pencilled),
+    setCell: (r, c, fill, penciled) => void handleSetCell(r, c, fill, penciled),
     onRebus: (r, c) => setRebus({ row: r, col: c }),
     onNumberJump: () => setNumberJumpOpen(true),
     onPeek: (r, c) => setPeek({ row: r, col: c, value: shownFillAt(r, c) ?? '' }),
@@ -489,11 +490,10 @@ type Explained =
   }, [gameId])
 
   // ─── End / Concede / Restart — the shared trio ─────────
-  // Restart is what used to be "Clear board" (2026-08-03): the same wipe under
-  // the name the other fifteen games use, and two things the old one couldn't
-  // do — it clears EVERY grid (a restart is for the table, not just the caller)
-  // and it un-terminals a finished puzzle, so a solved crossword can be run
-  // back. crosswords' own bit is the cleanup: put the author's answers away, so
+  // Restart is the shared wipe under the shared name: it clears EVERY grid (a
+  // restart is for the table, not just the caller) and it un-terminals a
+  // finished puzzle, so a solved crossword can be run back. crosswords' own
+  // bit is the cleanup: put the author's answers away, so
   // the stale solution cache can't paint the grid the instant the fills go.
   const onRestarted = useCallback(() => {
     hideSolution()
@@ -611,9 +611,9 @@ type Explained =
         // because it belongs to this answer alone: a refusal checked nothing,
         // so there is nothing it could have skipped.
         //
-        // Check deliberately skips pencil cells (a pencilled letter is a guess,
+        // Check deliberately skips pencil cells (a penciled letter is a guess,
         // not a committed answer — mirror `_check_cells` / crossplay's
-        // `applyCheck`). So if the checked scope held any pencilled fill, it
+        // `applyCheck`). So if the checked scope held any penciled fill, it
         // went un-flagged; a timed info pill says so, so an unmarked pencil cell
         // doesn't read as "correct".
         const skippedPencil = target.some((p) => {
@@ -858,16 +858,15 @@ type Explained =
    * a conceded compete player (so their grayed-out input has an explanation).
    *
    * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
-   * wordle / waffle / spellingbee). crosswords alone used to PUSH the verdict
-   * into stored feedback from an effect, and that's what broke Restart: the
-   * store is created `locked: isTerminal`, which makes `clearLocalFeedback()` a
-   * deliberate no-op at terminal — so Restart cleared nothing, the RPC
-   * then un-terminalled the game, and the stale "Game ended" pill sat on a
-   * board that was playable again with nothing left able to remove it.
+   * wordle / waffle / spellingbee). PUSHING the verdict into stored feedback
+   * from an effect would break Restart: the store is created
+   * `locked: isTerminal`, which makes `clearLocalFeedback()` a deliberate no-op
+   * at terminal — so Restart would clear nothing, the RPC would then
+   * un-terminal the game, and a stale "Game ended" pill would sit on a board
+   * that was playable again with nothing left able to remove it.
    *
-   * Deriving fixes it by construction: the verdict is a function of
-   * `isTerminal`, so it disappears the instant the restart lands. It also drops
-   * a setState-in-effect the file had to `eslint-disable`.
+   * Deriving avoids that by construction: the verdict is a function of
+   * `isTerminal`, so it disappears the instant the restart lands.
    */
   const slotPill: GenericFeedbackMsg | null =
     isTerminal && over
@@ -969,7 +968,7 @@ type Explained =
                   - CONCEDED (compete, the others still racing): the terminal
                     LOOK — a status line + the now-inert Concede. No Reveal: the
                     solution stays server-shielded until the GAME is terminal.
-                  - TERMINAL: the controls all vanish (checking and pencilling a
+                  - TERMINAL: the controls all vanish (checking and penciling a
                     finished grid is meaningless) and the row becomes the three
                     things left to do. Deliberately NO outcome message here — a
                     documented departure from the shared <TerminalActionRow>,

@@ -25,17 +25,14 @@ type Props = {
  * **The page's menu** — the first mark in every `<PageHeader>`, on all three
  * real pages.
  *
- * It exists because the same five-line block was written three times, identical
- * apart from the logo, the sections and the label. Two of those three things
- * stayed the same at every
- * site and neither was a decision anyone was making:
+ * It exists so the two things every page's menu needs are not a decision each
+ * page makes:
  *
- * - **The chevron-wrapped logo.** Now `<Menu>`'s own business — it takes a
- *   `logo` and supplies the chevron, so a caller cannot forget it.
- * - **The `?` wiring.** Each page used to declare a `useRef<MenuHandle>`, pass
- *   it down, and hand `() => ref.current?.open()` to `useAppShortcuts`. The ref
- *   lives here now and registers itself in `pageMenuStore`, so the shortcut
- *   finds the menu without the page carrying it across.
+ * - **The chevron-wrapped logo.** `<Menu>` takes a `logo` and supplies the
+ *   chevron, so a caller cannot forget it.
+ * - **The `?` wiring.** The `MenuHandle` ref lives here and registers itself in
+ *   `pageMenuStore`, which is where `act-open-menu` (bound in
+ *   `AppActionsHost`) finds the menu to open.
  *
  * NOT folded into `<PageHeader>` itself, which takes children: the club page
  * and a game put their own marks beside this one, and a game fills the header's

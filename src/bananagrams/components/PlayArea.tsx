@@ -125,8 +125,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // `localFeedbackMsg` below.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
   // Any key is the player's next move → dismiss the own-move pill. (bananagrams's
-  // own board-key handler lives in PlayerBoard; this is the shared clear-on-key,
-  // guarded against chat by useGlobalKeyHandler.) No-op at terminal (locked).
+  // own board keys live in PlayerBoard; this is the shared `act-dismiss-feedback`,
+  // which the dispatcher's field gate keeps away from chat.) No-op at terminal (locked).
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
@@ -279,10 +279,7 @@ export function PlayArea(ctx: GamePageCtx) {
   //
   // A ref rather than effect deps: `ctx.players` is a fresh array identity most
   // renders, so listing it would rebuild this game's whole menu on every one of
-  // them. It used to be worse than wasteful — pushing a menu was a setState on
-  // the page, and it spun: the menu never settled and the print item became
-  // unclickable. `gameMenuStore` ended the spin; the waste is reason enough to
-  // keep the ref.
+  // them.
   const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.session.user.id })
   useEffect(() => {
     printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.session.user.id }
@@ -568,7 +565,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Icon-only throughout (the canonical action-row treatment — the styled
   // tooltip carries each label). At terminal the stay-here option (New game)
   // sits left of the leave option (Club), matching every other game's terminal
-  // row; there's no Restart twin (see handleNewGame). The locally-terminal
+  // row; Restart is a menu row, not a terminal-row twin. The locally-terminal
   // "you're out" row keeps Club alone — the race is still running, so offering
   // to start a different game there would be a distraction.
   const infoActions = over ? (
@@ -581,9 +578,9 @@ export function PlayArea(ctx: GamePageCtx) {
     // plus the way out, since the race running on is the whole point.
     <LocalTerminalRow label="You conceded" />
   ) : (
-    // Both exits, side by side: End stops the table (no result for anyone),
-    // Concede drops just you (a loss, and the others race on). End sits first
-    // because it's the gentler of the two.
+    // Both exits are placed, but only Concede draws while you are racing: its
+    // question offers ending the table as the second answer (`offersEndForAll`).
+    // End comes out on its own only once your Concede is spent.
     <>
       <ActionButton action={actEndGame} show="icon" />
       <ActionButton action={actConcede} show="icon" />

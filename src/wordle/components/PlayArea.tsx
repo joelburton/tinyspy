@@ -47,7 +47,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * narration, and the cross-column derivations — then hands each column what it needs.
  *
  *   - `<BoardCol>` — the board + on-screen keyboard: the input engine (the pending
- *     guess + `submit_guess`, Pattern A). See BoardCol.tsx.
+ *     guess + `submit_guess`, whose result arrives by realtime rather than as
+ *     local state). See BoardCol.tsx.
  *   - `<InfoCol>` — the guess counter + guess list + action row + setup. Presentational.
  *
  * Mode (`game.mode`) branches the derivations: coop shows the SHARED guess list +
@@ -326,12 +327,10 @@ export function PlayArea({
   })
 
   // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
-  // Terminal results). There used to be a mid-game shape too: a group give-up
-  // that ended the game and revealed in one click. It's gone, so the order is
-  // the same everywhere — End the game (which ends it for everyone), then
-  // Reveal. One less confirm, one less irreversible thing behind a menu item
-  // that reads like a display toggle, and one less path that could reveal
-  // while somebody was still playing.
+  // Terminal results): the order is the same everywhere — End the game (which
+  // ends it for everyone), then Reveal. No irreversible thing sits behind a
+  // menu item that reads like a display toggle, and no path can reveal while
+  // somebody is still playing.
   //
   // No handler of its own any more: showing the word is `toggleAnswer`, a
   // local state flip. No RPC, so no failure to classify, and no `async` — the

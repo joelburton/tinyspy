@@ -25,13 +25,11 @@ export type GridKeysOptions = {
    *  so the solver can walk the revealed grid, while anything that would WRITE
    *  (letters, ⌫, rebus, edge marks) is disabled. */
   readOnly: boolean
-  /**
-   * One of crosswords' OWN overlays has the keyboard — the rebus box or the
-   * number-jump popup. Both are focused inputs, so the dispatcher's field gate
-   * already stops the letters; what it does not stop is Tab, the one key an
-   * action may claim from inside a field. Without this, tabbing out of the
-   * number-jump popup would walk the clue underneath it.
-   */
+  // One of crosswords' OWN overlays has the keyboard — the rebus box or the
+  // number-jump popup. Both are focused inputs that `stopPropagation()` their
+  // keydowns before the dispatcher sees anything, so this gate is
+  // belt-and-braces: it also describes every grid key disabled, so nothing
+  // advertises a key the overlay is holding.
   suspended: boolean
   /** Null until the puzzle loads; every key is disabled until then. */
   grid: Cell[][] | null
@@ -66,7 +64,7 @@ export type GridKeys = {
 }
 
 /**
- * The crossword grid's keys, as the thirteen actions they are — the port of
+ * The crossword grid's keys, as the bound actions they are — the port of
  * crossplay's PuzzleView keyboard.
  *
  * A letter fills the cell under the cursor and moves on; ⌫ clears it and
@@ -76,7 +74,7 @@ export type GridKeys = {
  * word-break mark on a cell's right / bottom edge.
  *
  * **Nothing here reads the window.** Each key is a bound action, so the gates
- * this hook used to spell out belong to the one dispatcher: a modified chord
+ * belong to the one dispatcher: a modified chord
  * never matches a pattern key, a keystroke aimed at chat never reaches an
  * action, and a floating panel with focus stops every one of them.
  *

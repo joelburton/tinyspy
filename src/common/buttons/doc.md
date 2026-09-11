@@ -24,16 +24,16 @@ wherever one appears. None of them overrides anything; each supplies defaults a
 call site can still replace, so packaging a control never costs a caller the
 ability to deviate.
 
-**What is NOT here any more is a game's commands.** There used to be a named
-button per command — Restart, New game, Concede, Hint, Peel, Reveal — and each
-was a second place an action's words, glyph and tone were written down. Those are
-[actions](../actions/doc.md) now: the registry holds what a command IS, a
+**What is NOT here is a game's commands.** A named button per command would be
+a second place an action's words, glyph and tone were written down. Those are
+[actions](../actions/doc.md): the registry holds what a command IS, a
 component binds what it does, and `<ActionButton>` draws it. So a button file
 here names a piece of CHROME (dismiss, cancel, commit a form, delete a row) —
-the things that are not commands a player invokes in a game. The two
-exceptions are the bespoke controls, `ShuffleButton` and `SubmitWithScore`,
-which ARE driven by actions but keep their own markup because neither is
-shaped like a standard button; they read their action through `actionSurface`.
+the things that are not commands a player invokes in a game. The
+exceptions are the bespoke controls — `ShuffleButton`, `PauseButton` and
+`SubmitWithScore` — which ARE driven by actions but keep their own markup
+because none is shaped like a standard button; they read their action through
+`actionSurface`.
 
 The prop names carry the folder's one real distinction, which is between what a
 button IS and what it DRAWS. Those come apart more often than you would expect —
@@ -55,7 +55,7 @@ leaving the file you are reading.
 Color works on two axes that do not interact. WEIGHT is emphasis — filled for
 the main action, an outline for everything else — and TONE is meaning, in the
 button vocabulary the theme keeps for exactly this: an ordinary action, a
-consequential one, an irreversible one, a quiet dismissal. Every tone works at
+consequential one, an irreversible one, a quiet dismissal, a success. Every tone works at
 either weight. That vocabulary is the button's own and is deliberately not the
 outcome palette, which colors what HAPPENED rather than what a control will do;
 the two use nearby oranges and the theme separates them on purpose. Because this
@@ -68,8 +68,8 @@ code that does it.
 Three of the files stand apart, and it is worth knowing which before assuming
 the rest. Two are their own controls that only happen to be buttons — the
 board's round shuffle pill, which floats over a game surface and is built to
-look like it does, and the header's pause mark, which belongs to the page header
-rather than to any action row. The third is the interesting one: scrabble's
+look like it does, and the header's pause mark, which is `act-pause` wearing
+the page header's look rather than an action row's. The third is the interesting one: scrabble's
 submit-with-score reaches into the general button's stylesheet for its chrome
 and supplies its own internal layout, because it wants a standard button's paint
 with a scoreboard's arrangement. That reach is the exception that shows where

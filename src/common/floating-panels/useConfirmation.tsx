@@ -73,10 +73,9 @@ export const NEW_GAME_CONFIRM: ConfirmOptions = {
  * unlike End it leaves no trace that it happened. So the copy WARNS, in
  * END_GAME_CONFIRM's register rather than NEW_GAME_CONFIRM's reassuring one.
  *
- * Deliberately generic — the per-game sentence ("this clears the grid and
- * everyone's score") went away when Restart became the same act in all thirteen
- * games. What's being wiped is visible on the board in front of you; what isn't
- * obvious, and what this says, is that it hits *everyone*.
+ * Deliberately generic — Restart is the same act in every game. What's being
+ * wiped is visible on the board in front of you; what isn't obvious, and what
+ * this says, is that it hits *everyone*.
  */
 export const RESTART_CONFIRM: ConfirmOptions = {
   title: 'Restart this game?',
@@ -87,12 +86,14 @@ export const RESTART_CONFIRM: ConfirmOptions = {
 }
 
 /**
- * `window.confirm`, but the styled `<ConfirmationBlockingModal>` — the drop-in
- * for game action handlers:
+ * `window.confirm`, but the styled `<ConfirmationBlockingModal>` — for a
+ * component that asks a question of its own and can render the modal itself
+ * (`WordEditDialog`). A game's actions ask through the registry and
+ * `confirmationService` instead, which draws the identical modal:
  *
  *     const { confirm, confirmationModal } = useConfirmation()
- *     const handleEndGame = async () => {
- *       if (!(await confirm({ title: 'End this game?', … }))) return
+ *     const handleDelete = async () => {
+ *       if (!(await confirm({ title: `Delete "${word}"?`, … }))) return
  *       …the RPC…
  *     }
  *     // and render {confirmationModal} anywhere in the tree

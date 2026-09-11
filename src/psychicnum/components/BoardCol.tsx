@@ -183,8 +183,8 @@ export function BoardCol({
   // same binding, and it is documented as live even on a finished board.
   //
   // While a past turn is open the keystroke never gets here — the viewer's
-  // any-key action consumes it, which is what "a key in the viewer means back to
-  // live" now is. The BUTTON still shuffles there, as it always did.
+  // `act-exit-viewer` consumes it, which is what "a key in the viewer means back
+  // to live" is. The BUTTON still shuffles there.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
     run: handleShuffle,
@@ -351,8 +351,9 @@ export function BoardCol({
               placeholder="Click on a tile or type"
               busy={submitting}
               // Disabled while viewing history (capture is a hard no-op so typing
-              // behind the banner never accumulates, and the keystroke goes to
-              // exitOnKey) OR when it's not my turn (the entry stays but inert).
+              // behind the banner never accumulates, and the viewer's
+              // `act-exit-viewer` consumes the keystroke) OR when it's not my
+              // turn (the entry stays but inert).
               disabled={viewing || !isMyTurn}
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}

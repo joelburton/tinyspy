@@ -278,14 +278,10 @@ function GamePageInner({
   // The currently-active feedback message, or null when the
   // PageHeaderStatusSlot should show its default (`<PageHeaderPlayersStrip>`).
   const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
-  // The current PlayArea's ENTIRE header menu, pushed via
-  // `ctx.menu.setGameSections`. Each game owns its whole menu (Help +
-  // its own items + End/Concede + Back-to-club — usually assembled with
-  // `buildGameMenu`); the shell no longer injects a common section. Reset
-  // to [] on PlayArea unmount so a pause empties the menu.
-  // A game's menu sections live in `gameMenuStore`, not here: only the menu
-  // reads them, so a push must not re-render the page and the board with it.
-  // Cleared on unmount, so a menu cannot outlive the game that pushed it.
+  // A game's menu sections (pushed via `ctx.menu.setGameSections`) live in
+  // `gameMenuStore`, not here: only the menu reads them, so a push must not
+  // re-render the page and the board with it. Cleared on unmount, so a menu
+  // cannot outlive the game that pushed it.
   useEffect(() => () => setGameMenuSections([]), [])
 
   // Fire the timeout-loss when the countdown hits 0 — on the expired
@@ -522,11 +518,10 @@ function GamePageInner({
   const HelpComponent = manifest.help
 
   // The whole menu is owned by the current PlayArea (via setGameSections /
-  // buildGameMenu). Help + Back-to-club are wired through the menuApi actions
-  // above; the shell no longer prepends a common section.
+  // buildGameMenu); Help + Back-to-club are the menuApi actions above.
   // The account submenu is appended by the SHELL, not by `buildGameMenu` — so
-  // all fourteen games get it without fourteen edits, and a game can't forget
-  // it. It goes last: it's the least game-y thing in the menu.
+  // every game gets it, and a game can't forget it. It goes last: it's the
+  // least game-y thing in the menu.
 
   return (
     <div className={styles.frame}>

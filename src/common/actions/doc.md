@@ -8,13 +8,10 @@ is what a command IS.
 
 ## Design
 
-A command used to be written up to four times. There was a menu row with a
-hand-typed shortcut string, a button with a hand-written tooltip, a branch in
-somebody's key listener, and a row in a doc — four spellings of one idea, none
-of which knew about the others. So `+` was written out sixteen times, a button
-never said its key, and whether a command was available was decided
-independently everywhere it appeared. This folder exists to make a command one
-thing.
+A command is one thing wherever it appears. Its menu row, its button, its key
+and its line in the help list are four views of one idea, and none of them can
+disagree with the others about what it is called, what key fires it, or
+whether it is available right now. This folder exists to make that so.
 
 The thing is an **action**, and it has two halves. The fixed half is what the
 app decides once and every game inherits: what the action is called, its glyph,
@@ -51,8 +48,8 @@ toggle has two faces — "Reveal secrets" with the boxed eye, "Hide secrets" wit
 the crossed-out one — and both halves move together, because on an icon-only
 control the glyph is the label and letting the words move alone would have the
 two saying different things. What never moves is the action's name, its keys,
-its tone and its question: those are what make it the same command in all
-sixteen games, and none of them depends on the moment.
+its tone and its question: those are what make it the same command in every
+game, and none of them depends on the moment.
 
 Keys go through one listener at the app root, and nothing else in the app
 listens for a game key. That is the property the whole design rests on: a key
@@ -131,13 +128,13 @@ trace of the action. `registeredChords` keeps the registry the only place a
 chord is matched: a handler comparing `e.code === 'KeyZ'` by hand would get the
 same keystroke to the same place while belonging to no action, so the key list
 would not know about it, no bubble would say it, and the dispatcher could not
-tell it to stand down inside a chat box. That is the one way back to what this
-replaced, and it looks perfectly reasonable in a diff.
+tell it to stand down inside a chat box — and it looks perfectly reasonable in
+a diff.
 
 **The confirmation is asked by the shared run**, not by the callback. New game
 always asks the new-game question and always only mid-game, because at terminal
-there is nothing left to interrupt — so the registry carries the question and
-sixteen games stop carrying the same three lines. A question only one game asks
+there is nothing left to interrupt — so the registry carries the question and no game
+carries the same three lines. A question only one game asks
 stays inside that game's callback. The asking goes through
 `common/floating-panels/confirmationService.ts`, which exists precisely because
 the code doing the asking is not a component and has nothing to render into.
@@ -155,10 +152,9 @@ menu, not a question.
 **The run is single-flight**, so a second press while the first is still out is
 dropped and every surface shares one wait. The gate closes on the press, before
 the question is answered, which is deliberate: a button behind an open confirm
-reads gray rather than live. **A menu row grays for the same flight**, which
-settles a question the games used to answer each their own way — a row that
-silently does nothing for a second, while advertising a key, reads as a promise
-it isn't keeping.
+reads gray rather than live. **A menu row grays for the same flight** — a row
+that silently does nothing for a second, while advertising a key, reads as a
+promise it isn't keeping.
 
 **A surface reads a bound action when it draws it.** For anything the game
 renders that is automatic. The menu is the one surface the game does not

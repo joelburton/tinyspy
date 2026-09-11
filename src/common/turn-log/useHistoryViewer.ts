@@ -22,16 +22,6 @@ export interface HistoryViewer<Id> {
   select: (id: Id) => void
   /** Return to the live board (a board click, the banner ✕, a new move landing). */
   exitViewing: () => void
-  /**
-   * For a game that still reads the keyboard itself: if viewing and the key is
-   * unmodified, return to live and report the key CONSUMED (true) so it doesn't
-   * also play a move. Call it first in the game's key handler and bail on true.
-   *
-   * A game whose keys are actions needs none of this — the viewer binds
-   * `act-exit-viewer` here, and its any-key wildcard consumes the keystroke
-   * before the board's own actions are offered it.
-   */
-  exitOnKey: (e: KeyboardEvent) => boolean
 }
 
 /**
@@ -55,7 +45,7 @@ export interface HistoryViewer<Id> {
  *     select(id)}`, `viewing={viewingId === id}`
  *   - a bare keystroke returns to live: nothing to wire — the viewer binds
  *     `act-exit-viewer`, whose any-key wildcard consumes the press while a turn
- *     is open. A game that still reads the keyboard itself calls `exitOnKey`.
+ *     is open.
  *
  * Exit-on-CLICK is NOT wired per game — it's built in here: a click anywhere returns
  * to live (skipping the `#N` handles). Games needn't add a board-click handler.
@@ -79,9 +69,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // outside the board too (the info column, the log, the page chrome); the board is
   // click-through while framed (historyViewer `.frame` sets `pointer-events: none`),
   // so board clicks reach here as well. The opening click is on a `#N` handle (and
-  // this only arms once `viewingId` is set), so it never self-dismisses. (Keystroke
-  // exit stays game-wired via `exitOnKey` — it must cooperate with each game's own
-  // key handler.)
+  // this only arms once `viewingId` is set), so it never self-dismisses.
   useEffect(() => {
     if (viewingId === null) return
     const onDocClick = (e: MouseEvent) => {
@@ -119,21 +107,11 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     run: exitViewing,
   })
 
-  const exitOnKey = useCallback(
-    (e: KeyboardEvent): boolean => {
-      if (viewingId === null || e.metaKey || e.ctrlKey || e.altKey) return false
-      exitViewing()
-      return true
-    },
-    [viewingId, exitViewing],
-  )
-
   return {
     viewingId,
     viewingIdRef,
     viewing: viewingId !== null,
     select,
     exitViewing,
-    exitOnKey,
   }
 }

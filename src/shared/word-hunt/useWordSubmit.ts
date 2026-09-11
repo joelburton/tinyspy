@@ -169,9 +169,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   // each an `onChange`/`setWord`), then taps the Submit button. A passive-effect
   // sync updates only after paint, so a fast Submit tap in the commit→paint gap
   // would read a one-tap-stale word ("tapped 3 tiles, submitted 2 letters"); a
-  // synchronous write closes that window. (An earlier attempt made `submit` close
-  // over `word` directly, but that coupled Enter to `useGlobalKeyHandler`'s own
-  // passive ref-sync and made fast typing flaky — the ref keeps `submit` stable.)
+  // synchronous write closes that window, and the ref keeps `submit` stable.
   const wordRef = useRef(word)
 
   // Words accepted this session but whose `found_words` row may not have arrived

@@ -12,12 +12,11 @@ import styles from './CodenamesduetAISuggestCompanion.module.css'
  * few-second wait is obvious, then shows the clue + reasoning (`ready`, also
  * filled into the form inputs) or the API error (`error`).
  *
- * **A COMPANION, not a modal** (Joel, 2026-08-25). §20 filed it as
- * `modal-normal` — "it demands attention, dim is right" — and that is backwards:
- * you need the BOARD to judge the advice. "On a small screen you want to see the
- * board to understand the advice; you should be able to drag it to cover the
- * infoCol area and resize it to see the board." A scrim denies exactly that, and
- * one was briefly added here by the family rollout before this was corrected.
+ * **A COMPANION, not a modal** (Joel, 2026-08-25). A `modal-normal` — "it
+ * demands attention, dim is right" — would be backwards: you need the BOARD to
+ * judge the advice. "On a small screen you want to see the board to understand
+ * the advice; you should be able to drag it to cover the infoCol area and resize
+ * it to see the board." A scrim denies exactly that.
  *
  * It is also not asking anything — a modal-normal is a question worth thinking
  * about; this is information you requested and then act on the board with. Being

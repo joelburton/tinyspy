@@ -149,8 +149,8 @@ Three answers gained a NAME rather than being read off an absence:
 - **`check_cells` now says how many cells it flagged** (`wrong_count`). It
   computed that anyway and returned nothing, so a caller could not tell
   "checked, all correct" from "checked nothing".
-- **`reveal_solved_word` answers `solved` or `unsolved`**, where the two used to
-  be told apart by `answer` being null. `unsolved` stays an `ok`: the menu item
+- **`reveal_solved_word` answers `solved` or `unsolved`** by name, not by
+  `answer` being null. `unsolved` stays an `ok`: the menu item
   is live on any clue because the FE cannot see which are solved.
 - **`export_solution` says `exported`**, and a missing game is now `PN477`
   rather than the same bare `null` a solution-less game returned.
@@ -158,10 +158,9 @@ Three answers gained a NAME rather than being read off an absence:
 **`next_nyt_date_for_club`'s empty answer moved into the RPC.** Running out of
 unplayed dates for a weekday is `PN478`, a `form-validation` naming `source` —
 the control that picks the weekday, and the one a group told "you have done
-every Monday back to 2015" will change. The sentence is the one
-`crosswords-import-nyt` used to compose for itself (approved 2026-08-12); it
-moved because **two callers ask the same question**, and the setup form's
-weekday field deserves the same answer. PN227 and PN228 went with it.
+every Monday back to 2015" will change. The sentence lives in the RPC because
+**two callers ask the same question** — `crosswords-import-nyt` and the setup
+form's weekday field — and both deserve the same answer.
 
 **`library_for_club`'s empty answer did NOT.** An empty library is an ordinary
 `ok` with an empty list: nothing is blocked and there is no input to fix, so the
@@ -348,7 +347,7 @@ sizing).
   CDC row payloads **directly** (per-cell `version` "newer wins") with optimistic
   `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
 - **`useGridKeyboard`** — the full grid key set (ported from crossplay's
-  PuzzleView) as thirteen **bound actions** (`common/actions`): letters (fill +
+  PuzzleView) as **bound actions** (`common/actions`): letters (fill +
   advance), Backspace (two-step) / Shift+Backspace (clear word), Space (advance)
   / Shift+Space (read-only zoom-peek of a squeezed rebus), arrows /
   Shift+arrows (word edge), Tab / Shift+Tab (jump clue), Shift+Enter (rebus
@@ -356,9 +355,10 @@ sizing).
   cryptic edge mark → `set_mark`). Nothing here reads the window: the app's one
   dispatcher stands down inside a text field and inside any floating panel, so
   the hook's own modifier / field / panel guards are gone. What stayed is
-  `suspended`, which disables all thirteen while the rebus box or the
-  number-jump popup is up — those are focused inputs, and Tab is the one key an
-  action may claim from inside one. Navigation stays live at terminal (walking a
+  `suspended`, which disables every grid key while the rebus box or the
+  number-jump popup is up — those are focused inputs that stop their own
+  keydowns before the dispatcher sees them, so the gate is belt-and-braces.
+  Navigation stays live at terminal (walking a
   solved grid is part of the post-game) while every writing key describes itself
   disabled.
   - **⌥-letter shortcuts** (crossplay parity — the port's identity is
@@ -438,7 +438,7 @@ sizing).
   reveal (`useSolutionReveal` — [ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)): my looking
   doesn't fill a partner's grid while they're still working out what they got
-  wrong, and **"Hide board"** puts the answers away again, leaving exactly the
+  wrong, and **"Hide solution"** puts the answers away again, leaving exactly the
   fill the solvers left — wrong letters and their marks included. Overwriting
   what's on screen is only safe *because* that comes back. That reversibility matters more here than in any other
   game — a crossword grid can legitimately differ from the author's (rebuses,
@@ -458,7 +458,7 @@ sizing).
   others race); and at terminal an action row of **Reveal solution / Hide
   solution** (the same toggle as the menu item) · **New game** ·
   **Back to club** (primary), with the fill / check / reveal controls gone —
-  pencilling a finished grid is meaningless.
+  penciling a finished grid is meaningless.
 
   Two documented departures from the sweep here. **No outcome message in the
   row** — unlike every other game's `<TerminalActionRow>`, whose shape is
@@ -471,11 +471,11 @@ sizing).
   rows of a viewport-height grid, so it can't move — only the `1fr` clue list
   above absorbs the difference.
 
-  **New game opens the SETUP dialog** rather than creating a game directly —
-  the only game that does. A crossword has no randomness to re-roll: `setup`
+  **New game opens the SETUP dialog** rather than creating a game directly.
+  A crossword has no randomness to re-roll: `setup`
   names a *puzzle*, so replaying it re-serves the grid just solved (library /
   nyt / guardian alike), and an uploaded board is stripped before it's
-  persisted (§5), leaving nothing to re-send. Picking the next puzzle is the
+  persisted (see Puzzle sourcing), leaving nothing to re-send. Picking the next puzzle is the
   only sane "another one". Mechanically it navigates to
   `/c/<handle>?new=<gametype>`; ClubPage reads that param once at mount and
   opens `SetupGameModal` on it **after** its fetch settles (the dialog seeds
@@ -537,13 +537,13 @@ the roster in having a replay at all
 **Reveal solution** is the terminal-only answer key (see *Terminal* above). The
 menu is long, so the popover scrolls — the page never does.
 
-Because the board reads `window` keydowns for cursor movement, the shared
-`Menu` is given **`returnFocusOnClose={false}`** by GamePage: on close the
-trigger blurs (focus falls to `<body>`) instead of retaining focus, so arrows
-resume moving the cursor rather than reopening the menu; and `Menu` now
-`stopPropagation`s keydowns on its trigger + popover so arrowing through the
-menu never doubles as a board move. (See `Menu.tsx` — the behavior is opt-in so
-non-game menus keep standard Esc-restores-focus a11y.)
+The board reads no `window` keydowns — its keys are bound actions — but the
+shared `Menu` is still given **`returnFocusOnClose={false}`** by
+`GameHeaderMenu.tsx`: while the trigger has focus its own `onTriggerKeyDown`
+stops propagation, so a trigger that kept focus after close would swallow the
+arrows meant for the cursor (or reopen the menu). With it, focus falls to
+`<body>` on close and the grid's keys resume. (See `Menu.tsx` — the behavior is
+opt-in so non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 8. Tests
 
@@ -567,7 +567,7 @@ non-game menus keep standard Esc-restores-focus a11y.)
   `hooks/useGridKeyboard.test.ts`, `pdf/*.test.ts`, and the parser +
   content-hash tests next to the CLI (`supabase/scripts/crosswords/`).
 - e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal
-  board" menu flow (disabled mid-game, blanks stay blank until clicked);
+  solution" menu flow (disabled mid-game, blanks stay blank until clicked);
   compete win; compete privacy (opponent never sees your letters); coop peer
   cursors + shared-fill sync; keyboard (rebus, pencil, Backspace two-step, `#`
   jump); cryptic `|`/`_` marks; menu gating (Show note / Explain cryptic clue);
@@ -601,7 +601,7 @@ This is the **canonical deferred register** for crosswords — distilled from th
   - **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
 
   **What is NOT drift, and must survive any fix:** crosswords has a real reason
-  not to use `<SetupNextPuzzleSection>` — its archive is a catalogue, not a queue (a
+  not to use `<SetupNextPuzzleSection>` — its archive is a catalog, not a queue (a
   Monday puzzle and a Saturday one are different animals), so it picks a WEEKDAY
   where connections and strands ask for "the next one nobody has played". The
   fixed-height preview line and the date override are the same mechanism; the
@@ -636,9 +636,6 @@ This is the **canonical deferred register** for crosswords — distilled from th
   **Data, not schema:** it writes rows into the existing `crosswords.puzzles`, so
   it needs no migration however large it gets — the cost it carries is the picker
   bound below, not a shape change.
-- **⌥M "open the menu" shortcut** — the rest of crossplay's ⌥-set is
-  ported (§7); ⌥M stays out because the shell exposes no programmatic menu-open to a
-  PlayArea, and `?` / the logo already open it.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
   game (fine; NYT was always kept out of the library).
 - **Library picker bound before the bulk import** (from the 2026-07-12 supabase
@@ -694,10 +691,6 @@ future cleanup pass:
   ever needs the FE to react to a `crosswords.games` change. Membership is pinned by
   the central `supabase/tests/common/realtime_publication_test.sql` (the
   `crosswords.cells` row — and `crosswords.games` deliberately absent).
-- **Terminal cursor navigation is half-frozen.** At terminal the keyboard is disabled
-  but a mouse click still moves the cursor (`onCellClick` isn't gated on
-  `isPlayable`). Inconsistent, not a bug — decide fully-freeze vs fully-allow
-  (re-enable arrow/Tab so you can read the solution by keyboard).
 - **Compete terminal never shows opponents' grids** (decision C5). The compete RLS
   *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but `useCells` stays
   filtered to the caller and PlayArea draws one grid — deliberately-unused surface,

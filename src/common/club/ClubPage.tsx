@@ -377,8 +377,8 @@ export function ClubPage({ handle, session }: Props) {
   // <SelectionList> (docs/ui.md → Selection lists). What stays here is the part
   // that is about the RELATIONSHIP between the two lists: Tab toggles focus
   // from one to the other. Everything else on the page is deliberately
-  // mouse-only — the window handler below swallows Tab so focus can never
-  // wander into other controls — while overlays keep native keys (text fields,
+  // mouse-only — `useTabRing` below keeps Tab inside the two lists so focus can
+  // never wander into other controls — while overlays keep native keys (text fields,
   // the menu dropdown, any floating panel: chat / setup / help / lookup), and
   // the global shortcuts (/, ?, ~) are untouched.
   const startListRef = useRef<HTMLDivElement | null>(null)
@@ -894,10 +894,10 @@ export function ClubPage({ handle, session }: Props) {
   // GamePage menu shape (a single common section, no per-game
   // dynamic section because there's no PlayArea here to push
   // items in). Help opens the club Help modal (parity with the
-  // GamePage menu; also what `?` reaches); rename + delete are
-  // placeholders today — they fire a "coming soon" toast so a
-  // click still has visible feedback. See docs/ui.md → "ClubPage
-  // header" for the spec.
+  // GamePage menu; also what `?` reaches); Rename club is a
+  // placeholder — it fires a "coming soon" toast so a click still
+  // has visible feedback. See docs/ui.md → "ClubPage header" for
+  // the spec.
   const menuSections: MenuSection[] = [
     // Each row IS its action — its words, its glyph and its `<` come from the
     // registry, so the row and the key cannot disagree about any of them.

@@ -20,10 +20,8 @@
  * --page-text-color and never muted: the understatement comes from size /
  * italic / placement, not dimming.
  *
- * The Guardian series' character hints used to have a rule of their own here,
- * because one hint sat under the <select> describing whichever row was chosen.
- * As a list every row carries its own, so they are `.rowNote` like the NYT
- * weekday notes — the same job, and now visibly the same thing. */
+ * The Guardian series' character hints are `.rowNote` like the NYT weekday
+ * notes — every row carries its own, the same job, visibly the same thing. */
 /* @@ */ .lead {
   margin: 0 0 0.75rem;
 }
@@ -172,11 +170,9 @@
  * Full-strength text, not muted: it is an instruction, and the override is a
  * real second way in rather than a footnote to the weekday list above it.
  *
- * It used to be this picker's one line of STATE — which date the chosen weekday
- * would fetch — and the min-height existed so the box below could not jump when
- * that lookup landed. The lookup moved to the field (it depends on the player
- * set), so the line is static now and the min-height is what keeps it the same
- * height as the sentence it replaced.
+ * The line is static — the date lookup lives in the field, since it depends on
+ * the player set — and the min-height keeps it one sentence tall, so the box
+ * below sits where a one-line lookup readout would put it.
  */
 /* @@ */ .overrideLabel {
   color: var(--page-text-color);

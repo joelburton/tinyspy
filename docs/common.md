@@ -210,7 +210,7 @@ Three terminal transitions, deliberately distinct — don't conflate them:
 | transition | who fires it | outcome |
 |---|---|---|
 | `submit_timeout` | the FE timer-expiry effect, only on a `countdown` clock hitting 0 | a **loss** (`play_state` = `lost`/`lost_timeout`/…) |
-| `end_game` | any player, any time, from the GamePage menu | **neutral** — nobody won, nobody lost |
+| `end_game` | any player, any time — `act-end-game`, one binding placed as a button, a menu row and `⌥⌫` | **neutral** — nobody won, nobody lost |
 | suspend (leave-the-page) | last viewer leaving a non-terminal game | not terminal at all — game stays `playing`, just drops out of the current slot |
 
 The uniform `end_game` contract (mirror this when adding a gametype):
@@ -635,7 +635,7 @@ They fire when nothing is focused (the mid-game common case, where word games re
 
 **The panel ⇄ game round trip: `/` takes the keyboard, Tab hands it back.** `/` focuses the chat entry whether or not chat was already open (the rAF focus covers the already-open case, where there's no remount to trigger `ChatBody`'s mount-focus). Going the other way is [`handOffKeyboardOnTab`](../src/common/keyboard/keyboardHandoff.ts), shared by the two panels you type into mid-game — the chat box and the **scratchpad**: **Tab blurs the field**, which is what "focus the board" actually means here. Every game reads keys off `window` and the dispatcher declines while *any* field is focused, so handing the keyboard back is a matter of having none focused, not of focusing something. (Same move bananagrams makes on a board pointer-down, `blurActiveField`.) Native Tab instead walked to the next control in the focus order — the header's User menu button, and from there into the browser's URL bar — where typing reached neither the panel nor the game. Shift+Tab is left native so a panel's own ✕ stays keyboard-reachable, and a half-typed message or note survives the excursion in both directions. Pinned by [`chat-keyboard.e2e.ts`](../e2e/chat-keyboard.e2e.ts) — the chat loop against boggle (a pure capture-model game, so "did the board get that keystroke?" is unambiguous) and the scratchpad against crosswords (the only game whose manifest enables it).
 
-**Tab does nothing while the board owns the keyboard.** A play surface isn't a form — there's no meaningful "next field" — so Tab is swallowed outright, with modified chords (`Ctrl-Tab`, `Cmd-Tab`) left to the browser. The games with a text entry have always got this from `useCaptureKeys`; the ones that read `window` directly get it from [`useSwallowTab`](../src/common/keyboard/useSwallowTab.ts), called once at PlayArea level in **bananagrams, scrabble, stackdown, waffle and connections**. Scope comes free from `useGlobalKeyHandler`: a setup form, a confirm dialog, chat and the scratchpad all keep their own Tab — and crosswords deliberately keeps Tab as clue navigation, so it opts out by not calling the hook. Pinned by [`tab-swallow.e2e.ts`](../e2e/tab-swallow.e2e.ts) (focus never leaves `<body>`, in either direction).
+**Tab does nothing while the board owns the keyboard.** A play surface isn't a form — there's no meaningful "next field" — so Tab is swallowed outright, with modified chords (`Ctrl-Tab`, `Cmd-Tab`) left to the browser. The games with a text entry have always got this from `useCaptureKeys`; the games with no typed entry get it from [`useSwallowTab`](../src/common/keyboard/useSwallowTab.ts), called once at PlayArea level. Scope comes free from `useGlobalKeyHandler`: a setup form, a confirm dialog, chat and the scratchpad all keep their own Tab — and crosswords deliberately keeps Tab as clue navigation, so it opts out by not calling the hook. Pinned by [`tab-swallow.e2e.ts`](../e2e/tab-swallow.e2e.ts) (focus never leaves `<body>`, in either direction).
 
 ## Theme & styling
 
@@ -774,9 +774,10 @@ remembering: `c between 'A' and 'Z'` is **collation-ordered** and en_US
 interleaves cases (it silently pinned every lowercase letter); the check
 uses `ascii()` bounds now.
 
-**The chord** matches `e.code === 'Backquote'` + Alt because macOS makes ⌥`
-the dead-key accent composer (`e.key === 'Dead'`) — the `⌥+`/`Equal` trick
-again; see [keyboard-shortcuts.md](keyboard-shortcuts.md).
+**The chord** is the registry's `altShift('Backquote', '⌥~')` — Shift
+required, matched on `code` because macOS makes ⌥` the dead-key accent
+composer (`e.key === 'Dead'`) — the `⌥+`/`Equal` trick again; see
+[keyboard-shortcuts.md](keyboard-shortcuts.md).
 
 ## Dictionary curation (edit / add / delete a word)
 

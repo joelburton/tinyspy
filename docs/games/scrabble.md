@@ -162,7 +162,9 @@ future word validation. The tile scores 0 forever.
   get unstuck, not a refusal to move ([§2.7](#27-ending-the-game)).
 - **Pass:** forfeit the turn with no play. Compete only (coop has no turns —
   the coop "we're stuck" path is exchange-if-possible or **End game**). Feeds
-  the **consecutive-pass streak** that ends a blocked game.
+  the **consecutive-pass streak** that ends a blocked game, which is why it asks
+  first — scrabble's own question (`PASS_CONFIRM`, through `askConfirmation`),
+  since the registry's `act-pass` carries none.
 
 ### 2.7 Ending the game
 
@@ -362,9 +364,8 @@ declared letter).
 2. **Optimistic-concurrency gate:** if `games.version <> base_version`, someone
    moved first → **`PN437`, a `race`, "Board changed"**. This is the race
    handler — it also rejects a *stale* client that computed against an old
-   board. It was an `ok` named `stale` until 2026-09-01; it is a refusal, and
-   the version it used to return rides in the raise's DETAIL, where the `[db]`
-   line shows it (the FE's own `game.version` comes from the games-row
+   board. It is a refusal, and the board version rides in the raise's DETAIL,
+   where the `[db]` line shows it (the FE's own `game.version` comes from the games-row
    subscription, which is the authority).
 
    **This gate is also why almost everything below it is a `fault`.** Any server
@@ -500,9 +501,10 @@ leftover-tile **forfeit** (a `'forfeit'` play row with the negative value lost,
 stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player
 `{won: false}` and **no scoring** — the group agreeing there's no result.
 The FE **menu** surfaces one exit per mode: **End game** in coop, **Concede**
-in compete (`buildGameMenu` offers compete's whole-table End only behind the
-opt-in `offersEndForAll`, which scrabble doesn't pass — so the neutral
-compete branch is live server-side but has no FE button today).
+in compete (`useStandardGameActions` offers compete's whole-table End only as
+Concede's second answer, behind the opt-in `offersEndForAll`, which scrabble
+doesn't pass — so the neutral compete branch is live server-side but has no
+FE button today).
 `scrabble.concede` is the per-player "I quit, the others keep playing". Because scrabble is turn-based, concede is
 more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finish`
 picks the winner among **non-conceded** players (a drop-out forfeits even a tying
@@ -574,15 +576,17 @@ the 15×15 board (the square *hug* model — `--side = min(--avail-w, --avail-h)
 the largest square that fits, like waffle/boggle) and, directly below it,
 scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the input,
 so it lives with everything else needed to play). That row is pinned to the board
-width and split by a divider — Shuffle + the icon-only Recall (`act-recall-tiles`) on
-the left; the **commit slot** ([Swap] [Submit] [Pass]) on the right. The commit
+width and split by a divider — Shuffle (`act-shuffle`, `⌥Z`) + the icon-only Recall
+(`act-recall-tiles`) on the left; the **commit slot** ([Swap] [Pass] [Submit]) on the
+right. The shell-wide keys apply as everywhere: `+` New game, `⌥⌫` End / Concede.
+The commit
 slot doubles as the **local feedback area**: an own-move result (or the terminal
 verdict) shows as a sticky `<FeedbackPill>` in place of the commit buttons,
 dismissed by the player's next move (a tile tap / a keystroke). To keep that row
 on one line within the board width, the buttons are compact — **Swap is
 icon-only** (`act-exchange`, two-way-arrows glyph, carrying its own reason when it
-can't act); Pass hides itself outside compete and is the de-emphasized end-turn
-octagon (`act-pass` — icon-only, secondary, left of Submit); and **Submit is the
+can't act); Pass hides itself outside compete and is the end-turn octagon in the
+registry's caution tone (`act-pass` — icon-only, left of Submit); and **Submit is the
 `SubmitWithScore` button** over `act-submit`, a
 shared component that doubles as the live preview — the triangle pinned left, the
 play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
@@ -628,7 +632,7 @@ position is read off the rack tiles' midpoints and moves the tile in the display
 Exchange.
 
 **Pre-play (compete).** Placement is split from commit by two gates: `canPlace`
-(stage / recall / reorder / shuffle) and `canCommit` (Submit / Swap / Pass — needs
+(stage / recall / reorder / shuffle, `⌥Z`) and `canCommit` (Submit / Swap / Pass — needs
 your turn). In compete `canPlace` is true **even when it isn't your turn**, so you
 can *pre-play* — lay a move out while waiting, to line it up and see its score (a
 disabled Submit showing "+N"). Pre-played tiles use the same bright tentative face.
@@ -695,7 +699,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   which hides itself in coop / Submit]; that slot doubles as the
   local feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
   when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
-  floats over the rack corner, not in this row), `ScrabbleBlankPickerBlockingModal` (declare a
+  (`act-shuffle`, `⌥Z`) floats over the rack corner, not in this row), `ScrabbleBlankPickerBlockingModal` (declare a
   dragged blank's letter on drop — a real `<BlockingModal>` since 2026-09-10, so
   it has the focus trap, Escape and panel tier every other modal has; its 26
   letters are not actions, being answers to a question this panel asks rather

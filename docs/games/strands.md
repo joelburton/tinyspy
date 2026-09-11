@@ -376,10 +376,10 @@ reversed. Physical keys also do the rest: **Backspace** drops the last tile,
 tiles are `tabIndex={-1}`: 48 tab stops would bury every real control, the same
 reasoning the shared `WordList` records.
 
-**A click never submits** (2026-08-14). Re-clicking the last tile used to send
-the word, and it was a misclick magnet: that tile is where the cursor already
-is, so clipping it while reaching for the next letter fired a half-built word
-at the server. It now truncates like any other selected tile — clicking *any*
+**A click never submits.** Re-clicking the last tile would be a misclick
+magnet: that tile is where the cursor already is, so clipping it while reaching
+for the next letter would fire a half-built word at the server. It truncates
+like any other selected tile — clicking *any*
 letter in the trace, the last one included, backs up to just before it — and
 the two deliberate routes (Enter, the Submit button) carry submission alone.
 That makes the move row load-bearing rather than a convenience, since a phone
@@ -392,9 +392,7 @@ take.
 can't use `<EntryRow>`: its string is *derived* from the path (`wordFromPath`),
 so EntryRow's `value`/`onChange` contract runs backwards. The buttons are the
 pointer twins of Backspace and Enter, and the win is touch — on a phone there's
-no keyboard, so the Submit button is now the ONLY way to send a word (before
-the row existed, submitting meant re-clicking the last letter; that gesture is
-gone, which is what promoted this button from convenience to necessity). The row **shares its fixed-height slot with the verdict pill** (you're
+no keyboard, so the Submit button is the ONLY way to send a word. The row **shares its fixed-height slot with the verdict pill** (you're
 either building a word or reading what the last one did), which is `<EntryRow>`'s
 own behavior; stackdown, whose pill has a separate reserved row, is the odd one
 out.
@@ -435,9 +433,9 @@ word-for-word boggle's.
 **New game advances to the next UNPLAYED puzzle**, carrying the club's knobs
 (and the mode itself) forward. It omits `puzzleId` and lets `create_game`
 derive it — the same function the setup dialog previews, so the two can't
-disagree. It still ASKS first and the confirm names the date, which needs a
-read; that preview call exists purely for the wording and can go stale
-harmlessly, because the authority is the create. Restart is for replaying the
+disagree. Mid-game the registry's `NEW_GAME_CONFIRM` asks first; the preview
+read (`next_puzzle_for_club`) exists only to catch a spent archive before the
+create, and can go stale harmlessly, because the authority is the create. Restart is for replaying the
 same board. When the archive is spent for these players it says so as a
 one-button notice.
 
@@ -483,7 +481,7 @@ column would be an empty grid claiming they found nothing.
 ### Turn-history replay
 
 Click any `#N` in the log to see the board as it stood at that submission
-(`useHistoryViewer` + `lib/history.ts`, like the other seven).
+(`useHistoryViewer` + `lib/history.ts`, the shared arrangement).
 
 **A filter, not a reconstruction** — which is unusual, and falls out of the
 tiling invariant. The board only ever ACCUMULATES: a theme word is found once,
@@ -633,11 +631,9 @@ a last solve racing a last concede could each snapshot the other as "still
 racing" and leave the game stuck in `playing` with nobody left to end it. Lock
 order is `strands.games` → `common.games` on every path, so no deadlock.
 
-Its refusals are `common`'s, like every other game's. strands used to raise its
-own "no such game" and "not compete" from that same `select … for update`, which
-cost two codes to say what `common.require_compete` and `common._set_conceded`
-already say; a null mode now falls through the first and is refused by the
-second. See [common.md → Concede](../common.md#concede--per-player-drop-out).
+Its refusals are `common`'s, like every other game's: "no such game" and "not
+compete" are what `common.require_compete` and `common._set_conceded` already
+say, so a null mode falls through the first and is refused by the second. See [common.md → Concede](../common.md#concede--per-player-drop-out).
 
 The manual **End** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the

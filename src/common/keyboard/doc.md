@@ -14,10 +14,9 @@ stop. So the games read keystrokes off `window` — and a window listener hears
 everything, the chat box and a setup form and a confirm dialog's buttons
 included.
 
-**What changed is that the reading moved out.** A key is a command, a command is
-an action, and one listener at the app root fires whichever action answers. So
-the fifteen hooks and branches that used to read keys here are gone, and what is
-left is the part that was never about a particular key.
+**The reading is not here.** A key is a command, a command is an action, and
+one listener at the app root fires whichever action answers. What is here is
+the part that was never about a particular key.
 
 **Whose keystroke is it?** `editableField.ts` is the whole answer, and it is two
 predicates because there are two questions. `isEditableField` is "this field
@@ -27,9 +26,8 @@ which is what stops a chat message being spelled onto the board.
 gate: a game's clue box carries `data-game-input`, so a player mid-clue can still
 press `/` to reach chat while the chat box itself keeps the character literal.
 It lives here rather than beside the dispatcher because the dispatcher is not
-the only asker: the tab ring, the blinking-caret indicator and bananagrams'
-drag all need the same answer, and it was written out four times before it was
-written once — the fourth copy having quietly omitted `<select>`.
+the only asker: the blinking-caret indicator and bananagrams' drag need the
+same answer, and a second copy of it is how `<select>` gets omitted.
 
 **Tab needs a different idea**, because native Tab does the one thing this app
 never wants. It walks focus out of the board, onto the header, and then out of
@@ -97,10 +95,10 @@ native Tab run inside a floating panel or menu, for overlays that have not
 declared rings of their own; it is the piece innermost-wins is meant to replace,
 and it stays until those overlays declare.
 
-**`useSwallowTab` is the empty ring, written before rings existed.** Eight
-surfaces call it and `useCaptureKeys` carries the same swallow in its own
-clause. All of them consume rather than ignore, which is the property that
-matters. They are one statement in several spellings.
+**`useSwallowTab` is the empty ring, written before rings existed.** The
+PlayAreas with no typed entry call it and `useCaptureKeys` carries the same
+swallow in its own clause. All of them consume rather than ignore, which is the
+property that matters. They are one statement in several spellings.
 
 **Handing the keyboard back means having nothing focused.** Focusing the board
 is not a thing that can be done, since the board reads from `window`; so the

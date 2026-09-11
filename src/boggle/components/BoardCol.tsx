@@ -176,8 +176,8 @@ export function BoardCol({
   // rather than in the PlayArea because this column owns the view's rotation, and
   // plainly active: rotating writes nothing and reaches nobody else, so the
   // post-game fidget is deliberate. Rotating invalidates the traced path's
-  // coords (they point at view positions), so clear it — the same thing the
-  // round pill below has always done, now said once for both.
+  // coords (they point at view positions), so clear it — said once for the key
+  // and the round pill below, which are one binding.
   const handleRotate = useCallback(() => {
     setTurns((t) => (t + 1) % 4)
     setPath([])

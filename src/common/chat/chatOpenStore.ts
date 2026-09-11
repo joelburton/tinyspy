@@ -6,22 +6,13 @@ import { readStored, writeStored } from '../web-storage/storage'
 /**
  * Shared open/closed state for the Chat panel.
  *
- * The chat toggle now lives in two distinct UI surfaces:
- *
- *   - The bottom-right circular button on ClubPage (still owned
- *     by `<Chat>` in its "closed" branch).
- *   - The `<ChatButton>` in the GamePage header.
- *
- * Both need to flip the same flag, and `<Chat>` needs to
- * read it to decide whether to render the panel. The previous
- * "each instance reads/writes localStorage on its own" pattern
- * doesn't propagate within a single tab — clicking the header
- * bubble wouldn't tell the bottom-right button (or vice versa)
- * without a page reload.
- *
- * So we lift the state out of the component tree into a small
- * pub-sub store. Subscribers use `useChatOpen()` (which wraps
- * `useSyncExternalStore`); writers call `setChatOpen(next)`.
+ * Three things flip it — the header's `<ChatButton>` (on the club page and the
+ * game page), the `act-open-chat` key bound at the app root, and the panel's
+ * own close — and `<Chat>` reads it to decide whether to render the panel at
+ * all (it renders nothing while closed). They sit in different subtrees, so
+ * the state lives outside the component tree in a small pub-sub store.
+ * Subscribers use `useChatOpen()` (which wraps `useSyncExternalStore`);
+ * writers call `setChatOpen(next)`.
  *
  * localStorage is still mirrored on write — that's how the open
  * state persists across club ↔ game navigation (each page mounts

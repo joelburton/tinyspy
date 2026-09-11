@@ -35,7 +35,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * via `<TypedWord>`).
  *
  * It owns the **local outer-letter shuffle** (a per-player view-only rearrange — never
- * persisted or shared), a click on an outer/center letter appending to the word, and
+ * persisted or shared) and a click on an outer/center letter appending to the word.
  * The word-entry ENGINE (`useWordSubmit`: the
  * typed word, the submit RPC, the feedback) stays in PlayArea, because its feedback
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry

@@ -9,9 +9,8 @@ import { drawInTracks, type Track } from '@/common/pdf/columns'
  * `common/pdf/columns.ts`): one column per player, each with that player's
  * board and the words on it.
  *
- * It used to print ONE board — the caller's — with the setup beside it, which
- * in compete is most of the game missing: everyone builds their own crossword,
- * and the whole point of a record is comparing them.
+ * Every board, not just the caller's: in compete everyone builds their own
+ * crossword, and the whole point of a record is comparing them.
  *
  * **Two columns, not the family's usual three.** A Bananagrams grid sprawls
  * across a 25×25 arena, so it's much wider than a wordle or waffle board; at a

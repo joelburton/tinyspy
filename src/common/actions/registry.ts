@@ -100,10 +100,7 @@ export type ActionSpec = {
   consumes?: boolean
 }
 
-/** Concede's question, for a race whose only way out is dropping out. Written
- *  here rather than beside its three siblings in `useConfirmation.tsx`, which is
- *  where the shape came from — it asked through `window.confirm` until the last
- *  game that hand-rolled a concede converted. */
+/** Concede's question, for a race whose only way out is dropping out. */
 const CONCEDE_CONFIRM: ConfirmOptions = {
   title: 'Concede the game?',
   message: 'You drop out and the others keep playing.',
@@ -117,8 +114,8 @@ const CONCEDE_CONFIRM: ConfirmOptions = {
  * The two are different acts and the difference is subtle — which is exactly
  * why it is asked rather than drawn. Two red buttons side by side can only name
  * them; this can say what each one does, once, at the moment somebody is
- * choosing. (bananagrams is the only game offering both today; the rest of the
- * roster asks `CONCEDE_CONFIRM` above and sees no difference at all.)
+ * choosing. (A race that offers only Concede asks `CONCEDE_CONFIRM` above and
+ * sees no difference at all.)
  */
 const CONCEDE_OR_END_CONFIRM: ConfirmOptions = {
   title: 'Concede, or end the game?',

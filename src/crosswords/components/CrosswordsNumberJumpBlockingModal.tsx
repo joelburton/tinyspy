@@ -62,8 +62,8 @@ export function CrosswordsNumberJumpBlockingModal({ onSubmit, onClose }: Props) 
             if (error) setError(false)
           }}
           onKeyDown={(e) => {
-            // Stop the window grid handler from also seeing these keys (it's
-            // suspended while we're open, but this is belt-and-braces).
+            // Stop these keys before the dispatcher sees them (the grid's keys
+            // are suspended while we're open, but this is belt-and-braces).
             e.stopPropagation()
             if (e.key === 'Enter') {
               e.preventDefault()

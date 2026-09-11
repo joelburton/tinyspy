@@ -263,10 +263,10 @@ export function PlayArea({
     players.find((p) => p.user_id === session.user.id)?.conceded ?? false
 
   // ─── End / Concede / Replay — the shared three ─────────
-  // End is available in both modes and terminates with everyone {won:false} and
-  // a NEUTRAL verdict: friends agreeing to stop is a valid outcome, not a "you
-  // lose" punishment. It's fired by the End button in the info column (like
-  // psychicnum), not a GamePage-menu item. Concede is compete's drop-out (a real
+  // End is coop's stop, hidden in compete: it terminates with everyone
+  // {won:false} and a NEUTRAL verdict, because friends agreeing to stop is a
+  // valid outcome, not a "you lose" punishment. It is a button in the info
+  // column and a menu row, one binding. Concede is compete's drop-out (a real
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
   // and `onRestarted` leaves the turn-history view + clears the pill.
@@ -539,9 +539,9 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actHint, actRestart, actNewGame, actPrintBoard])
 
-  // Hints + End live in the info-column action row (buttons), not the GamePage
-  // menu — see the .infoActions block below. Hints toggles the inline HintList
-  // (only shown while the caller can submit); End fires handleEndGame.
+  // Hints + End are buttons in the info-column action row AND menu rows, each
+  // from one binding — see the .infoActions block below. Hints toggles the
+  // inline HintList (only shown while the caller can submit).
 
   // (The guess dispatch — submit_guess + dup detection + the wrong-guess shake — and
   // the local tile shuffle moved into BoardCol, beside the board + commit row.)

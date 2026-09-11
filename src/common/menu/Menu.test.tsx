@@ -3,8 +3,8 @@
 /**
  * Tests for the shared Menu component. Menu owns the trigger ↔
  * popover keyboard contract for every "icon opens a list of
- * actions" affordance in the app — GamePage's game menu today,
- * ClubPage's club menu next. The contract is intricate enough
+ * actions" affordance in the app — every page's header menu.
+ * The contract is intricate enough
  * (arrow nav, disabled-skip, Esc-returns-focus, Tab-closes,
  * click-outside, ARIA wiring) that manual smoke-testing leaves
  * blind spots; these tests pin the behavior so the keyboard
@@ -662,7 +662,7 @@ describe('Menu — submenus (mobile drill-down)', () => {
 })
 
 /**
- * The icon gutter — the icon language's legend (MenuItem.icon, docs/ui.md →
+ * The icon gutter — the icon language's legend (`MenuRow.icon`, docs/ui.md →
  * Button iconography). Icon-only buttons carry their names in hover tooltips,
  * which touch devices don't have; the menu spells the same actions out in
  * words, so the glyph beside the name teaches the pairing once.

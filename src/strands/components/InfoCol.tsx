@@ -207,8 +207,8 @@ export function InfoCol({
         {!over && !isLocallyDone && (
           <p className={shared.infoHelp}>
             Click letters in order — they may touch diagonally. After the first,
-            you can type the rest. Click the last one again (or press{' '}
-            <kbd>Enter</kbd>) to submit; <kbd>⌫</kbd> undoes one.
+            you can type the rest. Press <kbd>Enter</kbd> (or the Submit button)
+            to submit; <kbd>⌫</kbd> undoes one.
           </p>
         )}
 

@@ -267,7 +267,7 @@
   margin-right: -1rem;
 }
 
-/* The leading glyph slot — the icon language's legend (MenuItem.icon).
+/* The leading glyph slot — the icon language's legend (`MenuRow.icon`).
  *
  * A FIXED box, rendered for every row as soon as any row in the menu has an
  * icon, so the labels share one text column. Reserving it per-menu rather than

@@ -35,11 +35,10 @@ type Props = AllFieldProps<PuzzleChoice> & {
 /**
  * **WHICH PUZZLE** — four buttons, each opening its own picker.
  *
- * This is one field with one name, and that is the point of it. The four
- * sources used to be tabs inside the setup form, which made it possible for a
- * refusal about a source to arrive while a different source was on screen —
- * something no amount of care in the error system can fix from outside, because
- * it is what a tab model permits. A picker is a blocking modal: what is being
+ * This is one field with one name, and that is the point of it. A tab model
+ * permits a refusal about a source to arrive while a different source is on
+ * screen — something no amount of care in the error system can fix from
+ * outside. A picker is a blocking modal: what is being
  * judged and what you are looking at are the same thing, and nothing behind it
  * is live while you decide.
  *

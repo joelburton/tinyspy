@@ -12,10 +12,9 @@
  * What `typeLetter` adds is not word entry but **letter-at-a-time cell
  * selection**, which sidesteps that rather than ignoring it: a keystroke is
  * resolved against the cells that could actually come next, and it only moves
- * the trace when exactly one qualifies. So the rule the old design derived from
- * ("a string can't name a path") is refined, not reversed — the disambiguation
- * that used to be "click the letter you meant" now happens per keystroke, and
- * falls back to clicking exactly when it must.
+ * the trace when exactly one qualifies. So the rule ("a string can't name a
+ * path") is refined, not reversed — the disambiguation happens per keystroke,
+ * and falls back to clicking the letter you meant exactly when it must.
  *
  * That works because of an asymmetry in the board: the FIRST letter of a word
  * competes with all 48 cells and is usually ambiguous, but every letter after it
@@ -38,11 +37,11 @@ export type Trace = readonly Coord[]
 
 /** What a click did — the trace that should replace the current one.
  *
- *  A click NEVER submits. Re-clicking the last tile used to (2026-08-14), and
- *  the affordance was a misclick magnet: the last tile is the one your cursor
- *  is already on and the one you're most likely to hit while reaching for the
- *  next letter, so a slip sent a half-built word. Submitting is Enter or the
- *  Submit button, both of which are deliberate. */
+ *  A click NEVER submits. Re-clicking the last tile would be a misclick
+ *  magnet: the last tile is the one your cursor is already on and the one
+ *  you're most likely to hit while reaching for the next letter, so a slip
+ *  would send a half-built word. Submitting is Enter or the Submit button,
+ *  both of which are deliberate. */
 export type TraceResult = {
   /** The trace after the click. */
   trace: Trace
@@ -61,13 +60,12 @@ export type TraceResult = {
  *     "scrap it" — the same rule stackdown's word row uses when you click a
  *     filled slot (an order can't lose a middle piece and keep the rest).
  *
- *     THE LAST TILE IS NOT A SPECIAL CASE, and stopped being one on
- *     2026-08-14. Re-clicking it used to submit; now it takes that letter back
- *     like any other. The old behavior put a destructive action under the
- *     cursor's most likely resting place — you reach for the next letter,
- *     clip the one you just placed, and a half-built word goes to the server.
- *     Submitting has two deliberate routes (Enter, the Submit button), so it
- *     did not need a third that fires on a slip.
+ *     THE LAST TILE IS NOT A SPECIAL CASE: re-clicking it takes that letter
+ *     back like any other. Submitting on that click would put a destructive
+ *     action under the cursor's most likely resting place — you reach for the
+ *     next letter, clip the one you just placed, and a half-built word goes to
+ *     the server. Submitting has two deliberate routes (Enter, the Submit
+ *     button), so it needs no third that fires on a slip.
  *  3. **Otherwise it's a free tile** — extend when it's 8-way adjacent to the
  *     current end; otherwise **start a new trace there, discarding whatever was
  *     selected**. The old path is not kept, not merged, and not submitted — a

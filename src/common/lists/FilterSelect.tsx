@@ -26,7 +26,7 @@ export type FilterOption = {
  *
  * **Why not a `<select>`.** A native select holds the keyboard, and the app
  * treats that correctly and fatally: `isEditableField` counts `SELECT`
- * alongside INPUT/TEXTAREA, so `useGlobalKeyHandler` stops dispatching and
+ * alongside INPUT/TEXTAREA, so the action dispatcher stops firing game keys and
  * `useGameHasKeyboard` stops the entry caret blinking — "caret visible ⟺ keys
  * reach the game" is a deliberate invariant, and a focused select really does
  * break it. The trouble is getting the focus BACK. The browser fires nothing

@@ -70,8 +70,6 @@ type GenericFeedbackMsg = {
   tone: Outcome
   text: ReactNode                       // usually a string; a node so a message can embed an inline icon
   dot?: string | null                   // leading player-color disc — identity anchor for peer messages (null = the neutral fallback; absent = none)
-  fault?: true                          // bare red text, not a pill — see Faults below. Never authored by hand
-  diagnostics?: string                  // the `[db]` line the fault modal shows; travels with `fault`
   mode:                                 // what KIND of message — decides both behavior AND look
     | { kind: 'sticky' }                // until replaced, or the player acts (key / tile / tap the pill)
     | { kind: 'timed'; ms?: number }    // self-dismisses after the delay; a tap kills it early
@@ -79,7 +77,7 @@ type GenericFeedbackMsg = {
     | { kind: 'permanent' }             // a standing condition; only a later pill REPLACES it
 }
 
-feedback: {
+globalFeedback: {
   show: (msg: GenericFeedbackMsg) => void
   clear: () => void
 }
@@ -94,7 +92,7 @@ feedback: {
 
 **One field, because the alternative leaked.** This used to be two — a `variant` for appearance beside a `dismiss` for behavior — whose product allowed six states for four real meanings. "Permanent" had no name; it was spelled `variant: 'fill'` + `sticky`, so *whether a pill could be dismissed* had to be read off a styling prop. Two bugs came straight out of that: the out-of-race pill was filed as `sticky` (so a keystroke wiped the only statement of the player's own status), and eight transient messages wore the permanent background by forgetting to say `outline`. Appearance now follows the mode, and neither mistake is expressible.
 
-**Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via `useCaptureKeys`, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
+**Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via the `act-dismiss-feedback` watcher, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
 
 Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
@@ -206,11 +204,11 @@ Game-end UI splits along one line: **the moment** (a win worth marking, which ha
 - `message` → the **info-column outcome line** in `<TerminalActionRow>`. Shorter still: "You won!" / "Out of guesses" / "Game over".
 - `tone` (`won` / `lost` / `neutral`) colors both. The neutral manual-end copy is shared outright (`endedCopy()`) — the friends agreed to stop, so nobody won and nobody lost.
 
-**`<TerminalActionRow>`** (`common/terminal/`) is the shared info-column game-over row: the outcome line, then any per-game terminal actions as children, then a primary Back-to-Club. Every game passes `backShow="icon"` so the row survives a ~22rem column (Restart + Reveal + New game + Back to club is four items in a `nowrap` row — see [Button iconography](#button-iconography)). Its neutral twin **`<LocalTerminalRow>`** covers *locally* terminal states — a compete player who conceded or ran out while the others race on — so dropping out reads as loudly as a real ending without claiming the game is over.
+**`<TerminalActionRow>`** (`common/terminal/`) is the shared info-column game-over row: it takes `over` (the `TerminalCopy`) and `children` — the outcome line, then the game's terminal actions, Back-to-club last. Every game places that one as an icon-only `<ActionButton>` so the row survives a ~22rem column (Restart + Reveal + New game + Back to club is four items in a `nowrap` row — see [Button iconography](#button-iconography)). Its neutral twin **`<LocalTerminalRow>`** covers *locally* terminal states — a compete player who conceded or ran out while the others race on — so dropping out reads as loudly as a real ending without claiming the game is over.
 
 Neither replaces the page: it stays in *review mode* (the final board, connections' revealed categories, and — once asked for — codenamesduet's partner key card or psychicnum's ringed secrets; see [Don't reveal the solution on a loss](#terminal-results--the-moment-vs-the-record) below). And per [Layout stability](#layout-stability), the terminal row **rotates into a reserved slot** — it never adds or removes a flow element, which would let the `flex: 1` board grow.
 
-**Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. The row's button calls `goToClub: () => void` off `GamePageCtx`, which `<GamePage>` wires to direct navigation (the same terminal branch the menu's "Back to club" item takes).
+**Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. Rows place `<ActionButton action={menu.actBackToClub}>` — the same binding as the menu row, whose terminal branch is direct navigation.
 
 **The moment — `<CelebrationBlockingModal>`.** `common/terminal/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle, ported from crossplay) is **the only modal a terminal game pops**, and only for a win. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
 
@@ -278,7 +276,8 @@ game", "Suspend") — never a bare "OK". For the imperative form handlers want,
 `window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
 `{confirmationModal}` node to render.
 
-Three standing users:
+The standing questions — every one the registry carries (New game, Restart,
+End game, Concede, Reveal grid) plus Suspend, which is the page's own:
 
 - **End game** — ALWAYS confirmed, in every game and every entry point (the
   info-row button, the menu item, the pause overlay's escape hatch), even
@@ -287,11 +286,11 @@ Three standing users:
   everywhere.
 - **New game** — confirmed only while a game is IN PROGRESS (at terminal
   there's nothing to interrupt, so it goes straight through). `NEW_GAME_CONFIRM`
-  is the shared copy, asked inside each game's own `handleNewGame`, so every
-  entry point inherits it: the terminal button, the menu item, and the `+`
-  shortcut. **⌥+** (new game from setup) asks it separately, in GamePage — it
-  never reaches a game's handler, since it hands off to ClubPage's setup dialog
-  instead of dealing a board. **Its copy reassures rather than warns**, because starting a new
+  is the shared copy, carried by the registry on `act-new-game` and asked by
+  the shared run, so every placement inherits it: the terminal button, the
+  menu row, and the `+` key. **⌥+** (`act-new-game-from-setup`) carries the
+  same question and hands off to ClubPage's setup dialog instead of dealing a
+  board. **Its copy reassures rather than warns**, because starting a new
   game does *not* end this one — `create_game` clears the club's current-view
   flag and the old game stays resumable from the club page ("shelved, not
   lost"). Phrasing it like End game's "you can't undo it" would be false. The
@@ -315,7 +314,7 @@ macOS-style placement, consistent across every dialog / modal / confirm: the act
 
 The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only Help button — `act-help`, the same command the in-game menu's Help row is — is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
 
-**Back to club** — the one button that recurs across surfaces (**every** game's terminal row, icon-only + `primary`, via `<TerminalActionRow>` — crosswords' hand-rolled terminal row matches it; plus the *playing* action row in the seven entry-row games, where the row has space for it. The other six reach the club through the game menu's Back-to-club item (`<`), which is the universal route in every game) is the shared [`<BackToClubButton>`](../src/common/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so the control announces itself as "Back to club" and nothing else), its spacing, and the label stay identical everywhere. It DRAWS "Club" and is CALLED "Back to club" — the short word is its `label`, the sentence its `tooltip`, which is the hover bubble and the accessible name. Pass `show="icon"` for the square, which the terminal rows do to fit the row, or a `label` of your own where there is room (the pause overlay draws the whole "Suspend and return to club"). `weight` only swaps the fill: the terminal row passes `primary` (filled accent), and `secondary` (outline) is the default everywhere else. The GamePage *menu* item is plain text, not this button.
+**Back to club** is `act-back-to-club`, bound once by `GamePage`: a terminal row places it as an icon-only `<ActionButton>`, and the game menu's row wears its `IconBack` and `<`, so the glyph, the words and the key are the registry's everywhere. The shared [`<BackToClubButton>`](../src/common/buttons/BackToClubButton.tsx) is for the two surfaces that REPLACE the play area and so cannot reach the binding — `PauseOverlay` (which draws the whole "Suspend and return to club") and `DeviceBlockNotice`. It DRAWS "Club" and is CALLED "Back to club" — the short word is its `label`, the sentence its `tooltip`, which is the hover bubble and the accessible name. `weight` only swaps the fill: `primary` is the filled accent, and `secondary` (outline) is the default.
 
 ### Existing offenders to retrofit
 
@@ -335,7 +334,7 @@ which is why the umbrella word and the component share a name.
 
 **"Panel" on its own means nothing and is banned** — in prose, in docs, in
 conversation, and in any component name. The evidence: connections' `HintList`
-was once called a "panel" while cataloguing the dialog-like things, and it is a
+was once called a "panel" while cataloging the dialog-like things, and it is a
 readout sitting in the info column's flow — no rect of its own, no titlebar, no
 ✕, nothing to dismiss. "Floating panel" would have blocked the mistake and
 "panel" invited it. A module-scoped `.panel` class is fine, since a local class
@@ -1143,7 +1142,7 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 - **Chat.** Every `<GamePage>` mounts `<Chat>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
 - **Timed / untimed setup choice.** Every game's setup form has a `<SetupTimerSection>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
-- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
+- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void; brand: string }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
 - **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
 - **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Non-terminal games show the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`.
 
@@ -1162,7 +1161,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 - **`<GameLogo manifest={…} />`** — square SVG (`src/<game>/logo.svg`). The logo is a menu trigger: click opens the GamePage menu (Help, Back to club, per-game items). See [GamePage menu](#gamepage-menu) below.
 - **`<ChatButton />`** — toggle for the floating chat panel. Same icon open or closed, but while **closed** it doubles as an unread indicator: the bubble fills with the latest unread sender's profile color, and a small count pill (top-left) shows how many messages arrived since this member last had the panel open. Opening clears it. The pill is **black**, not a player color — red and the other player hues are all valid profile colors, so a colored pill would read as "a sender" and could clash with the bubble's fill. Unread is tracked per-club via a localStorage `lastSeen` bookmark (`chatUnread.ts`), so it survives reloads and a never-opened panel shows the whole backlog as unread. Stays in place when chat is open per [Layout stability](#layout-stability).
 - **`<ScratchpadButton />`** — toggle for the floating scratchpad panel, rendered only when the game's manifest opts in (`scratchpad.enabled`). Grouped tight against the chat bubble (`.panelToggles`, a smaller gap than the header's) — the two are related in purpose (each toggles a floating panel), and the closeness signals the pairing.
-- **`<PageHeaderStatusSlot />`** — default content is `<PageHeaderPlayersStrip>` (colored usernames, one per `player`). When `ctx.feedback.show()` has been called and isn't cleared yet, the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when feedback clears.
+- **`<PageHeaderStatusSlot />`** — default content is `<PageHeaderPlayersStrip>` (colored usernames, one per `player`). When `ctx.globalFeedback.show()` has been called and isn't cleared yet, the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when feedback clears.
 
 **Right, right-justified:**
 
@@ -1193,13 +1192,13 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          └──────────────────────┘
 ```
 
-**The `buildGameMenu` helper** ([common/menu/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with the game's **exits** + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the row is where `/` is written down. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
+**The `buildGameMenu` helper** ([common/menu/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with the game's **exits** + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the row is where `/` is written down. Most games call it in one line with `extra: [{ items: [actPrintBoard] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
 **A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its key hint and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
 
 **Shortcut hints** are the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **`<`** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
-**⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'` + Shift, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
+**⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. Its chord is the registry's `altShift('Equal', '⌥+')` — matched on `code`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
 
 **`<` means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* row carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are.
 
@@ -1220,7 +1219,7 @@ menu: {
 
 **Focus.** The game menu is given `returnFocusOnClose={false}` (Menu.tsx), so closing it blurs the trigger and lets focus fall to `<body>` — a keyboard-first board (crosswords) resumes reading arrows instead of a focused logo swallowing them / reopening the menu. `Menu` also `stopPropagation`s its own keydowns so arrowing through the menu never doubles as a board move. Non-game menus (ClubPage's, HomePage's) keep the standard Esc-restores-focus a11y.
 
-**Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100vh - 5rem)` and scrolls internally.
+**Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100svh - 5rem)` and scrolls internally.
 
 **Pause behavior.** The menu is openable while paused. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu is empty until resume.
 
@@ -2006,16 +2005,18 @@ can't.
 tooltips, and a touch device has no hover — `TooltipHost` disables the hover
 path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
-is [`MenuItem.icon`](../src/common/menu/menuModel.ts): the game menu already spells
+is the menu row's glyph — the registry's own for an action, and
+[`MenuSubmenu.icon`](../src/common/menu/menuModel.ts) for a submenu parent: the game menu already spells
 these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
 Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how
 hint + spoiler reached letterboxed, psychicnum and stackdown, and how
 letterboxed got the Reveal solution row its terminal button had been missing.
-A grayed row still teaches, so a row is disabled rather than dropped when the
-action isn't available — the exception being an action the mode never offers at
-all (letterboxed's help ladder in compete, crosswords' Reveal submenu), where
-naming a glyph the surface never shows would teach a lie. The pairing is taught
+A grayed row still teaches, so an action whose `describe()` answers `disabled`
+keeps its row, grayed — only `hidden` drops it, which is the answer for an
+action the mode never offers at all (letterboxed's help ladder in compete,
+crosswords' Reveal submenu), where naming a glyph the surface never shows would
+teach a lie. The pairing is taught
 once, at the point of need, and reads in all sixteen games afterwards — for no
 board space and no per-tap cost, which is what rules out a tap-to-reveal on the
 buttons themselves (it would tax every future tap to answer a first-encounter
@@ -2023,7 +2024,7 @@ question) and a Help-page legend (nobody opens it at the moment of doubt).
 
 Two rules keep it honest. **Icons come from the semantic registry**, never
 `lucide-react` directly, so the menu can never teach a symbol the button doesn't
-use; `MenuItem.icon` is typed `AppIcon`, the registry's own type, so a menu row
+use; `MenuSubmenu.icon` and the registry's `icon` are typed `AppIcon`, the icon registry's own type, so a menu row
 and a button can be handed the identical value — including a glyph the registry
 defines itself rather than aliasing from lucide. And **the gutter is
 reserved per menu**: once any row has an icon every row gets the slot, so labels

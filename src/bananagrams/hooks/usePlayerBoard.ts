@@ -33,7 +33,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and
- * behavior that `<PlayerBoard>` used to hold inline, lifted into a hook.
+ * behavior behind `<PlayerBoard>`, as a hook.
  *
  * Why a hook (and not the roster's `BoardCol` + `InfoCol` split): bananagrams is the
  * documented exception where the board and the hand are NOT independently-owned

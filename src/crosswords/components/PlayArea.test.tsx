@@ -226,7 +226,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   }
 
   it('flags that Check skips pencil when the checked scope holds a pencil mark', async () => {
-    // Cursor starts at 0,0; a pencilled fill there is in every scope (letter +
+    // Cursor starts at 0,0; a penciled fill there is in every scope (letter +
     // whichever word direction), so Check word surfaces the notice.
     h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: true })]])
     render(<PlayArea {...makeCtx()} />)

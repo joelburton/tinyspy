@@ -7,7 +7,7 @@ The one menu, the two stores beside it, and what a game puts in it.
 There is a single `<Menu>` — the mark in every page header — and everything
 else here exists so a caller can hand it rows without also handing it
 decisions. A row is an **action** (`common/actions`), so its words, its glyph,
-its key hint and whether it applies today all arrive with the binding; the only
+its key hint and whether it applies right now all arrive with the binding; the only
 row that is not an action is a submenu, and it earns that by not being one
 (opening is the whole behavior, so there is nothing to run and no key to
 advertise). `menuRow` is the one place a row is read on its way in, which is
@@ -22,14 +22,18 @@ there is nothing to arbitrate:
   without three pages each carrying a ref across.
 - `gameMenuStore` holds *what a game has pushed into* it.
 
-The second one is worth its own sentence, because it was a `useState` on the
-game page and the difference is not only speed. Pushing a menu re-rendered the
-whole page, board included, for a change nothing outside the menu can see — and
-it quietly made the IDENTITY of a menu row load-bearing, since a game's menu
-effect lists its rows in its deps: a row rebuilt each render would set state,
-re-render, rebuild and loop. That is a trap laid for whoever writes the next
-row. With the store, a game re-rendering costs the menu nothing and a menu push
-costs the game nothing, and stable identities are back to being an optimization.
+The second one is worth its own sentence, because the alternative — state on
+the game page — is not only slower. Pushing a menu would re-render the whole
+page, board included, for a change nothing outside the menu can see, and it
+would make the IDENTITY of a menu row load-bearing, since a game's menu effect
+lists its rows in its deps: a row rebuilt each render would set state,
+re-render, rebuild and loop. With the store, a game re-rendering costs the menu
+nothing and a menu push costs the game nothing, and a stable identity is only
+an optimization.
+
+A row grays while its action is still out: `menuRow` reads the binding's
+`pending` alongside its state, so a row cannot advertise a key for a run it
+would drop.
 
 **A game owns its WHOLE menu**, framing included — `buildGameMenu` assembles
 the standard shape (Help and chat above, the game's own sections, then the

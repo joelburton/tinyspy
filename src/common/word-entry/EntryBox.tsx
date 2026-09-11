@@ -23,7 +23,7 @@ type Props = {
 /**
  * The shared **capture-input display**: large centered text with a blinking
  * caret, holding no `<input>`. The capture-input games read keystrokes off the
- * window (see `useGlobalKeyHandler`) and feed the pending value here; there's
+ * window (the entry actions `useCaptureKeys` binds) and feed the pending value here; there's
  * no focusable field, so clicking a board tile never blurs the entry and
  * interrupts typing.
  *

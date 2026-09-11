@@ -45,25 +45,18 @@ const PASS_CONFIRM: ConfirmOptions = {
 type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-/** The player's own-move result, shown as a sticky pill in the commit slot. The
- *  turn machine reports these UP via `showLocalFeedback`; PlayArea owns the channel (it
- *  also folds the terminal verdict in), because InfoCol's End/Concede write to it too. */
 /**
- * The below-board message shape. This used to be scrabble's own narrower type
- * (`{ tone, text: string }`) — a private duplicate of the shared one, from
- * before `GenericFeedbackMsg` carried modes. It's the shared type MINUS its
- * mode, which PlayArea supplies: the channel is always sticky here.
+ * The player's own-move result, shown as a sticky pill in the commit slot. The
+ * turn machine reports these UP via `showLocalFeedback`; PlayArea owns the channel
+ * (it also folds the terminal verdict in), because InfoCol's End/Concede write to
+ * it too.
  *
- * Widened when the server-error keys landed, because a FAULT has to survive the
- * trip: a string-only `text` cannot carry the `fault` flag, so a dead
- * connection mid-play would have been flattened into a pill that looks exactly
- * like a rejected word (docs/envelopes.md → Appearance).
+ * The shared message shape with its `mode` OPTIONAL. Hand-built own-move pills
+ * omit it and get the wrapper's sticky default; a classified message
+ * (`failureMessage`) carries its own — and a fault's `manual` mode must survive
+ * the trip, or the one message meant to be read down a phone line is dismissed
+ * by the next tile click (docs/envelopes.md → Appearance).
  */
-/** What BoardCol's sink accepts: a message whose `mode` is OPTIONAL. Hand-built
- *  own-move pills omit it and get the wrapper's sticky default; a classified
- *  message (`failureMessage`) carries its own — and a fault's `manual` mode
- *  must survive the trip, or the one message meant to be read down a phone
- *  line is dismissed by the next tile click (review finding 7). */
 export type LocalFeedbackMsg = Omit<GenericFeedbackMsg, 'mode'> & {
   mode?: GenericFeedbackMsg['mode']
 }
@@ -184,8 +177,8 @@ function nextRackOrder(
  * `terminal` is on all three because the FE branches on it uniformly.
  *
  * `stale` is NOT here: a board that moved under you is a RACE, so it arrives on
- * the not-ok arm with the server's own "Board changed". The version it used to
- * carry rides in that refusal's `detail`, where the `[db]` line shows it — the
+ * the not-ok arm with the server's own "Board changed". The board version
+ * rides in that refusal's `detail`, where the `[db]` line shows it — the
  * frontend's own `game.version` comes from the games-row subscription, which is
  * the authority.
  */
@@ -652,10 +645,9 @@ export function BoardCol({
       score: ev.score,
     }))
     setSubmitting(false)
-    // ONE un-claim, covering every answer that didn't commit. `stale` used to
-    // be an `ok` handled three branches down; it is a RACE now — somebody
-    // else's move bumped the board version — so it arrives here with the
-    // server's own "Board changed", in the orange a race reads as.
+    // ONE un-claim, covering every answer that didn't commit. `stale` is a
+    // RACE — somebody else's move bumped the board version — so it arrives
+    // here with the server's own "Board changed", in the orange a race reads as.
     if (res.type === 'not-ok') {
       lastActionRef.current = prevAction // the move didn't land — un-claim it
       pendingDrawRef.current = prevDraw
@@ -780,9 +772,9 @@ export function BoardCol({
   // four bound actions. scrabble supplies its 5%: type stages a tile, Backspace
   // takes the last one back, and the commit is a SUBMIT of the staged word.
   //
-  // Leaving a turn viewer is not here any more: `useHistoryViewer` binds that
-  // itself, and the dispatcher runs an any-key MODE ahead of any particular key,
-  // so the press reaches it without the board standing aside.
+  // Leaving a turn viewer is not the board's concern: `useHistoryViewer` binds
+  // that itself, and the dispatcher runs an any-key MODE ahead of any particular
+  // key, so the press reaches it without the board standing aside.
   const { actCommit: actSubmit } = useBoardCursorKeys({
     enabled: canPlace,
     commit: 'act-submit',

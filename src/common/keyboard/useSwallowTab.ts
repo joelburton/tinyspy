@@ -28,16 +28,15 @@ import { useGlobalKeyHandler } from './useGlobalKeyHandler'
  * every key while open (and while its trigger has focus), so a window-level
  * listener never sees them — that's what keeps Tab-closes-the-menu working.
  *
- * Call it once per surface. Games built on `useCaptureKeys` (boggle,
- * spellingbee, wordle, wordwheel, wordiply, psychicnum) already get this from
- * that hook and don't need it; crosswords deliberately keeps Tab as clue
- * navigation. Callers today: the five window-key games' PlayAreas.
+ * Call it once per surface. Games built on `useCaptureKeys` already get this
+ * from that hook and don't need it; crosswords deliberately keeps Tab as clue
+ * navigation. The callers are the PlayAreas that mount neither of those — the
+ * games worked by cursor or click rather than a typed entry.
  *
  * **A surface with anywhere for Tab to GO wants `useTabRing` instead.**
  * Swallowing Tab on a page that has a list is a trap: click any blank part of
  * it and the list blurs, taking its cursor with it, and no key is left that can
- * hand the keyboard back. That is exactly what the homepage did until
- * 2026-08-24.
+ * hand the keyboard back.
  *
  * This hook is really `useTabRing([])` — an empty ring — written before rings
  * existed, and it goes when the games declare theirs (plans/tab-rings.md).

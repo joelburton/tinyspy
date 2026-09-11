@@ -7,7 +7,8 @@
  * typing a clue (you can hit `/` to chat without clicking away). This is the
  * counterpart to the chat box being `data-chat-input` (NOT a game input), so
  * `/` types a literal slash there. `isNonGameField`'s LOGIC is covered in
- * useAppShortcuts.test.ts; this pins that the actual clue inputs carry the tag.
+ * `common/keyboard/editableField.test.ts` (the shell actions reach it through
+ * `inField: 'game-inputs'`); this pins that the actual clue inputs carry the tag.
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

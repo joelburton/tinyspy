@@ -47,7 +47,7 @@ export function Help({ onClose, brand }: Props) {
       </ul>
       <p>
         Click the letters or just type. Use Backspace to delete, Enter to submit,
-        and the ⟲ button to shuffle the outer letters.
+        and the ⟲ button (or <kbd>⌥Z</kbd>) to shuffle the outer letters.
       </p>
     </GameHelpCompanion>
   )

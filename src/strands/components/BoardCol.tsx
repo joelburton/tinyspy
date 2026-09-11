@@ -139,10 +139,7 @@ export function BoardCol({
 
              The buttons are the pointer twins of Backspace and Enter, and the
              real gain is touch: on a phone there is no keyboard, so this is the
-             ONLY way to submit. (It used to share that job with re-clicking the
-             last letter, which was removed on 2026-08-14 for being a misclick
-             magnet — which makes this button load-bearing rather than a
-             convenience.) */
+             ONLY way to submit — load-bearing rather than a convenience. */
           <MoveRow className={styles.moveRow} actDelete={actDelete} actSubmit={actSubmit}>
             <EntryBox value={echo} className={styles.echo} />
           </MoveRow>

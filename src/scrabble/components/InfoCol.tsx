@@ -39,8 +39,8 @@ const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
  * scrabble's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): turn/score
  * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
- * mutation is a named callback up (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea
- * owns the RPCs + coordination. Prop names match the other games' columns for the
+ * command arrives as a bound action this column places; the one callback up is
+ * `onSelectTurn`. PlayArea owns the RPCs + coordination. Prop names match the other games' columns for the
  * same idea (docs/playarea.md).
  */
 export function InfoCol({
@@ -213,10 +213,10 @@ export function InfoCol({
         {/* Opponent strip (compete) — every SEAT's score on one line, identity on a
             leading disc. Scores aren't hidden (the board reveals them).
 
-            AI seats ride the same strip as synthetic Members. They used to get
-            their own second line, because bots aren't in the common roster — and
-            that line drifted: two "Score:" labels, disagreeing about which of the
-            label / name / number was bold. One roster, one label, one typography.
+            AI seats ride the same strip as synthetic Members, though bots aren't
+            in the common roster: a second line of their own drifts (two "Score:"
+            labels, disagreeing about which of the label / name / number is
+            bold). One roster, one label, one typography.
             Seat order, so the strip reads in turn order (orderSelfFirst still
             hoists the viewer). */}
         {isCompete && (
@@ -233,7 +233,7 @@ export function InfoCol({
               // who played to the end and lost — which matters the moment there
               // are three seats rather than two.
               //
-              // Parenthesised, not `·`-joined. `·` is the strip's PLAYER
+              // Parenthesized, not `·`-joined. `·` is the strip's PLAYER
               // separator, so the old "Lost · 260" made
               // "You: Lost · 260 · AI 1: 333" run three separators doing two
               // different jobs. Score first, because the number is what the eye

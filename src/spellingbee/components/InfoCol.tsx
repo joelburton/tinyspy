@@ -98,8 +98,7 @@ export function InfoCol({
   actNewGame: BoundAction
   /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
    *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game, which is the difference the two callbacks
-   *  this replaced were spelling out by hand. */
+   *  suspend-confirm flow mid-game. */
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
@@ -109,7 +108,6 @@ export function InfoCol({
 
   // ── Found-words list ──
   wordRows: WordListRow[]
-  /** True at terminal — folds the missed-words reveal into `wordRows`. */
   /** True once the terminal missed-words reveal is folded into `wordRows`. */
   reveal: boolean
   /** Does this board have a bonus word list? Drops the list's KIND filter when not. */

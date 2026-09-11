@@ -21,9 +21,10 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * waffle's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): swap-state
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
- * disclosure → swap log. Every mutation is a named callback up
- * (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the RPCs + coordination.
- * Prop names match the other games' columns for the same idea (see
+ * disclosure → swap log. Every command is a BOUND ACTION the PlayArea handed down
+ * (`actEndGame`, `actConcede`, …), so this column places buttons and decides
+ * nothing about them; the history-viewer selection (`onSelectTurn`) is the one
+ * callback. Prop names match the other games' columns for the same idea (see
  * docs/playarea.md).
  */
 export function InfoCol({
@@ -97,7 +98,7 @@ export function InfoCol({
    *  it, so the pair can be placed unconditionally. */
   actEndGame: BoundAction
   /** Drop out of a race; the others keep going. Hidden outside one, and gray
-   *  once you have solved — see `concedeDisabled` in useStandardGameActions. */
+   *  once you have solved — see `selfSolved` in useStandardGameActions. */
   actConcede: BoundAction
   /** Restart THIS board from scratch. */
   actRestart: BoundAction
@@ -111,8 +112,7 @@ export function InfoCol({
   actNewGame: BoundAction
   /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
    *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game, which is the difference the two callbacks
-   *  this replaced were spelling out by hand. */
+   *  suspend-confirm flow mid-game. */
   actBackToClub: BoundAction
 
   // ── Setup disclosure + answer reveal ──
@@ -133,9 +133,9 @@ export function InfoCol({
   // The End / Concede button — error-toned (red), shared by the "playing" and the
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
   // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
-  // components for two semantically distinct actions (docs/ui.md → Button iconography,
-  // End vs Concede) — and each hides itself in the mode that isn't its own, so
-  // both are placed and the row asks nothing.
+  // semantically distinct actions (docs/ui.md → Button iconography, End vs
+  // Concede), each placed as an `<ActionButton>` — and each hides itself in the
+  // mode that isn't its own, so both are placed and the row asks nothing.
   //
   // Concede is disabled once you've SOLVED: _maybe_finish_compete excludes
   // conceded players from the winner query, so a solved-and-waiting player who

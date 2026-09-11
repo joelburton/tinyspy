@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Guard test for codenamesduet's guess dispatch (code-review §1.4): a second
+ * Guard test for codenamesduet's guess dispatch: a second
  * guess while one is already in flight must NOT fire a second `submit_guess`.
  *
  * The board disables the *pending* tile once `setPendingPos` re-renders, but that
@@ -131,8 +131,8 @@ describe('codenamesduet PlayArea — input gating', () => {
  * The terminal partner-key reveal. Duet's post-mortem is two people thinking out
  * loud — "wait, I was about to pick APPLE" — and that conversation only happens
  * while the card is still covered, so nothing opens it automatically, a win
- * included. The ask is LOCAL: it used to open the card on both screens at once,
- * which ended the partner's thinking mid-sentence.
+ * included. The ask is LOCAL: opening the card on both screens at once would
+ * end the partner's thinking mid-sentence.
  *
  * `useBoard`'s third argument IS the reveal (it's what produces `peerKey`), so
  * that's what these assert on — the hook itself is mocked.

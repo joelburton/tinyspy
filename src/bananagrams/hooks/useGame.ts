@@ -24,13 +24,11 @@ export type Player = Member
  *     server-side and the realtime subscription folds the change in, so the
  *     derived hand grows/swaps without the FE ever writing `tiles`.
  *
- * **Filters on `user_id` explicitly.** It used to lean on RLS for that —
- * player_boards was owner-only, so `eq(game_id)` alone could only ever match
- * one row. That stopped being true when the policy opened at terminal so the
- * printout could show every player's grid: the select then matched every
- * player's row, and this hook took the first of them. A query that depends on
- * a policy to be correct breaks silently the day the policy moves, so it now
- * says what it means.
+ * **Filters on `user_id` explicitly.** The player_boards policy opens to club
+ * members at terminal so the printout can show every player's grid, so
+ * `eq(game_id)` alone matches every player's row there and a `maybeSingle()`
+ * would take the first of them. A query that depends on a policy to be correct
+ * breaks silently the day the policy moves, so this one says what it means.
  *
  * Pattern A: re-read on any change — the row is tiny and `tiles` changes only
  * at deal/peel/dump (board snapshots also echo here, but re-reading the

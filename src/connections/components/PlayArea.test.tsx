@@ -140,7 +140,6 @@ beforeEach(() => {
 
 describe('connections PlayArea — concede', () => {
   it('compete shows Concede and calls connections.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded({ game: game('compete') })
     render(

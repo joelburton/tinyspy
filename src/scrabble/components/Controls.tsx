@@ -94,8 +94,9 @@ export function Controls({
                 the bag", "select rack tiles first"), which is `describe()`'s
                 doing rather than a `title` worked out here. */}
             <ActionButton action={actExchange} show="icon" />
-            {/* Pass — the de-emphasized end-turn octagon (icon-only, secondary)
-                since it isn't the main move here. It hides itself in coop. */}
+            {/* Pass — the end-turn octagon in the registry's caution tone
+                (icon-only), since it isn't the main move here. It hides itself
+                in coop. */}
             <ActionButton action={actPass} show="icon" />
             <SubmitWithScore score={submitScore} action={actSubmit} />
           </div>

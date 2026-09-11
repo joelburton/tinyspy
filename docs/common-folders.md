@@ -227,6 +227,7 @@ area is audited. No sweep.
 | folder | what it is |
 |---|---|
 | `account` | your own menu and profile editing |
+| `actions` | what a command IS: the registry, `useBoundAction`, the dispatcher, `ActionButton`, `actionSurface`, `KeyList` |
 | `anagram-finder` | the anagram dialog |
 | `auth` | the pre-app screens — sign in, claim a handle |
 | `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`) |
@@ -248,7 +249,7 @@ area is audited. No sweep.
 | `icons` | every glyph, under the name of what it means |
 | `info-sheet` | the info column: its mobile sheet, its switch, the chrome its panels share |
 | `invitations` | game invitations |
-| `keyboard` | key capture, tab rings, shortcuts |
+| `keyboard` | who owns a keystroke, tab rings, backtick standing in for Escape |
 | `lists` | pick-one and scrolling lists |
 | `loading` | the stand-in while a page loads |
 | `manifest` | what a game declares — the contract |
@@ -358,7 +359,7 @@ club→game e2e. Gotchas worth knowing if you reorganize again:
   global data, and the Deno edge functions and `supabase/scripts/` import
   `trie`, `envelope`, `mulberry32` and `memberColor` by relative path with an
   explicit `.ts`. None of these is reachable by a pass that walks `src/`.
-- **A guard's path list is code.** Twelve files under `src/guards/` name paths
+- **A guard's path list is code.** The guards under `src/guards/` name paths
   under `src/common/`; several also encode a SCOPE (`vocabularies` walks the
   shell, `fieldTests` reads one directory) that a move can silently empty.
   Re-path them, then **plant a break in each and watch it fail** — that is the
