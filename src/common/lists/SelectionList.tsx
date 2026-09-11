@@ -195,6 +195,22 @@ export function SelectionList<T>({
     [autoFocus, hasItems],
   )
 
+  // Keep the cursor row inside the scrolled frame. The list scrolls and focus
+  // never moves to a row, so the browser has nothing of its own to scroll to.
+  //
+  // An effect and not a `ref` on the row: an inline ref callback is a new
+  // function every render, so React detaches and re-attaches it each time and
+  // the scroll re-runs on renders the cursor did not move in. That is mostly
+  // invisible — `nearest` does nothing while the row is already on screen —
+  // but it yanks the list back if you have scrolled away from the cursor.
+  useEffect(
+    function keepCursorInView() {
+      if (!showCursor) return
+      listRef.current?.children[cursor]?.scrollIntoView({ block: 'nearest' })
+    },
+    [cursor, showCursor],
+  )
+
   return (
     <div
       ref={(el) => {
@@ -228,14 +244,6 @@ export function SelectionList<T>({
                 isDisabled && styles.disabled,
                 showCursor && i === cursor && styles.cursor,
               )}
-              // Keep the cursor row in the scrolled frame's view. The list
-              // scrolls, and focus never moves to a row, so the browser has
-              // nothing of its own to scroll to.
-              ref={
-                showCursor && i === cursor
-                  ? (el) => el?.scrollIntoView({ block: 'nearest' })
-                  : undefined
-              }
               // Clicking IS moving the cursor, so the mouse and the keyboard
               // agree on where you are: cancel a dialog you opened from a row
               // and the next arrow steps from that row, not from wherever the

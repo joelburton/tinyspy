@@ -369,6 +369,16 @@ wrong on screen. Note it; the cheap fix is a `useEffect` on `[cursor,
 showCursor]` scrolling `listRef.current.children[cursor]`. Low priority; a
 no-op that runs often is still a no-op.
 
+**WORKED 2026-09-11 (Joel: "ok, fix").** A `useEffect` on `[cursor,
+showCursor]` scrolling `listRef.current.children[cursor]`; the row's `ref` is
+gone.
+
+The "still a no-op" above undersells it, and the record should say so: `nearest`
+is a no-op only while the cursor row is ALREADY visible. Scroll away from the
+cursor with the wheel and any unrelated re-render — a realtime club rename, a
+filter keystroke — pulls the list back to it. Not reproduced, but it is a
+scroll jump rather than nothing.
+
 ### Prose elsewhere, turned up by this area's reading
 
 ## F-lists-15 · `deferred-md-stale-dot-line` · docs/deferred.md says the filter cannot show a dot
