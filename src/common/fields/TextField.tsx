@@ -20,23 +20,15 @@ type Props = AllFieldProps<string> & {
 }
 
 /**
- * A LABELED TEXT BOX — the field type the app uses most, and the last one with
- * no component.
+ * A LABELED TEXT BOX — the field type the app uses most.
  *
- * Every form that needed one invented `.field` again: `ClaimHandleScreen`,
- * `CreateClubPage`, `WordEditDialog` and `EditProfileModal` each declared a
- * flex-column caption-over-control, three of them byte-identical
- * (`gap: 0.4rem; border: none; margin: 0; padding: 0; min-width: 0`) and the
- * fourth at its own size. That is the same signature that made spellingbee's
- * and wordwheel's setup stylesheets a finding.
+ * `ManualBoardField` is a SPECIALISED text field — the board you type — with
+ * its own tracking, grouping and case rules. This is the plain one: a name, a
+ * word, a search, a note.
  *
- * `ManualBoardField` is a SPECIALISED text field — the board you type — and its
- * existence is why this one's absence went unnoticed: the setup forms had the
- * text field they needed, and every other form had none.
- *
- * **The signature is the point.** `label` / `value` / `onChange` / `disabled` is
- * what every field in `fields/` takes, so a prop added to all of them later
- * (a `help`, a required marker) is one edit rather than eleven.
+ * **The signature is the point.** It takes `AllFieldProps` and adds only what
+ * a text box needs, so a prop added to every field later (a required marker,
+ * say) is one edit in `fieldProps.ts` and not one per field.
  */
 export function TextField({
   label,

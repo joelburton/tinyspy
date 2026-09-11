@@ -6,8 +6,8 @@
  *
  * The rows are the list's look rather than each caller's: a hairline of padding
  * between options and a box top-aligned with its text is what a list of
- * choices IS, and leaving it to the caller is what let EditClubModal grow its
- * own `.gameRow` next to a shared `<CheckboxField>`.
+ * choices IS, and leaving it to the caller is how a caller grows a private row
+ * beside the shared one.
  */
 
 /* The bordered box the options sit in. */

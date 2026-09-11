@@ -17,8 +17,7 @@ import styles from './StandardForm.module.css'
  * ─── Why it owns the values ──────────────────────────────────
  * What is currently being typed belongs to the form, not to the screen around
  * it: clearing, resetting and "has anything changed" are all questions about
- * the form, and every one of them used to be hand-rolled per component —
- * `WordEditDialog` keeps a second copy of its fields purely to diff against.
+ * the form, and a form that holds its values can answer every one of them.
  *
  * ─── …and hands them back through the children ───────────────
  * The children are a FUNCTION, given the values and a setter, which is what

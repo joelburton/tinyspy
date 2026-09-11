@@ -8,11 +8,10 @@
   width: 100%;
 }
 
-/* A multi-line field. These three came from CreateClubPage's members box and
-   are right for any textarea in a form, so they moved up with the component
-   rather than staying one page's business: HORIZONTAL resize would break out of
-   the card that contains it, and a textarea that can only be dragged shorter
-   than one useful line is a worse control than a fixed one. */
+/* A multi-line field. Right for any textarea in a form, so it is the
+   component's business and not one page's: HORIZONTAL resize would break out
+   of the card that contains it, and a textarea that can only be dragged
+   shorter than one useful line is a worse control than a fixed one. */
 /* @@ */ textarea.control {
   resize: vertical;
   min-height: 3.5rem;

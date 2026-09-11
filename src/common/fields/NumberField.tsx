@@ -17,11 +17,9 @@ type Props = AllFieldProps<number> & {
 /**
  * A NUMBER a player picks — a bag size, a word count, a percentage.
  *
- * One caller today (bananagrams' bunch size), which is normally too few to name
- * a type. It is named anyway because every OTHER field in a setup form is a
- * component, and the one raw `<input>` left is the one a future setting reaches
- * for and copies. That is exactly how five games ended up hand-rolling the
- * manual-board input, and how two hand-rolled the checkbox row.
+ * Named as a type however few callers it has, because every other field in a
+ * form is a component, and a raw `<input>` left standing is the one the next
+ * setting reaches for and copies.
  *
  * **`valueAsNumber`, not a parsed string.** It gives `NaN` for an empty or
  * half-typed box, which is honest — the box really does hold no number — and

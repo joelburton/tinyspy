@@ -94,10 +94,6 @@ export function expectFieldContract(
       // `entryHelp` says how to give it. A component that forwards `label` and
       // `error` but forgets these compiles, renders, and looks right — the type
       // cannot tell, which is the whole reason this file exists.
-      //
-      // Added after `PuzzleSourceField` was written with ad-hoc props and
-      // dropped exactly this pair; the contract passed it anyway, because it
-      // was not asking.
       draw({ name: FIELD_NAME, help: FIELD_HELP, entryHelp: FIELD_ENTRY_HELP })
       const box = within(fieldBox(FIELD_NAME)!)
       expect(box.getByText(FIELD_HELP)).toBeInTheDocument()

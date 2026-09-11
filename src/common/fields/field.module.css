@@ -3,15 +3,9 @@
 /*
  * THE SHAPE EVERY FIELD SHARES — a caption over its control.
  *
- * One file, imported by `<TextField>`, `<NumberField>`, `<ReadOnlyField>` and
- * `<ColorField>`, because writing it four times is precisely the finding these
- * components exist to close: four files had
- * declared it and disagreed on the numbers, three of them byte-identical.
- *
- * I wrote it three times AGAIN in the first pass at those components, on
- * 2026-08-26, which is the same mistake one layer along and worth leaving the
- * note for: a shared component does not make a shape shared. The shape has to
- * live somewhere too.
+ * One file, read by `<Field>` alone, because a shared component does not make
+ * a shape shared: the shape has to live somewhere too, and a field component
+ * that laid out its own column would be one more copy of this.
  */
 /* @@ */ .field {
   display: flex;
@@ -26,14 +20,11 @@
 }
 
 /*
- * The caption. Callers disagreed — 600 weight at inherited size, 600 at 0.9rem
- * in muted gray, no weight at all, and WordEditDialog's 0.8rem muted — and none
- * of those was a recorded choice. This matches `<SelectField>`'s label, the
- * field vocabulary's existing answer to the same question.
+ * The caption: a step smaller than the control's text and a weight heavier,
+ * so it reads as the NAME of the thing below it rather than as a line of it.
  *
  * NOT muted, deliberately (docs/ui.md — muting is asked about, never defaulted
- * to). Two of the callers grayed their captions and three didn't; full strength
- * is the safe direction to unify on.
+ * to): a caption names a real value, it is not a note about one.
  */
 /* @@ */ .label {
   font-weight: 600;
@@ -60,11 +51,8 @@
  * explains what a SETTING means and leads the section. This is advice about
  * the entry itself — "3–15 characters, must start with a letter",
  * "abc float · ABC pinned in place · ? any letter" — so it belongs to the field
- * and sits where you are looking when you need it.
- *
- * The anagram finder is what made the distinction visible: its syntax legend was
- * a paragraph BELOW the Find button, three elements away from the box it
- * describes.
+ * and sits where you are looking when you need it, not in a legend three
+ * elements away.
  */
 /* @@ */ .entryHelp {
   color: var(--page-text-muted-color);

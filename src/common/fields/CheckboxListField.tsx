@@ -36,9 +36,9 @@ type Props = AllFieldProps<Set<string>> & {
  * a group of controls rather than naming one, which is that element's actual
  * job and what `group` is for.
  *
- * The rows are the LIST's look, not the caller's: EditClubModal grew a private
- * `.gameRow` beside the shared `<CheckboxField>` because top-aligning a
- * two-line option had nowhere else to live. It lives here now.
+ * The rows are the LIST's look, not the caller's: top-aligning a two-line
+ * option is a fact about a list of options, so it lives here rather than in
+ * whichever caller first needs it.
  */
 export function CheckboxListField({
   name,

@@ -3,14 +3,8 @@
 import type { ReactNode } from 'react'
 
 /**
- * WHAT EVERY FIELD TAKES.
- *
- * `<TextField>`'s docstring has said for a while that "a prop added to all of
- * them later is one edit rather than eleven" — and left that to discipline,
- * which produced eleven different answers. Before this type: `label` was
- * `string` in three components and `ReactNode` in the rest, `name` was required
- * in three and absent from `RadioRow`, `className` existed on three of twelve,
- * and `PlayersField` called `disabled` `busy`.
+ * WHAT EVERY FIELD TAKES — one type, so a prop every field should have is
+ * added here once rather than left to each component's discipline.
  *
  * A component intersects this with its own props and NEVER redeclares one of
  * these. Redeclaring does not error — it intersects, so `error?: string | null`

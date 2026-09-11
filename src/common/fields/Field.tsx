@@ -5,8 +5,9 @@ import { cls } from '../utils/cls'
 import styles from './field.module.css'
 
 type Props = {
-  /** The caption above the control. A ReactNode, because CreateClubPage's
-   *  carries a live hint beside the word ("Club name (becomes handle: jb)").
+  /** The caption above the control. A ReactNode, because the create-club
+   *  form's carries a live hint beside the word ("Club name (becomes handle:
+   *  jb)").
    *
    *  Omit it for no caption row at all — some fields ARE the surface, like a
    *  search box in a one-input panel where the titlebar already says what you
@@ -48,10 +49,9 @@ type Props = {
    * goes on the error span, because inside that block the error and the entry
    * help are both spans of prose and only the attribute tells them apart.
    *
-   * Here rather than in each component, so no field can be the one that forgot.
-   * Two of them used to hand-place `data-field` on a control, which meant the
-   * other ten had nothing, and the wrapper — the part a caption assertion wants
-   * — had nothing anywhere.
+   * Here rather than in each component, so no field can be the one that
+   * forgot, and so the wrapper — the part a caption assertion wants — always
+   * carries it.
    *
    * The failure all this is against is the one that LOOKS fine: a red sentence
    * on screen, under a field, just not the field it is about. Reading the name
@@ -93,13 +93,11 @@ type Props = {
  * `CheckboxField` outside it entirely would make it the one field a form's
  * errors cannot reach.
  *
- * Two others nearly stayed out and shouldn't have.
- * `<ManualBoardField>` has no caption at TODAY'S five call sites — but "no
- * caller passes one" is not "the field can't have one", and building it unable
- * to means the next caller reinvents the row. `<PlayersField>` wanted a
- * quieter, smaller legend, which is a CSS question about one field, not a
- * reason to lay out its own. *"We want consistency between fields — we're
- * trying to collapse difference where reasonable."*
+ * Every other field is inside it, including the two with a case for staying
+ * out. `<ManualBoardField>`'s callers pass no caption — but "no caller passes
+ * one" is not "the field can't have one", and a field built unable to means
+ * the next caller reinvents the row. `<PlayersField>` wants a quieter legend,
+ * which is a CSS question about one field, not a reason to lay out its own.
  */
 export function Field({ label, help, entryHelp, error, name, group, className, children }: Props) {
   const id = useId()

@@ -23,22 +23,20 @@ type Props = AllFieldProps<Set<string>> & {
  * WHO IS PLAYING — a checkbox list of the club's members, all checked by
  * default, sitting above the game-specific setup body.
  *
- * **An ordinary field, in an ordinary section.** It spent a day as the one
- * field outside the section vocabulary — a bordered box of its own, because it
- * must be visible when the dialog opens: who is playing changes what the rest
- * of the form can even offer. `defaultOpen` buys that with no exception at all
- *, so the border, the caption and the padding are the ones
- * every other setting gets, and this file is left holding only the rows.
+ * **An ordinary field, in an ordinary section.** It must be visible when the
+ * dialog opens — who is playing changes what the rest of the form can even
+ * offer — and `<SetupSection defaultOpen>` buys that with no exception: the
+ * border, the caption and the padding are the ones every other setting gets,
+ * and this file holds only the rows.
  *
  * The section's summary is the players' DOTS rather than a word — its live
  * value, the way every other summary carries one, and drawn by the modal
  * because the modal owns the selection.
  *
  * A component rather than markup inside `SetupGameModal`, because a players
- * picker is a FIELD and every other field a setup form has is one of these —
- * `<SetupTimerSection>`, `<DictBandField>`, `<SetupCoopStyleSection>`. Having
- * exactly one caller is not a reason to leave a shape inline — that is how a
- * setup form's shapes drift apart.
+ * picker is a FIELD, and a setup form's other settings are fields and sections
+ * rather than markup in the modal. Having exactly one caller is not a reason
+ * to leave a shape inline — that is how a form's shapes drift apart.
  *
  * It owns no state. The parent holds the selection because it needs it anyway:
  * to gate Start on the count, and to pass the chosen players down to the game's

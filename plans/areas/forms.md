@@ -115,6 +115,23 @@ than on when to reach for it. The sites, and what each keeps:
 Not on the list: `NumberField`'s "MEASURED, after 2.6rem shipped and clipped a
 single digit" — that is the evidence for a constant, on the line it defends.
 
+**WORKED 2026-09-11 (Joel: cut the quote; the header "you decide" — cut to
+its rule).** All fourteen sites rewritten to say the same thing about the code
+in front of the reader; no reason was lost. `field.module.css`'s header keeps
+the rule ("a shared component does not make a shape shared: the shape has to
+live somewhere too") without the confession. `TextField`'s docstring is three
+short paragraphs. `fieldProps.ts` opens on what the type is for.
+
+Sites of OTHER findings that sat in the same sentences went with it, so they
+are not touched twice: `CreateClubPage` in all three files and the
+`field.module.css` importer roster (F-forms-4); `NumberField`'s "one caller"
+(F-forms-4); `PlayersField`'s "every other field… is one of these" (F-forms-5)
+and its broken line (F-forms-11); `(F31)` and `(F33)` (F-forms-3);
+`TextField`'s "eleven", `Field`'s "TODAY'S five call sites", `NumberField`'s
+"five games… two", `ManualBoardField.module.css`'s "four of the five"
+(F-forms-6 — the `.tsx`'s own "four of the five" is still there); and
+`SelectField.module.css`'s `base.css:777` (F-forms-4).
+
 ## F-forms-3 · `finding-ids-in-a-module` · `ManualBoardField.module.css` cites `(F31)` and `(F33)`
 
 Two finding IDs from a deleted audit in a durable file, and `groupTiles.ts`
