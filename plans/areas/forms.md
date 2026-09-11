@@ -269,6 +269,15 @@ and say so as the theme seam; draw the arrow with `mask-image` +
 `.select:focus` restates base.css's `input:focus` ring for the element base.css
 leaves out, which is right and stays.
 
+**WORKED 2026-09-11 (Joel: "1" — mask it).** Not quite as offered: a mask on
+the `<select>` itself would clip the whole control to the arrow, and a select
+can hold neither a child nor a pseudo-element, so the component wraps the
+select in a `span.wrap` and the module draws the chevron as `.wrap::after` —
+the same SVG path as a `mask`, painted `--field-muted-ink-color`,
+`pointer-events: none`, and `.wrap:has(:disabled)::after` fades it with the
+control. The hex is gone from the file. First use of `mask` and `:has()` in
+the stylesheets.
+
 ## F-forms-9 · `todo-soon-is-built` · Three of `forms/todo.md`'s four unbuilt patterns exist
 
 Read first, per the process, and found mostly done:

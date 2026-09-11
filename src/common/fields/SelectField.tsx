@@ -50,17 +50,22 @@ export function SelectField({
   return (
     <Field label={label} help={help} entryHelp={entryHelp} error={error} name={name}>
       {(id) => (
-        <select
-          id={id}
-          className={styles.select}
-          name={name}
-          value={value}
-          disabled={disabled}
-          aria-invalid={error ? true : undefined}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          {children}
-        </select>
+        // The wrapper exists for the chevron: a <select> can hold no child and
+        // no pseudo-element, so the arrow is drawn on this span (see the
+        // module), and the span is what positions it over the control.
+        <span className={styles.wrap}>
+          <select
+            id={id}
+            className={styles.select}
+            name={name}
+            value={value}
+            disabled={disabled}
+            aria-invalid={error ? true : undefined}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            {children}
+          </select>
+        </span>
       )}
     </Field>
   )

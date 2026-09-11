@@ -7,6 +7,14 @@
  * restyle it to match: the same padding / border / radius tokens as the other
  * controls, plus `appearance: none` and a custom chevron so the closed select
  * looks deliberate rather than system-default. */
+/* The chevron's host. A <select> can hold no child and no pseudo-element, so
+ * the arrow is drawn on this wrapper and positioned over the control's right
+ * edge; `pointer-events: none` below keeps every click reaching the select. */
+/* @@ */ .wrap {
+  position: relative;
+  display: block;
+}
+
 /* @@ */ .select {
   /* Match base.css's control sizing so the dropdown sits flush with the
    * text inputs around it. */
@@ -18,14 +26,30 @@
   background-color: var(--field-fill-color);
   color: inherit;
   cursor: pointer;
-
-  /* Drop the native arrow and paint our own chevron (a small inline SVG,
-   * stroke #555 ≈ --field-muted-ink-color) pinned to the right. `appearance:
-   * none` also normalizes the inconsistent native heights across browsers. */
+  /* Drop the native arrow (ours is `.wrap::after`). `appearance: none` also
+   * normalizes the inconsistent native heights across browsers. */
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23555555' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.85rem center;
+}
+
+/* The chevron: the SVG is a MASK and the color is a token, so the arrow
+ * follows the theme. A stroke written inside the data URI could not — no
+ * token reaches inside `url()`, and neither does the token guard. */
+/* @@ */ .wrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  width: 12px;
+  height: 8px;
+  transform: translateY(-50%);
+  background-color: var(--field-muted-ink-color);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E") no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* The arrow fades with the control it belongs to. */
+/* @@ */ .wrap:has(:disabled)::after {
+  opacity: var(--chrome-disabled-opacity);
 }
 
 /* @@ */ .select:hover:not(:disabled) {
