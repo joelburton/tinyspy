@@ -40,8 +40,9 @@ type OpenSubmenu = {
   // Flat index of the parent row in the TOP-LEVEL list, so closing the submenu
   // can put focus back where it came from.
   parentIndex: number
-  // The parent row's viewport rect at open time. Desktop only.
-  anchor: { top: number; left: number; right: number }
+  // Where the parent row sat at open time — the flyout's top, and the edge it
+  // hangs off. Desktop only.
+  anchor: { top: number; right: number }
 }
 
 /** Imperative handle exposed via `ref` so the `?` key can open the menu without
@@ -61,12 +62,6 @@ type Props = {
   // The trigger's accessible name. Default "Menu"; "Game menu", "Club menu" in
   // context.
   triggerLabel?: string
-  // Extra class on the trigger button for per-context sizing.
-  triggerClassName?: string
-  // Which edge of the trigger the popover aligns to; `right` for a trigger at
-  // the screen's right edge, so the menu opens leftward into the page. Also
-  // flips the side a submenu flies out toward.
-  popoverAlign?: 'left' | 'right'
   // Whether closing returns focus to the trigger (default) or lets it fall to
   // the page. The game page passes `false` — docs/ui.md → GamePage menu →
   // Focus says why.
@@ -96,8 +91,6 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   logo,
   sections,
   triggerLabel = 'Menu',
-  triggerClassName,
-  popoverAlign = 'left',
   returnFocusOnClose = true,
 }, ref) {
   const [open, setOpen] = useState(false)
@@ -213,7 +206,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     setSubmenu({
       parentId: parent.id,
       parentIndex: index,
-      anchor: { top: r?.top ?? 0, left: r?.left ?? 0, right: r?.right ?? 0 },
+      anchor: { top: r?.top ?? 0, right: r?.right ?? 0 },
     })
     // Focus the submenu's first enabled row. On mobile the Back row occupies
     // index 0, so the first real item is 1.
@@ -423,7 +416,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         <div
           ref={popoverRef}
           id={popoverId}
-          className={cls(styles.popover, popoverAlign === 'right' && styles.popoverRight)}
+          className={styles.popover}
           role="menu"
           aria-label={openParent.label}
           onKeyDown={onPopoverKeyDown}
@@ -483,10 +476,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         <div
           ref={popoverRef}
           id={popoverId}
-          className={cls(
-            styles.popover,
-            popoverAlign === 'right' && styles.popoverRight,
-          )}
+          className={styles.popover}
           role="menu"
           aria-label={triggerLabel}
           onKeyDown={onPopoverKeyDown}
@@ -502,21 +492,13 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
               `overflow-y: auto`, and per spec that computes overflow-x to
               `auto` too — so a flyout absolutely positioned inside the popover
               would be CLIPPED at its edge instead of overflowing. Fixed
-              coordinates escape the scroll container entirely. It sits on the
-              side the parent menu opens toward, so a right-aligned menu (one
-              anchored at the screen's right edge) flies out leftward and can't
-              run off-screen. */}
+              coordinates escape the scroll container entirely. */}
           {openParent && submenu && (
             <div
-              className={cls(styles.flyout, popoverAlign === 'right' && styles.flyoutLeft)}
+              className={styles.flyout}
               role="menu"
               aria-label={openParent.label}
-              style={{
-                top: submenu.anchor.top,
-                ...(popoverAlign === 'right'
-                  ? { right: window.innerWidth - submenu.anchor.left }
-                  : { left: submenu.anchor.right }),
-              }}
+              style={{ top: submenu.anchor.top, left: submenu.anchor.right }}
             >
               {navRows.map((row, i) =>
                 renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id),
@@ -533,7 +515,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       <button
         type="button"
         ref={triggerRef}
-        className={cls(styles.trigger, triggerClassName)}
+        className={styles.trigger}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={popoverId}

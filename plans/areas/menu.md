@@ -93,7 +93,11 @@ find the id in `flatRows`.
 
 ### Shape
 
-## F-menu-3 · `dead-props` · Two props nobody passes, and the CSS that serves them
+## F-menu-3 · `dead-props` · Two props nobody passes, and the CSS that serves them — WORKED
+
+Joel, 2026-09-11: delete. Both props gone, with `.popoverRight`,
+`.flyoutLeft`, the flyout's `right:` branch and `OpenSubmenu.anchor.left`,
+which only that branch read. The flyout now has one positioning line.
 
 `popoverAlign` and `triggerClassName` have no caller: `PageHeaderMenu` is the
 only thing that renders `<Menu>` and passes neither. With `popoverAlign` go

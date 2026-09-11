@@ -57,7 +57,7 @@
  *
  * `top: calc(100% + 0.35rem)` lifts the popover slightly off the
  * trigger so the rounded corners read as distinct surfaces.
- * Anchored left; `.popoverRight` below is the other edge. */
+ * Anchored at the trigger's left edge, where every header puts it. */
 /* @@ */ .popover {
   position: absolute;
   top: calc(100% + 0.35rem);
@@ -90,15 +90,6 @@
      cap the popover to the viewport below the trigger and let IT scroll. */
   max-height: calc(100svh - 5rem);
   overflow-y: auto;
-}
-
-/* Right-aligned variant: opt in via `popoverAlign="right"` for
- * triggers near the viewport's right edge. The popover's right
- * edge sticks to the trigger's right edge so the menu opens
- * leftward into the page rather than off-screen. */
-/* @@ */ .popoverRight {
-  left: auto;
-  right: 0;
 }
 
 /* Per-item button. Left-align text; full-width row so the click target is
@@ -240,15 +231,6 @@
   /* Overlap the parent's border by a pixel so the two panels read as joined
    * rather than as two unrelated cards with a seam between them. */
   margin-left: -1px;
-}
-
-/* A menu anchored at the screen's RIGHT edge (popoverAlign="right") opens its
- * popover leftward, so its flyout has to go leftward too or it runs off-screen.
- * The inline style supplies `right` instead of `left`; this just flips the
- * overlap. */
-/* @@ */ .flyoutLeft {
-  margin-left: 0;
-  margin-right: -1px;
 }
 
 /* The identity disc on an item that carries one (the account row). Sized to the
