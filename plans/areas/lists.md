@@ -553,6 +553,13 @@ corrected when the file was placed.
   two-line density, and the club page and crosswords' pickers consume it.
   Either the item meant something else (a THIRD density?) or it predates
   `packed`. Ask at the first working session; if the latter, it goes.
+  **Removed 2026-09-11** (Joel: "i don't know the history; we can remove the
+  todo if you think it's already here"). It is: `.packed .row` says in its own
+  comment that it exists for rows carrying two lines of text, and four call
+  sites pass it. `todo.md`'s two Soon items went with F-lists-9
+  (empty-state-four-ways) and F-lists-8 (filter-select-density-inverted), and
+  the near-misses F-lists-11 (vocabulary-conversion) surfaced take their
+  place.
 - **`SelectionList`'s `disabled` + `rowTitle`** have one caller each (the
   club page's start list, for a game the member count does not fit). Fine —
   one is a caller — but the docstring's "in practice, why a disabled one
