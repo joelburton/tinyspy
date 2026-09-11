@@ -466,7 +466,9 @@ export function PlayArea({
       if (secretsShown) return { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
       // Named in the inert case too: the registry's bare "Reveal" would make the
       // row change its words as the game ended, which is not what it says.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal secrets' }
+      return isTerminal
+        ? { state: 'active', label: 'Reveal secrets' }
+        : { state: 'disabled', label: 'Reveal secrets', tooltip: "Can't reveal until all end" }
     },
     run: toggleSecrets,
   })

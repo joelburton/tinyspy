@@ -323,10 +323,10 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       // Concede hides itself in coop, so the exits are End + Back to club.
       'act-end-game', 'act-back-to-club',
     ])
-    // The scope is the CHILD's whole label, so the rows read "Check › Letter"
-    // rather than repeating the verb.
-    expect(submenuOf(ctx, 'check').map((r) => r.label)).toEqual(['Letter', 'Word', 'Grid'])
-    expect(submenuOf(ctx, 'reveal').map((r) => r.label)).toEqual(['Letter', 'Word', 'Grid'])
+    // The children keep their full names under the parent — the same action is
+    // listed in Help with no parent to lend it the verb.
+    expect(submenuOf(ctx, 'check').map((r) => r.label)).toEqual(['Check letter', 'Check word', 'Check grid'])
+    expect(submenuOf(ctx, 'reveal').map((r) => r.label)).toEqual(['Reveal letter', 'Reveal word', 'Reveal grid'])
     // The hints ride the CHILDREN — a submenu parent isn't a command, so it
     // carries none. ⌥C = check letter, ⌥⇧C = check word.
     const check = new Map(submenuOf(ctx, 'check').map((r) => [r.id, r]))
@@ -644,11 +644,11 @@ describe('crosswords PlayArea — the key list', () => {
     expect(rows).toContainEqual(['⇧↵', 'Enter rebus'])
     expect(rows).toContainEqual(['A–Z', 'Fill the cell'])
     expect(rows).toContainEqual(['⌥⌫', 'End game'])
-    // The ladder: the verb is the submenu's in the menu, and nothing else's
-    // here — each row reads as its scope word alone.
-    expect(rows).toContainEqual(['⌥C', 'Letter'])
-    expect(rows).toContainEqual(['⌥⇧C', 'Word'])
-    expect(rows).toContainEqual(['⌥R', 'Letter'])
-    expect(rows).toContainEqual(['⌥⇧R', 'Word'])
+    // The ladder: with no submenu parent to lend the verb, a check and a reveal
+    // of the same scope must still read apart.
+    expect(rows).toContainEqual(['⌥C', 'Check letter'])
+    expect(rows).toContainEqual(['⌥⇧C', 'Check word'])
+    expect(rows).toContainEqual(['⌥R', 'Reveal letter'])
+    expect(rows).toContainEqual(['⌥⇧R', 'Reveal word'])
   })
 })

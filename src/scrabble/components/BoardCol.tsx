@@ -826,12 +826,13 @@ export function BoardCol({
   })
 
   // Swap rack tiles for fresh ones — a turn-consuming move, so it waits for your
-  // turn, for a selection, and for a bag deep enough to draw from.
+  // turn, for a selection, and for a bag deep enough to draw from. The two gates
+  // a player can do something about say so in the bubble; the words stay "Swap".
   const actExchange = useBoundAction('act-exchange', {
     describe: () => {
-      if (!canExchange) return { state: 'disabled', label: 'Swap — need ≥ 7 tiles in the bag' }
+      if (!canExchange) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
       if (!canCommit || staged.length > 0) return { state: 'disabled', label: 'Swap' }
-      if (selected.size === 0) return { state: 'disabled', label: 'Swap — select rack tiles first' }
+      if (selected.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Select rack tiles first' }
       return {
         state: 'active',
         label: `Swap ${selected.size} selected tile${selected.size === 1 ? '' : 's'}`,

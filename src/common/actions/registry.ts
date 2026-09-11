@@ -280,13 +280,17 @@ export const ACTIONS = {
 
   // ─── Crosswords' commands ──────────────────────────────────────────────
   'act-pencil': { label: 'Pencil', keys: [alt('KeyP', '⌥P')] },
-  'act-check-letter': { label: 'Letter', icon: IconWordCheck, keys: [alt('KeyC', '⌥C')] },
-  'act-check-word': { label: 'Word', icon: IconWordCheck, keys: [altShift('KeyC', '⌥⇧C')] },
-  'act-check-puzzle': { label: 'Grid', icon: IconWordCheck },
-  'act-reveal-letter': { label: 'Letter', icon: IconRevealSolution, tone: 'destructive', keys: [alt('KeyR', '⌥R')] },
-  'act-reveal-word': { label: 'Word', icon: IconRevealSolution, tone: 'destructive', keys: [altShift('KeyR', '⌥⇧R')] },
+  // Named in full, verb and scope, even though the menu nests them under a
+  // "Check" / "Reveal" parent: the key list and a tool-bar square have no parent
+  // to lend the verb, and "Letter" beside "Letter" cannot tell a check from a
+  // reveal.
+  'act-check-letter': { label: 'Check letter', icon: IconWordCheck, keys: [alt('KeyC', '⌥C')] },
+  'act-check-word': { label: 'Check word', icon: IconWordCheck, keys: [altShift('KeyC', '⌥⇧C')] },
+  'act-check-puzzle': { label: 'Check grid', icon: IconWordCheck },
+  'act-reveal-letter': { label: 'Reveal letter', icon: IconRevealSolution, tone: 'destructive', keys: [alt('KeyR', '⌥R')] },
+  'act-reveal-word': { label: 'Reveal word', icon: IconRevealSolution, tone: 'destructive', keys: [altShift('KeyR', '⌥⇧R')] },
   'act-reveal-puzzle': {
-    label: 'Grid',
+    label: 'Reveal grid',
     icon: IconRevealSolution,
     tone: 'destructive',
     confirm: REVEAL_GRID_CONFIRM,

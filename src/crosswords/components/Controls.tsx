@@ -4,7 +4,7 @@ import type { MouseEvent, ReactNode } from 'react'
 import { actionSurface } from '@/common/actions/actionSurface'
 import { nameWithKey } from '@/common/actions/nameWithKey'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { SCOPE_LABEL, type Scope } from '../lib/types'
+import type { Scope } from '../lib/types'
 import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'
 
@@ -108,7 +108,7 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
 
       <div className={styles.group}>
         <span className={styles.label}>Check:</span>
-        <ScopeButtons verb="Check" actions={check} />
+        <ScopeButtons actions={check} />
       </div>
 
       {revealShown && (
@@ -116,7 +116,7 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
           <Rule />
           <div className={styles.group}>
             <span className={styles.label}>Reveal:</span>
-            <ScopeButtons verb="Reveal" actions={reveal} />
+            <ScopeButtons actions={reveal} />
           </div>
         </>
       )}
@@ -141,13 +141,9 @@ function Rule() {
 /** The one-character glyph on the square; the group label supplies the verb. */
 const SCOPE_GLYPH: Record<Scope, string> = { letter: 'L', word: 'W', puzzle: 'G' }
 
-function ScopeButtons({ verb, actions }: { verb: string; actions: ScopeActions }) {
+function ScopeButtons({ actions }: { actions: ScopeActions }) {
   return SCOPES.map((scope) => {
-    // The registry calls these rows "Letter" / "Word" / "Grid", which is right
-    // in the menu where the verb is the parent row. Out here each square is on
-    // its own, so the surface takes the fuller name — and Check and Reveal of
-    // the same scope stay addressable apart.
-    const surface = actionSurface(actions[scope], `${verb} ${SCOPE_LABEL[scope].toLowerCase()}`)
+    const surface = actionSurface(actions[scope])
     if (surface.hidden) return null
     return (
       <button

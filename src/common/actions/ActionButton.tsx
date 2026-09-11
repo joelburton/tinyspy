@@ -4,15 +4,11 @@ import { StandardButton, type StandardButtonProps } from '../buttons/StandardBut
 import { nameWithKey } from './nameWithKey'
 import type { BoundAction } from './useBoundAction'
 
-type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick'> & {
-  // The action this button IS. Its words, glyph, tone, key and availability all
-  // come from here — the button decides none of them.
+type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'tooltip' | 'onClick'> & {
+  // The action this button IS. Its words, glyph, tone, key, bubble and
+  // availability all come from here — the button decides none of them. A
+  // reason for a gray button is the action's too, through `describe().tooltip`.
   action: BoundAction
-  // A REASON this placement can give and the action can't — psychicnum's
-  // "Can't reveal until all end", on a button that is gray because the race is
-  // still running. Replaces the bubble that would otherwise name the action and
-  // its key. Rare: an action that is merely unavailable needs no explaining.
-  tooltip?: string
 }
 
 /**
@@ -31,18 +27,18 @@ type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick'> & 
  * its hover bubble says the key, which is the only place a player finds out
  * that New game is `+`.
  */
-export function ActionButton({ action, tooltip, ...rest }: Props) {
+export function ActionButton({ action, ...rest }: Props) {
   const { state, label, icon, tooltip: reason } = action.describe()
   if (state === 'hidden') return null
 
   const { spec } = action
   const words = label ?? spec.label
   const chord = spec.keys?.[0]?.label
-  // The bubble: a reason from the placement, else the action's own reason for
-  // this moment, else the name with its key. Without a key there is nothing to
-  // add, so the button keeps StandardButton's own rule (the name, when the
-  // words aren't already on screen).
-  const bubble = tooltip ?? reason ?? (chord === undefined ? undefined : nameWithKey(words, action))
+  // The bubble: the action's reason for this moment, else the name with its
+  // key. Without a key there is nothing to add, so the button keeps
+  // StandardButton's own rule (the name, when the words aren't already on
+  // screen).
+  const bubble = reason ?? (chord === undefined ? undefined : nameWithKey(words, action))
 
   return (
     <StandardButton

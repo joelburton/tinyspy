@@ -419,7 +419,9 @@ export function PlayArea({
       if (answerShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
       // Named in the inert case too: the registry's bare "Reveal" would make the
       // row change its words as the game ended, which is not what it says.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal answer' }
+      return isTerminal
+        ? { state: 'active', label: 'Reveal answer' }
+        : { state: 'disabled', label: 'Reveal answer', tooltip: "Can't reveal until all end" }
     },
     run: toggleAnswer,
   })

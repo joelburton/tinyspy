@@ -212,7 +212,7 @@ export function InfoCol({
                 dropped out can't spoil a live race. Present rather than absent
                 so the row doesn't change shape when the last racer finishes;
                 the button is simply enabled then. */}
-            <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+            <ActionButton action={actReveal} show="icon" />
             {endButton}
           </LocalTerminalRow>
         ) : (

@@ -758,7 +758,9 @@ type Explained =
       if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
       // Named in the inert case too — the registry's bare "Reveal" would make
       // the row change its words as the game ended.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal solution' }
+      return isTerminal
+        ? { state: 'active', label: 'Reveal solution' }
+        : { state: 'disabled', label: 'Reveal solution', tooltip: "Can't reveal until all end" }
     },
     run: toggleSolution,
   })
@@ -821,11 +823,11 @@ type Explained =
               actPrintSolution,
             ],
           },
-          // The two assistance families, each collapsed behind a submenu. They
-          // were six flat rows — a third of this menu, which already runs ~20
-          // items and scrolls. Nesting them turns that into two, and the scope
-          // becomes the CHILD's whole label ("Check › Letter") rather than being
-          // repeated in each row ("Check letter / Check word / Check grid").
+          // The two assistance families, each collapsed behind a submenu: six
+          // flat rows would be a third of a menu that already scrolls. The
+          // children keep their full names ("Check letter") under the parent,
+          // because the same action is listed in Help with no parent to lend
+          // it the verb.
           //
           // `disabled` sits on the PARENT only: a disabled parent can't be
           // opened, so repeating it per child would be dead weight. In compete
@@ -998,7 +1000,7 @@ type Explained =
                       is_terminal), so a player who dropped out can't spoil a
                       live race — and the row keeps its shape for when the last
                       solver finishes. */}
-                  <ActionButton action={actReveal} show="icon" tooltip="Can't reveal until all end" />
+                  <ActionButton action={actReveal} show="icon" />
                   <ActionButton action={actConcede} show="icon" />
                 </LocalTerminalRow>
               ) : (

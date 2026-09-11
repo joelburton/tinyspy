@@ -435,16 +435,21 @@ describe('scrabble PlayArea — the rack row says why', () => {
     render(<PlayArea {...makeCtx()} />)
     expect(describeOf('act-exchange')).toEqual({
       state: 'disabled',
-      label: 'Swap — need ≥ 7 tiles in the bag',
+      label: 'Swap',
+      tooltip: 'Need ≥ 7 tiles in the bag',
     })
     expect(control('act-exchange')).toBeDisabled()
+    // The reason rides the bubble; the button is still called "Swap".
+    expect(control('act-exchange')?.dataset.tooltip).toBe('Need ≥ 7 tiles in the bag')
+    expect(control('act-exchange')?.getAttribute('aria-label')).toBe('Swap')
   })
 
   it('Exchange on your turn with nothing selected asks for a selection', () => {
     render(<PlayArea {...makeCtx()} />)
     expect(describeOf('act-exchange')).toEqual({
       state: 'disabled',
-      label: 'Swap — select rack tiles first',
+      label: 'Swap',
+      tooltip: 'Select rack tiles first',
     })
   })
 
