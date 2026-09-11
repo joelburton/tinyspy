@@ -5,7 +5,8 @@ The folders it reads: `lists`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`;
-seventeen findings recorded, F-lists-1 (select-kind-unused) worked.
+seventeen findings recorded, F-lists-1 (select-kind-unused) and F-lists-8
+(filter-select-density-inverted) worked.
 
 ## The roster
 
@@ -181,6 +182,36 @@ decision is this folder's, so the edit ships here. `clubFilters.module.css`
 also carries two consecutive comments on its touch rule saying the same
 thing twice; fold them when the file is open.
 
+**WORKED 2026-09-11, but NOT by inverting.** Joel's ruling: rather than the
+component going roomy and `.infoCol` tightening it, the two filters converge on
+a single look — the darker divider border, `--radius-sm`, the fill + hover, and
+an 11rem cap — and the component keeps the info column's tight PADDING as its
+default. So the club page still differs, but on one property instead of seven,
+and `.infoCol` declares no density tokens (Option A, the info column declaring
+a density for everything inside it, was set aside as its own much larger piece
+of work — it moves the turn log and every readout, not just the filter).
+
+What moved: `FilterSelect.module.css` gains `background-color` + a `:hover`,
+`4px` becomes `--radius-sm`, and the cap goes 9rem → 11rem.
+`clubFilters.module.css`'s `.closedSelect` is down to `padding` alone and its
+`:hover` is gone. Visually, only the two in-game filters change — a white fill
+on the #fafafa play area where they were transparent, a hover tint, and a later
+ellipsis. The club page's radius goes 6px → 4px.
+
+Two of the seven overrides were dead before this (`font-size: 0.8rem` and
+`color`, both byte-identical to the component's), which is why the club page
+loses more than it visibly had.
+
+Also done here, being the same rules: the header's claim to be "pixel-matched
+to the old `.select` in infoPanel.module.css" (no such rule exists — F-lists-6)
+and the `.option` copy of it; the doubled touch comment, folded; and
+`.option`'s own `4px` → `--radius-sm`, so the file does not use two spellings
+of one radius (F-lists-11's silent row for this file, now empty).
+
+The vocabularies guard needed three pending rows edited: `clubFilters`'
+`0.8rem` and `1px` are gone from the file, and `FilterSelect`'s `4px` row with
+them.
+
 ## F-lists-9 · `empty-state-four-ways` · The "nothing here" line is written four times
 
 Carried in from `todo.md` (Soon), and the count grew: `SelectionList.empty`
@@ -209,16 +240,17 @@ This folder then follows it; the rest converts area by area.
 Per §5, silently where a value equals a step, surfaced where it does not:
 
 `FilterSelect.module.css` —
-- `border-radius: 4px` (closed select, option) = `--radius-sm`. Silent.
+- `border-radius: 4px` (closed select, option) = `--radius-sm`. Silent —
+  **done** with F-lists-8 (filter-select-density-inverted).
 - `border: 1px` ×2 = `--border-width-line`. Silent.
 - `opacity: 0.7` (caret) = `--opacity-1`. Silent.
-- `font-size: 0.8rem` ×2 — nearest `--font-size-2` (0.85rem). Near-miss;
-  and it is the value F-lists-8 (filter-select-density-inverted) moves
-  anyway, so decide it there.
+- `font-size: 0.8rem` ×2 — nearest `--font-size-2` (0.85rem). Near-miss,
+  and still open: F-lists-8 (filter-select-density-inverted) left the size
+  alone, since both filters already agreed on it.
 - `font-size: 1rem` (touch option) = `--font-size-1`. Silent.
 - gaps `0.25rem` = `--spacer-5`, `0.35rem` — near-miss. Paddings are parked
   (`0.05rem 0.3rem`, `0.15rem`, `0.25rem 0.45rem`, `0.6rem 0.75rem`); the
-  `top: calc(100% + 2px)`, `max-width: 9rem / 14rem / min(18rem, 80vw)` are
+  `top: calc(100% + 2px)`, `max-width: 11rem / 14rem / min(18rem, 80vw)` are
   bespoke-by-intent and want the annotation §7's first item is about.
 
 `SelectionList.module.css` —

@@ -1,13 +1,13 @@
 /* cs-audited-lists */
 
-/* FilterSelect — the non-native dropdown used by the in-game info-panel
- * filters. See FilterSelect.tsx for WHY it isn't a <select>.
+/* FilterSelect — the non-native dropdown that filters a view. See
+ * FilterSelect.tsx for WHY it isn't a <select>.
  *
- * The closed select is deliberately pixel-matched to the old `.select` in
- * infoPanel.module.css (same font-size, padding, border, radius, max-width),
- * so swapping a filter over changes its behavior and nothing else. While the
- * turn-log picker is still native, the two sit side by side in the same info
- * column and must look identical. */
+ * This file states the control's WHOLE look, and a surface that wants it
+ * different re-declares one property: the club page's filter is the same
+ * control with roomier padding (clubFilters.module.css). Everything else —
+ * the size, the fill, the border, the radius, the width cap — is decided
+ * here, so two filters on two pages cannot drift apart. */
 
 /* @@ */ .root {
   position: relative;
@@ -22,18 +22,27 @@
   gap: 0.25rem;
   font: inherit;
   font-size: 0.8rem;
-  /* Normal text color, matching .select — the current filter is a real value,
-   * understated by size and border rather than by muting it. */
+  /* Full ink — the current filter is a real value, understated by its size and
+   * border rather than by muting it. */
   color: var(--page-text-color);
+  /* A filled surface, not an outline drawn on the page: the fill is what makes
+   * it read as a control you can press. The border is the DIVIDER color, a step
+   * darker than a card's, because this sits on the page rather than on a card
+   * and a pale line would vanish. */
+  background-color: var(--default-bg-color);
   border: 1px solid var(--page-divider-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.3rem;
-  max-width: 9rem;
+  max-width: 11rem;
   cursor: pointer;
   /* This control can never hold focus (it preventDefaults its own
    * mousedown), so a focus ring would be a lie about where the keyboard is —
    * the whole point of the component. Belt and braces with that. */
   outline: none;
+}
+
+/* @@ */ .closedSelect:hover {
+  background-color: var(--page-surface-hover-color);
 }
 
 /* @@ */ .label {
@@ -120,7 +129,7 @@
   font-size: 0.8rem;
   text-align: left;
   color: var(--page-text-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.25rem 0.45rem;
   cursor: pointer;
   /* An uncapped username can be longer than `.popover`'s max-width. Ellipsize
