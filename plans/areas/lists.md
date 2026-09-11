@@ -5,7 +5,7 @@ The folders it reads: `lists`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`;
-findings recorded, none worked.
+seventeen findings recorded, F-lists-1 (select-kind-unused) worked.
 
 ## The roster
 
@@ -14,7 +14,7 @@ All in `src/common/lists/`:
 | file | what it is |
 |---|---|
 | `SelectionList.tsx` | the pick-one list: container holds focus, arrows move a cursor, Enter acts |
-| `SelectionList.module.css` | its frame, row, hairline and the two marks |
+| `SelectionList.module.css` | its frame, row, hairline and cursor mark |
 | `SimpleScrollableList.tsx` | a framed `<ul>` that shows N rows and scrolls past that |
 | `SimpleScrollableList.module.css` | the cap stated in rows, the tally line |
 | `FilterSelect.tsx` | the never-focused dropdown that filters a view |
@@ -53,10 +53,27 @@ Not proposing removal on my own ("don't remove unprompted"); the choices are
 keep it as a designed-ahead kind, or drop the arm, the Space branch, the
 `.selected` rule and the ui.md column together. A decision for Joel.
 
+**WORKED 2026-09-11 (Joel: "q1. drop it").** The arm is gone: `Activation<T>`
+with it, `onActivate` now a required prop, and `isSelectKind` / `selectedIndex`
+/ `resting` deleted. The cursor's two state variables collapsed to one —
+`moved` existed only because the select kind's resting row arrived with the
+data, so `movedTo` alone is now the cursor and the `useState`-initializer
+comment went with it. `Space` keeps its `preventDefault` and does nothing else,
+or it would page the scroll box. `.selected` and its comment are out of the
+module (`--tile-selected-edge-color` keeps its other reader,
+`PlayArea.module.css`), and the module's "The two marks" heading is now "The
+cursor". docs/ui.md's key table lost its two-kind columns and "The two kinds,
+and the two marks" is now "Choosing, and the one mark".
+
+Two crosswords comments named `selected`/`onSelect` as a shape the picker could
+be put back on — `LibraryPickerBlockingModal.tsx`'s docstring and its test's
+header. Both now state the rule without the prop pair, since it no longer
+exists to return to.
+
 ## F-lists-2 · `selection-list-untested` · The component with the most behavior has no spec
 
 `SelectionList.tsx` carries the folder's whole keyboard model — clamped
-arrows, Home/End, a measured page, Enter vs Space per kind, disabled rows
+arrows, Home/End, a measured page, Enter acting and Space not, disabled rows
 that take the cursor and refuse Enter, `frozen` holding the ring through a
 blur, focus-on-arrival firing once and yielding to an existing focus, the
 cursor clamping when the list shrinks under it, click moving the cursor. None
@@ -213,8 +230,8 @@ Per §5, silently where a value equals a step, surfaced where it does not:
 - `.empty { padding: 1rem }` — F-lists-9 (empty-state-four-ways) decides it.
 - `outline-offset: -2px` — docs/ui.md's ring table names `-2px` for "abuts";
   is that a token yet? `focus-ring.css` owns the answer.
-- `box-shadow: inset 0 0 0 2px` — F-lists-1 (select-kind-unused) decides
-  whether the rule survives.
+- `box-shadow: inset 0 0 0 2px` — gone with F-lists-1
+  (select-kind-unused); nothing to decide.
 
 `SimpleScrollableList.module.css` — `1.4rem` row height, `0.15rem` pad:
 bespoke-by-intent (the box owns the row height by design).
@@ -313,6 +330,7 @@ page declares it) and let the reader grep.
 *(written when the area starts changing things)*
 
 - F-lists-1 (select-kind-unused), if the arm goes: none — nothing renders it.
+  Confirmed: the full unit suite and both touched folders' lint pass unchanged.
 - F-lists-8 (filter-select-density-inverted): `e2e/club-filters.e2e.ts` reads
   labels, not sizes; the vocabularies guard's `FilterSelect.module.css` rows
   shrink.

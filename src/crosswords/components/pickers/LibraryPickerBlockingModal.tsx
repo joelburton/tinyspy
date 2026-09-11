@@ -58,10 +58,8 @@ type Props = {
  *
  * **Choosing CLOSES it**, which is the rule the whole design rests on: with the
  * pick and the Start button in different boxes, a footer "Use this one" would
- * make the common path two presses where the tabs it replaces took one. So the
- * list is on `SelectionList`'s `onActivate` arm — click or Enter both mean
- * "play this" — where the same list was on `selected`/`onSelect` while it lived
- * inside the setup form and Enter had to not submit the form around it.
+ * make the common path two presses where the tabs it replaces took one. Click
+ * and Enter both mean "play this".
  *
  * Cancel is the only other way out, and it is a real one: leaving a source is
  * a decision, not a side effect of choosing another.

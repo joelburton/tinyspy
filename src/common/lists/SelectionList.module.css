@@ -136,7 +136,7 @@
   background: transparent;
 }
 
-/* ---------- The two marks ---------- */
+/* ---------- The cursor ---------- */
 
 /* WHERE THE KEYBOARD IS. Distinct from `:focus-visible` in mechanism, identical
    in meaning: the container holds the real focus, arrows move a cursor through
@@ -148,21 +148,4 @@
 /* @@ */ .cursor {
   outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
-}
-
-/* WHAT IS CHOSEN — the "select" kind only, where choosing records a decision
-   you act on later rather than doing something now.
- *
- * The same mark a game piece wears: a black edge, `--tile-selected-edge-color`.
- * Reusing the tile's vocabulary rather than inventing a list-only one, and for
- * the reason base.css gives beside that token — selection goes on the EDGE so
- * the background stays free for state and attention, which have nowhere else to
- * go. A row full of content has exactly that problem.
- *
- * An inset box-shadow rather than a border, because a row has no resting border
- * to thicken the way a tile does; adding one would shove the content in and
- * reflow. It is also a different property from `.cursor`'s outline, which is
- * what lets both marks show at once on the same row. */
-/* @@ */ .selected {
-  box-shadow: inset 0 0 0 2px var(--tile-selected-edge-color);
 }

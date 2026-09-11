@@ -11,31 +11,6 @@ import {
 import { cls } from '../utils/cls'
 import styles from './SelectionList.module.css'
 
-/**
- * The two kinds, expressed as a union so a caller cannot be both.
- *
- * **do now** — choosing does the thing immediately: you land on the club, the
- * setup dialog opens, the suggested move stages on the board. `Enter` activates
- * and `Space` deliberately does nothing, because moving a cursor must not
- * consent to an action.
- *
- * **select** — choosing records a decision you act on LATER, and must not
- * submit the dialog the list sits in. `Enter` and `Space` both mean "make this
- * the selection", and the chosen row keeps a mark.
- */
-type Activation<T> =
-  | {
-      onActivate: (item: T) => void
-      selected?: never
-      onSelect?: never
-    }
-  | {
-      /** The chosen item's key, compared against `rowKey`. */
-      selected: string | null
-      onSelect: (item: T) => void
-      onActivate?: never
-    }
-
 type Props<T> = {
   /** The rows, in display order. Its length IS the list's length — the cursor
    *  is clamped to it on every render, because these lists shrink under the
@@ -46,6 +21,10 @@ type Props<T> = {
   /** The row's CONTENTS. The component renders the row element itself, which is
    *  what lets it own the cursor ring, the scroll-into-view and the click. */
   renderRow: (item: T) => ReactNode
+  /** Choosing a row DOES the thing, immediately: you land on the club, the
+   *  setup dialog opens, the puzzle starts. Enter fires it and Space does not,
+   *  because moving a cursor must not consent to an action. */
+  onActivate: (item: T) => void
   /** Shown inside the frame when there are no items — including the busy
    *  moment before an answer arrives ("Loading puzzles…"). */
   empty: ReactNode
@@ -80,7 +59,7 @@ type Props<T> = {
    *  to toggle Tab between its two lists, and focuses it when a setup dialog
    *  closes. */
   ref?: Ref<HTMLDivElement>
-} & Activation<T>
+}
 
 /**
  * **A list you move a cursor through and choose from.**
@@ -112,6 +91,7 @@ export function SelectionList<T>({
   items,
   rowKey,
   renderRow,
+  onActivate,
   empty,
   disabled,
   rowTitle,
@@ -121,30 +101,15 @@ export function SelectionList<T>({
   frozen,
   label,
   ref,
-  onActivate,
-  selected,
-  onSelect,
 }: Props<T>) {
   const listRef = useRef<HTMLDivElement | null>(null)
   // Tracked on the container proper (not a bubbled child focus) so nothing can
   // leave a stale ring pointing somewhere else.
   const [focused, setFocused] = useState(false)
-  // Only the user's explicit moves. Where the cursor sits BEFORE they move it
-  // is derived below, because in the "select" kind that answer arrives with the
-  // data — freezing it in a useState initializer would pin it to whatever was
-  // (or wasn't) selected on the first render.
-  const [moved, setMoved] = useState(false)
+  // The row the cursor sits on: the top one until the user moves it. Clamped
+  // here rather than at the move, because the list shrinks under the cursor.
   const [movedTo, setMovedTo] = useState(0)
-
-  const isSelectKind = onSelect !== undefined
-  const selectedIndex =
-    selected == null ? -1 : items.findIndex((item) => rowKey(item) === selected)
-
-  // The cursor STARTS on the selected row in the "select" kind, so opening a
-  // picker puts you where you already are rather than at the top.
-  const resting = selectedIndex >= 0 ? selectedIndex : 0
-  const cursor =
-    items.length === 0 ? -1 : Math.min(moved ? movedTo : resting, items.length - 1)
+  const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
   // The ring shows whenever the container holds focus. It does NOT wait for a
   // first arrow the way a board tile's cursor does: a tile shares its box with
   // the game's own colors, and a row has no competing color, so an always-on
@@ -152,7 +117,6 @@ export function SelectionList<T>({
   const showCursor = focused && cursor >= 0
 
   function moveTo(next: number) {
-    setMoved(true)
     setMovedTo(Math.max(0, Math.min(items.length - 1, next)))
   }
 
@@ -169,8 +133,7 @@ export function SelectionList<T>({
   function activate(index: number) {
     const item = items[index]
     if (!item || disabled?.(item)) return
-    if (onSelect) onSelect(item)
-    else onActivate?.(item)
+    onActivate(item)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -206,10 +169,9 @@ export function SelectionList<T>({
         activate(cursor)
         break
       case ' ':
+        // Trapped so it cannot scroll the box, and then inert: choosing here
+        // acts, and moving a cursor must not consent to that.
         e.preventDefault()
-        // Selecting is not consenting to an action, so Space acts only where
-        // choosing IS the whole act.
-        if (isSelectKind) activate(cursor)
         break
     }
   }
@@ -264,7 +226,6 @@ export function SelectionList<T>({
               className={cls(
                 styles.row,
                 isDisabled && styles.disabled,
-                selectedIndex === i && styles.selected,
                 showCursor && i === cursor && styles.cursor,
               )}
               // Keep the cursor row in the scrolled frame's view. The list

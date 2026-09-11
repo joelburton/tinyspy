@@ -1753,19 +1753,20 @@ deliberately doesn't.
 
 The container holds focus; the rows never do.
 
-| key | "do now" | "select" |
-|---|---|---|
-| ↑ ↓ | move the cursor, clamped, no wrap | same |
-| Enter | activate | make this the selection |
-| Space | **nothing** | make this the selection |
-| Home / End | jump to first / last | same |
-| PageUp / PageDown | move by one visible page | same |
+| key | what it does |
+|---|---|
+| ↑ ↓ | move the cursor, clamped, no wrap |
+| Enter | activate the row under the cursor |
+| Space | **nothing** |
+| Home / End | jump to first / last |
+| PageUp / PageDown | move by one visible page |
 
 - **Nothing does the native thing.** The focused element *is* the scroll box, so
   Space and the four page keys would otherwise scroll it out from under the
   cursor. All six are trapped, and a page is measured rather than guessed.
-- **Space does nothing in a "do now" list** because moving a cursor must not
-  consent to an action.
+- **Space does nothing** because choosing a row acts immediately, and moving a
+  cursor must not consent to an action. It is still trapped, or it would page
+  the box.
 - **The cursor lands on disabled rows** and Enter no-ops there. Skipping would
   put the cursor index and the row index out of step, and leaves nowhere to go
   when every row is disabled.
@@ -1778,23 +1779,16 @@ The container holds focus; the rows never do.
   a dialog Tab walks the fields. All the component guarantees is that a list is
   exactly one tab stop.
 
-### The two kinds, and the two marks
+### Choosing, and the one mark
 
-**"Do now"** — choosing does the thing immediately (`onActivate`): you land on
-the club, the setup dialog opens. There is no persistent mark, because you have
-left.
+**Choosing does the thing, immediately** (`onActivate`): you land on the club,
+the setup dialog opens, the puzzle starts. That is the only thing a row's choice
+can mean here, which is why Space is inert and why a row wears no lasting
+"chosen" mark — by the time one would show, you have left.
 
-**"Select"** — choosing records a decision you act on later (`selected` +
-`onSelect`), and must not submit the dialog it sits in. The chosen row keeps a
-mark, and the cursor starts on it.
-
-The two marks ride different CSS properties, which is what lets both show at
-once: the **cursor** is an `outline` in `--chrome-cursor-color`, the
-**selection** an inset `box-shadow` in `--tile-selected-edge-color` — the same
-black edge a selected game piece wears, for the reason `base.css` gives beside
-that token: selection goes on the edge so the background stays free for state
-and attention. It is a shadow rather than a border because a row has no resting
-border to thicken, and adding one would reflow.
+So the list draws exactly one mark, the **cursor**: an `outline` in
+`--chrome-cursor-color`, inset, marking the row Enter would act on. It says
+where the keyboard is, nothing more.
 
 **The menu is not one of these.** It looks the same and isn't: a menu is a set
 of *actions* you pick from and it closes; a list is a set of *places* that stay
