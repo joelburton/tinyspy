@@ -152,17 +152,17 @@ of games.
 
 ## Club page and home page
 
-| where | key | what it does |
-|---|---|---|
 Both pages navigate by `<SelectionList>` (docs/ui.md → Selection lists), so the
-keys are the same on each; only how many lists there are differs.
+keys are the same on each; only how many lists there are differs. The row ring
+is hidden until a movement key asks for it — a mouse user never sees one — and
+ui.md's key table has the column for what each key does while it is hidden.
 
 | where | key | what it does |
 |---|---|---|
-| Either page | `↑` `↓` | Move the cursor ring through the rows (clamped, no wrap). The first list is focused on arrival, so no first Tab is needed. |
-| Either page | `Enter` | Open / start what the ring is on. A row that can't be chosen (a game the club's member count doesn't fit) takes the ring but declines Enter. |
-| Either page | `Home` `End` | Jump to the first / last row. |
-| Either page | `PageUp` `PageDown` | Move by one visible page, measured from the list's own height. |
+| Either page | `↑` `↓` | Move the cursor ring through the rows (clamped, no wrap). The first press only reveals the ring on the resting row; the next one moves it. The first list is focused on arrival, so no first Tab is needed. |
+| Either page | `Enter` | Open / start what the ring is on. Inert while the ring is hidden — it neither acts nor reveals, so an arrow is the way in. A row that can't be chosen (a game the club's member count doesn't fit) takes the ring but declines Enter. |
+| Either page | `Home` `End` | Jump to the first / last row, revealing the ring in the same press. |
+| Either page | `PageUp` `PageDown` | Move by one visible page, measured from the list's own height. Like an arrow, the first press only reveals. |
 | Either page | `Space` | **Nothing** — moving a cursor must not consent to an action. It is caught all the same, so it can't scroll the list out from under the ring. |
 | Either page | `Tab` | Moves to the page's next list — cycling the club page's two, always landing on the one list at home. This is also the way BACK after clicking some blank part of the page, which blurs the list. While an overlay is open its own ring is innermost, so Tab is the overlay's. |
 | Club page | `<` | Back to home — the twin of the play area's `<`. |

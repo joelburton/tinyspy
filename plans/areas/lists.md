@@ -4,15 +4,20 @@ The folders it reads: `lists`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`.
-Every finding is worked except the near-misses in F-lists-11
-(vocabulary-conversion), which want Joel and are now in the folder's `todo.md`.
-Two were found while working others rather than in the audit read: F-lists-18
-(segmented-listed-as-a-pattern) and F-lists-19 (ring-shows-unasked), the
-second raised by Joel.
+**Status: CLOSED 2026-09-11** (Joel: "close the area") — every roster file
+reads `cs-blessed-lists`. Opened the same day: roster agreed and stamped
+`cs-audited-lists`.
+Every finding from the audit read is worked except the near-misses in
+F-lists-11 (vocabulary-conversion), which want Joel and are now in the folder's
+`todo.md`. Two were found while working others rather than in the audit read:
+F-lists-18 (segmented-listed-as-a-pattern) and F-lists-19 (ring-shows-unasked),
+the second raised by Joel.
 
-Still owed before this area can close: the folder's `doc.md` Design, the
-whole-area re-read, and the blessing.
+**The whole-area re-read was done 2026-09-11** and the folder's `doc.md` Design
+written the same sitting (its row is off `DESIGNS_OWED`). The re-read found
+nine things, F-lists-20 through F-lists-28 under "The re-read" below, all prose;
+Joel: "do them all", and all nine are worked. Blessed and closed on his word
+the same day; the near-miss values stay in the folder's `todo.md`.
 
 ## The roster
 
@@ -27,10 +32,10 @@ All in `src/common/lists/`:
 | `FilterSelect.tsx` | the never-focused dropdown that filters a view |
 | `FilterSelect.module.css` | its closed select, popover, options, discs |
 | `filterSelectHelpers.ts` | test helpers for driving a `<FilterSelect>` |
-| `FilterSelect.test.tsx` | the one spec in the folder |
+| `FilterSelect.test.tsx` | the spec the folder had at the opening |
 | `SelectionList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
 | `SimpleScrollableList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
-| `doc.md` | lede only; Design owed |
+| `doc.md` | lede, Design and Details, written at the re-read |
 | `todo.md` | the near-miss values F-lists-11 surfaced |
 
 Written by this area, and so on the roster too:
@@ -533,6 +538,11 @@ per-player options are NOT yet self-labeled with their color dot — a
 worth one here." It is one now, and it does. Docs describe now; drop the
 sentence.
 
+**WORKED 2026-09-11** (`092bbd81`). The sentence now says the per-player
+options carry their dot and names `<FilterSelect>` as the listbox that made it
+possible. Recorded here at the re-read; the work had shipped without a line in
+this file.
+
 ## F-lists-16 · `mobile-md-wrong-rule` · docs/mobile.md files the club-page filter under the iOS floor
 
 mobile.md → the 16px rule lists "`FilterSelect`'s club-page trigger" among
@@ -541,12 +551,18 @@ the five sites that apply `max(16px, 1em)` against iOS focus-zoom.
 never takes focus cannot trigger focus-zoom, and the size is a tap-target
 choice. mobile.md's list should lose it (and "five" with it — a count).
 
+**WORKED 2026-09-11** (`f0b3136f`). mobile.md no longer names `FilterSelect`
+at all. Recorded at the re-read.
+
 ## F-lists-17 · `code-conventions-host-census` · "exactly one does today" in the z- layers section
 
 docs/code-conventions.md → The z- layers says a host that isn't the page
 sets `--z-host`, "and exactly one does today: `.infoCol`". A census; it rots
 the day a form hosts a filter. Say the condition (a host that is not the
 page declares it) and let the reader grep.
+
+**WORKED 2026-09-11** (`9c7df889`). The section says a host that isn't the
+page sets `--z-host` on itself, and names no host. Recorded at the re-read.
 
 ## F-lists-18 · `segmented-listed-as-a-pattern` · Two files call the segmented control a `patterns/` file
 
@@ -603,6 +619,141 @@ Note the shape: this brings back the second state variable F-lists-1
 (select-kind-unused) deleted. `movedTo` is where the cursor is; `revealed` is
 whether to paint it. Same shape, different meaning.
 
+### The re-read, 2026-09-11
+
+Every file on the roster read end to end in one sitting, plus the area's
+prose in docs/ui.md, docs/keyboard-shortcuts.md and the three docs the earlier
+findings touched. Every token, symbol and doc heading the files cite was
+checked against the tree: all of them resolve. What did not hold up is below.
+Most of it is prose this area wrote itself while working its findings, which
+is the pattern the closing re-read exists for.
+
+## F-lists-20 · `no-flex-claim-false` · `SimpleScrollableList`'s docstring contradicts its module
+
+"`max-height` does both by itself, which is why there is no flex anywhere in
+the module" — and the module's `.scrollBox` sets `flex-shrink: 0`, with a
+comment explaining why it must. The claim the docstring means is that the box
+never *negotiates* for space; say that. The same docstring says
+`SelectionList` "moves its own frame to show the keyboard cursor" — the frame
+does not move, its border recolors.
+
+**WORKED 2026-09-11 (Joel: "do them all").** "Never negotiates for leftover
+space", and "recolors its frame to show the keyboard is on it".
+
+## F-lists-21 · `popover-tier-contradiction` · The popover claims Menu's tier and then says it has none
+
+`FilterSelect.module.css` → `.popover` opens with "Elevation idiom copied from
+Menu's popover / DefinitionPopover: surface + border + soft shadow, and the same
+popover tier — above page content, below chat", and the comment on the very
+next declaration says it is a SATELLITE that reads its host's tier and is not a
+rung. Only the second is true: Menu sits at `--z-menu`, DefinitionPopover at
+`--z-tooltip`, and this at `--z-host + 1`. Keep the look-sharing sentence
+(surface, border, shadow) and drop the tier clause.
+
+**WORKED 2026-09-11.** The comment keeps the look and says "not their z-tier",
+pointing at the satellite note beside `z-index`.
+
+## F-lists-22 · `panel-for-frame-and-column` · "panel" names the list's frame and the info column
+
+The word this sprint banned for a kind of thing, in two senses across the area.
+`SelectionList.module.css` calls the frame a "panel" five times ("One framed
+panel", "the full width of the panel", "a panel padded out", "the club page's
+two panels", "a scrolling panel"), while its own section heading and every
+prop call it the frame; docs/ui.md → Selection lists → The shape says "panel"
+three times in the same sentences. And `FilterSelect.module.css` calls the
+info column "the info panel" (`.optionOn`) and "the panel" (the touch block).
+The `.optionOn` reason is also scoped to one host — "a palette the info panel
+doesn't already use" — for a control the club page renders too.
+
+**WORKED 2026-09-11.** The list's frame is "the frame" everywhere in the module
+and in ui.md → The shape ("the club page's two panels" became "two lists");
+`.optionOn` says "its host", and the touch block "whatever hosts it". The one
+"panel" left in the folder is `SimpleScrollableList.module.css`'s "a floating
+panel's content", which is the machinery's own name.
+
+## F-lists-23 · `paint-is-four-rules` · Counts that were wrong when written or will be
+
+- "The paint is four rules" in `SelectionList`'s docstring and "four CSS rules"
+  in its test's header. The module has twelve. docs/ui.md says "a handful";
+  say that, or say what the sentence means — that the paint is small and the
+  behavior is the component.
+- `FilterSelect`'s docstring: the club page's "mode filter is segments because
+  it has three". A tally of another component's options; "because it has only
+  a few" is the point.
+- `FilterSelect.module.css`'s header: "two filters on two pages cannot drift
+  apart". Four filters on two kinds of page; "a filter on one page and a
+  filter on another" is what it means.
+
+**WORKED 2026-09-11.** "A handful of rules" in both places, "only a few", and
+"a filter on one page and a filter on another".
+
+## F-lists-24 · `marker-on-object-members` · Two `/**` on members of an object literal
+
+`SelectionList.test.tsx` → `setup()` returns an object whose `rerender` and
+`revealCursor` members each carry a `/**` note. They are members of one
+declaration, not declarations; `//`. The same file's `focusList`, `cursorAt`
+and `withHeights` are standalone functions and keep theirs.
+
+**WORKED 2026-09-11.** Both are `//`.
+
+## F-lists-25 · `keyboard-shortcuts-predates-reveal` · The club/home key table describes the old cursor
+
+docs/keyboard-shortcuts.md → Club page and home page: `↑ ↓` "Move the cursor
+ring through the rows" and `Enter` "Open / start what the ring is on", with no
+word that the first arrow only reveals the ring or that Enter is inert until
+one has. F-lists-19 (ring-shows-unasked) changed both and updated docs/ui.md
+only. Either the rows say it, or they point at ui.md's key table, which has the
+"while the ring is hidden" column. The same section also carries an empty table
+header (`| where | key | what it does |` and its rule) immediately above the
+prose, and then the real table — a leftover with no rows.
+
+**WORKED 2026-09-11.** The stray header is gone. The prose above the table
+says the ring hides until a movement key asks and points at ui.md's key table
+for the hidden column; the four key rows each say what their first press does
+while it is hidden (arrows and the page keys reveal only, Home/End reveal and
+jump, Enter is inert and does not reveal).
+
+## F-lists-26 · `ui-md-converted-census` · docs/ui.md's list section ends on a roster
+
+"Converted: the homepage's clubs, the club page's two lists, crosswords' setup
+library picker. Still bespoke by decision: crosswords' clue lists (revisit at
+that area) and scrabble's suggested-moves box." A roster of callers, already
+wrong (crosswords has three pickers on it: Guardian, Library, NYT), and
+"converted" is history. The opening paragraph has the same tense — "what was
+actually duplicated was the behavior". The decisions worth keeping are the
+two bespoke-by-decision sites, and each is recorded where it belongs
+(`docs/games/scrabble.md`; crosswords' clue lists are that game's).
+
+**WORKED 2026-09-11.** The roster is gone; the section ends on the two
+bespoke-by-decision sites, linking scrabble.md for its reason. The opening
+paragraph now says the behavior is "the part a call site would otherwise have
+to write itself".
+
+## F-lists-27 · `taxonomy-restated-in-comment` · The `revealed` comment carries the two-kinds taxonomy
+
+`SelectionList.tsx`'s comment on `revealed` is nine lines, and its second
+paragraph is the geographic-versus-selection taxonomy that docs/ui.md →
+Selection lists → Choosing, and the one mark now owns. A comment explains the
+code in front of the reader and points at the shared thing; the first paragraph
+does that. The parenthetical is a second copy.
+
+**WORKED 2026-09-11.** The comment opens "Whether to PAINT the cursor", says it
+is a selection cursor in one clause with the ui.md pointer, and the geographic
+paragraph is gone.
+
+## F-lists-28 · `small-prose-leftovers` · Three lines, none worth a finding alone
+
+- `SelectionList.tsx` → `rowTitle`: "in practice, why a disabled one does
+  nothing" is the club page's story on a generic prop (the Notes said so at the
+  opening; still there).
+- `SelectionList.module.css` → `.list`: "The END rows carry the corners
+  themselves now (below)" — "now" is a before.
+- `FilterSelect.tsx` docstring, "Deliberately NOT a form control": one line
+  wraps at half width mid-sentence.
+
+**WORKED 2026-09-11.** "Such as why a disabled one does nothing"; the "now" is
+out; the paragraph is reflowed.
+
 ### Ruled already, recorded so the re-read does not re-raise them
 
 - **`FilterSelect`'s private Escape listener** bypasses `usePanelEscape`.
@@ -654,7 +805,10 @@ whether to paint it. Same shape, different meaning.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — 2026-09-11;
+      F-lists-20 through F-lists-28 are what it found, all worked
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed (the near-miss values); nothing
+      durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not — all
+      `cs-blessed-lists`, 2026-09-11, at Joel's word

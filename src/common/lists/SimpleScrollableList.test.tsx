@@ -1,4 +1,4 @@
-// cs-audited-lists
+// cs-blessed-lists
 
 /**
  * Tests for SimpleScrollableList.

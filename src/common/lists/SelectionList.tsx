@@ -1,4 +1,4 @@
-// cs-audited-lists
+// cs-blessed-lists
 
 import {
   useEffect,
@@ -30,8 +30,8 @@ type Props<T> = {
   empty: ReactNode
   // Rows the cursor lands on but Enter won't act on.
   disabled?: (item: T) => boolean
-  // Native tooltip for a row — in practice, why a disabled one does nothing.
-  // It belongs on the row element, which only this component renders.
+  // Native tooltip for a row, such as why a disabled one does nothing. It
+  // belongs on the row element, which only this component renders.
   rowTitle?: (item: T) => string | undefined
   // Tightens the rows. For a list whose rows carry two lines of text.
   density?: 'default' | 'packed'
@@ -80,8 +80,8 @@ type Props<T> = {
  * alternative to clicking and a mouse user has no use for it. `Enter` is inert
  * until then, deliberately — it neither acts nor reveals.
  *
- * **Why `items` + `renderRow` and not children.** The paint is four rules and
- * the behavior is the rest, so a CSS pattern would leave the ring, the
+ * **Why `items` + `renderRow` and not children.** The paint is a handful of
+ * rules and the behavior is the rest, so a CSS pattern would leave the ring, the
  * scroll-into-view, the disabled test and Enter at every call site. Given
  * assembled children this component could count them but not see inside one,
  * which is the same thing: it has to render the row element itself to own any
@@ -112,15 +112,13 @@ export function SelectionList<T>({
   // here rather than at the move, because the list shrinks under the cursor.
   const [movedTo, setMovedTo] = useState(0)
   const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
-  // A SELECTION CURSOR, so it stays hidden until the player asks for it: it is
-  // an alternative to clicking, and someone using the mouse has no use for a
-  // ring. Only a MOVEMENT key asks — Enter and Space never reveal, so no
-  // impatient second press can commit something the first press appeared to
-  // ignore. Separate from `movedTo`, because a click moves the cursor without
-  // revealing it, so going back to the keys resumes where your hand left off.
-  //
-  // (The other kind is a geographic cursor — crosswords' cell, scrabble's grid
-  // — which says where you ARE and always shows. Don't make these agree.)
+  // Whether to PAINT the cursor. Hidden until a movement key asks — this is a
+  // selection cursor, an alternative to clicking, and a mouse user has no use
+  // for a ring (docs/ui.md → Selection lists → Choosing, and the one mark).
+  // Enter and Space never reveal, so no impatient second press can commit
+  // something the first press appeared to ignore. Separate from `movedTo`,
+  // because a click moves the cursor without revealing it, so going back to
+  // the keys resumes where your hand left off.
   const [revealed, setRevealed] = useState(false)
   const showCursor = focused && revealed && cursor >= 0
 

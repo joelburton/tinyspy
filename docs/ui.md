@@ -1709,8 +1709,8 @@ Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
 homepage's clubs, a club's games, the games you can start, the crossword
 library. It is a component,
 [`<SelectionList>`](../src/common/lists/SelectionList.tsx), not a set
-of classes: the paint is a handful of rules, and what was actually duplicated
-was the behavior.
+of classes: the paint is a handful of rules, and the behavior is the part a
+call site would otherwise have to write itself.
 
 The name is deliberate. "List" alone also means a plain bulleted list of text,
 which is most of what the word points at in this repo (every game's Help panel).
@@ -1729,19 +1729,19 @@ different keyboard, not this one with a flag flipped.
 
 ### The shape
 
-- **One framed panel, rows abutting inside it**, with a hairline between them —
-  not a stack of separately-tinted tiles. The frame is what says "this is a
-  list", so a row draws no fill and no border of its own.
+- **One frame, rows abutting inside it**, with a hairline between them — not a
+  stack of separately-tinted tiles. The frame is what says "this is a list", so
+  a row draws no fill and no border of its own.
 - **The frame owns no padding.** The rows carry all of it, so the space above
   the first row equals the space between any two, and each row's rule and hover
-  tint run the panel's full width instead of floating inside an inset.
+  tint run the frame's full width instead of floating inside an inset.
 - **The hairline belongs to the list, not the row.** On the row it needs a
   `:last-child` rule to suppress the final line, and that rule breaks the moment
   a row is wrapped.
 - **The list hugs its rows** unless a caller passes `fills`. Whether a list
   should absorb its parent's free space is a fact about the layout around it.
 - **Keyboard focus recolors the frame's border** rather than drawing a ring: a
-  ring outside a scrolling panel reads as a second frame. Which *row* the cursor
+  ring outside a scrolling frame reads as a second frame. Which *row* the cursor
   is on is a separate mark.
 - **A row is a plain `<div>`.** Not an anchor, not a button — so it isn't
   focusable and isn't independently activatable, which makes the container the
@@ -1840,9 +1840,9 @@ of *actions* you pick from and it closes; a list is a set of *places* that stay
 put. If the two turn out to share code, the shared thing gets its own name and
 both read it.
 
-Converted: the homepage's clubs, the club page's two lists, crosswords' setup
-library picker. Still bespoke by decision: crosswords' clue lists (revisit at
-that area) and scrabble's suggested-moves box.
+Two pick-one sites are bespoke by decision and not this: crosswords' clue lists
+(that game's to revisit) and scrabble's suggested-moves box
+([scrabble.md](games/scrabble.md) says why).
 
 ## Mode badges
 

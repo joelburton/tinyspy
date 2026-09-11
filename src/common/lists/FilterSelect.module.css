@@ -1,4 +1,4 @@
-/* cs-audited-lists */
+/* cs-blessed-lists */
 
 /* FilterSelect — the non-native dropdown that filters a view. See
  * FilterSelect.tsx for WHY it isn't a <select>.
@@ -7,7 +7,7 @@
  * different re-declares one property: the club page's filter is the same
  * control with roomier padding (clubFilters.module.css). Everything else —
  * the size, the fill, the border, the radius, the width cap — is decided
- * here, so two filters on two pages cannot drift apart. */
+ * here, so a filter on one page and a filter on another cannot drift apart. */
 
 /* @@ */ .root {
   position: relative;
@@ -87,9 +87,8 @@
 
 /* ─── Popover ─────────────────────────────────────────────── */
 
-/* Elevation idiom copied from Menu's popover / DefinitionPopover: surface +
- * border + soft shadow, and the same popover tier — above page content, below
- * chat. */
+/* The same elevation look as Menu's popover and DefinitionPopover — surface +
+ * border + soft shadow. Not their z-tier; see the satellite note on `z-index`. */
 /* The list hangs from the closed select's RIGHT edge and opens leftward, always.
  * These filters are only ever placed at the right end of a heading row or
  * column, so right-anchoring is the one correct behavior and not worth a prop
@@ -144,8 +143,7 @@
 }
 
 /* The current value. Weight rather than color, so it reads as "this one" in
- * both themes without introducing a palette the info panel doesn't already
- * use. */
+ * both themes without introducing a palette its host doesn't already use. */
 /* @@ */ .optionOn {
   font-weight: 700;
 }
@@ -156,7 +154,7 @@
  * target with a legible 1rem label — the thing a native picker gives you for
  * free and the reason not to ship a cramped custom list on a phone. The CLOSED
  * SELECT stays small: it lives in a tight heading row, and growing it would
- * reflow the panel. */
+ * reflow whatever hosts it. */
 @media (--mobile) {
 /* @@ */   .popover {
     padding: 0.25rem;

@@ -1,11 +1,11 @@
-/* cs-audited-lists */
+/* cs-blessed-lists */
 
 /* ============================================================
  * SelectionList.module.css — the list you move a cursor through and
  * choose from.
  *
- * One framed panel with the rows abutting inside it and a hairline
- * between them — not a stack of separately-tinted tiles. The frame is
+ * One frame with the rows abutting inside it and a hairline between
+ * them — not a stack of separately-tinted tiles. The frame is
  * what says "this is a list", so a row draws no fill and no border of
  * its own; a second container would compete with the first.
  *
@@ -22,10 +22,10 @@
 
 /* NO padding, deliberately. The rows carry all of it, so the space above the
    first row equals the space between any two, and each row's rule and hover
-   tint run the full width of the panel instead of floating inside an inset.
+   tint run the full width of the frame instead of floating inside an inset.
 
    NOT `flex: 1` — see `.fills`. The list sizes to its content and only
-   shrinks: three clubs get three rows, not a panel padded out to fill its
+   shrinks: three clubs get three rows, not a frame padded out to fill its
    parent. It scrolls only once an ancestor's height actually bites, which is
    what keeps the page itself from scrolling (docs/ui.md → "Page-height fits
    the viewport").
@@ -39,7 +39,7 @@
   border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-lg);
   /* Square row corners would otherwise poke past this rounding. The END rows
-     carry the corners themselves now (below), but a scrolled list puts an
+     carry the corners themselves (below), but a scrolled list puts an
      ordinary square-cornered row against the curve, so the clip still earns
      its place. `hidden` on x pairs with the y-axis scroll — plain
      `overflow: hidden` would CLIP a long list instead of letting it scroll. */
@@ -50,7 +50,7 @@
 
 /* Absorb the parent's free space instead of hugging the rows. A caller opts in,
    because whether a list should grow is a fact about the layout AROUND it —
-   the club page's two panels want it, the homepage's clubs do not. Named for
+   the club page's two lists want it, the homepage's clubs do not. Named for
    the job, the way `.pageMain-fills` is. */
 /* @@ */ .fills {
   flex: 1;
@@ -67,7 +67,7 @@
 }
 
 /* Keyboard focus moves the FRAME's border to the cursor color rather than
-   drawing a ring around it — a ring outside a scrolling panel reads as a
+   drawing a ring around it — a ring outside a scrolling frame reads as a
    second frame. Which row the cursor is on is marked separately, by `.cursor`. */
 .list:focus,
 /* @@ */ .list:focus-visible {

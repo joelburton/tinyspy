@@ -1,9 +1,9 @@
-// cs-audited-lists
+// cs-blessed-lists
 
 /**
  * Tests for SelectionList.
  *
- * The paint is four CSS rules and the behavior is everything else, so this is
+ * The paint is a handful of CSS rules and the behavior is everything else, so this is
  * where the component's claims get pinned: when the cursor appears at all,
  * where it sits, what each key does to it, and the cases where it must NOT
  * move — a disabled row under Enter, a frozen list, and a list that shrank.
@@ -79,10 +79,10 @@ function setup(props: Partial<Props> = {}) {
   return {
     onActivate,
     user,
-    /** Re-render with something changed — how a caller flips `frozen`. */
+    // Re-render with something changed — how a caller flips `frozen`.
     rerender: (extra: Partial<Props>) => view.rerender(<SelectionList {...all(extra)} />),
-    /** Focus the list and press one arrow, which shows the ring on the
-     *  resting row without stepping off it. */
+    // Focus the list and press one arrow, which shows the ring on the resting
+    // row without stepping off it.
     revealCursor: async () => {
       focusList(list())
       await user.keyboard('{ArrowDown}')

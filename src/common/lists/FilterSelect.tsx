@@ -1,4 +1,4 @@
-// cs-audited-lists
+// cs-blessed-lists
 
 import { useEffect, useRef, useState } from 'react'
 import { cls } from '../utils/cls'
@@ -44,9 +44,9 @@ export type FilterOption = {
  *
  * **Deliberately NOT a form control**, per the constraints these live under:
  * you never Tab to a gameplay filter (a play surface's tab ring is empty),
- * never open one with Space, and never want a focus
- * ring on the board. That is the definition of "not a `<select>`", and it's
- * why this is a plain button + list rather than a keyboard-navigable listbox.
+ * never open one with Space, and never want a focus ring on the board. That
+ * is the definition of "not a `<select>`", and it's why this is a plain
+ * button + list rather than a keyboard-navigable listbox.
  *
  * Pointer-driven only — closes on outside pointerdown or Escape.
  *
@@ -61,7 +61,7 @@ export type FilterOption = {
  *   is this; a short one shows every choice at once as `<Segmented>`. The club
  *   page runs both side by side — its gametype filter is a menu because it
  *   has one entry per game family, its mode filter is segments because it has
- *   three.
+ *   only a few.
  */
 export function FilterSelect({
   value,

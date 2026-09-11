@@ -1,4 +1,4 @@
-// cs-audited-lists
+// cs-blessed-lists
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -23,15 +23,15 @@ type Props = {
  * A FRAMED LIST THAT SHOWS A FEW ROWS AND SCROLLS PAST THAT.
  *
  * Not `<SelectionList>`, which is a different job: that one is pick-one, is the
- * page's main structure, rules its rows off from each other and moves its own
- * frame to show the keyboard cursor. This is the small answer — a card holding
- * results you read, and possibly click.
+ * page's main structure, rules its rows off from each other and recolors its
+ * frame to show the keyboard is on it. This is the small answer — a card
+ * holding results you read, and possibly click.
  *
  * **It shrinks and it caps.** Four results make a four-row-tall box; two hundred
  * make a `rows`-tall box you scroll. `max-height` does both by itself, which is
- * why there is no flex anywhere in the module: a list that negotiates for
- * leftover space needs its parent bounded, its own `flex` set and its
- * `min-height` zeroed, and every one of those is a chance to be subtly wrong.
+ * why the box never negotiates for leftover space: a list that does needs its
+ * parent bounded, its own `flex` set and its `min-height` zeroed, and every one
+ * of those is a chance to be subtly wrong.
  *
  * **The height is stated in rows**, and the list owns what a row is
  * (`--simpleScrollableList-row-height`), so the cap and the rows cannot drift apart and
