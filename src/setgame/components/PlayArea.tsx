@@ -256,6 +256,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // fast player can start their next set while this one is still traveling.
   // The three cards being claimed are made unclickable individually.
   const active = !isTerminal && !myConceded && isMyTurn
+  // Derived here, above the loading guards, because the Hint binding's
+  // `describe` names it and can be read on any render — the key list asks every
+  // binding when Help opens.
+  const isCompete = game?.mode === 'compete'
 
   const onCardClick = useCallback(
     (card: CardCode) => {
@@ -563,7 +567,6 @@ export function PlayArea(ctx: GamePageCtx) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
-  const isCompete = game.mode === 'compete'
   const isLocallyDone = isCompete && myConceded && !isTerminal
   // Turn-by-turn is fixed at create time, so this never changes mid-game.
   const isTurnGame = currentTurnUserId !== null

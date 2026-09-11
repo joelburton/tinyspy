@@ -24,6 +24,7 @@ import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
+import { KeyList } from '@/common/actions/KeyList'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
@@ -229,5 +230,24 @@ describe('setgame PlayArea — when the board is not yours to touch', () => {
 
     await user.click(screen.getByText('#1', { exact: true, selector: 'span' }))
     expect(cardKeyState()).toBe('hidden')
+  })
+})
+
+describe('setgame PlayArea — before the game has loaded', () => {
+  // A binding joins the stack on the FIRST render, before the loading guard
+  // has anything to show, and its `describe` can be read right then: the key
+  // list asks every live binding when Help opens. So nothing a `describe`
+  // names may be derived below the guards — Hint's `isCompete` once was, and
+  // opening Help on a loading page threw.
+  it('every binding can describe itself while the page is still loading', () => {
+    h.result = loaded({ loading: true, game: null, me: null })
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <KeyList />
+      </>,
+    )
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    for (const binding of liveBindings()) expect(() => binding.describe()).not.toThrow()
   })
 })

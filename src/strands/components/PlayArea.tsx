@@ -343,14 +343,25 @@ export function PlayArea(ctx: GamePageCtx) {
     if (trace.length) void submit(trace)
   }, [trace, submit])
 
+  // COMPETE: solving (or conceding) ends YOUR race while the others keep going.
+  // The board freezes and the standard "you're out" look applies, but the game
+  // is not over — the winner isn't known until nobody is still racing.
+  const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
+  const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this is false there — the pill's
+  // presence is fixed for the game's life, no reflow. (wordle's shape.)
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+
   // ⌫ and Enter, as the two bindings the move row places. ONE gate for both:
   // with nothing traced there is nothing to take back OR submit, and a frozen
   // board freezes them too. They go DISABLED rather than hidden, so the row
   // keeps its slot and never reflows — and a disabled action leaves its key for
   // whoever else wants it, which is how the history viewer gets Backspace.
   //
-  // `describe` is read at DRAW time, so it may name values (`isLocallyDone`,
-  // `waiting`) that this file derives further down, past the loading guards.
+  // `describe` can be read on ANY render — the key list asks every binding when
+  // Help opens — so everything it names is derived above the loading guards.
   const entryOff = () => trace.length === 0 || isTerminal || isLocallyDone || busy || waiting
   const actDropLastCell = useBoundAction('act-drop-last-cell', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
@@ -721,17 +732,6 @@ export function PlayArea(ctx: GamePageCtx) {
   const over = isTerminal
     ? buildOver(playState, found.length, isCompete, players, selfId, playerStates)
     : null
-
-  // COMPETE: solving (or conceding) ends YOUR race while the others keep going.
-  // The board freezes and the standard "you're out" look applies, but the game
-  // is not over — the winner isn't known until nobody is still racing.
-  const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
-  const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
-
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
-  // is null in a free-for-all game, so this is false there — the pill's
-  // presence is fixed for the game's life, no reflow. (wordle's shape.)
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
 
   /**
    * What the below-board slot shows, in priority order: the permanent terminal

@@ -8,6 +8,8 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
+import { liveBindings } from '@/common/actions/useBoundAction'
+import { KeyList } from '@/common/actions/KeyList'
 import type { StrandsGame, StrandsPlayer } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 
@@ -240,5 +242,25 @@ describe('strands PlayArea — the terminal reveal', () => {
 
     act(() => menuItems(ctx).get('act-reveal')!.run())
     await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide answer'))
+  })
+})
+
+describe('strands PlayArea — before the game has loaded', () => {
+  // A binding joins the stack on the FIRST render, before the loading guard
+  // has anything to show, and its `describe` can be read right then: the key
+  // list asks every live binding when Help opens, and the dispatcher asks ⌫
+  // and Enter's on any press. So nothing a `describe` names may be derived
+  // below the guards — `isLocallyDone` and `waiting` once were, and a keypress
+  // on a loading page threw.
+  it('every binding can describe itself while the page is still loading', () => {
+    h.result = loaded({ loading: true, game: null, me: null })
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <KeyList />
+      </>,
+    )
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    for (const binding of liveBindings()) expect(() => binding.describe()).not.toThrow()
   })
 })
