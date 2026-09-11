@@ -172,6 +172,26 @@ sees. The Soon item said to check with the file open; checked.
 
 ## F-floating-panels-9 · `private-escape-listeners` · Three components answer Escape outside the registry
 
+**WORKED, and it was a live bug, not a theoretical one.** The reading below
+was right that none of these is a floating panel, and wrong that the collision
+could not happen: `AnagramDialog` is a `dialog`-family panel whose result rows
+are `.definable`, so a definition popover opens INSIDE it. One Escape closed
+both — the definition and the finder, losing the letters you typed. Confirmed
+against the real components before any fix, and the mechanism is that neither
+listener stops propagation.
+
+Joel ruled (2026-09-11): keep them out of the registry, make the press stop.
+`useDismissOnEscape` (common/keyboard/) is the shared answer, and the subtlety
+is why it is shared rather than three inline fixes — it must bind on
+**`document`, not `window`**, because the registry is a sibling on `window` and
+`stopPropagation` does not stop siblings; registered first, it would have run
+already. That distinction is invisible and fails silently, so
+`guards/escapeListeners.test.ts` fails a hand-rolled Escape listener anywhere
+outside the two owners. `Menu` needed nothing: it already stops the key on its
+own focused element, which is the right answer for an overlay that holds focus.
+
+The original reading, kept because its category argument still stands:
+
 Joel's, handed to this area: `InfoSheet`, `DefinitionPopover` and
 `FilterSelect` each listen for Escape on the document themselves (so does
 `Menu`, which ui.md already excludes). By ui.md's own definition none is a

@@ -7,7 +7,7 @@
  * survives to the RPC untouched (pins), junk characters never reach it,
  * and the result rows carry the muted band beside each word.
  */
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -164,5 +164,36 @@ describe('AnagramDialog — the other arm of the routing', () => {
 
     await waitFor(() => expect(screen.getByText(message)).toBeInTheDocument())
     expect(errorUnder('letters')).not.toBe(message)
+  })
+})
+
+describe('AnagramDialog — Escape with a definition open', () => {
+  /** Search, then click a result word to open the shared definition popover. */
+  async function defineAResult(onClose: () => void) {
+    mockRpc.mockResolvedValue({
+      data: { type: 'ok', data: { result: 'searched', words: [{ word: 'acre', difficulty: 1 }] } },
+      error: null,
+    })
+    const user = userEvent.setup()
+    render(<AnagramDialog onClose={onClose} />)
+    await user.type(screen.getByRole('textbox'), 'acer{Enter}')
+    await user.click(await waitFor(() => screen.getByText('ACRE')))
+  }
+
+  it('closes the definition ONLY — the dialog stays open', async () => {
+    // One press, one dismissal. Both the popover and the panel registry hear
+    // Escape globally, and before `useDismissOnEscape` they both acted: the
+    // definition AND the finder closed, losing the letters you had typed.
+    const onClose = vi.fn()
+    await defineAResult(onClose)
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('still closes the dialog when no definition is open', async () => {
+    const onClose = vi.fn()
+    render(<AnagramDialog onClose={onClose} />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

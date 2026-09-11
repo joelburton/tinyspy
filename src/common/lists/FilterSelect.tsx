@@ -1,6 +1,7 @@
 // cs-blessed-lists
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDismissOnEscape } from '../keyboard/useDismissOnEscape'
 import { cls } from '../utils/cls'
 import { Dot } from '../members/Dot'
 import styles from './FilterSelect.module.css'
@@ -83,24 +84,26 @@ export function FilterSelect({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
 
-  // Dismissal. Both listeners are document-level because nothing here is
-  // focused — there's no blur to react to, by design.
-  useEffect(() => {
-    if (!open) return
-    function onPointerDown(e: PointerEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
+  // Dismissal. Document-level because nothing here is focused — there's no
+  // blur to react to, by design. Escape closes the dropdown and stops there,
+  // so it doesn't also close a panel this filter sits in
+  // (`useDismissOnEscape`).
+  useDismissOnEscape(open, close)
+  useEffect(
+    function closeOnOutsidePointer() {
+      if (!open) return
+      function onPointerDown(e: PointerEvent) {
+        if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+      }
+      document.addEventListener('pointerdown', onPointerDown)
+      return function unbind() {
+        document.removeEventListener('pointerdown', onPointerDown)
+      }
+    },
+    [open],
+  )
 
   const current = options.find((o) => o.value === value)
   const anyDots = options.some((o) => o.dot)

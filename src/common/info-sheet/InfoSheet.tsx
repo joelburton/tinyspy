@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import { useDismissOnEscape } from '../keyboard/useDismissOnEscape'
 import { cls } from '../utils/cls'
 import styles from './InfoSheet.module.css'
 
@@ -32,16 +33,10 @@ export function InfoSheet({ open, onClose, children }: Props) {
   // class). This is the CHEAP HALF of dialog behavior; the full treatment
   // (move focus into the sheet on open + restore on close, trap Tab, dismiss by
   // tapping outside) is deliberately deferred — see docs/deferred.md → Mobile.
-  // The listener is bound only while open, so it never competes with
-  // a game's own key handling when the sheet is shut.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // Bound only while open, so it never competes with a game's own key handling
+  // when the sheet is shut, and it stops there rather than also closing a panel
+  // above the sheet (`useDismissOnEscape`).
+  useDismissOnEscape(open, onClose)
 
   return (
     // data-info-sheet: a stable hook for e2e (the class name is hashed).

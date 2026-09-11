@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
   import { createPortal } from 'react-dom'
+import { useDismissOnEscape } from '../keyboard/useDismissOnEscape'
 import { DefinitionView } from './DefinitionView'
 import styles from './DefinitionPopover.module.css'
 
@@ -54,16 +55,9 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
     return () => document.removeEventListener('mousedown', onDown)
   }, [onClose])
 
-  useEffect(function closeOnEsc() {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  // Escape closes the definition and stops there — it must not also close the
+  // panel this popover was opened from (`useDismissOnEscape`).
+  useDismissOnEscape(true, onClose)
 
   // Clamp the left edge so a word near the right margin doesn't push the card
   // off-screen.
