@@ -82,16 +82,19 @@ export function useChatOpen(): boolean {
  * better than a key that appears to do nothing: an unbound key sends the next
  * person debugging it to the right question.
  */
-let mounted = false
+// A COUNT, not a flag: a page swap can mount the next page's panel before the
+// last page's has released, and a flag would be cleared by the release that
+// comes second.
+let mountedPanels = 0
 const mountedListeners = new Set<() => void>()
 
 /** Say a chat panel is on screen, and return the release. `<Chat>` calls it
- *  from an effect, so the flag follows the panel's own lifetime. */
+ *  from an effect, so the count follows each panel's own lifetime. */
 export function registerChatMounted(): () => void {
-  mounted = true
+  mountedPanels += 1
   for (const listener of mountedListeners) listener()
   return () => {
-    mounted = false
+    mountedPanels -= 1
     for (const listener of mountedListeners) listener()
   }
 }
@@ -104,6 +107,6 @@ export function useChatMounted(): boolean {
         mountedListeners.delete(listener)
       }
     },
-    () => mounted,
+    () => mountedPanels > 0,
   )
 }

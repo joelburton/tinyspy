@@ -185,9 +185,46 @@ describe('scrabble PlayArea — render smoke', () => {
   })
 })
 
+describe('scrabble PlayArea — pass', () => {
+  // Pass asks its own question, through the same modal every registry
+  // question uses — never `window.confirm`.
+  it('asks first, and a cancel writes nothing', async () => {
+    const user = userEvent.setup()
+    h.result = loadedCompete()
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Pass' }))
+    expect(await screen.findByText('Pass your turn?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalledWith('pass_turn', expect.anything())
+  })
+
+  it('fires pass_turn once the question is answered yes', async () => {
+    const user = userEvent.setup()
+    h.result = loadedCompete()
+    render(
+      <>
+        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Pass' }))
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = await screen.findAllByRole('button', { name: 'Pass' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('pass_turn', expect.objectContaining({ target_game: 'g1' })),
+    )
+  })
+})
+
 describe('scrabble PlayArea — concede', () => {
   it('compete shows Concede and calls scrabble.concede on click', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loadedCompete()
     render(

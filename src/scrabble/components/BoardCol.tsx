@@ -8,6 +8,8 @@ import { useFlash } from '@/common/move-flash/useFlash'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { askConfirmation } from '@/common/floating-panels/confirmationService'
+import type { ConfirmOptions } from '@/common/floating-panels/useConfirmation'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
@@ -28,6 +30,16 @@ import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+
+/** Pass's question. Scrabble's own rather than the registry's: passing here
+ *  forfeits the turn's points and feeds the blocked-end streak, which is why
+ *  it asks at all. */
+const PASS_CONFIRM: ConfirmOptions = {
+  title: 'Pass your turn?',
+  message: 'You score nothing this turn, and if every seat passes in a row the game ends.',
+  confirmLabel: 'Pass',
+  cancelLabel: 'Keep playing',
+}
 
 /** A tile staged on the board this turn, tied to its rack slot. */
 type Staged = Placement & { rackIdx: number }
@@ -720,9 +732,11 @@ export function BoardCol({
   const pass = useCallback(async () => {
     // Confirm — passing forfeits the turn AND feeds the blocked-end streak (once
     // every seat passes in a row the game is over), and the button is easy to
-    // misclick. Exchange needs no confirm: it's
-    // disabled until tiles are selected, so it's rarely hit by accident.
-    if (!window.confirm('Do you really want to pass your turn?')) return
+    // misclick. Asked here rather than by the registry because the question is
+    // scrabble's alone: codenamesduet's end-turn is an every-turn move and asks
+    // nothing. Exchange needs no confirm: it's disabled until tiles are
+    // selected, so it's rarely hit by accident.
+    if ((await askConfirmation(PASS_CONFIRM)) !== 'confirm') return
     const res = await runRpc<PassAnswer>(
       db.rpc('pass_turn', { target_game: gameId, base_version: game.version }),
     )

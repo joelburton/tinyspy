@@ -71,7 +71,9 @@ afterEach(() => {
 
 import {
   getChatOpen,
+  registerChatMounted,
   setChatOpen,
+  useChatMounted,
   useChatOpen,
 } from './chatOpenStore'
 
@@ -157,5 +159,33 @@ describe('chatOpenStore — useChatOpen hook', () => {
     // No throw + no leaked subscriber that would touch a
     // disposed React tree.
     expect(() => setChatOpen(true)).not.toThrow()
+  })
+})
+
+describe('chatOpenStore — is a chat panel mounted', () => {
+  it("follows a panel's lifetime, and re-renders a reader either way", () => {
+    const { result } = renderHook(() => useChatMounted())
+    expect(result.current).toBe(false)
+    let release = () => {}
+    act(() => {
+      release = registerChatMounted()
+    })
+    expect(result.current).toBe(true)
+    act(() => release())
+    expect(result.current).toBe(false)
+  })
+
+  it('counts panels, so the next page mounting before the last releases stays mounted', () => {
+    const { result } = renderHook(() => useChatMounted())
+    let releaseFirst = () => {}
+    let releaseSecond = () => {}
+    act(() => {
+      releaseFirst = registerChatMounted()
+      releaseSecond = registerChatMounted()
+    })
+    act(() => releaseFirst())
+    expect(result.current).toBe(true)
+    act(() => releaseSecond())
+    expect(result.current).toBe(false)
   })
 })

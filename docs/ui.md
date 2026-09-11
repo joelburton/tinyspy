@@ -303,10 +303,11 @@ Three standing users:
   suspend immediately, no dialog; multiplayer mid-game → the
   `SuspendConfirmationBlockingModal` (a wrapper over ConfirmationBlockingModal).
 
-One `window.confirm` is left — **concede** — and it migrates when it's next
-touched. The others have gone as their features were worked: replay mid-game
-now asks `RESTART_CONFIRM` through the modal (2026-08-03), reveal mid-game no
-longer exists (End the game, then Reveal), and Clear board became Restart.
+No `window.confirm` remains anywhere. Every game action's question is asked by
+the registry through `askConfirmation` (`common/floating-panels/
+confirmationService.ts`), and a question only one game asks — scrabble's Pass,
+crosswords' and strands' one-offs — is asked the same way from inside that
+game's callback.
 
 ### Dialog buttons
 

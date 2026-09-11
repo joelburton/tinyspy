@@ -3,7 +3,7 @@
 import { setScratchpadOpen, useScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
 import { IconScratchpad } from '../icons/icons'
 import { useBoundAction } from '../actions/useBoundAction'
-import { nameWithKey } from '../actions/nameWithKey'
+import { actionSurface } from '../actions/actionSurface'
 import { PageHeaderButton } from './PageHeaderButton'
 
 /**
@@ -15,25 +15,26 @@ import { PageHeaderButton } from './PageHeaderButton'
  * the panel is open — `aria-pressed` is what that keys on, so the state is said
  * once, in the markup, and drawn from there.
  *
- * **It binds its own key.** The mark keeps its header look and its click, but
- * `⌥S` comes from the action it binds rather than from a game's key handler —
- * so the key works wherever the scratchpad does, and the bubble says so.
+ * **It binds `act-open-scratchpad`** and keeps its header look, the way the
+ * pause mark binds `act-pause`. The action carries the two faces — "Open
+ * scratchpad" / "Close scratchpad" — so the mark, its bubble and the menu row a
+ * game places for the same action all say the same thing, and `⌥S` works
+ * wherever the scratchpad does.
  */
 export function ScratchpadButton() {
   const open = useScratchpadOpen()
   const actOpenScratchpad = useBoundAction('act-open-scratchpad', {
-    describe: () => 'active',
+    describe: () => ({ state: 'active', label: open ? 'Close scratchpad' : 'Open scratchpad' }),
     run: () => setScratchpadOpen(!open),
   })
+  const { label, buttonProps } = actionSurface(actOpenScratchpad)
   return (
     <PageHeaderButton
       icon={IconScratchpad}
       iconSize={22}
-      label={open ? 'Close scratchpad' : 'Open scratchpad'}
-      tooltip={nameWithKey('Scratchpad', actOpenScratchpad)}
+      label={label}
       aria-pressed={open}
-      onClick={() => actOpenScratchpad.run()}
+      {...buttonProps}
     />
   )
 }
-
