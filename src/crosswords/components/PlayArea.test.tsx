@@ -235,6 +235,21 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(rpcNames()).toContain('check_cells')
   })
 
+  it('a clicked tool-bar square does not keep focus — Enter must not check the word again', async () => {
+    // The grid's keys are read off the window, and a bare Enter is bound to
+    // nothing on purpose. A square left holding focus would answer that Enter
+    // itself and re-fire the check; the grid cells and clue rows already refuse
+    // focus on mousedown, and the squares must too.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const square = screen.getByRole('button', { name: /check word/i })
+    await user.click(square)
+    await waitFor(() => expect(rpcNames()).toContain('check_cells'))
+    expect(document.activeElement).not.toBe(square)
+    await user.keyboard('{Enter}')
+    expect(rpcNames().filter((n) => n === 'check_cells')).toHaveLength(1)
+  })
+
   it('does NOT flag pencil when the checked scope has only committed (pen) fills', async () => {
     h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: false })]])
     render(<PlayArea {...makeCtx()} />)

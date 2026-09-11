@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { ReactNode } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 import { actionSurface } from '@/common/actions/actionSurface'
 import { nameWithKey } from '@/common/actions/nameWithKey'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -27,6 +27,12 @@ type Props = {
 }
 
 const SCOPES = ['letter', 'word', 'puzzle'] as const
+
+/** A clicked square must not keep focus: the board's keys are read off the
+ *  window, and a focused button would answer the next Enter itself, checking
+ *  the word a second time. The same rule `StandardButton` applies; these are
+ *  bespoke `<button>`s, so it is spelled here too. */
+const keepFocusOffTheBoard = (e: MouseEvent) => e.preventDefault()
 
 /**
  * The crossword tool row: the pen/pencil toggle + check and (coop-only)
@@ -73,6 +79,7 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
           type="button"
           {...asPencil.buttonProps}
           className={cls(styles.btn, styles.pencilBtn, pencil && styles.btnOn)}
+          onMouseDown={keepFocusOffTheBoard}
           aria-pressed={pencil}
           data-tooltip={nameWithKey('Pencil — tentative entries', actPencil)}
           onClick={() => {
@@ -86,6 +93,7 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
           type="button"
           {...asPen.buttonProps}
           className={cls(styles.btn, styles.penBtn, !pencil && styles.btnOn)}
+          onMouseDown={keepFocusOffTheBoard}
           aria-pressed={!pencil}
           data-tooltip={nameWithKey('Pen — committed entries', actPencil)}
           onClick={() => {
@@ -142,7 +150,13 @@ function ScopeButtons({ verb, actions }: { verb: string; actions: ScopeActions }
     const surface = actionSurface(actions[scope], `${verb} ${SCOPE_LABEL[scope].toLowerCase()}`)
     if (surface.hidden) return null
     return (
-      <button key={scope} type="button" className={styles.btn} {...surface.buttonProps}>
+      <button
+        key={scope}
+        type="button"
+        className={styles.btn}
+        onMouseDown={keepFocusOffTheBoard}
+        {...surface.buttonProps}
+      >
         {SCOPE_GLYPH[scope]}
       </button>
     )
