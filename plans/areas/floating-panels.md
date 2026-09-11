@@ -82,7 +82,16 @@ or docs/ui.md → Floating panels does; the cite goes.
   help companions are what scroll.
 - **"Modals with natural dimensions (Setup, Hint) opt out"** on `resizable` —
   there is no Hint modal.
+- **`BlockingModal.tsx`'s "this body div is it"** — a comment above the return
+  pointing at an anchor the file does not render. It renders an `<h2>`, the
+  children and the action row; the tab ring is anchored on the shell, up in
+  `PanelRnd`. Spotted while removing this file's `minWidth`; its prose pass has
+  not been done.
 - **`docs/mobile.md → "Panels on touch"`** is cited twice and exists; fine.
+
+The `FloatingPanel.tsx` entries above are FIXED (its prose pass, 2026-09-11);
+`BlockingModal.tsx`'s and docs/ui.md's are open — the latter is
+F-floating-panels-12.
 
 ## F-floating-panels-4 · `archaeology-in-docstrings` · The folder narrates how it got here
 
@@ -289,6 +298,23 @@ F-floating-panels-13; not touched.
 - **`[data-shape='card'] .body { padding: 1rem }`** is annotated bespoke on
   purpose (padding is parked). Stays. The titlebar's `padding-inline: 0.7rem`
   and the body's `0.4rem 0.5rem` are paddings too, parked.
+- **A `minWidth` could outrank the viewport** — WORKED 2026-09-11, out of the
+  todo's Someday on the two `minWidth: 320` strays. `clampToViewport` applied
+  the floor with `Math.max` AFTER capping to the viewport, so the floor won: a
+  blocking card sat 8px off the right edge at 320px. It landed only on cards
+  because every window family becomes a full-screen sheet on a phone and throws
+  its rect away — so the one shape still using a width was the one with the
+  largest floor, i.e. every confirmation and every fault modal. The cap now
+  wins, which is what the function's own docstring claimed and what
+  `FloatingPanel.module.css` leans on when it says a card needs no phone rule.
+  No caller changed; it is a no-op above 336px.
+
+  Both `minWidth: 320` values then went (`BlockingModal`, `SetupGameModal`):
+  with the clamp fixed they governed nothing anywhere, since a floor stops a
+  DRAG and neither panel can be resized, and the panels' own widths (420, 480)
+  always exceeded them. Measured against the shell's 240 default at seven
+  viewports — identical geometry at every one — so the removal is a no-op and
+  `defaultSize` is now the only width statement either panel makes.
 - **The card's fixed `420` width and the shell's `480×360` / `240` defaults**
   are seeds in TSX, not vocabulary values; the todo's Someday item on minimum
   sizes covers `minWidth: 320`.

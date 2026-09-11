@@ -256,10 +256,13 @@ const MIN_VISIBLE_WHEN_PARKED = 60
  *     for "juggling" — slide chat to the corner so they can see
  *     more of a setup dialog — but can't lose it entirely.
  *
- * Width / height are capped at viewport minus padding either
- * way (a stored panel bigger than the current viewport always
- * gets shrunk to fit). Width and height never drop below the
- * minimums.
+ * Width / height are capped at viewport minus padding either way, so a stored
+ * panel bigger than the current viewport always gets shrunk to fit. They never
+ * drop below the minimums EXCEPT when a minimum is itself wider than that —
+ * the cap wins, because a floor that outranks the screen places the panel off
+ * the edge of it. `FloatingPanel.module.css` leans on this being true: a
+ * blocking card is the one shape that keeps its rect on a phone, and it has no
+ * CSS width rule because the geometry is settled here first.
  */
 export function clampToViewport(
   rect: PanelRect,
@@ -270,10 +273,16 @@ export function clampToViewport(
 ): PanelRect {
   const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
   const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
-  const maxWidth = Math.max(minWidth, vw - edgeMargin * 2)
-  const maxHeight = Math.max(minHeight, vh - edgeMargin * 2)
-  const width = Math.max(minWidth, Math.min(rect.width, maxWidth))
-  const height = Math.max(minHeight, Math.min(rect.height, maxHeight))
+  // What the viewport has room for, and the floors capped to it. A minimum
+  // says "don't let the USER drag it smaller than this" — it cannot outrank
+  // the screen, or the panel is placed wider than the space it is being fitted
+  // into and hangs off the edge.
+  const fitWidth = Math.max(0, vw - edgeMargin * 2)
+  const fitHeight = Math.max(0, vh - edgeMargin * 2)
+  const floorWidth = Math.min(minWidth, fitWidth)
+  const floorHeight = Math.min(minHeight, fitHeight)
+  const width = Math.max(floorWidth, Math.min(rect.width, fitWidth))
+  const height = Math.max(floorHeight, Math.min(rect.height, fitHeight))
 
   if (mode === 'soft') {
     // Soft: at least MIN_VISIBLE_WHEN_PARKED px stays visible on each

@@ -229,8 +229,8 @@ export function SetupGameModal({
       // which the body scrolls) — a game with many options must open tall
       // enough to show them all. `height` here is just the pre-load seed.
       fitContent
+      // Passes no `minWidth`: a floor stops a drag, and this cannot be resized.
       defaultSize={{ width: 480, height: 520 }}
-      minWidth={320}
     >
       <StandardForm<Record<string, unknown>>
         initialValues={initialValues}

@@ -1,7 +1,7 @@
 // cs-audited-floating-panels
 
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
 import { clampToViewport, useDraggablePanel, type PanelRect } from './useDraggablePanel'
 
@@ -68,10 +68,10 @@ describe('clampToViewport', () => {
     expect(out.height).toBe(VH - 8 * 2)
   })
 
-  it('respects the minimum size even if the viewport is tiny', () => {
-    // We can't actually shrink the jsdom window in this unit test
-    // without mocking, but we can verify the floor: a smaller-than-
-    // minimum rect gets clamped UP to the minimum.
+  it('clamps a smaller-than-minimum rect UP to the minimum', () => {
+    // At this viewport the floor is the binding constraint. When the VIEWPORT
+    // is the smaller of the two it wins instead — see the narrow-viewport
+    // block below.
     const out = clampToViewport(
       { x: 100, y: 100, width: 50, height: 40 },
       240,
@@ -187,6 +187,58 @@ describe('clampToViewport (soft mode)', () => {
       'soft',
     )
     expect(out.y).toBe(VH - 60)
+  })
+})
+
+/**
+ * A viewport NARROWER THAN THE FLOOR, which is the case where the two
+ * constraints disagree. A minimum means "don't let the user drag it smaller";
+ * it cannot mean "be this wide even if the screen isn't", because the panel is
+ * then placed into a space it does not fit and hangs off the edge.
+ *
+ * The live case was a blocking card — every confirmation and every fault modal
+ * — which asks for 320 and is the one panel shape that keeps its rect on a
+ * phone rather than becoming a full-screen sheet. At 320px it sat 8px off the
+ * right edge.
+ */
+describe('clampToViewport when the viewport is narrower than the minimum', () => {
+  const realW = window.innerWidth
+  const realH = window.innerHeight
+  const setViewport = (w: number, h: number) => {
+    Object.defineProperty(window, 'innerWidth', { value: w, configurable: true })
+    Object.defineProperty(window, 'innerHeight', { value: h, configurable: true })
+  }
+  afterAll(() => setViewport(realW, realH))
+
+  /** BlockingModal's own numbers: 420 wide, a 320 floor, the shared gutter. */
+  const card = (vw: number) => {
+    setViewport(vw, 640)
+    return clampToViewport({ x: 0, y: 0, width: 420, height: 240 }, 320, 0, 8)
+  }
+
+  it('keeps the panel fully on screen at 320px, floor be damned', () => {
+    const out = card(320)
+    expect(out.x + out.width).toBeLessThanOrEqual(320)
+  })
+
+  it('gives up the gutter rather than the screen edge', () => {
+    // 320 wide with an 8px gutter needs 336. At 320 there is room for neither
+    // gutter AND the floor, so the floor yields: the panel fits exactly.
+    const out = card(320)
+    expect(out.width).toBe(304)
+    expect(out.x).toBe(8)
+  })
+
+  it('still honors the floor as soon as there IS room for it', () => {
+    const out = card(336)
+    expect(out.width).toBe(320)
+    expect(out.x + out.width).toBeLessThanOrEqual(336)
+  })
+
+  it('applies the same rule to height', () => {
+    setViewport(1024, 200)
+    const out = clampToViewport({ x: 0, y: 0, width: 400, height: 300 }, 240, 400, 8)
+    expect(out.y + out.height).toBeLessThanOrEqual(200)
   })
 })
 

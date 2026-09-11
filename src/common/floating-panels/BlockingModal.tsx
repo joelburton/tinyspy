@@ -84,12 +84,11 @@ export function BlockingModal({
       onClose={onClose}
       resizable={false}
       fitContent
-      // The height is a first-paint seed only; `fitContent` grows past it.
+      // The one width the category gets; the height is a first-paint seed
+      // only, since `fitContent` grows past it. Passes no `minWidth`: a floor
+      // stops a DRAG, and nothing here can be dragged. Narrower than this and
+      // the viewport governs, which is what should happen.
       defaultSize={{ width: 420, height: 240 }}
-      minWidth={320}
-      // No height floor — and none is passed, because the shell no longer has
-      // one to opt out of. This is the panel that proved the point: the old
-      // default of 200 held it 81px taller than its own content.
     >
       {title !== undefined && <h2 className={styles.title}>{title}</h2>}
       {children}

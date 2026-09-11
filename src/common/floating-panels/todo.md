@@ -28,9 +28,11 @@
   panels): the number comes from what the BODY needs — "the titlebar, the
   composer and four messages" — not from what looked about right. Two strays
   survive on panels nobody can resize, `BlockingModal` and `SetupGameModal`,
-  each `minWidth: 320`; those are not floors at all, and below ~336px they
-  force the panel wider than the screen. Joel: *"as we get to these
-  individually in areas, we can figure out."*
+  each `minWidth: 320`. Both are GONE (2026-09-11): a floor stops a drag, and
+  neither panel can be resized, so they governed nothing — except through
+  `clampToViewport`, where the floor used to outrank the viewport and put a
+  blocking card 8px off the right edge of a 320px phone. That is fixed in the
+  clamp. Joel: *"as we get to these individually in areas, we can figure out."*
 - **The multiple-movable-things strategy**, for the companion layer and the
   dialog layer both: (a) a strict order, (b) opened order, (c) raise on
   interaction. Crosswords can plausibly have the note, the explainer and the
