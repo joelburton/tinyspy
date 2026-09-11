@@ -98,10 +98,8 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   context, rather than living as a standing exemption. Tuned surfaces (a game's
   board) are exempt outright.
 
-  Two related leftovers from the same review: bananagrams `.dumpHot` green is
-  still a literal (a distinct dump-zone-arming affordance), and
-  `--shadow-popover` was minted by the palette sweep, with the `0.12` and `0.08`
-  variants named beside it rather than folded in.
+  One related leftover from the same review: bananagrams `.dumpHot` green is
+  still a literal (a distinct dump-zone-arming affordance).
 
 - **An orange that can carry white ink.** The filled caution tone puts white at
   **3.08:1**, under the 4.5 floor for a label, and nobody chose that — it fell out

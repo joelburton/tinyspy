@@ -542,7 +542,7 @@ Two boundary rules, because both edges leak: **a common component's module holds
 
 **The layers are named, and they live in [`base.css`](../src/common/core-css/base.css) → "THE Z- LAYERS".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a scrim), which is why the layers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats chat.
 
-**`--z-<layer>`, not `--z-index-<layer>`**: the token IS the layer, and that is the point of the split. `--radius-md` feeds `border-radius` and `--shadow-panel` feeds `box-shadow` — a token named for the property that consumes it was the odd one out. It also lets a layer that needs no z-index sit in the list without claiming a mechanism it doesn't use, which is exactly what `z-pause-gate` is.
+**`--z-<layer>`, not `--z-index-<layer>`**: the token IS the layer, and that is the point of the split. `--radius-md` feeds `border-radius` and `--shadow-floating` feeds `box-shadow` — a token named for the property that consumes it was the odd one out. It also lets a layer that needs no z-index sit in the list without claiming a mechanism it doesn't use, which is exactly what `z-pause-gate` is.
 
 | token | value | what |
 |---|---|---|

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-floating-panels
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'

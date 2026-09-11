@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-floating-panels
 
 /**
  * Tests for the host's wiring: the question `askConfirmation` is asking gets

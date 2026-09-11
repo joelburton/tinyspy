@@ -7,10 +7,14 @@
 /* @@ */ .toast {
   position: relative;
   background: var(--default-bg-color);
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
   border-left: 4px solid var(--stripe, var(--toast-info-stripe-color));
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-toast);
+  /* `floating`, the same rung as a panel: a toast is a surface over the page.
+     It sits on the topmost layer, so it can land on a scrim or on an open
+     panel — there the white card against a dimmed page is what separates it,
+     and the shadow is not doing the work (daylight.css → SHADOW). */
+  box-shadow: var(--shadow-floating);
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;

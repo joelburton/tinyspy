@@ -529,9 +529,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/account/ColorChoiceList.module.css': ['1px'],
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
       'src/common/chat/ChatBody.module.css': ['1px'],
-      'src/common/definitions/DefinitionPopover.module.css': ['1px'],
       'src/common/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
-      'src/common/game-page/DeviceBlockNotice.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/info-sheet/infoPanel.module.css': ['2px'],
@@ -546,7 +544,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/menu/Menu.module.css': ['1px'],
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],
-      'src/common/toasts/Toast.module.css': ['1px', '4px'],
+      'src/common/toasts/Toast.module.css': ['4px'],
     },
     fix:
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +

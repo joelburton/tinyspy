@@ -113,6 +113,47 @@ attention, which have nowhere else to go"*, and a veil spends a little of it. A
 low-alpha overlay that tracks the pointer and vanishes is about the least that
 channel can be spent on.
 
+### CHROME is not stuck — and it shows exactly where the pieces are
+
+Everything above is about GAME PIECES. The chrome that floats — panels, menus,
+popovers, toasts — has the same ceiling over it and gets out from under it, for a
+reason worth naming because it is precisely what a tile lacks.
+
+The numbers, for the three-rung altitude ladder that now carries chrome's depth
+(`daylight.css` → SHADOW: anchored · lifted · floating):
+
+| | ground | step the daylight 12% makes |
+|---|---|---|
+| daylight | `#fafafa`, L\* 98 | 10.2 L\* |
+| midnight | `#262e3f`, L\* 18.9 | 2.9 L\* |
+
+Matching daylight's step on this page takes roughly **45%** — about three and a
+half times the ink. **And there is room for it**: 18.9 of ceiling against a cue
+that needs about 10. At Material's `#121212` there would have been 5.5 and no
+alpha would have reached it, so the lifted page from **a** is what keeps the
+shadow cue alive for chrome even though it could not save the pieces.
+
+**The escape a tile doesn't have: a panel's surface color is free.** Midnight
+already sets the surface 5.3 L\* above the page (`#2f394c` on `#262e3f`), so part
+of the altitude is carried before any shadow draws, and the dark-UI convention —
+higher surface means lighter surface — can carry the rest. A tile cannot do this:
+its fill is spoken for by the game's ramp, where **the numbers ARE the meaning**
+(stackdown reads stack depth off them), so the shadow is the only channel it has
+left. That is the whole difference between chrome and a piece here, and it is why
+**b** and **c** exist at all.
+
+So chrome has two candidate answers — heavier ink, or lighter surfaces per rung —
+and the fork is not settled. `midnight.css` → SHADOW carries trial alphas (that
+3.5× measurement, trimmed for the surface step) marked as guesses nobody has
+looked at on a screen; they are there so the role is answered and the themes stay
+in step, not because they are right. **Cheap to settle once the theme is real**:
+put the three rungs on a dark page together and see whether ink alone reads.
+
+One piece of chrome is not covered and belongs with **b** rather than here:
+`--shadow-boardFloat` (the Shuffle button) is still theme-blind in `base.css`
+alongside the two tile shadows, because it sits on a game's ground rather than on
+the page — so its answer is per game, like every other ground question.
+
 ### ⚠️ Reduced motion + dark mode = no hover cue at all, today
 
 The shared rule drops the lift under `prefers-reduced-motion` and keeps the

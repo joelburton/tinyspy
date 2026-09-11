@@ -395,6 +395,42 @@ dialog is just a dialog nobody has needed to resize yet. A companion's
 MINIMUM size should come from what the body needs — "the titlebar, the
 composer and four messages" — not from what looked about right.
 
+### The surface: how round, and how high
+
+Every surface that floats — a panel, a menu, a popover, a toast, the
+device-block notice — takes the same background (`--default-bg-color`) and the
+same edge (`--border-width-line` solid `--page-surface-border-color`). The two
+that differ, differ for a reason, and **this subsection covers more than
+floating panels**: a menu and a popover are not panels, but they float, so the
+same two questions get asked of them.
+
+**Radius follows size.** A large surface takes `--radius-lg`, a small one
+`--radius-md` — the panel shell and the device-block notice against menus,
+popovers, dropdowns and toasts. A corner radius reads as a proportion of the
+thing it's cutting, so one value across both sizes makes the big surface look
+sharp or the small one look soft.
+
+**Depth follows how far the thing is from what's behind it.** Three rungs, and
+a surface picks the one its job asks for:
+
+| rung | what it says | who takes it |
+|---|---|---|
+| `--shadow-anchored` | attached to the thing it came from | the definition popover, a filter's dropdown |
+| `--shadow-lifted` | an edge against whatever is behind it, and no claim of altitude | menus and their flyouts |
+| `--shadow-floating` | a surface above the page | the panel shell, toasts, the device-block notice |
+
+A definition popover is *about* the word you clicked, so it should read as
+attached to it; a menu opens over arbitrary content and needs to be separable
+from it without pretending to be a window; a panel is a window.
+
+**Closer is darker**, which looks backwards and isn't: a tight shadow's peak
+lands near its nominal alpha where a wide one's never does, so holding the ink
+steady up the ladder would read as the top rung fading out. **The alphas are a
+theme's** (`daylight.css` → SHADOW) — a shadow can only darken, so the ground
+under it caps what it can say, and a dark page needs several times the ink for
+the same step. Depth for game surfaces is a different question and lives in
+`base.css`.
+
 ### The names follow the families
 
 **A React component entirely about one family takes that family's name as its
@@ -717,12 +753,14 @@ uses. The rest of the grammar:
   a value with one reader belongs inside its class as a number, and only
   something a class cannot hold — a themed color, a slot a game fills — earns a
   global token. If it does earn one, a shortened component name invents a
-  category: `--shadow-notice` reads as a family of notices with this as one
-  member, and there is no such family, only `DeviceBlockNotice`. Written
-  correctly it is `--deviceBlockNotice-shadow`. **Shortening a name to make it
-  look general is how a one-off acquires the appearance of a system.** If
-  there is genuinely a family, name the family and say what its members are;
-  if there is one consumer, say its name in full.
+  category: a token for `DeviceBlockNotice`'s shadow called `--shadow-notice`
+  would read as a family of notices with this as one member, and there is no
+  such family. Written correctly it is `--deviceBlockNotice-shadow` — or, as
+  here, the value turns out not to be its own at all and joins a real family
+  (`--shadow-floating`). **Shortening a name to make it look general is how a
+  one-off acquires the appearance of a system.** If there is genuinely a
+  family, name the family and say what its members are; if there is one
+  consumer, say its name in full.
 
 ### The buckets
 
@@ -735,12 +773,13 @@ uses. The rest of the grammar:
 | `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |
-| `mark-*` | what a surface wears TEMPORARILY to say something about itself ([tile-feedback.md](../plans/tile-feedback.md) is the board-feedback design). The attention yellow and the grid cursor are in the theme; the three dims and the two flash durations sit in `base.css` under the same prefix, because a dim is depth and a duration is not a color |
+| `mark-*` | what a surface wears TEMPORARILY to say something about itself ([tile-feedback.md](../plans/tile-feedback.md) is the board-feedback design). The attention yellow and the grid cursor are in the theme; the three dims and the two flash durations sit in `base.css` under the same prefix, because neither is a color. Whether a dim can stay theme-blind is open — like a shadow, it is black over a ground, and how much it says depends on how light that ground is |
 | `member-*` | player identity, one per value of `common.profiles.color`: eight colors, each with a paired border. Already chosen, will not change, and have **no relationship to any other color** — a green player is not the winning green. Exempt from theming (`fixed.css`) |
 | `flex-color-*` | the app's two flexible colors, teal and purple — loosely the co-op and compete labels, but a pair that means nothing, so a badge has two ways to differ (see [Mode badges](#mode-badges)). **Fully built out and flexible for one-off cases**, so a rare need doesn't mint a new color |
 | `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder. The ramp has **no semantic meaning** and is fine to reuse for game-ish things (the scrabble rack uses a very dark tile); **the numbers ARE the meaning** — stackdown reads stack depth off them |
 | `wordle-*` | the letter-judgment palette, shared by wordle and waffle. Exempt from theming (`fixed.css`) |
+| `shadow-*` | how high a floating surface sits — anchored · lifted · floating ([the surface](#the-surface-how-round-and-how-high)). Not a color, and in the theme anyway: a shadow can only darken, so what it can say depends on the ground |
 | `board-*`, `timer-*`, `ink-*`, `entry-*`, `print-*` | the small ones: the ground a piece casts its shadow onto, the stopped clock, ink named for the ground it sits on (`-onDark` / `-onLight`), the entry row's illegal character, and paper — the one role no theme may flip |
 | per-game | **brand** colors, in that game's own `theme.css`. **NOT the same as any family**: spellingbee's honey is a different yellow from `outcomes-near`, `near` is not used in spellingbee, and the honey is not used elsewhere |
 

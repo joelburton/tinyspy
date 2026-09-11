@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-floating-panels */
 
 /* Shared visuals for every floating panel — the companions, the dialogs and all
  * three modal families. The titlebar (title + ✕), the body padding, the shadow
@@ -53,9 +53,9 @@
   background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
-  /* Elevation shadow so the panel reads as "above the page"
-     against the off-white --page-bg-color. */
-  box-shadow: var(--shadow-panel);
+  /* The top rung: a panel is a window over the page, not something
+     resting on it (daylight.css → SHADOW). */
+  box-shadow: var(--shadow-floating);
   display: flex;
   flex-direction: column;
   overflow: hidden;

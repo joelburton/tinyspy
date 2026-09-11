@@ -438,6 +438,32 @@
 /* @@ */   --chrome-definable-ring-color: #64b5f6;
 /* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--default-bg-color) 65%, transparent);
 
+  /* ══ SHADOW ═════════════════════════════════════════════════════
+     ⚠️ TRIAL VALUES — guessed against the measurement below, never
+     looked at on a screen. Geometry copied from daylight; only the ink
+     moves.
+
+     The measurement: the same 12% black steps 10.2 L* on daylight's
+     #fafafa and 2.9 on this page's #262e3f, so matching daylight's
+     step here takes roughly 45% — about three and a half times the
+     ink. These are that multiple, trimmed, because the page block
+     above already leaves the surface 5.3 L* lighter than the page and
+     that step carries part of the altitude before any shadow draws.
+
+     Which is why raising the alpha is probably the wrong answer in
+     the end, and only the cheapest one to try. On a dark page the
+     convention is that a higher surface gets LIGHTER, and this theme
+     can say that — a panel's surface color is free, where a tile's is
+     spoken for by the game's ramp. That is the fork to settle before a
+     dark theme ships (plans/dark-mode.md → The depth problem).
+
+     What the ceiling makes certain is that the lifted page earns its
+     keep: at Material's #121212 there would be 5.5 L* of room for a
+     cue that needs 10, and no alpha would reach it. */
+/* @@ */   --shadow-anchored:  0 2px 6px rgb(0 0 0 / 55%);
+/* @@ */   --shadow-lifted:    0 4px 12px rgb(0 0 0 / 55%);
+/* @@ */   --shadow-floating:  0 8px 24px rgb(0 0 0 / 40%);
+
   /* ══ GAMELIST ═══════════════════════════════════════════════════ */
 /* @@ */   --gamelist-won-color:        var(--outcomes-won-fill-color);
 /* @@ */   --gamelist-lost-color:       var(--outcomes-lost-fill-color);

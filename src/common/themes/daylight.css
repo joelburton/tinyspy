@@ -730,6 +730,39 @@
      opaque patch stuck on top (the Shuffle button). */
 /* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--default-bg-color) 65%, transparent);
 
+  /* ══ SHADOW ═════════════════════════════════════════════════════
+     How far a floating surface sits from what is behind it. Three
+     rungs on one axis, and a surface picks the rung its JOB asks for
+     (docs/ui.md → Floating panels):
+
+       anchored  attached to the thing it explains — a definition
+                 popover beside the word you clicked, a filter's list
+                 under its field. Nearly touching, so it reads as part
+                 of what it came from.
+       lifted    an edge against whatever is behind it, and no claim of
+                 altitude — a menu. It opens over arbitrary content and
+                 needs to be separable from it; it is not a window.
+       floating  a surface above the page — a panel, a modal, a toast,
+                 the device-block notice.
+
+     CLOSE IS DARKER, and that is not a mistake to tidy up. A tight
+     shadow's peak lands near its nominal alpha while a wide one's
+     never does, so holding the ink steady up the ladder would read as
+     the high rung fading out. Physically it is a contact shadow at the
+     bottom and a diffuse one at the top.
+
+     A THEME'S, not base.css's: a shadow can only DARKEN, so the ground
+     under it caps what it can ever say, and these alphas are chosen
+     against daylight's near-white page. Depth for GAME surfaces is a
+     different question and stays in base.css.
+
+     A component whose shadow is close to a rung but not equal keeps
+     its own, in its own file, with a note — collapsing on similarity
+     is how you silently restyle a surface nobody was looking at. */
+/* @@ */   --shadow-anchored:  0 2px 6px rgb(0 0 0 / 18%);
+/* @@ */   --shadow-lifted:    0 4px 12px rgb(0 0 0 / 18%);
+/* @@ */   --shadow-floating:  0 8px 24px rgb(0 0 0 / 12%);
+
   /* ══ GAMELIST ═══════════════════════════════════════════════════
      The state of a game as an object in a LIST — the club page's cards
      and the crossword picker's stripes, which are the same vocabulary

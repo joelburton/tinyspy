@@ -116,7 +116,9 @@
   background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-popover);
+  /* `anchored`: the list belongs to the field it drops out of (daylight.css →
+     SHADOW). */
+  box-shadow: var(--shadow-anchored);
   padding: 0.15rem;
   overflow: hidden;
 }

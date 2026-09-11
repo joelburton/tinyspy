@@ -15,9 +15,12 @@
      different styling (Joel, 2026-08-25). */
   z-index: var(--z-tooltip);
   background: var(--default-bg-color);
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-popover);
+  /* `anchored` — the lowest rung, so the card reads as attached to the word
+     you clicked rather than as a window that happened to open near it
+     (daylight.css → SHADOW). */
+  box-shadow: var(--shadow-anchored);
   padding: 0.6rem 0.75rem;
   /* Long entries scroll rather than growing without bound. The height cap is
    * set inline (DefinitionPopover) to the space available above/below the

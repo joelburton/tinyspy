@@ -333,28 +333,18 @@
   --tile-shadow:        1px 2px 6px rgb(0 0 0 / 30%);
   --tile-hover-shadow:  2px 6px 12px rgb(0 0 0 / 32%);
 
-  /* ── Depth in CHROME ───────────────────────────────────────────
-     Shadows for things that FLOAT above the page — menus, popovers,
-     dialogs. Distinct from the tile shadows above, which say a game
-     piece has thickness; these say a surface is in front of another
-     surface.
+  /* ── Depth on a BOARD ──────────────────────────────────────────
+     The floating control that sits ON a board (psychicnum's /
+     connections' Shuffle). Separation, not decoration.
 
-     Five, and NOT A LADDER: three share one geometry at three alphas
-     (the notice deliberately fainter than a menu, the floating panel
-     between), and the toast, on the topmost layer, is heavier and
-     tighter than any of them. Whether that is a system or an accident,
-     and what the five should be called, is the folder's todo.md.
-
-     A component whose shadow is close to one of these but not equal
-     keeps its own, in its own file, with a note — collapsing on
-     similarity is how you silently restyle a surface nobody was
-     looking at. */
-  --shadow-popover:     0 8px 24px rgb(0 0 0 / 18%);
-  --shadow-notice:      0 8px 24px rgb(0 0 0 / 8%);
-  --shadow-panel:       0 8px 24px rgb(0 0 0 / 12%);
-  --shadow-toast:       0 4px 16px rgb(0 0 0 / 30%);
-  /* The floating control that sits ON a board (psychicnum's /
-     connections' Shuffle). Separation, not decoration. */
+     This and the two tile shadows above are the depth GAME surfaces
+     take, and they live here. The depth CHROME takes — the altitude
+     ladder a panel, a menu or a popover reads — is a theme's, in
+     daylight.css → SHADOW, because how much a shadow can say depends
+     on how light the ground under it is. Whether a board's depth is a
+     theme's business too is open, and it is the harder half: a game's
+     ground is the game's, so the answer is per game rather than one
+     number (plans/dark-mode.md → The depth problem). */
   --shadow-boardFloat:  0 2px 6px rgb(0 0 0 / 18%);
 
   /* The dark layer behind a modal: it dims the page so the dialog
@@ -414,8 +404,8 @@
 
      `--z-<layer>`, not `--z-index-<layer>`. The token IS the layer, and
      that is the whole point of the split: `--radius-md` feeds
-     `border-radius` and `--shadow-panel` feeds `box-shadow`, so a token
-     named for its property was the odd one out. It also lets a layer
+     `border-radius` and `--shadow-floating` feeds `box-shadow`, so a
+     token named for its property was the odd one out. It also lets a layer
      that needs no z-index sit in the list without claiming a mechanism
      it doesn't use, which is exactly what `z-pause-gate` is.
 

@@ -4,10 +4,6 @@
 
 ## Soon
 
-- **Overlay surface** — the one look for a surface floating above the page:
-  surface, edge, radius, shadow. Today `Menu.popover` + `.flyout`,
-  `Toast.toast`, `FloatingPanel.shell` and `DefinitionPopover` each write it.
-  A shared pattern file.
 - **Action row** — the end-aligned row of buttons that closes a floating
   panel (`modalActions`), plus a pinned-to-bottom variant `WordEditDialog`
   wrote its own copy of.

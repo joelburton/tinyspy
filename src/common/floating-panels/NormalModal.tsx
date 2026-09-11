@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-floating-panels
 
 import { FloatingPanel, type FloatingPanelProps } from './FloatingPanel'
 

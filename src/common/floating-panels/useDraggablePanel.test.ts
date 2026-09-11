@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-floating-panels
 
 import { describe, expect, it } from 'vitest'
 import { clampToViewport } from './useDraggablePanel'
