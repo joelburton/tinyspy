@@ -180,6 +180,19 @@ trigger" (there `trigger` is the KIND, which is fine — the kind's name is not
 the element's). One name for the element. `closedSelect` is the one the CSS
 already commits to.
 
+**WORKED 2026-09-11 (Joel: "'trigger' is a bad name. 'closedSelect' is a
+better name").** The two uses in the component are now "the closed select":
+the `className` prop's docstring and the touch block's comment. docs/ui.md's
+button-kind table keeps `trigger` — that is the kind, not the element.
+docs/mobile.md's mention goes with F-lists-16 (mobile-md-wrong-rule), which
+removes the line it sits in.
+
+The `className` docstring was also STALE, a miss from F-lists-8
+(filter-select-density-inverted): it still described the club page as wearing
+its own surface + border treatment against an understated info-panel look.
+Rewritten to what is true — the club page needs roomier padding to match the
+mode buttons' height, and the look is otherwise the component's.
+
 ## F-lists-8 · `filter-select-density-inverted` · The component states the tight look and the club page loosens it
 
 Carried in from `todo.md` (Soon). `FilterSelect.module.css` states the info

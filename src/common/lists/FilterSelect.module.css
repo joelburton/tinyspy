@@ -155,9 +155,9 @@
  *
  * Below the shared desktop→mobile line the options grow to roughly a 44px tap
  * target with a legible 1rem label — the thing a native picker gives you for
- * free and the reason not to ship a cramped custom list on a phone. The TRIGGER
- * stays small: it lives in a tight heading row, and growing it would reflow the
- * panel. */
+ * free and the reason not to ship a cramped custom list on a phone. The CLOSED
+ * SELECT stays small: it lives in a tight heading row, and growing it would
+ * reflow the panel. */
 @media (--mobile) {
 /* @@ */   .popover {
     padding: 0.25rem;

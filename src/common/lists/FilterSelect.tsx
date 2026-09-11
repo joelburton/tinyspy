@@ -78,11 +78,10 @@ export function FilterSelect({
   /** Accessible name for the closed select, e.g. "Whose words to show". */
   label: string
   /**
-   * Merged onto the TRIGGER, for a caller whose surface has its own control
-   * look — the club page's filters wear that page's surface + border treatment
-   * so they match the mode buttons beside them, while the info-panel filters
-   * keep the understated heading-row look. Behavior is identical either way;
-   * only the closed select's skin differs.
+   * Merged onto the closed select, for a caller that needs it sized
+   * differently — the club page's filter takes roomier padding so it matches
+   * the height of the mode buttons beside it. The look is otherwise the
+   * component's, and the behavior is identical either way.
    */
   className?: string
 }) {
