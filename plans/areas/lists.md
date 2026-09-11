@@ -24,6 +24,8 @@ All in `src/common/lists/`:
 | `FilterSelect.module.css` | its closed select, popover, options, discs |
 | `filterSelectHelpers.ts` | test helpers for driving a `<FilterSelect>` |
 | `FilterSelect.test.tsx` | the one spec in the folder |
+| `SelectionList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
+| `SimpleScrollableList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
 | `doc.md` | lede only; Design owed |
 | `todo.md` | two Soon items, one Maybe |
 
@@ -95,6 +97,29 @@ empty test on `children`).
 
 Write `SelectionList.test.tsx` (and a small `SimpleScrollableList.test.tsx`).
 A file per unit.
+
+**WORKED 2026-09-11 (Joel: "write test").** `SelectionList.test.tsx` — 33
+tests: the cursor's arrival and blanking, clamped arrows, Home/End, a measured
+page (with the heights stubbed, plus the fallback and the clamp past the end),
+Enter acting and Space not, all seven keys trapped, disabled rows taking the
+cursor and refusing both Enter and a click, click moving the cursor,
+`frozen` ignoring keys and holding its ring through a blur, the shrink-under-
+cursor clamp, the empty state, and `autoFocus`. `SimpleScrollableList.test.tsx`
+— 6: rows vs the message inside the frame, and the tally.
+
+Three jsdom gaps had to be stubbed: `scrollIntoView` doesn't exist,
+`offsetParent` is always null (which the focus-on-arrival effect reads as "not
+on screen"), and `clientHeight`/`offsetHeight` are 0, so a page cannot be
+measured without saying what the heights are.
+
+**Planting found a test that pinned the wrong thing.** "Fires once" originally
+grew the list and asserted focus was not retaken — which passes with
+`claimedFocus` deleted, because the effect's DEPS watch whether there is
+content, not how much, so a growing list never re-runs it. The two halves fail
+separately and are now two tests: a club arriving (the deps) and a list
+emptying and refilling (the ref). Five other plants — Space activating, the
+cursor not clamping, `frozen` blanking on blur, `disabled` ignored, the empty
+message never rendered — were each caught by the test that claims them.
 
 ## F-lists-3 · `finding-id-in-code` · `SelectionList.tsx` cites `F15 (focus-on-every-refetch)`
 
