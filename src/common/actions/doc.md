@@ -61,11 +61,12 @@ that is how any key dismisses the last message and still types its letter. An
 **interceptor** is a surface declaring a MODE — while a past turn is open, the
 next key means "back to the live board", whatever else is bound — and a mode
 outranks any particular key, which is a claim about the moment rather than
-about specificity. Everything else is a **command**, innermost binding first,
-because a component mounted inside a page may hold a more specific binding than
-the page and should win. Innermost-first is a fact about React's effect order
-rather than a decision, so when two different commands both answer one keystroke
-the dispatcher says so in the console in development.
+about specificity. Everything else is a **command**, taken in the order the
+bindings mounted: a component mounted with its page sits ahead of the page and
+wins a key they both want, while one mounted later sits behind everything
+already there. That order is a tiebreak and nothing more — two commands that
+can be live at the same moment do not share a chord, and when they do the
+dispatcher says so in the console in development.
 
 ## Details
 

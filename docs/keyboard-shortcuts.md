@@ -29,7 +29,10 @@ Then three passes, because a keystroke can mean three kinds of thing:
 **watchers** (a wildcard that claims nothing — dismissing the last message runs
 and lets the letter through), then **interceptors** (a wildcard that DOES claim,
 which is a mode: a key with a past turn open means "back to the live board"),
-then the **commands**, innermost binding first. A hidden or disabled binding is
+then the **commands**, in the order the bindings mounted (a component mounted
+with its page sits ahead of the page; one mounted later sits behind it — a
+tiebreak, not a channel, since two live commands never share a chord). A hidden
+or disabled binding is
 skipped rather than swallowing the key, and anything matching nothing goes to
 the browser — which is what keeps Cmd-R working.
 

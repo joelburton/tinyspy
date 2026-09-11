@@ -192,28 +192,41 @@ describe('the dispatcher — the watchers', () => {
   })
 })
 
-describe('the dispatcher — a child outranks its page', () => {
-  // The rule the stack exists for, and the one thing `setup` above cannot say:
-  // its bindings all sit in ONE component, where order is just call order. A
-  // binding joins from an effect and React runs effects children first, so a
-  // child is already in the stack when its parent arrives.
+describe('the dispatcher — where a child sits in the stack', () => {
+  // What `setup` above cannot say: its bindings all sit in ONE component, where
+  // order is just call order. A binding joins from an effect, React runs
+  // effects children first, and a later commit appends — so a child mounted
+  // WITH its page sits ahead of it, and one mounted LATER sits behind it. Both
+  // are pinned so the limit is a known fact; neither is a channel a binding
+  // may lean on (the stack's docstring says why).
   function Child({ onRun }: { onRun: () => void }) {
     useBoundAction('act-submit-entry', { run: onRun, describe: () => 'active' })
     return null
   }
-  function Page({ onPage, onChild }: { onPage: () => void; onChild: () => void }) {
+  function Page({ onPage, onChild, child = true }: { onPage: () => void; onChild: () => void; child?: boolean }) {
     useActionDispatcher()
     useBoundAction('act-submit', { run: onPage, describe: () => 'active' })
-    return <Child onRun={onChild} />
+    return child ? <Child onRun={onChild} /> : null
   }
 
-  it('a component inside the page wins a key they both want', async () => {
+  it('a child mounted WITH the page wins a key they both want', async () => {
     const onPage = vi.fn()
     const onChild = vi.fn()
     const view = render(<Page onPage={onPage} onChild={onChild} />)
     await press({ key: 'Enter' })
     expect(onChild).toHaveBeenCalledTimes(1)
     expect(onPage).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('a child mounted LATER does not — it joined behind the page', async () => {
+    const onPage = vi.fn()
+    const onChild = vi.fn()
+    const view = render(<Page onPage={onPage} onChild={onChild} child={false} />)
+    view.rerender(<Page onPage={onPage} onChild={onChild} child />)
+    await press({ key: 'Enter' })
+    expect(onPage).toHaveBeenCalledTimes(1)
+    expect(onChild).not.toHaveBeenCalled()
     view.unmount()
   })
 })

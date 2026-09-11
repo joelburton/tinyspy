@@ -68,9 +68,9 @@ function reportChordTie(claimants: BoundAction[]): void {
  *      turn open means "back to the live board", whatever else is bound. That
  *      is a claim about the moment rather than about specificity, so it is
  *      settled here rather than by where the action happens to be bound.
- *   3. **Commands** — everything with a real key, INNERMOST FIRST: a component
- *      mounted inside a page may hold a more specific binding than the page,
- *      and it should win.
+ *   3. **Commands** — everything with a real key, in stack order: a component
+ *      mounted with its page sits ahead of the page and wins a key they both
+ *      want. That is a tiebreak, not a channel — see the stack's docstring.
  *
  * In every pass a hidden or disabled binding is skipped rather than swallowing
  * the key, so a key falls through to an outer binding that wants it. Anything
@@ -127,12 +127,10 @@ export function useActionDispatcher(): void {
       //    MODE, and a mode outranks any particular key.
       // 3. Otherwise the command that answers.
       //
-      // Both walk innermost first. A binding joins the stack from an effect and
-      // React runs effects CHILDREN FIRST, so a child's entry lands EARLIER than
-      // its parent's — which makes "innermost first" a forward walk, not a
-      // backward one. (Two bindings in the SAME component are in call order, and
-      // two that can be live at once must not share a chord anyway; see
-      // `common/actions/todo.md`.)
+      // Both walk the stack forward, so a component mounted with its page wins
+      // a key they both want; one mounted later does not. What the order is and
+      // why it must not be leaned on is the stack's own docstring
+      // (`useBoundAction.ts`); two actions live at once must not share a chord.
       const answers = (wildcard: boolean) => {
         const claimants: BoundAction[] = []
         let first: KeySpec | null = null

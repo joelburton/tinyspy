@@ -94,26 +94,26 @@ export type BoundAction = {
 }
 
 /**
- * THE STACK OF LIVE BINDINGS, **innermost FIRST**.
+ * THE STACK OF LIVE BINDINGS, in the order they mounted.
  *
  * A page binds its commands, a component mounted inside it binds its entry
- * keys, and the inner one should win a key they both want — so the dispatcher
- * walks this forward. Module-level rather than a context because the reader
- * that has to decide is a window listener, and a window listener sits in no
- * subtree.
+ * keys, and the dispatcher walks this forward and fires the first live match.
+ * Module-level rather than a context because the reader that has to decide is
+ * a window listener, and a window listener sits in no subtree.
  *
- * **Why innermost is first and not last.** An entry joins here from an effect,
- * and React runs effects CHILDREN FIRST, so a child's binding is already in the
- * array by the time its parent's arrives. The order is a fact about effects
- * rather than a choice, which is why it is written down here rather than
- * assumed: this file said "innermost last" for a while and the dispatcher
- * walked backward to match, and the two together gave the OUTER binding the
- * key. Nothing caught it, because no two bindings had yet wanted the same key
- * at the same moment (`dispatcher.test.ts` now holds both directions).
+ * **What the order is, exactly.** An entry joins here from an effect, and React
+ * runs effects CHILDREN FIRST — so among components mounted in ONE commit, a
+ * child's binding sits before its parent's and wins a key they both want. A
+ * component mounted in a LATER commit joins at the end, behind everything
+ * already there, whatever its depth in the tree. So "innermost first" holds
+ * for a page and the components it mounts together, and not for one it mounts
+ * later (`dispatcher.test.tsx` pins both). Two bindings in the SAME component
+ * are in call order.
  *
- * Two bindings in the SAME component are in call order, which makes the earlier
- * call the "inner" one — arbitrary, and not something to lean on: two actions
- * that can be live together must not share a chord (`todo.md`).
+ * **None of that is a tool.** Order only makes a tie deterministic; the rule
+ * that keeps ties from mattering is that two actions which can be live at the
+ * same moment do not share a chord, and the dispatcher complains in
+ * development when they do. A binding must not lean on its position to win.
  *
  * Each entry holds a REF, refreshed every render, so a listener reading it at
  * keypress gets the current closure without anything re-registering.
@@ -139,7 +139,7 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-/** Every binding on the page right now, innermost first. Re-renders the caller
+/** Every binding on the page right now, in stack order. Re-renders the caller
  *  when a binding joins or leaves — not when one changes what it would say, so
  *  a surface built from this asks each action as it draws. */
 export function useBoundActions(): BoundAction[] {
@@ -147,7 +147,7 @@ export function useBoundActions(): BoundAction[] {
   return bindings.map((b) => b.current)
 }
 
-/** Every binding on the page right now, innermost first, for a reader that is
+/** Every binding on the page right now, in stack order, for a reader that is
  *  not a component — the key dispatcher. Read at the moment of the keystroke,
  *  never held. */
 export function liveBindings(): BoundAction[] {
@@ -164,11 +164,8 @@ export function liveBindings(): BoundAction[] {
  */
 export function useAppAction(id: ActionId): BoundAction | null {
   useSyncExternalStore(subscribe, () => version)
-  // Innermost wins, the same rule the dispatcher follows.
-  for (let i = bindings.length - 1; i >= 0; i -= 1) {
-    if (bindings[i]!.current.id === id) return bindings[i]!.current
-  }
-  return null
+  // The first in stack order — the one the dispatcher would fire.
+  return bindings.find((b) => b.current.id === id)?.current ?? null
 }
 
 /** Normalize the shorthand: a bare state means that state and the fixed label. */

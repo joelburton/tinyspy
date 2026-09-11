@@ -16,8 +16,8 @@ import styles from './KeyList.module.css'
  * overlay, which the play area is unmounted behind. They are written so they
  * are never live together, but that is two files agreeing rather than a
  * guarantee — and a list that answers "which keys work here" should say a key
- * once regardless. The FIRST binding wins the words, which is the innermost,
- * which is the one the dispatcher would fire.
+ * once regardless. The FIRST binding in stack order wins the words, which is
+ * the one the dispatcher would fire.
  */
 export function KeyList() {
   const seen = new Set<string>()
