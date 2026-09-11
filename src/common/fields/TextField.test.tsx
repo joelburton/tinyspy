@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 /**
  * `<TextField>`'s three surfaces — the caption, the entry help, and the error —
@@ -11,7 +11,7 @@
  *
  * Not asserted: any class name. `vite.config.ts` sets `css: false` for vitest,
  * so a CSS module fabricates whatever name it is asked for and a class
- * assertion would pass against a deleted rule (docs → the guards' own note).
+ * assertion would pass against a deleted rule.
  * The invalid ring is `aria-invalid`, which IS in the DOM, so that is what this
  * checks.
  */
@@ -33,7 +33,7 @@ describe('TextField — the caption', () => {
     // The search-box case: the box IS the panel, and a caption above one input
     // says nothing the titlebar has not. The `name` is there regardless, which
     // is why it is what a test selects on — rewording a label is a change to
-    // the copy, and should not fail a test about the form.
+    // the text, and should not fail a test about the form.
     const { container } = render(<TextField name="letters" value="" onChange={() => {}} />)
     expect(container.querySelector('[name="letters"]')).toBeInTheDocument()
     expect(container.querySelector('label')).not.toBeInTheDocument()

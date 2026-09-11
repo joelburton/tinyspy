@@ -4,10 +4,16 @@ The folders it reads: `forms` · `fields`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed (Joel: "do the audit") and stamped
+**Status: CLOSED 2026-09-11** (Joel: "go ahead and bless the files. then close
+the area") — every roster file reads `cs-blessed-forms`, stamped at those
+words. Opened the same day: roster agreed (Joel: "do the audit") and stamped
 `cs-audited-forms`. All twelve findings from the audit read are worked, each on
-Joel's word. Still owed before this area can close: the whole-area re-read,
-both folders' `doc.md` Design, and the blessing.
+Joel's word. **The whole-area re-read was done the same day** and both
+folders' `doc.md` written (lede, Design, Details; both rows off
+`DESIGNS_OWED`). The re-read found six things, F-forms-13 through F-forms-18
+under "The re-read" below, all prose; Joel: "fix them", and all six are
+worked. F-forms-19, Joel's own, worked the same day. Blessed and closed on
+his words.
 
 ## The roster
 
@@ -171,7 +177,9 @@ sentence now ends at "the two could disagree", and its long line is wrapped.
 **WORKED 2026-09-11.** Three sites went with F-forms-2; the rest now: the
 date field says crosswords' NYT picker has one more; the select says "a game's
 other setup selects compose it"; the two remaining `base.css:777` name the
-rule instead.
+rule instead. **Except one:** the re-read found `DictBandField`'s
+`lib/game/difficulty.ts` still there — this record said "the rest" and was
+wrong. Re-raised as F-forms-17.
 
 ## F-forms-5 · `claims-the-code-contradicts` · Four sentences the file beside them disproves
 
@@ -377,6 +385,107 @@ what is there.
 opening a blocking modal. ui.md now says "crosswords' puzzle pickers, which
 are blocking modals of their own".
 
+### The re-read, 2026-09-11
+
+Every file on the roster read end to end in one sitting, after the last
+finding was worked, plus docs/ui.md → Real forms and `setupForm.ts`'s header.
+What did not hold up:
+
+## F-forms-13 · `setup-errors-claim-false` · `field.module.css` says a setup form's errors go to the bottom
+
+The `.error` rule's comment: "NOT how a setup form reports errors — those
+collect at the bottom of the dialog, next to the Start they gate, and that
+stays. This is for a form where the error belongs to one entry." Every game's
+setup form passes `error={errors.<name>}` to its fields, and the modal draws
+only the form-wide message on its bottom line. So a setup form reports errors
+exactly this way, and the comment describes what it replaced. Say what is
+true: a field's error is drawn here; the form's own message is the form's
+line.
+
+**WORKED 2026-09-11 (Joel: "fix them").** The comment says this is for the
+error that belongs to one entry, and the form-wide message is `<FailureLine>`,
+which a setup dialog draws next to the Start it gates.
+
+## F-forms-14 · `slots-counted-wrong` · `Field.tsx` counts its slots two ways, both wrong
+
+The component docstring opens "caption, control, entry help, error, stacked"
+and ends "every field gets all four slots by forwarding two props". The shape
+has a fifth slot, `help`, between the caption and the control, and a field
+forwards five props (`label`, `help`, `entryHelp`, `error`, `name`). Name the
+slots and drop the arithmetic.
+
+**WORKED 2026-09-11.** The docstring names all five slots in order and says a
+field gets every slot by forwarding the words it was given.
+
+## F-forms-15 · `british-spelling-past-the-guard` · "SPECIALISED" in `TextField.tsx`
+
+Line 25, in the docstring this area rewrote: the British `-ised` spelling of
+"specialized". The spelling guard lists the bare verb and matches it between
+word boundaries, case-insensitively, so the `-d` form slips past the closing
+boundary and passed. Noted here for Joel; guards are not the audit's to edit.
+
+**WORKED 2026-09-11.** The word is fixed. The guard's gap is the inflected
+form, which its list would need as its own entry. This record first spelled
+the British word out to describe it, which the guard caught in this file
+(CLAUDE.md: never spell a listed form in prose, even as an example).
+
+## F-forms-16 · `copy-for-text` · "the copy" twice, for a caption's words
+
+`fieldContract.tsx`'s test name "so a test can find it without reading the
+copy", and `TextField.test.tsx`'s comment "rewording a label is a change to
+the copy". A message's words are its TEXT. `ReadOnlyField.tsx`'s "select and
+copy" is the verb and stays.
+
+**WORKED 2026-09-11.** "Without reading its caption" and "a change to the
+text".
+
+## F-forms-17 · `stale-path-marked-done` · `DictBandField.tsx` still says `lib/game/difficulty.ts`
+
+F-forms-4 listed it and the record claimed it done with "the rest". It was
+not touched; the file imports `../setup-form/difficulty` two lines up. Say
+that path, or drop the pointer since the import is the pointer.
+
+**WORKED 2026-09-11.** "The bands and their samples are
+`setup-form/difficulty.ts`'s."
+
+## F-forms-18 · `small-leftovers-2` · Six lines
+
+- `field.module.css` → the invalid ring: "has always keyed on" — "keys on".
+- `DateField.tsx`: "and that is inherited from the field it came out of" —
+  where it came from is history; the reason after it stands alone.
+- `ManualBoardField.module.css`: "Italic is the strong signal" over a rule
+  that says `oblique`; and a trailing blank line at the end of the file.
+- `ManualBoardField.test.tsx`: the header docstring sits after the imports,
+  where every other spec in the folder puts it before.
+- `TextField.test.tsx`: "(docs → the guards' own note)" — a cite with no doc
+  named. docs/testing.md owns the CSS-modules-are-proxies note, or the
+  parenthetical goes.
+- `errorUnder.test.tsx`: "would prove it copes with my drawing" — first
+  person in a test header.
+
+**WORKED 2026-09-11.** All six: "keys on"; the date field's origin sentence
+is gone; "The slant is the strong signal" and the trailing blank line is out;
+the board field's spec header sits before its imports; the dangling cite is
+dropped; "copes with the approximation".
+
+## F-forms-19 · `standardform-docstring-too-long` · The hover is a page
+
+**Joel raised it, 2026-09-11**, reading the area's result: *"the docstring for
+standardform is much too long — how am I supposed to read that as a hover in
+an editor? some of this should move to the doc.md, some to comments in the
+component."* Forty-seven lines, most of it reasoning `forms/doc.md` had just
+been written to hold.
+
+**WORKED 2026-09-11.** The docstring is what a caller needs at the hover:
+what it is, when to reach for it, the render-function shape, that errors do
+not come through it, and the `doc.md` pointer — eleven lines. Two facts about
+specific lines moved onto them: `initialValues` read once, at the `useState`;
+the tab ring riding `ref`, at the `<form>`. The reasoning already in `doc.md`
+(why the form owns its values, why looking like a form is opt-in, the
+container owning the outer gap) left; the one piece `doc.md` lacked, the
+context-by-name alternative and why it was not taken, is now a sentence in its
+Design.
+
 ### Ruled already, recorded so the re-read does not re-raise them
 
 - **`SelectField` is a native `<select>` and takes focus** — docs/ui.md → Real
@@ -416,7 +525,10 @@ are blocking modals of their own".
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] both folders' `doc.md` Design written; their rows off `DESIGNS_OWED`
-- [ ] each `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group —
+      2026-09-11; F-forms-13 through F-forms-18 are what it found, all open
+- [x] both folders' `doc.md` Design written; their rows off `DESIGNS_OWED`
+- [x] each `todo.md` holds everything still owed (both are the four bare
+      headings); nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not — all 46
+      `cs-blessed-forms`, 2026-09-11, on Joel's words "bless the files"

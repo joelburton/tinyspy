@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 /**
  * THE LOOKUP THE ROUTING TESTS RELY ON (see errorUnder.ts).
@@ -10,7 +10,7 @@
  *
  * Tested against the REAL field components rather than hand-built markup: what
  * it has to cope with is the three shapes those actually produce, and a
- * hand-drawn approximation would prove it copes with my drawing.
+ * hand-drawn approximation would only prove it copes with the approximation.
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'

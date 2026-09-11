@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../setup-form/difficulty'
 import { SelectField } from './SelectField'
@@ -26,8 +26,8 @@ type Props = AllFieldProps<number> & {
  * have a separate difficulty knob that has nothing to do with vocabulary.
  *
  * The band is a `common.words.difficulty` value and the column keeps that name —
- * it is the DB's word, and each game's RPC does the actual filtering. See
- * `lib/game/difficulty.ts` for the bands and their samples.
+ * it is the DB's word, and each game's RPC does the actual filtering. The
+ * bands and their samples are `setup-form/difficulty.ts`'s.
  */
 export function DictBandField({
   name,

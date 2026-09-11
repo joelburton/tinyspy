@@ -1,11 +1,4 @@
-// cs-audited-forms
-
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
-import { ManualBoardField } from './ManualBoardField'
-import { expectFieldContract } from './fieldContract'
+// cs-blessed-forms
 
 /**
  * The field that writes a board down (see ManualBoardField.tsx). What is
@@ -21,6 +14,13 @@ import { expectFieldContract } from './fieldContract'
  * Deliberately NOT asserted: any class name. `vite.config.ts` sets `css: false`
  * for vitest, so a CSS module fabricates whatever name it is asked for.
  */
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
+import { ManualBoardField } from './ManualBoardField'
+import { expectFieldContract } from './fieldContract'
+
 
 /** A caller that stores exactly what the field hands it — the shape that makes
  *  a separator bug visible, and the shape letterboxed actually uses. */

@@ -1,55 +1,20 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import styles from './StandardForm.module.css'
 
 /**
- * A FORM YOU FILL IN — fields stacked, one gap between them, and **the values
- * they hold**.
+ * A FORM YOU FILL IN: fields stacked with one gap between them, and the values
+ * they hold. Reach for it wherever a player types something and presses a
+ * button. A `<form>` that merely submits, like chat's composer, is not one.
  *
- * `<form>` itself carries no styling, deliberately: it is a SUBMIT BOUNDARY,
- * not a look. Chat's composer and codenamesduet's clue strip are both real
- * forms that submit and neither wants a column of spaced fields, so looking
- * like a form is opt-in — the same reason a bare `<button>` has no chrome and
- * `<StandardButton show="label">` supplies it.
+ * The children are a function given `values` and `set`, so each field says
+ * where its value comes from and where it goes, both typed against `V`. Errors
+ * never come through here: the caller that made the call holds them and writes
+ * `error={errors.<name>}` itself.
  *
- * ─── Why it owns the values ──────────────────────────────────
- * What is currently being typed belongs to the form, not to the screen around
- * it: clearing, resetting and "has anything changed" are all questions about
- * the form, and a form that holds its values can answer every one of them.
- *
- * ─── …and hands them back through the children ───────────────
- * The children are a FUNCTION, given the values and a setter, which is what
- * keeps the wiring visible: `value={values.club_name}` says where the value
- * comes from and `set('club_name', v)` says where it goes. It also gets the
- * field names checked for free — both are typed against `V`, so a typo is a
- * compile error instead of a field that silently does nothing.
- *
- * The alternative was a context each field read by `name`, which buys
- * `<TextField name="club_name" />` and nothing else, at the price of both of
- * those. Nothing here is deep enough to need it: every field is either in the
- * form's own JSX or is already handed `{ value, onChange }` by its parent, the
- * way every game's setup body is.
- *
- * ─── `initialValues` is read once ────────────────────────────
- * At mount, and never again, so nothing can reset under someone mid-type. A
- * form whose values load asynchronously simply isn't rendered until they
- * arrive; that is also what spares it from disabling every control while it
- * waits.
- *
- * ERRORS never reach this component. They arrive from an async call it knows
- * nothing about, and the caller that makes that call already holds them — so it
- * writes `error={errors.club_name}` from the same scope as everything else.
- *
- * What it does NOT own is the space around itself. That is the gap between this
- * form and whatever sits above or below it, which belongs to the container —
- * `<FloatingPanel density>` for a floating panel, the page for a page.
- *
- * Nor does it own TAB. A form inside a floating panel is already inside that
- * panel's ring, fields and all; a form that IS the page declares its own with
- * `useTabRing({ within: formRef })` and passes the ref here (`LoginScreen` is
- * the example).
+ * forms/doc.md
  */
 export function StandardForm<V extends object>({
   className,
@@ -69,6 +34,8 @@ export function StandardForm<V extends object>({
     set: <K extends keyof V>(name: K, value: V[K]) => void
   }) => ReactNode
 }) {
+  // Read ONCE, at mount, so nothing can reset under someone mid-type. A form
+  // whose values load later is not rendered until they arrive.
   const [values, setValues] = useState<V>(initialValues)
 
   // Stable, because a caller may hold it across renders — codenamesduet's
@@ -84,6 +51,8 @@ export function StandardForm<V extends object>({
   }
 
   return (
+    // `ref` rides `rest`: a form that IS the page hangs its tab ring on it
+    // (`LoginScreen`); inside a floating panel that ring already covers it.
     <form className={cls(styles.standardForm, className)} onSubmit={handleSubmit} {...rest}>
       {children({ values, set })}
     </form>

@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'

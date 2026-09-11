@@ -1,4 +1,4 @@
-/* cs-audited-forms */
+/* cs-blessed-forms */
 
 /*
  * The manual-board input (see ManualBoardField.tsx).
@@ -32,12 +32,11 @@
  * could hit Start believing they had pasted something.
  *
  * THE TRACKING IS IDENTICAL to real input; the placeholder differs on color and
- * slant alone. Italic is the strong signal, and matching the
- * tracking means the example shows the true width of what you are about to
- * type. Loosening it as a third axis of difference would cost that.
+ * slant alone. The slant is the strong signal, and matching the tracking means
+ * the example shows the true width of what you are about to type. Loosening
+ * it as a third axis of difference would cost that.
  */
 /* @@ */ .input::placeholder {
   color: var(--field-placeholder-ink-color);
   font-style: oblique;
 }
-

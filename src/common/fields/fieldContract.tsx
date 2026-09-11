@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 /**
  * THE ASSERTIONS EVERY FIELD SHARES — called once from each field's own test
@@ -63,7 +63,7 @@ export function expectFieldContract(
   { interactive = true }: Options = {},
 ) {
   describe('the AllFieldProps contract', () => {
-    it('puts its name into the DOM, so a test can find it without reading the copy', () => {
+    it('puts its name into the DOM, so a test can find it without reading its caption', () => {
       // On the control — or composed onto each control of a group — which is
       // what lets a server validation naming a column reach the box that wrote
       // it. A field that draws no control at all (`<ReadOnlyField>`) is found

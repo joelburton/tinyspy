@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { Field } from './Field'
 import type { AllFieldProps } from './fieldProps'
@@ -18,8 +18,8 @@ type Props = AllFieldProps<string> & {
  * setting copies. crosswords' NYT picker has one more and will want this when
  * that game's area comes.
  *
- * **Deliberately plain**, and that is inherited from the field it came out of:
- * the common case is leaving it empty, so it should read as a secondary control
+ * **Deliberately plain.** The common case is leaving it empty, so it should
+ * read as a secondary control
  * rather than the section's main event, and it sits at its own intrinsic width —
  * a date input sized to its own content is a smaller target than a full-width
  * box, which is the right weight for something you rarely touch.

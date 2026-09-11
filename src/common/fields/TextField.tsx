@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { Field } from './Field'
 import type { AllFieldProps } from './fieldProps'
@@ -22,7 +22,7 @@ type Props = AllFieldProps<string> & {
 /**
  * A LABELED TEXT BOX — the field type the app uses most.
  *
- * `ManualBoardField` is a SPECIALISED text field — the board you type — with
+ * `ManualBoardField` is a SPECIALIZED text field — the board you type — with
  * its own tracking, grouping and case rules. This is the plain one: a name, a
  * word, a search, a note.
  *

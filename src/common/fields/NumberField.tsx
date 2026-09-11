@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { Field } from './Field'
 import type { AllFieldProps } from './fieldProps'

@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 import { useId, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -73,12 +73,13 @@ type Props = {
 }
 
 /**
- * THE SHAPE EVERY FIELD HAS — caption, control, entry help, error, stacked.
+ * THE SHAPE EVERY FIELD HAS — caption, help, control, entry help, error,
+ * stacked in that order.
  *
  * Written once, because a shared stylesheet is not a shared shape:
  * `field.module.css` can hold the CSS while each component still lays out its
  * own markup, and then only the field that happened to need an error can show
- * one. Here every field gets all four slots by forwarding two props.
+ * one. Here every field gets every slot by forwarding the words it was given.
  *
  * **`<CheckboxField>` is the one whose caption sits BESIDE the box**, not above
  * it, so it keeps its own inline row and wears this for the wrapper around it —

@@ -1,4 +1,4 @@
-// cs-audited-forms
+// cs-blessed-forms
 
 /**
  * PICK YOUR COLOR (see ColorField.tsx) — a set of swatches, so it is a `group`

@@ -1,4 +1,4 @@
-/* cs-audited-forms */
+/* cs-blessed-forms */
 
 /*
  * THE SHAPE EVERY FIELD SHARES — a caption over its control.
@@ -65,9 +65,9 @@
  * Beside the outline below, not instead of it: the ring says WHICH field and
  * the line says WHY, and a ring with no sentence leaves you hunting.
  *
- * NOT how a setup form reports errors — those collect at the
- * bottom of the dialog, next to the Start they gate, and that stays. This is for
- * a form where the error belongs to one entry.
+ * For the error that belongs to ONE entry. The message about the form as a
+ * whole is the form's own line (`<FailureLine>`), which a setup dialog draws
+ * next to the Start it gates.
  */
 /* @@ */ .error {
   color: var(--chrome-fault-color);
@@ -79,8 +79,8 @@
  *
  * Written once here rather than per field component, so a field that grows an
  * error state gets the ring by setting `aria-invalid` and nothing else. The
- * attribute is the state — the same thing `<SetupTimerSection>`'s MM:SS box has always
- * keyed on, rather than a class the styling and the markup have to keep in
+ * attribute is the state — the same thing `<SetupTimerSection>`'s MM:SS box
+ * keys on, rather than a class the styling and the markup have to keep in
  * step.
  */
 /* @@ */ .field :is(input, textarea, select)[aria-invalid='true'] {
