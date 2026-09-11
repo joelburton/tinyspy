@@ -5,8 +5,9 @@ The folders it reads: `forms` · `fields`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed (Joel: "do the audit") and stamped
-`cs-audited-forms`. The audit read is done; every finding below is OPEN and
-waits on Joel's word one at a time.
+`cs-audited-forms`. All twelve findings from the audit read are worked, each on
+Joel's word. Still owed before this area can close: the whole-area re-read,
+both folders' `doc.md` Design, and the blessing.
 
 ## The roster
 
@@ -212,9 +213,10 @@ Say the condition in each; where the number IS the point (the five games are
 the reason the field exists), name the games or say "the board games".
 
 **WORKED 2026-09-11, all but one.** Each count says its condition; the board
-field names its games without counting them. **Still open, for Joel:** "all
-six bands" in `DictBandField.tsx` and its test — the data's shape rather than
-a caller census. Keep, or say "every band"?
+field names its games without counting them. **"All six bands" STAYS
+(Joel: "1", 2026-09-11):** it is the shape of the word data — a
+`common.words.difficulty` value runs one to six — and the spec pins the six on
+purpose, so a seventh band would be a change to the data that the test names.
 
 ## F-forms-7 · `vocabulary-conversion` · The raw values, and which are decisions
 
@@ -322,6 +324,14 @@ Read first, per the process, and found mostly done:
 Rewrite the file to what is still owed — the Section question, at most — and
 the Maybe item (below).
 
+**WORKED 2026-09-11.** The Section question was the only thing left in it,
+and Joel closed it in two rulings: "the setup form sections have nothing to do
+with info-sheet", and "a checkboxlistfield is not a setup section at all". So
+a disclosure with a summary, a field's frame around its options and a
+readout's box are three things that share a border and nothing else, and no
+pattern is owed. The Soon section is empty; `forms/todo.md` is now the
+four bare headings.
+
 ## F-forms-10 · `form-errors-home` · Where `FormErrors` lives is a decision this area should make
 
 `forms/todo.md` (Maybe): `setup-form/setupForm.ts` types
@@ -331,6 +341,11 @@ contract depends on the form layer for one shape. The three-layer argument in
 one string) is the reason the shape is the form's; a setup body is a form
 body. Either say that in `formState.ts` and delete the item, or move the type.
 Joel's call; the item should not outlive the area either way.
+
+**DECIDED 2026-09-11 (Joel: "keep as is; all setup will need a form").** The
+type stays in `forms/`. `setupForm.ts`'s header now says the reason in one
+sentence instead of pointing at `todo.md`, and the Maybe item is deleted.
+`formState.ts` already carries the three-layers argument and needed nothing.
 
 ## F-forms-11 · `small-leftovers` · Lines, blanks and a missing header
 
