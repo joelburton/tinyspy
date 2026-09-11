@@ -6,8 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`.
 Worked: F-lists-1 (select-kind-unused), F-lists-8
-(filter-select-density-inverted), F-lists-9 (empty-state-four-ways). F-lists-18
-(segmented-listed-as-a-pattern) was found while working the last of those.
+(filter-select-density-inverted), F-lists-9 (empty-state-four-ways), F-lists-10
+(custom-property-spelling). F-lists-18 (segmented-listed-as-a-pattern) was
+found while working F-lists-9.
 
 ## The roster
 
@@ -270,6 +271,31 @@ also differed in size), not in caller burden.
 `--dot-size`, `--logo-size` on the other) and no doc rules on it. Two things
 to decide: which spelling, and where that rule lives (docs/code-conventions.md).
 This folder then follows it; the rest converts area by area.
+
+**WORKED 2026-09-11 (Joel: "we specifically agreed on the `infoCol-width`
+style names… if we don't say that clearly, please add it").** The rule is that
+a bucket naming a COMPONENT keeps the component's own spelling, because the
+bucket is a pointer to a file and kebabing it breaks the grep. A bucket naming
+a CONCEPT (`--page-*`, `--board-*`, `--toast-*`, every `--<game>-*`) stays
+kebab — there is no identifier to preserve.
+
+It was NOT written down. docs/ui.md's token grammar had the neighboring rule
+("hyphens separate different questions; camelCase joins words that answer
+one") and all its camelCase examples are multi-word qualities — `inFlight`,
+`gameOver`, `terminalFrame` — never a component identifier. Added there, beside
+that bullet, as its own item saying it is a different rule and why.
+
+`--filter-select-dot` → `--filterSelect-dot`, its three uses plus a mention in
+`core-css/todo.md`.
+
+**Two other tokens are out of step, both outside this area.** `--info-col-width`
+(`InfoCol`) is read by every game's `PlayArea.module.css` — a wide rename that
+belongs to `game-page`; and `--rank-bar-edge-color` / `--rank-bar-fill-color`
+(`RankBar`) belong to `rank-ladder`. Recorded here so neither is lost; not
+touched, since the conversion Joel authorized was this area's.
+
+`--gamelist-*` is a judgment call for whoever opens the club area: there is no
+`GameList` component, so the bucket may be a concept and already correct.
 
 ## F-lists-11 · `vocabulary-conversion` · The raw values, and which are decisions
 

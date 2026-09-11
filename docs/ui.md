@@ -682,6 +682,19 @@ uses. The rest of the grammar:
   because `blocking` clarifies `modal` — two questions, not one unsplittable
   idea. **Part-count is not a thing to optimize**: five parts is fine, and
   compressing to reach four is how the rule gets misapplied.
+- **A bucket that names a COMPONENT is spelled the way the code spells it** —
+  `--pageHeader-height`, `--iconButton-size`, `--entryBox-font-size`,
+  `--floatingPanel-titlebar-height`, `--simpleScrollableList-row-height`,
+  `--infoCol-width`. The bucket is a pointer to a file, so kebabing it
+  (`--page-header-height`) breaks the one thing it is for: you can no longer
+  grep the name and land on `PageHeader.tsx`. This is not the camelCase rule
+  above wearing a hat — that one joins words that answer *one question*, while
+  this one preserves an identifier that already exists elsewhere. The
+  structural words after it stay hyphenated as always.
+
+  A bucket that names a CONCEPT rather than a component stays kebab, because
+  there is no identifier to preserve: `--page-*`, `--board-*`, `--toast-*`,
+  `--tile-*`, and every `--<game>-*`.
 - **Numbers or names?** Numbers when the scale has a visual intuition, names
   when it doesn't; either way the name says the whole thing (`--font-size-2`,
   never `--font-2`). [naming.md → Numbers or names?](naming.md#numbers-or-names)

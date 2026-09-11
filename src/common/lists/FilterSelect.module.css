@@ -60,11 +60,11 @@
  * and a rem-fixed disc would look shrunken beside them. */
 .closedSelect,
 /* @@ */ .option {
-/* @@ */   --filter-select-dot: 0.65em;
+/* @@ */   --filterSelect-dot: 0.65em;
 }
 
 /* @@ */ .dot {
-/* @@ */   --dot-size: var(--filter-select-dot);
+/* @@ */   --dot-size: var(--filterSelect-dot);
 }
 
 /* @@ */ .dotSlot {
@@ -72,7 +72,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--filter-select-dot);
+  width: var(--filterSelect-dot);
 }
 
 /* The affordance mark: a small solid caret, the same "this opens a list of

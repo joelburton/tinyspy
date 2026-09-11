@@ -70,7 +70,7 @@
   is a good thing to name. The inventory forks: em spacing *between* things
   (`StandardButton.module.css`'s icon-to-label gutter, `gap: 0.4em`),
   and em *sizing to* the type — about ten and growing: `--dot-size` at 0.6 /
-  0.65 / 0.7em across four files, `--filter-select-dot: 0.65em`, the entry
+  0.65 / 0.7em across four files, `--filterSelect-dot: 0.65em`, the entry
   caret at `1.15em`, `StrikeMarks` at `1.05em`, `SetupNextPuzzleSection`'s
   `min-height: 1.4em`. The second family has the real spread and is invisible
   to a spacer guard (widths, heights, custom properties). Re-ask when a later
