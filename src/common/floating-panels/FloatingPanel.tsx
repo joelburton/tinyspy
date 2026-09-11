@@ -113,9 +113,10 @@ export type FloatingPanelProps = {
   // Draggable by corners and edges. Default true; a panel whose content knows
   // its own size opts out.
   resizable?: boolean
-  // The narrowest this panel may be. It also floors the viewport clamp, which
-  // makes it the one dimension that still bites a panel nobody can resize —
-  // nothing fits to WIDTH, so a width floor overrules no content.
+  // The narrowest this panel may be — a floor on the DRAG, so it means nothing
+  // on a panel that cannot be resized. It also floors the viewport clamp, but
+  // only as far as the viewport has room for: a minimum never outranks the
+  // screen (`clampToViewport`).
   minWidth?: number
   // "You can't drag this shut" — so it means nothing without `resizable`, and
   // it is 0 by default. Where a floor IS wanted, react-rnd only stops for a
@@ -550,8 +551,8 @@ function resolveDefaultRect(
   defaultSize: { width: number; height: number },
 ): PanelRect {
   if (defaultPosition === 'center') {
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+    const vw = window.innerWidth
+    const vh = window.innerHeight
     return {
       x: Math.max(0, Math.round((vw - defaultSize.width) / 2)),
       y: Math.max(0, Math.round((vh - defaultSize.height) / 2)),

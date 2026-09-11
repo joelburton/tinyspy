@@ -203,8 +203,8 @@ export function useReclampOnResize(
 
 /** A rect's own size, centered in the current viewport. Size untouched. */
 function centerInViewport(rect: PanelRect): PanelRect {
-  const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
-  const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
+  const vw = window.innerWidth
+  const vh = window.innerHeight
   return {
     ...rect,
     x: Math.max(0, Math.round((vw - rect.width) / 2)),
@@ -271,8 +271,8 @@ export function clampToViewport(
   edgeMargin: number,
   mode: ClampMode = 'hard',
 ): PanelRect {
-  const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
-  const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
+  const vw = window.innerWidth
+  const vh = window.innerHeight
   // What the viewport has room for, and the floors capped to it. A minimum
   // says "don't let the USER drag it smaller than this" — it cannot outrank
   // the screen, or the panel is placed wider than the space it is being fitted

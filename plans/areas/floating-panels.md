@@ -169,7 +169,30 @@ pointer. Pairs with F-floating-panels-4: the cuts are the same cuts.
 - `PanelOpts.edgeMargin` — "Overrides `VIEWPORT_EDGE_MARGIN`. Nothing passes
   one." A dead option with its own docstring saying so.
 
-## F-floating-panels-8 · `typeof-window-guards` · The folder's own Soon
+## F-floating-panels-8 · `typeof-window-guards` · The folder's own Soon — WORKED
+
+All six gone (2026-09-11), reading `window` bare, per
+docs/code-conventions.md → "`window` is always there; a browser FEATURE may not
+be". The reading below called the fallbacks harmless because each supplies one;
+they are not. `centerInViewport` fell back to the rect's own size, so
+`x = (w − w) / 2 = 0` — "center in viewport" returned the TOP-LEFT CORNER. And
+`clampToViewport` fell back the same way, subtracting the gutter from the
+panel's own width on every call: reproduced by setting the viewport to the
+rect's dimensions, a panel shrinks 420 → 404 → 388 → 372 on four drag-stops,
+forever. So the guards turned an impossible condition into silent permanent
+misbehavior, which is the argument for dropping rather than keeping them.
+
+**Nothing red either way, and that is the honest caveat**: the tests read
+jsdom's real window and never exercised a fallback, so no test defends the
+premise. What defends it is the premise — a Vite SPA with `createRoot`, no SSR
+config, no `renderToString`.
+
+Two `typeof window` guards survive OUTSIDE this area, in `FaultModal.tsx` and
+`toastStore.ts`, both module-level. Same shape, other areas' files, not
+touched. (The four in `mobile/` and `tooltips/` are `typeof window.matchMedia`
+— a FEATURE check, which the convention says stays.)
+
+The original reading:
 
 Six `typeof window` checks — `resolveDefaultRect` (two), `centerInViewport`
 (two), `clampToViewport` (two) — for a case that cannot happen: an SPA with no
