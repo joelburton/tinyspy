@@ -1,23 +1,22 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { useEffect } from 'react'
 
 /**
  * Global accessibility affordance: let the backtick key `` ` `` stand in
  * for Escape, for keyboards that lack a physical Esc key (an iPad with an
- * external keyboard is the motivating case). Ported from crossplay's
- * app-level handler.
+ * external keyboard is the motivating case).
  *
  * The mechanism is deliberately dumb: on a bare `` ` `` we re-dispatch a
  * synthetic Escape `keydown` on the focused element, so every existing Esc
  * handler in the app (dialogs, popovers, the chat panel, menus) keeps
  * working unchanged — we don't have to teach any of them about backtick.
  *
- * The cost is that `` ` `` can never be typed into a focused input. There's
- * exactly one text field where that matters (chat), and a literal backtick
- * is rare enough in casual chat to be a fair trade for the accessibility
- * win. (If that ever bites, the bail could be extended to skip editable
- * targets — but crossplay shipped the blanket version and it was fine.)
+ * The cost is that `` ` `` can never be typed into ANY focused field — chat,
+ * the scratchpad, a clue word, every setup and profile form, the rebus box.
+ * A literal backtick is rare enough in all of them to be a fair trade for an
+ * Escape key on a keyboard that has none, and the blanket is what makes the
+ * feature work where it matters most: closing chat from inside its own box.
  *
  * Capture-phase + `preventDefault`/`stopPropagation` so we beat any
  * element-level handler and the key never lands as a character.

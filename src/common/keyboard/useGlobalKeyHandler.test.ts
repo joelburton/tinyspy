@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -31,6 +31,18 @@ describe('useGlobalKeyHandler', () => {
       document.body.append(el)
       press(el)
     }
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('ignores keystrokes aimed inside a floating panel — the panel owns them', () => {
+    const handler = vi.fn()
+    renderHook(() => useGlobalKeyHandler(handler))
+    const panel = document.createElement('div')
+    panel.dataset.floatingPanel = ''
+    const button = document.createElement('button')
+    panel.append(button)
+    document.body.append(panel)
+    press(button)
     expect(handler).not.toHaveBeenCalled()
   })
 

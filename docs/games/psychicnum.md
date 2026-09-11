@@ -409,7 +409,7 @@ src/psychicnum/
                           pause, timer, suspend-confirm) lives on <GamePage>.
     PlayArea.module.css   (+ `.bigEntry` — psychicnum's one entry tweak: a 2rem font
                           on the shared <EntryRow>, since a single guess word reads large)
-                          The word entry is now the SHARED common/components/game/entry/EntryRow
+                          The word entry is the SHARED common/word-entry/EntryRow
                           (icon Delete + EntryBox + icon Submit + the capture keyboard) —
                           psychicnum's old per-game GuessForm was deleted when it landed.
                           Clicking a board tile and typing drive the same pending word;
@@ -572,6 +572,6 @@ Decided against, not queued — listed only so reviews don't re-propose them.
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/components/game/entry/EntryRow.tsx`](../../src/common/word-entry/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the coop-win celebration is the shared `common/components/game/CelebrationBlockingModal.tsx` |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/word-entry/EntryRow.tsx`](../../src/common/word-entry/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the coop-win celebration is the shared `common/terminal/CelebrationBlockingModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Are the secrets really hidden? | column-level grant + `psychicnum.games_state` view with `_secrets_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

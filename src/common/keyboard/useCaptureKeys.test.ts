@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 /**
  * Tests for the shared capture-key CORE — the universal pieces every key-capture

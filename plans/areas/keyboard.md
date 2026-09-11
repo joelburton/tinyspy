@@ -4,8 +4,10 @@ The folders it reads: `keyboard`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN (2026-09-09).** Roster agreed and stamped
-`cs-audited-keyboard`; twenty findings recorded, none worked.
+**Status: CLOSED (2026-09-10).** Roster blessed `cs-blessed-keyboard` at
+Joel's word. Twenty findings: sixteen resolved (most by the actions sprint
+that came out of this area) and four surviving as `todo.md` items — the sort
+is in "Close" at the bottom.
 
 ## The roster
 
@@ -14,18 +16,18 @@ own files, not its importers.
 
 | file | what it is | stamp |
 |---|---|---|
-| `src/common/keyboard/useGlobalKeyHandler.ts` | the one window keydown listener with a stable ref-dispatch; declines while a text field or a floating panel has focus | `cs-audited-keyboard` |
-| `src/common/keyboard/useGlobalKeyHandler.test.ts` | its tests | `cs-audited-keyboard` |
-| `src/common/keyboard/useCaptureKeys.ts` | the shared capture-key core for word games: `asciiLetters`, letter append, Backspace, Enter, the disabled/busy gates | `cs-audited-keyboard` |
-| `src/common/keyboard/useCaptureKeys.test.ts` | its tests | `cs-audited-keyboard` |
-| `src/common/keyboard/useAppShortcuts.tsx` | the app-wide shortcuts (`/` chat, `?` menu, `~` lookup, `⌥\`` anagrams) and `isNonGameField`; returns the two dialogs as JSX | `cs-audited-keyboard` |
-| `src/common/keyboard/useAppShortcuts.test.ts` | its tests | `cs-audited-keyboard` |
-| `src/common/keyboard/useBacktickEscape.ts` | backtick stands in for Escape by re-dispatching a synthetic Escape keydown | `cs-audited-keyboard` |
-| `src/common/keyboard/useBacktickEscape.test.ts` | tests for its pure core `backtickToEscape` | `cs-audited-keyboard` |
-| `src/common/keyboard/useTabRing.ts` | the tab-ring mechanism: a declared ring of stops, a mount-ordered stack of live rings | `cs-audited-keyboard` |
-| `src/common/keyboard/useSwallowTab.ts` | Tab does nothing on a cursor-navigated surface | `cs-audited-keyboard` |
-| `src/common/keyboard/keyboardHandoff.ts` | `handOffKeyboardOnTab`: Tab in a floating panel's field blurs it so the game hears keys again | `cs-audited-keyboard` |
-| `src/common/keyboard/doc.md` · `todo.md` | the lede; three Soon items | (no stamp — markdown) |
+| `src/common/keyboard/useGlobalKeyHandler.ts` | the one window keydown listener with a stable ref-dispatch; declines while a text field or a floating panel has focus | `cs-blessed-keyboard` |
+| `src/common/keyboard/useGlobalKeyHandler.test.ts` | its tests | `cs-blessed-keyboard` |
+| `src/common/keyboard/useCaptureKeys.ts` | the shared capture-key core for word games: `asciiLetters`, letter append, Backspace, Enter, the disabled/busy gates | `cs-blessed-keyboard` |
+| `src/common/keyboard/useCaptureKeys.test.ts` | its tests | `cs-blessed-keyboard` |
+| `src/common/keyboard/editableField.ts` | the two predicates — `isEditableField` (a focused field owns its keys) and `isNonGameField` (…unless it is the game's own, marked `data-game-input`); created by the actions sprint, replacing `useAppShortcuts.tsx`, which is deleted | `cs-blessed-keyboard` |
+| `src/common/keyboard/editableField.test.ts` | its tests | `cs-blessed-keyboard` |
+| `src/common/keyboard/useBacktickEscape.ts` | backtick stands in for Escape by re-dispatching a synthetic Escape keydown | `cs-blessed-keyboard` |
+| `src/common/keyboard/useBacktickEscape.test.ts` | tests for its pure core `backtickToEscape` | `cs-blessed-keyboard` |
+| `src/common/keyboard/useTabRing.ts` | the tab-ring mechanism: a declared ring of stops, a mount-ordered stack of live rings | `cs-blessed-keyboard` |
+| `src/common/keyboard/useSwallowTab.ts` | Tab does nothing on a cursor-navigated surface | `cs-blessed-keyboard` |
+| `src/common/keyboard/keyboardHandoff.ts` | `handOffKeyboardOnTab`: Tab in a floating panel's field blurs it so the game hears keys again | `cs-blessed-keyboard` |
+| `src/common/keyboard/doc.md` · `todo.md` | the folder's design, and its owed work | (no stamp — markdown) |
 
 Read as evidence, not on the roster: `docs/keyboard-shortcuts.md` (the lede
 names it canonical for what each key does) and `plans/tab-rings.md` (the plan
@@ -356,10 +358,15 @@ since F-keyboard-5 and -6 change two of those sentences.
 
 ## Notes
 
-- **`plans/actions.md` was drafted from this area (2026-09-09).** The
-  key-vocabulary and board-action-hook ideas raised while working this area
-  are in that plan now, not here; F-keyboard-5 (modifier-bail-per-caller) and
-  the Space-shuffle spellings are cross-referenced from it.
+- **The actions sprint came out of this area (2026-09-09) and shipped
+  2026-09-10.** Every key and command is now a bound action: what a command IS
+  is `src/common/actions/doc.md`, what each key DOES is
+  `docs/keyboard-shortcuts.md`. Two of this area's findings are closed by it
+  outright — F-keyboard-5 (modifier-bail-per-caller: the chord matcher owns
+  the bail) and the Space-shuffle spellings (shuffle is `⌥Z`, one registry
+  row) — and `useAppShortcuts` is deleted, so its rows on the roster above
+  name files that no longer exist. The re-read for the close has to sort the
+  rest into resolved, moot and surviving.
 - **The dispatcher's `[role="menu"]` and `[role="dialog"]` terms are inert**
   (F-keyboard-7): nothing a window listener can see carries them outside a
   `[data-floating-panel]`. Written down so no one "fixes" the selector by
@@ -402,3 +409,38 @@ since F-keyboard-5 and -6 change two of those sentences.
 - [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
+
+## Close (2026-09-10)
+
+The closing re-read, after the actions sprint had rebuilt the folder's
+subject underneath it. Every finding, sorted:
+
+| finding | slug | status | what settled it |
+|---|---|---|---|
+| F-keyboard-1 | `tab-ring-untested` | surviving | `todo.md` → Soon; `useTabRing` still has no test |
+| F-keyboard-2 | `shortcuts-two-scopes` | resolved | `AppActionsHost` binds the four keys once at the app root; `useAppShortcuts` deleted |
+| F-keyboard-3 | `handoff-successor` | surviving | `todo.md` → Soon; the ring transition is `floating-panels`' |
+| F-keyboard-4 | `editable-predicate-four-times` | resolved | `editableField.ts` is the one home; the dispatcher, `useGlobalKeyHandler`, `useGameHasKeyboard` and bananagrams read it |
+| F-keyboard-5 | `modifier-bail-per-caller` | resolved | the chord matcher owns the bail; the two leftover Tab clauses bail by hand, correctly |
+| F-keyboard-6 | `tab-swallow-is-an-empty-ring` | surviving | `todo.md` → Soon, with the two facts the conversion must keep; the decision is `plans/tab-rings.md`'s |
+| F-keyboard-7 | `overlay-selector-twice` | resolved | ClubPage's comment names `useTabRing`; the ring's transitional guard is the one spelling left and is tab-rings' to retire |
+| F-keyboard-8 | `dispatcher-docstring` | resolved | two gates named, no caller census, the ref rationale sits beside the ref |
+| F-keyboard-9 | `capture-keys-prose` | resolved | anchors point at `docs/playarea.md → Text entry`; `onExtraKey` is gone; the fields carry `//` |
+| F-keyboard-10 | `backtick-cost-understated` | resolved | the blanket stands and the docstring says what it costs; provenance gone |
+| F-keyboard-11 | `docstring-marker-pass` | resolved | `CaptureKeysOptions` fields `//`; the backtick test's file docstring above its imports |
+| F-keyboard-12 | `swallow-tab-prose` | resolved | no counts, no date; the caller is named by its condition |
+| F-keyboard-13 | `shortcuts-archaeology` | resolved | `useAppShortcuts` deleted; `keyboardHandoff` names the condition, not the two callers |
+| F-keyboard-14 | `dispatcher-test-gaps` | resolved | the action dispatcher tests both gates (`dispatcher.test.tsx`); `useGlobalKeyHandler.test.ts` gained the panel-gate case |
+| F-keyboard-15 | `marker-attributes-by-string` | surviving | `todo.md` → Maybe |
+| F-keyboard-16 | `shortcuts-doc-drift` | resolved | the doc's routing section describes the dispatcher; the floating-panel row says which families trap and that every family but the fault modal closes on Escape |
+| F-keyboard-17 | `tab-rings-plan-stale` | resolved | the plan's names fixed (`common/keyboard/useTabRing.ts`, `CluePanel.trapTab`), its three false leaks corrected; the plan stands |
+| F-keyboard-18 | `stale-paths` | resolved | every `common/hooks/input/` and `common/components/game/` path repointed |
+| F-keyboard-19 | `common-md-second-copy` | resolved | `docs/common.md` keeps one paragraph on the Tab round trip and links the folder doc and the shortcuts doc |
+| F-keyboard-20 | `doc-md-design` | resolved | `doc.md` has its Design: whose keystroke, where Tab may go, backtick as Escape; not on `DESIGNS_OWED` |
+
+Two rows on the roster went and two came: `useAppShortcuts.tsx` and its test
+are deleted, `editableField.ts` and its test are the folder's new files. The
+docstring-marker pass at this sitting found the nine `/**` on
+`CaptureKeysOptions` still standing from F-keyboard-11 and one file docstring
+below its imports; both are fixed. `doc.md` was harvested at the sprint's step
+7 and re-read here; nothing owed.

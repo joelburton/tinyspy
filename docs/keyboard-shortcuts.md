@@ -134,7 +134,7 @@ of games.
 | Open menu | `Tab` | Close and let focus advance normally. |
 | Confirm dialog | `Enter` | Confirm — the confirm button auto-focuses. |
 | Confirm dialog | `Esc` | Cancel. |
-| Any floating panel | `Tab` / `⇧Tab` | Cycles focus **inside** the panel (focus trap). `Esc` closes the panel focus is in, else the topmost open one; only the fault modal swallows it. |
+| Any floating panel | `Tab` / `⇧Tab` | A modal family (normal, blocking, fault) traps focus **inside** the panel; a companion or a dialog lets Tab out, and the two you type into mid-game — chat and the scratchpad — hand the keyboard back to the game on Tab. `Esc` closes the panel focus is in, else the topmost open one; only the fault modal swallows it. |
 | Chat box | `Enter` | Send. |
 | Chat box / scratchpad | `Tab` | **Hands the keyboard back to the game** — blurs the field rather than walking focus onto the page chrome. `⇧Tab` is left alone so the panel's ✕ stays reachable. |
 

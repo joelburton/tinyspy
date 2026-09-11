@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import type { KeyboardEvent } from 'react'
 
@@ -21,10 +21,9 @@ import type { KeyboardEvent } from 'react'
  * **Shift+Tab is left alone**, so the floating panel's own controls (its close
  * ✕) stay keyboard-reachable — a deliberate escape hatch, not an oversight.
  *
- * Used by the two floating panels you type into while a game is running: the
- * club chat box (`ChatBody`) and the game scratchpad
- * (`GameScratchpadCompanion`). Coming back the other way is `act-open-chat`
- * (bound in `AppActionsHost`) — `/` focuses the chat entry from anywhere.
+ * For a floating panel's text field, one you type into while a game is
+ * running. Coming back the other way is `act-open-chat` (bound in
+ * `AppActionsHost`) — `/` focuses the chat entry from anywhere.
  *
  * @example
  *   <textarea onKeyDown={handOffKeyboardOnTab} … />

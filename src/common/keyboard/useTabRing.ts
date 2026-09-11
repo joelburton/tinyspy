@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { useEffect, useRef } from 'react'
 import type { RefObject } from 'react'

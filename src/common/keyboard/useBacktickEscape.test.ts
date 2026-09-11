@@ -1,7 +1,4 @@
-// cs-audited-keyboard
-
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { backtickToEscape } from './useBacktickEscape'
+// cs-blessed-keyboard
 
 /**
  * The window listener is a thin wrapper; the logic worth testing is
@@ -9,6 +6,8 @@ import { backtickToEscape } from './useBacktickEscape'
  * (`isTrusted` is always false for `dispatchEvent`), so we drive the pure
  * core with mock events and assert it re-dispatches an Escape keydown.
  */
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { backtickToEscape } from './useBacktickEscape'
 
 /** Build a mock KeyboardEvent with sensible defaults + preventDefault /
  *  stopPropagation spies. Override any field per case. */

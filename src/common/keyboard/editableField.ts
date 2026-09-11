@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 /**
  * Who owns a keystroke: the thing with focus, or the page?

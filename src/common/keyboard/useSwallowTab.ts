@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { useGlobalKeyHandler } from './useGlobalKeyHandler'
 

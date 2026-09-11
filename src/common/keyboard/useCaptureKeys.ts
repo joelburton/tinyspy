@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
 import { useGlobalKeyHandler } from './useGlobalKeyHandler'
@@ -26,50 +26,39 @@ export type CaptureKeysActions = {
 }
 
 export type CaptureKeysOptions = {
-  /** The current pending text. The helper computes the next value from it
-   *  (append / delete), so it must be the live value each render. */
+  // The current pending text. The helper computes the next value from it
+  // (append / delete), so it must be the live value each render.
   value: string
-  /** Set the pending text — called for an appended character and for Backspace. */
+  // Set the pending text — called for an appended character and for Backspace.
   onChange: (next: string) => void
-  /** Submit the current value (Enter, when non-empty). */
+  // Submit the current value (Enter, when non-empty).
   onSubmit: () => void
-  /**
-   * Hard-off. When true the entry is not here at all — no typing, no submit, and
-   * in particular **no feedback dismissal**, so a terminal sticky pill isn't
-   * cleared by a stray key. Use for loading / terminal. Default false.
-   */
+  // Hard-off. When true the entry is not here at all — no typing, no submit,
+  // and in particular NO feedback dismissal, so a terminal sticky pill isn't
+  // cleared by a stray key. Use for loading / terminal. Default false.
   disabled?: boolean
-  /**
-   * Soft-busy. When true, a key still dismisses feedback and Tab is still
-   * swallowed, but no character is appended/deleted and Enter doesn't submit —
-   * for the brief in-flight-submit window, so a second keystroke can't append to
-   * (or re-submit) a value that's mid-RPC. Default false.
-   */
+  // Soft-busy. When true, a key still dismisses feedback and Tab is still
+  // swallowed, but no character is appended/deleted and Enter doesn't submit —
+  // for the brief in-flight-submit window, so a second keystroke can't append
+  // to (or re-submit) a value that's mid-RPC. Default false.
   busy?: boolean
-  /**
-   * Dismiss sticky local feedback. Called on ANY key the game sees — the
-   * player's next keystroke is their next move (docs/ui.md → Feedback pill
-   * (dismissal modes)). Optional; tile/letter clicks dismiss via their own
-   * handlers, not this.
-   */
+  // Dismiss sticky local feedback. Called on ANY key the game sees — the
+  // player's next keystroke is their next move (docs/ui.md → Feedback pill).
+  // Optional; tile/letter clicks dismiss via their own handlers, not this.
   onAnyKey?: () => void
-  /**
-   * Map a pressed key to the character to append, or null to ignore it. Defaults
-   * to `asciiLetters('lower')` (single A–Z, lowercased). This is the one
-   * genuinely per-game piece — *what may be entered* (letters vs digits, the
-   * stored case). The rest of the flow is uniform.
-   */
+  // Map a pressed key to the character to append, or null to ignore it.
+  // Defaults to `asciiLetters('lower')` (single A–Z, lowercased). This is the
+  // one genuinely per-game piece — WHAT may be entered (letters vs digits, the
+  // stored case). The rest of the flow is uniform.
   charFor?: (key: string) => string | null
-  /** Max entry length. Default 16 — no real word is longer, and it keeps the
-   *  typed text from overrunning its box. */
+  // Max entry length. Default 16 — no real word is longer, and it keeps the
+  // typed text from overrunning its box.
   maxLength?: number
-  /**
-   * The current value can't be submitted, but editing stays live: Enter is a
-   * no-op and the Submit button is gray, while typing and Backspace keep
-   * working so the player can fix it. Distinct from `disabled` / `busy`, which
-   * freeze the whole entry — this is a per-value veto (wordwheel's word that
-   * can't be spelled from the wheel's tiles).
-   */
+  // The current value can't be submitted, but editing stays live: Enter is a
+  // no-op and the Submit button is gray, while typing and Backspace keep
+  // working so the player can fix it. Distinct from `disabled` / `busy`, which
+  // freeze the whole entry — this is a per-value veto (wordwheel's word that
+  // can't be spelled from the wheel's tiles).
   submitDisabled?: boolean
 }
 
@@ -85,16 +74,16 @@ export type CaptureKeysOptions = {
  * "A–Z types into the entry" in the help list beside "⌥⌫ ends the game", and it
  * is why no game writes an entry key branch.
  *
- * What it owns is the universal plumbing — the bits docs/playarea.md → "Move
- * entry" / "Text entry" mandate for *every* such game, so they stay identical
- * and can't drift: the length cap, Backspace deleting the last character, Enter
+ * What it owns is the universal plumbing — the bits docs/playarea.md → "Text
+ * entry" mandate for *every* such game, so they stay identical and can't
+ * drift: the length cap, Backspace deleting the last character, Enter
  * submitting only a non-empty value, and the two gates (`disabled` for a done
  * entry, `busy` for one mid-submit).
  *
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits,
  * the stored case).
  *
- * **Layering** (docs/ui.md → Text entry): the EntryBox-only history arrows —
+ * **Layering** (docs/playarea.md → Text entry): the EntryBox-only history arrows —
  * `ArrowUp` recalls the last entry, `ArrowDown` clears it — are NOT here; they're
  * the separate `useArrowHistory`, layered on top by `<EntryRow>` (which every
  * EntryBox game renders). A key-capture game that ISN'T an EntryBox (wordle:

@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 /**
  * Tests for the two predicates every key listener asks: is this a text field,

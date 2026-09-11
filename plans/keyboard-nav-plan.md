@@ -238,11 +238,12 @@ relevant and never touches the mouse experience.
 
 ## Code
 
-**Compose `useBoardCursorKeys`** (`common/hooks/input/`) rather than writing a
-second keyboard. It already owns the load-bearing parts — the window listener via
-`useGlobalKeyHandler`, the modifier bail, the focused-field guard that stops a
-keystroke meant for chat reaching the board, and the skip-Enter-when-a-button-has-
-focus nicety. Duplicating those is how you ship a board that steals typing.
+**Compose `useBoardCursorKeys`** (`shared/board-cursor/`) rather than writing a
+second keyboard. It already owns the load-bearing parts: its keys are bound
+actions the one dispatcher fires, which brings the modifier bail, the
+focused-field guard that stops a keystroke meant for chat reaching the board,
+and the skip-Enter-when-a-button-has-focus nicety with it. Duplicating those is
+how you ship a board that steals typing.
 
 It needs: `onLetter` / `onBackspace` made optional, and an `onSpace` distinct from
 its current `enterOnSpace` (bananagrams' "Space also peels"). That edits a hook

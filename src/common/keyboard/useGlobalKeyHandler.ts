@@ -1,4 +1,4 @@
-// cs-audited-keyboard
+// cs-blessed-keyboard
 
 import { useEffect, useRef } from 'react'
 import { isEditableField } from './editableField'
@@ -6,20 +6,10 @@ import { isEditableField } from './editableField'
 /**
  * Window-level keydown listener with a stable ref-dispatch.
  *
- * The caller's `handler` closes over fresh state every render (the
- * typed word, what's allowed right now, a locked flag, …), but we only
- * ever register ONE window listener for the component's lifetime. The
- * trick: the listener calls through `ref.current(e)`, and a separate
- * effect keeps `ref.current` pointed at the latest handler each render.
- *
- * Without the indirection there are two bad choices:
- *   - Re-register the listener every render — the closure is fresh, but
- *     every effect re-run goes through add/remove listener (and a deps
- *     array that includes per-keystroke state, like the typed word,
- *     re-registers on every keypress).
- *   - Re-register only when deps change — works for some deps but misses
- *     any read-only closure capture, and the deps array has to enumerate
- *     every variable the handler reads.
+ * The caller's `handler` closes over fresh state every render (the typed
+ * word, what's allowed right now, a locked flag, …), but only ONE window
+ * listener is registered for the component's lifetime: it calls through a
+ * ref an effect keeps pointed at the latest handler.
  *
  * NOT how a key reaches a game — that is the action dispatcher
  * (`common/actions/dispatcher.ts`), and a game gets a key by binding an
@@ -28,12 +18,11 @@ import { isEditableField } from './editableField'
  * handler is responsible for its own gating (e.g. an early `return` when
  * input isn't currently accepted).
  *
- * One gate IS built in: keystrokes aimed at a focused text field (the
- * chat box, a dialog input, a contenteditable) are never dispatched.
- * A window-level game-key handler would otherwise also fire while the
- * user types into chat — typing "hello" would spell it onto the board
- * too, making chat unusable. When a field has focus, that field owns
- * the key, full stop; the handler only ever sees board-level input.
+ * Two gates ARE built in, the same two the dispatcher applies: a keystroke
+ * aimed at a focused text field (the chat box, a dialog input, a
+ * contenteditable) is never dispatched, and neither is one aimed inside a
+ * floating panel. When a field or a panel has focus, it owns the key; the
+ * handler only ever sees board-level input.
  */
 export function useGlobalKeyHandler(handler: (e: KeyboardEvent) => void): void {
   const ref = useRef(handler)

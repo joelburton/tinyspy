@@ -4,7 +4,7 @@
 durable parts fold into [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md)
 and [docs/ui.md](../docs/ui.md) as each surface converts.
 
-**Status: the mechanism is BUILT** (`common/hooks/input/useTabRing.ts`) and two
+**Status: the mechanism is BUILT** (`common/keyboard/useTabRing.ts`) and two
 surfaces declare rings — the homepage's one list and the club page's two.
 Everything else still answers Tab its own way and converts as its area comes up;
 the table below is the map of what is left.
@@ -43,7 +43,7 @@ option it looks like. Native Tab has no notion of *within*.
 | stackdown · bananagrams · waffle · connections · scrabble | nothing (`useSwallowTab`) | empty ring |
 | boggle · spellingbee · wordle · wordwheel · wordiply · psychicnum | nothing (`useCaptureKeys`' Tab clause) | empty ring |
 | strands · setgame | nothing, inline in their own key handlers | empty ring |
-| codenamesduet's clue form | count input ⇄ word input (`CodenamesduetAISuggestModal.trapTab`) | ring, hand-built |
+| codenamesduet's clue form | count input ⇄ word input (`CluePanel.trapTab`) | ring, hand-built |
 | any floating panel · setup / confirm dialogs | native — **leaks to the URL bar** | broken |
 | chat box · scratchpad | hands the keyboard back to the game | ring transition |
 | crosswords | next / previous clue — **a game move** | genuine exception |
@@ -57,17 +57,17 @@ actually is, `useTabRing([])` written before rings existed.
 
 Three kinds, all pre-existing:
 
-1. **Nothing handles Tab at all** — letterboxed, and codenamesduet's *board*
-   (only its clue form traps Tab). Tab walks the page chrome and out.
+1. **Nothing handles Tab at all** — codenamesduet's *board* (only its clue
+   form traps Tab). Tab walks the page chrome and out. (letterboxed renders
+   `<EntryRow>`, so it has `useCaptureKeys`' swallow.)
 2. **Something deliberately steps aside and nothing catches the far end** —
    every floating panel and dialog. `FloatingPanel` stamps `data-floating-panel`
    so the game's window handler bails and native Tab runs inside; native Tab
    then runs straight out the other side.
-3. **A doc that describes a trap nobody built** —
-   `docs/keyboard-shortcuts.md:90` says a floating panel "cycles focus inside
-   the panel (focus trap)". There is no focus trap in `FloatingPanel`; grep it
-   for `Tab` and the only hit is a comment explaining that native Tab is allowed
-   through.
+3. **A trap for some families and not others** — `useFocusTrap` holds Tab
+   inside the three modal families (`trapsFocus` follows the scrim), while a
+   companion or a dialog lets native Tab run straight out the other side.
+   `docs/keyboard-shortcuts.md`'s floating-panel row says which is which.
 
 ## The design
 
@@ -112,7 +112,7 @@ A form's fields are its ring's stops. Then tabbing between them IS the ring
 cycling, there is no yield, and the invariant holds without an exception:
 **every focusable thing belongs to exactly one ring, and Tab is never native.**
 
-The precedent agrees — `CodenamesduetAISuggestModal.trapTab` does not yield to its two inputs, it
+The precedent agrees — `CluePanel.trapTab` does not yield to its two inputs, it
 is their ring.
 
 (Today's code does yield: `useGlobalKeyHandler` bails for INPUT / TEXTAREA /
@@ -198,7 +198,7 @@ leaking until their areas open, and that is the same bargain every other
 cross-cutting vocabulary in this sprint took.
 
 **Forms get their ring when the forms area comes up**, and they have a working
-precedent rather than a blank page: `CodenamesduetAISuggestModal.trapTab` is already a two-member
+precedent rather than a blank page: `CluePanel.trapTab` is already a two-member
 ring on a real form.
 
 ## Open
@@ -209,10 +209,9 @@ answered:
 - **The scratchpad's ✕ stays OUT of its ring** (Joel, 2026-08-24), so the
   scratchpad is a panel you leave with the mouse for now. **Escape is discussed
   at the crosswords area**, where the scratchpad surfaces — and the fact to
-  bring to it is that chat closes on Escape and the scratchpad does not
-  (`GameScratchpadCompanion.tsx:48` passes `closeOnEsc={false}`; chat takes
-  `FloatingPanel`'s default of `true`). Both `docs/keyboard-shortcuts.md:90` and
-  a comment in `e2e/club-keyboard.e2e.ts` currently claim otherwise, and the
+  bring to it is that both chat and the scratchpad close on Escape now: every
+  `FloatingPanel` family is `escape: 'close'` except the fault modal, through
+  `usePanelEscape`. Any older claim that one of them opts out is stale, and the
   spec passes only because it clicks the ✕ and never presses Escape.
 - **What happens to `useTabToLists`** — it is deleted (Joel, 2026-08-24). It is
   scaffolding for one broken page, not a piece of the design; see above.
