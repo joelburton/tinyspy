@@ -1773,13 +1773,13 @@ later and would take the font-size back. Everything that draws one uses it:
 
 The container holds focus; the rows never do.
 
-| key | what it does |
-|---|---|
-| ↑ ↓ | move the cursor, clamped, no wrap |
-| Enter | activate the row under the cursor |
-| Space | **nothing** |
-| Home / End | jump to first / last |
-| PageUp / PageDown | move by one visible page |
+| key | what it does | while the ring is hidden |
+|---|---|---|
+| ↑ ↓ | move the cursor, clamped, no wrap | reveals, does not move |
+| PageUp / PageDown | move by one visible page | reveals, does not move |
+| Home / End | jump to first / last | reveals **and** jumps |
+| Enter | activate the row under the cursor | reveals, does not activate |
+| Space | **nothing** | nothing — it asks for no cursor |
 
 - **Nothing does the native thing.** The focused element *is* the scroll box, so
   Space and the four page keys would otherwise scroll it out from under the
@@ -1790,10 +1790,7 @@ The container holds focus; the rows never do.
 - **The cursor lands on disabled rows** and Enter no-ops there. Skipping would
   put the cursor index and the row index out of step, and leaves nowhere to go
   when every row is disabled.
-- **The ring shows whenever the container has focus** — it doesn't wait for a
-  first arrow the way a board tile's cursor does. A tile shares its box with the
-  game's own colors; a row has no competing color, so an always-on ring costs
-  nothing.
+- **The ring is hidden until a key asks for it** — see below.
 - **Tab belongs to the page, never to the list.** The club page's ring is its
   two lists and Tab toggles between them; the homepage's is its one list; inside
   a dialog Tab walks the fields. All the component guarantees is that a list is
@@ -1807,8 +1804,32 @@ can mean here, which is why Space is inert and why a row wears no lasting
 "chosen" mark — by the time one would show, you have left.
 
 So the list draws exactly one mark, the **cursor**: an `outline` in
-`--chrome-cursor-color`, inset, marking the row Enter would act on. It says
-where the keyboard is, nothing more.
+`--chrome-cursor-color`, inset, marking the row Enter would act on.
+
+**It is a SELECTION cursor, and hides until a key asks for it.** The app has two
+kinds, and the difference is what the mark is FOR:
+
+- A **geographic cursor** answers *where am I on this board*. You need it to
+  read the board at all, so it appears immediately and never hides — crosswords'
+  cell, and scrabble's and bananagrams' shared `gridCursor`.
+- A **selection cursor** is an alternative to clicking, and answers *which row
+  would Enter act on*. Someone using the mouse has no use for it, so showing one
+  unasked is just an unexplained blue ring. `SelectionList`'s is one.
+
+The test between them: if hiding the mark would make the board harder to READ,
+it is geographic.
+
+So focus alone warms the **frame's** border — that is what says "arrows work
+here" — and the row ring waits for a key that implies a cursor. The first press
+of a relative key (arrows, PageUp/PageDown) only reveals, because "one from
+where I am" has no answer before there is a where-I-am; `Home` and `End` name a
+destination and so reveal and jump together; and **Enter reveals rather than
+acting**, the mirror of Space never acting, because acting on a row you cannot
+see would navigate you off the page. A click sets the cursor without revealing
+it, so going back to the keys resumes where your hand left off.
+
+The boards get the same rules as keyboard navigation reaches them
+([plans/keyboard-nav-plan.md](../plans/keyboard-nav-plan.md)).
 
 **The menu is not one of these.** It looks the same and isn't: a menu is a set
 of *actions* you pick from and it closes; a list is a set of *places* that stay

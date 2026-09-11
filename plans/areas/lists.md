@@ -5,10 +5,14 @@ The folders it reads: `lists`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed and stamped `cs-audited-lists`.
-Worked: F-lists-1 (select-kind-unused), F-lists-8
-(filter-select-density-inverted), F-lists-9 (empty-state-four-ways), F-lists-10
-(custom-property-spelling). F-lists-18 (segmented-listed-as-a-pattern) was
-found while working F-lists-9.
+Every finding is worked except the near-misses in F-lists-11
+(vocabulary-conversion), which want Joel and are now in the folder's `todo.md`.
+Two were found while working others rather than in the audit read: F-lists-18
+(segmented-listed-as-a-pattern) and F-lists-19 (ring-shows-unasked), the
+second raised by Joel.
+
+Still owed before this area can close: the folder's `doc.md` Design, the
+whole-area re-read, and the blessing.
 
 ## The roster
 
@@ -562,6 +566,41 @@ not me. just fix it now").** All three say it correctly: `utilities.css`'s
 header and `core-css/doc.md` now list the empty state among the patterns and
 put the segmented choice with the components, and docs/ui.md's map was
 corrected when the file was placed.
+
+## F-lists-19 · `ring-shows-unasked` · The row ring appears to players who never touch a key
+
+**Not from the audit read — Joel raised it 2026-09-11**, working out the
+cursor rules for `plans/keyboard-nav-plan.md` and noticing they apply here
+first.
+
+The app has two kinds of cursor. A **geographic cursor** answers *where am I on
+this board* (crosswords' cell, scrabble's and bananagrams' `gridCursor`); you
+need it to read the board, so it always shows. A **selection cursor** is an
+alternative to clicking and answers *which row would Enter act on*; a mouse
+user has no use for one. `SelectionList`'s is the second kind and behaved like
+the first: the ring appeared on focus, and both page lists autofocus, so a
+mouse user landing on the homepage met a blue ring having touched nothing.
+Clicking a row painted one too.
+
+Half of this was already written in keyboard-nav-plan.md ("hidden until you
+press an arrow", "a click sets the cursor and hides it") as a flat rule for the
+boards it covers, with no account of why crosswords and scrabble don't obey it.
+The taxonomy is what was missing, and it is now that plan's first section.
+
+**WORKED 2026-09-11.** `revealed` state, separate from `movedTo` so a click can
+set the cursor without showing it. A relative key (arrows, PageUp/PageDown)
+reveals on its first press without moving; an absolute one (`Home`, `End`)
+reveals and moves together; `Enter` reveals rather than activating. Two
+refinements Joel agreed before building: the Enter rule (otherwise Enter
+navigates you off the page from an invisible row) and the absolute/relative
+split (revealing at the resting row would ignore what `End` asked for).
+
+Three crosswords picker tests drove `{ArrowDown}{Enter}` or `{Enter}` and now
+need the reveal press. Fixed with the change.
+
+Note the shape: this brings back the second state variable F-lists-1
+(select-kind-unused) deleted. `movedTo` is where the cursor is; `revealed` is
+whether to paint it. Same shape, different meaning.
 
 ### Ruled already, recorded so the re-read does not re-raise them
 
