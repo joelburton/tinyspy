@@ -43,9 +43,12 @@ type Anchor = { el: Element; text: string }
  * visually duplicates the control's accessible name (or enriches it; the name
  * itself comes from the button's text / aria-label).
  *
- * One accepted regression vs CSS: DISABLED buttons don't fire mouse events,
- * so their tooltips no longer show (the CSS :hover did). Minor — the disabled
- * state itself is the message there.
+ * A DISABLED button shows its bubble like any other, and that is load-bearing:
+ * a disabled control's tooltip is where it says WHY (docs/ui.md → "A disabled
+ * button still gets a tooltip"). Every current engine dispatches `mouseover`
+ * on a disabled form control (Chromium, WebKit and Firefox all checked
+ * 2026-09-10), so nothing here has to special-case it — and nothing here may
+ * filter it out.
  */
 export function TooltipHost() {
   const [anchor, setAnchor] = useState<Anchor | null>(null)

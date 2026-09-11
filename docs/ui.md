@@ -2109,8 +2109,8 @@ the glyph into a `House` and a `Users`.
   portal escapes `overflow: hidden` ancestors. (An earlier pure-CSS `::after`
   version couldn't see the viewport and clipped at the edges; that's why this
   is a JS host.) The bubble is `aria-hidden` — the accessible name stays on
-  the button itself. One known trade: disabled buttons don't fire mouse
-  events, so their tooltips don't show.
+  the button itself. A disabled button shows its bubble like any other — see
+  "A disabled button still gets a tooltip" below for why that matters.
 - **Sizing is not a call site's business.** A standard button sizes its glyph
   in `em`, so the icon tracks the button's own type rather than a number picked
   per site; a glyph that reads denser or looser than the rest is tuned once, in

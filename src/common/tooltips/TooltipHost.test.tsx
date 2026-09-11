@@ -39,6 +39,21 @@ describe('TooltipHost', () => {
     expect(screen.getByText('End the game')).toBeInTheDocument()
   })
 
+  it('shows the bubble on a DISABLED control — that is where it says why', () => {
+    // Every current engine dispatches mouseover on a disabled form control,
+    // and the "say why" rule (docs/ui.md → "A disabled button still gets a
+    // tooltip") depends on the host not filtering it out.
+    render(
+      <>
+        <button disabled data-tooltip="Can't reveal until all end">x</button>
+        <TooltipHost />
+      </>,
+    )
+    fireEvent.mouseOver(screen.getByRole('button'))
+    act(() => vi.advanceTimersByTime(450))
+    expect(screen.getByText("Can't reveal until all end")).toBeInTheDocument()
+  })
+
   it('hides when the pointer moves off the control', () => {
     setup()
     fireEvent.mouseOver(screen.getByRole('button'))
