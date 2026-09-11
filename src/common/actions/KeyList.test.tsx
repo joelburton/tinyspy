@@ -41,6 +41,22 @@ describe('KeyList', () => {
     expect(screen.getByText('Submit')).toBeTruthy()
   })
 
+  it("shows the binding's words for this moment, not the registry's", () => {
+    // A toggle's two faces are the case: the row says what pressing the key
+    // would do right now, which is the same answer its button gives.
+    function Renamed() {
+      useBoundAction('act-shuffle', {
+        run: () => undefined,
+        describe: () => ({ state: 'active', label: 'Mix the tiles' }),
+      })
+      return <KeyList />
+    }
+    render(<Renamed />)
+    expect(screen.getByText('⌥Z')).toBeTruthy()
+    expect(screen.getByText('Mix the tiles')).toBeTruthy()
+    expect(screen.queryByText('Shuffle')).toBeNull()
+  })
+
   it('shows nothing at all when nothing with a key is bound', () => {
     const { container } = render(<KeyList />)
     expect(container.innerHTML).toBe('')

@@ -1,16 +1,19 @@
 // cs-unmet
 
 // @vitest-environment jsdom
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { KeyList } from '@/common/actions/KeyList'
-import type { StrandsGame, StrandsPlayer } from '../hooks/useGame'
+import type { EventRow, StrandsGame, StrandsPlayer } from '../hooks/useGame'
+import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 /**
@@ -134,8 +137,47 @@ function menuItems(ctx: GamePageCtx) {
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
+ *  call sites branch on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
+}
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** What a bound action says about itself right now. */
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+
+/** A control by WHICH action it is, since its words vary per state. */
+const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
+
+/** How many cells the live trace covers — each wears a disc on the board. */
+const tracedCells = () => document.querySelectorAll('circle[class*="discTrace"]').length
+
 beforeEach(() => {
   h.result = loaded()
+  rpc.mockReset()
+  rpc.mockResolvedValue({ error: null })
 })
 
 describe('strands PlayArea — the three phases', () => {
@@ -146,7 +188,7 @@ describe('strands PlayArea — the three phases', () => {
     // (Twice over: the below-board pill and the info column's own line.)
     expect(screen.getAllByText(/Rows of nonsense/).length).toBeGreaterThan(0)
     // Nothing terminal: no Reveal control at all mid-game.
-    expect(screen.queryByRole('button', { name: /reveal|hide|already shown/i })).toBeNull()
+    expect(control('act-reveal')).toBeNull()
   })
 
   it('a terminal shows the terminal row; the menu reveal wakes with it', () => {
@@ -161,7 +203,7 @@ describe('strands PlayArea — the three phases', () => {
     const done = makeCtx({ isTerminal: true, playState: 'ended' })
     render(<PlayArea {...done} />)
     expect(menuItems(done).get('act-reveal')?.disabled).toBe(false)
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
+    expect(control('act-reveal')).toBeEnabled()
   })
 
   it('compete: a solved player waits with the terminal LOOK while the race runs', () => {
@@ -268,6 +310,155 @@ describe('strands PlayArea — the Hint button says where the economy stands', (
     render(<PlayArea {...makeCtx()} />)
     expect(hintButton().hasAttribute('disabled')).toBe(true)
     expect(hintButton().dataset.tooltip).toBe('A hint is already showing')
+  })
+})
+
+/**
+ * The board's letter key, through the dispatcher. A typed letter extends the
+ * trace when exactly one cell that could come next bears it — and the key
+ * stands down while a past turn is open, because that press is the viewer's.
+ */
+describe('strands PlayArea — a letter extends the trace', () => {
+  it('a letter that names one cell extends the trace; its neighbor extends it again', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(tracedCells()).toBe(0)
+    // W sits once on the board (row 3, col 4), so the first letter is not a
+    // choice among 48 cells.
+    await press({ key: 'w' })
+    expect(tracedCells()).toBe(1)
+    // X is its right-hand neighbor and appears nowhere else.
+    await press({ key: 'x' })
+    expect(tracedCells()).toBe(2)
+    // ⌫ takes the last one back.
+    await press({ key: 'Backspace', code: 'Backspace' })
+    expect(tracedCells()).toBe(1)
+  })
+
+  it('is gray while a past turn is open — the press belongs to the viewer', async () => {
+    const user = userEvent.setup()
+    const turn: EventRow = {
+      kind: 'guess', id: 'e1', game_id: 'g1', user_id: 'u1', word: 'ALPHA',
+      path: [[1, 0], [1, 1]], result: 'theme', created_at: '2026-06-01T00:00:00Z',
+    }
+    h.result = loaded({ events: [turn], found: [] })
+    render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-extend-trace')).toBe('active')
+
+    await user.click(screen.getByTitle('Click to view this turn on the board'))
+    expect(stateOf('act-extend-trace')).toBe('disabled')
+    await press({ key: 'w' })
+    expect(tracedCells()).toBe(0)
+  })
+})
+
+/**
+ * The commands through the dispatcher — `+`, `⌥⌫` and Restart — with the real
+ * confirmation host mounted where a question is expected. A question asked
+ * with no host is answered no, so the host is what lets these prove a question
+ * was asked rather than skipped.
+ */
+describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
+  /** New game is the NEXT puzzle: a preview read, then the create. */
+  const nextPuzzleThenCreate = () =>
+    rpc.mockImplementation((name: string) => {
+      if (name === 'next_puzzle_for_club') return Promise.resolve(okEnvelope({ result: 'found', puzzle_id: 'p2' }))
+      if (name === 'create_game') return Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
+      return Promise.resolve({ error: null })
+    })
+
+  it('+ at terminal starts the next puzzle with no question', async () => {
+    nextPuzzleThenCreate()
+    h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked. `puzzle_id` is deliberately
+    // absent: the server picks.
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', {
+        target_club: 'testclub',
+        setup: { hint_cost: 3, timer: { kind: 'none' } },
+        player_user_ids: ['u1'],
+        mode: 'coop',
+      }),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('strands_coop', 'next-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel starts nothing', async () => {
+    const user = userEvent.setup()
+    nextPuzzleThenCreate()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
+    const me = player()
+    h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me, player({ user_id: 'u2' })] })
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Concede' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
+    const live = makeCtx()
+    const { unmount } = render(
+      <>
+        <PlayArea {...live} />
+        <ConfirmationHost />
+      </>,
+    )
+    act(() => menuItems(live).get('act-restart')!.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
+    unmount()
+
+    // No host this time: the RPC firing proves no question was asked.
+    h.result = loaded({ game: loadedGame({ solution: SOLUTION }) })
+    const done = makeCtx({ isTerminal: true, playState: 'ended' })
+    render(<PlayArea {...done} />)
+    act(() => menuItems(done).get('act-restart')!.run())
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })
 })
 

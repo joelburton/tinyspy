@@ -12,6 +12,7 @@ import {
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { boardReady, settled } from './helpers/ready'
+import { actionButton, actionRow } from './helpers/actions'
 
 /**
  * Smoke test for the bananagrams play surface actually rendering ON SCREEN.
@@ -151,7 +152,7 @@ test.describe('bananagrams win', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    const peel = page.getByRole('button', { name: /Peel/ })
+    const peel = actionButton(page, 'act-peel')
     await expect(peel).toBeEnabled({ timeout: 15000 })
     await peel.click()
 
@@ -199,7 +200,7 @@ test.describe('bananagrams peel draw', () => {
     await expect(pageA.locator('[data-hand-tile]')).toHaveCount(0)
 
     // alice peels → everyone draws 1.
-    await pageA.getByRole('button', { name: /Peel/ }).click()
+    await actionButton(pageA, 'act-peel').click()
 
     // alice's own hand gains the drawn tile; bob's count ticks 15 → 16.
     await expect(pageA.locator('[data-hand-tile]')).toHaveCount(1)
@@ -357,17 +358,17 @@ test.describe('bananagrams new game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+    await expect(actionButton(page, 'act-peel')).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'New game' }).click()
+    await actionRow(page, 'act-new-game').click()
     // Mid-play, New game CONFIRMS first (it shelves the game in progress —
     // see NEW_GAME_CONFIRM); say yes and it proceeds.
     await page.getByRole('button', { name: 'Start new game' }).click()
 
     await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
                                 !u.pathname.endsWith(game.id), { timeout: 15000 })
-    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+    await expect(actionButton(page, 'act-peel')).toBeVisible({ timeout: 20000 })
     await ctx.close()
   })
 })
@@ -394,7 +395,7 @@ test.describe('bananagrams end game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+    await expect(actionButton(page, 'act-peel')).toBeVisible({ timeout: 20000 })
 
     // ONE exit row, and its words say it carries both endings.
     await page.getByRole('button', { name: 'Game menu' }).click()
@@ -408,8 +409,8 @@ test.describe('bananagrams end game', () => {
     await panel.getByRole('button', { name: 'End for everyone' }).click()
 
     // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
-    await expect(page.getByRole('button', { name: /New game/ })).toBeVisible({ timeout: 15000 })
-    await expect(page.getByRole('button', { name: /Peel/ })).toBeHidden()
+    await expect(actionButton(page, 'act-new-game')).toBeVisible({ timeout: 15000 })
+    await expect(actionButton(page, 'act-peel')).toBeHidden()
     await ctx.close()
   })
 })

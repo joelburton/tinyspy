@@ -4,7 +4,8 @@
  * Tests for the shared 2-D board-cursor keyboard (bananagrams + scrabble): arrows
  * move the cursor, a letter places, Backspace removes, and the commit fires on
  * the keys its OWN action carries — Enter for a submit, Enter or Space for a
- * peel. Everything is inert while disabled.
+ * peel. Everything is inert while disabled, and each binding says so — the
+ * commit on its own narrower gate, the four together on `enabled`.
  *
  * The gates are NOT retested here. They stopped being this hook's work when its
  * keys became bound actions: a modified chord never matches a pattern, a
@@ -15,6 +16,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
 
 /** A real window keydown. Awaited: an action's run settles a microtask later. */
@@ -106,5 +108,36 @@ describe('useBoardCursorKeys', () => {
     expect(cb.onBackspace).not.toHaveBeenCalled()
     expect(cb.onEnter).not.toHaveBeenCalled()
     cb.view.unmount()
+  })
+
+  describe('what the four say about themselves', () => {
+    /** Each binding's state by id, read off the stack the dispatcher reads. */
+    const states = () =>
+      Object.fromEntries(liveBindings().map((b) => [b.id, b.describe().state]))
+
+    it('with canCommit false only the commit is disabled; the cursor keys stay live', () => {
+      const cb = setup({ canCommit: false })
+      expect(states()).toEqual({
+        'act-move-cursor': 'active',
+        'act-place-tile': 'active',
+        'act-remove-tile': 'active',
+        'act-submit': 'disabled',
+      })
+      cb.view.unmount()
+    })
+
+    // Disabled rather than hidden: the keys are still this board's keys, so
+    // the help list keeps them and grays them, and a disabled match still
+    // keeps the key from the browser (Space does not scroll the page).
+    it('with enabled false all four are disabled', () => {
+      const cb = setup({ enabled: false })
+      expect(states()).toEqual({
+        'act-move-cursor': 'disabled',
+        'act-place-tile': 'disabled',
+        'act-remove-tile': 'disabled',
+        'act-submit': 'disabled',
+      })
+      cb.view.unmount()
+    })
   })
 })

@@ -18,14 +18,16 @@
  * needed; everything else — the honeycomb, RankBar, entry row, word list — renders
  * real.
  */
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
+import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
@@ -121,6 +123,31 @@ function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
   return <PlayArea {...props} />
 }
+
+/** A keystroke as the app-root listener sees it: from the body, with nothing
+ *  focused. An Option chord matches on `code`, since ⌥ changes the character
+ *  (⌥Z arrives as `Ω`). */
+const press = (key: KeyboardEventInit) => fireEvent.keyDown(document.body, key)
+const PLUS = { key: '+' }
+const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
+const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
+
+/** The live binding for an action — the same `run` its key, its menu row and
+ *  its button all fire. */
+const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+
+/** Answer the open question with the button that says `name`. The trigger can
+ *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  the host adds, so it is last in the DOM. */
+async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const buttons = await screen.findAllByRole('button', { name })
+  await user.click(buttons[buttons.length - 1]!)
+}
+
+/** The outer hexes' letters in the order they are drawn — what the shuffle
+ *  rearranges; the center never moves. */
+const outerOrder = () =>
+  [...document.querySelectorAll('[data-hex]:not([data-center])')].map((t) => t.getAttribute('data-hex'))
 
 /** A trusting-commit success, in the envelope `runRpc` unwraps. `accepted` is
  *  the plain classification; the bonus/pangram ones return the same `null` to
@@ -518,5 +545,156 @@ describe('spellingbee PlayArea — concede', () => {
     expect(screen.getByText(/Quit at/)).toBeInTheDocument()
     expect(screen.getByText(/Won at/)).toBeInTheDocument()
     expect(screen.getByText(/Lost at/)).toBeInTheDocument()
+  })
+})
+
+/**
+ * The keys, through the app-root dispatcher. Each key is a bound action's, so
+ * what these pin is the wiring: the chord reaches the binding, the binding asks
+ * the registry's question mid-game and skips it at terminal, and the answer
+ * runs the same call the button does.
+ */
+describe('spellingbee PlayArea — the keys', () => {
+  const competeSetup = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+
+  it('+ at terminal starts the next game with no question', async () => {
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    render(<WithKeys {...ctx} />)
+
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the call firing proves none was asked.
+    press(PLUS)
+    await waitFor(() =>
+      expect(startEdgeFn).toHaveBeenCalledWith(
+        'spellingbee-build-board',
+        expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
+      ),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('spellingbee_coop', 'fresh-game-id'))
+  })
+
+  it('+ mid-game asks first, and Keep playing starts nothing', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(PLUS)
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(startEdgeFn).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(OPT_BACKSPACE)
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalled()
+    await answer(user, 'End game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers, setup: competeSetup })} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(OPT_BACKSPACE)
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await answer(user, 'Concede')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+  })
+
+  describe('⌥Z shuffles the outer letters', () => {
+    // The shuffle is Fisher–Yates over the ORIGINAL letters on `Math.random`,
+    // so a pinned value is a fixed permutation: 0 rotates the list, ~1 leaves
+    // it alone. Pinning one for the render and the other for the press makes
+    // "the same letters in a different order" a deterministic claim rather
+    // than a 1-in-720 flake.
+    beforeEach(() => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+    })
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+    const nextShuffleDiffers = () => vi.spyOn(Math, 'random').mockReturnValue(0.999999)
+
+    // Awaited: the bound run is async, so the re-order lands a tick after the
+    // keystroke.
+    it('rearranges the same letters mid-game, with no round trip', async () => {
+      render(<WithKeys {...makeCtx()} />)
+      const before = outerOrder()
+      expect(before).toHaveLength(6)
+
+      nextShuffleDiffers()
+      await act(async () => press(OPT_Z))
+      const after = outerOrder()
+      expect(after).not.toEqual(before)
+      expect([...after].sort()).toEqual([...before].sort())
+      expect(rpc).not.toHaveBeenCalled()
+    })
+
+    it('still works on a finished board — the fidget is deliberate', async () => {
+      render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+      expect(bound('act-shuffle').describe().state).toBe('active')
+      const before = outerOrder()
+
+      nextShuffleDiffers()
+      await act(async () => press(OPT_Z))
+      expect(outerOrder()).not.toEqual(before)
+    })
+  })
+
+  describe('Restart mid-game', () => {
+    // Keyless, so it is fired as the menu row would fire it: the bound run,
+    // which is where the registry's question is asked. (The terminal case,
+    // where it goes straight through, is under "icon-only action rows".)
+    it('asks first, and Keep playing wipes nothing', async () => {
+      const user = userEvent.setup()
+      render(
+        <>
+          <PlayArea {...makeCtx()} />
+          <ConfirmationHost />
+        </>,
+      )
+
+      act(() => bound('act-restart').run())
+      expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+      await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
+      expect(rpc).not.toHaveBeenCalledWith('replay_board', expect.anything())
+    })
+
+    it('yes calls replay_board', async () => {
+      const user = userEvent.setup()
+      render(
+        <>
+          <PlayArea {...makeCtx()} />
+          <ConfirmationHost />
+        </>,
+      )
+
+      act(() => bound('act-restart').run())
+      await answer(user, 'Restart')
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    })
   })
 })

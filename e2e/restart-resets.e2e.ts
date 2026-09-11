@@ -48,14 +48,14 @@ closeContextsAfterEach()
  */
 async function endGame(page: Page) {
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByRole('menuitem', { name: /^End game/ }).click()
+  await actionRow(page, 'act-end-game').click()
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 }
 
 /** Restart from the menu (no confirm at terminal — see useStandardGameActions). */
 async function restart(page: Page) {
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByRole('menuitem', { name: 'Restart' }).click()
+  await actionRow(page, 'act-restart').click()
 }
 
 /**
@@ -143,7 +143,7 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
   await expect(page.getByRole('button', { name: /Reveal/i })).toHaveCount(3)
 
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByRole('menuitem', { name: 'Restart' }).click()
+  await actionRow(page, 'act-restart').click()
   // Mid-game, so RESTART_CONFIRM always shows — click it, don't probe for it
   // (same one-shot-isVisible race as endGame above).
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Restart' }).click()

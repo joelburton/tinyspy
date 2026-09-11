@@ -17,13 +17,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { KeyList } from '@/common/actions/KeyList'
+import { liveBindings } from '@/common/actions/useBoundAction'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import type { CrosswordsGame } from '../hooks/useGame'
 import type { CellsMap, CellState } from '../hooks/useCells'
 import type { PuzzleTemplate } from '../lib/types'
 import { PlayArea } from './PlayArea'
+
+// Only `runEdgeFn` is stubbed — the AI explainer's transport. `runRpc` stays
+// REAL so every RPC path exercises the envelope it actually receives.
+vi.mock('@/common/supabase/dbResult', async (orig) => ({
+  ...(await orig<typeof import('@/common/supabase/dbResult')>()),
+  runEdgeFn: vi.fn(),
+}))
+const edgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 // jsdom doesn't implement scrollIntoView (ClueLists keeps the active clue in
 // view). Stub it so the effect is a no-op instead of throwing.
@@ -150,6 +161,7 @@ beforeEach(() => {
   }))
   h.broadcastFills.mockReset()
   h.broadcastNote.mockReset()
+  edgeFn.mockReset()
 })
 
 /** RPC names db.rpc was called with (the ⌥-shortcut tests assert on these). */
@@ -157,24 +169,40 @@ function rpcNames(): string[] {
   return h.rpc.mock.calls.map((c) => c[0] as string)
 }
 
+/** A control by WHICH action it is, since its words vary per state. The pen
+ *  and pencil caps are one action wearing two names, so that pair keeps a
+ *  second discriminator. */
+const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
+
+/** What a bound action says about itself right now. */
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
 describe('crosswords PlayArea — render smoke + wiring', () => {
   it('coop play shows End, not Concede, and offers Reveal', () => {
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('button', { name: 'End game' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
+    expect(control('act-end-game')).toBeInTheDocument()
+    expect(control('act-concede')).toBeNull()
     // Reveal is coop-only.
-    expect(screen.getByRole('button', { name: /reveal word/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /check word/i })).toBeInTheDocument()
+    expect(control('act-reveal-word')).toBeInTheDocument()
+    expect(control('act-check-word')).toBeInTheDocument()
   })
 
   it('compete play shows Concede, not End, and hides Reveal (Check stays)', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('button', { name: /concede/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^end$/i })).not.toBeInTheDocument()
+    expect(control('act-concede')).toBeInTheDocument()
+    expect(control('act-end-game')).toBeNull()
     // Revealing your own grid would trivially win a race — no Reveal in compete.
-    expect(screen.queryByRole('button', { name: /reveal word/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /check word/i })).toBeInTheDocument()
+    expect(control('act-reveal-word')).toBeNull()
+    expect(control('act-check-word')).toBeInTheDocument()
   })
 
   it('renders the terminal state without crashing (Back to club, no action row)', () => {
@@ -182,8 +210,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // Two "Back to club" affordances at terminal: the chrome strip + the modal.
     expect(screen.getAllByRole('button', { name: /back to club/i }).length).toBeGreaterThan(0)
     // The play-time action row is gone at terminal.
-    expect(screen.queryByRole('button', { name: /^end$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /check word/i })).not.toBeInTheDocument()
+    expect(control('act-end-game')).toBeNull()
+    expect(control('act-check-word')).toBeNull()
   })
 
   /**
@@ -230,7 +258,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // whichever word direction), so Check word surfaces the notice.
     h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: true })]])
     render(<PlayArea {...makeCtx()} />)
-    fireEvent.click(screen.getByRole('button', { name: /check word/i }))
+    fireEvent.click(control('act-check-word')!)
     expect(await screen.findByText('Check skips pencil marks')).toBeInTheDocument()
     expect(rpcNames()).toContain('check_cells')
   })
@@ -242,7 +270,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // focus on mousedown, and the squares must too.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const square = screen.getByRole('button', { name: /check word/i })
+    const square = control('act-check-word')!
     await user.click(square)
     await waitFor(() => expect(rpcNames()).toContain('check_cells'))
     expect(document.activeElement).not.toBe(square)
@@ -253,7 +281,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   it('does NOT flag pencil when the checked scope has only committed (pen) fills', async () => {
     h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: false })]])
     render(<PlayArea {...makeCtx()} />)
-    fireEvent.click(screen.getByRole('button', { name: /check word/i }))
+    fireEvent.click(control('act-check-word')!)
     await waitFor(() => expect(rpcNames()).toContain('check_cells'))
     expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
   })
@@ -436,9 +464,12 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
     await revealGrid(ctx)
     await screen.findByText('Reveal the whole grid?')
     // The tool bar's own "Reveal grid" square shares the name — which is the
-    // point, they are the same action — so take the modal's, last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'Reveal grid' })
-    await userEvent.click(confirms[confirms.length - 1]!)
+    // point, they are the same action. The square says which action it is and
+    // the modal's confirm does not, so that is what tells them apart.
+    const confirm = screen
+      .getAllByRole('button', { name: 'Reveal grid' })
+      .find((b) => b.dataset.action === undefined)!
+    await userEvent.click(confirm)
     await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
   })
 
@@ -493,5 +524,131 @@ describe('crosswords PlayArea — peer broadcasts (note + reveal flash)', () => 
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
     expect(h.broadcastFills).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The page's own chords, through the dispatcher: the pencil toggle, the AI
+ * explainer, the two overlays the grid keys open, and New game — which here
+ * opens the club's setup dialog rather than creating a game, since a crossword
+ * names a puzzle and "the same again" would re-serve the grid just solved.
+ */
+describe('crosswords PlayArea — the page chords', () => {
+  const pencilCap = () =>
+    document.querySelector<HTMLButtonElement>('button[data-action="act-pencil"][aria-label="Pencil"]')!
+
+  it('⌥P toggles pencil, and the pair of caps follows', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(pencilCap()).toHaveAttribute('aria-pressed', 'false')
+    await press({ key: 'π', code: 'KeyP', altKey: true })
+    expect(pencilCap()).toHaveAttribute('aria-pressed', 'true')
+    await press({ key: 'π', code: 'KeyP', altKey: true })
+    expect(pencilCap()).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('⌥X asks the explainer when the puzzle has a note', async () => {
+    edgeFn.mockResolvedValue({ type: 'ok', data: { result: 'unsolved' } })
+    h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Cryptic' } }
+    render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-explain-clue')).toBe('active')
+    await press({ key: '≈', code: 'KeyX', altKey: true })
+    await waitFor(() =>
+      expect(edgeFn).toHaveBeenCalledWith('crosswords-explain-clue', expect.objectContaining({ gameId: 'g1' })),
+    )
+  })
+
+  it('⌥X is gray without a note — the note is the cryptic proxy', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-explain-clue')).toBe('disabled')
+    await press({ key: '≈', code: 'KeyX', altKey: true })
+    expect(edgeFn).not.toHaveBeenCalled()
+  })
+
+  it('⇧↵ opens the rebus box over the cursor cell', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(screen.queryByLabelText('Rebus entry')).not.toBeInTheDocument()
+    await press({ key: 'Enter', code: 'Enter', shiftKey: true })
+    expect(screen.getByLabelText('Rebus entry')).toBeInTheDocument()
+    // While the box has the keyboard, every grid key stands down.
+    expect(stateOf('act-fill-cell')).toBe('disabled')
+  })
+
+  it('# opens the number jump', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: '#' })
+    expect(screen.getByRole('dialog', { name: 'Jump to clue number' })).toBeInTheDocument()
+  })
+
+  it('+ at terminal goes to the club’s setup dialog with no question', async () => {
+    window.history.replaceState(null, '', '/')
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the navigation proves none was asked.
+    expect(window.location.search).toBe('?new=crosswords_coop')
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('+ mid-game asks first, and cancel goes nowhere', async () => {
+    window.history.replaceState(null, '', '/')
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(window.location.search).toBe('')
+  })
+
+  it('a conceded racer’s grid keys are inert', async () => {
+    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
+    render(
+      <WithKeys
+        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+      />,
+    )
+    expect(stateOf('act-fill-cell')).toBe('disabled')
+    expect(stateOf('act-move-cursor')).toBe('disabled')
+    await press({ key: 'A' })
+    expect(h.setCell).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The help list, generated from the same bindings the dispatcher fires. What
+ * it shows is each key's label and what the action is CALLED at that moment —
+ * which for the check/reveal ladder is the registry's scope word alone.
+ */
+describe('crosswords PlayArea — the key list', () => {
+  /** The rows as [key, words] pairs. */
+  const keyRows = () =>
+    Array.from(document.querySelectorAll('dl > div')).map((row) => [
+      row.querySelector('dt')?.textContent ?? '',
+      row.querySelector('dd')?.textContent ?? '',
+    ])
+
+  it('lists the page chords and the four check/reveal rows by scope word', () => {
+    render(
+      <>
+        <PlayArea {...makeCtx()} />
+        <KeyList />
+      </>,
+    )
+    const rows = keyRows()
+    expect(rows).toContainEqual(['⌥P', 'Switch to pencil'])
+    expect(rows).toContainEqual(['⇧↵', 'Enter rebus'])
+    expect(rows).toContainEqual(['A–Z', 'Fill the cell'])
+    expect(rows).toContainEqual(['⌥⌫', 'End game'])
+    // The ladder: the verb is the submenu's in the menu, and nothing else's
+    // here — each row reads as its scope word alone.
+    expect(rows).toContainEqual(['⌥C', 'Letter'])
+    expect(rows).toContainEqual(['⌥⇧C', 'Word'])
+    expect(rows).toContainEqual(['⌥R', 'Letter'])
+    expect(rows).toContainEqual(['⌥⇧R', 'Word'])
   })
 })

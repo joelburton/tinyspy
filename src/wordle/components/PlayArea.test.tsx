@@ -23,6 +23,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
@@ -103,6 +104,30 @@ function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
   return <PlayArea {...props} />
 }
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
+ *  call sites branch on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** What a bound action says about itself right now. */
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+
+/** A control by WHICH action it is, since its words vary per state. */
+const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)!
 
 beforeEach(() => {
   h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
@@ -768,5 +793,148 @@ describe('wordle Board — the reveal flip is keyed to the CAUSE', () => {
     rerender(<PlayArea {...makeCtx()} />)
 
     expect(tiles()[0].className).toMatch(/reveal/)
+  })
+})
+
+/**
+ * Concede's one wordle-specific gate. A racer who has SOLVED the word and is
+ * waiting for the others has a win banked, and the winner query excludes
+ * conceded players — so "I'm done waiting" would throw the result away. The
+ * binding says `disabled` (`selfSolved`), and the button reads it.
+ */
+describe('wordle PlayArea — a solved racer cannot concede', () => {
+  const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
+
+  it('solved and waiting: Concede is gray', () => {
+    h.result = loaded(compete, [], [{ ...me, solved: true }, moth])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
+    expect(stateOf('act-concede')).toBe('disabled')
+    expect(control('act-concede')).toBeDisabled()
+  })
+
+  it('still racing: Concede is live', () => {
+    h.result = loaded(compete, [], [me, moth])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(stateOf('act-concede')).toBe('active')
+    expect(control('act-concede')).toBeEnabled()
+  })
+})
+
+/**
+ * The commands through the dispatcher: `+`, `⌥⌫` and Restart, with the real
+ * confirmation host mounted where a question is expected. A question asked
+ * with no host is answered no, so the host is what lets these prove a question
+ * was asked rather than skipped.
+ */
+describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
+  const coop = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
+  const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
+
+  it('+ at terminal starts the follow-up game with no question', async () => {
+    rpc.mockImplementation((name: string) =>
+      name === 'create_game'
+        ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
+        : Promise.resolve({ error: null }),
+    )
+    h.result = loaded({ ...coop, target: 'crane' })
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ mode: 'coop' })),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordle_coop', 'next-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel starts nothing', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(coop)
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalledWith('create_game', expect.anything())
+  })
+
+  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    h.result = loaded(coop)
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
+    h.result = loaded(compete, [], [me, moth])
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Concede' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks before wiping the board', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
+    h.result = loaded(coop)
+    const ctx = makeCtx()
+    render(
+      <>
+        <PlayArea {...ctx} />
+        <ConfirmationHost />
+      </>,
+    )
+    const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
+    const sections = (calls.at(-1)![0] ?? []) as MenuSection[]
+    const restart = sections.flatMap((s) => s.items).map(menuRow).find((r) => r.id === 'act-restart')!
+    act(() => restart.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The two on-screen caps that ARE actions. ⌫ and Enter take what they do from
+ * the same two bindings the physical keys fire, so a cap and its key cannot
+ * disagree about whether the move is available — on an empty guess, both gray.
+ */
+describe('wordle PlayArea — the ⌫ and Enter caps follow the entry', () => {
+  it('gray with nothing typed, live once letters land', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(control('act-delete-last')).toBeDisabled()
+    expect(control('act-submit-entry')).toBeDisabled()
+
+    await user.keyboard('cr')
+    expect(control('act-delete-last')).toBeEnabled()
+    expect(control('act-submit-entry')).toBeEnabled()
   })
 })

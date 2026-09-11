@@ -15,13 +15,16 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the board, rack, controls, log, modal — renders real.
  */
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { PlayRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -123,6 +126,46 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     ...over,
   } as unknown as GamePageCtx
 }
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
+ *  call sites branch on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
+ *  draw, keyed by action id. */
+function menuItems(ctx: GamePageCtx) {
+  const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
+}
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** What a bound action says about itself right now. */
+const describeOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe()
+
+/** A control by WHICH action it is, since its words vary per state. */
+const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
 beforeEach(() => {
   h.result = loaded(loadedGame(), [selfPlayer()])
@@ -233,11 +276,10 @@ describe('scrabble PlayArea — concede', () => {
         <ConfirmationHost />
       </>,
     )
-    // The trigger and the modal's confirm share the name "Concede"; the confirm
-    // is the one the dialog adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: /concede/i }))
-    const confirms = await screen.findAllByRole('button', { name: /concede/i })
-    await user.click(confirms[confirms.length - 1]!)
+    // The trigger by WHICH action it is; the modal's confirm by its words,
+    // which are the question's own and the subject here.
+    await user.click(control('act-concede')!)
+    await user.click(await screen.findByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
@@ -249,12 +291,10 @@ describe('scrabble PlayArea — concede', () => {
         <ConfirmationHost />
       </>,
     )
-    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
+    expect(control('act-concede')).toBeNull()
+    // The trigger by WHICH action it is; the modal's confirm shares its words
+    // ("End game"), and is the one the dialog adds, so it's last in the DOM.
+    await user.click(control('act-end-game')!)
     const confirms = await screen.findAllByRole('button', { name: 'End game' })
     await user.click(confirms[confirms.length - 1])
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
@@ -381,5 +421,163 @@ describe('scrabble PlayArea — show a move (coop)', () => {
       }),
     )
     expect(screen.queryByText(/showing:/)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The rack row's commands, read through their bindings. What matters here is
+ * the REASON a control gives when it is gray: Exchange says which of its three
+ * gates is shut, and the button's bubble is that sentence.
+ */
+describe('scrabble PlayArea — the rack row says why', () => {
+  it('Exchange with a shallow bag names the bag', () => {
+    h.result = loaded(loadedGame({ bagCount: 5 }), [selfPlayer()])
+    render(<PlayArea {...makeCtx()} />)
+    expect(describeOf('act-exchange')).toEqual({
+      state: 'disabled',
+      label: 'Swap — need ≥ 7 tiles in the bag',
+    })
+    expect(control('act-exchange')).toBeDisabled()
+  })
+
+  it('Exchange on your turn with nothing selected asks for a selection', () => {
+    render(<PlayArea {...makeCtx()} />)
+    expect(describeOf('act-exchange')).toEqual({
+      state: 'disabled',
+      label: 'Swap — select rack tiles first',
+    })
+  })
+
+  it('Recall is gray with nothing staged', () => {
+    render(<PlayArea {...makeCtx()} />)
+    expect(describeOf('act-recall-tiles')?.state).toBe('disabled')
+    expect(control('act-recall-tiles')).toBeDisabled()
+  })
+
+  it('⌥Z shuffles the rack', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    const before = Array.from(document.querySelectorAll('[data-rack-tile]')).map((t) => t.textContent)
+    expect(before).toHaveLength(7)
+    // The reorder is random, so the proof it ran is the randomness being drawn
+    // on — a shuffled rack can land on the same order.
+    const random = vi.spyOn(Math, 'random')
+    await press({ key: 'Ω', code: 'KeyZ', altKey: true })
+    expect(random).toHaveBeenCalled()
+    random.mockRestore()
+    const after = Array.from(document.querySelectorAll('[data-rack-tile]')).map((t) => t.textContent)
+    expect([...after].sort()).toEqual([...before].sort())
+  })
+
+  it('Suggest a move is coop-only', () => {
+    const { unmount } = render(<PlayArea {...makeCtx()} />)
+    expect(describeOf('act-suggest-move')?.state).toBe('active')
+    unmount()
+
+    h.result = loadedCompete()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(describeOf('act-suggest-move')?.state).toBe('hidden')
+    expect(control('act-suggest-move')).toBeNull()
+  })
+})
+
+/**
+ * The commands through the dispatcher — `+`, `⌥⌫` and Restart — with the real
+ * confirmation host mounted where a question is expected. A question asked
+ * with no host is answered no, so the host is what lets these prove a question
+ * was asked rather than skipped.
+ */
+describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
+  it('+ at terminal deals the next game with no question', async () => {
+    rpc.mockImplementation((name: string) =>
+      name === 'create_game'
+        ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
+        : Promise.resolve({ error: null }),
+    )
+    const ctx = makeCtx({ isTerminal: true, status: { outcome: 'manual' } })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', {
+        target_club: 'testclub',
+        setup: ctx.setup,
+        player_user_ids: ['u1'],
+        mode: 'coop',
+      }),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('scrabble_coop', 'next-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel deals nothing', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
+    h.result = loadedCompete()
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Concede' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
+    const live = makeCtx()
+    const { unmount } = render(
+      <>
+        <PlayArea {...live} />
+        <ConfirmationHost />
+      </>,
+    )
+    act(() => menuItems(live).get('act-restart')!.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
+    unmount()
+
+    // No host this time: the RPC firing proves no question was asked.
+    const done = makeCtx({ isTerminal: true, status: { outcome: 'manual' } })
+    render(<PlayArea {...done} />)
+    act(() => menuItems(done).get('act-restart')!.run())
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })
 })

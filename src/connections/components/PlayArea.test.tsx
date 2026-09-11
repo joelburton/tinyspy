@@ -10,12 +10,15 @@
  * mounts and that the concede wiring (compete → connections.concede; coop → End)
  * is correct.
  */
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
+import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { ConnectionsGame, MatchedCategory } from '../hooks/useGame'
 import { db } from '../db'
@@ -132,6 +135,50 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
+/** `okEnvelope` carrying a different `data` — for the calls whose ok is not a
+ *  recorded guess (the next-puzzle preview, create_game). */
+const ok = (data: unknown) => ({ ...okEnvelope, data: { ...okEnvelope.data, data } })
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
+}
+
+/** A keystroke as the app-root listener sees it: from the body, with nothing
+ *  focused. An Option chord matches on `code`, since ⌥ changes the character
+ *  (⌥Z arrives as `Ω`). */
+const press = (key: KeyboardEventInit) => fireEvent.keyDown(document.body, key)
+const PLUS = { key: '+' }
+const ENTER = { key: 'Enter' }
+const BACKSPACE = { key: 'Backspace' }
+const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
+const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
+
+/** The live binding for an action — the same `run` its key, its menu row and
+ *  its button all fire. */
+const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
+
+/** Answer the open question with the button that says `name`. The trigger can
+ *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  the host adds, so it is last in the DOM. */
+async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const buttons = await screen.findAllByRole('button', { name })
+  await user.click(buttons[buttons.length - 1]!)
+}
+
+/** The Reveal control, by WHICH command it is: its words move with the toggle
+ *  ("Reveal categories" / "Hide categories"), so they are the wrong handle
+ *  wherever the words are not the subject. Keeps the role — a menu row would
+ *  carry the same id. */
+const revealButton = () =>
+  screen.queryAllByRole('button').find((b) => b.dataset.action === 'act-reveal')
+
+/** The loose tiles in the order they are drawn — what the shuffle rearranges. */
+const tileOrder = () => [...document.querySelectorAll('[data-tile]')].map((b) => b.textContent)
+
 beforeEach(() => {
   h.result = loaded()
   rpc.mockReset()
@@ -245,14 +292,14 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
     })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal categories' }))
+    await user.click(revealButton()!)
     expect(screen.getByText('GREEN')).toBeInTheDocument()
     expect(screen.getByText('PURPLE')).toBeInTheDocument()
     expect(tileNames()).toHaveLength(0)
     // Local state — no peer's board changed.
     expect(rpc).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: 'Hide categories' }))
+    await user.click(revealButton()!)
     expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
     expect(tileNames()).toHaveLength(12)
   })
@@ -267,7 +314,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
     expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
     expect(tileNames()).toHaveLength(16)
     // No Reveal either: it waits for the game to end for everyone.
-    expect(screen.queryByRole('button', { name: 'Reveal categories' })).not.toBeInTheDocument()
+    expect(revealButton()).toBeUndefined()
   })
 
   it('a frozen board ignores tile clicks', async () => {
@@ -704,12 +751,243 @@ describe('connections PlayArea — attention', () => {
       <PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', players: twoMembers })} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Reveal categories' }))
+    await user.click(revealButton()!)
 
     // Three bands appear at once — which a diff would read as three moves. The
     // guess log is what says otherwise, and it didn't move.
     const grid = container.querySelector('[data-board] > div') as HTMLElement
     expect(within(grid).getByText('PURPLE')).toBeInTheDocument()
     expect(grid.innerHTML).not.toMatch(/attentionFlash/)
+  })
+})
+
+/**
+ * The keys, through the app-root dispatcher. Each key is a bound action's, so
+ * what these pin is the wiring: the chord reaches the binding, the binding
+ * says when it applies (Enter and ⌫ go HIDDEN rather than inert where the
+ * board is not this player's to touch, so they do not swallow a key another
+ * binding wanted), it asks the registry's question mid-game and skips it at
+ * terminal, and the answer runs the same call the button does.
+ */
+describe('connections PlayArea — the keys', () => {
+  /** A coop game with a full four-tile guess built and unsent. */
+  const fourPicked = (over: Partial<GameHook> = {}) =>
+    loaded({
+      game: game('coop'),
+      selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+      unionTiles: ['a', 'b', 'e', 'i'],
+      ...over,
+    })
+
+  it('Enter submits the four selected tiles', async () => {
+    h.result = fourPicked()
+    render(<WithKeys {...makeCtx()} />)
+    expect(bound('act-submit').describe().state).toBe('active')
+
+    press(ENTER)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_guess', expect.anything()))
+  })
+
+  it('Enter with fewer than four picked is here but gray — it fires nothing', async () => {
+    h.result = loaded({
+      game: game('coop'),
+      selections: new Map([['u1', ['a', 'b']]]),
+      unionTiles: ['a', 'b'],
+    })
+    render(<WithKeys {...makeCtx()} />)
+    expect(bound('act-submit').describe().state).toBe('disabled')
+
+    await act(async () => press(ENTER))
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌫ clears the selection — and broadcasts it, so a teammate’s board drops it too', async () => {
+    const sendClear = vi.fn()
+    h.result = loaded({
+      game: game('coop'),
+      selections: new Map([['u1', ['a', 'b']]]),
+      unionTiles: ['a', 'b'],
+      sendClear,
+    })
+    render(<WithKeys {...makeCtx({ players: twoMembers })} />)
+    expect(bound('act-clear-selection').describe().state).toBe('active')
+
+    await act(async () => press(BACKSPACE))
+    expect(sendClear).toHaveBeenCalledTimes(1)
+  })
+
+  it("both leave on a teammate's turn — hidden, not merely inert", () => {
+    h.result = fourPicked()
+    render(<WithKeys {...makeCtx({ isMyTurn: false, currentTurnUserId: 'u2', players: twoMembers })} />)
+    expect(bound('act-submit').describe().state).toBe('hidden')
+    expect(bound('act-clear-selection').describe().state).toBe('hidden')
+  })
+
+  it('both leave once the board is finished', () => {
+    h.result = fourPicked({ mistakeCount: 4 })
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    expect(bound('act-submit').describe().state).toBe('hidden')
+    expect(bound('act-clear-selection').describe().state).toBe('hidden')
+  })
+
+  it('+ at terminal starts the next game with no question', async () => {
+    // Two calls, the look-ahead and the create; both answered ok.
+    rpc.mockImplementation((fn: string) =>
+      Promise.resolve(
+        fn === 'next_puzzle_for_club'
+          ? ok({ result: 'found', puzzle_id: 'p2' })
+          : ok({ result: 'created', id: 'fresh-game-id' }),
+      ),
+    )
+    h.result = loaded({ game: game('coop'), mistakeCount: 4 })
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<WithKeys {...ctx} />)
+
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
+    press(PLUS)
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith(
+        'create_game',
+        expect.objectContaining({ target_club: 'testclub', player_user_ids: ['u1'], mode: 'coop' }),
+      ),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('connections_coop', 'fresh-game-id'))
+  })
+
+  it('+ mid-game asks first, and Keep playing starts nothing', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ game: game('coop') })
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(PLUS)
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ game: game('coop') })
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(OPT_BACKSPACE)
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalled()
+    await answer(user, 'End game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ game: game('compete') })
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+
+    press(OPT_BACKSPACE)
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await answer(user, 'Concede')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+  })
+
+  describe('⌥Z shuffles the tiles', () => {
+    // The shuffle is Fisher–Yates over the CURRENT order on `Math.random`, so a
+    // pinned value is a fixed permutation: 0 rotates the list, ~1 leaves it
+    // alone. Pinning 0 for the press makes "the same tiles in a different
+    // order" a deterministic claim rather than a flake.
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('rearranges the same sixteen tiles mid-game, with no round trip', async () => {
+      h.result = loaded({ game: game('coop') })
+      render(<WithKeys {...makeCtx()} />)
+      const before = tileOrder()
+      expect(before).toHaveLength(16)
+
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+      await act(async () => press(OPT_Z))
+      const after = tileOrder()
+      expect(after).not.toEqual(before)
+      expect([...after].sort()).toEqual([...before].sort())
+      expect(rpc).not.toHaveBeenCalled()
+    })
+
+    it('leaves with the board — hidden once the game is over', async () => {
+      // The finished board is a RECORD of where the players got to, so it
+      // stays put; the key goes hidden rather than inert so it does not
+      // swallow a keystroke another binding wanted.
+      h.result = loaded({ game: game('coop'), mistakeCount: 4 })
+      render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+      expect(bound('act-shuffle').describe().state).toBe('hidden')
+      const before = tileOrder()
+
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+      await act(async () => press(OPT_Z))
+      expect(tileOrder()).toEqual(before)
+    })
+  })
+
+  describe('Restart', () => {
+    // Keyless, so mid-game it is fired as the menu row would fire it: the bound
+    // run, which is where the registry's question is asked.
+    it('mid-game asks first, and Keep playing wipes nothing', async () => {
+      const user = userEvent.setup()
+      h.result = loaded({ game: game('coop') })
+      render(
+        <>
+          <PlayArea {...makeCtx()} />
+          <ConfirmationHost />
+        </>,
+      )
+
+      act(() => bound('act-restart').run())
+      expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+      await waitFor(() => expect(screen.queryByText('Restart this game?')).not.toBeInTheDocument())
+      expect(rpc).not.toHaveBeenCalled()
+    })
+
+    it('mid-game, yes calls replay_board', async () => {
+      const user = userEvent.setup()
+      h.result = loaded({ game: game('coop') })
+      render(
+        <>
+          <PlayArea {...makeCtx()} />
+          <ConfirmationHost />
+        </>,
+      )
+
+      act(() => bound('act-restart').run())
+      await answer(user, 'Restart')
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    })
+
+    it('at terminal the button goes straight through', async () => {
+      const user = userEvent.setup()
+      h.result = loaded({ game: game('coop'), mistakeCount: 4 })
+      render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+      await user.click(screen.getByRole('button', { name: 'Restart' }))
+      // No <ConfirmationHost/> is mounted, so a question would have been
+      // answered "no" — the RPC firing proves none was asked.
+      await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    })
   })
 })

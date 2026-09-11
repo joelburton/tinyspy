@@ -20,6 +20,16 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import type { Cell } from '../lib/types'
 import { useGridKeyboard, type GridKeysOptions } from './useGridKeyboard'
 
+// The two cursor helpers whose CALL is the assertion — which one a chord
+// reaches, and with what delta — wrapped so the real math still runs.
+const cursorLib = vi.hoisted(() => ({ jumpWordEdge: vi.fn(), jumpClue: vi.fn() }))
+vi.mock('../lib/cursor', async (orig) => {
+  const real = await orig<typeof import('../lib/cursor')>()
+  cursorLib.jumpWordEdge.mockImplementation(real.jumpWordEdge)
+  cursorLib.jumpClue.mockImplementation(real.jumpClue)
+  return { ...real, jumpWordEdge: cursorLib.jumpWordEdge, jumpClue: cursorLib.jumpClue }
+})
+
 /** ASCII → Cell[][] (same builder as cursor.test.ts): `#` block, `.` open, A–Z filled. */
 function grid(rows: string[]): Cell[][] {
   let n = 0
@@ -143,6 +153,49 @@ describe('writing keys', () => {
     expect(s.setCell).toHaveBeenCalledTimes(3)
     s.view.unmount()
   })
+
+  it('⌫ is two steps: a filled cell clears in place, an empty one retreats and clears where it lands', async () => {
+    // Step one: the cursor cell holds a letter, so only that letter goes.
+    const filled = setup({ fillAt: () => 'X', cursor: { row: 0, col: 1, dir: 'across' } })
+    await press({ key: 'Backspace' })
+    expect(filled.setCell).toHaveBeenCalledWith(0, 1, null, false)
+    expect(filled.setCursor).not.toHaveBeenCalled()
+    filled.view.unmount()
+
+    // Step two: nothing here, so retreat one cell and clear THAT one — the
+    // letter before is the one the solver is fixing.
+    const empty = setup({ fillAt: () => null, cursor: { row: 0, col: 1, dir: 'across' } })
+    await press({ key: 'Backspace' })
+    expect(empty.setCell).toHaveBeenCalledWith(0, 0, null, false)
+    expect(empty.setCursor).toHaveBeenCalledWith({ row: 0, col: 0, dir: 'across' })
+    empty.view.unmount()
+  })
+
+  it('a HELD letter keeps filling; a held ⇧⌫ does not fire', async () => {
+    // Repeat is per action: the entry keys declare it, a command does not.
+    const s = setup({ fillAt: () => 'X' })
+    await press({ key: 'a', repeat: true })
+    expect(s.setCell).toHaveBeenCalledWith(0, 0, 'A', false)
+    s.setCell.mockClear()
+    await press({ key: 'Backspace', shiftKey: true, repeat: true })
+    expect(s.setCell).not.toHaveBeenCalled()
+    s.view.unmount()
+  })
+
+  it('Enter on a focused button is the button’s, and no grid action fires', async () => {
+    const s = setup()
+    const button = document.createElement('button')
+    document.body.append(button)
+    button.focus()
+    await act(async () => {
+      button.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' }))
+    })
+    expect(s.setCell).not.toHaveBeenCalled()
+    expect(s.setCursor).not.toHaveBeenCalled()
+    expect(s.onRebus).not.toHaveBeenCalled()
+    button.remove()
+    s.view.unmount()
+  })
 })
 
 describe('navigation keys', () => {
@@ -160,6 +213,27 @@ describe('navigation keys', () => {
     const s = setup()
     await press({ key: 'Tab', repeat: true })
     expect(s.setCursor).toHaveBeenCalled()
+    s.view.unmount()
+  })
+
+  it('⇧ + an arrow jumps to the word edge, where the bare arrow steps', async () => {
+    cursorLib.jumpWordEdge.mockClear()
+    const s = setup()
+    await press({ key: 'ArrowRight', shiftKey: true })
+    expect(cursorLib.jumpWordEdge).toHaveBeenCalledWith(
+      expect.anything(), { row: 0, col: 0, dir: 'across' }, 'ArrowRight',
+    )
+    // …and the cursor lands on the far edge of the three-cell row.
+    expect(s.setCursor).toHaveBeenCalledWith({ row: 0, col: 2, dir: 'across' })
+    s.view.unmount()
+  })
+
+  it('⇧Tab walks the clues backward', async () => {
+    cursorLib.jumpClue.mockClear()
+    const s = setup()
+    await press({ key: 'Tab', shiftKey: true })
+    expect(cursorLib.jumpClue).toHaveBeenCalledWith(expect.anything(), { row: 0, col: 0, dir: 'across' }, -1)
+    expect(s.setCursor).toHaveBeenCalledTimes(1)
     s.view.unmount()
   })
 

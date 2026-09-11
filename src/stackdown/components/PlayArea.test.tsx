@@ -15,13 +15,14 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; the board, entry row, opponent strip, and log all render real.
  */
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, SubmissionRow } from '../hooks/useGame'
@@ -129,6 +130,30 @@ function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   useActionDispatcher()
   return <PlayArea {...props} />
 }
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
+ *  call sites branch on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** What a bound action says about itself right now. */
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+
+/** The five word slots, as the letters they hold. */
+const wordSlots = () => screen.getByLabelText('Current word').textContent ?? ''
 
 beforeEach(() => {
   h.result = loaded(loadedGame(), [playerRow('u1')])
@@ -441,5 +466,181 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
     h.result = loaded(loadedGame(), [playerRow('u1')])
     rerender(<PlayArea {...makeCtx()} />)
     expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The board's three keys, through the dispatcher. The word itself lives in
+ * `useGame` (mocked), so what a key DOES is asserted on the hook's stubs —
+ * `appendTile` / `retractTo` — and the word growing is shown by handing the
+ * hook's answer back on a rerender, the way the realtime refetch would.
+ */
+describe('stackdown PlayArea — the board keys', () => {
+  /** Five exposed, uniquely-lettered tiles, so a letter names exactly one. */
+  const five: Tile[] = [
+    { id: 1, x: 0, y: 0, z: 0, letter: 'C' },
+    { id: 2, x: 1, y: 0, z: 0, letter: 'L' },
+    { id: 3, x: 2, y: 0, z: 0, letter: 'E' },
+    { id: 4, x: 3, y: 0, z: 0, letter: 'A' },
+    { id: 5, x: 4, y: 0, z: 0, letter: 'R' },
+  ]
+
+  it('a letter picks the exposed tile bearing it, and the word grows', async () => {
+    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    expect(wordSlots()).toBe('')
+
+    await press({ key: 'a' })
+    expect(h.result.appendTile).toHaveBeenCalledWith(4)
+
+    // The hook answers with the tile in the word; the slot draws it.
+    h.result = { ...h.result, currentWord: [4] }
+    rerender(<WithKeys {...makeCtx()} />)
+    expect(wordSlots()).toBe('A')
+  })
+
+  it('a letter no exposed tile bears is refused in the pill', async () => {
+    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'z' })
+    expect(h.result.appendTile).not.toHaveBeenCalled()
+    expect(screen.getByText('No “Z” tile is on top')).toBeInTheDocument()
+  })
+
+  it('⌫ returns the last tile, and is gray with nothing picked up', async () => {
+    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-delete-last')).toBe('disabled')
+    await press({ key: 'Backspace', code: 'Backspace' })
+    expect(h.result.retractTo).not.toHaveBeenCalled()
+
+    h.result = { ...h.result, currentWord: [1, 2] }
+    rerender(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-delete-last')).toBe('active')
+    await press({ key: 'Backspace', code: 'Backspace' })
+    expect(h.result.retractTo).toHaveBeenCalledWith(1)
+  })
+
+  it('Enter submits five tiles, and is gray with fewer', async () => {
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', word: 'clear' }))
+    h.result = { ...loaded(loadedGame({ tiles: five }), [playerRow('u1')]), currentWord: [1, 2] }
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-submit')).toBe('disabled')
+    await press({ key: 'Enter', code: 'Enter' })
+    expect(rpc).not.toHaveBeenCalled()
+
+    h.result = { ...h.result, currentWord: [1, 2, 3, 4, 5] }
+    rerender(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-submit')).toBe('active')
+    await press({ key: 'Enter', code: 'Enter' })
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_word', { target_game: 'g1', tile_ids: [1, 2, 3, 4, 5] }),
+    )
+  })
+
+  it('the sticky pill clears on any key, even one nothing binds', async () => {
+    h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'z' })
+    expect(screen.getByText('No “Z” tile is on top')).toBeInTheDocument()
+
+    // F9 is nobody's key. The dismiss watcher still runs on it — it claims
+    // nothing, so it is consulted on every keystroke there is.
+    await press({ key: 'F9', code: 'F9' })
+    expect(screen.queryByText('No “Z” tile is on top')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The commands through the dispatcher — `+` and `⌥⌫` — with the real
+ * confirmation host mounted where a question is expected. A question asked
+ * with no host is answered no, so the host is what lets these prove a question
+ * was asked rather than skipped.
+ */
+describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
+  it('+ at terminal claims the next board with no question', async () => {
+    rpc.mockImplementation((name: string) =>
+      name === 'create_game'
+        ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
+        : Promise.resolve({ error: null, data: null }),
+    )
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', {
+        target_club: 'testclub',
+        setup: ctx.setup,
+        player_user_ids: ['u1'],
+        mode: 'coop',
+      }),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('stackdown_coop', 'next-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel claims nothing', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
+    h.result = loaded(loadedGame({ mode: 'compete' }), twoRows)
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Concede' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks before wiping the stack', async () => {
+    const user = userEvent.setup()
+    const ctx = makeCtx()
+    render(
+      <>
+        <PlayArea {...ctx} />
+        <ConfirmationHost />
+      </>,
+    )
+    act(() => menuItems(ctx).get('act-restart')!.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
   })
 })

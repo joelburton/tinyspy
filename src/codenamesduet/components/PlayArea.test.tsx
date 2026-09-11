@@ -16,6 +16,10 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { ACTIONS } from '@/common/actions/registry'
+import { liveBindings } from '@/common/actions/useBoundAction'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,9 +27,16 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
+// Whose turn it is, and whether the clue is in — mutable holders so a test can
+// seat me as the GUESSER (the default: peer A gave the clue, I'm B) or as the
+// CLUE-GIVER (I'm the giver and no clue is written yet).
+const g = vi.hoisted(() => ({
+  game: { current_clue_giver: 'A', turn_number: 1 },
+  clues: [{ turn_number: 1, word: 'fruit', count: 2 }] as { turn_number: number; word: string; count: number }[],
+}))
 vi.mock('../hooks/useGame', () => ({
   useGame: () => ({
-    game: { current_clue_giver: 'A', turn_number: 1 },
+    game: g.game,
     players: [
       { user_id: 'me', seat: 'B', username: 'me', color: 'red' },
       { user_id: 'peer', seat: 'A', username: 'peer', color: 'blue' },
@@ -58,11 +69,54 @@ vi.mock('../hooks/useBoard', () => ({
   ),
 }))
 vi.mock('../hooks/useClues', () => ({
-  useClues: () => ({ clues: [{ turn_number: 1, word: 'fruit', count: 2 }] }),
+  useClues: () => ({ clues: g.clues }),
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+
+/** Seat me as the clue-giver with the clue still to write. */
+function asClueGiver() {
+  g.game = { current_clue_giver: 'B', turn_number: 1 }
+  g.clues = []
+}
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
+ *  call sites branch on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
+}
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** A control by WHICH action it is, since its words vary per state. */
+const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
+
+/** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
+ *  draw, keyed by action id. */
+function menuItems(ctx: GamePageCtx) {
+  const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
+}
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   return {
@@ -92,6 +146,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 }
 
 beforeEach(() => {
+  g.game = { current_clue_giver: 'A', turn_number: 1 }
+  g.clues = [{ turn_number: 1, word: 'fruit', count: 2 }]
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))
@@ -138,15 +194,6 @@ describe('codenamesduet PlayArea — input gating', () => {
  * that's what these assert on — the hook itself is mocked.
  */
 describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
-  /** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
-   *  draw — a row is a bound action now, so its words, glyph and availability
-   *  come from the action rather than from the list. */
-  function menuItems(ctx: GamePageCtx) {
-    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
-    const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
-    return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
-  }
-
   const lastPeerKeyArg = () => peerKeyArgs.calls.at(-1)
 
   beforeEach(() => {
@@ -156,7 +203,8 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
   it('keeps the card covered at a terminal until I ask — a win included', () => {
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(lastPeerKeyArg()).toBe(false)
-    expect(screen.getByRole('button', { name: "Reveal partner's key" })).toBeEnabled()
+    // By WHICH action it is — the words are the next tests' subject, not this one's.
+    expect(control('act-reveal')).toBeEnabled()
   })
 
   it('Reveal opens it for me alone, and Hide covers it again', async () => {
@@ -185,5 +233,120 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     act(() => menuItems(done).get('act-reveal')!.run())
     expect(lastPeerKeyArg()).toBe(true)
     await waitFor(() => expect(menuItems(done).get('act-reveal')?.label).toBe("Hide partner's key"))
+  })
+})
+
+/**
+ * The two role-specific controls. Stopping your guesses is an ordinary
+ * every-turn decision in duet, so the guesser's Pass is a plain primary button
+ * — `act-end-turn`, whose registry row carries no tone, rather than scrabble's
+ * amber `act-pass`. Asking Claude for a clue is the clue-giver's alone.
+ */
+describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI', () => {
+  it('the guesser’s Pass is a primary, normal-toned button', () => {
+    render(<PlayArea {...makeCtx()} />)
+    const pass = control('act-end-turn')!
+    expect(pass).toBeEnabled()
+    // Weight and tone are the module's class keys — the CSS-module proxy keeps
+    // the key's name in the hashed class.
+    expect(pass.className).toMatch(/primary/)
+    expect(pass.className).toMatch(/normal/)
+    expect(pass.className).not.toMatch(/caution/)
+    // …and the registry row it draws from names no tone of its own.
+    expect(liveBindings().find((b) => b.id === 'act-end-turn')?.spec).toBe(ACTIONS['act-end-turn'])
+    expect(ACTIONS['act-end-turn']).not.toHaveProperty('tone')
+  })
+
+  it('Suggest a clue is the clue-giver’s and not the guesser’s', () => {
+    const { unmount } = render(<PlayArea {...makeCtx()} />)
+    expect(control('act-suggest-clue')).toBeNull()
+    expect(liveBindings().some((b) => b.id === 'act-suggest-clue')).toBe(false)
+    unmount()
+
+    asClueGiver()
+    render(<PlayArea {...makeCtx()} />)
+    expect(control('act-suggest-clue')).toBeEnabled()
+    // The giver has no guesses to stop.
+    expect(control('act-end-turn')).toBeNull()
+  })
+})
+
+/**
+ * The commands through the dispatcher — `+`, `⌥⌫` and Restart — with the real
+ * confirmation host mounted where a question is expected. A question asked
+ * with no host is answered no, so the host is what lets these prove a question
+ * was asked rather than skipped. Duet is coop-only, so `⌥⌫` is always End.
+ */
+describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () => {
+  it('+ at terminal samples the next board with no question', async () => {
+    rpc.mockImplementation((name: string) =>
+      name === 'create_game'
+        ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
+        : new Promise(() => {}),
+    )
+    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the RPC firing proves none was asked.
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ target_club: 'testclub' })),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('codenamesduet', 'next-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel samples nothing', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
+    const live = makeCtx()
+    const { unmount } = render(
+      <>
+        <PlayArea {...live} />
+        <ConfirmationHost />
+      </>,
+    )
+    act(() => menuItems(live).get('act-restart')!.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
+    unmount()
+
+    // No host this time: the RPC firing proves no question was asked.
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    await user.click(control('act-restart')!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })
 })

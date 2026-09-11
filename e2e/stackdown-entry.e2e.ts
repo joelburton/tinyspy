@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 import { createSoloClub, createStackdownGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { settled } from './helpers/ready'
+import { actionButton } from './helpers/actions'
 
 /**
  * PaulTower (stackdown) word entry: the move row is ⌫ | five slots | Submit, and
@@ -49,7 +50,7 @@ test.describe('stackdown word entry', () => {
     // By ACTION, not by wording: what a control is called is `describe()`'s to
     // vary per game (stackdown returns TILES, so its ⌫ says so), and a test that
     // named it would be coupled to the half that is meant to move.
-    const del = page.locator('[data-action="act-delete-last"]')
+    const del = actionButton(page, 'act-delete-last')
 
     // Empty: neither control can act.
     await expect(submit).toBeDisabled()
@@ -90,7 +91,7 @@ test.describe('stackdown word entry', () => {
     await expect(filledSlots(page)).toHaveCount(4)
 
     // ⌫ removes exactly one — the most recent.
-    await page.locator('[data-action="act-delete-last"]').click()
+    await actionButton(page, 'act-delete-last').click()
     await expect(filledSlots(page)).toHaveCount(3)
 
     // Clicking a filled slot returns that tile AND every tile after it — the
@@ -98,7 +99,7 @@ test.describe('stackdown word entry', () => {
     // clicking the first slot empties the row.
     await filledSlots(page).first().click()
     await expect(filledSlots(page)).toHaveCount(0)
-    await expect(page.locator('[data-action="act-delete-last"]')).toBeDisabled()
+    await expect(actionButton(page, 'act-delete-last')).toBeDisabled()
 
     await ctx.close()
   })

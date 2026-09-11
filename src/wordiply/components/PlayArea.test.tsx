@@ -13,12 +13,17 @@
  * needed; everything else renders real.
  */
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import { useActionDispatcher } from '@/common/actions/dispatcher'
+import { liveBindings } from '@/common/actions/useBoundAction'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { menuRow, type MenuSection } from '@/common/menu/menuModel'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import type { WordiplyGame, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -114,8 +119,56 @@ function boardRowCount(container: HTMLElement): number {
   return board ? board.querySelectorAll(':scope > li').length : 0
 }
 
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const edgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
+
+/** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what every
+ *  call site branches on, so a stub without it is an answer they scream at. */
+const okEnvelope = (data: unknown) => ({
+  data: {
+    type: 'ok', data, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
+/** What PlayArea handed `menu.setGameSections`, as the ROWS the menu would
+ *  draw, keyed by action id. */
+function menuItems(ctx: GamePageCtx) {
+  const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+  const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
+  return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
+}
+
+/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
+ *  Only the tests whose subject is a keystroke need it — a bare `render` binds
+ *  the actions but has nothing feeding them keys. */
+function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+  useActionDispatcher()
+  return <PlayArea {...props} />
+}
+
+/** A keystroke at the page, the way a player types with nothing focused.
+ *  Awaited, because an action's run is single-flight: a second press before the
+ *  first has settled is dropped, so two keys fired in one tick would land one. */
+const press = (init: KeyboardEventInit) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, init)
+  })
+
+/** The running length badge on the active row — the one readout of what has
+ *  been typed so far, since the letters themselves are fragmented across spans. */
+const typedLength = () =>
+  document.querySelector('ol li[class*="active"] span[aria-label$="letters"]')?.textContent ?? ''
+
+/** What a bound action says about itself right now. */
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+
 beforeEach(() => {
   h.result = { game: loadedGame(), guesses: [], loading: false }
+  rpc.mockReset()
+  rpc.mockResolvedValue({ error: null })
+  edgeFn.mockReset()
 })
 
 describe('wordiply PlayArea — layout stability', () => {
@@ -343,5 +396,205 @@ describe('wordiply PlayArea — turn log', () => {
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     // Two players in COMPETE would list them; a coop pair is one shared "Team".
     expect(screen.getByRole('button', { name: /whose guesses/i })).toBeInTheDocument()
+  })
+})
+
+/**
+ * The entry, from the keyboard down. wordiply has no <input>: letters land in
+ * the active row through the capture-entry actions (`useCaptureKeys`), and the
+ * two history arrows come from `useArrowHistory`. Every press here goes through
+ * the app-root dispatcher, so what is asserted is the wiring the key list
+ * advertises rather than a handler called by hand.
+ */
+describe('wordiply PlayArea — the entry keys', () => {
+  it('letters type into the active row and ⌫ takes the last one back', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(typedLength()).toBe('')
+
+    await press({ key: 'b' })
+    await press({ key: 'a' })
+    await press({ key: 'r' })
+    expect(typedLength()).toBe('3')
+
+    await press({ key: 'Backspace', code: 'Backspace' })
+    expect(typedLength()).toBe('2')
+  })
+
+  it('Enter submits a legal guess through submit_guess', async () => {
+    rpc.mockResolvedValue(
+      okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
+    )
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'b' })
+    await press({ key: 'a' })
+    await press({ key: 'r' })
+    await press({ key: 'Enter', code: 'Enter' })
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', word: 'bar' }),
+    )
+    // The entry is consumed by the submit, so the row is empty again.
+    expect(typedLength()).toBe('')
+  })
+
+  it('Enter with nothing typed is disabled, and ⌫ too', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(stateOf('act-submit-entry')).toBe('disabled')
+    expect(stateOf('act-delete-last')).toBe('disabled')
+    await press({ key: 'Enter', code: 'Enter' })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('↑ recalls the last entry and ↓ clears it', async () => {
+    rpc.mockResolvedValue(
+      okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
+    )
+    render(<WithKeys {...makeCtx()} />)
+    // Nothing submitted yet: recall has nothing to bring back, and says so.
+    expect(stateOf('act-recall-last')).toBe('disabled')
+
+    await press({ key: 'b' })
+    await press({ key: 'a' })
+    await press({ key: 'r' })
+    await press({ key: 'Enter', code: 'Enter' })
+    expect(typedLength()).toBe('')
+
+    await press({ key: 'ArrowUp', code: 'ArrowUp' })
+    expect(typedLength()).toBe('3')
+    await press({ key: 'ArrowDown', code: 'ArrowDown' })
+    expect(typedLength()).toBe('')
+  })
+
+  it('a finished game takes no letters', async () => {
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })} />)
+    expect(stateOf('act-type-letter')).toBe('hidden')
+    await press({ key: 'b' })
+    expect(typedLength()).toBe('')
+  })
+})
+
+/**
+ * The commands — `+`, `⌥⌫` and Restart — through the dispatcher, with the real
+ * confirmation host mounted where a question is expected. A question that
+ * appears with no host is answered no, so the host is what lets these prove the
+ * question was asked rather than skipped.
+ */
+describe('wordiply PlayArea — new game, end, concede and restart', () => {
+  const created = { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } }
+
+  it('+ at terminal starts the follow-up game with no question', async () => {
+    edgeFn.mockResolvedValue(created)
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })
+    render(<WithKeys {...ctx} />)
+    await press({ key: '+' })
+    // No <ConfirmationHost/> is mounted, so a question would have been answered
+    // "no" — the edge function firing proves none was asked.
+    await waitFor(() =>
+      expect(edgeFn).toHaveBeenCalledWith('wordiply-build-board', {
+        target_club: 'testclub',
+        setup: ctx.setup,
+        player_user_ids: ['u1'],
+        mode: 'coop',
+      }),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordiply_coop', 'fresh-game-id'))
+  })
+
+  it('+ mid-game asks first, and cancel starts nothing', async () => {
+    const user = userEvent.setup()
+    edgeFn.mockResolvedValue(created)
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: '+' })
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    await waitFor(() => expect(screen.queryByText('Start a new game?')).not.toBeInTheDocument())
+    expect(edgeFn).not.toHaveBeenCalled()
+  })
+
+  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
+    render(
+      <>
+        <WithKeys {...makeCtx()} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    // The trigger and the modal's confirm share the name; the confirm is the
+    // one the dialog adds, so it's last in the DOM.
+    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1]!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+  })
+
+  it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
+    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
+    render(
+      <>
+        <WithKeys {...makeCtx({ players: twoMembers })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await press({ key: 'Backspace', code: 'Backspace', altKey: true })
+    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Concede' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+  })
+
+  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
+    const live = makeCtx()
+    const { unmount } = render(
+      <>
+        <PlayArea {...live} />
+        <ConfirmationHost />
+      </>,
+    )
+    act(() => menuItems(live).get('act-restart')!.run())
+    expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpc).not.toHaveBeenCalled()
+    unmount()
+
+    const done = makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })
+    render(<PlayArea {...done} />)
+    // No host this time: the RPC firing proves no question was asked.
+    await user.click(document.querySelector('button[data-action="act-restart"]')!)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+  })
+})
+
+describe('wordiply PlayArea — the menu', () => {
+  it('lists Help, Reveal, New game, the exit and Back to club', () => {
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    const rows = menuItems(ctx)
+    for (const id of ['act-help', 'act-reveal', 'act-new-game', 'act-restart', 'act-end-game', 'act-back-to-club']) {
+      expect(rows.get(id), id).toBeDefined()
+      expect(rows.get(id)!.hidden, id).toBe(false)
+    }
+    // Both exits are placed; a coop game's Concede hides itself.
+    expect(rows.get('act-concede')?.hidden).toBe(true)
+    // Reveal is inert mid-game, and keeps its words rather than falling back to
+    // the registry's bare "Reveal".
+    expect(rows.get('act-reveal')?.disabled).toBe(true)
+    expect(rows.get('act-reveal')?.label).toBe('Reveal best word')
+  })
+
+  it('a race lists Concede as the exit, not End game', () => {
+    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
+    const ctx = makeCtx({ players: twoMembers })
+    render(<PlayArea {...ctx} />)
+    expect(menuItems(ctx).get('act-concede')?.hidden).toBe(false)
+    expect(menuItems(ctx).get('act-end-game')?.hidden).toBe(true)
   })
 })

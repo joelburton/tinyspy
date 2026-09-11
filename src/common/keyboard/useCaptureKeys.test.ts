@@ -2,14 +2,15 @@
 
 /**
  * Tests for the shared capture-key CORE — the universal pieces every key-capture
- * game relies on (so they can't drift): the letter append, Backspace, Enter, and
- * the disabled/busy gating. The hook binds actions, and the keys reach them
+ * game relies on (so they can't drift): the letter append, Backspace, Enter, the
+ * length cap, the stored case, the disabled/busy gating, and what the Submit
+ * binding says about itself. The hook binds actions, and the keys reach them
  * through the action dispatcher (mounted here). The EntryBox-only history
  * arrows are a separate layer — see useArrowHistory.test.ts.
  */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
+import { asciiLetters, useCaptureKeys, type CaptureKeysOptions } from './useCaptureKeys'
 import { useActionDispatcher } from '../actions/dispatcher'
 
 /** Dispatch a window keydown, the way the dispatcher listens for it. Awaited,
@@ -20,7 +21,8 @@ async function press(key: string) {
   })
 }
 
-/** Render the hook with stable mock callbacks; returns them + a rerender helper. */
+/** Render the hook with stable mock callbacks; returns them + a rerender helper,
+ *  and the two bindings the hook hands back for the move row's buttons. */
 function setup(initial: Partial<CaptureKeysOptions> = {}) {
   const onChange = vi.fn()
   const onSubmit = vi.fn()
@@ -32,10 +34,10 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
     onAnyKey,
     ...initial,
   }
-  const { rerender } = renderHook(
+  const { result, rerender } = renderHook(
     (props: CaptureKeysOptions) => {
       useActionDispatcher()
-      useCaptureKeys(props)
+      return useCaptureKeys(props)
     },
     { initialProps: base },
   )
@@ -43,6 +45,7 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
     onChange,
     onSubmit,
     onAnyKey,
+    result,
     update: (next: Partial<CaptureKeysOptions>) => rerender({ ...base, ...next }),
   }
 }
@@ -78,5 +81,54 @@ describe('useCaptureKeys — core entry', () => {
     expect(onSubmit).not.toHaveBeenCalled()
     // The dismissal is gated too, so a stray key can't wipe the terminal pill.
     expect(onAnyKey).not.toHaveBeenCalled()
+  })
+
+  it('busy freezes the entry but still lets a key dismiss feedback', async () => {
+    const { onChange, onSubmit, onAnyKey } = setup({ value: 'ca', busy: true })
+    await press('t')
+    await press('Backspace')
+    await press('Enter')
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onSubmit).not.toHaveBeenCalled()
+    // The watcher claims nothing and runs regardless of who else is frozen.
+    expect(onAnyKey).toHaveBeenCalled()
+  })
+
+  it('stops at maxLength — a further letter is dropped', async () => {
+    const { onChange } = setup({ value: 'cat', maxLength: 3 })
+    await press('s')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it("stores uppercase with asciiLetters('upper')", async () => {
+    const { onChange } = setup({ value: 'CA', charFor: asciiLetters('upper') })
+    await press('t')
+    expect(onChange).toHaveBeenCalledWith('CAT')
+  })
+
+  it('a letter that types ALSO dismisses feedback — the watcher does not claim the key', async () => {
+    const { onChange, onAnyKey } = setup({ value: 'ca' })
+    await press('t')
+    expect(onAnyKey).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith('cat')
+  })
+})
+
+describe('useCaptureKeys — what Submit says about itself', () => {
+  // `disabled` rather than `hidden`: the control stays on the row and grays,
+  // because the entry is here and it is the VALUE that cannot go.
+  it('is disabled, not hidden, on an empty entry', () => {
+    const { result } = setup({ value: '' })
+    expect(result.current.actSubmitEntry.describe().state).toBe('disabled')
+  })
+
+  it('is disabled, not hidden, when the value is vetoed (submitDisabled)', () => {
+    const { result } = setup({ value: 'cat', submitDisabled: true })
+    expect(result.current.actSubmitEntry.describe().state).toBe('disabled')
+  })
+
+  it('is active with a value it may submit', () => {
+    const { result } = setup({ value: 'cat' })
+    expect(result.current.actSubmitEntry.describe().state).toBe('active')
   })
 })
