@@ -220,6 +220,16 @@ assert usernames are UNCAPPED ("an uncapped username can be longer than
 stated reason is mobile legibility. So the premise is false, not just the
 citation. Raised with Joel.
 
+**RESOLVED 2026-09-11 (Joel: "don't ellipsize, those just take up precious
+characters. we can just clip with overflow:hidden").** Both `text-overflow`
+declarations are gone — `.label` on the closed select as well as `.option`,
+since one component ellipsizing half its own text would be drift. `overflow:
+hidden` and `white-space: nowrap` stay, so a long label is cut at the edge.
+
+The `.popover` comment keeps the right-anchoring argument, which never
+depended on the cap — a left-anchored list grows off-screen and widens the
+document — and loses the sentence about uncapped usernames.
+
 ## F-lists-7 · `two-names-for-the-closed-button` · "trigger" and "closed select" for one element
 
 The closed button is `.closedSelect` in both modules and "the closed select"
