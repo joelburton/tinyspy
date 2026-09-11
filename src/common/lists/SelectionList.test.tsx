@@ -185,15 +185,21 @@ describe('SelectionList — the keyboard', () => {
     expect(onActivate).toHaveBeenCalledWith(CLUBS[1])
   })
 
-  // The mirror of Space never activating: acting must not happen on a row the
-  // player cannot see. On the homepage that Enter would navigate off the page.
-  it('Enter REVEALS instead of activating while the cursor is hidden', async () => {
+  // Acting must not happen on a row the player cannot see — on the homepage
+  // that Enter would navigate off the page. And it must not REVEAL either:
+  // the natural response to a key that seems to do nothing is to press it
+  // again, and that second press would then commit.
+  it('Enter is inert while the cursor is hidden, however many times you press it', async () => {
     const { onActivate, user } = setup()
     await user.tab()
-    await user.keyboard('{Enter}')
+    await user.keyboard('{Enter}{Enter}{Enter}')
     expect(onActivate).not.toHaveBeenCalled()
-    expect(cursorAt()).toBe(0)
-    // …and the next Enter does act, so this is a delay and not a dead key.
+    expect(cursorAt()).toBe(-1)
+  })
+
+  it('an arrow is the way in, and then Enter acts', async () => {
+    const { onActivate, user, revealCursor } = setup()
+    await revealCursor()
     await user.keyboard('{Enter}')
     expect(onActivate).toHaveBeenCalledWith(CLUBS[0])
   })

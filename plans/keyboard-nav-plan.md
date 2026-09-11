@@ -170,10 +170,13 @@ that will drift if it is not shared:
 - **An ABSOLUTE move reveals and moves in one press.** `Home` and `End` name a
   destination rather than a direction, so revealing at the resting row instead
   would ignore what was asked.
-- **`Enter` may not act while the cursor is hidden** — it reveals, like an
-  arrow. This is the mirror of `Space` never activating: moving a cursor must
-  not consent to an action, and acting must not happen on a cell the player
-  cannot see. On a list that Enter would otherwise navigate you off the page.
+- **`Enter` is INERT while the cursor is hidden** — it neither acts nor
+  reveals, and **only a movement key reveals**. Acting on a cell the player
+  cannot see would commit something they did not choose (on a list, Enter
+  navigates you off the page). Revealing would be worse than doing nothing:
+  the natural response to a key that seems dead is to press it again, and that
+  second press would then commit. So Enter keeps one meaning — "this one" —
+  and an arrow is the only way in.
 - **A click sets the cursor and hides it**, so switching back to keys resumes
   where your hand left off.
 - **An inert board takes no cursor at all** — not your turn, terminal, viewing
@@ -295,7 +298,7 @@ visibility rule, and activation. Per game that leaves a geometry, an
 - The **reachability invariant** over each geometry (see above).
 - Per game: arrows move, `Space` toggles, `Enter` commits, `⌫` clears, an inert
   board ignores all four, and the mark stays hidden until an arrow — including
-  that the FIRST arrow only reveals, that `Enter` reveals rather than commits
-  while hidden, and that a click leaves it hidden.
+  that the FIRST arrow only reveals, that `Enter` is inert while hidden — it
+  does not commit and does not reveal — and that a click leaves it hidden.
 - Every one verified by **planting the break first** — a guard that cannot fail is
   worse than none.

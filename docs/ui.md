@@ -1778,8 +1778,8 @@ The container holds focus; the rows never do.
 | ↑ ↓ | move the cursor, clamped, no wrap | reveals, does not move |
 | PageUp / PageDown | move by one visible page | reveals, does not move |
 | Home / End | jump to first / last | reveals **and** jumps |
-| Enter | activate the row under the cursor | reveals, does not activate |
-| Space | **nothing** | nothing — it asks for no cursor |
+| Enter | activate the row under the cursor | **nothing** — it does not reveal either |
+| Space | **nothing** | nothing |
 
 - **Nothing does the native thing.** The focused element *is* the scroll box, so
   Space and the four page keys would otherwise scroll it out from under the
@@ -1820,13 +1820,17 @@ The test between them: if hiding the mark would make the board harder to READ,
 it is geographic.
 
 So focus alone warms the **frame's** border — that is what says "arrows work
-here" — and the row ring waits for a key that implies a cursor. The first press
-of a relative key (arrows, PageUp/PageDown) only reveals, because "one from
-where I am" has no answer before there is a where-I-am; `Home` and `End` name a
-destination and so reveal and jump together; and **Enter reveals rather than
-acting**, the mirror of Space never acting, because acting on a row you cannot
-see would navigate you off the page. A click sets the cursor without revealing
-it, so going back to the keys resumes where your hand left off.
+here" — and the row ring waits for a **movement** key. The first press of a
+relative one (arrows, PageUp/PageDown) only reveals, because "one from where I
+am" has no answer before there is a where-I-am; `Home` and `End` name a
+destination and so reveal and jump together.
+
+**Enter neither acts nor reveals while the ring is hidden.** Acting would take
+you somewhere you did not choose, and *revealing* would be worse than doing
+nothing: the natural response to a key that seems dead is to press it again,
+and that second press would commit. So an arrow is the only way in, and Enter
+stays a key that only ever means "this one". A click sets the cursor without
+revealing it, so going back to the keys resumes where your hand left off.
 
 The boards get the same rules as keyboard navigation reaches them
 ([plans/keyboard-nav-plan.md](../plans/keyboard-nav-plan.md)).

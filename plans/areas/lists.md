@@ -31,7 +31,7 @@ All in `src/common/lists/`:
 | `SelectionList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
 | `SimpleScrollableList.test.tsx` | written by this area — F-lists-2 (selection-list-untested) |
 | `doc.md` | lede only; Design owed |
-| `todo.md` | two Soon items, one Maybe |
+| `todo.md` | the near-miss values F-lists-11 surfaced |
 
 Written by this area, and so on the roster too:
 
@@ -102,7 +102,7 @@ empty test on `children`).
 Write `SelectionList.test.tsx` (and a small `SimpleScrollableList.test.tsx`).
 A file per unit.
 
-**WORKED 2026-09-11 (Joel: "write test").** `SelectionList.test.tsx` — 33
+**WORKED 2026-09-11 (Joel: "write test").** `SelectionList.test.tsx` — 43
 tests: the cursor's arrival and blanking, clamped arrows, Home/End, a measured
 page (with the heights stubbed, plus the fallback and the clamp past the end),
 Enter acting and Space not, all seven keys trapped, disabled rows taking the
@@ -590,10 +590,11 @@ The taxonomy is what was missing, and it is now that plan's first section.
 **WORKED 2026-09-11.** `revealed` state, separate from `movedTo` so a click can
 set the cursor without showing it. A relative key (arrows, PageUp/PageDown)
 reveals on its first press without moving; an absolute one (`Home`, `End`)
-reveals and moves together; `Enter` reveals rather than activating. Two
-refinements Joel agreed before building: the Enter rule (otherwise Enter
-navigates you off the page from an invisible row) and the absolute/relative
-split (revealing at the resting row would ignore what `End` asked for).
+reveals and moves together; `Enter` is INERT until an arrow has revealed the
+cursor — it neither acts nor reveals. Joel's call, over the reveal-on-Enter
+first agreed: a key that seems dead invites a second press, and that press
+would commit. The other refinement, the absolute/relative split, stands as
+agreed — revealing at the resting row would ignore what `End` asked for.
 
 Three crosswords picker tests drove `{ArrowDown}{Enter}` or `{Enter}` and now
 need the reveal press. Fixed with the change.

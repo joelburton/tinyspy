@@ -74,10 +74,11 @@ type Props<T> = {
  * not a button — so there is no second thing to focus and no second ring to
  * explain. What Tab does *next* belongs to the page, never to this.
  *
- * **The row ring is hidden until a key asks for it.** Focus alone warms the
- * FRAME's border, which is what says "arrows work here"; the ring on a row
- * only appears once the player presses one, because it is an alternative to
- * clicking and a mouse user has no use for it.
+ * **The row ring is hidden until a MOVEMENT key asks for it.** Focus alone
+ * warms the FRAME's border, which is what says "arrows work here"; the ring on
+ * a row appears only once the player presses an arrow, because it is an
+ * alternative to clicking and a mouse user has no use for it. `Enter` is inert
+ * until then, deliberately — it neither acts nor reveals.
  *
  * **Why `items` + `renderRow` and not children.** The paint is four rules and
  * the behavior is the rest, so a CSS pattern would leave the ring, the
@@ -113,9 +114,10 @@ export function SelectionList<T>({
   const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
   // A SELECTION CURSOR, so it stays hidden until the player asks for it: it is
   // an alternative to clicking, and someone using the mouse has no use for a
-  // ring. Asking means a key that implies one — see `reveal` below. Separate
-  // from `movedTo`, because a click moves the cursor without revealing it, so
-  // going back to the keys resumes where your hand left off.
+  // ring. Only a MOVEMENT key asks — Enter and Space never reveal, so no
+  // impatient second press can commit something the first press appeared to
+  // ignore. Separate from `movedTo`, because a click moves the cursor without
+  // revealing it, so going back to the keys resumes where your hand left off.
   //
   // (The other kind is a geographic cursor — crosswords' cell, scrabble's grid
   // — which says where you ARE and always shows. Don't make these agree.)
@@ -127,18 +129,20 @@ export function SelectionList<T>({
   }
 
   /**
-   * Take the keypress as the request to show the cursor, and say whether it
-   * ALSO gets to do its own job this time.
+   * A RELATIVE key (an arrow, a page) asking to move — call it in the `if`.
    *
-   * The first press of a RELATIVE key only reveals: "one row down from where I
-   * am" has no honest answer before there is a where-I-am, so it paints the
-   * resting row and the next press steps. An ABSOLUTE key (`Home`, `End`)
-   * names a destination instead of a direction, so it reveals and goes.
+   * It always reveals the cursor, and returns whether the key ALSO gets to
+   * move it: the first press does not, because "one row down from where I am"
+   * has no honest answer before there is a where-I-am. So that press paints
+   * the resting row and the next one steps.
+   *
+   * `Home` and `End` don't come through here. They name a destination rather
+   * than a direction, so they reveal and go in the same press.
    */
-  function reveal({ alsoActs }: { alsoActs: boolean }) {
+  function stepsAfterRevealing() {
     const wasHidden = !revealed
     setRevealed(true)
-    return alsoActs || !wasHidden
+    return !wasHidden
   }
 
   /** One visible page, measured rather than guessed: a constant would be wrong
@@ -167,32 +171,35 @@ export function SelectionList<T>({
       case 'ArrowUp':
         e.preventDefault()
         // Clamped to the ends — deliberately no wrap-around.
-        if (reveal({ alsoActs: false })) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
+        if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
         break
       case 'Home':
         e.preventDefault()
-        reveal({ alsoActs: true })
+        // Absolute: it named a destination, so it reveals AND goes.
+        setRevealed(true)
         moveTo(0)
         break
       case 'End':
         e.preventDefault()
-        reveal({ alsoActs: true })
+        setRevealed(true)
         moveTo(items.length - 1)
         break
       case 'PageDown':
         e.preventDefault()
-        if (reveal({ alsoActs: false })) moveTo(cursor + pageSize())
+        if (stepsAfterRevealing()) moveTo(cursor + pageSize())
         break
       case 'PageUp':
         e.preventDefault()
-        if (reveal({ alsoActs: false })) moveTo(cursor - pageSize())
+        if (stepsAfterRevealing()) moveTo(cursor - pageSize())
         break
       case 'Enter':
         e.preventDefault()
-        // Enter may not act on a row the player cannot see, so while the
-        // cursor is hidden it only reveals — the mirror of Space, which never
-        // acts at all.
-        if (reveal({ alsoActs: false })) activate(cursor)
+        // INERT while the cursor is hidden, and it does not reveal either.
+        // Acting on a row the player cannot see would take them somewhere they
+        // did not choose, and revealing here would make a doubled press — the
+        // natural response to a key that seemed to do nothing — commit.
+        // An arrow is the way in.
+        if (revealed) activate(cursor)
         break
       case ' ':
         // Trapped so it cannot scroll the box, and then inert: choosing here
