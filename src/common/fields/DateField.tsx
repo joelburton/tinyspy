@@ -15,8 +15,8 @@ type Props = AllFieldProps<string> & {
  *
  * One caller today, `<SetupNextPuzzleSection>`, and named for the same reason
  * `<NumberField>` is: the raw `<input>` left standing is the one the next
- * setting copies. crosswords has two more of these and will want this when its
- * area comes.
+ * setting copies. crosswords' NYT picker has one more and will want this when
+ * that game's area comes.
  *
  * **Deliberately plain**, and that is inherited from the field it came out of:
  * the common case is leaving it empty, so it should read as a secondary control

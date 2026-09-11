@@ -7,8 +7,8 @@ import styles from './CheckboxField.module.css'
 
 type Props = AllFieldProps<boolean> & {
   onChange: (checked: boolean) => void
-  /** What the box means, sitting beside it — "Unique letters only". The whole
-   *  row is the click target, so this is inside the `<label>`. */
+  // What the box means, sitting beside it — "Unique letters only". The whole
+  // row is the click target, so this is inside the `<label>`.
   children: ReactNode
 }
 
@@ -17,12 +17,12 @@ type Props = AllFieldProps<boolean> & {
  *
  * The one field whose caption sits BESIDE the control rather than above it, so
  * it wears `<Field>` for the wrapper and keeps its own inline row inside. With
- * no `label` and no `help` — which is every caller today — the wrapper adds
- * nothing visible.
+ * no `label` and no `help` the wrapper adds nothing visible; with them it
+ * draws the same caption and help line every other field gets.
  *
- * A COMPONENT rather than a shared class, because the six lines of markup around
- * the box are the part that gets re-typed. A class makes two copies of that
- * markup agree on their paint; only a component stops there being two.
+ * A COMPONENT rather than a shared class, because the markup around the box
+ * is the part that gets re-typed. A class makes two copies of that markup
+ * agree on their paint; only a component stops there being two.
  *
  * A radio group is `<RadioRow>`, a dropdown is `<SelectField>`, a number is
  * `<NumberField>`. This is the box.

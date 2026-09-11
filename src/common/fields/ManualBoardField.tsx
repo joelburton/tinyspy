@@ -20,9 +20,9 @@ type Props = AllFieldProps<string> & {
  * TYPE THE BOARD YOURSELF — the shared field for entering a game's starting
  * letters by hand, instead of letting the server roll them.
  *
- * Five games want it: spellingbee and wordwheel (a center letter plus the outer
- * ones), wordiply (the starter word), letterboxed (the four sides), boggle (the
- * whole grid). One field type, named once.
+ * The games that want it: spellingbee and wordwheel (a center letter plus the
+ * outer ones), wordiply (the starter word), letterboxed (the four sides),
+ * boggle (the whole grid). One field type, named once.
  *
  * **It is one `<input type="text">`**, deliberately, even where the value has
  * parts. spellingbee takes `A-CHIROT` in a single box and splits on the hyphen
@@ -32,8 +32,9 @@ type Props = AllFieldProps<string> & {
  * string was built on: read a board you liked off the info column or the
  * printout, paste it into a friend's dialog, get the same puzzle.
  *
- * The name says "board" and wordiply's starter is not one; kept anyway because the alternative names for "the letters you'll be playing
- * with" are worse, and four of the five genuinely are boards.
+ * The name says "board" and wordiply's starter is not one; kept anyway because
+ * the alternative names for "the letters you'll be playing with" are worse,
+ * and the rest genuinely are boards.
  */
 export function ManualBoardField({
   name,

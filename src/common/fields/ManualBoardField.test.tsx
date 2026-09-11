@@ -38,7 +38,6 @@ function Harness({ groups }: { groups?: number[] }) {
   )
 }
 
-
 expectFieldContract((props) => (
   render(<ManualBoardField value="" onChange={() => {}} placeholder="ABC" chars={3} {...props} />)
 ))

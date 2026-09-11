@@ -5,76 +5,70 @@ import { cls } from '../utils/cls'
 import styles from './field.module.css'
 
 type Props = {
-  /** The caption above the control. A ReactNode, because the create-club
-   *  form's carries a live hint beside the word ("Club name (becomes handle:
-   *  jb)").
-   *
-   *  Omit it for no caption row at all — some fields ARE the surface, like a
-   *  search box in a one-input panel where the titlebar already says what you
-   *  are searching. Those are still found by their `name`, which every field
-   *  carries whether or not it draws a caption. */
+  // The caption above the control. A ReactNode, because the create-club
+  // form's carries a live hint beside the word ("Club name (becomes handle:
+  // jb)").
+  //
+  // Omit it for no caption row at all — some fields ARE the surface, like a
+  // search box in a one-input panel where the titlebar already says what you
+  // are searching. Those are still found by their `name`, which every field
+  // carries whether or not it draws a caption.
   label?: ReactNode
-  /**
-   * WHAT THIS FIELD IS ABOUT — a sentence under the caption and above the
-   * control. "Return dumped tiles to the bag instead of the bunch."
-   *
-   * Distinct from `entryHelp`, which is about the TYPING rather than the
-   * setting: this says what the thing does, that says how to enter it. Two
-   * sentences with different jobs, so two slots, and neither has to guess where
-   * the other went.
-   *
-   * A ReactNode, not a string: 4 of the app's 43 carry a `<strong>` and 6 more
-   * an interpolated value.
-   */
+  // WHAT THIS FIELD IS ABOUT — a sentence under the caption and above the
+  // control. "Return dumped tiles to the bag instead of the bunch."
+  //
+  // Distinct from `entryHelp`, which is about the TYPING rather than the
+  // setting: this says what the thing does, that says how to enter it. Two
+  // sentences with different jobs, so two slots, and neither has to guess where
+  // the other went.
+  //
+  // A ReactNode, not a string: some carry a `<strong>` or an interpolated
+  // value.
   help?: ReactNode
-  /** HOW TO TYPE IT — advice about the entry, under the control. Where `help`
-   *  says what the setting is, this says how to give it: "3–15 characters, must
-   *  start with a letter", "abc float · ABC pinned in place". */
+  // HOW TO TYPE IT — advice about the entry, under the control. Where `help`
+  // says what the setting is, this says how to give it: "3–15 characters, must
+  // start with a letter", "abc float · ABC pinned in place".
   entryHelp?: ReactNode
-  /** WHAT'S WRONG with what's there now. Rings the control in the fault color
-   *  (via `aria-invalid`, which the control sets) and says why underneath.
-   *
-   *  For the problem that belongs to ONE entry. The message about the form as a
-   *  whole goes on its `<FailureLine>` instead — that is the split the form's
-   *  errors object spells out, one key per field plus one for the form. */
+  // WHAT'S WRONG with what's there now. Rings the control in the fault color
+  // (via `aria-invalid`, which the control sets) and says why underneath.
+  //
+  // For the problem that belongs to ONE entry. The message about the form as a
+  // whole goes on its `<FailureLine>` instead — that is the split the form's
+  // errors object spells out, one key per field plus one for the form.
   error?: string | null
-  /**
-   * THE FIELD'S NAME — the same string the control wears, the key its value is
-   * sent under, and the key its error is filed at.
-   *
-   * Stamped twice, on purpose. `data-field` goes on the WRAPPER, so the whole
-   * block — caption, help, control, entry help, error — is addressable as one
-   * field: a test scopes to it and asks what this field says, rather than
-   * searching the page and hoping only one thing matches. `data-field-error`
-   * goes on the error span, because inside that block the error and the entry
-   * help are both spans of prose and only the attribute tells them apart.
-   *
-   * Here rather than in each component, so no field can be the one that
-   * forgot, and so the wrapper — the part a caption assertion wants — always
-   * carries it.
-   *
-   * The failure all this is against is the one that LOOKS fine: a red sentence
-   * on screen, under a field, just not the field it is about. Reading the name
-   * off the markup proves identity; walking up from a control and guessing
-   * which span is the message only ever proved position.
-   */
+  // THE FIELD'S NAME — the same string the control wears, the key its value is
+  // sent under, and the key its error is filed at.
+  //
+  // Stamped twice, on purpose. `data-field` goes on the WRAPPER, so the whole
+  // block — caption, help, control, entry help, error — is addressable as one
+  // field: a test scopes to it and asks what this field says, rather than
+  // searching the page and hoping only one thing matches. `data-field-error`
+  // goes on the error span, because inside that block the error and the entry
+  // help are both spans of prose and only the attribute tells them apart.
+  //
+  // Here rather than in each component, so no field can be the one that
+  // forgot, and so the wrapper — the part a caption assertion wants — always
+  // carries it.
+  //
+  // The failure all this is against is the one that LOOKS fine: a red sentence
+  // on screen, under a field, just not the field it is about. Reading the name
+  // off the markup proves identity; walking up from a control and guessing
+  // which span is the message only ever proved position.
   name?: string
-  /** A GROUP of controls rather than one — a swatch list, a checkbox list. It
-   *  renders `<fieldset>` / `<legend>`, which is the element's actual job, and
-   *  needs no id because there is no single control to point at. */
+  // A GROUP of controls rather than one — a swatch list, a checkbox list. It
+  // renders `<fieldset>` / `<legend>`, which is the element's actual job, and
+  // needs no id because there is no single control to point at.
   group?: boolean
-  /** Where the field sits in ITS OWN parent. Placement is the caller's. */
+  // Where the field sits in ITS OWN parent. Placement is the caller's.
   className?: string
-  /**
-   * The control.
-   *
-   * **A function, for the single-control case, and that is the point.** `Field`
-   * generates the id and hands it over, so no component writes the
-   * caption/control association itself and none can get it wrong. The mistake
-   * it forecloses is a wrapping `<label>`, which takes its accessible name from
-   * its whole text content — swallowing the help and the error into it ("Word
-   * Letters only. Two letters or more.") where no test would see.
-   */
+  // The control.
+  //
+  // A FUNCTION, for the single-control case, and that is the point. `Field`
+  // generates the id and hands it over, so no component writes the
+  // caption/control association itself and none can get it wrong. The mistake
+  // it forecloses is a wrapping `<label>`, which takes its accessible name from
+  // its whole text content — swallowing the help and the error into it ("Word
+  // Letters only. Two letters or more.") where no test would see.
   children: ReactNode | ((id: string) => ReactNode)
 }
 

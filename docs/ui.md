@@ -456,7 +456,8 @@ where keys deliberately don't reach the game.
 Three categories:
 
 **1. Real forms** — things a player *fills out*. The setup dialog (including
-crosswords' date / series / upload tab), the profile form, claim-a-username, the
+crosswords' puzzle pickers, which are blocking modals of their own), the
+profile form, claim-a-username, the
 get-magic-link and login-with-code forms, and the confirm dialogs
 (`ConfirmationBlockingModal`, `SuspendConfirmationBlockingModal`, `FaultModal` — nobody "fills them
 out", but the panel owns the keyboard and its buttons need visible focus).

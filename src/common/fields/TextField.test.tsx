@@ -21,7 +21,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { TextField } from './TextField'
 import { expectFieldContract } from './fieldContract'
 
-
 expectFieldContract((props) => render(<TextField value="" onChange={() => {}} {...props} />))
 
 describe('TextField — the caption', () => {

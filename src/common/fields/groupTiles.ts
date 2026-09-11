@@ -3,11 +3,11 @@
 /**
  * Insert the dashes: take tiles, hand back `ABC-DEF-GHI-JKL`.
  *
- * ITS OWN MODULE, not a second export from `ManualBoardField.tsx`, because the field is not the only place a board is written down. A
- * setup section's summary shows the same value — `Custom board:
- * ABCD-EFGH-IJKL-MNOP` — and if it grouped by its own arithmetic the two could
- * disagree, which is the exact failure this area keeps finding. One function,
- * both surfaces.
+ * ITS OWN MODULE, not a second export from `ManualBoardField.tsx`, because the
+ * field is not the only place a board is written down. A setup section's
+ * summary shows the same value — `Custom board: ABCD-EFGH-IJKL-MNOP` — and if
+ * it grouped by its own arithmetic the two could disagree. One function, both
+ * surfaces.
  *
  * Anything past the last group runs on undashed rather than being dropped —
  * over-length input is the VALIDATOR's to complain about, in a sentence, and a

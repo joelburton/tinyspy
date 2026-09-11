@@ -7,7 +7,8 @@
  * `TextField.test.tsx` already covers the slots (help, entry help, error, and
  * that the last two appear together) through a real field. What it only ever
  * exercises is the middle branch: one control, taking the id. The other two
- * are `<CheckboxField>` and the group fields, and nothing tests them.
+ * are `<CheckboxField>`'s and the group fields', and this file is where they
+ * are pinned.
  *
  * The branch matters because getting it wrong is invisible on screen: a
  * `<label>` around a checkbox that already has its own nests two labels, and a

@@ -2,9 +2,9 @@
 
 /**
  * The form that OWNS ITS VALUES (see StandardForm.tsx) — and specifically the
- * four things only it can get wrong, each of which fails silently.
+ * things only it can get wrong, each of which fails silently.
  *
- * Everything else about it is exercised by the eight forms that use it. These
+ * Everything else about it is exercised by the forms that use it. These
  * are the properties a caller depends on without being able to see: that a
  * re-render can't reset what you are typing, that two writes in one tick both
  * survive, and that the setter is the same function each time.

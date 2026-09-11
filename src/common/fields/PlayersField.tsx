@@ -7,15 +7,15 @@ import type { Member } from '../members/member'
 import styles from './PlayersField.module.css'
 
 type Props = AllFieldProps<Set<string>> & {
-  /** The club roster, in the order it should be listed. */
+  // The club roster, in the order it should be listed.
   members: Member[]
-  /** The creating user. Always a player — their row is checked and disabled,
-   *  because you cannot start a game you are not in. */
+  // The creating user. Always a player — their row is checked and disabled,
+  // because you cannot start a game you are not in.
   selfId: string
-  /** Fired with WHO IS PLAYING NOW, like any other field reporting its new
-   *  value — not with the row that was clicked. The field has both the current
-   *  set and `selfId`, so it is the one place that can apply the toggle and the
-   *  can't-remove-yourself rule together. */
+  // Fired with WHO IS PLAYING NOW, like any other field reporting its new
+  // value — not with the row that was clicked. The field has both the current
+  // set and `selfId`, so it is the one place that can apply the toggle and the
+  // can't-remove-yourself rule together.
   onChange: (next: Set<string>) => void
 }
 

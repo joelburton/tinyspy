@@ -3,8 +3,8 @@
 /**
  * THE LOOKUP THE ROUTING TESTS RELY ON (see errorUnder.ts).
  *
- * It needs its own file because of how it fails. Six form tests use it, and
- * seven of those assertions are NEGATIVE — "this message did NOT land here". A
+ * It needs its own file because of how it fails. The form tests use it, and
+ * many of those assertions are NEGATIVE — "this message did NOT land here". A
  * broken `errorUnder` that always returned `null` would satisfy every one of
  * them while proving nothing, which is worse than not checking at all.
  *

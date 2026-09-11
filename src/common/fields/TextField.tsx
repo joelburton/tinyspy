@@ -6,7 +6,7 @@ import styles from './TextField.module.css'
 
 type Props = AllFieldProps<string> & {
   onChange: (value: string) => void
-  /** A textarea rather than an input, for a value with room to breathe. */
+  // A textarea rather than an input, for a value with room to breathe.
   multiline?: boolean
   rows?: number
   placeholder?: string

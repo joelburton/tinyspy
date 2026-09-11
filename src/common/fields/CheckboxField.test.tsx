@@ -2,8 +2,8 @@
 
 /**
  * ONE ON/OFF SETTING (see CheckboxField.tsx) — and the shape that makes it the
- * one field not built on `<Field>`: its caption sits BESIDE the box rather than
- * above it, so the words are inside the box's own `<label>`.
+ * one field whose caption sits BESIDE the box rather than above it: the words
+ * are inside the box's own `<label>`, with `<Field>` only as the wrapper.
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

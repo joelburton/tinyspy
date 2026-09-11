@@ -11,10 +11,10 @@ import styles from './CheckboxListField.module.css'
  *  something beside the words — EditClubModal draws a `<ModePill>` after the
  *  gametype's name. */
 export type CheckboxListOption = {
-  /** What lands in the value set when this option is ticked. */
+  // What lands in the value set when this option is ticked.
   value: string
   label: ReactNode
-  /** A second line under the label, for what the option means. */
+  // A second line under the label, for what the option means.
   description?: ReactNode
 }
 

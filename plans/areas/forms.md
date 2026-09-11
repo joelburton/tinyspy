@@ -69,6 +69,11 @@ members, `RadioRow`'s `prefix`, `PlayersField`'s `members` / `selfId` /
 `onChange`. A note on one member takes `//`; the `/**` stays on the types, the
 components and the exported functions. Same pass `members` and `lists` made.
 
+**WORKED 2026-09-11 (Joel: "do the no-decisions ones").** Every prop and
+member note in both folders is `//`. The `/**` stays on `Props`-level types
+(`CheckboxListOption`, `AllFieldProps`, `ContractProps`), the components, the
+exported helpers and `FIELD_NAME` and friends.
+
 ## F-forms-2 · `archaeology-in-docstrings` · The docstrings tell how the field family came to be
 
 Nearly every file spends its opening on the duplication it replaced rather
@@ -139,6 +144,9 @@ says "the exact failure this area keeps finding" — the sprint itself, in a
 docstring. The no-cite rule. In all three the sentence already carries the
 reason; the cite goes.
 
+**WORKED 2026-09-11.** The two IDs went with F-forms-2; `groupTiles.ts`'s
+sentence now ends at "the two could disagree", and its long line is wrapped.
+
 ## F-forms-4 · `stale-names-and-paths` · Names that no longer exist, and rosters that have moved on
 
 - `CreateClubPage` in `Field.tsx`, `TextField.tsx` and `TextField.module.css`.
@@ -159,6 +167,11 @@ reason; the cite goes.
   on the next edit above it; say the rule's name (base.css's `input, textarea`
   rule) and let the reader grep.
 
+**WORKED 2026-09-11.** Three sites went with F-forms-2; the rest now: the
+date field says crosswords' NYT picker has one more; the select says "a game's
+other setup selects compose it"; the two remaining `base.css:777` name the
+rule instead.
+
 ## F-forms-5 · `claims-the-code-contradicts` · Four sentences the file beside them disproves
 
 - `CheckboxField.tsx`: "With no `label` and no `help` — which is every caller
@@ -171,6 +184,12 @@ reason; the cite goes.
 - `PlayersField.tsx`: "every other field a setup form has is one of these —
   `<SetupTimerSection>`, `<DictBandField>`, `<SetupCoopStyleSection>`". Two of
   the three are sections.
+
+**WORKED 2026-09-11.** The players field's went with F-forms-2. The checkbox
+says what the wrapper draws when `label` or `help` IS passed; its test header
+says the caption sits beside the box "with `<Field>` only as the wrapper";
+`Field.test.tsx`'s header says this file is where the other two branches are
+pinned.
 
 ## F-forms-6 · `counts` · Tallies that were wrong when written or will be
 
@@ -191,6 +210,11 @@ reason; the cite goes.
 
 Say the condition in each; where the number IS the point (the five games are
 the reason the field exists), name the games or say "the board games".
+
+**WORKED 2026-09-11, all but one.** Each count says its condition; the board
+field names its games without counting them. **Still open, for Joel:** "all
+six bands" in `DictBandField.tsx` and its test — the data's shape rather than
+a caller census. Keep, or say "every band"?
 
 ## F-forms-7 · `vocabulary-conversion` · The raw values, and which are decisions
 
@@ -319,6 +343,10 @@ Joel's call; the item should not outlive the area either way.
 - `DictBandField.test.tsx` is the one spec in the folder with no header
   docstring.
 
+**WORKED 2026-09-11.** The broken sentence went with F-forms-2; the two long
+lines are wrapped, the four doubled blanks are single, and the band field's
+spec has a four-line header.
+
 ### Prose elsewhere, turned up by this area's reading
 
 ## F-forms-12 · `ui-md-real-forms-crosswords-tab` · docs/ui.md names a crosswords setup "tab" that is not one
@@ -328,6 +356,11 @@ series / upload tab)". crosswords' puzzle source is `PuzzleSourceField` and
 three picker modals; whether any of it is a tab wants checking against that
 game's setup form when the finding is worked, and the sentence rewritten to
 what is there.
+
+**WORKED 2026-09-11.** Checked: crosswords' setup form's own docstring says
+"ONE field, not four tabs", and `PuzzleSourceField` is four buttons each
+opening a blocking modal. ui.md now says "crosswords' puzzle pickers, which
+are blocking modals of their own".
 
 ### Ruled already, recorded so the re-read does not re-raise them
 

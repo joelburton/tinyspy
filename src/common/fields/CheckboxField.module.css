@@ -15,8 +15,8 @@
   cursor: pointer;
 }
 
-/* Override base.css's input padding (`0.6rem 0.9rem`, base.css:777) — that
- * sizes text inputs, not a checkbox. */
+/* Override base.css's `input, textarea` padding — that sizes text inputs,
+ * not a checkbox. */
 /* @@ */ .row input {
   margin: 0;
 }

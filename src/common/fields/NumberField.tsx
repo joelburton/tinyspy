@@ -9,8 +9,8 @@ type Props = AllFieldProps<number> & {
   min?: number
   max?: number
   step?: number
-  /** How many characters wide the box is, so a 1-digit band doesn't get a
-   *  20-character input. */
+  // How many characters wide the box is, so a 1-digit band doesn't get a
+  // 20-character input.
   chars: number
 }
 

@@ -10,8 +10,8 @@ type Option<T> = { value: T; label: ReactNode }
 type Props<T extends string | number> = AllFieldProps<T | undefined> & {
   options: Option<T>[]
   onChange: (value: T) => void
-  /** Optional leading text inside the row, before the options
-   *  (boggle: "Minimum word length:"). */
+  // Optional leading text inside the row, before the options
+  // (boggle: "Minimum word length:").
   prefix?: ReactNode
 }
 
@@ -35,7 +35,7 @@ type Props<T extends string | number> = AllFieldProps<T | undefined> & {
  *   long list collapses into `<SelectField>`'s menu — which is why the
  *   co-op section's style is a radio row and its first-player picker is not.
  *
- * **Revealing a follow-up doesn't make it a tab.** Three of these do it —
+ * **Revealing a follow-up doesn't make it a tab.** Several of these do it —
  * "turns" reveals the first-player dropdown, `ai_count > 0` reveals Skill,
  * the timer's "Down" enables its MM:SS box. That is a further question that
  * only exists for one answer, not an alternative view of the same job.

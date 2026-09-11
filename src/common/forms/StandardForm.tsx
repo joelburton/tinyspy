@@ -30,7 +30,7 @@ import styles from './StandardForm.module.css'
  * `<TextField name="club_name" />` and nothing else, at the price of both of
  * those. Nothing here is deep enough to need it: every field is either in the
  * form's own JSX or is already handed `{ value, onChange }` by its parent, the
- * way the sixteen setup bodies are.
+ * way every game's setup body is.
  *
  * ─── `initialValues` is read once ────────────────────────────
  * At mount, and never again, so nothing can reset under someone mid-type. A
@@ -58,12 +58,12 @@ export function StandardForm<V extends object>({
   children,
   ...rest
 }: Omit<ComponentPropsWithRef<'form'>, 'onSubmit' | 'children'> & {
-  /** The starting values, keyed by field `name`. Read at mount only. */
+  // The starting values, keyed by field `name`. Read at mount only.
   initialValues: V
-  /** Submitted, with what the fields hold. The default action is already
-   *  prevented — a form's job here is to hand over values, not an event. */
+  // Submitted, with what the fields hold. The default action is already
+  // prevented — a form's job here is to hand over values, not an event.
   onSubmit: (values: V) => void
-  /** The fields, given what to render and how to write back. */
+  // The fields, given what to render and how to write back.
   children: (form: {
     values: V
     set: <K extends keyof V>(name: K, value: V[K]) => void

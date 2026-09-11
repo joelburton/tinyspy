@@ -1,11 +1,16 @@
 // cs-audited-forms
 
+/**
+ * WHICH DICTIONARY (see DictBandField.tsx) — that the bands are listed with
+ * their samples, the out-of-range ones shown but disabled, and the pick comes
+ * back as a NUMBER, since it goes straight into a setup key the SQL reads as
+ * one.
+ */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DictBandField } from './DictBandField'
 import { expectFieldContract } from './fieldContract'
-
 
 expectFieldContract((props) => (
   render(<DictBandField value={1} onChange={() => {}} length={null} minBand={1} maxBand={6} {...props} />)

@@ -12,7 +12,7 @@
  *
  * **Shared assertions, not a shared table.** The knowledge of how to render
  * each field minimally has to live somewhere, and next to the field is where it
- * belongs — a table of fourteen rows in one file is the same data with the
+ * belongs — a table of every field in one file is the same data with the
  * locality thrown away, and leaves a field with no obvious home for its own
  * tests (which is how a "simple" field ends up never getting any).
  */
@@ -33,8 +33,8 @@ export const FIELD_ERROR = 'That will not do.'
 /** The props the contract varies. A field's own test supplies everything else
  *  — its value, its options, whatever it needs to render at all. */
 export type ContractProps = {
-  /** Required, as it is on `AllFieldProps` — every call below passes it, and a
-   *  field spreading these props must end up with one. */
+  // Required, as it is on `AllFieldProps` — every call below passes it, and a
+  // field spreading these props must end up with one.
   name: string
   label?: string
   help?: string
@@ -44,9 +44,9 @@ export type ContractProps = {
 }
 
 type Options = {
-  /** Does this field draw a control you can operate? `<ReadOnlyField>` does
-   *  not — it is a field in every way except that it shows as text — so the
-   *  disabled assertion has nothing to check and is skipped for it. */
+  // Does this field draw a control you can operate? `<ReadOnlyField>` does
+  // not — it is a field in every way except that it shows as text — so the
+  // disabled assertion has nothing to check and is skipped for it.
   interactive?: boolean
 }
 
