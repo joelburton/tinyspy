@@ -195,6 +195,31 @@ said it should. `FilterSelect.module.css`'s header went earlier, with F-lists-8
 - `FilterSelect.module.css` `.popover`: "docs/mobile.md still carries 'cap
   handles at 10' as a TODO" — mobile.md has no such line.
 
+**PART-WORKED 2026-09-11 (Joel: "evaluate if they're useful; if so, update
+them. else, trim them").**
+
+Trimmed rather than updated, because each was a roster of callers and a roster
+always rots — it had already:
+
+- `SelectionList.module.css`'s header loses its list of sites (which is where
+  the scrabble claim lived). The header says what the file paints.
+- The `ref` prop's note loses ClubPage: it now says what the ref is FOR — a
+  page putting the keyboard back on the list after a dialog closes — which is
+  true of both callers and stays true of a third.
+- `FilterSelect`'s lede loses "the in-game info-panel filters" for what the
+  component does: narrows what a list or readout shows, and never takes focus.
+
+`filterSelectHelpers.ts`'s two (the scope and the count of test files) went
+with F-lists-5 (rationale-in-docstrings).
+
+**STOPPED on the last one, because the finding understated it.** The `.popover`
+and `.option` comments do not merely cite a TODO that isn't there — they both
+assert usernames are UNCAPPED ("an uncapped username can be longer than
+`.popover`'s max-width"). Usernames are capped at 15 characters by a CHECK on
+`common.profiles` (`^[a-z][a-z0-9-]{2,14}$`, docs/common.md), and the cap's
+stated reason is mobile legibility. So the premise is false, not just the
+citation. Raised with Joel.
+
 ## F-lists-7 · `two-names-for-the-closed-button` · "trigger" and "closed select" for one element
 
 The closed button is `.closedSelect` in both modules and "the closed select"

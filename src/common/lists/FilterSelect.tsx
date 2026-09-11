@@ -19,8 +19,8 @@ export type FilterOption = {
 }
 
 /**
- * A dropdown for the **in-game** info-panel filters (the word list's KIND/WHO
- * pickers, and the turn log's player picker next) that never takes focus.
+ * A dropdown that narrows what a list or a readout shows, and **never takes
+ * focus**.
  *
  * **Why not a `<select>`.** A native select holds the keyboard, and the app
  * treats that correctly and fatally: `isEditableField` counts `SELECT`

@@ -52,8 +52,8 @@ type Props<T> = {
   frozen?: boolean
   // Names the list for the container element.
   label: string
-  // The container element. ClubPage compares it against `document.activeElement`
-  // to toggle Tab between its two lists, and focuses it when a setup dialog
+  // The container element — the thing that holds focus. A page takes this to
+  // put the keyboard back on the list, after a dialog it opened from a row
   // closes.
   ref?: Ref<HTMLDivElement>
 }

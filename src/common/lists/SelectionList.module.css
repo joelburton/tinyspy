@@ -4,12 +4,10 @@
  * SelectionList.module.css — the list you move a cursor through and
  * choose from.
  *
- * Your clubs on the homepage, a club's games, the games you can start,
- * the crossword library, scrabble's suggested moves. One framed panel
- * with the rows abutting inside it and a hairline between them — not a
- * stack of separately-tinted tiles. The frame is what says "this is a
- * list", so a row draws no fill and no border of its own; a second
- * container would compete with the first.
+ * One framed panel with the rows abutting inside it and a hairline
+ * between them — not a stack of separately-tinted tiles. The frame is
+ * what says "this is a list", so a row draws no fill and no border of
+ * its own; a second container would compete with the first.
  *
  * A MODULE, not a global pattern, so nothing can wear this look without
  * rendering the component — the same rule PageHeaderButton follows. `fills`
