@@ -200,6 +200,8 @@ The pattern is: **mock at the lowest layer that lets you write the test simply**
 - **`act()` around state changes from mock callbacks.** When a test fires a fake realtime event or auth callback, React's act wrapper makes sure the resulting re-render flushes before we assert.
 - **No snapshot tests.** They drift and get accepted blindly.
 - **`mock` calls scoped per-test, not globally.** Vitest's `vi.mock` is fine, but prefer `vi.spyOn` inside individual tests when possible — keeps the mocking footprint visible at the use site.
+- **Three rules for a test that touches an action** ([`common/actions`](../src/common/actions/doc.md)). A surface that takes an action it does not bind gets [`boundActionFixture(id)`](../src/common/actions/boundAction.fixture.ts) — the registry's real fixed half with a `vi.fn()` run — so the test asserts which action fired without a React tree and the dispatcher. A test that fires a confirming action for real mounts `<ConfirmationHost />`, because the host lives in `App.tsx` and a question with no host is answered no. A test that presses a key mounts `useActionDispatcher`, because a bare render binds actions with nothing feeding them keys.
+- **Find a command by its id, not its words**, where the words vary. `describe()` renames a control per game and per state, so `getByRole('button', { name: /reveal/i })` breaks the first time a game says it better; ask for `[data-action="act-reveal"]` while keeping the role (in e2e, `actionButton` / `actionRow` from `e2e/helpers/actions.ts`). The words are the right handle only where the words are the subject of the test.
 
 ### What we don't do
 

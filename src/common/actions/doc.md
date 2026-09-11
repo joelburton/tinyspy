@@ -91,6 +91,55 @@ but unused: it is free on macOS and the browser's on Windows and Linux, so a
 Ctrl chord would work here and fail for a friend on a PC. `⌥` is the convention
 for a game chord.
 
+**Two gates come before any pass, and they are the app's, not an action's.** A
+keystroke aimed at a focused text field belongs to that field, and one aimed at
+anything inside a floating panel belongs to the panel; neither reaches a
+binding. The field gate is the one an action can opt out of, through `inField`
+on its registry row: `'never'` (the default), `'game-inputs'` (from a game's
+own input, marked `data-game-input`, but not from chat or a form — the shell's
+`/ ? ~` work this way, so you can reach chat mid-clue), or `'always'`
+(crosswords' Tab, and nothing else). The panel gate is absolute.
+
+**A held key fires only an action that declares `repeat`.** The entry keys do —
+letters, ⌫, the arrows, Space, Tab — because repeating is the point; a command
+does not, so holding `+` cannot start games at the OS repeat rate.
+
+**A binding that is here but disabled still keeps its key from the browser.**
+The passes skip it so a sibling that wants the key gets it, but when nothing
+takes the key a disabled match prevents the default, so Space with no legal
+peel does not scroll the page. A hidden binding leaves the key alone.
+
+**The live half has two knobs besides `run` and `describe`.** `terminal` is
+what skips the registry's question — at terminal there is nothing left to
+interrupt — and a binding whose row carries a `confirm` passes it. `runAlternative`
+is the body for a question's second answer, and its presence is what selects
+that question. A `BoundAction` also carries `pending`, true from the press until
+the run settles, the question included; every surface reads it to gray.
+
+**The shell's four keys are bound once, at the app root.** `AppActionsHost`
+binds `act-open-chat`, `act-open-menu`, `act-lookup-word` and
+`act-anagram-finder` and owns the two dialogs two of them open, so a page gets
+them by existing. Chat answers `hidden` on a page with no chat panel mounted.
+
+**A surface can show an action somebody else bound.** `useAppAction(id)` hands
+back the live binding for an id — the game menu's chat row is the case, and so
+is crosswords' scratchpad row: the key is bound by the header mark, and the row
+should be that action rather than a second copy of its name and key. Null when
+nothing has bound it, and the caller drops the row.
+
+**The key list is one row per command.** `<KeyList>`, at the bottom of every
+help companion, loops over the bound actions that have a key and are not
+hidden: the first key, and what the action is called at that moment. An action
+bound twice — `act-end-game`, by the game and by the page for the pause overlay
+— is listed once, with the words of the binding the dispatcher would fire.
+
+**A button's bubble teaches the key, but its name stays its name.** The bubble
+is `nameWithKey`: the words with the first chord on the end, "New game · +",
+spelled one way for `<ActionButton>` and for a bespoke control alike — or the
+reason `describe()` gives, in its place. The accessible name is the words alone:
+a standard button would take its name from the tooltip, and "End game · ⌥⌫" is
+not what the button is called, so `<ActionButton>` says the name itself.
+
 **A pattern is one action, not twenty-six.** "Any letter", "any arrow", "any
 key" are `KeyPattern`s, and the pressed key is handed to the action's `run`. The
 two any-key behaviors differ in one property: leaving the history viewer
@@ -164,3 +213,12 @@ and the popover keeps its keys to itself), so the only staleness reachable is a
 change arriving from another player over realtime while the menu sits open;
 closing and reopening it is the fix, and clicking the stale row is safe
 regardless.
+
+**Testing a surface that takes an action it does not bind** — a game's
+`ctx.menu.actBackToClub`, a `<MoveRow>`'s two keys, a menu built from rows —
+uses `boundActionFixture(id)`: the registry's real fixed half with a `vi.fn()`
+run, so the test asserts which action fired without dragging a React tree and
+the dispatcher in. A test that fires a confirming action for real mounts
+`<ConfirmationHost />`, since the host lives in `App.tsx` and a question with no
+host is answered no. And a test that presses a key mounts `useActionDispatcher`,
+because a bare render binds actions with nothing feeding them keys.

@@ -9,6 +9,12 @@
 
 ## Soon
 
+- **The info column's action box does not reserve its height.** The design for
+  the action row was a container that reserves the size of its largest state,
+  so the terminal set and the play set both fit without the box moving; today
+  `.infoActions` reserves nothing and each game keeps its own `over ?` split.
+  Decide whether to build the reserved box (the no-reflow rule argues for it)
+  or record that the per-game split is the shape.
 - **A contract-slot guard, per MOUNT POINT.** Common CSS reads custom
   properties a game fills in and no file declares (`--cols`, `--grid-gap`,
   `--max-tile-width`, the bee games' `--board-units-*`, `--rank-text`, …;
