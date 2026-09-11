@@ -570,7 +570,7 @@ Two boundary rules, because both edges leak: **a common component's module holds
 **What is NOT a rung.** Things that attach to a layer instead of occupying one, which is what keeps the list short:
 
 - **a scrim** sits one BELOW its owner (`FloatingPanel` paints it at `calc(… - 1)`);
-- **a `<FilterSelect>` dropdown** sits just ABOVE its host, `z-index: calc(var(--z-host, var(--z-page)) + 1)`. A host that isn't the page sets `--z-host` on itself, and exactly one does today: `.infoCol`, as a **custom property only** — giving it a `z-index` or a `position` would make it a stacking context or a containing block and move where a dropdown anchors;
+- **a `<FilterSelect>` dropdown** sits just ABOVE its host, `z-index: calc(var(--z-host, var(--z-page)) + 1)`. A host that isn't the page sets `--z-host` on itself, as a **custom property only** — giving it a `z-index` or a `position` would make it a stacking context or a containing block and move where a dropdown anchors;
 - **a tooltip** goes to the absolute top and needs no host at all.
 
 **What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 1000.

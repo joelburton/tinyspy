@@ -103,10 +103,10 @@
   position: absolute;
   top: calc(100% + 2px);
   right: 0;
-  /* A SATELLITE — the only one left. It has to beat whatever CONTAINS it (an
-     info column today, a form tomorrow), which as a rung would mean outranking
-     a blocking modal, absurd for a filter. So it reads its host's tier, and a
-     host that isn't the page sets `--z-host` on itself; `.infoCol` does.
+  /* A SATELLITE. It has to beat whatever CONTAINS it (an info column, a form),
+     which as a rung would mean outranking a blocking modal — absurd for a
+     filter. So it reads its host's tier, and a host that is not the page
+     declares `--z-host` on itself.
      docs/code-conventions.md → The z- layers, "what is NOT a rung". */
   z-index: calc(var(--z-host, var(--z-page)) + 1);
   min-width: 100%;
