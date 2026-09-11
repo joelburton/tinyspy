@@ -6,6 +6,10 @@
   (`breakdownLabel` / `-List` / `-Count`) are read by nothing — the
   per-player breakdown they styled was replaced. `cssClasses.test.ts` holds
   them in `DEAD_CLASS_PENDING`.
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
 
 ## Soon
 

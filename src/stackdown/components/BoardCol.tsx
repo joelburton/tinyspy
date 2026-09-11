@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
 import { useFlash } from '@/common/move-flash/useFlash'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
@@ -174,6 +175,10 @@ export function BoardCol({
   // bears it: the word is the selection order, so an ambiguous letter can't
   // pick for you. 0 matches is an error; >1 flashes the candidates and asks you
   // to click one. A pattern action, so it is handed whichever letter fired it.
+  // Any key is the next move, so any key drops the previous move's pill — the
+  // rule every game follows, bound here because stackdown mounts no EntryRow.
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+
   useBoundAction('act-pick-tile', {
     describe: () => (playable ? 'active' : 'disabled'),
     run: (key) => {

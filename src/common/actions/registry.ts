@@ -259,6 +259,11 @@ export const ACTIONS = {
   'act-reveal': { label: 'Reveal', icon: IconRevealSolution, tone: 'destructive' },
   'act-hint': { label: 'Hint', icon: IconHint, tone: 'caution' },
   'act-exchange': { label: 'Exchange', icon: IconExchange },
+  // Two ways to give a turn up, and they are different acts. `act-pass` is
+  // scrabble's: forgoing a move is UNCOMMON there and costs you the turn's
+  // points, so it wears caution. `act-end-turn` is codenamesduet's: stopping
+  // your guesses is an ordinary, every-turn decision, so it is a plain button
+  // the guesser reaches for.
   'act-pass': { label: 'Pass', icon: IconEndTurn, tone: 'caution' },
   'act-end-turn': { label: 'End turn', icon: IconEndTurn },
   'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
@@ -331,9 +336,18 @@ export const ACTIONS = {
   'act-advance-cell': { label: 'Move on one cell', keys: [named(' ', 'Space')], repeat: true },
   'act-peek-cell': { label: 'Peek at the cell', keys: [named(' ', '⇧Space', true)] },
   'act-jump-word-edge': { label: 'Jump to the word edge', keys: [{ pattern: 'arrow', shift: true, label: '⇧ + arrow' }] },
-  'act-next-clue': { label: 'Next clue', keys: [named('Tab', '⇥')], inField: 'always' },
-  'act-previous-clue': { label: 'Previous clue', keys: [named('Tab', '⇧⇥', true)], inField: 'always' },
+  // Repeat: a solver holds Tab to walk the clues, the way they hold an arrow.
+  'act-next-clue': { label: 'Next clue', keys: [named('Tab', '⇥')], inField: 'always', repeat: true },
+  'act-previous-clue': { label: 'Previous clue', keys: [named('Tab', '⇧⇥', true)], inField: 'always', repeat: true },
   'act-jump-to-number': { label: 'Jump to a clue number', keys: [char('#')] },
+  // The peek describes the cell you were on, so the next key — any key, a
+  // command chord or Escape included — puts it away and still does its own
+  // job. A watcher, like dismissing feedback; live only while a peek is up.
+  'act-drop-peek': {
+    label: 'Put the peek away',
+    keys: [{ pattern: 'any', label: 'any key' }],
+    consumes: false,
+  },
   'act-mark-right-edge': { label: 'Mark the right edge', keys: [char('|')] },
   'act-mark-bottom-edge': { label: 'Mark the bottom edge', keys: [char('_')] },
 

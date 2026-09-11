@@ -23,8 +23,8 @@ import shared from '@/common/game-page/PlayArea.module.css'
  *     own reason when it can't act ("need ≥ 7 tiles in the bag", "select rack
  *     tiles first"), so this row places it and explains nothing.
  *   - **Pass** (`act-pass`, which HIDES itself in coop; the end-turn octagon
- *     de-emphasized to icon-only + secondary — passing isn't the main move here,
- *     so it doesn't carry the primary weight codenamesduet's pass does).
+ *     de-emphasized to icon-only + secondary, in caution amber — forgoing a
+ *     move is uncommon here, unlike codenamesduet's every-turn `act-end-turn`).
  *   - **Submit** (`act-submit`, drawn by `SubmitWithScore`) — the primary
  *     action, doubling as the live score preview ("+score", or an em-dash on an
  *     empty board). Enabled for any placed tiles (an illegal shape is explained

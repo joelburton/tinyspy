@@ -17,6 +17,19 @@
   before believing it**: end a game manually and read the pill. The chain
   may be unreachable for `ended`, in which case the finding is that the code
   cannot say so.
+- **Three controls are unmounted behind JSX guards while their bindings say
+  otherwise.** `HandCard` drops `<ShuffleButton>` once frozen
+  (`showControls`) while `act-shuffle` still answers `active` whenever tiles
+  remain, so `⌥Z` shuffles a frozen hand and Help lists a key with no control
+  on screen; `PlayerBoard` drops Peel and Check words behind
+  `!isTerminal && !isConceded` while `act-peel` and `act-check-board` answer
+  `disabled`, so the menu and key list show gray rows for controls that are
+  gone. The bindings should answer `hidden` when frozen and the guards go —
+  one answer read by everything.
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
 
 ## Soon
 

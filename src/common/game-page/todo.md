@@ -2,6 +2,11 @@
 
 ## Bugs
 
+- `act-back-to-club` answers `active` before `clubHandle` has loaded, and
+  `requestBackToClub` then returns silently. `act-new-game-from-setup` beside
+  it already answers `hidden` for that moment; this one should answer
+  `disabled`.
+
 ## Soon
 
 - **A contract-slot guard, per MOUNT POINT.** Common CSS reads custom

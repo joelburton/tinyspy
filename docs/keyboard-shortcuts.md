@@ -32,9 +32,11 @@ which is a mode: a key with a past turn open means "back to the live board"),
 then the **commands**, in the order the bindings mounted (a component mounted
 with its page sits ahead of the page; one mounted later sits behind it — a
 tiebreak, not a channel, since two live commands never share a chord). A hidden
-or disabled binding is
-skipped rather than swallowing the key, and anything matching nothing goes to
-the browser — which is what keeps Cmd-R working.
+or disabled binding is skipped rather than swallowing the key, so a sibling that
+wants it gets it; when nothing takes it, a disabled binding that matched still
+keeps it from the browser (Space with no legal peel does not scroll the page).
+Anything matching nothing at all goes to the browser — which is what keeps
+Cmd-R working.
 
 **"Innermost first" is a fact about React, not a decision**, so when two
 different commands are live and both answer one keystroke, the dispatcher says
@@ -327,6 +329,7 @@ The other board-cursor game (bananagrams' twin).
 | `A`–`Z` | Stage that tile from your rack at the cursor. |
 | `⌫` | Remove the tile behind the cursor / the last staged one. |
 | `Enter` | Play the staged word. Gray until there are tiles staged AND it's your turn, which is the same answer the Submit button reads — so the key and the button are never live at different moments. |
+| `⌥Z` | Shuffle the rack — a local reorder, never a move, and live at terminal. The ⟲ pill over the rack does the same thing. |
 
 The first keystroke while a past turn — or a teammate's shared move — is on the
 board exits back to live: that is the viewer's own any-key action, which the

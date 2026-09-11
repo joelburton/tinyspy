@@ -65,6 +65,7 @@ function setup(over: Partial<GridKeysOptions> = {}) {
       grid: grid(['...', '...', '...']),
       cursor: { row: 0, col: 0, dir: 'across' },
       pencil: false,
+      peeking: false,
       ...spies,
       ...over,
     })
@@ -154,13 +155,37 @@ describe('navigation keys', () => {
     s.view.unmount()
   })
 
-  it('⇧Space peeks without moving; a later key clears the peek', async () => {
+  it('a HELD Tab keeps walking the clues', async () => {
+    // Repeat is per action: a solver holds Tab the way they hold an arrow.
+    const s = setup()
+    await press({ key: 'Tab', repeat: true })
+    expect(s.setCursor).toHaveBeenCalled()
+    s.view.unmount()
+  })
+
+  it('⇧Space peeks without moving', async () => {
     const s = setup()
     await press({ key: ' ', shiftKey: true })
     expect(s.onPeek).toHaveBeenCalledWith(0, 0)
-    expect(s.clearPeek).not.toHaveBeenCalled()
+    expect(s.setCursor).not.toHaveBeenCalled()
+    s.view.unmount()
+  })
+
+  it('while peeking, ANY key puts the peek away and still does its own job', async () => {
+    const s = setup({ peeking: true })
     await press({ key: 'ArrowLeft' })
-    expect(s.clearPeek).toHaveBeenCalled()
+    expect(s.clearPeek).toHaveBeenCalledTimes(1)
+    expect(s.setCursor).toHaveBeenCalled()
+    // …a key no grid action wants included.
+    await press({ key: 'Escape' })
+    expect(s.clearPeek).toHaveBeenCalledTimes(2)
+    s.view.unmount()
+  })
+
+  it('with no peek up, a stray key clears nothing', async () => {
+    const s = setup()
+    await press({ key: 'Escape' })
+    expect(s.clearPeek).not.toHaveBeenCalled()
     s.view.unmount()
   })
 

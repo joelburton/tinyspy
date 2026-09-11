@@ -792,8 +792,9 @@ export function BoardCol({
 
   // ─── The rack + commit row's own commands ──────────────
   // Each is ONE binding behind its control, so what a button says about itself
-  // and what it does are the same answer. None has a key today; giving one is a
-  // line in the registry rather than a change here.
+  // and what it does are the same answer. A key comes with the binding: Shuffle
+  // answers `⌥Z` because the registry says so, and giving another one a key is
+  // a line there rather than a change here.
   const actShuffle = useBoundAction('act-shuffle', {
     // Live whenever there are tiles to reorder, a frozen board included:
     // rearranging your own rack is not acting on the game.

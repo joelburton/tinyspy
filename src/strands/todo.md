@@ -11,6 +11,10 @@
   and the rendering is unaffected (the pill derives outline from the mode).
   Delete the property. It believed a docstring on the pill component that is
   itself wrong (`src/common/feedback/todo.md`).
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
 
 ## Soon
 - **A race here has no way to stop the whole table.** Compete offers Concede

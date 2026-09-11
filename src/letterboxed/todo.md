@@ -5,6 +5,16 @@
 - Two `font-weight: 650` (`Board.module.css`, `PlayArea.module.css`). A
   weight must be a multiple of 100 (docs/ui.md → The non-color
   vocabularies); both are bugs to fix, not values to keep.
+- **`↓` half-works.** `<EntryRow>` mounts `useArrowHistory`, so
+  `act-clear-entry` is live here, but `handleChange` rejects `''` once the
+  chain carries a seed letter, so `↓` clears only an empty chain. Either the
+  binding is not offered here or clearing returns the entry to the seed.
+  (The permanently gray `↑` row beside it is the shared hook's —
+  `src/common/word-entry/todo.md`.)
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
 
 ## Soon
 

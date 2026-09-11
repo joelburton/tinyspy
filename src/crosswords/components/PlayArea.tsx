@@ -330,6 +330,7 @@ export function PlayArea(ctx: GamePageCtx) {
     onRebus: (r, c) => setRebus({ row: r, col: c }),
     onNumberJump: () => setNumberJumpOpen(true),
     onPeek: (r, c) => setPeek({ row: r, col: c, value: shownFillAt(r, c) ?? '' }),
+    peeking: peek !== null,
     clearPeek: () => setPeek(null),
     onMark: (r, c, side) => void handleMark(r, c, side),
   })

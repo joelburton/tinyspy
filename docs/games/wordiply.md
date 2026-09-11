@@ -493,7 +493,8 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
     extracted so wordle + wordiply share one; wordle themes its per-key tints via `--kbd-*`
     CSS vars, wordiply uses neutral keys). A physical keyboard still works via `useCaptureKeys`
     feeding the same `word` state — and the Enter and ⌫ CAPS are the two bound actions that
-    hook hands back, so a cap and its key can't disagree about whether the move is available. The keyboard sits **below** the grid and **doubles as the
+    hook hands back, so a cap and its key can't disagree about whether the move is available — and
+    both go gray on an EMPTY entry, so Enter there does nothing rather than asking for letters. The keyboard sits **below** the grid and **doubles as the
     feedback area**: a soft-reject line above the keys, and at terminal the keyboard is
     replaced by the verdict pill.
   - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD layout-stability rule; compact

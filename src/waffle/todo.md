@@ -2,6 +2,11 @@
 
 ## Bugs
 
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
+
 ## Soon
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every

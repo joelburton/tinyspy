@@ -48,8 +48,10 @@ export type GridKeysOptions = {
   onNumberJump: () => void
   /** Show a read-only zoom-peek of the current cell's fill. */
   onPeek: (row: number, col: number) => void
-  /** Put the peek away — every other key here drops it, so it can't linger over
-   *  a cursor that has moved on. */
+  /** Is a peek up right now? While it is, ANY key puts it away (`act-drop-peek`
+   *  below) — so it can't linger over a cursor that has moved on. */
+  peeking: boolean
+  /** Put the peek away. */
   clearPeek: () => void
   /** Cycle the cryptic edge mark on one side of a cell. The consumer reads the
    *  current mark and advances it. */
@@ -57,8 +59,8 @@ export type GridKeysOptions = {
 }
 
 /** What the caller gets back: the rebus binding, which is also a menu row. The
- *  other twelve are keys with no control of their own — nothing on screen "is"
- *  the left arrow. */
+ *  rest are keys with no control of their own — nothing on screen "is" the
+ *  left arrow. */
 export type GridKeys = {
   actRebus: BoundAction
 }
@@ -97,6 +99,7 @@ export function useGridKeyboard({
   onRebus,
   onNumberJump,
   onPeek,
+  peeking,
   clearPeek,
   onMark,
 }: GridKeysOptions): GridKeys {
@@ -107,15 +110,21 @@ export function useGridKeyboard({
   /** Changing the grid: everything `nav` allows, minus the frozen board. */
   const write = (): ActionState => (ready && !readOnly ? 'active' : 'disabled')
 
-  /** Every body below is written against a loaded board, and every one of them
-   *  drops the peek first — the zoom box describes the cell you were on. */
+  /** Every body below is written against a loaded board. */
   const onBoard =
     (fn: (grid: Cell[][], cursor: Cursor, key: string) => void) =>
     (key?: string) => {
       if (!grid || !cursor) return
-      clearPeek()
       fn(grid, cursor, key ?? '')
     }
+
+  // While a peek is up, ANY key puts it away — a watcher, so the same press
+  // still does whatever else it does. Which is why ⇧Space below can simply
+  // open one: the watcher has already cleared the last.
+  useBoundAction('act-drop-peek', {
+    describe: () => (peeking ? 'active' : 'hidden'),
+    run: clearPeek,
+  })
 
   useBoundAction('act-move-cursor', {
     describe: nav,
@@ -133,9 +142,8 @@ export function useGridKeyboard({
     run: onBoard((g, c) => setCursor(advanceAfterFill(g, c))),
   })
 
-  // ⇧Space peeks, and is the one key that does NOT clear the peek — it is the
-  // one that opens it. The cursor only ever sits on a fillable cell, so there
-  // is nothing to guard against.
+  // ⇧Space peeks. The cursor only ever sits on a fillable cell, so there is
+  // nothing to guard against.
   useBoundAction('act-peek-cell', {
     describe: nav,
     run: () => {

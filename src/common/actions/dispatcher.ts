@@ -73,8 +73,11 @@ function reportChordTie(claimants: BoundAction[]): void {
  *      want. That is a tiebreak, not a channel — see the stack's docstring.
  *
  * In every pass a hidden or disabled binding is skipped rather than swallowing
- * the key, so a key falls through to an outer binding that wants it. Anything
- * matching nothing goes to the browser, which is what keeps Cmd-R and Ctrl-Tab
+ * the key, so a key falls through to an outer binding that wants it. When no
+ * binding takes it, a DISABLED one that matched still keeps it from the
+ * browser: "here, and not right now" claims the key and does nothing with it,
+ * so Space with no legal peel does not scroll the page. Anything matching
+ * nothing at all goes to the browser, which is what keeps Cmd-R and Ctrl-Tab
  * working.
  *
  * **In development it also complains when two commands claim one keystroke** —
@@ -154,7 +157,21 @@ export function useActionDispatcher(): void {
         return true
       }
       if (answers(true)) return
-      answers(false)
+      if (answers(false)) return
+
+      // Nothing live took it. A binding that is here but DISABLED still keeps
+      // the key from the browser — Space with no legal peel must not scroll the
+      // page — without standing in the way of a sibling that wanted it, which
+      // the walks above already gave their chance.
+      for (const action of live) {
+        if (action.spec.consumes === false || action.spec.keys?.some(isWildcard)) continue
+        const key = action.spec.keys?.find((spec) => matches(spec, e))
+        if (!key || !reachable(action)) continue
+        if (action.describe().state === 'disabled') {
+          e.preventDefault()
+          return
+        }
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)

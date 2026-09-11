@@ -11,6 +11,10 @@
   home is `docs/games/scrabble.md` §11 (the move suggester) and §12 (the AI
   opponent). Redirect the ones that point at content the docstring
   summarizes; delete the ones whose reasoning is already inline.
+- `act-new-game` answers `active` before the game row has loaded, so an
+  early `+` asks the new-game question and then can do nothing. By the rule
+  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
+  beside it already answers `hidden` for it.
 
 ## Soon
 

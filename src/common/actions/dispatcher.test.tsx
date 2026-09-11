@@ -91,6 +91,29 @@ describe('the dispatcher — state', () => {
     view.unmount()
   })
 
+  it('a disabled binding still keeps the key from the browser', async () => {
+    // Space with no legal peel must not scroll the page; the binding is here,
+    // just not right now.
+    const { runs, view } = setup(['act-peel', { describe: () => 'disabled' as ActionState }])
+    const e = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    await act(async () => {
+      window.dispatchEvent(e)
+    })
+    expect(e.defaultPrevented).toBe(true)
+    expect(runs[0]).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('a hidden binding leaves the key to the browser', async () => {
+    const { view } = setup(['act-peel', { describe: () => 'hidden' as ActionState }])
+    const e = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    await act(async () => {
+      window.dispatchEvent(e)
+    })
+    expect(e.defaultPrevented).toBe(false)
+    view.unmount()
+  })
+
   // Two bindings in ONE component are in call order, and the earlier is the
   // "inner" one — see the stack's docstring. It is arbitrary and nothing should
   // lean on it; it is pinned only so a change to the walk is visible.

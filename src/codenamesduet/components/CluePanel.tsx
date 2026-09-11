@@ -425,9 +425,10 @@ function PassButton({
   // tooltip either way. No `busy` flag of its own: the action's run is
   // single-flight, so a second press while the first is out is dropped.
   const isPhone = useIsPhone()
-  const actPass = useBoundAction('act-pass', {
-    // duet's pass ENDS the turn as well as skipping the guess, and says so — the
-    // registry's bare "Pass" would undersell what it costs.
+  // `act-end-turn`, not scrabble's `act-pass`: stopping your guesses is an
+  // ordinary every-turn decision here, so it is a plain primary button rather
+  // than an amber one. It says what it costs — the turn, not just the guess.
+  const actEndTurn = useBoundAction('act-end-turn', {
     describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
     run: async () => {
       const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
@@ -444,5 +445,5 @@ function PassButton({
       }
     },
   })
-  return <ActionButton action={actPass} show={isPhone ? 'icon' : 'both'} />
+  return <ActionButton action={actEndTurn} show={isPhone ? 'icon' : 'both'} weight="primary" />
 }
