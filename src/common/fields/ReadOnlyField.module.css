@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /* A caption over a value you cannot change (see ReadOnlyField.tsx). The column
  * and the caption are the shared field's, so it lines up with the editable
@@ -6,5 +6,5 @@
 /* Bigger than the caption above it, because THIS is the thing you came to
  * read — the caption only says what it is. */
 /* @@ */ .value {
-  font-size: 1.05rem;
+  font-size: var(--font-size-1);
 }

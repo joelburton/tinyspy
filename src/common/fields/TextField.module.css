@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /* A labeled text box (see TextField.tsx). The column and the caption are the
  * shared `field.module.css`; only the control is this file's. */
@@ -16,5 +16,5 @@
 /* @@ */ textarea.control {
   resize: vertical;
   min-height: 3.5rem;
-  line-height: 1.4;
+  line-height: var(--line-height-1);
 }

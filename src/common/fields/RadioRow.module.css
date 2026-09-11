@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /*
  * A horizontal group of radio options (see RadioRow.tsx).
@@ -9,7 +9,7 @@
 /* @@ */ .radioRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--spacer-2);
 }
 
 /* A radio sits inline with its label; the input loses its default vertical
@@ -17,7 +17,7 @@
 /* @@ */ .radio {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spacer-4);
   cursor: pointer;
 }
 

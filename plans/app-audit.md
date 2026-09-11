@@ -644,6 +644,15 @@ read Claude cannot perform on Joel's behalf. Claude never writes a `cs-blessed`
 stamp and never ticks that box: recording that Joel read something is a claim
 only Joel can make.
 
+**And "close the area" is not an instruction to stamp.** Closing follows from
+the blessing, so the word "close" is exactly the one Claude must not turn into
+a stamp run. Claude did that on `lists` (2026-09-11): told "close the area and
+commit", it ran `cs-stamp.mjs set blessed-lists` over the whole roster and
+committed, while Joel's next message was that the files still needed blessing.
+A stamp written on an instruction records that Joel said something, not that
+he read the file. At a close Claude says the roster is not blessed and that the
+stamp is Joel's to set, and stops.
+
 **And the blessing check must not be run the easy way.** "Every roster file
 blessed" is not "every roster file has a stamp." While an area is open its files
 carry `cs-audited-<area>` — the stamp the area itself wrote on the way in — so a

@@ -280,15 +280,11 @@ const VOCABULARIES: Vocabulary[] = [
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // traveled with the markup; it did not grow.
-      'src/common/fields/CheckboxField.module.css': ['0.5rem'],
       // The three field components carved out of ClaimHandleScreen,
       // CreateClubModal and EditProfileModal. Same values,
       // now in one place instead of four — the debt traveled and shrank.
-      'src/common/fields/field.module.css': ['0.4rem'],
-      'src/common/fields/DateField.module.css': ['0.5rem'],
       // setupForm.module.css is gone; each of its values
       // traveled to the component that draws the rule, and none of them grew.
-      'src/common/fields/RadioRow.module.css': ['1rem', '0.4rem'],
       'src/common/setup-form/SetupSection.module.css': ['0.75rem'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.3rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
@@ -329,7 +325,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],
       // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt traveled, it did not grow.
-      'src/common/fields/PlayersField.module.css': ['0.5rem'],
       'src/common/toasts/Toast.module.css': ['0.7rem'],
       'src/common/toasts/ToastHost.module.css': ['0.6rem'],
     },
@@ -370,8 +365,6 @@ const VOCABULARIES: Vocabulary[] = [
       // the digit so the two read as one event. They convert together or not
       // at all.
       'src/common/error-page/ErrorPage.module.css': ['1.1rem', '0.78rem'],
-      'src/common/fields/field.module.css': ['0.9rem'],
-      'src/common/fields/ReadOnlyField.module.css': ['1.05rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
@@ -412,7 +405,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['1'],
       // The textarea's leading, moved up from CreateClubModal with <TextField>.
-      'src/common/fields/TextField.module.css': ['1.4'],
       'src/common/chat/ChatBody.module.css': ['1.35'],
       'src/common/page-header/ChatButton.module.css': ['1.1rem'],
       'src/common/club/ClubGameCard.module.css': ['1.2', '1.25'],
@@ -445,7 +437,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['0.45'],
       'src/common/definitions/WordEditDialog.module.css': ['0.6'],
-      'src/common/fields/SelectField.module.css': ['0.55'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.5'],
@@ -540,7 +531,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/chat/ChatBody.module.css': ['1px'],
       'src/common/definitions/DefinitionPopover.module.css': ['1px'],
       'src/common/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
-      'src/common/fields/SelectField.module.css': ['1px'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],

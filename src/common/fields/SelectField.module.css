@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /* The <select> itself, and nothing else — the column and the caption are
  * <Field>'s (see SelectField.tsx). This file kept private copies of both until
@@ -15,7 +15,7 @@
   font: inherit;
   width: 100%;
   padding: 0.6rem 2.2rem 0.6rem 0.9rem; /* extra right room for the chevron */
-  border: 1px solid var(--field-edge-color);
+  border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-md);
   background-color: var(--field-fill-color);
   color: inherit;
@@ -40,6 +40,6 @@
 }
 
 /* @@ */ .select:disabled {
-  opacity: 0.55;
+  opacity: var(--chrome-disabled-opacity);
   cursor: not-allowed;
 }

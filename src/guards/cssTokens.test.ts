@@ -190,7 +190,6 @@ describe('CSS custom-property tokens', () => {
     // the homepage's card gap, the rest by the font page, which is the first
     // surface written after the ramp existed and so is the first that could
     // simply use it.
-    '--line-height-1',
     '--line-height-3',
     '--opacity-2',
     '--transition-duration-nudge',

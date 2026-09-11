@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /*
  * THE SHAPE EVERY FIELD SHARES — a caption over its control.
@@ -16,7 +16,7 @@
 /* @@ */ .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--spacer-4);
   /* The reset that lets a <fieldset> wear this and line up with the <label>s
      around it — <ColorField> is the one that needs it. */
   border: none;
@@ -37,7 +37,7 @@
  */
 /* @@ */ .label {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
   padding: 0;
 }
 
@@ -50,7 +50,7 @@
  */
 /* @@ */ .help {
   color: var(--page-text-muted-color);
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
 }
 
 /*
@@ -68,7 +68,7 @@
  */
 /* @@ */ .entryHelp {
   color: var(--page-text-muted-color);
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
 }
 
 /*
@@ -83,7 +83,7 @@
  */
 /* @@ */ .error {
   color: var(--chrome-fault-color);
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
 }
 
 /*

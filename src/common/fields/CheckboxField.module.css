@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-forms */
 
 /*
  * A single on/off setting (see CheckboxField.tsx) — the box inline with what it
@@ -11,7 +11,7 @@
 /* @@ */ .row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
   cursor: pointer;
 }
 
