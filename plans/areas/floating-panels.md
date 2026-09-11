@@ -263,12 +263,34 @@ their own Escape.
   copy in `WordEditDialog`, which is `definitions`' to convert. Nothing here
   to build; the item narrows to a handoff.
 
-## F-floating-panels-11 · `two-red-e2e-specs` · The folder's own Soon, a check
+## F-floating-panels-11 · `two-red-e2e-specs` · The folder's own Soon, a check — ANSWERED
 
-"Two e2e specs were red waiting on this folder on 2026-09-02:
-`page-no-scroll` and `anagram-finder`. Re-check before assuming." Both files
-exist. Checking means running them, which I have not done — an e2e run is
-asked for, not taken.
+"Two e2e specs were red waiting on this folder on 2026-09-02: `page-no-scroll`
+and `anagram-finder`. Re-check before assuming." Run 2026-09-11 with Joel's
+go-ahead, as part of a wider set: **16 tests, all green, 25.3s.** Both named
+specs pass, so whatever made them red was fixed sometime in the nine days
+between — the assumption was the stale thing, which is what "re-check" was for.
+
+The other seven specs were the point of running wide, because they reach what
+unit tests cannot:
+
+- `page-no-scroll` drags BOTH panel kinds into opposite corners and asserts the
+  document stays viewport-sized. That is the clip layer, the soft clamp, the
+  clamp's new floor cap, and the `FloatingPanelBody` merge — which replaced the
+  rect's owner for both variants, and which no unit test can exercise, since
+  none of them drags anything.
+- `anagram-finder` ends on the dialog's Escape, in a real browser: the exact
+  behavior `useDismissOnEscape` changed.
+- `concede` drives the three-button confirm; `coop-setup` opens the modal whose
+  `minWidth` went; `waffle-mobile` and `boggle-mobile` open and close
+  `InfoSheet` at two phone sizes.
+
+No flake signature: every duration 0.8–2.3s, nothing near the ~275ms band this
+repo's real failures cluster in.
+
+Eleven other `*-mobile` specs were deliberately SKIPPED. They reach `InfoSheet`
+the same way these two do, so they would re-test one component eleven times
+rather than widen anything.
 
 ### Prose elsewhere, turned up by this area's reading
 

@@ -7,8 +7,6 @@
 - **Action row** — the end-aligned row of buttons that closes a floating
   panel (`modalActions`), plus a pinned-to-bottom variant `WordEditDialog`
   wrote its own copy of.
-- **Two e2e specs were red waiting on this folder** on 2026-09-02:
-  `page-no-scroll` and `anagram-finder`. Re-check before assuming.
 
 ## Someday
 
