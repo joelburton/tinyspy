@@ -34,8 +34,8 @@ import { isPattern } from '../common/actions/chord'
  * everywhere.
  *
  * `common/actions/` is exempt because it is the matching, and
- * `common/keyboard/` because the Tab clauses left there belong to
- * `plans/tab-rings.md`.
+ * `common/keyboard/` because the one key left there is Tab, which is a ring's
+ * rather than any action's (`useTabRing`).
  */
 
 /** Where a hand-written match is allowed to live. */

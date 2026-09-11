@@ -44,6 +44,17 @@ is innermost and wins until it closes, and nobody writes that ordering down.
 Crosswords is the one genuine exception, and it is an exception because there
 Tab is a MOVE — it walks the clues — so it is an action like any other move.
 
+**A text field is a STOP, not an exception to that.** The tempting rule is
+"yield to a focused input, because tabbing between a form's fields is the one
+place native Tab is right" — but yield and Tab from the last field goes straight
+to the URL bar. A form's fields are its ring's stops instead, so tabbing between
+them IS the ring cycling. The one way out of a ring is for something inside it
+to answer Tab itself: chat's and the scratchpad's fields consume the key and
+blur, which is a declared step OUT to the page's ring, and the ring stands down
+for a press that has already been consumed. (The dispatcher's own bail for a
+focused field is a different thing — it keeps a game's window-level keys off a
+chat box — and the two must not be confused.)
+
 **Entry is the one shape still assembled here.** `useCaptureKeys` is what a word
 game composes to get a pending word: it binds typing a letter, deleting the last
 one and submitting, and it dismisses the last verdict on any key. Those are
@@ -103,12 +114,12 @@ is nowhere for Tab to go. codenamesduet's clue form is two real `<input>`s and
 declares them as its own ring, which is innermost while the form is up.
 Crosswords declares nothing, because Tab there is a move.
 
-**Handing the keyboard back means having nothing focused.** Focusing the board
-is not a thing that can be done, since the board reads from `window`; so the
-chat box and the scratchpad answer Tab by blurring themselves, which is the
-whole move. Shift+Tab is left native there so a panel's own close button stays
-reachable. The other direction is `act-open-chat`, which focuses the chat entry
-from anywhere.
+**Stepping out means having nothing focused.** Focusing the board is not a thing
+that can be done, since the board reads from `window`; so the chat box and the
+scratchpad answer Tab by blurring themselves, which is the whole move, and the
+page's ring takes over from `<body>`. Shift+Tab there is the panel's own ring,
+which walks back to its ✕. The other direction is `act-open-chat`, which focuses
+the chat entry from anywhere.
 
 **Backtick is lost as a character in every text field.** The listener runs in
 the capture phase on `window` and does not skip editable targets, so chat, the

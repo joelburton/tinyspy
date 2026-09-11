@@ -77,7 +77,7 @@ function liveStops(ring: Ring): HTMLElement[] {
 /**
  * **Tab moves within this surface's ring of stops, and never leaves it.**
  * Shift+Tab is the same ring backwards. The browser's own chrome — the URL bar
- * above all — is never a stop (plans/tab-rings.md).
+ * above all — is never a stop.
  *
  * **A page's ring is declared; a floating panel's is everything inside it.**
  * The homepage's header menu and "+ New club" are unreachable without anyone

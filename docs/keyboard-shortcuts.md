@@ -52,6 +52,15 @@ letters, `⌫`, the arrows, Space, Tab, where repeating is the point — and the
 `⌥` command chords do not, so holding `+` cannot start games at the OS repeat
 rate.
 
+**Tab is nobody's action — it belongs to a ring.** Every other key is a command
+the dispatcher routes; Tab moves focus instead, so each surface declares the
+ordered ring of stops it may visit ([`useTabRing`](../src/common/keyboard/useTabRing.ts))
+and Tab never leaves it. A page lists its stops; a floating panel says "everything
+inside me" and its ring is innermost while it is open; a board declares an empty
+ring, which catches the key and moves nothing. Crosswords is the exception that
+proves the shape — there Tab walks the clues, which is a MOVE, so it is an action
+like any other.
+
 `Cmd` chords match nothing, ever. `⌥` and `Ctrl` are ordinary modifiers an
 action may ask for (`⌥` widely, `Ctrl` nowhere yet); a pattern key — "any
 letter", "any arrow" — matches only an unmodified press, so `⌥L` is never a

@@ -386,7 +386,7 @@ export function ClubPage({ handle, session }: Props) {
   // This page's TAB RING is its two lists, in this order — skipping whichever
   // the mobile one-column layout has hidden, and entered at the start list from
   // anywhere else, which is how the keyboard comes back after a click on some
-  // blank part of the page (plans/tab-rings.md). Nothing else on the page is in
+  // blank part of the page. Nothing else on the page is in
   // it: not the header marks, not the filters, not a row's delete affordance.
   useTabRing([startListRef, gamesListRef])
 

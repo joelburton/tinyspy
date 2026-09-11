@@ -337,7 +337,7 @@ organized by area.
 | 6c | the z- layers | **DONE 2026-08-25.** [docs/code-conventions.md → The z- layers](../docs/code-conventions.md#the-z--layers) and [docs/ui.md → Floating panels](../docs/ui.md#floating-panels--five-families-one-shell) |
 | 7 | **the areas** | All the remaining reading, run **area by area** — the process is §4, the order is §3. Each area's audit and working notes live in `plans/areas/<area>.md` while it is open. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
-| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plans this sprint leans on (`tile-feedback.md`, `tab-rings.md`, `feedback-system.md`, `feedback-design.md`) have folded into `docs/` or a `doc.md`; this doc goes. What `css-philosophy.md` becomes is Joel's call — he wants it kept |
+| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plans this sprint leans on (`tile-feedback.md`, `feedback-system.md`, `feedback-design.md`) have folded into `docs/` or a `doc.md`; this doc goes. What `css-philosophy.md` becomes is Joel's call — he wants it kept |
 
 Steps 8, 9 and 10 were folded into 7 on 2026-08-22 and their numbers are
 retired rather than reused, so a stale "step 9" reads as stale.
@@ -387,7 +387,7 @@ will list the other as a dependency whichever goes first.
 | 14 | `members` | `members` (and `text`, which the area deleted) | **CLOSED 2026-09-09, blessed.** who someone is, their color, and the disc that carries it. Fifteen findings. Two of them were the area's shape rather than its prose: `common/text` had no caller and no producer, so the folder went instead of getting a Design; and `<ActorTag>`/`<ActorDot>` — one turn-log use site against ~37 elsewhere — moved in from `turn-log` and were renamed to read in draw order (`ActorDot` "moth ●", `DotActor` "● moth"). The folder's rule is that identity is a NAME the database constrains and exactly one shape carries it, which is why four surfaces stopped coloring player names. `memberPalette.test.ts` is new: the eight color names are spelled in FIVE places, not the three the read found |
 |    | **The controls everyone touches** | | |
 | 15 | `buttons` | `buttons` | **CLOSED 2026-09-08, blessed.** the button taxonomy. Twenty-one findings; the two biggest came from Joel rather than the read — a call site now states what its button DRAWS (`label` + a required `show`, with `tooltip` carrying the name), and a segmented choice became `<Segmented>` here rather than a global class. `FormSubmitButton` is new. The folder owns how a button is BUILT; `docs/ui.md` keeps the taxonomy around it |
-| 16 | `keyboard` | `keyboard` | **CLOSED 2026-09-10, blessed.** Whose keystroke it is, where Tab may go, and backtick as Escape — what is left once every key became an action. Twenty findings, sixteen resolved (most by the actions sprint that came out of this area); the four surviving are the folder's `todo.md`. [tab-rings.md](tab-rings.md)'s mechanism lives here and its conversions are still per surface |
+| 16 | `keyboard` | `keyboard` | **CLOSED 2026-09-10, blessed.** Whose keystroke it is, where Tab may go, and backtick as Escape — what is left once every key became an action. Twenty findings, sixteen resolved (most by the actions sprint that came out of this area); the four surviving are the folder's `todo.md`. The tab-rings sprint ran out of this area and finished 2026-09-11: `useTabRing` lives here, every surface declares its ring, and the model is in the folder's `doc.md` |
 | 17 | `lists` | `lists` | pick-one and scrolling lists — [SelectionList](../docs/ui.md#selection-lists) is the canonical one |
 | 18 | `forms` | `forms` · `fields` | the design language of forms: the frame, the state, and every field — including the three only a setup form renders |
 | 19 | `actions` | `actions` | what a command IS: the registry of every command's fixed half, the one key dispatcher, the bound action a page or component makes, and the surfaces that read it (`<ActionButton>`, `actionSurface`, the key list). Built by the actions sprint (2026-09-10) and on no roster since; `doc.md` is written. Its two guards (`actionIds`, `registeredChords`) and `e2e/helpers/actions.ts` are its to list at the opening |
@@ -678,7 +678,7 @@ What a durable file says instead:
 - **nothing**, when the cite was a handoff to an area that has not opened. A
   handoff is a `todo.md` item.
 
-The non-sprint plans — `tile-feedback.md`, `tab-rings.md`, `dark-mode.md`,
+The non-sprint plans — `tile-feedback.md`, `dark-mode.md`,
 `css-philosophy.md`, `feedback-system.md`, `feedback-design.md` — are the
 exception only until each folds into `docs/` or a `doc.md`; a cite to one of
 them is tolerated today and repointed the day it folds.

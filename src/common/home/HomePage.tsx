@@ -145,7 +145,7 @@ export function HomePage({ session }: Props) {
   // <SelectionList> — docs/ui.md → Selection lists.
   //
   // What stays here is the page's half: this page's TAB RING is exactly one
-  // stop, the clubs list (plans/tab-rings.md). Everything else — the header
+  // stop, the clubs list. Everything else — the header
   // menu, "+ New club" — is unreachable by Tab because it simply isn't in the
   // ring, not because anything was marked unfocusable. The ring is also the way
   // BACK: click any blank part of the page and the list blurs, and without it
