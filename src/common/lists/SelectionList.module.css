@@ -100,8 +100,6 @@
   /* Tuned to the box, not taken from a ramp (docs/ui.md → The non-color
      vocabularies: padding is not on the spacer scale). */
   padding: 0.5rem 0.9rem;
-  color: var(--page-text-color);
-  text-align: left;
   transition: background-color var(--transition-duration-paint) ease;
 }
 

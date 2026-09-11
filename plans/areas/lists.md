@@ -343,7 +343,13 @@ the comment says why — and stay.)
 
 **The `.emptyRow` line went with F-lists-9 (empty-state-four-ways)**, and not
 by deletion: it is now `height: auto`, an exemption from `.scrollBox > *` so
-the shared inset is not clipped. `.row`'s two lines are still open.
+the shared inset is not clipped.
+
+**WORKED 2026-09-11 (Joel: "fix").** `.row`'s two lines deleted. Checked
+first rather than assumed: the page's ink is set once, on the `body` rule at
+`base.css:617`, and inherited by everything — so the row was restating it;
+`text-align: left` is `start`, the inherited default, under a `.list` that
+sets neither.
 
 ## F-lists-13 · `caret-outside-the-registry` · `FilterSelect` draws its own glyph
 
