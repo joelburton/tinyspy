@@ -83,7 +83,10 @@ describe('the library picker', () => {
     // Focused explicitly: the list's own autoFocus yields when it has no layout
     // box, and jsdom gives it none. The keys are what this is about.
     screen.getByRole('group', { name: 'Puzzle library' }).focus()
-    await user.keyboard('{ArrowDown}{Enter}')
+    // Three presses for the second row: the list's cursor is hidden until a
+    // key asks for it, so the first ArrowDown reveals it on the first row and
+    // the second steps.
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
 
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: 'p2' }))
   })

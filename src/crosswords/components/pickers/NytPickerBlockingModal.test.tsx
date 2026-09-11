@@ -61,7 +61,10 @@ describe('the NYT picker', () => {
     draw()
 
     screen.getByRole('group', { name: 'Weekday' }).focus()
-    await user.keyboard('{Enter}')
+    // Two presses for the first row: the list's cursor is hidden until a key
+    // asks for it, and Enter may not act on a row you cannot see — so the
+    // first Enter reveals and the second picks.
+    await user.keyboard('{Enter}{Enter}')
 
     expect(onPick).toHaveBeenCalledWith({ weekday: 1 })
   })

@@ -57,7 +57,10 @@ describe('the Guardian picker', () => {
     draw()
 
     screen.getByRole('group', { name: 'Guardian series' }).focus()
-    await user.keyboard('{Enter}')
+    // Two presses for the first row: the list's cursor is hidden until a key
+    // asks for it, and Enter may not act on a row you cannot see — so the
+    // first Enter reveals and the second picks.
+    await user.keyboard('{Enter}{Enter}')
 
     expect(onPick).toHaveBeenCalledWith(GUARDIAN_SERIES[0]!.slug)
   })
