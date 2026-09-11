@@ -59,8 +59,8 @@ type Props = {
  *     difference without a distinction (Joel, 2026-08-24): two hands, no
  *     decision. A modal that needs to be wider than its siblings would be
  *     saying something about itself that is not true.
- *   - **focus trapped** — the keyboard is owned outright, or "nothing
- *     underneath is live" stops being true the moment you press Tab.
+ *   - **its tab ring is innermost** — the keyboard is owned outright, or
+ *     "nothing underneath is live" stops being true the moment you press Tab.
  *
  * Members: `ConfirmationBlockingModal` (a question), `AcknowledgeBlockingModal`
  * (a statement), and the fault, which is this behavior one tier up.

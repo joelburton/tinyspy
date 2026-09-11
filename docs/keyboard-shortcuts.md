@@ -134,12 +134,12 @@ of games.
 | Open menu | `→` | Open the focused row's submenu. |
 | Open menu | `←` | Step back out of a submenu. |
 | Open menu | `Esc` | Unwind one level: out of a submenu first, then close the menu. |
-| Open menu | `Tab` | Close and let focus advance normally. |
+| Open menu | `Tab` | Close the menu, and the key is consumed — the popover stops its own keys, so no ring hears this press and a native Tab would leave the page. The next press is the surface's ring's. |
 | Confirm dialog | `Enter` | Confirm — the confirm button auto-focuses. |
 | Confirm dialog | `Esc` | Cancel. |
-| Any floating panel | `Tab` / `⇧Tab` | A modal family (normal, blocking, fault) traps focus **inside** the panel; a companion or a dialog lets Tab out, and the two you type into mid-game — chat and the scratchpad — hand the keyboard back to the game on Tab. `Esc` closes the panel focus is in, else the topmost open one; only the fault modal swallows it. |
+| Any floating panel | `Tab` / `⇧Tab` | **Every family keeps Tab**: the panel is a ring of its own controls — the titlebar ✕, the fields, the buttons — and an open panel's ring is innermost, so Tab cycles them and never reaches the page behind. The exception is the way OUT: in chat's and the scratchpad's text fields Tab steps back to the page's ring by blurring the field, which is how the game gets the keyboard back (`⇧Tab` there stays the panel's, so the ✕ is reachable). `Esc` closes the panel focus is in, else the topmost open one; only the fault modal swallows it. |
 | Chat box | `Enter` | Send. |
-| Chat box / scratchpad | `Tab` | **Hands the keyboard back to the game** — blurs the field rather than walking focus onto the page chrome. `⇧Tab` is left alone so the panel's ✕ stays reachable. |
+| Chat box / scratchpad | `Tab` | **Steps out of the panel's ring into the page's** — blurs the field, which is how the game gets the keyboard back. `⇧Tab` stays the panel's ring, so its ✕ is reachable. |
 
 ## Club page and home page
 
@@ -155,7 +155,7 @@ keys are the same on each; only how many lists there are differs.
 | Either page | `Home` `End` | Jump to the first / last row. |
 | Either page | `PageUp` `PageDown` | Move by one visible page, measured from the list's own height. |
 | Either page | `Space` | **Nothing** — moving a cursor must not consent to an action. It is caught all the same, so it can't scroll the list out from under the ring. |
-| Either page | `Tab` | Moves to the page's next list — cycling the club page's two, always landing on the one list at home. This is also the way BACK after clicking some blank part of the page, which blurs the list. Overlays keep their native Tab. |
+| Either page | `Tab` | Moves to the page's next list — cycling the club page's two, always landing on the one list at home. This is also the way BACK after clicking some blank part of the page, which blurs the list. While an overlay is open its own ring is innermost, so Tab is the overlay's. |
 | Club page | `<` | Back to home — the twin of the play area's `<`. |
 | Create club | `Esc` | Back to home. |
 

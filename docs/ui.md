@@ -268,7 +268,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 In-game confirmations go through the shared
 [`<ConfirmationBlockingModal>`](../src/common/floating-panels/ConfirmationBlockingModal.tsx) — a
 true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
-on the board underneath, focus is trapped, the confirm button autoFocuses
+on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
 (Enter confirms), Esc cancels, and the game key-captures bail inside
 `[data-floating-panel]`. The confirm button always **names the act** ("End
 game", "Suspend") — never a bare "OK". Two ways to ask it. Code that is not a
@@ -374,10 +374,10 @@ ABOUT stays visible behind it; a window becomes a full-page sheet on a phone.
 **What "dim" must mean: everything under it is inert.** For the two blocking
 families that is literally true — nothing may outrank them. For `modal-normal`
 it means "focus is here", and chat sitting above it is a deliberate exception
-rather than a lie, because a normal modal never claimed the world stopped. The
-focus trap follows the scrim: a backdrop already blocks the pointer, so a modal
-that did not trap would hand a keyboard user Tab access to controls they cannot
-click.
+rather than a lie, because a normal modal never claimed the world stopped. Tab
+needs no separate claim: every panel is a tab ring, and an open one's ring is
+innermost, so a keyboard user can never reach controls the scrim has made
+unclickable.
 
 **Buttons don't decide the family.** A dialog very likely carries a **Save** /
 **OK** / **Start** — it has an answer to give — and a companion very unlikely
@@ -465,8 +465,8 @@ These may use Tab between elements, native `<select>`s, focus rings, and take
 RETURN / ESCAPE to submit / cancel alongside their buttons.
 
 The boundary is already machine-readable: **`data-floating-panel`**. The action
-dispatcher declines inside it, and `useFocusTrap` and the page's tab ring hang
-off the same marker — which is how the setup dialog can be a real form while
+dispatcher declines inside it, and the shell hangs the panel's own tab ring on
+the same element — which is how the setup dialog can be a real form while
 floating over a live game with no special-casing. An audit can start as a grep.
 
 **2. Not forms** — the home page, the club page (its filters and its game list),
@@ -1296,9 +1296,9 @@ frame's view) and Enter acts on the item under it: a start button opens its
 SetupGameModal (a doesn't-fit gametype no-ops, like a click), a game card
 navigates into the game. Visuals: the focused list's border warms to the
 accent and the cursor item wears a 2px accent ring; the ring hides when the
-list isn't focused. Overlays keep native keys — a text field, the menu
-dropdown (`role="menu"`), or any floating panel (`data-floating-panel`) is
-exempt from the page's ring, and while one of ClubPage's dialogs is up the
+list isn't focused. An open overlay takes the keys — a text field keeps its
+own, the menu dropdown stops its keys at the popover, and a floating panel's
+ring is innermost while it is open; and while one of ClubPage's dialogs is up the
 list handlers go inert — and the global shortcuts (`/`, `?`, `~`) work
 unchanged. The active-game card is mouse-only for now (it's not one of the
 two lists) — and for that reason its prominence border is a dark NEUTRAL,

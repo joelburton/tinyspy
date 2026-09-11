@@ -65,7 +65,7 @@ is not an action.
 here.** A focused text field keeps its keys unless the action opts out through
 its `inField`; focus inside `[data-floating-panel]` hands the keyboard to that
 panel outright, with no opt-out. That attribute is the panel shell's own marker
-— the same one the panels' escape and focus-trap hooks read — which is how a
+— the same one the panels' escape hook reads — which is how a
 setup dialog can be a real form floating over a live game with no game knowing
 it is there.
 
@@ -82,10 +82,20 @@ layout hides — is simply skipped; a stop that is not on screen is not a stop.
 Focus that is on no stop, most often `<body>` after a click on blank page,
 enters the ring at the end Tab would naturally reach, so a stray click costs one
 press to undo. The ring consumes Tab before it decides where to go, which is
-what makes an empty ring inert rather than leaky. A guard in the ring still lets
-native Tab run inside a floating panel or menu, for overlays that have not
-declared rings of their own; it is the piece innermost-wins is meant to replace,
-and it stays until those overlays declare.
+what makes an empty ring inert rather than leaky — though not before checking
+whether something closer already answered the key, which is how a panel's text
+field steps OUT of its ring by blurring itself.
+
+**A floating panel's ring is `within` its shell, and the shell declares it for
+every family.** There its stops are not listed but found at keypress: the
+focusable descendants of the shell in DOM order, which is the ✕ and then
+whatever the body renders. A panel is a closed subtree and everything in it is
+the panel's own, so the only list anyone could write would be "all of them, in
+order" — and it would go stale the first time a form grew a field. That is also
+why a modal needs no separate claim about focus: an open panel's ring is
+innermost, so Tab cannot reach the page its scrim has already made unclickable.
+`tabindex="-1"` still means "focusable by code, not by Tab", the one way a
+panel can keep something out.
 
 **Every play surface declares its ring in its PlayArea**, and for all of them
 but codenamesduet that ring is empty — a board is clicked and typed at, so there

@@ -14,7 +14,7 @@ import { FloatingPanel, type FloatingPanelProps } from './FloatingPanel'
  * difference is the stacking tier — help and chat open ABOVE a dialog, so
  * pressing `?` inside one shows the rules rather than opening behind it.
  *
- * What a dialog IS — the scrim, the drag, the focus trap, the escape rule, the
+ * What a dialog IS — the scrim, the drag, the escape rule, the
  * tier — is `FloatingPanel`'s `FAMILY` table, in one place so the claims cannot
  * drift apart. This supplies the family name and nothing else.
  */

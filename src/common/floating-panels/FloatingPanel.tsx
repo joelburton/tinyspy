@@ -12,7 +12,7 @@ import {
 import { useIsCoarsePointer } from '../mobile/useIsCoarsePointer'
 import { useIsPhone } from '../mobile/useIsPhone'
 import { useVisualViewport } from '../mobile/useVisualViewport'
-import { useFocusTrap } from './useFocusTrap'
+import { useTabRing } from '../keyboard/useTabRing'
 import { cls } from '../utils/cls'
 import { usePanelEscape } from './usePanelEscape'
 import { CloseButton } from '../buttons/CloseButton'
@@ -80,10 +80,6 @@ const FAMILY: Record<
     /** Immovability IS the signal: if you can drag it you can leave it for
      *  later; if you cannot, you deal with it now. */
     draggable: boolean
-    /** The trap FOLLOWS THE SCRIM. A backdrop already blocks the pointer, so a
-     *  modal that did not trap would hand a keyboard user Tab access to
-     *  controls they cannot click. Trapping restricts nothing that was usable. */
-    trapsFocus: boolean
     /** `'close'` — Escape dismisses it. `'swallow'` — Escape is consumed and
      *  NOTHING closes, not even the panel below (closing a fault by accident is
      *  a real problem, and closing the thing under it would be worse). */
@@ -126,11 +122,11 @@ const FAMILY: Record<
     layer: string
   }
 > = {
-  companion:        { density: 'tight', scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-companion)' },
-  dialog:           { density: 'tight', scrim: null,    draggable: true,  trapsFocus: false, escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-dialog)' },
-  'modal-normal':   { density: 'loose', scrim: 'light', draggable: true,  trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'window', layer: 'var(--z-modal-normal)' },
-  'modal-blocking': { density: 'loose', scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'close',   remembersRect: false, shape: 'card',   layer: 'var(--z-modal-blocking)' },
-  'modal-fault':    { density: 'loose', scrim: 'dark',  draggable: false, trapsFocus: true,  escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
+  companion:        { density: 'tight', scrim: null,    draggable: true,  escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-companion)' },
+  dialog:           { density: 'tight', scrim: null,    draggable: true,  escape: 'close',   remembersRect: true,  shape: 'window', layer: 'var(--z-dialog)' },
+  'modal-normal':   { density: 'loose', scrim: 'light', draggable: true,  escape: 'close',   remembersRect: false, shape: 'window', layer: 'var(--z-modal-normal)' },
+  'modal-blocking': { density: 'loose', scrim: 'dark',  draggable: false, escape: 'close',   remembersRect: false, shape: 'card',   layer: 'var(--z-modal-blocking)' },
+  'modal-fault':    { density: 'loose', scrim: 'dark',  draggable: false, escape: 'swallow', remembersRect: false, shape: 'card',   layer: 'var(--z-modal-fault)' },
 }
 
 export type FloatingPanelProps = {
@@ -275,10 +271,11 @@ export type FloatingPanelProps = {
  * Escape behavior, one scrim, one z-index axis.
  *
  * **A panel declares its FAMILY and the shell enforces what follows** — the
- * scrim and its shade, whether it can be dragged, whether focus is trapped,
- * what Escape does, and whether it opens where you left it. Those were five
- * separate props once, which meant five chances for a panel to claim one thing
- * and do another; they all now come from one word. See `PanelFamily`.
+ * scrim and its shade, whether it can be dragged, what Escape does, and whether
+ * it opens where you left it. Those were separate props once, which meant as
+ * many chances for a panel to claim one thing and do another; they all now come
+ * from one word. See `PanelFamily`. (Tab is not among them: every family keeps
+ * it, because every panel is a ring.)
  *
  * Three questions remain genuinely independent, and stay props:
  *
@@ -366,16 +363,15 @@ export function FloatingPanel({
           // No onClick — backdrop click is intentionally a no-op
           // (see Props.backdrop docstring). preventDefault on mousedown so the
           // click doesn't BLUR the panel's focused control to <body>: otherwise
-          // a focus-trapped modal (e.g. an End/suspend confirm) leaks subsequent
-          // keystrokes to whatever window listener sits behind it (the crossword
-          // grid). Non-backdrop panels (the scratchpad) are unaffected.
+          // a modal (e.g. an End/suspend confirm) leaks subsequent keystrokes to
+          // whatever window listener sits behind it (the crossword grid).
+          // Non-backdrop panels (the scratchpad) are unaffected.
           onMouseDown={(e) => e.preventDefault()}
         />
       )}
       <FloatingPanelBody
         recenterOnResize={recenterOnResize}
         panelId={panelId}
-        trapsFocus={claims.trapsFocus}
         // A card stays a card on a phone unless it says otherwise; a window is
         // always the sheet.
         shape={claims.shape}
@@ -406,7 +402,6 @@ export function FloatingPanel({
 function FloatingPanelBody({
   recenterOnResize,
   panelId,
-  trapsFocus,
   shape,
   phoneSheet,
   title,
@@ -426,7 +421,6 @@ function FloatingPanelBody({
 }: {
   recenterOnResize: boolean
   panelId: string
-  trapsFocus: boolean
   shape: 'window' | 'card'
   phoneSheet: boolean
   title: string | undefined
@@ -456,7 +450,6 @@ function FloatingPanelBody({
       <PersistedPanel
         recenterOnResize={recenterOnResize}
         panelId={panelId}
-        trapsFocus={trapsFocus}
         shape={shape}
         phoneSheet={phoneSheet}
         title={title}
@@ -481,7 +474,6 @@ function FloatingPanelBody({
     <EphemeralPanel
       recenterOnResize={recenterOnResize}
       panelId={panelId}
-      trapsFocus={trapsFocus}
       shape={shape}
       phoneSheet={phoneSheet}
       title={title}
@@ -507,7 +499,6 @@ function FloatingPanelBody({
 function PersistedPanel({
   recenterOnResize,
   panelId,
-  trapsFocus,
   shape,
   phoneSheet,
   fitContent,
@@ -527,7 +518,6 @@ function PersistedPanel({
 }: {
   recenterOnResize: boolean
   panelId: string
-  trapsFocus: boolean
   shape: 'window' | 'card'
   phoneSheet: boolean
   title: string | undefined
@@ -556,7 +546,6 @@ function PersistedPanel({
   return (
     <PanelRnd
       panelId={panelId}
-      trapsFocus={trapsFocus}
       shape={shape}
       phoneSheet={phoneSheet}
       title={title}
@@ -583,7 +572,6 @@ function PersistedPanel({
 function EphemeralPanel({
   recenterOnResize,
   panelId,
-  trapsFocus,
   shape,
   phoneSheet,
   title,
@@ -602,7 +590,6 @@ function EphemeralPanel({
 }: {
   recenterOnResize: boolean
   panelId: string
-  trapsFocus: boolean
   shape: 'window' | 'card'
   phoneSheet: boolean
   title: string | undefined
@@ -651,7 +638,6 @@ function EphemeralPanel({
   return (
     <PanelRnd
       panelId={panelId}
-      trapsFocus={trapsFocus}
       shape={shape}
       phoneSheet={phoneSheet}
       title={title}
@@ -678,7 +664,6 @@ function EphemeralPanel({
 // both cases.
 function PanelRnd({
   panelId,
-  trapsFocus,
   shape,
   phoneSheet,
   title,
@@ -696,7 +681,6 @@ function PanelRnd({
   children,
 }: {
   panelId: string
-  trapsFocus: boolean
   shape: 'window' | 'card'
   phoneSheet: boolean
   title: string | undefined
@@ -738,12 +722,13 @@ function PanelRnd({
   const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  // Cycle Tab within the panel, for the families whose scrim claims the page
-  // below is inert. The hook walks up to the enclosing `[data-floating-panel]`,
-  // which is the shell below — so the trap includes the titlebar's ✕ as well as
-  // the body's own controls. Inert for the families that don't trap.
+  // The panel IS a tab ring, for every family: Tab cycles what is inside the
+  // shell — the titlebar's ✕ and the body's own controls — and cannot reach the
+  // page behind it. A modal keeps the keyboard because its ring is innermost,
+  // which is the same claim its scrim makes about the pointer; a companion or a
+  // dialog keeps it because every focusable thing belongs to exactly one ring.
   const shellRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(trapsFocus ? shellRef : NO_TRAP)
+  useTabRing({ within: shellRef })
   // (No "has the user moved it?" flag: the fit anchors the panel's top wherever
   // it currently is, so a dragged panel keeps its position for free.)
   // Latest rect/setRect kept in refs so the observer below installs ONCE (its
@@ -930,11 +915,6 @@ function PanelRnd({
  * `defaultSize` stops applying — those seeds only ever fire on a fresh browser.
  */
 export const HELP_RECT_KEY = 'puzpuzpuz:help:rect'
-
-/** A ref that never points at anything, so `useFocusTrap` finds no panel and
- *  installs nothing — the hook stays unconditionally called (rules of hooks)
- *  while the trap itself is conditional. */
-const NO_TRAP = { current: null }
 
 /** Translate the user's `defaultPosition` choice (centered, or
  *  explicit) plus `defaultSize` into a concrete rect. The center

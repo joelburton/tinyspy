@@ -11,14 +11,6 @@
 - **Action row** — the end-aligned row of buttons that closes a floating
   panel (`modalActions`), plus a pinned-to-bottom variant `WordEditDialog`
   wrote its own copy of.
-- **Convert the two keyboard handoffs to `useTabRing`.** `ChatBody` and
-  `GameScratchpadCompanion` hand the keyboard back to the game on Tab through
-  `keyboardHandoff.ts` (blur the field; every game reads keys off `window` and
-  the dispatcher declines while any field is focused). That is the "ring
-  transition" row of `plans/tab-rings.md`, and the mechanism is built. The
-  same plan's row for setup and confirm dialogs — native Tab, which LEAKS to
-  the URL bar — is the one marked broken rather than unconverted, and it is
-  this folder's too.
 - **Two e2e specs were red waiting on this folder** on 2026-09-02:
   `page-no-scroll` and `anagram-finder`. Re-check before assuming.
 

@@ -315,8 +315,11 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       return
     }
     if (e.key === 'Tab') {
-      // Tab while open: close the menu, let focus advance
-      // normally to the next page element. (No preventDefault.)
+      // Tab while open closes the menu AND is consumed: the popover stops its
+      // own keys, so the surface's tab ring never hears this press and a native
+      // Tab would walk off into the browser's chrome. The NEXT press is the
+      // ring's, from wherever the close left focus.
+      e.preventDefault()
       setOpen(false)
       setSubmenu(null)
       return
@@ -410,11 +413,6 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         // A submenu parent is a disclosure, so it advertises itself as one.
         aria-haspopup={parent ? 'menu' : undefined}
         aria-expanded={parent ? submenu?.parentId === parent.id : undefined}
-        // tabIndex -1 because the popover's keyboard handler
-        // owns navigation; only one item is focusable at a time
-        // (via programmatic .focus()), and Tab from any item
-        // closes the menu.
-        tabIndex={-1}
         onClick={(e) => activateRow(row, navIndex ?? 0, e.currentTarget)}
       >
         {/* The identity disc, when the item carries one — before the label, the

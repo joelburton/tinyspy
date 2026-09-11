@@ -2,7 +2,7 @@
 
 /* The overlay, the panel and the prompt are GONE: this is a <BlockingModal>
  * now, so the scrim, the card, the title and the footer row are the shared
- * shell's — which is also where its focus trap, its Escape and its place in the
+ * shell's — which is also where its tab ring, its Escape and its place in the
  * panel z-index tier come from. What is left is the letter grid, which is the
  * only part of this question that is scrabble's own. */
 

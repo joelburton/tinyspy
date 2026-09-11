@@ -61,8 +61,9 @@ test.describe('club page keyboard nav', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('button', { name: 'Start' })).toBeHidden()
 
-    // "/" (a global shortcut) still opens chat; typing Tab INSIDE the chat
-    // input keeps native behavior (the list-toggle doesn't hijack overlays).
+    // "/" (a global shortcut) still opens chat; Tab INSIDE the chat input is
+    // chat's own step out of its ring (it blurs the field), so the page's
+    // list-toggle never sees the press and focus lands on neither list.
     await page.keyboard.press('/')
     const chatInput = page.getByPlaceholder(/message/i)
     await expect(chatInput).toBeVisible()

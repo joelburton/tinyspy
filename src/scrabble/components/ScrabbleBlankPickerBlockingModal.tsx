@@ -13,7 +13,7 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
  *
  * A **blocking** modal, which is the category it always described itself as and
  * only became on 2026-09-10. It was a hand-rolled `position: fixed` overlay: no
- * focus trap, no Escape, a scrim click that CANCELED where every sibling's does
+ * ring of its own, no Escape, a scrim click that CANCELED where every sibling's does
  * nothing, and `z-index: 50` — below the panel tier, so an open chat painted
  * over the question. The keyboard is what forced the issue: the app's one key
  * dispatcher stands down for anything inside a `[data-floating-panel]`, and this

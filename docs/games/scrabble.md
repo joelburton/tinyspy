@@ -701,7 +701,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
   (`act-shuffle`, `⌥Z`) floats over the rack corner, not in this row), `ScrabbleBlankPickerBlockingModal` (declare a
   dragged blank's letter on drop — a real `<BlockingModal>` since 2026-09-10, so
-  it has the focus trap, Escape and panel tier every other modal has; its 26
+  it has the tab ring, Escape and panel tier every other modal has; its 26
   letters are not actions, being answers to a question this panel asks rather
   than commands the page offers), `GameTurnLog` (the move log on the shared
   `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral

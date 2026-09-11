@@ -378,8 +378,8 @@ export function ClubPage({ handle, session }: Props) {
   // that is about the RELATIONSHIP between the two lists: Tab toggles focus
   // from one to the other. Everything else on the page is deliberately
   // mouse-only — `useTabRing` below keeps Tab inside the two lists so focus can
-  // never wander into other controls — while overlays keep native keys (text fields,
-  // the menu dropdown, any floating panel: chat / setup / help / lookup), and
+  // never wander into other controls — while an open overlay's own ring is
+  // innermost and answers Tab instead (chat / setup / help / lookup), and
   // the global shortcuts (/, ?, ~) are untouched.
   const startListRef = useRef<HTMLDivElement | null>(null)
   const gamesListRef = useRef<HTMLDivElement | null>(null)

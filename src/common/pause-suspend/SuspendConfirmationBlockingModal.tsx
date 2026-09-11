@@ -26,7 +26,7 @@ type Props = {
  *
  * A thin wrapper over the shared `<ConfirmationBlockingModal>`, which supplies
  * the modal behavior: a pointer-blocking backdrop (no background
- * board actions), trapped focus, autoFocused confirm (Enter),
+ * board actions), Tab kept inside the panel, autoFocused confirm (Enter),
  * Esc-to-cancel, and the game key-captures bailing inside
  * `[data-floating-panel]`.
  */

@@ -52,6 +52,10 @@ export function InfoSheet({ open, onClose, children }: Props) {
     // always-visible info column is NOT (mis)announced as a modal dialog. We
     // stop at role + aria-modal + a label (the honest "this is a modal" hint);
     // we don't yet make outside content `inert`, matching the deferred cut above.
+    //
+    // It declares NO tab ring, unlike a floating panel: this is the game page's
+    // own info column slid into view on a phone, its controls are tap targets,
+    // and the page's ring — empty — is the right one to be answering Tab.
     <div
       className={cls(styles.wrap, open && styles.open)}
       data-info-sheet

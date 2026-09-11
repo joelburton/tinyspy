@@ -160,20 +160,79 @@ describe('useTabRing — keys it does not claim', () => {
     }
   })
 
-  // Paired with the TRANSITIONAL guard in the hook: an overlay that declares no
-  // ring of its own still needs native Tab inside itself. Goes when they declare.
-  it('leaves Tab alone inside a floating panel', () => {
-    const ring = stops(2)
-    renderHook(() => useTabRing(ring))
+})
 
-    const panel = document.createElement('div')
-    panel.dataset.floatingPanel = ''
-    const field = document.createElement('input')
-    panel.append(field)
-    document.body.append(panel)
+describe('useTabRing — a ring declared as `within` an element', () => {
+  /** A panel-shaped subtree: a close button, a field, a submit. */
+  function panel(): HTMLElement {
+    const el = document.createElement('div')
+    el.innerHTML = '<button id="x">✕</button><input id="f"><button id="ok">OK</button>'
+    document.body.append(el)
+    return el
+  }
+
+  it('cycles the container\'s focusable descendants in DOM order', () => {
+    const within = { current: panel() }
+    renderHook(() => useTabRing({ within }))
+
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('f'))
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('ok'))
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+  })
+
+  it('skips a disabled control and one marked tabindex="-1"', () => {
+    const el = panel()
+    document.getElementById('f')!.setAttribute('disabled', '')
+    document.getElementById('ok')!.setAttribute('tabindex', '-1')
+    renderHook(() => useTabRing({ within: { current: el } }))
+
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+    // The ✕ is the only stop left, so Tab stays on it rather than walking out.
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+  })
+
+  // The step-out: a panel's text field consumes Tab and blurs itself, and the
+  // ring must not then pull focus back onto its first stop.
+  it('leaves a Tab something closer has already consumed', () => {
+    const el = panel()
+    const field = document.getElementById('f') as HTMLInputElement
+    renderHook(() => useTabRing({ within: { current: el } }))
 
     field.focus()
-    expect(pressTab({}, field).defaultPrevented).toBe(false)
-    expect(document.activeElement).toBe(field)
+    const e = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    e.preventDefault()
+    field.blur()
+    field.dispatchEvent(e)
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('is inert while the container has not rendered', () => {
+    renderHook(() => useTabRing({ within: { current: null } }))
+    expect(pressTab().defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('beats the page ring under it, and gives Tab back when it closes', () => {
+    const page = stops(2)
+    renderHook(() => useTabRing(page))
+    const el = panel()
+    const open = renderHook(() => useTabRing({ within: { current: el } }))
+
+    page[0]!.current!.focus()
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+
+    open.unmount()
+    el.remove()
+    page[0]!.current!.focus()
+    pressTab()
+    expect(document.activeElement).toBe(page[1]!.current)
   })
 })

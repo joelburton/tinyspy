@@ -15,7 +15,7 @@
 
 - **Three DOM markers this folder reads are string contracts with no home.**
   `[data-floating-panel]` (set by `FloatingPanel`; read by the dispatcher,
-  `useTabRing`, `useFocusTrap`, `usePanelEscape`),
+  `useTabRing`, `usePanelEscape`),
   `[data-chat-input]` (set by `ChatBody`; read by `act-open-chat`), and
   `data-game-input` (set by `CluePanel`; read by `isNonGameField`). Each is
   typed by hand at every site, so a rename is a silent break at the readers.

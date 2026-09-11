@@ -20,7 +20,7 @@ import { StandardButton } from '../buttons/StandardButton'
  *      in `dbLog.ts`).
  *
  * **A `<BlockingModal>`**, so it inherits the whole category: the world stops,
- * nothing underneath is live, focus is trapped, and it cannot be dragged aside.
+ * nothing underneath is live, Tab stays inside it, and it cannot be dragged aside.
  * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the same
  * contract as the manual pill mode this replaces. Close + Esc only.
  *
