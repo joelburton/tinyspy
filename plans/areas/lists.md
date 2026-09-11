@@ -416,6 +416,24 @@ Per §5, silently where a value equals a step, surfaced where it does not:
 `SimpleScrollableList.module.css` — `1.4rem` row height, `0.15rem` pad:
 bespoke-by-intent (the box owns the row height by design).
 
+**PART-WORKED 2026-09-11.** The silent conversions are done, all in
+`FilterSelect.module.css`: `border: 1px` ×2 → `--border-width-line`,
+`opacity: 0.7` → `--opacity-1`, the touch `font-size: 1rem` →
+`--font-size-1`, `gap: 0.25rem` → `--spacer-5`. Four pending rows in the
+vocabularies guard shrank or went with them, and `--opacity-1` came off
+`cssTokens.test.ts`'s `DECLARED_AHEAD` — it had no reader before this.
+
+`outline-offset: -2px` is CLOSED (Joel: "yes, close"). It is not a token and
+should not be: `focus-ring.css` tokenizes the ring itself and names three
+offsets that each follow from what the element sits against, `-2px` being the
+one for an element that abuts its neighbors. The reasoning is already written
+down there.
+
+The near-misses are still open and want Joel: `font-size: 0.8rem` ×2 against
+`--font-size-2` (0.85rem), `gap: 0.35rem`, and `SelectionList`'s gaps `0.6rem`
+and `0.85rem` (recorded in the guard as "moved, not chosen"). Paddings stay
+parked.
+
 ## F-lists-12 · `dead-declarations` · Leftovers from when a row was a button
 
 `SelectionList.module.css` `.row` sets `text-align: left` and
