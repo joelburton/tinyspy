@@ -6,7 +6,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN 2026-09-11.** Roster agreed (Joel: "audit the area") and
 stamped `cs-audited-menu`. Findings recorded from one read of all eleven
-files; nothing worked yet. The three behavior findings (F-1, F-2 and the
+files. The prose findings were worked first, on Joel's ask ("make the
+lede/doc.md and fix docstrings and missing docstrings — this will help me
+understand this section"): F-6, F-7, F-8, F-10 and F-11 are WORKED, F-9 in
+this folder's files; the behavior, shape and stylesheet findings wait. The three behavior findings (F-1, F-2 and the
 masked half of F-2) were CHECKED with a throwaway spec before being written
 down, since last area's reading was wrong in the direction of "nothing is
 wrong here" three times; the spec was deleted after the run.
@@ -119,7 +122,7 @@ compute the first enabled row at call time.
 
 ### Code and prose
 
-## F-menu-6 · `docstring-marker-pass` · `/**` on members and inside a body
+## F-menu-6 · `docstring-marker-pass` · `/**` on members and inside a body — WORKED
 
 `Menu.tsx`: `OpenSubmenu` (three), `Props` (six, some of them 8–9 lines of
 rationale), and inside the component body `hasIcons` and the `navRows` block
@@ -128,7 +131,7 @@ four option members, inside the signature. `menuModel.ts` is already `//`
 throughout. (`PageHeaderMenu`'s `Props` has the same fault — `page-header`'s
 file, `cs-unmet`, not touched.)
 
-## F-menu-7 · `misattached-and-missing-docstrings` · Two docstrings sit on the wrong declaration, two exports have none
+## F-menu-7 · `misattached-and-missing-docstrings` · Two docstrings sit on the wrong declaration, two exports have none — WORKED
 
 - `menuModel.ts`: the paragraph "WHAT THE MENU DRAWS for one row… The one
   place a bound action is read on its way into a menu" describes the FUNCTION
@@ -139,7 +142,10 @@ file, `cs-unmet`, not touched.)
 - `MenuHeader` and `MenuApi` have no docstring. `MenuApi` is what every
   PlayArea receives.
 
-## F-menu-8 · `stale-claims` · Prose the code no longer matches
+## F-menu-8 · `stale-claims` · Prose the code no longer matches — WORKED
+
+All fixed 2026-09-11. The `.popover` sentence now points at `.popoverRight`
+rather than promising it; whether that class stays is F-3's.
 
 - **The z-index story is inverted.** `Menu.tsx`'s docstring: "above 500-tier
   modals so a menu click can open one; below the 10000-tier chat panel so
@@ -170,7 +176,12 @@ file, `cs-unmet`, not touched.)
   the original crossplay app". The reason the header exists is the puzzle's
   credits, which is what to say.
 
-## F-menu-9 · `crosswords-reason-times-seven` · One rationale, written out in seven places
+## F-menu-9 · `crosswords-reason-times-seven` · One rationale, written out in seven places — WORKED in this folder
+
+The four sites in `Menu.tsx` are a sentence each now, the prop's pointing at
+docs/ui.md → GamePage menu → Focus. `GameHeaderMenu` and `PageHeaderMenu`
+still carry the full paragraph; theirs to shorten when their areas open, and
+the question below stands.
 
 "The crosswords board reads window keydowns, so a focused trigger would
 swallow arrows / reopen the menu" is written in full in `Props.returnFocusOnClose`
@@ -185,7 +196,7 @@ trigger still the thing that would swallow a board key? The claim predates
 both. Not a finding about the mechanism — the tests pin the isolation — but
 the REASON should be re-said in today's terms if it has changed.
 
-## F-menu-10 · `design-in-docstrings` · The stores and the icon note restate what the docs already own
+## F-menu-10 · `design-in-docstrings` · The stores and the icon note restate what the docs already own — WORKED
 
 - `gameMenuStore.ts`'s module docstring is doc.md → Design's third paragraph
   nearly verbatim — "why this is not `useState` on the game page", the
@@ -200,7 +211,7 @@ the REASON should be re-said in today's terms if it has changed.
 Each shrinks to a sentence and a pointer; the doc.md paragraph and ui.md are
 the copies that stay right.
 
-## F-menu-11 · `duplicate-jsx-comments` · Two consecutive comments on the leading slot
+## F-menu-11 · `duplicate-jsx-comments` · Two consecutive comments on the leading slot — WORKED
 
 In `renderRow`, lines 418–421 and 422–432 are two JSX comments back to back,
 both about the slot before the label, both ending "Not rendered on the
@@ -253,10 +264,13 @@ number and says so.
 
 ## Notes
 
-- **doc.md's Design holds up** — the `?` slot, the store's argument, "a row
-  grays while its action is out", "a game owns its whole menu" are all what
-  the code does. It says nothing about the submenu hybrid or the icon gutter,
-  which are two of the folder's real decisions; a harvest item for close.
+- **doc.md was rewritten 2026-09-11** (Joel: make the lede/doc.md first). The
+  Design kept what held up — the `?` slot, the store's argument, "a game owns
+  its whole menu" — and gained the four decisions it had not said: the
+  submenu as one state with two shapes and one keyboard list, the menu
+  answering its keys on its own element, the icon gutter as the legend, and
+  stacking as a rung. The stores' and the icon note's docstrings now point at
+  it instead of restating it.
 - **Escape is handled on the popover element**, which is the shape
   `escapeListeners.test.ts` allows. Tab is consumed and closes, per the
   keyboard area's ruling; keyboard-shortcuts.md says the same.

@@ -1,11 +1,7 @@
 /* cs-audited-menu */
 
-/* Generic dropdown menu: a trigger button anchored to a popover.
- *
- * Used by GamePage today (logo → game menu); designed to be
- * reusable for ClubPage (club icon → club menu) and any other
- * "icon opens a list of actions" affordance. See docs/ui.md →
- * "GamePage menu" for the contract.
+/* The one menu: a trigger button anchored to a popover, in every page's header
+ * through <PageHeaderMenu>. See docs/ui.md → "GamePage menu" for the contract.
  */
 
 /* @@ */ .menu {
@@ -15,10 +11,6 @@
   display: inline-block;
 }
 
-/* Wrapper button around the caller-supplied trigger element. The neutral
- * <button> already leaves it looking like whatever the caller provided; this
- * adds the padding and a subtle hover/focus background hint that it's
- * interactive. */
 /* The identity element + down-chevron row inside the trigger button. The gap is
    deliberately tiny — the chevron hugs the logo so the pair reads as ONE
    clickable unit, not two icons. */
@@ -35,6 +27,9 @@
   height: 0.65em;
 }
 
+/* Wrapper button around the caller-supplied logo. The neutral <button> already
+ * leaves it looking like whatever the caller provided; this adds the padding
+ * and a subtle hover/open background hint that it's interactive. */
 /* @@ */ .trigger {
   padding: 0.25rem;
   margin: 0;
@@ -57,15 +52,12 @@
   outline-offset: 2px;
 }
 
-/* The popover. Position: absolute below the trigger; the popover tier
- * so it floats above page chrome but below the chat panel — see
- * GamePage menu docs for why we land in between, and base.css for the
- * ladder.
+/* The popover, absolute below the trigger, on the menu's own rung of the
+ * ladder (base.css → --z-menu says why it is a rung).
  *
  * `top: calc(100% + 0.35rem)` lifts the popover slightly off the
  * trigger so the rounded corners read as distinct surfaces.
- * Anchored left (default for left-side triggers like the logo);
- * if a future caller wants right-anchoring we'll add a prop. */
+ * Anchored left; `.popoverRight` below is the other edge. */
 /* @@ */ .popover {
   position: absolute;
   top: calc(100% + 0.35rem);
@@ -163,9 +155,8 @@
   opacity: 0.45;
 }
 
-/* Section divider — thin horizontal rule that separates the
- * common items from the per-game items. Margins inside the
- * padding so it doesn't touch the popover edges. */
+/* Section divider — the thin rule between one section and the next. Margins
+ * inside the padding so it doesn't touch the popover edges. */
 /* @@ */ .divider {
   height: 0;
   margin: 0.3rem 0;
@@ -173,9 +164,9 @@
 }
 
 /* Non-clickable info header at the top of a section — the crosswords puzzle
- * title + credits (crossplay parity). Matches an item's horizontal padding so it
- * lines up with the buttons below; the title reads at item size, the sub-lines
- * (author / copyright) are muted and smaller. */
+ * title + credits. Matches an item's horizontal padding so it lines up with the
+ * buttons below; the title reads at item size, the sub-lines (author /
+ * copyright) are muted and smaller. */
 /* @@ */ .header {
   padding: 0.35rem 0.85rem 0.45rem;
 }

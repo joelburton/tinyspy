@@ -1,36 +1,14 @@
 // cs-audited-menu
 
 /**
- * Tests for the shared Menu component. Menu owns the trigger ↔
- * popover keyboard contract for every "icon opens a list of
- * actions" affordance in the app — every page's header menu.
- * The contract is intricate enough
- * (arrow nav, disabled-skip, Esc-returns-focus, Tab-closes,
- * click-outside, ARIA wiring) that manual smoke-testing leaves
- * blind spots; these tests pin the behavior so the keyboard
- * contract doesn't quietly drift.
+ * Tests for the shared Menu component — every page's header menu. The
+ * keyboard contract (docs/keyboard-shortcuts.md → Menus, dialogs, and panels)
+ * is intricate enough that manual smoke-testing leaves blind spots, so each
+ * describe block below pins one piece of it: open and close, focus and arrow
+ * navigation, activation, key isolation, focus on close, sections and
+ * dividers, the two submenu presentations, and the icon gutter.
  *
- * What's covered:
- *   - Open/close: click toggle, ArrowDown on trigger, Esc closes,
- *     Tab closes, click-outside closes.
- *   - Focus: first enabled item on open, Esc returns focus to
- *     trigger, arrow nav moves focus.
- *   - Disabled items: arrow nav skips them, click on a disabled
- *     item does nothing.
- *   - Wrapping: ArrowDown past the last item wraps to first;
- *     ArrowUp past first wraps to last.
- *   - Activation order: closeMenu fires BEFORE the item's onClick
- *     so a modal opened by the item picks up focus cleanly.
- *   - ARIA: trigger gets aria-haspopup, aria-expanded, and
- *     aria-controls; aria-controls matches the popover's id;
- *     items have role=menuitem and a disabled item carries
- *     aria-disabled.
- *   - Section dividers: appear between non-empty sections;
- *     empty sections drop out; no leading/trailing dividers.
- *
- * Out of scope: visual focus-ring rendering (CSS only), z-index
- * stacking (a visual-layout contract), the per-context icon
- * styling (caller's CSS via triggerClassName).
+ * Out of scope: how anything looks (CSS only), and where the menu stacks.
  */
 
 import { render, screen, within } from '@testing-library/react'
@@ -662,16 +640,11 @@ describe('Menu — submenus (mobile drill-down)', () => {
 })
 
 /**
- * The icon gutter — the icon language's legend (`MenuRow.icon`, docs/ui.md →
- * Button iconography). Icon-only buttons carry their names in hover tooltips,
- * which touch devices don't have; the menu spells the same actions out in
- * words, so the glyph beside the name teaches the pairing once.
- *
- * What's pinned is the ALIGNMENT rule, because it's the part that silently
- * degrades: the slot is reserved for every row as soon as any row has an icon,
- * so an icon-less label doesn't hang left of the others. And a menu with no
- * icons at all reserves nothing — it gains no indent for a feature it isn't
- * using.
+ * The icon gutter — the icon language's legend (doc.md → Design). What's pinned
+ * is the ALIGNMENT rule, because it's the part that silently degrades: the slot
+ * is reserved for every row as soon as any row has an icon, so an icon-less
+ * label doesn't hang left of the others; and a menu with no icons at all
+ * reserves nothing.
  */
 describe('Menu — the icon gutter', () => {
   const slots = () =>

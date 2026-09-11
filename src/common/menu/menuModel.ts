@@ -53,26 +53,11 @@ export type MenuSubmenu = {
   // label, so `label` stays a plain string — the drill-down's "‹ {label}" row
   // and the button's accessible name both depend on that.
   dot?: string
-  // The family's glyph, drawn before the label — **the icon language's legend**,
-  // which every row takes part in (an action's comes from the registry).
-  //
-  // Icon-only buttons carry their names in hover tooltips, which touch devices
-  // don't have (TooltipHost gates hover off there — a tap's synthetic hover
-  // leaves a stuck bubble). The menu already spells those same actions out in
-  // words, so showing each one's glyph beside its name teaches the association
-  // once, at the point of need, and it reads in every game afterwards.
-  // It costs no board space and nothing per interaction, which is why it beats
-  // both a Help-page legend and a tap-to-reveal on the buttons themselves.
-  //
-  // **Take it from `common/icons/icons.ts`, never `lucide-react`.** That
-  // registry is "the ONE place that maps an action to its glyph"; the menu
-  // joining it is what stops a legend from ever teaching a symbol the button
-  // doesn't use. `AppIcon` is the registry's own type rather than lucide's, so
-  // a menu row and its button can be handed the identical value — including a
-  // glyph the registry defines itself, as IconBack is.
-  //
-  // A menu with NO icons reserves no gutter; one with any reserves it for all,
-  // so labels line up rather than going ragged (Menu.module.css).
+  // The family's glyph, drawn before the label. The menu is the icon language's
+  // legend (doc.md → Design), so take it from `common/icons/icons.ts`, never
+  // `lucide-react`: the registry is the one place that maps an action to its
+  // glyph, and `AppIcon` is its type so a row and its button are handed the
+  // identical value.
   icon?: AppIcon
   items: BoundAction[]
 }
@@ -96,15 +81,8 @@ export function isSubmenu(item: MenuItem): item is MenuSubmenu {
   return (item as MenuSubmenu).items !== undefined
 }
 
-/**
- * WHAT THE MENU DRAWS for one row, whatever kind of row it is.
- *
- * The one place a bound action is read on its way into a menu, so `<Menu>`
- * itself never asks what kind of row it has: it lays out labels, glyphs,
- * shortcut hints and disabled states, and this says what those are. A hidden
- * action becomes a row with `hidden`, which the menu drops before it counts
- * rows for keyboard navigation.
- */
+/** What the menu draws for one row, whatever kind of row it is — `menuRow`'s
+ *  answer, and the only shape `<Menu>` lays out. */
 export type MenuRow = {
   // Stable per row, for React keying and for naming the open submenu.
   id: string
@@ -121,6 +99,13 @@ export type MenuRow = {
   run: () => void
 }
 
+/**
+ * Read one row on its way into the menu — a bound action's words, glyph, key
+ * hint and state, or a submenu's own — so `<Menu>` never asks what kind of row
+ * it has. A hidden action becomes a row with `hidden`, which the menu drops
+ * before it counts rows for keyboard navigation; an action still out is
+ * `disabled`, so a row cannot advertise a key for a run it would drop.
+ */
 export function menuRow(item: MenuItem): MenuRow {
   if (isSubmenu(item)) {
     const children = item.items.map(menuRow).filter((row) => !row.hidden)
@@ -158,22 +143,27 @@ export function menuRow(item: MenuItem): MenuRow {
  *  header-only section is kept and drawn. */
 export type MenuSection = {
   // Optional non-clickable header shown ABOVE the section's items — a bold
-  // `title` plus muted `lines` (e.g. "by Author", a copyright). crosswords uses
-  // it to show the loaded puzzle's title + credits at the top of its menu, the
-  // way the original crossplay app it was ported from does. A section may be
-  // header-only (`items: []`), which
-  // is how `buildGameMenu` pins that block above everything.
+  // `title` plus muted `lines`. crosswords shows the loaded puzzle's title and
+  // credits with it. A section may be header-only (`items: []`), which is how
+  // `buildGameMenu` pins that block above everything.
   header?: MenuHeader
   items: MenuItem[]
 }
 
+/** A non-clickable block of text at the top of a section: a title and muted
+ *  lines under it (an author, a copyright). */
 export type MenuHeader = {
   title: string
-  // Muted sub-lines under the title (author, copyright). Empty/omitted lines
-  // are the caller's to filter out.
+  // Empty or omitted lines are the caller's to filter out.
   lines?: string[]
 }
 
+/**
+ * The menu as a PlayArea sees it, on its `GamePageCtx`: the three rows the
+ * shell binds and the game cannot, and the one call that replaces the game's
+ * sections. Hand the rows to `buildGameMenu` with the game's own, and push the
+ * result through `setGameSections` from an effect whose cleanup pushes `[]`.
+ */
 export type MenuApi = {
   // Help for THIS game — the manifest's `help` component, opened as a row in
   // the menu. Bound by the game page, because it is the page that knows which

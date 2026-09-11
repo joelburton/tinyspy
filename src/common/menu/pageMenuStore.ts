@@ -1,19 +1,16 @@
 // cs-audited-menu
 
 /**
- * The page's menu, so a keyboard shortcut can open it without the page acting
- * as a courier: `PageHeaderMenu` registers its menu here, and `act-open-menu`
- * (bound once in `AppActionsHost`) opens whatever is registered.
- *
- * **Why a module slot is safe here.** One page is mounted at a time and a page
- * has one header menu, so there is nothing to arbitrate. That is the same
- * structural argument `infoSheetStore` makes, and the same shape: a slot, not a
- * store anything subscribes to. Nothing re-renders when this changes — the only
- * reader is a keydown handler, which asks at the moment the key is pressed.
+ * How to open the page's menu, so the `?` key can reach it without the page
+ * acting as a courier: `PageHeaderMenu` registers its menu here, and
+ * `act-open-menu` (bound once in `AppActionsHost`) opens whatever is
+ * registered. A slot, not a store anything subscribes to — the only reader is
+ * a keydown handler, which asks at the moment the key is pressed; doc.md →
+ * Design says why one slot is safe.
  *
  * **A missing menu is a no-op, deliberately.** GamePage's menu unmounts while
- * the game is paused (PlayArea's cleanup clears its sections), so `?` during a
- * pause finds nothing registered and does nothing.
+ * the game is paused, so `?` during a pause finds nothing registered and does
+ * nothing.
  */
 
 let open: (() => void) | null = null

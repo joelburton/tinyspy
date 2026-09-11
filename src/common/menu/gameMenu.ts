@@ -18,18 +18,17 @@ import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
  * End and a race shows Concede without this asking.
  */
 export function buildGameMenu(opts: {
-  /** The shell's own rows, off `ctx.menu`: Help, chat and Back to club. */
+  // The shell's own rows, off `ctx.menu`: Help, chat and Back to club.
   menu: Pick<MenuApi, 'actHelp' | 'actChat' | 'actBackToClub'>
-  /** The game's exits, in the order they should read. Concede goes before End
-   *  where a race offers both — it is the mode's primary exit, and the first
-   *  one on the list is the one a player reaches for. */
+  // The game's exits, in the order they should read. Concede goes before End
+  // where a race offers both — it is the mode's primary exit, and the first
+  // one on the list is the one a player reaches for.
   exits: BoundAction[]
-  /** The game's own sections, inserted between Help and the exits. */
+  // The game's own sections, inserted between Help and the exits.
   extra?: MenuSection[]
-  /** Optional info block pinned at the VERY TOP of the menu (above Help) — a
-   *  non-clickable title + credit lines. crosswords passes the loaded puzzle's
-   *  title / author / copyright, matching the menu of the original crossplay
-   *  app it was ported from. */
+  // An info block pinned at the VERY TOP of the menu, above Help — a
+  // non-clickable title + credit lines. crosswords passes the loaded puzzle's
+  // title, author and copyright.
   header?: MenuHeader
 }): MenuSection[] {
   const { menu, exits, extra = [], header } = opts

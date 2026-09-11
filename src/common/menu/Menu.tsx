@@ -34,13 +34,13 @@ type NavRow =
 /** The open submenu, plus where its parent row sat when it opened (desktop
  *  flyouts are `position: fixed`, so they need viewport coordinates). */
 type OpenSubmenu = {
-  /** WHICH row is open, not the row itself: rows are re-read every render, so
-   *  holding one would be holding a snapshot of what it said when it opened. */
+  // WHICH row is open, not the row itself: rows are re-read every render, so
+  // holding one would be holding a snapshot of what it said when it opened.
   parentId: string
-  /** Flat index of the parent row in the TOP-LEVEL list, so closing the
-   *  submenu can put focus back where it came from. */
+  // Flat index of the parent row in the TOP-LEVEL list, so closing the submenu
+  // can put focus back where it came from.
   parentIndex: number
-  /** The parent row's viewport rect at open time. Desktop only. */
+  // The parent row's viewport rect at open time. Desktop only.
   anchor: { top: number; left: number; right: number }
 }
 
@@ -50,74 +50,47 @@ type OpenSubmenu = {
 export type MenuHandle = { open: () => void }
 
 type Props = {
-  /** The identity element the menu hangs off — an app or game logo. Menu wraps
-   *  it in a `<button>` with the menu ARIA attributes and snugs the little
-   *  down-chevron up against its right; the chevron is the "this opens a menu"
-   *  affordance and is NOT optional, which is the point of taking the logo
-   *  rather than a whole trigger. Every caller passed the identical wrapper
-   *  before, and a fourth could have forgotten
-   *  it with nothing to notice. */
+  // The identity element the menu hangs off — an app or game logo. Menu wraps
+  // it in a `<button>` and snugs the down-chevron against its right; the
+  // chevron is the "this opens a menu" affordance and is not optional, which is
+  // the point of taking the logo rather than a whole trigger.
   logo: ReactNode
-  /** Ordered list of sections rendered in the dropdown. Empty
-   *  sections drop out; dividers appear between non-empty
-   *  sections (no leading or trailing divider). */
+  // The sections, in order. Empty sections drop out; dividers appear between
+  // the ones that remain, none leading or trailing.
   sections: MenuSection[]
-  /** Accessible label for the trigger button (becomes
-   *  `aria-label`). Default: "Menu". Override to "Game menu" /
-   *  "Club menu" for context. */
+  // The trigger's accessible name. Default "Menu"; "Game menu", "Club menu" in
+  // context.
   triggerLabel?: string
-  /** Extra CSS class for the trigger button, so the caller can
-   *  add per-context styling (sizing, padding). The base
-   *  `styles.trigger` already handles button reset + hover. */
+  // Extra class on the trigger button for per-context sizing.
   triggerClassName?: string
-  /** Which edge of the trigger the popover aligns to. Default
-   *  `left` (popover's left edge sits at the trigger's left
-   *  edge — the right thing for a left-side trigger like the
-   *  GamePage logo). Set to `right` for triggers at the right
-   *  side of the screen, so the popover doesn't overflow
-   *  off-screen to the right. Also flips the side a submenu flies
-   *  out toward, for the same reason. */
+  // Which edge of the trigger the popover aligns to; `right` for a trigger at
+  // the screen's right edge, so the menu opens leftward into the page. Also
+  // flips the side a submenu flies out toward.
   popoverAlign?: 'left' | 'right'
-  /** Whether closing the menu returns focus to the trigger button.
-   *  Default `true` (standard menu a11y — Esc restores focus for
-   *  Tab users). Set `false` where the trigger retaining focus
-   *  fights a page-level keyboard handler: the crosswords game menu
-   *  sits over a board that reads `window` keydowns for cursor
-   *  movement, so a focused trigger would swallow arrows / reopen the
-   *  menu. With `false` the trigger blurs on close and focus falls to
-   *  `<body>`, so the board's keyboard resumes immediately. */
+  // Whether closing returns focus to the trigger (default) or lets it fall to
+  // the page. The game page passes `false` — docs/ui.md → GamePage menu →
+  // Focus says why.
   returnFocusOnClose?: boolean
 }
 
 /**
- * Generic dropdown menu — trigger button + popover with grouped
- * items + keyboard navigation. Every page's header menu is one,
- * placed through `<PageHeaderMenu>` (logo → game menu, club menu,
- * home menu).
+ * The dropdown menu behind every page header's logo — a trigger and a
+ * popover of grouped rows, with the keyboard contract in
+ * docs/keyboard-shortcuts.md → Menus, dialogs, and panels. Reach for it
+ * through `<PageHeaderMenu>`, which is its only renderer; hand it sections of
+ * bound actions (`MenuSection`, next door in `menuModel.ts`) and it draws them.
  *
- * **Keyboard contract:**
+ * A row may open a submenu (`MenuSubmenu`): a flyout beside the row on
+ * desktop, a drill-down that replaces the list on mobile — doc.md → Design.
  *
- *   - Trigger has focus: Enter / Space open the menu and focus
- *     the first enabled item. ArrowDown does the same (it's the
- *     conventional "I want to enter the menu" gesture).
- *   - Item has focus (menu open): ArrowDown / ArrowUp move to
- *     the next / previous enabled item (wrapping at ends, skipping
- *     disabled). Enter / Space activate. Esc closes the menu and
- *     returns focus to the trigger. Tab closes the menu and
- *     advances focus to the next page element.
+ * **Click outside** closes the menu, on mousedown so the close fires before
+ * any click handler underneath.
  *
- * **Click outside** closes the menu. Mousedown rather than click
- * so the close fires before any potential downstream click handler.
+ * **Activation order**: a row's action runs AFTER `closeMenu()`, so a modal
+ * the row opens takes focus cleanly once the trigger has it back.
  *
- * **Activation order**: an item's `onClick` runs AFTER `closeMenu()`,
- * so that any modal opened by the item picks up focus cleanly
- * (the trigger's focus restoration completes first, then the
- * modal mounts and steals focus on its own initiative).
- *
- * **Z-index** comes from the popover stylesheet — see Menu.module.css
- * for the chosen layer and the rationale (above 500-tier modals so
- * a menu click can open one; below the 10000-tier chat panel so
- * chat stays available for "what does this option do?" Q&A).
+ * **Stacking** is `--z-menu`, read by the stylesheet; `base.css` says why the
+ * menu is a rung of its own.
  */
 export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   logo,
@@ -130,7 +103,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
   // The open submenu, or null. ONE piece of state serves both presentations —
-  // see the component docstring's "Submenus" section.
+  // doc.md → Design.
   const [submenu, setSubmenu] = useState<OpenSubmenu | null>(null)
   // Which presentation: flyout on desktop, drill-down on mobile. Read here
   // rather than in CSS because the two differ in what is RENDERED, not just how
@@ -170,29 +143,20 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // findNextEnabled.
   const flatRows = drawn.flatMap((s) => s.rows)
 
-  /**
-   * Does any row in this menu carry a glyph? If so every row reserves the
-   * gutter, so labels line up in one column instead of going ragged. A menu with
-   * no icons at all (nothing in it maps to the icon language) reserves nothing
-   * and looks exactly as it did — a feature it doesn't use costs it no indent.
-   */
+  // Does any row carry a glyph? If so every row reserves the gutter, so labels
+  // line up in one column; a menu with none reserves nothing (doc.md → Design).
   const hasIcons = flatRows.some((r) => r.icon !== undefined)
 
-  /**
-   * The rows the KEYBOARD is currently walking — the single list that owns
-   * focus. This is where the hybrid collapses to almost nothing: in BOTH
-   * presentations an open submenu takes over navigation entirely, so the only
-   * difference is the "‹ Back" row (which exists solely in the drill-down,
-   * where the parent list is gone and there'd otherwise be no way back).
-   *
-   * On desktop the parent list stays *visible* behind the flyout but is not
-   * navigable — matching every desktop menu, where arrows move inside the open
-   * submenu and ArrowLeft/Escape steps back out.
-   */
   // The open submenu's parent row, as it reads NOW. Gone (an action that went
   // hidden while it was open) reads as closed.
   const openParent = submenu ? flatRows.find((r) => r.id === submenu.parentId) ?? null : null
 
+  // The rows the KEYBOARD is currently walking — the single list that owns
+  // focus. In BOTH presentations an open submenu takes over navigation
+  // entirely, so the only difference is the "‹ Back" row, which exists solely
+  // in the drill-down, where the parent list is gone. On desktop the parent
+  // list stays visible behind the flyout but is not navigable, as in every
+  // desktop menu.
   const navRows: NavRow[] = openParent
     ? [
       ...(isMobile ? [{ kind: 'back' } as const] : []),
@@ -213,11 +177,10 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     // A menu that reopens still drilled into a submenu would be a stale
     // surprise — every open starts at the top level.
     setSubmenu(null)
-    // Restore focus to the trigger (standard menu a11y), UNLESS the caller
-    // opted out — then blur it so focus falls to <body> and a page-level
-    // keyboard handler (the crosswords board) isn't shadowed by a focused
-    // trigger. `blur()` also covers the click-to-toggle-close case, where the
-    // mousedown had just focused the trigger.
+    // Restore focus to the trigger, unless the caller wants it to fall to the
+    // page instead (`Props.returnFocusOnClose`). `blur()` also covers the
+    // click-to-toggle-close case, where the mousedown had just focused the
+    // trigger.
     if (returnFocusOnClose) triggerRef.current?.focus()
     else triggerRef.current?.blur()
   }, [returnFocusOnClose])
@@ -301,9 +264,9 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   }, [open])
 
   function onPopoverKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    // While the menu is open it OWNS the keyboard — stop keys from also
-    // reaching a page-level `window` keydown handler (e.g. the crosswords
-    // board would otherwise move its cursor as you arrow through the menu).
+    // While the menu is open it OWNS the keyboard: nothing here may also reach
+    // a `window` keydown handler, or arrowing through the menu doubles as a
+    // board move.
     e.stopPropagation()
     if (e.key === 'Escape') {
       e.preventDefault()
@@ -354,10 +317,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   }
 
   function onTriggerKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
-    // While the trigger has focus it owns its keys — don't let them fall
-    // through to a page-level `window` keydown handler (the crosswords board
-    // would otherwise open the rebus overlay on Enter, jump a clue on Tab, or
-    // move the cursor on ArrowDown at the same time as opening the menu).
+    // While the trigger has focus it owns its keys, for the same reason the
+    // popover does: a press that opens the menu must not also reach a board.
     e.stopPropagation()
     // ArrowDown on the trigger is the conventional "step into the
     // menu" gesture. Enter and Space already fire the button's
@@ -415,21 +376,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         aria-expanded={parent ? submenu?.parentId === parent.id : undefined}
         onClick={(e) => activateRow(row, navIndex ?? 0, e.currentTarget)}
       >
-        {/* The identity disc, when the item carries one — before the label, the
-            way every other "who" surface in the app draws it. Not rendered on
-            the drill-down's Back row: that row names where you're going, not a
-            person. */}
         {/* ONE leading slot, shared by the two things that can sit before a
             label: the identity disc (who) and the action's glyph (what). No row
             carries both — an account row names a person, an action names a
             deed — so they take turns rather than stacking, which is what keeps
-            every label in the same column.
-
-            The slot is reserved for EVERY row as soon as any row in the menu
-            has an icon (the legend — `MenuRow.icon`); a menu with none renders
-            the disc inline exactly as it always did, so it gains no indent for
-            a feature it doesn't use. Not rendered on the drill-down's Back row:
-            that row names where you're going, not a person or an action. */}
+            every label in the same column. Reserved for EVERY row as soon as
+            any row has an icon; a menu with none renders the disc inline and
+            gains no indent. Not rendered on the drill-down's Back row: that row
+            names where you're going, not a person or an action. */}
         {hasIcons ? (
           <span className={styles.itemIconSlot} aria-hidden>
             {!isBack &&

@@ -4,23 +4,13 @@ import { useSyncExternalStore } from 'react'
 import type { MenuSection } from './menuModel'
 
 /**
- * The sections a game has pushed into the header menu.
+ * The sections a game has pushed into the header menu. A PlayArea writes
+ * through `MenuApi.setGameSections`; the header menu is the one reader.
  *
- * **Why this is not `useState` on the game page.** A push would re-render the
- * whole page — the board included — for a change that only the menu can see,
- * and it would make the identity of a menu row load-bearing: a game's menu
- * effect lists its rows in its deps, so a row rebuilt each render would set
- * state, re-render, rebuild and loop.
- *
- * Here the push notifies subscribers, and the only subscriber is the menu. A
- * game re-rendering costs the menu nothing, and a menu push costs the game
- * nothing. Identity is only an optimization — an unstable row rebuilds the
- * menu more often than it needs to.
- *
- * **Why a module slot is safe.** One game page is mounted at a time and it has
- * one header menu, so there is nothing to arbitrate — the same structural
- * argument `pageMenuStore` and `infoSheetStore` make. The page clears it on
- * unmount, so a menu cannot outlive the game that pushed it.
+ * A module slot rather than page state, so a push re-renders the menu and not
+ * the page and board with it — doc.md → Design has the argument, and why one
+ * slot is safe. The page clears it on unmount, so a menu cannot outlive the
+ * game that pushed it.
  */
 
 let sections: MenuSection[] = []
