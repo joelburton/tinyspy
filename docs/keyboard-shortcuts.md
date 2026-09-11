@@ -255,6 +255,10 @@ tool bar, which is why all three agree about what it is called and when it works
 to the next / previous clue · `Esc` cancels (so does clicking away).
 **Number-jump popup**: `Enter` goes · `Esc` closes.
 
+Both are focused inputs that answer Tab themselves rather than declaring a ring
+— the exception's exception. Everywhere else a focused field is a stop in some
+surface's ring; here Tab is still a move, the way it is on the grid behind them.
+
 ## letterboxed
 
 The entry accepts **board letters only** — `charFor` swallows any letter not on

@@ -3,7 +3,8 @@
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { FailureLine } from '../feedback/FailureLine'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useTabRing } from '../keyboard/useTabRing'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
 import { supabase } from '../supabase/supabase'
@@ -99,6 +100,12 @@ const RULES =
 type Values = { desired: string; chosen_color: string }
 
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
+  // This page is nothing but this form, so the form IS the page's tab ring:
+  // Tab cycles the handle field, the color swatches and the buttons, and never
+  // walks off into the browser's chrome.
+  const formRef = useRef<HTMLFormElement>(null)
+  useTabRing({ within: formRef })
+
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -183,6 +190,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
         </p>
 
         <StandardForm
+          ref={formRef}
           initialValues={
             { desired: suggested, chosen_color: defaultColorFor(suggested) } satisfies Values
           }

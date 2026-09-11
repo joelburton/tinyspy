@@ -1,7 +1,8 @@
 // cs-unmet
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StandardForm } from '../forms/StandardForm'
+import { useTabRing } from '../keyboard/useTabRing'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { FailureLine } from '../feedback/FailureLine'
 import { supabase } from '../supabase/supabase'
@@ -54,6 +55,12 @@ const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@joelburton.com' : ''
 type Values = { email: string; code: string }
 
 export function LoginScreen() {
+  // This page is nothing but this form, so the form IS the page's tab ring:
+  // Tab cycles the fields showing right now, Submit and the toggle link, and
+  // never walks off into the browser's chrome.
+  const formRef = useRef<HTMLFormElement>(null)
+  useTabRing({ within: formRef })
+
   // WHICH FORM this is, not something typed into it, so it stays here: the
   // fields on screen change with it.
   const [action, setAction] = useState<'send-link' | 'verify-code'>('send-link')
@@ -136,6 +143,7 @@ export function LoginScreen() {
         )}
 
         <StandardForm
+          ref={formRef}
           initialValues={{ email: DEV_DEFAULT_EMAIL, code: '' } satisfies Values}
           onSubmit={onSubmit}
         >

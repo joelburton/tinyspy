@@ -46,6 +46,11 @@ import styles from './StandardForm.module.css'
  * What it does NOT own is the space around itself. That is the gap between this
  * form and whatever sits above or below it, which belongs to the container —
  * `<FloatingPanel density>` for a floating panel, the page for a page.
+ *
+ * Nor does it own TAB. A form inside a floating panel is already inside that
+ * panel's ring, fields and all; a form that IS the page declares its own with
+ * `useTabRing({ within: formRef })` and passes the ref here (`LoginScreen` is
+ * the example).
  */
 export function StandardForm<V extends object>({
   className,
