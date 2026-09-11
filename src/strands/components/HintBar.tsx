@@ -12,9 +12,10 @@ type Props = {
   cost: number
   /** A hint is already on the board. */
   showing: boolean
-  /** Cash a hint. It carries its own reason — "A hint is already showing",
-   *  "Find N more valid words", "Reveal the tiles of one theme word" — because
-   *  what this control can do depends on the economy, not on the bar. */
+  /** Cash a hint. It carries its own reason in its bubble — "A hint is already
+   *  showing", "Find N more valid words", "Reveal the tiles of one theme word"
+   *  — because what this control can do depends on the economy, not on the
+   *  bar. Its words stay "Hint". */
   actHint: BoundAction
 }
 

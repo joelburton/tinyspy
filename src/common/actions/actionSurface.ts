@@ -15,7 +15,8 @@ export type ActionSurface = {
   icon?: AppIcon
   /** Spread onto the `<button>`: it fires the action, grays when the action
    *  says so or while a run is out, says which action it is, and carries the
-   *  bubble with the key on the end. */
+   *  bubble — the action's reason for this moment, else its name with the key
+   *  on the end. */
   buttonProps: {
     disabled: boolean
     onClick: () => void
@@ -38,7 +39,7 @@ export type ActionSurface = {
  * ("Shuffle the words", "Shuffle rack"); the key is appended either way.
  */
 export function actionSurface(action: BoundAction, name?: string): ActionSurface {
-  const { state, label, icon } = action.describe()
+  const { state, label, icon, tooltip } = action.describe()
   const called = name ?? label ?? action.spec.label
   return {
     hidden: state === 'hidden',
@@ -49,7 +50,9 @@ export function actionSurface(action: BoundAction, name?: string): ActionSurface
       onClick: () => action.run(),
       'aria-label': called,
       'data-action': action.id,
-      'data-tooltip': nameWithKey(called, action),
+      // The action's reason for this moment, when it gives one; else its name
+      // with the key on the end.
+      'data-tooltip': tooltip ?? nameWithKey(called, action),
     },
   }
 }

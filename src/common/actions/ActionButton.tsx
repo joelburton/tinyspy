@@ -32,12 +32,17 @@ type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'onClick'> & 
  * that New game is `+`.
  */
 export function ActionButton({ action, tooltip, ...rest }: Props) {
-  const { state, label, icon } = action.describe()
+  const { state, label, icon, tooltip: reason } = action.describe()
   if (state === 'hidden') return null
 
   const { spec } = action
   const words = label ?? spec.label
   const chord = spec.keys?.[0]?.label
+  // The bubble: a reason from the placement, else the action's own reason for
+  // this moment, else the name with its key. Without a key there is nothing to
+  // add, so the button keeps StandardButton's own rule (the name, when the
+  // words aren't already on screen).
+  const bubble = tooltip ?? reason ?? (chord === undefined ? undefined : nameWithKey(words, action))
 
   return (
     <StandardButton
@@ -46,10 +51,7 @@ export function ActionButton({ action, tooltip, ...rest }: Props) {
       // the label, so it moves with the words or the two disagree.
       icon={icon ?? spec.icon}
       tone={spec.tone}
-      // The bubble teaches the key. Without a key there is nothing to add, so
-      // the button keeps StandardButton's own rule (the name, when the words
-      // aren't already on screen).
-      tooltip={tooltip ?? (chord === undefined ? undefined : nameWithKey(words, action))}
+      tooltip={bubble}
       // …but the button is still CALLED "End game", not "End game · ⌥⌫". A
       // standard button takes its accessible name from the tooltip when it has
       // one, which is right where the tooltip renames it ("Club" / "Back to

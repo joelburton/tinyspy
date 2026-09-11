@@ -46,6 +46,15 @@ describe('ActionButton', () => {
     expect(screen.getByRole('button', { name: /new game/i }).dataset.tooltip).toBe('New game · +')
   })
 
+  it("puts the action's reason in the bubble, in place of the name and key", () => {
+    // The words stay the action's — the reason is WHY it is in this state,
+    // and it comes from the binding, not the placement.
+    render(<Harness id="act-shuffle" live={{ describe: () => ({ state: 'disabled', tooltip: 'Nothing to shuffle yet' }) }} />)
+    const button = screen.getByRole('button', { name: /shuffle/i })
+    expect(button.dataset.tooltip).toBe('Nothing to shuffle yet')
+    expect(button.getAttribute('aria-label')).toBe('Shuffle')
+  })
+
   it('says which action it is, for a stylesheet or a test to find', () => {
     render(<Harness id="act-shuffle" live={{}} />)
     expect(document.querySelector('[data-action="act-shuffle"]')).toBeTruthy()

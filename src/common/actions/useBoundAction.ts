@@ -60,6 +60,12 @@ export type Described = {
   // registry's own. For a toggle, and nothing else: an action that draws an
   // unrelated glyph here is a different action wearing this one's name.
   icon?: AppIcon
+  // WHY it is the state it is, where that is worth a sentence — "A hint is
+  // already showing", "Find 2 more valid words". A button shows it in its
+  // hover bubble in place of the name and key; a menu row has no bubble and
+  // ignores it. Given here rather than by the placement because the same
+  // conditions that decide the state are the ones that know the reason.
+  tooltip?: string
 }
 
 /** The live half a binding supplies. */

@@ -34,9 +34,13 @@ available is simply what is mounted. That is also what makes the help list
 trustworthy, since the list and the dispatcher read the same registrations.
 
 A bound action answers one question, `describe()`, with `active`, `hidden` or
-`disabled` — and optionally with different words, or a different glyph, for this
-moment. One answer, read by everything: a menu row grays, a button disables and
-a key does nothing for the same stated reason, and they cannot disagree.
+`disabled` — and optionally with different words, a different glyph, or the
+reason it is the state it is, for this moment. One answer, read by everything: a
+menu row grays, a button disables and a key does nothing for the same stated
+reason, and they cannot disagree. The reason goes into the button's bubble in
+place of the name and key ("Find 2 more valid words" on a Hint that is not yet
+earned); it comes from the binding rather than the placement because the
+conditions that decide the state are the ones that know why.
 `hidden` and `disabled` say different things and the distinction matters: hidden
 is "not here at this moment", which is how a play-only action leaves at
 terminal, while disabled is "here, and not right now", which is Submit with an

@@ -474,19 +474,23 @@ export function PlayArea(ctx: GamePageCtx) {
   // in the pill instead. A hint already on the board is the one state that does
   // gray it: the board can only ring one word legibly, and the server refuses a
   // second anyway.
+  //
+  // The button always reads "Hint"; what varies is the bubble, which says where
+  // the economy stands. Varying the words would resize the one control the bar
+  // exists to reach.
   const actHint = useBoundAction('act-hint', {
     describe: () => {
       const showing = (me?.active_hint_coords ?? null) !== null
       const points = me?.hint_points ?? 0
       const cost = game?.hint_cost ?? 0
       if (isTerminal || isLocallyDone || busy || viewer.viewing || showing) {
-        return { state: 'disabled', label: showing ? 'A hint is already showing' : 'Hint' }
+        return { state: 'disabled', tooltip: showing ? 'A hint is already showing' : undefined }
       }
       return points >= cost
-        ? { state: 'active', label: 'Reveal the tiles of one theme word' }
+        ? { state: 'active', tooltip: 'Reveal the tiles of one theme word' }
         : {
             state: 'active',
-            label: `Find ${cost - points} more valid word${cost - points === 1 ? '' : 's'}`,
+            tooltip: `Find ${cost - points} more valid word${cost - points === 1 ? '' : 's'}`,
           }
     },
     run: spendHint,

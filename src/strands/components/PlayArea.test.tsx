@@ -245,6 +245,32 @@ describe('strands PlayArea — the terminal reveal', () => {
   })
 })
 
+describe('strands PlayArea — the Hint button says where the economy stands', () => {
+  // The words never move — the bar's one control must not resize as points
+  // come in — so the state of the economy rides in the bubble.
+  const hintButton = () => screen.getByRole('button', { name: 'Hint' })
+
+  it('unearned: live, and the bubble counts the words still to find', () => {
+    h.result = loaded({ me: player({ hint_points: 1 }) })
+    render(<PlayArea {...makeCtx()} />)
+    expect(hintButton().hasAttribute('disabled')).toBe(false)
+    expect(hintButton().dataset.tooltip).toBe('Find 2 more valid words')
+  })
+
+  it('earned: the bubble says what cashing it does', () => {
+    h.result = loaded({ me: player({ hint_points: 3 }) })
+    render(<PlayArea {...makeCtx()} />)
+    expect(hintButton().dataset.tooltip).toBe('Reveal the tiles of one theme word')
+  })
+
+  it('a hint already on the board: gray, and the bubble says so', () => {
+    h.result = loaded({ me: player({ hint_points: 0, active_hint_coords: [[1, 0]] }) })
+    render(<PlayArea {...makeCtx()} />)
+    expect(hintButton().hasAttribute('disabled')).toBe(true)
+    expect(hintButton().dataset.tooltip).toBe('A hint is already showing')
+  })
+})
+
 describe('strands PlayArea — before the game has loaded', () => {
   // A binding joins the stack on the FIRST render, before the loading guard
   // has anything to show, and its `describe` can be read right then: the key
