@@ -5,11 +5,12 @@
  *
  * `.muted` is the clearest case: it says "quieter than its neighbor"
  * and names nothing. A class that names a THING goes somewhere it can
- * be found by that name — patterns/ for the badge, the segmented
- * control, the heading row; the component's own module when the thing
- * has one, which is where the button and the list ended up. The default
- * is a new file per pattern: too many files merge easily, one long file
- * has to be read through (docs/code-conventions.md → Patterns).
+ * be found by that name — patterns/ for the badge, the empty state,
+ * the heading row; the component's own module when the thing has one,
+ * which is where the button, the list and the segmented control ended
+ * up. The default is a new file per pattern: too many files merge
+ * easily, one long file has to be read through
+ * (docs/code-conventions.md → Patterns).
  *
  * Everything here is unscoped, which is why the set stays small.
  *

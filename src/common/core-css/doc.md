@@ -52,9 +52,9 @@ Then the classes. `utilities.css` keeps only adjustments that name nothing —
 `.muted` says "quieter than its neighbor" and nothing more — and the set stays
 small because everything in it is unscoped. A class that names a thing goes
 where it can be found by that name: `patterns/` when the thing has no
-component of its own (the badge, the segmented choice, the focus ring, the
-page's bound, a heading carrying a control), and the component's own module
-when it has one. Each pattern is one file, because a file per pattern is
+component of its own (the badge, the empty state, the focus ring, the page's
+bound, a heading carrying a control), and the component's own module when it
+has one — which is where the segmented choice lives. Each pattern is one file, because a file per pattern is
 easy to merge later and one long file has to be read through.
 
 All of this loads statically from `main.tsx`, before the theme, which is a

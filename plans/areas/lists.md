@@ -506,9 +506,13 @@ half of the same sentence's rule ("the component's own module when the thing
 has one").
 
 Found while placing `empty-state.css`, since that header is what decided where
-the new file went. The ui.md map is corrected here. The `utilities.css`
-sentence is left alone: `corecss` is PAUSED, and this is prose in a file Joel
-has said he can't review right now. It goes to that area.
+the new file went.
+
+**WORKED 2026-09-11 (Joel: "no, fix it now. who cares if corecss is paused?
+not me. just fix it now").** All three say it correctly: `utilities.css`'s
+header and `core-css/doc.md` now list the empty state among the patterns and
+put the segmented choice with the components, and docs/ui.md's map was
+corrected when the file was placed.
 
 ### Ruled already, recorded so the re-read does not re-raise them
 
