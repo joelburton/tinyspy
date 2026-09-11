@@ -27,9 +27,10 @@ const rings: Array<{ stops: RefObject<TabStop[]> }> = []
 
 /** A stop that is not currently on screen is not a stop. The club page renders
  *  one column at a time on mobile, and Tab must not park the keyboard on the
- *  list that isn't showing. */
+ *  list that isn't showing. Asked in rects rather than `offsetParent`, which a
+ *  `position: fixed` element has none of however plainly it is showing. */
 function onScreen(el: HTMLElement | null): el is HTMLElement {
-  return el !== null && el.offsetParent !== null
+  return el !== null && el.isConnected && el.getClientRects().length > 0
 }
 
 /**

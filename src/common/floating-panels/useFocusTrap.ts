@@ -37,13 +37,17 @@ export function useFocusTrap(anchorRef: RefObject<HTMLElement | null>): void {
     // Tab order = the panel's focusable controls in DOM order. Recomputed on each
     // Tab (cheap, and robust if a control enables/disables), filtering out hidden
     // or disabled ones. `[tabindex="-1"]` is programmatically-focusable-only, so
-    // it's excluded from the Tab ring.
+    // it's excluded from the Tab ring. Showing is asked in rects rather than
+    // `offsetParent`, which a `position: fixed` control has none of.
     const focusables = () =>
       Array.from(
         panel.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
-      ).filter((el) => el.offsetParent !== null || el === document.activeElement)
+      ).filter(
+        (el) =>
+          (el.isConnected && el.getClientRects().length > 0) || el === document.activeElement,
+      )
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Tab') return
