@@ -45,8 +45,8 @@ export type FilterOption = {
  * because it does.
  *
  * **Deliberately NOT a form control**, per the constraints these live under:
- * you never Tab to a gameplay filter (`useCaptureKeys` swallows Tab while the
- * caret owns the keyboard), never open one with Space, and never want a focus
+ * you never Tab to a gameplay filter (a play surface's tab ring is empty),
+ * never open one with Space, and never want a focus
  * ring on the board. That is the definition of "not a `<select>`", and it's
  * why this is a plain button + list rather than a keyboard-navigable listbox.
  *

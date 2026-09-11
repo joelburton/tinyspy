@@ -192,7 +192,7 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // from the render before, and every surface would show the previous moment's
   // truth for a beat: the row saying the game is over beside a button still
   // saying it is not. (An effect IS right for a value only a listener reads,
-  // which is why `useGlobalKeyHandler` and `useTabRing` use one.)
+  // which is why `useTabRing` uses one.)
   //
   // The rule this waives guards against a render being discarded and its writes
   // outliving it. Nothing here is at risk: what the ref holds is only ever read

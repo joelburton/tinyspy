@@ -40,7 +40,7 @@ import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Four categories to find, four mistakes allowed — the NYT Connections
@@ -112,11 +112,9 @@ export function PlayArea({
   brand,
   title,
 }: GamePageCtx) {
-  // Tab does nothing while the board has the keyboard — this play surface is
-  // not a form, so native Tab would walk out to the header buttons and on into
-  // the browser's URL bar, stranding the player. (The capture-entry games get
-  // this from useCaptureKeys; see useSwallowTab.)
-  useSwallowTab()
+  // The board is worked by clicks and typing, so Tab has nowhere to go here —
+  // and an empty ring is what keeps it from walking out to the browser.
+  useTabRing([])
   const {
     game,
     guesses,

@@ -455,8 +455,9 @@ card they never looked at. The cost is that rows are not contiguous (row two
 starts at H), which nobody has to know: a letter is an address to read off a
 card, never a sequence to recite.
 
-**Tab is swallowed outright.** Nothing on this surface takes focus, so a Tab
-that did anything would only move a focus ring somewhere unusable.
+**Tab is caught and goes nowhere** — the page declares an empty tab ring.
+Nothing on this surface takes focus, so a Tab that did anything would only move
+a focus ring somewhere unusable.
 
 ### The palette
 

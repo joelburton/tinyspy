@@ -7,6 +7,7 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { Member } from '@/common/members/member'
 import { runRpc } from '@/common/supabase/dbResult'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
@@ -82,6 +83,11 @@ export function PlayArea(ctx: GamePageCtx) {
     globalFeedback,
   } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
+
+  // The entry is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser.
+  useTabRing([])
 
   const wordwheelSetup = setup as WordwheelSetup
 

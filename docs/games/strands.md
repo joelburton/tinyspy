@@ -372,9 +372,8 @@ next:
 
 So the rule the original design derived from still holds — it's refined, not
 reversed. Physical keys also do the rest: **Backspace** drops the last tile,
-**Enter** submits, **Tab** is swallowed, and any key dismisses the last pill. The
-tiles are `tabIndex={-1}`: 48 tab stops would bury every real control, the same
-reasoning the shared `WordList` records.
+**Enter** submits, **Tab** is caught and goes nowhere (the page declares an empty
+tab ring, so no tile is ever a tab stop), and any key dismisses the last pill.
 
 **A click never submits.** Re-clicking the last tile would be a misclick
 magnet: that tile is where the cursor already is, so clipping it while reaching

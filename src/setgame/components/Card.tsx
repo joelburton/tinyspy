@@ -108,9 +108,6 @@ export function Card({
     <button
       type="button"
       className={className}
-      // A card is never a tab stop: nothing on this board takes focus (the
-      // board-focus rule), and Tab is swallowed outright by the key handler.
-      tabIndex={-1}
       disabled={disabled}
       onClick={onClick}
     >

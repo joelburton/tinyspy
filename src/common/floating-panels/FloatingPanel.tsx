@@ -868,8 +868,7 @@ function PanelRnd({
             chain work for chat's scrollable region. Pattern
             mirrors ../connections' ChatPanel.module.css. */}
         {/* `data-floating-panel` marks this subtree as "a panel owns the keyboard
-            here": the action dispatcher (and the Tab swallows on
-            useGlobalKeyHandler) bail
+            here": the action dispatcher and the page's tab ring bail
             for events whose focus is inside it, so Enter activates a modal button
             and Tab moves between its controls instead of being swallowed.
             Its VALUE is the panel's id, which is how `usePanelEscape` maps focus

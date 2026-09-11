@@ -4,6 +4,7 @@ import { useEffect, useMemo, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { GamePlayer } from '@/common/members/member'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
@@ -73,6 +74,11 @@ type SubmittedWord =
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
+
+  // The entry is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser.
+  useTabRing([])
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into a full-width off-canvas

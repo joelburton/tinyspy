@@ -7,7 +7,7 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * the gap between them is a real, measurable window that keystrokes fall into.
  *
  * A play surface captures the keyboard from a window-level listener attached in
- * a passive effect (`useGlobalKeyHandler`). React puts the board's DOM nodes in
+ * a passive effect (the action dispatcher's). React puts the board's DOM nodes in
  * the document at COMMIT — before paint — and flushes that passive effect a few
  * milliseconds later. Playwright's visibility check is satisfied by the commit,
  * so a test that types the instant the board appears can type into a game that

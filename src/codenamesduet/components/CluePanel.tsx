@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
+import { useRef, useState, type SubmitEvent } from 'react'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
@@ -11,6 +11,7 @@ import { IconSubmit } from '@/common/icons/icons'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
@@ -246,22 +247,13 @@ function ClueForm({
   // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
   const isPhone = useIsPhone()
 
-  // Keep Tab INSIDE the clue form: it toggles between the count and word inputs and
-  // goes nowhere else — not the turn-log #N handles, page links, or the browser
-  // tab bar (the wander codenamesduet uniquely allowed, since it uses plain inputs
-  // rather than the Tab-swallowing capture-entry the single-field games share).
-  // With only two fields, Tab and Shift+Tab are the same toggle. Submit is Enter
-  // (the form's submit button); the AI button is a click.
+  // The two fields ARE this form's ring, so Tab toggles between them and goes
+  // nowhere else. It is innermost while the form is up, which is why it beats
+  // the page's empty ring below it. Submit is Enter (the form's submit button);
+  // the AI button is a click.
   const countRef = useRef<HTMLInputElement>(null)
   const wordRef = useRef<HTMLInputElement>(null)
-  function trapTab(
-    e: KeyboardEvent<HTMLInputElement>,
-    other: RefObject<HTMLInputElement | null>,
-  ) {
-    if (e.key !== 'Tab') return
-    e.preventDefault()
-    other.current?.focus()
-  }
+  useTabRing([countRef, wordRef])
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -361,7 +353,6 @@ function ClueForm({
           placeholder="#"
           value={count}
           onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
-          onKeyDown={(e) => trapTab(e, wordRef)}
           disabled={eitherBusy}
           required
           className={styles.countInput}
@@ -375,7 +366,6 @@ function ClueForm({
           placeholder="word"
           value={word}
           onChange={(e) => setWord(e.target.value.toUpperCase())}
-          onKeyDown={(e) => trapTab(e, countRef)}
           disabled={eitherBusy}
           required
           className={styles.wordInput}

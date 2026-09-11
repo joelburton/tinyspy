@@ -11,7 +11,7 @@ import type { GamePlayer } from '@/common/members/member'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useFlash } from '@/common/move-flash/useFlash'
@@ -386,9 +386,8 @@ export function PlayArea(ctx: GamePageCtx) {
    *   - **Backspace** drops the last tile, so a misclick costs one key instead
    *     of restarting the word;
    *   - **Enter** submits — one of only two ways, with the Submit button;
-   *   - **Tab** is swallowed. The tiles already left the tab order
-   *     (`tabIndex={-1}`), so this is belt and braces: nothing on the board
-   *     should shift focus mid-trace.
+   *   - **Tab** has nowhere to go — the board is traced with clicks and keys,
+   *     so this page's ring is empty and Tab is caught rather than leaked.
    *
    * Registered globally rather than on the board element because the board
    * holds no focus — there is no text input to type into, so there would be
@@ -399,9 +398,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // dismisses it". A watcher that claims nothing, so the same press still traces
   // its letter.
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
-  // Tab is swallowed: the tiles already left the tab order (`tabIndex={-1}`), so
-  // this is belt and braces — nothing on the board should shift focus mid-trace.
-  useSwallowTab()
+  useTabRing([])
 
   // A letter EXTENDS the trace, if exactly one neighboring tile bears it. A
   // pattern action, so it is handed whichever letter fired it. Inert while the

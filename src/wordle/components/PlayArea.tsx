@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
@@ -79,6 +80,12 @@ export function PlayArea({
   menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading, failure } = useGame(gameId)
+
+  // The guess is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser. (The on-screen keyboard's caps are clicks, not stops.)
+  useTabRing([])
+
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).

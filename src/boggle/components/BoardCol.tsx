@@ -215,8 +215,8 @@ export function BoardCol({
                 data-boggle-tile
                 data-step={step >= 0 ? step + 1 : undefined}
                 // POINTER-ONLY: no tabIndex, no role, no Enter/Space keydown.
-                // A tile isn't keyboard-reachable — useCaptureKeys swallows Tab
-                // while play is live — so the button costume was unreachable,
+                // A tile isn't keyboard-reachable — the page's tab ring is
+                // empty — so the button costume was unreachable,
                 // and it was actively harmful: a focused tile's own keydown
                 // would eat the player's next Enter, tracing a stray tile onto
                 // the word instead of submitting it. Nothing to eat it now.

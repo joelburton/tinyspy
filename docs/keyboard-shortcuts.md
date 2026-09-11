@@ -73,9 +73,12 @@ Two consequences worth knowing:
   only while the game actually owns the keyboard
   ([`useGameHasKeyboard`](../src/common/game-page/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
-- **Tab is not a navigation key on a board.** Every game swallows it (see the
-  per-game table) except the two with somewhere for it to go: crosswords uses
-  it for clue navigation and codenamesduet traps it inside the clue form.
+- **Tab is not a navigation key on a board.** Every play surface declares the
+  ring of stops Tab may visit ([`useTabRing`](../src/common/keyboard/useTabRing.ts)),
+  and a board's is empty — the key is caught and consumed rather than left to
+  walk out to the browser. The two with somewhere for it to go are
+  codenamesduet, whose clue form declares its two fields, and crosswords, where
+  Tab is a move rather than navigation.
 
 ## Global — everywhere in the app
 
@@ -120,7 +123,7 @@ of games.
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
 | *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Every game with a turn log has the viewer. Clicking anywhere exits too. |
-| `Tab` | **Swallowed** on most boards — a play surface is not a form, and native Tab walks focus out to the header and then into the browser's URL bar. Exceptions: crosswords (clue navigation) and codenamesduet (trapped inside the clue form). |
+| `Tab` | **Caught and consumed** on most boards — the play surface declares an empty ring (`useTabRing([])`), because a board is not a form and native Tab walks focus out to the header and then into the browser's URL bar. Exceptions: crosswords (clue navigation) and codenamesduet (its clue form's two fields are the ring). |
 
 ## Menus, dialogs, and panels
 
@@ -197,7 +200,7 @@ window-level board keys.
 
 | key | what it does |
 |---|---|
-| `Tab` / `⇧Tab` | Toggle between the clue's count and word fields — and nowhere else. With two fields, both directions are the same toggle. |
+| `Tab` / `⇧Tab` | Toggle between the clue's count and word fields — the form declares them as its ring, so Tab goes nowhere else. With two fields, both directions are the same toggle. |
 | `Enter` | Submit the clue — **the form's own submit**, not a bound action. A keystroke aimed at a focused field never reaches the key dispatcher, so the form keeps its Enter the way any form does, and the Submit button stays a `type="submit"`. The commands beside it (Pass & End Turn, the AI clue) ARE actions; a submit button is not one. |
 
 ## connections
@@ -298,7 +301,7 @@ read off a card rather than a sequence to recite.
 |---|---|
 | `A`–`U` | Toggle that card's selection. The third selected card submits the claim; a third that doesn't complete a set is refused on the spot, with no round trip. |
 | `⌫` | Clear the whole selection. |
-| `Tab` | **Swallowed.** Nothing on this surface takes focus — the cards are clickable but never focusable — so a Tab that did anything would only move a focus ring somewhere unusable. |
+| `Tab` | **Caught and consumed** by the page's empty ring. Nothing on this surface takes focus — the cards are clickable, never focusable — so a Tab that did anything would only move a focus ring somewhere unusable. |
 
 The letters are **hidden on mobile**: no keyboard to use them with, and the row
 they occupy is height the board needs.

@@ -209,8 +209,12 @@ ring on a real form.
 **Nothing needs a decision.** Two items that were on this list have been
 answered:
 
-- **The scratchpad's ✕ stays OUT of its ring** (Joel, 2026-08-24), so the
-  scratchpad is a panel you leave with the mouse for now. **Escape is discussed
+- **The scratchpad's ✕ is IN its ring** (Joel, 2026-09-11, replacing the
+  2026-08-24 ruling that it stays out). A panel's ring is all of it, and the ✕
+  is a control of the panel like any other; chat is the same. Forward-Tab in the
+  text field is still the step OUT to the page's ring, so the ✕ is what
+  Shift+Tab from the field reaches — which is what those two panels do today.
+  **Escape is discussed
   at the crosswords area**, where the scratchpad surfaces — and the fact to
   bring to it is that both chat and the scratchpad close on Escape now: every
   `FloatingPanel` family is `escape: 'close'` except the fault modal, through
@@ -437,9 +441,9 @@ that carries `data-floating-panel`. Then:
   like every companion's; the field's own `onKeyDown` runs first on the element
   and `preventDefault`s, so the ring's later `preventDefault` is a no-op and
   focus lands on `<body>`, which is where the page's empty ring wants it.
-  Shift+Tab stays native inside the panel ring (the ✕ is reachable), which the
-  ring gives for free. Rewrite the helper's docstring to say "step out of this
-  ring", not "hand the keyboard back".
+  Shift+Tab from the field is the panel ring's and lands on the ✕, which is the
+  ruling above and what the ring gives for free. Rewrite the helper's docstring
+  to say "step out of this ring", not "hand the keyboard back".
 - **The menu.** `Menu.tsx`'s popover handles Tab by closing and NOT preventing
   default, so native Tab then runs from wherever focus lands — a leak the plan
   did not list. Tab while the menu is open closes it AND is consumed
@@ -504,7 +508,7 @@ and the doc says so).
 - The `/* @@ */` CSS markers, every `cs-` stamp on an edited file, and
   `common/devtools/`.
 
-## D1 — the one decision: is a floating panel's ring declared or discovered?
+## D1 — DECIDED (Joel, 2026-09-11): a floating panel's ring is DISCOVERED
 
 Part I says a ring is **declared, never discovered**, and gives the reason:
 discovery is what drags in the header menu and a hover-revealed delete ×, and
@@ -518,12 +522,28 @@ only ever be "all of them, in order", written once per form and drifting the
 first time a field is added. `useFocusTrap` already works this way today for
 the modal families, and nobody has wanted a modal control to be unreachable.
 
-**PROPOSED: a panel's ring is its focusable descendants in DOM order
+**A panel's ring is its focusable descendants in DOM order
 (`{ within: shellRef }`), declared once by the shell for every family; a page's
 ring stays an explicit list.** The invariant holds either way — every focusable
 thing belongs to exactly one ring, Tab is never native — and the difference is
-only how a panel's members are spelled. If Joel prefers explicit lists inside
-panels too, `useTabRing` keeps its `TabStop[]` form only, every
-`StandardForm` takes a `stops` prop listing its field refs in order, and the
-shell's ring is `[closeRef, ...form stops]`; steps 3 and 4 then touch every
-form file rather than the shell. **Decide before step 3.**
+only how a panel's members are spelled. The road not taken: explicit lists
+inside panels too, `useTabRing` keeping its `TabStop[]` form only, every
+`StandardForm` taking a `stops` prop listing its field refs in order, the
+shell's ring being `[closeRef, ...form stops]`, and steps 3 and 4 touching every
+form file rather than the shell.
+
+**Two things the decision carries into step 3.**
+
+- **The scratchpad's ✕ is in the ring**, because discovery reaches every
+  focusable descendant of the shell, and Joel took that answer rather than carve
+  the first exception to "a panel's ring is all of it" (2026-09-11). Part I's
+  Open list carries the ruling; chat is the same panel shape and the same answer.
+- **A nested ring that mounts in the SAME COMMIT as its parent loses today.**
+  Rings stack by mount, and React fires a child's effect BEFORE its parent's, so
+  the parent lands last and is therefore innermost. Measured 2026-09-11 with a
+  parent `useTabRing([])` around a child `useTabRing([ref])`: the parent consumed
+  Tab and the child's stop never took focus. Nothing in the app hits the broken
+  case — codenamesduet's clue form mounts a commit after its PlayArea, which
+  renders "Loading board…" first, and a floating panel opens later than the page
+  under it — but a `within` ring KNOWS an element, so step 3 is the first point
+  at which innermost could be decided by DOM containment instead of mount order.

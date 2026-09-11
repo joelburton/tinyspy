@@ -7,11 +7,11 @@ import { signIn } from './helpers/session'
 /**
  * The clue form keeps Tab to itself. codenamesduet's clue-giver form is two plain
  * `<input>`s (count + word); without help, Tab walks off them onto the turn-log
- * `#N` handles, page links, and the browser tab bar (the single-field games avoid
- * this with their Tab-swallowing capture entry). `trapTab` in CluePanel makes Tab —
- * and Shift+Tab — toggle between the two inputs and nowhere else. Native Tab
- * traversal is a real-browser behavior jsdom can't simulate, so this is a browser
- * check: focus never lands outside the two inputs however many times we Tab.
+ * `#N` handles, page links, and the browser tab bar. The two inputs ARE the form's
+ * tab ring, so Tab — and Shift+Tab — toggle between them and nowhere else, and
+ * the ring is innermost while the form is up. Native Tab traversal is a
+ * real-browser behavior jsdom can't simulate, so this is a browser check: focus
+ * never lands outside the two inputs however many times we Tab.
  */
 test.describe('codenamesduet clue-form Tab handling', () => {
   test('Tab toggles between the count and word inputs and never leaves them', async ({

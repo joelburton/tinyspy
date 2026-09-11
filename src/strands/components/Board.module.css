@@ -188,8 +188,8 @@
 }
 
 /* No focus ring. Safe here specifically BECAUSE the tiles are pointer-only and
- * out of the tab order (tabIndex={-1} in Board.tsx) — no keyboard user can
- * reach one, so the ring can never be the thing telling someone where they are.
+ * Tab cannot reach one (the page declares an empty ring) — so the ring can
+ * never be the thing telling someone where they are.
  * Without this, clicking a tile leaves the browser's focus box behind, which
  * outlives the trace: press Backspace and the just-removed tile keeps a stray
  * blue square around it. Same pointer-only reasoning as the shared WordList's

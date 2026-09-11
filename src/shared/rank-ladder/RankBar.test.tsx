@@ -15,9 +15,9 @@ import { RankBar } from './RankBar'
  * correctly false for a mouse click), then the NEXT keystroke promoted it,
  * because the browser re-evaluates focus-visible on any keyboard interaction
  * even when it acts on nothing. The ring and the tooltip then stuck: the pointer
- * leaving didn't clear them, and Tab couldn't move focus away either, since the
- * capture-entry games swallow Tab by design. Just resuming play lit a square up
- * and left it lit.
+ * leaving didn't clear them, and Tab couldn't move focus away either, since a
+ * play surface's tab ring is empty by design. Just resuming play lit a square
+ * up and left it lit.
  *
  * The bar renders TWICE per game (info column + mobile status bar) in both
  * spellingbee and wordwheel, so that was fourteen dead tab stops ahead of every

@@ -302,8 +302,8 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
     const define = screen.getByTitle('Click to define')
     expect(define).toHaveTextContent('BRAVO')
     // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
-    // are a convenience on a word you're already pointing at, and the entry
-    // swallows Tab anyway (common/core-css/utilities.css → `.definable`).
+    // are a convenience on a word you're already pointing at, and the page's
+    // tab ring is empty anyway (common/core-css/utilities.css → `.definable`).
     expect(define).not.toHaveAttribute('role')
     expect(define).not.toHaveAttribute('tabindex')
     // ...but the hint sentence is not (only the one define affordance in the log).

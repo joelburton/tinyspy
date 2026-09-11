@@ -1,7 +1,6 @@
 // cs-blessed-keyboard
 
 import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
-import { useGlobalKeyHandler } from './useGlobalKeyHandler'
 
 /**
  * A `charFor` (see below) for ASCII letters, stored in the given case. This is
@@ -37,8 +36,8 @@ export type CaptureKeysOptions = {
   // and in particular NO feedback dismissal, so a terminal sticky pill isn't
   // cleared by a stray key. Use for loading / terminal. Default false.
   disabled?: boolean
-  // Soft-busy. When true, a key still dismisses feedback and Tab is still
-  // swallowed, but no character is appended/deleted and Enter doesn't submit —
+  // Soft-busy. When true, a key still dismisses feedback, but no character is
+  // appended/deleted and Enter doesn't submit —
   // for the brief in-flight-submit window, so a second keystroke can't append
   // to (or re-submit) a value that's mid-RPC. Default false.
   busy?: boolean
@@ -140,17 +139,6 @@ export function useCaptureKeys({
   useBoundAction('act-dismiss-feedback', {
     describe: () => (disabled || onAnyKey === undefined ? 'hidden' : 'active'),
     run: () => onAnyKey?.(),
-  })
-
-  // Tab is the one key here that is nobody's action: it moves focus rather than
-  // doing something, and where it may move is `plans/tab-rings.md`. Swallowed
-  // while the caret owns the keyboard, because focus landing on a button would
-  // read as a second cursor. (Chat and dialog fields keep their own Tab — the
-  // dispatcher never sends theirs here.)
-  useGlobalKeyHandler((e: KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    if (disabled) return
-    if (e.key === 'Tab') e.preventDefault()
   })
 
   return { actDeleteLast, actSubmitEntry }

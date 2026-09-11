@@ -6,6 +6,7 @@ import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { Member } from '@/common/members/member'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { outOfRacePill } from '@/common/feedback/localPills'
@@ -81,6 +82,11 @@ export function PlayArea(ctx: GamePageCtx) {
     setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
+
+  // The entry is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser.
+  useTabRing([])
 
   const wordiplySetup = setup as WordiplySetup
 

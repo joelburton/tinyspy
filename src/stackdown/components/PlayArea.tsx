@@ -9,7 +9,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
 import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { buildStackdownPrintModel } from '../pdf/model'
 import { printStackdownPdf } from '../pdf/printStackdownPdf'
@@ -108,11 +108,9 @@ export function PlayArea({
   brand,
   title,
 }: GamePageCtx) {
-  // Tab does nothing while the board has the keyboard — this play surface is
-  // not a form, so native Tab would walk out to the header buttons and on into
-  // the browser's URL bar, stranding the player. (The capture-entry games get
-  // this from useCaptureKeys; see useSwallowTab.)
-  useSwallowTab()
+  // The board is worked by clicks and typing, so Tab has nowhere to go here —
+  // and an empty ring is what keeps it from walking out to the browser.
+  useTabRing([])
   const {
     game,
     players: playerStates,

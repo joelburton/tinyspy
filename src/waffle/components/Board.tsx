@@ -246,9 +246,7 @@ export function Board({
               // Why bother: a clicked-and-still-focused tile is promoted to
               // `:focus-visible` by the very next keystroke, and the browser
               // ring then sits on it until you click elsewhere — the rank-square
-              // trap. `tabIndex={-1}` covers the other door (25 tiles would bury
-              // every real control in the tab order).
-              tabIndex={-1}
+              // trap.
               onClick={(e) => {
                 e.currentTarget.blur()
                 activate(pos)

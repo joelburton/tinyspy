@@ -27,9 +27,9 @@ type Props = {
  * The group carries the click (you can't nest a real `<button>` in SVG); the
  * circle's fill is the hit area, so clicks only land on the tile shape, not its
  * bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
- * Enter/Space keydown — a tile isn't keyboard-reachable and can't be, since
- * `useCaptureKeys` swallows Tab while play is live (the caret owns the
- * keyboard). See spellingbee's `Letter` for the same note at length.
+ * Enter/Space keydown — a tile isn't keyboard-reachable and can't be, since the
+ * page's tab ring is empty. See spellingbee's `Letter` for the same note at
+ * length.
  *
  * `data-tile` / `data-center` / `data-disabled` are the test hooks that replaced
  * `role="button"` + `aria-label` + `aria-disabled` — stable handles without the

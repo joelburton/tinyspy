@@ -8,6 +8,7 @@ import {
   createStackdownGame,
   createWaffleGame,
   createConnectionsGame,
+  createBoggleGame,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
@@ -20,10 +21,12 @@ import { signIn } from './helpers/session'
  * (the URL bar) — leaving a player who tabbed by reflex somewhere their typing
  * no longer reaches the game.
  *
- * These five games take their keys straight off `window`, so they had no Tab
- * swallow; the games with a text entry have always got one from `useCaptureKeys`
- * (boggle, spellingbee, wordle, wordwheel, wordiply, psychicnum), and crosswords
- * deliberately keeps Tab as clue navigation. See `useSwallowTab`.
+ * So every play surface declares an EMPTY ring: Tab is caught and consumed
+ * rather than ignored, which is the difference between a key that goes nowhere
+ * and one that escapes to the URL bar. The games below are a sample of the two
+ * shapes — a board worked by clicks, and one with a typed entry (boggle) —
+ * since they all say it the same way now. Crosswords is the exception and
+ * spends Tab on jumping between clues.
  *
  * The assertion is "focus never leaves `<body>`" — jsdom can't model this, so it
  * has to be a real browser.
@@ -34,6 +37,7 @@ const GAMES = [
   { name: 'stackdown', make: createStackdownGame },
   { name: 'waffle', make: createWaffleGame },
   { name: 'connections', make: createConnectionsGame },
+  { name: 'boggle', make: createBoggleGame },
 ] as const
 
 test.describe('Tab does nothing on the board', () => {

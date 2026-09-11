@@ -61,14 +61,6 @@ is not an action.
 
 ## Details
 
-**`useGlobalKeyHandler` has no game callers left.** It is down to two Tab
-clauses — `useSwallowTab`, and the swallow inside `useCaptureKeys` — both of
-which belong to the tab-ring work rather than to keys. What it still packages is
-worth knowing: the caller's handler closes over fresh state every render, so the
-listener registers ONCE and calls through a ref an effect keeps current, rather
-than re-registering per render or enumerating every variable the handler reads.
-The tab ring uses the same trick for its stops.
-
 **The two gates are the action dispatcher's, and they read the predicates
 here.** A focused text field keeps its keys unless the action opts out through
 its `inField`; focus inside `[data-floating-panel]` hands the keyboard to that
@@ -80,9 +72,9 @@ it is there.
 **Modified chords are the matcher's business now, not each handler's.** A
 keystroke holding Cmd matches nothing, ever, so Cmd-R and Ctrl-Tab keep working;
 `⌥` and `Ctrl` are modifiers an action may ask for; and a pattern key — "any
-letter", "any arrow" — matches only an unmodified press. Each of the leftover
-handlers here still bails by hand, which is right for what they are: a Tab
-swallow that fired on `⌥Tab` would be swallowing the browser's key.
+letter", "any arrow" — matches only an unmodified press. The tab ring is not an
+action and so bails by hand, which is right for what it is: a ring that answered
+`⌥Tab` would be taking the browser's key.
 
 **A ring is refs, read at keypress.** Stops are refs rather than elements so a
 stop can be declared before it renders and an absent one — a column the phone
@@ -95,10 +87,11 @@ native Tab run inside a floating panel or menu, for overlays that have not
 declared rings of their own; it is the piece innermost-wins is meant to replace,
 and it stays until those overlays declare.
 
-**`useSwallowTab` is the empty ring, written before rings existed.** The
-PlayAreas with no typed entry call it and `useCaptureKeys` carries the same
-swallow in its own clause. All of them consume rather than ignore, which is the
-property that matters. They are one statement in several spellings.
+**Every play surface declares its ring in its PlayArea**, and for all of them
+but codenamesduet that ring is empty — a board is clicked and typed at, so there
+is nowhere for Tab to go. codenamesduet's clue form is two real `<input>`s and
+declares them as its own ring, which is innermost while the form is up.
+Crosswords declares nothing, because Tab there is a move.
 
 **Handing the keyboard back means having nothing focused.** Focusing the board
 is not a thing that can be done, since the board reads from `window`; so the

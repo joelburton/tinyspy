@@ -37,7 +37,7 @@ import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -81,11 +81,9 @@ export function PlayArea({
   title,
   globalFeedback,
 }: GamePageCtx) {
-  // Tab does nothing while the board has the keyboard — this play surface is
-  // not a form, so native Tab would walk out to the header buttons and on into
-  // the browser's URL bar, stranding the player. (The capture-entry games get
-  // this from useCaptureKeys; see useSwallowTab.)
-  useSwallowTab()
+  // The board is worked by clicks and typing, so Tab has nowhere to go here —
+  // and an empty ring is what keeps it from walking out to the browser.
+  useTabRing([])
   const { game, players: playerStates, plays, loading, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object

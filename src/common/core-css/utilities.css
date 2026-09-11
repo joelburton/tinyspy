@@ -81,8 +81,8 @@
    POINTER-ONLY, and that is deliberate everywhere: a definable word carries no
    `tabIndex` and no `role="button"`, so it is not a tab stop and has no focus
    state to style. Two reasons. First, these words aren't reachable by keyboard
-   anyway — while a game's entry is live `useCaptureKeys` swallows Tab
-   (`e.preventDefault()`), because the caret owns the keyboard. Second, the words
+   anyway — a play surface declares an empty tab ring, so Tab is caught and
+   moves nothing. Second, the words
    come in bulk: a WordList can hold a hundred found words, and making each a tab
    stop would bury every real control behind a hundred presses while ringing the
    text in accent blue. Looking up a definition is a convenience on a word you're

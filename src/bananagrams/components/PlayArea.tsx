@@ -37,7 +37,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -82,11 +82,9 @@ type PeelResult =
 type DumpResult = { result: 'dumped' } | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  // Tab does nothing while the board has the keyboard — this play surface is
-  // not a form, so native Tab would walk out to the header buttons and on into
-  // the browser's URL bar, stranding the player. (The capture-entry games get
-  // this from useCaptureKeys; see useSwallowTab.)
-  useSwallowTab()
+  // The board is worked by clicks and typing, so Tab has nowhere to go here —
+  // and an empty ring is what keeps it from walking out to the browser.
+  useTabRing([])
   const { initialBoard, tiles, loading, failure } = useGame(ctx.gameId, ctx.session.user.id)
   // Everyone's finished grids, for the printout's per-player columns. Empty
   // until the game ends — see usePeerBoards / the player_boards RLS.

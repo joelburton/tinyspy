@@ -85,16 +85,14 @@ export function GuessKeyboard({
               {...del.buttonProps}
               disabled={disabled || del.buttonProps.disabled}
               aria-label="Backspace"
-              // NOT a focus target, by two means — the same pair the board tiles
-              // use. `tabIndex={-1}` keeps 28 keys out of the tab order (they
-              // would bury every real control), and `preventDefault` on mousedown
-              // stops a CLICK parking focus on a key: the trap is that the click
-              // focuses silently, the next keystroke promotes it to
-              // `:focus-visible`, and a blue ring then sits on whichever key you
-              // last tapped until you click elsewhere. Nothing here needs focus —
-              // this keyboard exists so a player without a physical one can type,
-              // and a player WITH one just types.
-              tabIndex={-1}
+              // NOT a focus target — the same guard the board tiles use.
+              // `preventDefault` on mousedown stops a CLICK parking focus on a
+              // key: the trap is that the click focuses silently, the next
+              // keystroke promotes it to `:focus-visible`, and a blue ring then
+              // sits on whichever key you last tapped until you click
+              // elsewhere. Nothing here needs focus — this keyboard exists so a
+              // player without a physical one can type, and a player WITH one
+              // just types. (Tab never reaches a cap: the page's ring is empty.)
               onMouseDown={(e) => e.preventDefault()}
             >
               ⌫
@@ -110,7 +108,6 @@ export function GuessKeyboard({
                 onClick={() => onKey(ch)}
                 disabled={disabled}
                 aria-label={ch}
-                tabIndex={-1}
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {ch}
@@ -124,7 +121,6 @@ export function GuessKeyboard({
               {...submit.buttonProps}
               disabled={disabled || submit.buttonProps.disabled}
               aria-label="Enter"
-              tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
             >
               Enter

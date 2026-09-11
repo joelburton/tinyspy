@@ -17,8 +17,8 @@ import { signIn } from './helpers/session'
  * NEXT keystroke promotes it to `:focus-visible` — the browser re-evaluates that
  * on any keyboard interaction, including one it acts on in no other way. The
  * result is a stray focus ring sitting on a tile long after the pointer left,
- * clearable only by clicking somewhere else, because Tab is swallowed on every
- * play surface and so can't move focus away either. Reported on the rank ladder
+ * clearable only by clicking somewhere else, because every play surface
+ * declares an empty tab ring and so Tab can't move focus away either. Reported on the rank ladder
  * (2026-08-16); the same shape was live on connections, psychicnum and waffle.
  *
  * A focused tile is worse than cosmetic. It answers Space and Enter natively, so
@@ -28,10 +28,10 @@ import { signIn } from './helpers/session'
  *
  * Two mechanisms, because waffle's tiles DRAG and a `preventDefault` on mousedown
  * stops `dragstart` firing at all (measured):
- *   - connections / psychicnum — `tabIndex={-1}` + `preventDefault` on mousedown,
- *     so the focus never lands;
- *   - waffle — `tabIndex={-1}` + `blur()` in the click/dragend handlers, handing
- *     focus straight back.
+ *   - connections / psychicnum — `preventDefault` on mousedown, so focus never
+ *     lands;
+ *   - waffle — `blur()` in the click/dragend handlers, handing focus straight
+ *     back.
  * Either way the assertion is the same, which is why they share this test.
  *
  * Browser-only: jsdom has no `:focus-visible` heuristic and no real focus ring.

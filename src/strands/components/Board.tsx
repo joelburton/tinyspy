@@ -215,11 +215,6 @@ export function Board({
                 )}
                 onClick={() => onTileClick([r, c])}
                 disabled={disabled}
-                // NOT a tab stop. 48 tiles would bury every real control
-                // behind 48 presses — the same reasoning the shared WordList
-                // records for its clickable words. The board is driven by
-                // pointer plus the Backspace/Enter keys PlayArea captures.
-                tabIndex={-1}
                 data-cell={key}
                 aria-label={letterAt(board, [r, c])}
               >

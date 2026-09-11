@@ -6,6 +6,7 @@ import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -99,6 +100,11 @@ export function PlayArea({
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading, failure } = useGame(gameId)
   const mode = game?.mode
+
+  // The guess is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser.
+  useTabRing([])
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,

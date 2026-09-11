@@ -23,12 +23,11 @@ type Props = {
  * The group carries the click (you can't nest a real `<button>` in SVG); the
  * polygon's fill is the hit area, so clicks only land on the hex shape, not its
  * bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
- * Enter/Space keydown. A hex isn't keyboard-reachable and can't be — while play
- * is live `useCaptureKeys` swallows Tab (the caret owns the keyboard), so the
- * whole button costume was unreachable scaffolding, and the one path that did
- * open it (Tab at terminal, where the capture hook goes hard-off) left the hex
- * focused with a stuck ring and fired `onClick` into an entry the game no longer
- * accepts. The letters are typed, or clicked; there is no third way.
+ * Enter/Space keydown. A hex isn't keyboard-reachable and can't be — the page's
+ * tab ring is empty, so the whole button costume was unreachable scaffolding,
+ * and the one path that did open it left the hex focused with a stuck ring and
+ * fired `onClick` into an entry the game no longer accepts. The letters are
+ * typed, or clicked; there is no third way.
  *
  * `data-hex` / `data-center` are the test hooks that replaced `role="button"` +
  * `aria-label` — a stable handle without the behavior an ARIA role implies

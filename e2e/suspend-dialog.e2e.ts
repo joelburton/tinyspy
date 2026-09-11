@@ -20,8 +20,9 @@ import { signIn } from './helpers/session'
  *     directly, no dialog and no peer kick. The dialog is a true modal —
  *     backdrop-blocked board, dialog-owned keyboard (Enter confirms on the
  *     autofocused button, Esc cancels, Tab is trapped; regression for the
- *     word games' window key-capture eating Enter/Tab — useGlobalKeyHandler
- *     and crosswords' own useGridKeyboard bail inside [data-floating-panel]).
+ *     word games' window key-capture eating Enter/Tab — the action dispatcher,
+ *     the page's tab ring and crosswords' own useGridKeyboard all bail inside
+ *     [data-floating-panel]).
  *
  *   - End-game: ALWAYS the shared ConfirmationBlockingModal (never window.confirm),
  *     even solo/coop — ending is terminal for the whole group.
@@ -127,9 +128,8 @@ test.describe('confirm modals — suspend + end game', () => {
   })
 
   // crosswords has its OWN window keydown listener (useGridKeyboard) rather
-  // than the shared useGlobalKeyHandler, so it needs the same
-  // `[data-floating-panel]` bail — regression for the grid handler eating the
-  // dialog's Enter/Tab.
+  // than the shared dispatcher, so it needs the same `[data-floating-panel]`
+  // bail — regression for the grid handler eating the dialog's Enter/Tab.
   test('crosswords (own keyboard handler): Enter confirms, Tab stays in the dialog', async ({ browser }) => {
     const { alice, bob } = await twoUp(browser, (club) =>
       createCrosswordsGame(club, 'coop', club.members.map((m) => m.userId)),

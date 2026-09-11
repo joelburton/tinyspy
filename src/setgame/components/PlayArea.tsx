@@ -12,7 +12,7 @@ import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/local
 import { waitingTurnPill, yourTurnPill } from '@/common/turn-log/turnCopy'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
-import { useSwallowTab } from '@/common/keyboard/useSwallowTab'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -285,6 +285,10 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── Keyboard ──────────────────────────────────────────
+  // The board is worked by clicks and letter keys, so Tab has nowhere to go
+  // here — and an empty ring is what keeps it from walking out to the browser.
+  useTabRing([])
+
   // A letter under each card, and Backspace clears the picks. Two bound
   // actions, so the keys and the cards say the same thing: `act-toggle-card`
   // is a PATTERN action — it is handed whichever letter fired it, which is what
@@ -294,7 +298,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // that — the dispatcher gives an any-key MODE priority over a particular key —
   // but a live card key over a frozen historical board would be lying about
   // what it can do.
-  useSwallowTab()
   useBoundAction('act-toggle-card', {
     describe: () => (active && !viewer.viewing ? 'active' : 'hidden'),
     run: (key) => {

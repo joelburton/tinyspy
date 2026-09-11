@@ -64,8 +64,8 @@ function onScreen(el: HTMLElement | null): el is HTMLElement {
 export function useTabRing(stops: TabStop[]): void {
   // The array identity changes every render (callers write it inline), so the
   // listener reads through a ref and never needs re-registering. Refreshed in
-  // an effect rather than during render — the same indirection, and for the
-  // same reason, as `useGlobalKeyHandler`.
+  // an effect rather than during render, which is right for a value only a
+  // listener reads (`useBoundAction` records the other half of that rule).
   const stopsRef = useRef(stops)
   useEffect(() => {
     stopsRef.current = stops

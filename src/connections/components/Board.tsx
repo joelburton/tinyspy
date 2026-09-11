@@ -334,20 +334,14 @@ export function Board({
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => onToggle(tile)}
-              // NOT a focus target, by two means. `tabIndex={-1}` takes the
-              // button out of the tab order (16 tiles would bury every real
-              // control), and `preventDefault` on mousedown stops a CLICK
-              // parking focus on it — the trap the rank squares fell into: the
+              // NOT a focus target: `preventDefault` on mousedown stops a CLICK
+              // parking focus here — the trap the rank squares fell into: the
               // click focuses silently, the next keystroke promotes it to
               // `:focus-visible`, and a stray ring sits on the tile until you
               // click elsewhere. Nothing here needs focus: tiles are clicked,
               // and Enter submits from anywhere (`act-submit`, bound in
-              // BoardCol).
-              //
-              // This also retired a per-tile `onKeyDown` that preventDefault'd
-              // Enter so a focused tile wouldn't self-activate. With no focus to
-              // land, it isn't reachable.
-              tabIndex={-1}
+              // BoardCol). Tab never reaches a tile either — the page's ring is
+              // empty.
               onMouseDown={(e) => e.preventDefault()}
             >
               {/* --len drives the shared .tileWord auto-fit. */}

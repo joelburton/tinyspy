@@ -7,6 +7,7 @@ import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { GenericFeedbackApi, GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'
@@ -252,6 +253,11 @@ export function PlayArea({
   const codenamesduetSetup = setup as CodenamesduetSetup
 
   const { game, players, failure: gameFailure } = useGame(gameId)
+
+  // The board is worked by clicks, so the page itself has nowhere for Tab to go
+  // and an empty ring keeps it from walking out to the browser. While a clue is
+  // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
+  useTabRing([])
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).

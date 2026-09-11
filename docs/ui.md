@@ -464,11 +464,10 @@ out", but the panel owns the keyboard and its buttons need visible focus).
 These may use Tab between elements, native `<select>`s, focus rings, and take
 RETURN / ESCAPE to submit / cancel alongside their buttons.
 
-The boundary is already machine-readable: **`data-floating-panel`**.
-`useGlobalKeyHandler` declines inside it, and `useFocusTrap` / `useSwallowTab`
-hang off the same marker — which is how the setup dialog can be a real form
-while floating over a live game with no special-casing. An audit can start as a
-grep.
+The boundary is already machine-readable: **`data-floating-panel`**. The action
+dispatcher declines inside it, and `useFocusTrap` and the page's tab ring hang
+off the same marker — which is how the setup dialog can be a real form while
+floating over a live game with no special-casing. An audit can start as a grep.
 
 **2. Not forms** — the home page, the club page (its filters and its game list),
 and the whole game surface: boards, info panels, turn logs, word lists, mode
@@ -1289,9 +1288,9 @@ The heading's count and the keyboard cursors both read the **visible** list, so 
 **Keyboard navigation.** The page has exactly TWO keyboard tab stops: the
 start-a-new-game list and the "Your games" list (the containers
 themselves, `tabIndex=0`). **Focus starts on the start list on load** (no
-first Tab needed), and a window-level handler swallows every other Tab on
-the page — focus toggles between the two lists and can't wander into other
-controls, which are deliberately mouse-only. Within the focused list, Up/Down
+first Tab needed), and the page declares those two lists as its whole tab ring
+— focus toggles between them and can't wander into other controls, which are
+deliberately mouse-only. Within the focused list, Up/Down
 move a per-list cursor (clamped at the ends, no wrap; kept scrolled into the
 frame's view) and Enter acts on the item under it: a start button opens its
 SetupGameModal (a doesn't-fit gametype no-ops, like a click), a game card
@@ -1299,7 +1298,7 @@ navigates into the game. Visuals: the focused list's border warms to the
 accent and the cursor item wears a 2px accent ring; the ring hides when the
 list isn't focused. Overlays keep native keys — a text field, the menu
 dropdown (`role="menu"`), or any floating panel (`data-floating-panel`) is
-exempt from the Tab-swallow, and while one of ClubPage's dialogs is up the
+exempt from the page's ring, and while one of ClubPage's dialogs is up the
 list handlers go inert — and the global shortcuts (`/`, `?`, `~`) work
 unchanged. The active-game card is mouse-only for now (it's not one of the
 two lists) — and for that reason its prominence border is a dark NEUTRAL,
@@ -1320,9 +1319,10 @@ mousedown, so the container keeps focus and the ring stays visible.)
 clubs list) navigates identically: the `<ul>` holds focus, which lands there on
 arrival, Up/Down move a clamped no-wrap cursor, and Enter opens the club under
 the ring — the same 2px accent ring, so "blue ring = the keyboard cursor is
-here" holds across both pages. **Tab does nothing** (`useSwallowTab`), as on the
-game boards: arrows + Enter are the whole keyboard story, and native Tab only
-led away from it — onto the header menu, then out into the browser's URL bar.
+here" holds across both pages. **Tab never leaves the list**: the page's ring is
+that one list, so arrows + Enter are the whole keyboard story and a Tab pressed
+after a click on blank page simply puts the cursor back. Native Tab only led
+away — onto the header menu, then out into the browser's URL bar.
 The accepted cost is that `+ New club` isn't keyboard-reachable from this page;
 an open `<Menu>` is unaffected, since it `stopPropagation()`s its own keys and
 Tab still closes it. The rows stay ordinary links, so clicking is unchanged.
@@ -1773,10 +1773,10 @@ The container holds focus; the rows never do.
   first arrow the way a board tile's cursor does. A tile shares its box with the
   game's own colors; a row has no competing color, so an always-on ring costs
   nothing.
-- **Tab belongs to the page, never to the list.** The club page's Tab toggles
-  between its two lists; the homepage swallows Tab outright; inside a dialog Tab
-  walks the fields. All the component guarantees is that a list is exactly one
-  tab stop.
+- **Tab belongs to the page, never to the list.** The club page's ring is its
+  two lists and Tab toggles between them; the homepage's is its one list; inside
+  a dialog Tab walks the fields. All the component guarantees is that a list is
+  exactly one tab stop.
 
 ### The two kinds, and the two marks
 
@@ -1900,8 +1900,8 @@ it and the board jumps to that turn — but it ships as a clickable `<span>`, on
 purpose. A focused `<button>` re-fires its click on Space, so the shared
 "any key exits the history viewer" would instead re-select the turn you were
 trying to leave; a span with an `onClick` takes no keystroke and lets Space fall
-through. (Elsewhere the same problem is solved with `tabIndex={-1}` on a real
-button — setgame's cards, whose board takes no focus at all.) It stays in the
+through. (Elsewhere the same problem doesn't arise, because the board takes no
+focus at all — setgame's cards are real buttons nothing ever focuses.) It stays in the
 taxonomy because the taxonomy sorts by **what feedback a control should give**,
 and that question has the same answer either way.
 

@@ -249,16 +249,17 @@ The contract for the capture model:
   placeholder (which already says "type here"), and the caret never duels with the
   chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
   uniform, not a per-game choice.
-- **No tabbing between controls.** While the entry is live, `Tab` is swallowed —
-  these games are navigated by clicks + typing, not by tabbing focus between
-  buttons, and a caret blinking on the board while focus sits on some button reads
-  as two cursors. (Focused text fields like chat keep their own `Tab`.)
+- **No tabbing between controls.** The play surface declares an empty tab ring,
+  so `Tab` is caught and goes nowhere — these games are navigated by clicks +
+  typing, not by tabbing focus between buttons, and a caret blinking on the
+  board while focus sits on some button reads as two cursors. (Focused text
+  fields like chat keep their own `Tab`.)
 - **Modified keystrokes pass through.** The chord matcher (`common/actions/chord.ts`)
   never matches a pattern key against a modified press, so `Cmd-R`, `Ctrl-Tab`,
   etc. stay the browser's.
 - **What can be entered is per-game; the rest is shared, in two layers.** The
   GENERIC key-capture **core** is `useCaptureKeys` (`common/keyboard/useCaptureKeys.ts`):
-  the `Tab` swallow, the any-key feedback dismissal (`act-dismiss-feedback`),
+  the any-key feedback dismissal (`act-dismiss-feedback`),
   Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
   for every key-capture game. The **last-move history** — `ArrowUp` recalls the
   `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,

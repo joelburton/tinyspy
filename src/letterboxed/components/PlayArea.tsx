@@ -6,6 +6,7 @@ import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { useTabRing } from '@/common/keyboard/useTabRing'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { outOfRacePill, stickyPill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/turn-log/turnCopy'
@@ -103,6 +104,11 @@ export function PlayArea(ctx: GamePageCtx) {
     setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
+
+  // The entry is typed at the window rather than into an input, so nothing here
+  // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
+  // out to the browser.
+  useTabRing([])
 
   const letterboxedSetup = setup as LetterboxedSetup
 
