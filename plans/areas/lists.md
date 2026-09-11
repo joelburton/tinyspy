@@ -105,6 +105,16 @@ by any area's fifteenth finding. The sentence around it is also archaeology
 condition: the effect keys on *first content*, not on length, because the
 clubs list is realtime and a friend's edit must not move focus.
 
+**WORKED 2026-09-11 (Joel: "fix").** The ID and the archaeology are gone; the
+comment states the condition — the effect keys on first CONTENT, and keying on
+length would re-run when a friend adds you to a club.
+
+**Three more finding IDs sit in code outside this area**, same defect:
+`ClubPage.tsx:815` and `PlayAreaErrorBoundary.tsx:46` both cite
+`F39 (loading-and-errors)`, `ErrorPage.tsx:81` cites `F37 (card-only-page)`.
+Raised with Joel rather than fixed here — each needs its sentence rewritten to
+say the condition, which is judgment rather than a substitution.
+
 ## F-lists-4 · `docstring-marker-pass` · Every prop in the folder is a `/**` field
 
 All three components put `/**` on each prop: `SelectionList`'s `Props<T>`

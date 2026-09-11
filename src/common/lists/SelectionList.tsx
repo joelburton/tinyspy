@@ -176,11 +176,11 @@ export function SelectionList<T>({
     }
   }
 
-  // Take focus once, when the list first has content — not on every length
-  // change. The clubs list is realtime, so a friend adding you to a club used
-  // to re-run this and could take focus out from under you
-  // (F15 `focus-on-every-refetch`). Yields to anything already focused, and
-  // `preventScroll` because a focus-scroll here only jitters the page.
+  // Take focus once, when the list first has CONTENT — not on every length
+  // change. The clubs list is realtime, so keying on length would re-run this
+  // when a friend adds you to a club and take focus out from under you. Yields
+  // to anything already focused, and `preventScroll` because a focus-scroll
+  // here only jitters the page.
   const claimedFocus = useRef(false)
   const hasItems = items.length > 0
   useEffect(
