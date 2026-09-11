@@ -12,52 +12,50 @@ import { cls } from '../utils/cls'
 import styles from './SelectionList.module.css'
 
 type Props<T> = {
-  /** The rows, in display order. Its length IS the list's length — the cursor
-   *  is clamped to it on every render, because these lists shrink under the
-   *  cursor (the clubs are realtime; both club-page lists are filtered). */
+  // The rows, in display order. Its length IS the list's length — the cursor
+  // is clamped to it on every render, because these lists shrink under the
+  // cursor (the clubs are realtime; both club-page lists are filtered).
   items: readonly T[]
-  /** A stable identity per row. */
+  // A stable identity per row.
   rowKey: (item: T) => string
-  /** The row's CONTENTS. The component renders the row element itself, which is
-   *  what lets it own the cursor ring, the scroll-into-view and the click. */
+  // The row's CONTENTS. The component renders the row element itself, which is
+  // what lets it own the cursor ring, the scroll-into-view and the click.
   renderRow: (item: T) => ReactNode
-  /** Choosing a row DOES the thing, immediately: you land on the club, the
-   *  setup dialog opens, the puzzle starts. Enter fires it and Space does not,
-   *  because moving a cursor must not consent to an action. */
+  // Choosing a row DOES the thing, immediately: you land on the club, the
+  // setup dialog opens, the puzzle starts. Enter fires it and Space does not,
+  // because moving a cursor must not consent to an action.
   onActivate: (item: T) => void
-  /** Shown inside the frame when there are no items — including the busy
-   *  moment before an answer arrives ("Loading puzzles…"). */
+  // Shown inside the frame when there are no items — including the busy
+  // moment before an answer arrives ("Loading puzzles…").
   empty: ReactNode
-  /** Rows the cursor lands on but Enter won't act on. */
+  // Rows the cursor lands on but Enter won't act on.
   disabled?: (item: T) => boolean
-  /** Native tooltip for a row — in practice, why a disabled one does nothing.
-   *  It belongs on the row element, which only this component renders. */
+  // Native tooltip for a row — in practice, why a disabled one does nothing.
+  // It belongs on the row element, which only this component renders.
   rowTitle?: (item: T) => string | undefined
-  /** Tightens the rows. For a list whose rows carry two lines of text. */
+  // Tightens the rows. For a list whose rows carry two lines of text.
   density?: 'default' | 'packed'
-  /** Take focus on arrival, once, when the list first has content. A page says
-   *  yes (arrows work without a first Tab); a list inside a dialog that
-   *  autofocuses a field says no. */
+  // Take focus on arrival, once, when the list first has content. A page says
+  // yes (arrows work without a first Tab); a list inside a dialog that
+  // autofocuses a field says no.
   autoFocus?: boolean
-  /** Absorb the parent's free space rather than hugging the rows. */
+  // Absorb the parent's free space rather than hugging the rows.
   fills?: boolean
-  /**
-   * Something ABOVE this list owns the keyboard — a modal the list itself
-   * opened. While frozen it ignores every key and, crucially, does not blank
-   * its cursor when focus leaves: a dialog that autofocuses a field pulls focus
-   * out of here, and treating that as "the user left the list" both loses the
-   * ring behind the modal and re-renders at the worst moment. That re-render
-   * used to land BETWEEN the mousedown and the click of the dialog's own
-   * buttons and swallow the click, so Cancel did nothing.
-   *
-   * Only a caller knows what it has open, so only a caller can say this.
-   */
+  // Something ABOVE this list owns the keyboard — a modal the list itself
+  // opened. While frozen it ignores every key and, crucially, does not blank
+  // its cursor when focus leaves: a dialog that autofocuses a field pulls focus
+  // out of here, and treating that as "the user left the list" both loses the
+  // ring behind the modal and re-renders at the worst moment. That re-render
+  // used to land BETWEEN the mousedown and the click of the dialog's own
+  // buttons and swallow the click, so Cancel did nothing.
+  //
+  // Only a caller knows what it has open, so only a caller can say this.
   frozen?: boolean
-  /** Names the list for the container element. */
+  // Names the list for the container element.
   label: string
-  /** The container element. ClubPage compares it against `document.activeElement`
-   *  to toggle Tab between its two lists, and focuses it when a setup dialog
-   *  closes. */
+  // The container element. ClubPage compares it against `document.activeElement`
+  // to toggle Tab between its two lists, and focuses it when a setup dialog
+  // closes.
   ref?: Ref<HTMLDivElement>
 }
 

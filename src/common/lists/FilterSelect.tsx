@@ -8,15 +8,13 @@ import styles from './FilterSelect.module.css'
 export type FilterOption = {
   value: string
   label: string
-  /**
-   * A member-color NAME ('red' … 'pink') to draw as an identity disc before
-   * the label — the app-wide "this color is this player" marker (docs/ui.md →
-   * "Player identity = a colored disc"). Named `dot` to match the same field
-   * on menu items and feedback messages.
-   *
-   * When ANY option in the list carries one, every option reserves the disc's
-   * width, so "All / Found / Missed" stay aligned with "(disc) moth".
-   */
+  // A member-color NAME ('red' … 'pink') to draw as an identity disc before
+  // the label — the app-wide "this color is this player" marker (docs/ui.md →
+  // "Player identity = a colored disc"). Named `dot` to match the same field
+  // on menu items and feedback messages.
+  //
+  // When ANY option in the list carries one, every option reserves the disc's
+  // width, so "All / Found / Missed" stay aligned with "(disc) moth".
   dot?: string
 }
 
@@ -75,14 +73,12 @@ export function FilterSelect({
   value: string
   options: FilterOption[]
   onChange: (value: string) => void
-  /** Accessible name for the closed select, e.g. "Whose words to show". */
+  // Accessible name for the closed select, e.g. "Whose words to show".
   label: string
-  /**
-   * Merged onto the closed select, for a caller that needs it sized
-   * differently — the club page's filter takes roomier padding so it matches
-   * the height of the mode buttons beside it. The look is otherwise the
-   * component's, and the behavior is identical either way.
-   */
+  // Merged onto the closed select, for a caller that needs it sized
+  // differently — the club page's filter takes roomier padding so it matches
+  // the height of the mode buttons beside it. The look is otherwise the
+  // component's, and the behavior is identical either way.
   className?: string
 }) {
   const [open, setOpen] = useState(false)

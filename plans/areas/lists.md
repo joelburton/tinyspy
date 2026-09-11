@@ -125,6 +125,12 @@ All three components put `/**` on each prop: `SelectionList`'s `Props<T>`
 are fields; a note on one takes `//`. The `/**` stays on the types, the
 components and the two exported helpers. Same pass as `members` made.
 
+**WORKED 2026-09-11 (Joel: "fix").** Every prop note in the folder is `//`:
+`SelectionList`'s eleven, `SimpleScrollableList`'s five, `FilterSelect`'s
+`label` and `className`, and `FilterOption.dot`. The `/**` stays where it
+belongs — the four file/component docstrings, the `FilterOption` type, the six
+exported helpers, and `pageSize()`.
+
 ## F-lists-5 · `rationale-in-docstrings` · The docstrings tell the history, not the use
 
 Each component's docstring spends most of its length on why it is shaped

@@ -5,17 +5,17 @@ import { cls } from '../utils/cls'
 import styles from './SimpleScrollableList.module.css'
 
 type Props = {
-  /** The rows — `<li>`s. The list sizes them; how they LOOK is the caller's. */
+  // The rows — `<li>`s. The list sizes them; how they LOOK is the caller's.
   children: ReactNode
-  /** How many rows to show before scrolling. */
+  // How many rows to show before scrolling.
   rows: number
-  /** What to say when there are no rows: "No words." It renders inside the
-   *  frame, so an empty list still reads as a list. */
+  // What to say when there are no rows: "No words." It renders inside the
+  // frame, so an empty list still reads as a list.
   empty?: ReactNode
-  /** An optional tally under the frame — "137 words". Right-aligned to the
-   *  frame's edge; omit it and no line is drawn. */
+  // An optional tally under the frame — "137 words". Right-aligned to the
+  // frame's edge; omit it and no line is drawn.
   count?: ReactNode
-  /** Where the list sits in its own parent. Placement is the caller's. */
+  // Where the list sits in its own parent. Placement is the caller's.
   className?: string
 }
 
