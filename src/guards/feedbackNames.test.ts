@@ -23,17 +23,11 @@ import { describe, expect, it } from 'vitest'
  * is not a name and is not matched. Hyphenated ids like
  * `act-dismiss-feedback` live in strings and are stripped with them.
  *
- * `pending` is the SHRINKING ALLOWLIST: a file the feedback area has not yet
- * converted sits on it and is silent; delete the row when the file converts.
- * A listed file that no longer offends fails, so the list cannot rot.
+ * No allowlist: every `.ts`/`.tsx` file under `src/` is held to this, and a
+ * new offender is renamed rather than excused.
  */
 
 const SRC = join(process.cwd(), 'src')
-
-/** Files still writing the bare name, each waiting on its game's conversion.
- *  Empty since the last game converted; the list stays so a regression has a
- *  named place to be excused, and nowhere else. */
-const pending = new Set<string>([])
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -75,23 +69,12 @@ function offendingLines(source: string): number[] {
 describe('feedback naming — bare `feedback` is never a declared name', () => {
   const files = walk(SRC).filter((p) => !p.endsWith('feedbackNames.test.ts'))
 
-  it('no file outside the pending list writes the bare name', () => {
+  it('no file writes the bare name', () => {
     const offenders: string[] = []
     for (const p of files) {
-      const rel = relative(SRC, p)
-      if (pending.has(rel)) continue
       const lines = offendingLines(readFileSync(p, 'utf8'))
-      if (lines.length > 0) offenders.push(`${rel}:${lines.join(',')}`)
+      if (lines.length > 0) offenders.push(`${relative(SRC, p)}:${lines.join(',')}`)
     }
     expect(offenders, 'name it feedbackMessage / feedbackMsg, or localFeedbackSlot / globalFeedbackSlot').toEqual([])
-  })
-
-  it('every pending file still offends — a clean one comes off the list', () => {
-    const stale: string[] = []
-    for (const rel of pending) {
-      const lines = offendingLines(readFileSync(join(SRC, rel), 'utf8'))
-      if (lines.length === 0) stale.push(rel)
-    }
-    expect(stale).toEqual([])
   })
 })

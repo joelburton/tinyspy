@@ -12,10 +12,10 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which five are WORKED:
+came out of settling the first of them — thirteen, of which six are WORKED:
 F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`),
-F-1 (`FailureLine` moved to `forms/`, `0f1f8413`) and F-4 (`Actor` moved to
-`members/member.ts`).
+F-1 (`FailureLine` moved to `forms/`, `0f1f8413`), F-4 (`Actor` moved to
+`members/member.ts`, `f792cfd0`) and F-5 (the names guard flattened).
 
 ## The roster
 
@@ -280,7 +280,9 @@ whole `Member` passes. Its stale `Member` import went with it — `tsc` caught
 that one, since nothing but the comment had used it.
 
 No re-export from `FeedbackMessage.tsx`: two import paths for one name is
-what this finding is about. · `empty-pending-list` · The names guard's allowlist is empty, its second test iterates nothing, and code-conventions still says games are on it
+what this finding is about.
+
+## F-feedback-5 · `empty-pending-list` · The names guard's allowlist is empty, its second test iterates nothing, and code-conventions still says games are on it — WORKED
 
 `feedbackNames.test.ts` keeps `const pending = new Set<string>([])` with a
 docstring saying the list *"stays so a regression has a named place to be
@@ -300,6 +302,21 @@ Options:
    code-conventions sentence becomes "enforced by `feedbackNames.test.ts`".
    **Recommended.**
 2. **Keep the mechanism**, and only fix the code-conventions sentence.
+
+**DECIDED and built 2026-09-12 — option 1.** `pending` and the "every pending
+file still offends" test are gone, and the guard is one flat assertion over
+every `.ts`/`.tsx` file under `src/`. Its docstring now says there is no
+allowlist, and `docs/code-conventions.md` ends "enforced … over every file in
+`src/`, and with no allowlist".
+
+Why this list goes while `vocabularies`' and `orphanedDocstrings`' stay: those
+two excuse decisions nobody has made yet — `code-conventions.md` names the
+three deliberate z-index literals parked on one of them "until then" — while
+this one tracked a migration, and the migration is over.
+
+Verified by planting: a file declaring `const feedback = 1` fails the flat
+assertion, naming its path and line; the guards are green with the plant
+removed. The unit suite is 3082 rather than 3083, the one deleted test.
 
 ### Prose
 
