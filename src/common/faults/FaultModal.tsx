@@ -24,10 +24,8 @@ import { StandardButton } from '../buttons/StandardButton'
  * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the same
  * contract as the manual pill mode this replaces. Close + Esc only.
  *
- * It is a `modal-fault`, one tier ABOVE a blocking modal, because an error must
- * be readable mid-question (§20). That rank is not yet expressed: it rides the
- * shared default today, which is the reason an open chat can cover it. The tier
- * moves when the ladder does, rung by rung, not here.
+ * Its family is `modal-fault`, which is why it outranks a blocking modal;
+ * `FloatingPanel`'s family table says what that resolves to.
  *
  * One fault at a time; dismissing reveals the next queued one (cap 5,
  * overflow silently dropped from the UI — faultStore.ts).

@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20, F-16 — and, riding on several of
-those, the halves of F-9 and F-10 they consumed.
+F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7 — and, riding on several
+of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -161,15 +161,27 @@ the finding's area owns the fact being misstated.
 
 ### Code and prose
 
-## F-common-hosts-7 · `fault-tier-claim-false` · `FaultModal.tsx` says its rank "is not yet expressed", and the ladder has it
+## F-common-hosts-7 · `fault-tier-claim-false` · `FaultModal.tsx` says its rank "is not yet expressed", and the ladder has it — WORKED
 
-"It is a `modal-fault`, one tier ABOVE a blocking modal, because an error must
-be readable mid-question (§20). That rank is not yet expressed: it rides the
-shared default today, which is the reason an open chat can cover it. The tier
-moves when the ladder does." `base.css` defines `--z-modal-fault: 5100`, one
-above `--z-modal-blocking`, and `FloatingPanel`'s family table resolves
-`modal-fault` to it. Chat is 3100. And `§20` is a plan cite in a durable file.
-The paragraph becomes a sentence and a pointer at the ladder.
+Every clause after the first was false, each checked: `FaultModal.tsx` passes
+`family="modal-fault"` explicitly rather than riding a default;
+`FloatingPanel`'s family table resolves that family to `var(--z-modal-fault)`;
+`base.css` defines it as 5100, one rung above `--z-modal-blocking`'s 5000, and
+chat is 3100 — so an open chat cannot cover the modal. The docstring was
+describing a fixed defect, which is worse than silence: it invites someone to
+"fix" a working thing. `§20` was also a plan cite in a durable file.
+
+**DECIDED 2026-09-11 (Joel): one sentence that names the fact and defers the
+reason** — its family is `modal-fault`, which is why it outranks a blocking
+modal, and `FloatingPanel`'s family table says what that resolves to. The fact
+is about this component and belongs here; the reason is the panel category's
+and already has a home, so this is F-16's shape at a smaller scale. The refused
+alternatives were deleting the paragraph outright (the fact and its reason are
+already within one import hop, in `BlockingModal`, `FloatingPanel` and
+`base.css`) and restating the reason here in one line.
+
+It was the only bare plan cite in the area's code; the remaining `§` marks in
+the repo cite docs, except `PalettePage`'s, which is out of scope.
 
 ## F-common-hosts-8 · `retired-ladder-numbers` · Three sites quote a z-index ladder that no longer exists
 
