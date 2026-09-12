@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21 — and, riding on two of those, the halves
-of F-9 they consumed.
+F-24's corner inset, F-6, F-2, F-21, F-20 — and, riding on two of those, the
+halves of F-9 they consumed.
 
 ## The roster
 
@@ -283,13 +283,28 @@ section, for the toasts-are-not-panels claim (it is docs/ui.md → Toasts).
 open. Say the ruling: beyond the cap a fault gets no modal, and its `[db]` line
 already fired.
 
-## F-common-hosts-20 · `ui-md-toasts-stale-paths` · docs/ui.md → Toasts names files that moved
+## F-common-hosts-20 · `ui-md-toasts-stale-paths` · docs/ui.md → Toasts names files that moved — WORKED
 
-"`lib/toast/toastStore.ts`" and "`components/toasts/`" are pre-reorg paths;
-the section also says "now headless" (archaeology) and "the third row" table
-paragraph explains its own existence by what "used to land in the global slot".
-The paths become `common/toasts/`; the "used to" stays if it is the reason the
-row exists, and goes if it is only history.
+The paths `lib/toast/toastStore.ts` and `components/toasts/` were pre-reorg;
+both are now `common/toasts/`. "`useGameInvitations`, now headless" lost the
+"now" and the wrong unit with it — the watcher is `useGameInvitations`, but
+what calls `showToast` is `GameInvitations.tsx`. Checked in passing: "portaled
+to `<body>`" is true.
+
+**DECIDED 2026-09-11 (Joel), two questions.**
+
+*The third row's justification* — the case for a toast surface was carried
+entirely by a "used to land in the global slot", so stripping the history would
+have left no argument. Rewritten in the present as a counterfactual: without
+this surface the club page's "I just deleted that game" *would* fall to the
+global slot, which is where other people's news goes and which costs the
+members' presence strip while it is up. Same reason, no before. The refused
+alternatives were keeping the "used to" as evidence that the global slot was
+tried, and cutting the justification entirely.
+
+*"Consumers today"* — a three-item census of the same shape as F-17's, accurate
+now and stale the day a fourth arrives. Replaced with the condition: anything
+with news that is not a verdict and has nowhere local to put it.
 
 ## F-common-hosts-21 · `ui-md-faults-stale` · docs/ui.md → Faults points at the wrong file and apologizes for its own heading — WORKED
 
@@ -408,6 +423,21 @@ into the toast store. Plus the root-mount sentence F-1 settled, in each.
   on as a vocabulary ruling not yet made; left for that ruling.
 - **`FaultModal.module.css` is right that only the body is its own**: the
   shell, scrim and Close button are `BlockingModal`'s.
+- **Two of `feedback`'s plans carried pre-reorg paths**, swept on Joel's word
+  (paths only; no design content touched, and both stay `feedback`'s).
+  `feedback-design.md`: its stores argument and store-comparison table now say
+  `common/toasts/toastStore.ts` and `common/faults/faultStore.ts`.
+  `feedback-system.md` §11: all thirteen rows were written against the
+  `lib/` · `hooks/` · `components/` layout; each was resolved against the tree
+  before rewriting, and seven of them turn out to live in `common/feedback/`
+  today.
+- **`feedback-system.md` §11's AREA column is stale too, and was left alone.**
+  It names `deep`, `game-lib`, `hooks` and `shared-game-chrome`; no
+  `plans/areas/` file exists for any of them. That matters because the
+  paragraph under the table — "That spread is the argument for a new area. Six
+  areas, one vocabulary" — rests on that column, so correcting it changes the
+  argument's premises rather than a fact about where a file sits. `feedback`'s
+  to make.
 - **`docs/deferred.md` line 75** still says "acceptable for friends-alpha;
   revisit when there's a generic toast/error-surface layer" about
   `useCommonGame`'s view-state calls. Both halves are stale — there is a toast

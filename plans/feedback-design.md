@@ -290,7 +290,7 @@ each checked:
   does this — `showToast` is the only way in, which is what makes
   `window.puptoast()` possible; pills get a `puppill()` the same way.
 - **It is the toast store's shape**, not a resemblance.
-  `common/lib/toast/toastStore.ts` is a module-level collection pushed into by
+  `common/toasts/toastStore.ts` is a module-level collection pushed into by
   `showToast`, replaced in place by a stable `id`, retracted by
   `dismissToast(id)`, self-cleared by `ms`, drawn by a host — and its
   invitation watcher keeps one toast per thing alive by pushing on the edge
@@ -318,8 +318,8 @@ third:
 
 | store | holds | draws | retract | self-clear | scope |
 |---|---|---|---|---|---|
-| toast (`lib/toast/toastStore.ts`) | a list; a stable id replaces in place | all, stacked | by id | `ms` | app — one host |
-| fault (`lib/fault/faultStore.ts`) | a FIFO queue, capped at 5 | the first | dismiss the first | none | app — one host |
+| toast (`common/toasts/toastStore.ts`) | a list; a stable id replaces in place | all, stacked | by id | `ms` | app — one host |
+| fault (`common/faults/faultStore.ts`) | a FIFO queue, capped at 5 | the first | dismiss the first | none | app — one host |
 | pill slot, under (a′) | a list, ordered by rank | the top | by id | `ms` | one per page + one per PlayArea |
 
 The one real difference is scope: toast and fault are module singletons

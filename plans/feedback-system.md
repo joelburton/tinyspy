@@ -255,19 +255,19 @@ Stated so a review does not spend its budget re-deciding it:
 
 | file | what it holds | area |
 |---|---|---|
-| `common/lib/supabase/envelope.ts` | the envelope type | `deep` (blessed) |
-| `common/lib/supabase/dbResult.ts` | the three wrappers, `notOkOutcome` | `deep` |
-| `common/lib/supabase/dbEnvelope.ts` | envelope builders, `reportDbFault` | `deep` |
-| `common/lib/feedback/genericFeedback.ts` | `GenericFeedbackMsg`, `GenericFeedbackApi` | `game-lib` (blessed) |
-| `common/lib/game/genericPills.ts` | `getNotOkFeedback` | `game-lib` |
-| `common/lib/game/localPills.ts` | the three builders | `game-lib` |
-| `common/lib/game/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `game-lib` (blessed) |
-| `common/components/game/turnCopy.tsx` | two more builders | `shared-game-chrome` |
-| `common/hooks/feedback/useLocalFeedback.ts` | the local slot | `hooks` |
-| `common/hooks/feedback/useGlobalFeedback.ts` | peer narration | `hooks` |
-| `common/components/feedback/GenericFeedbackPill.tsx` | the rendered pill | **unassigned** (`cs-unmet`) |
-| `common/components/game/GamePage.tsx` | the global slot's state | `shared-game-chrome` |
-| `common/components/club/ClubPage.tsx` | a second global slot | `club-page` |
+| `common/supabase/envelope.ts` | the envelope type | `deep` (blessed) |
+| `common/supabase/dbResult.ts` | the three wrappers, `notOkOutcome` | `deep` |
+| `common/supabase/dbEnvelope.ts` | envelope builders, `reportDbFault` | `deep` |
+| `common/feedback/genericFeedback.ts` | `GenericFeedbackMsg`, `GenericFeedbackApi` | `game-lib` (blessed) |
+| `common/feedback/genericPills.ts` | `getNotOkFeedback` | `game-lib` |
+| `common/feedback/localPills.ts` | the three builders | `game-lib` |
+| `common/terminal/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `game-lib` (blessed) |
+| `common/turn-log/turnCopy.tsx` | two more builders | `shared-game-chrome` |
+| `common/feedback/useLocalFeedback.ts` | the local slot | `hooks` |
+| `common/feedback/useGlobalFeedback.ts` | peer narration | `hooks` |
+| `common/feedback/GenericFeedbackPill.tsx` | the rendered pill | **unassigned** (`cs-unmet`) |
+| `common/game-page/GamePage.tsx` | the global slot's state | `shared-game-chrome` |
+| `common/club/ClubPage.tsx` | a second global slot | `club-page` |
 
 **That spread is the argument for a new area.** Six areas, one vocabulary, and
 the component at the end of the chain belongs to none of them.
