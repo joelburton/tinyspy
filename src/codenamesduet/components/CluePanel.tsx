@@ -1,9 +1,9 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useRef, useState, type SubmitEvent } from 'react'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { cls } from '@/common/utils/cls'
 import { DotActor, ActorDot } from '@/common/members/ActorMention'
 import { FormSubmitButton } from '@/common/buttons/FormSubmitButton'
@@ -57,13 +57,10 @@ type CluePanelProps = {
    *  "Waiting for <name>…". May be undefined briefly during the initial roster
    *  fetch, in which case the copy falls back to "your partner". */
   peer: Player | undefined
-  /** Report an own-action error (a failed clue submit / suggestion / pass). Goes
-   *  to PlayArea's local feedback pill — NOT an inline line, so the slot height
-   *  (and the board above) never changes. */
-  /** Show a refused call. Takes the whole message, tone included, because the
-   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
-   *  fault as red, and a string sink would flatten the two into one look. */
-  onError: (msg: GenericFeedbackMsg) => void
+  /** PlayArea's below-board slot, for a refused clue submit / pass — shown as
+   *  a `notOk` in the slot, NOT an inline line, so the slot height (and the
+   *  board above) never changes. */
+  localFeedbackSlot: FeedbackSlot
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
    *  state and renders the <CodenamesduetAISuggestCompanion> HIGH in the tree: the board
    *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
@@ -88,9 +85,9 @@ type CluePanelProps = {
  *     guesser       → "waiting for <peer> to give a clue"
  *
  * Every state is exactly ONE line, so the reserved-height slot is constant and
- * the board above never shifts (docs/ui.md → "Layout stability"). A submit /
- * suggest / pass error is reported up via `onError` (to the local flash) rather
- * than rendered inline; the AI suggestion's reasoning opens in its own floating
+ * the board above never shifts (docs/ui.md → "Layout stability"). A refused
+ * submit / pass shows into the local feedback slot (a `notOk`) rather than
+ * rendering inline; the AI suggestion's reasoning opens in its own floating
  * panel (see ClueForm) — neither grows the row.
  */
 /** What `codenamesduet-suggest-clue` puts in `data`. Nullable because its
@@ -108,7 +105,7 @@ export function CluePanel({
   currentClue,
   inSuddenDeath,
   peer,
-  onError,
+  localFeedbackSlot,
   onSuggestionChange,
 }: CluePanelProps) {
   if (inSuddenDeath) {
@@ -125,7 +122,7 @@ export function CluePanel({
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
-        {!isClueGiver && <PassButton gameId={gameId} onError={onError} />}
+        {!isClueGiver && <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot} />}
         {isClueGiver && <PeerActivity peer={peer} activity="guessing" />}
       </div>
     )
@@ -135,7 +132,7 @@ export function CluePanel({
     return (
       <ClueForm
         gameId={gameId}
-        onError={onError}
+        localFeedbackSlot={localFeedbackSlot}
         onSuggestionChange={onSuggestionChange}
       />
     )
@@ -207,9 +204,9 @@ export type SuggestState =
 
 /**
  * The clue-giver's inline clue form: "[#]  [word]  [△ Submit]  [✨ AI]"
- * on ONE line (the submit's up-triangle "sends" the clue to the partner). Errors
- * are reported up via `onError` (to the local flash) so the
- * row never grows a second line; an AI suggestion fills the inputs AND opens a
+ * on ONE line (the submit's up-triangle "sends" the clue to the partner). A
+ * refused submit shows into the local feedback slot, so the row never grows a
+ * second line; an AI suggestion fills the inputs AND opens a
  * draggable/resizable <FloatingPanel> with its reasoning (it's the requester's
  * own helper output — too long for, and the wrong channel for, the header pill).
  *
@@ -223,14 +220,12 @@ export type SuggestState =
  */
 function ClueForm({
   gameId,
-  onError,
+  localFeedbackSlot,
   onSuggestionChange,
 }: {
   gameId: string
-  /** Show a refused call. Takes the whole message, tone included, because the
-   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
-   *  fault as red, and a string sink would flatten the two into one look. */
-  onError: (msg: GenericFeedbackMsg) => void
+  /** The slot a refused clue submit is shown into, as a `notOk`. */
+  localFeedbackSlot: FeedbackSlot
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
   // Count is a string (not a number) so the input can start empty — defaulting
@@ -271,7 +266,7 @@ function ClueForm({
     // their contents on any refusal — the clue was never recorded, so it is
     // still the clue you meant to give.
     if (res.type === 'not-ok') {
-      onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'clued') {
       // Clear on success; the panel swaps to the guess-phase view once Realtime
@@ -403,13 +398,11 @@ function ClueForm({
  */
 function PassButton({
   gameId,
-  onError,
+  localFeedbackSlot,
 }: {
   gameId: string
-  /** Show a refused call. Takes the whole message, tone included, because the
-   *  tone is the answer's own: `getNotOkFeedback` reads a race as orange and a
-   *  fault as red, and a string sink would flatten the two into one look. */
-  onError: (msg: GenericFeedbackMsg) => void
+  /** The slot a refused pass is shown into, as a `notOk`. */
+  localFeedbackSlot: FeedbackSlot
 }) {
   // Icon-only on a phone (the below-board row is tight); the label rides in the
   // tooltip either way. No `busy` flag of its own: the action's run is
@@ -423,7 +416,7 @@ function PassButton({
     run: async () => {
       const res = await runRpc<PassAnswer>(db.rpc('pass_turn', { target_game: gameId }))
       if (res.type === 'not-ok') {
-        onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'passed') {
         // Nothing to do: the new turn — and sudden death, if that was the last

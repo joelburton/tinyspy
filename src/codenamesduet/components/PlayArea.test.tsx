@@ -24,6 +24,7 @@ import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
@@ -131,7 +132,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     currentTurnUserId: null,
     setup: { turns: 9, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),

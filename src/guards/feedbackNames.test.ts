@@ -30,10 +30,10 @@ import { describe, expect, it } from 'vitest'
 
 const SRC = join(process.cwd(), 'src')
 
-/** Files still writing the bare name, each waiting on its game's conversion. */
-const pending = new Set<string>([
-  'codenamesduet/components/PlayArea.tsx', // `useTurnPill`'s `feedback` parameter
-])
+/** Files still writing the bare name, each waiting on its game's conversion.
+ *  Empty since the last game converted; the list stays so a regression has a
+ *  named place to be excused, and nowhere else. */
+const pending = new Set<string>([])
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

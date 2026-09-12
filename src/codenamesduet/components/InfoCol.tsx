@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { DotActor } from '@/common/members/ActorMention'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -55,8 +55,8 @@ export function InfoCol({
   onSelectTurn,
 }: {
   // ── Mode + phase ──
-  /** Terminal copy when the game is over (drives the action row), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** Turn budget spent — the state line reads "sudden death" and the help swaps to
    *  the sudden-death rules. */
   inSuddenDeath: boolean

@@ -12,6 +12,7 @@
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { CluePanel } from './CluePanel'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
@@ -26,7 +27,7 @@ describe('codenamesduet CluePanel — input tagging', () => {
         currentClue={null}
         inSuddenDeath={false}
         peer={undefined}
-        onError={vi.fn()}
+        localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
     )

@@ -246,7 +246,21 @@ item 7); the four check answers and the illegal-peel sentence are
 `PlayerBoard` takes the slot and draws `<FeedbackPill>` in its reserved
 row.
 
-**bananagrams COMMITTED**, its three e2e specs green.
+**bananagrams COMMITTED** (`6b395f3d`), its three e2e specs green.
+
+**codenamesduet CONVERTED (2026-09-12).** The last game. The header's turn state is an owner effect (`useTurnStatus`,
+was `useTurnPill`) into the GLOBAL slot: "● moth writing clue" / "guessing"
+/ "waiting for clue" / "waiting for you" as `peerStatus`, and sudden death
+as the roster's one game-specific `standingState('lost', 'Sudden death:
+wrong loses')` — each retracted when the state changes, no dedup ref. One
+local condition effect, the verdict (Restart's mulligan un-terminals the
+game and the owner retracts it). Every not-ok — a rejected guess, clue or
+pass, End, New Game — is `notOk`; the clue panel and its two inner panels
+take the slot in place of the `onError` callback. `buildOver` →
+`TerminalMessage`. The name guard's pending list is now EMPTY.
+
+**codenamesduet COMMITTED**, its five e2e specs green. **Every game is
+converted.**
 
 **Next:** the other games, one by one.
 

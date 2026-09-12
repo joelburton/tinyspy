@@ -3,12 +3,11 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
-import { terminalPill } from '@/common/feedback/localPills'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
+import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
@@ -50,8 +49,8 @@ type GuessAnswer =
 
 /**
  * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
- * below-board slot under it (the turn-viewer banner, the CluePanel during play, or a
- * local `<GenericFeedbackPill>` for an own-action error / the terminal verdict).
+ * below-board slot under it (the turn-viewer banner, the CluePanel during play, or
+ * the local feedback slot's top message — a not-ok, the terminal verdict).
  *
  * This is codenamesduet's **input engine**, and it's a two-input game: guessing is a
  * board click (a tile → `submit_guess`) and cluing is the below-board `CluePanel`
@@ -61,10 +60,9 @@ type GuessAnswer =
  * the board it gates is the natural home — while `CluePanel` keeps the clue RPCs.
  * Like the other games' BoardCol it does NOT own the game state: PlayArea hands it
  * **the board to render** (live OR a historical snapshot) + `viewing`, which is what
- * makes the turn-history viewer a drop-in. Feedback lifts to PlayArea (its `onError`
- * / `clearLocalFeedback` write the shared below-board channel, which InfoCol's End
- * also writes), and the AI-suggestion dialog state lives in PlayArea (it must mount
- * high in the tree). See docs/playarea.md.
+ * makes the turn-history viewer a drop-in. Not-oks show into PlayArea's local
+ * slot (the slot InfoCol's End shows into too), and the AI-suggestion dialog
+ * state lives in PlayArea (it must mount high in the tree). See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──
@@ -83,11 +81,7 @@ export function BoardCol({
   onExitViewing,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
-  onError,
-  clearLocalFeedback,
-  // ── Below-board slot content ──
-  over,
-  localPill,
+  localFeedbackSlot,
   // ── Clue panel (the clue-giver's below-board form) ──
   isClueGiver,
   isGuessPhase,
@@ -130,19 +124,12 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  /** Report an own-action error (a rejected guess / a clue-panel error) — PlayArea
-   *  routes it to the shared below-board pill (the channel InfoCol's End writes too). */
-  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
-   *  look (docs/envelopes.md) — a string sink would flatten it to a pill. */
-  onError: (msg: GenericFeedbackMsg) => void
-  /** Clear the below-board pill (a new guess dismisses the previous one). */
-  clearLocalFeedback: () => void
-
-  // ── Below-board slot content (the channel is owned by PlayArea) ──
-  /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
-  over: TerminalCopy | null
-  /** The own-action pill to show (a rejected guess / failed End), or null. */
-  localPill: GenericFeedbackMsg | null
+  /** PlayArea's below-board slot. This column and the clue panel show their
+   *  not-oks into it (a rejected guess / clue / pass), and while it holds
+   *  anything — a not-ok, the terminal verdict — the pill takes the clue
+   *  panel's place. A tile click is the player's next move, so it dismisses a
+   *  gesture-cleared message. */
+  localFeedbackSlot: FeedbackSlot
 
   // ── Clue panel ──
   isClueGiver: boolean
@@ -162,14 +149,14 @@ export function BoardCol({
 
   // The guess move — a board click. Owned here (beside the board it gates). The
   // reveal arrives via realtime, so there's no optimistic state; the only own-move
-  // feedback is an ERROR (a rejected guess), routed up via `onError`.
+  // feedback is a NOT-OK (a rejected guess), shown into the slot.
   //
   // `pendingPos` says WHICH tile is committing — Board marks that one pending
   // and disables it — so the single-flight flag below can't stand in for it.
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const submitGuess = useCallback(
     async (position: number) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a click is the next move
       setPendingPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
         target_game: gameId,
@@ -187,7 +174,7 @@ export function BoardCol({
       // arrive by subscription, and in sudden death the partner is guessing at
       // the same time as you.
       if (res.type === 'not-ok') {
-        onError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'agent') {
         return
@@ -195,8 +182,8 @@ export function BoardCol({
         return
       } else if (res.type === 'ok' && res.data.result === 'won') {
         // The terminal verdict is PlayArea's: it reads the new play_state and
-        // swaps the below-board slot for the permanent pill (and pops the
-        // celebration). Saying it here as well would say it twice.
+        // shows the verdict into the slot (and pops the celebration). Saying
+        // it here as well would say it twice.
         return
       } else if (res.type === 'ok' && res.data.result === 'lost_assassin') {
         return
@@ -207,7 +194,7 @@ export function BoardCol({
         return
       }
     },
-    [gameId, onError, clearLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
 
   // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
@@ -216,10 +203,9 @@ export function BoardCol({
   // first guess commits (you shouldn't guess again until the reveal resolves).
   const [handleGuess] = useSingleFlight(submitGuess)
 
-  // The below-board slot's one pill, by the shared priority (localPills.ts):
-  // the terminal verdict, then the own-action result. `null` hands the slot back
-  // to the clue panel.
-  const slotPill = over ? terminalPill(over.tone, over.verdict) : localPill
+  // Whatever the slot holds on top takes the clue panel's place; an empty
+  // slot hands it back.
+  const top = useTopFeedbackMessage(localFeedbackSlot)
 
   return (
     <div className={shared.boardCol}>
@@ -241,14 +227,13 @@ export function BoardCol({
         highlight={highlight}
       />
       {/* The below-board slot — codenamesduet's move-input zone
-          (docs/playarea.md → Board sizing). Three states, all in the
-          same fixed-height slot so the top-anchored board never shifts as it swaps:
-            - terminal → a PERMANENT (fill, outcome-colored) <GenericFeedbackPill>
-              carrying the verdict — the terminal state always also lands as local
-              feedback, alongside the info-column outcome line;
-            - own-action error → a transient (outline, error) pill for a beat (a
-              rejected guess / failed End — the LOCAL half of the feedback split;
-              turn-state changes go to the header pill);
+          (docs/playarea.md → Board sizing). Two states, in the same
+          fixed-height slot so the top-anchored board never shifts as it swaps:
+            - the slot holds something → its pill: the filled verdict at
+              terminal (the terminal state always also lands as local feedback,
+              alongside the info-column outcome line), or a not-ok (a rejected
+              guess / clue / pass / failed End — the LOCAL half of the feedback
+              split; turn-state changes go to the header);
             - else → the CluePanel (clue form / clue display + Pass / waiting). */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
@@ -273,14 +258,12 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {/* One slot, one pill: the priority is resolved into `slotPill` above
-              rather than branched here (localPills.ts → the below-board slot's
-              order), so there's a single render and a single dismiss handler. */}
-          {slotPill ? (
+          {top !== null ? (
             <div className={shared.localFeedback}>
-              {/* Own-action flash is error-only here (a rejected guess / failed End);
-                  the success path shows on the board + turn log instead. */}
-              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
+              {/* Own-action feedback is not-ok-only here (a rejected guess /
+                  failed End); the success path shows on the board + turn log
+                  instead. */}
+              <FeedbackPill slot={localFeedbackSlot} />
             </div>
           ) : (
             <div className={styles.moveArea}>
@@ -291,10 +274,10 @@ export function BoardCol({
                 currentClue={currentClue}
                 inSuddenDeath={inSuddenDeath}
                 peer={peer}
-                // Own-action errors → the shared below-board pill (via PlayArea's
-                // onError). The AI clue suggestion opens its own draggable panel
-                // (rendered at the .layout level) — the requester's helper output.
-                onError={onError}
+                // Its not-oks go into the same slot. The AI clue suggestion
+                // opens its own draggable panel (rendered at the .layout level)
+                // — the requester's helper output.
+                localFeedbackSlot={localFeedbackSlot}
                 onSuggestionChange={onSuggestionChange}
               />
             </div>

@@ -54,8 +54,6 @@ const KNOWN: string[] = [
   'src/boggle/manifest.ts › coopLabel',
   'src/boggle/manifest.ts › competeLabel',
   // → codenamesduet
-  'src/codenamesduet/components/BoardCol.tsx › onError',
-  'src/codenamesduet/components/CluePanel.tsx › onError',
   'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
   // → common — club-page / hooks / common-hosts / shared-game-chrome
   'src/common/account/EditProfileModal.tsx › Values',
