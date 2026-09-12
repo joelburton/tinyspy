@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22 — and, riding on
-several of those, the halves of F-9 and F-10 they consumed.
+F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15 — and, riding
+on several of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -294,12 +294,23 @@ because a raw Postgres sentence must be readable in full.
 `faultStore.ts`: both `FaultEntry` members. A note on one member takes `//`.
 `gameInvites.ts` and `menuModel`-style `//` elsewhere are already right.
 
-## F-common-hosts-15 · `unnamed-effects` · Three multi-line effects with no name
+## F-common-hosts-15 · `unnamed-effects` · Three multi-line effects with no name — WORKED
 
-`TooltipHost.tsx`'s one effect is a hundred and fifty lines under
-`useEffect(() => {`; `GameInvitations.tsx`'s two (the mirror, the unmount
-sweep) are bare arrows. `Toast.tsx` names its `autoDismissAfterMs` and
+`TooltipHost.tsx`'s one effect ran ~170 lines under `useEffect(() => {`, with
+a sixteen-line bare cleanup; `GameInvitations.tsx`'s two (the mirror, the
+unmount sweep) were bare arrows. `Toast.tsx` names its `autoDismissAfterMs` and
 `useGameInvitations` its `watchInvitations`, which is the house style.
+
+**Named 2026-09-11, to my recommendations (Joel took them):**
+
+- `bindTooltipTriggers` and its cleanup `unbindTooltipTriggers` — "triggers"
+  rather than gestures (focus is not a gesture) or listeners (which would name
+  what they are, not what they are for).
+- `mirrorInvitesToToasts` — the word the comment above it and the file's
+  docstring already use.
+- `dismissOurToastsOnUnmount`. The sweep was `useEffect(() => () => {…}, [])`,
+  where the outer arrow does nothing and the inner one is the work, so the name
+  went on the inner function.
 
 ## F-common-hosts-16 · `age-limit-argument-times-five` · One rationale, written out in five places — WORKED
 

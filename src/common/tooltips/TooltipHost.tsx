@@ -53,7 +53,7 @@ type Anchor = { el: Element; text: string }
 export function TooltipHost() {
   const [anchor, setAnchor] = useState<Anchor | null>(null)
 
-  useEffect(() => {
+  useEffect(function bindTooltipTriggers() {
     let timer: number | undefined
     let current: Element | null = null
 
@@ -204,7 +204,7 @@ export function TooltipHost() {
     document.addEventListener('focusout', onFocusOut)
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('scroll', onScroll, { capture: true, passive: true })
-    return () => {
+    return function unbindTooltipTriggers() {
       clearTimeout(timer)
       clearTimeout(pressTimer)
       document.removeEventListener('touchstart', onTouchStart)

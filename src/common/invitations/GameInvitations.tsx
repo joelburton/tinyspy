@@ -30,7 +30,7 @@ export function GameInvitations({ session }: { session: Session }) {
   // ids we've shown and dismiss any whose invite has since disappeared (joined,
   // or auto-hidden because you're now viewing that game).
   const shownIds = useRef<Set<string>>(new Set())
-  useEffect(() => {
+  useEffect(function mirrorInvitesToToasts() {
     const next = new Set<string>()
     for (const inv of invites) {
       const id = `invite:${inv.gameId}`
@@ -55,9 +55,10 @@ export function GameInvitations({ session }: { session: Session }) {
   // On unmount (e.g. sign-out), clear any invite toasts we still own so they
   // don't linger over the login screen.
   useEffect(
-    () => () => {
-      for (const id of shownIds.current) dismissToast(id)
-    },
+    () =>
+      function dismissOurToastsOnUnmount() {
+        for (const id of shownIds.current) dismissToast(id)
+      },
     [],
   )
 
