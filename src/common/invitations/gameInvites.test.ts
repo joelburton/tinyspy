@@ -15,11 +15,8 @@ import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCan
  *
  * **Is it RECENT?** That one rides on the query, not on the filter, so stale
  * rows never leave the database — which leaves the arithmetic as the only
- * testable part. It exists because `is_terminal = false` is not a staleness
- * bound: an abandoned game never becomes terminal, so without an age cap the
- * candidate pool is every unfinished game you have ever been seated in, and an
- * empty `seen` set (new device, cleared storage) pops the entire backlog at
- * sign-in.
+ * testable part. The bound is load-bearing because `is_terminal = false` is
+ * not a staleness bound; `INVITE_MAX_AGE_MS` says why, and why an hour.
  */
 
 const me = 'me-id'

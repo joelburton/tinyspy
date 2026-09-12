@@ -156,16 +156,16 @@ describe('useGameInvitations', () => {
   it('hides the invite while viewing that game, and keeps it gone after navigating away', async () => {
     const { result, rerender } = await renderWithInvite()
 
-    // Enter the game by the active-game link (a navigation, not the
-    // dialog's Join) — the popup must hide.
+    // Enter the game by the active-game link (a navigation, not the toast's
+    // own Join) — the invite must hide.
     await act(async () => {
       mockPath = `/g/spellingbee_coop/${GID}`
       rerender()
     })
     expect(result.current.invites).toEqual([])
 
-    // Navigate back to the club. Pre-fix this re-showed the invite (the
-    // suppression was render-only); now it must stay dismissed.
+    // Navigate back to the club. The dismissal has to be durable, not just a
+    // render-time suppression of the game you are looking at.
     await act(async () => {
       mockPath = '/c/pals'
       rerender()
@@ -192,10 +192,8 @@ describe('useGameInvitations', () => {
 })
 
 /**
- * The scan's age bound. Without it, `is_terminal = false` is the only filter —
- * and an abandoned game never becomes terminal, so a sign-in with an empty
- * `seen` set (new device, cleared storage) popped every unfinished game the
- * player had ever been seated in.
+ * The scan's age bound — load-bearing, because `is_terminal = false` is not a
+ * staleness bound. `INVITE_MAX_AGE_MS` says what goes wrong without it.
  */
 describe('useGameInvitations — the backfill is bounded by age', () => {
   it('filters the scan on games.started_at, an hour back', async () => {

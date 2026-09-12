@@ -34,11 +34,10 @@ import {
  *     in. This recovers invitations sent while I was offline / before my
  *     tab loaded (rare, but the realtime INSERT alone would miss them).
  *
- * That re-scan is bounded by AGE as well as by `is_terminal`
- * (`INVITE_MAX_AGE_MS`) — without it the backfill returns every unfinished
- * game you've ever been seated in, because an abandoned game never turns
- * terminal. It never delays a real invite: the realtime path runs the same
- * query, and a game seconds old clears the cutoff easily.
+ * That re-scan is bounded by AGE as well as by `is_terminal`, because
+ * `is_terminal` alone lets the pool grow forever — see `INVITE_MAX_AGE_MS`.
+ * The bound never delays a real invite: the realtime path runs the same query,
+ * and a game seconds old clears the cutoff easily.
  *
  * Dedup is the `seen` set (localStorage): a game's invite surfaces once,
  * then is marked seen so a reload / refetch won't re-nag. Dismissed
@@ -76,11 +75,9 @@ export function useGameInvitations(session: Session): {
         .select('games!inner(id, gametype, club_handle, created_by)')
         .eq('user_id', selfId)
         .eq('games.is_terminal', false)
-        // …and recent. `is_terminal = false` alone is not a staleness bound: an
-        // abandoned game never becomes terminal, so without this the scan
-        // returns every unfinished game you've ever been seated in, and an
-        // empty `seen` set (new device, cleared storage) pops the lot at
-        // sign-in. See INVITE_MAX_AGE_MS.
+        // …and recent, which is load-bearing: `is_terminal = false` is not a
+        // staleness bound, so without this the scan returns every unfinished
+        // game you have ever been seated in. See `INVITE_MAX_AGE_MS`.
         .gt('games.started_at', inviteCutoffIso()),
     )
     // A failed read means we do not learn about invites this round. Nothing to

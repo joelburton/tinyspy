@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20 — and, riding on two of those, the
-halves of F-9 they consumed.
+F-24's corner inset, F-6, F-2, F-21, F-20, F-16 — and, riding on several of
+those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -254,14 +254,29 @@ because a raw Postgres sentence must be readable in full.
 sweep) are bare arrows. `Toast.tsx` names its `autoDismissAfterMs` and
 `useGameInvitations` its `watchInvitations`, which is the house style.
 
-## F-common-hosts-16 · `age-limit-argument-times-five` · One rationale, written out in five places
+## F-common-hosts-16 · `age-limit-argument-times-five` · One rationale, written out in five places — WORKED
 
 "`is_terminal = false` is not a staleness bound; an abandoned game never
-becomes terminal; an empty `seen` set pops the whole backlog" appears in
+becomes terminal; an empty `seen` set pops the whole backlog" appeared in
 `INVITE_MAX_AGE_MS`'s docstring (twenty lines), `useGameInvitations`'s
-docstring, the query's inline comment, and both test files' headers. One home
-— the constant, where the number is chosen — and a sentence and a pointer at
-the other four.
+docstring, the query's inline comment, and both test files' headers. The site
+at the query already pointed at the constant and then restated it anyway, which
+was the tell.
+
+**DECIDED 2026-09-11 (Joel): the constant is the sole home.** It is the fullest
+of the five and the only one that also answers *why an hour* and *what about
+the client clock* — questions that only arise where the number is picked. The
+other four keep one sentence naming what the bound guards against and defer to
+it. The refused alternatives were splitting by the question a reader has at
+each spot (the query owning "why bounded by age", the constant owning "why an
+hour"), which gives the argument two homes to keep true; and cutting the other
+four to a bare pointer, which would leave `.gt('games.started_at', …)` with
+nothing saying whether it is load-bearing.
+
+Riding along, from F-9: both test files stated the failure in the past tense.
+`useGameInvitations.test.ts` also called the invite a popup with a dialog's
+Join (F-10's word) in the same comment it explained a fix by — both now say
+what must hold, in the present.
 
 ## F-common-hosts-17 · `census-in-faultstore` · "Four callers reach past it, each with a reason"
 
