@@ -174,16 +174,22 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     else triggerRef.current?.blur()
   }, [returnFocusOnClose])
 
-  const openMenu = useCallback(() => {
+  function openMenu() {
     const firstEnabled = flatRows.findIndex((r) => !r.disabled)
     setFocusedIndex(Math.max(0, firstEnabled))
     setOpen(true)
-  }, [flatRows])
+  }
 
   // Let an app-level shortcut open the menu (the "?" key). Only `open`
   // is exposed — closing stays owned by the menu (Esc, click-outside,
   // item activation), matching how a user dismisses it.
-  useImperativeHandle(ref, () => ({ open: openMenu }), [openMenu])
+  //
+  // No dependency list: `openMenu` reads `flatRows`, which is rebuilt from
+  // `sections` every render, so a memo here could only ever hand back a new
+  // handle while claiming otherwise. Nothing reads the handle's identity —
+  // `PageHeaderMenu` registers a closure over its ref ONCE and `pageMenuStore`
+  // is a slot, not a subscription — so the honest version is also the free one.
+  useImperativeHandle(ref, () => ({ open: openMenu }))
 
   /**
    * Open a submenu from the row at `index` in the CURRENT list. Captures the
@@ -330,13 +336,17 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   /**
    * Render one row.
    *
-   * `navIndex` is the row's position in `navRows` — or null when the row is on
-   * screen but NOT keyboard-navigable, which happens to the parent list behind
-   * an open desktop flyout. A non-navigable row registers no ref, so the ref
-   * map stays a clean 1:1 with `navRows` and the focus effect can't land on a
-   * button in the wrong list.
+   * `index` is the row's position in its own list, and every row has one —
+   * including the parent list behind an open desktop flyout, which is what a
+   * click on a second submenu parent records as the row to return focus to.
+   *
+   * `navigable` is separate, and false for exactly that case: while a flyout
+   * is open IT owns the keyboard, so the rows behind it register no ref. That
+   * keeps the ref map a clean 1:1 with `navRows`, so the focus effect can't
+   * land on a button in the wrong list. Position and navigability are two
+   * facts about a row, not one.
    */
-  function renderRow(row: NavRow, navIndex: number | null, key: string): ReactNode {
+  function renderRow(row: NavRow, index: number, navigable: boolean, key: string): ReactNode {
     const isBack = row.kind === 'back'
     const item = row.kind === 'item' ? row.row : null
     const parent = item?.children ? item : null
@@ -346,9 +356,9 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         key={key}
         type="button"
         ref={(el) => {
-          if (navIndex === null) return
-          if (el) itemRefsRef.current.set(navIndex, el)
-          else itemRefsRef.current.delete(navIndex)
+          if (!navigable) return
+          if (el) itemRefsRef.current.set(index, el)
+          else itemRefsRef.current.delete(index)
         }}
         className={cls(
           styles.item,
@@ -370,7 +380,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         // A submenu parent is a disclosure, so it advertises itself as one.
         aria-haspopup={parent ? 'menu' : undefined}
         aria-expanded={parent ? submenu?.parentId === parent.id : undefined}
-        onClick={(e) => activateRow(row, navIndex ?? 0, e.currentTarget)}
+        onClick={(e) => activateRow(row, index, e.currentTarget)}
       >
         {/* ONE leading slot, shared by the two things that can sit before a
             label: the identity disc (who) and the action's glyph (what). No row
@@ -416,7 +426,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // second panel beside the sections.
   const drilledDown = isMobile && openParent !== null
   const submenuRows = openParent
-    ? navRows.map((row, i) => renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id))
+    ? navRows.map((row, i) => renderRow(row, i, true, row.kind === 'back' ? '__back' : row.row.id))
     : null
 
   return (
@@ -497,8 +507,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         const idx = flatIdx
         flatIdx += 1
         // While a desktop flyout is open IT owns navigation, so the rows behind
-        // it pass `null` and register no ref (see renderRow).
-        renderedItems.push(renderRow({ kind: 'item', row }, openParent ? null : idx, row.id))
+        // it register no ref — but they keep their index (see renderRow).
+        renderedItems.push(renderRow({ kind: 'item', row }, idx, !openParent, row.id))
       })
     })
     return renderedItems

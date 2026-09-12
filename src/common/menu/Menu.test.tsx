@@ -11,7 +11,7 @@
  * Out of scope: how anything looks (CSS only), and where the menu stacks.
  */
 
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { boundActionFixture } from '../actions/boundAction.fixture'
@@ -20,7 +20,8 @@ import type { BoundAction } from '../actions/useBoundAction'
 import { IconRestart, type AppIcon } from '../icons/icons'
 import { installFakeMatchMedia } from '../mobile/matchMedia.fake'
 import { MOBILE_QUERY } from '../mobile/useIsMobile'
-import { Menu } from './Menu'
+import { createRef } from 'react'
+import { Menu, type MenuHandle } from './Menu'
 import type { MenuSection } from './menuModel'
 
 function renderMenu(
@@ -75,6 +76,28 @@ function singleSection(items: TestRow[]): MenuSection[] {
 }
 
 describe('Menu — open/close', () => {
+  /**
+   * The imperative handle is the `?` key's whole path in: `PageHeaderMenu`
+   * registers a closure over its ref with `pageMenuStore`, and `act-open-menu`
+   * calls it. Nothing else opens the menu without a pointer or the trigger's
+   * own keys, so an unopenable handle would only show up as a dead shortcut.
+   */
+  it('opens through the imperative handle, and focuses the first row', () => {
+    const ref = createRef<MenuHandle>()
+    render(
+      <Menu
+        ref={ref}
+        logo="☰"
+        sections={singleSection([{ id: 'act-help', label: 'Alpha' }, { id: 'act-log-out', label: 'Beta' }])}
+        triggerLabel="Test menu"
+      />,
+    )
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    act(() => ref.current!.open())
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Alpha' })).toHaveFocus()
+  })
+
   it('renders the trigger with the right ARIA shape', () => {
     renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
     const trigger = screen.getByRole('button', { name: 'Test menu' })
@@ -480,6 +503,33 @@ describe('Menu — sections + dividers', () => {
  * the default render IS the desktop branch. The mobile block stubs it in.
  */
 
+/** A menu with TWO submenu parents, for switching from one flyout to another. */
+function withTwoSubmenus(): MenuSection[] {
+  return [
+    {
+      items: [
+        row({ id: 'act-help', label: 'Help' }),
+        {
+          id: 'check',
+          label: 'Check',
+          items: [
+            row({ id: 'act-check-letter', label: 'Letter' }),
+            row({ id: 'act-check-word', label: 'Word' }),
+          ],
+        },
+        {
+          id: 'account',
+          label: 'Account',
+          items: [
+            row({ id: 'act-edit-profile', label: 'Profile' }),
+            row({ id: 'act-log-out', label: 'Log out' }),
+          ],
+        },
+      ],
+    },
+  ]
+}
+
 /** A menu whose last row opens a two-item submenu. */
 function withSubmenu(onProfile = () => {}): MenuSection[] {
   return [
@@ -539,6 +589,28 @@ describe('Menu — submenus (desktop flyout)', () => {
     expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument()
     // …and there is no Back row: the list you'd go back to is right there.
     expect(screen.queryByRole('menuitem', { name: /‹/ })).not.toBeInTheDocument()
+  })
+
+  /**
+   * Switching flyouts BY CLICK, which is the case where the row's position and
+   * its navigability are two different facts: while a flyout is open the rows
+   * behind it are not keyboard-navigable, and a click on one still has to
+   * record WHICH row it was so Escape can hand focus back to it.
+   *
+   * The ArrowDown is load-bearing. With the focused index still 0, a parent
+   * recorded wrongly as 0 sets the same value, the focus effect never re-runs,
+   * and the click's own native focus covers for the bug.
+   */
+  it('Escape returns focus to the parent last opened, not the first row', async () => {
+    const user = userEvent.setup()
+    renderMenu(withTwoSubmenus())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Check/ }))
+    await user.keyboard('{ArrowDown}')
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('menuitem', { name: /Account/ })).toHaveFocus()
   })
 
   it('Escape unwinds ONE level — out of the submenu, not out of the menu', async () => {

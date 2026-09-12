@@ -77,7 +77,7 @@ and clears the submenu; Tab and the outside click both go through it, and
 drill-down by construction. Two specs added, one per presentation — the two
 the probe had failed on the old code.
 
-## F-menu-2 · `flyout-switch-loses-parent-index` · Opening a second flyout by click records its parent as row 0
+## F-menu-2 · `flyout-switch-loses-parent-index` · Opening a second flyout by click records its parent as row 0 — WORKED
 
 Rows behind an open flyout are rendered with `navIndex === null` (so they
 register no ref), and `onClick` passes `navIndex ?? 0`. Clicking a second
@@ -94,6 +94,15 @@ Move inside the first flyout first (ArrowDown), then click the second parent,
 then Escape — focus lands on Help. Reproduced. Fix: `renderRow` knows the
 row's flat index even when it passes `null` for navigation; carry both, or
 find the id in `flatRows`.
+
+**WORKED 2026-09-11.** `renderRow` takes `index` and `navigable` as two
+arguments instead of one nullable index, because they were always two facts: a
+row behind an open flyout HAS a position, it just isn't the keyboard's to walk.
+The ref registration asks `navigable`, the click passes `index`, and the
+`?? 0` that invented row 0 is gone. One spec added, and the ArrowDown in it is
+load-bearing — it moves the focused index off 0, which is the only reason the
+bug shows at all. Planted by restoring the old `0`: the spec fails with focus
+on Help, exactly the symptom above.
 
 ### Shape
 
@@ -128,12 +137,26 @@ and the section list moved into `renderSections()`, a nested function like
 `renderTrigger`. The early return is gone, and with it the second copy of
 the wrapper.
 
-## F-menu-5 · `useCallback-with-unstable-deps` · `openMenu` is memoized on a fresh array
+## F-menu-5 · `useCallback-with-unstable-deps` · `openMenu` is memoized on a fresh array — WORKED
 
 `openMenu`'s deps are `[flatRows]`, which is rebuilt every render, so the
 callback — and the `useImperativeHandle` value hung off it — is new every
 render. Harmless, and a claim the memo cannot keep. Minor: drop the memo, or
 compute the first enabled row at call time.
+
+**WORKED 2026-09-11** (Joel: drop the memo). A plain function in the body,
+like the other handlers here, and the handle's dep list went with it — the
+comment there now says why no memo is possible AND why none is wanted:
+nothing reads the handle's identity, because `PageHeaderMenu` registers a
+closure over its ref ONCE and `pageMenuStore` is a slot rather than a
+subscription. The other memo in the file (`openSubmenu`, on `[isMobile]`) is
+genuinely stable and was left alone.
+
+**An absence found while there, and closed: the imperative handle had NO
+spec.** It is the `?` key's whole path into the menu — nothing else opens one
+without a pointer or the trigger's own keys — so a dead handle would have
+surfaced only as a shortcut that quietly does nothing. One spec added, planted
+against a no-op handle.
 
 ### Code and prose
 
@@ -456,7 +479,7 @@ number and says so.
 
 - F-menu-1 and F-menu-2: nothing red today, which is the fault — the probe's
   three specs go into `Menu.test.tsx`, two for F-1 (added with its fix) and
-  one for F-2.
+  one for F-2. ALL THREE ARE IN, each planted against the code it describes.
 - F-menu-4: the whole existing suite is the check — 53 tests, green through
   the merge.
 - F-menu-3: none; no caller, no spec.
