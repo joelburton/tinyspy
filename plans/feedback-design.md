@@ -57,8 +57,21 @@ Docs that still name the old builders (`playarea.md`, `mobile.md`,
 until the old files are deleted at the end of the conversion, since what they
 describe still exists.
 
-**Next:** Joel reads psychicnum; then the other games, one by one. The
-e2e specs for psychicnum (`e2e/psychicnum-*.e2e.ts`, five) run on his word.
+**psychicnum COMMITTED** (`fdeecbe6`), its five e2e specs green — the
+turn-order spec now asserts the new rank order (a result over the whose-turn
+note, and the note uncovered by a tap).
+
+**wordle CONVERTED (2026-09-12), uncommitted, awaiting Joel's read.** The
+same shape: `over` memoized on primitives (the compete tie-break inference
+moved above the early returns with it), three condition effects, results
+and not-oks as constructors, `buildOver` → `TerminalMessage`; BoardCol draws
+`<FeedbackPill>` between the board and the keyboard, `softReject` shows a
+`result`, `typeLetter` and the capture's `onAnyKey` are the slot's
+`dismiss`. Its test fakes the global slot with a real one and a spy, which
+took it off the name guard's pending list. Its four e2e specs (history,
+keyboard, mobile, print) run on Joel's word.
+
+**Next:** the other games, one by one.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
 built for tidying files that stay, and this area replaces most of its files:

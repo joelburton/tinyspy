@@ -9,7 +9,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { useDefinePopover } from '@/common/definitions/useDefinePopover'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { Member } from '@/common/members/member'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
@@ -65,8 +65,8 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   isTerminal: boolean
-  /** Terminal copy when the game is over (drives the action row + modal), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** I'm done in a compete race (solved / out / conceded) while the others race on —
    *  the terminal LOOK without revealing the answer. */
   isLocallyDone: boolean

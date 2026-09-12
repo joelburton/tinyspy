@@ -17,9 +17,9 @@
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -31,10 +31,6 @@ import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { PlayArea } from './PlayArea'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
-
-// Feedback `text` is now a ReactNode (a <DotActor> widget + sentence) rather
-// than a string — render it and read the plain text to assert on the wording.
-const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -83,7 +79,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
@@ -482,55 +478,64 @@ describe('wordle PlayArea — input gating', () => {
 })
 
 describe('wordle PlayArea — peer narration (global header)', () => {
+  /** A real global slot with a spy on its one door, handed to the ctx. */
+  function narrationCtx() {
+    const globalFeedbackSlot = createFeedbackSlot('global')
+    const shown = vi.spyOn(globalFeedbackSlot, 'show')
+    return { ctx: makeCtx({ globalFeedbackSlot, players: twoMembers }), shown }
+  }
+
   it("announces a teammate's accepted guess in coop", () => {
-    const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
+    const { ctx, shown } = narrationCtx()
     // First render seeds the seen-set with my own guess (no announcement).
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     const { rerender } = render(<PlayArea {...ctx} />)
-    feedback.show.mockClear()
-    // A teammate's guess lands → narrated in the header.
+    shown.mockClear()
+    // A teammate's guess lands → narrated in the header, the actor leading.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
       { user_id: 'u2', seq: 0, guess: 'crane', colors: 'ggggg', is_correct: true },
     ])
     rerender(<PlayArea {...ctx} />)
-    expect(feedback.show).toHaveBeenCalledTimes(1)
-    expect(nodeText(feedback.show.mock.calls[0][0].text)).toBe('moth guessed CRANE')
+    expect(shown).toHaveBeenCalledTimes(1)
+    const feedbackMsg = shown.mock.calls[0]![0]
+    expect(feedbackMsg.kind).toBe('peer')
+    expect(feedbackMsg.actor?.username).toBe('moth')
+    expect(feedbackMsg.text).toBe('guessed CRANE')
   })
 
   it('does not narrate my own guess', () => {
-    const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
+    const { ctx, shown } = narrationCtx()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
     const { rerender } = render(<PlayArea {...ctx} />)
-    feedback.show.mockClear()
+    shown.mockClear()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     rerender(<PlayArea {...ctx} />)
-    expect(feedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 
   it('announces an opponent solving in compete', () => {
-    const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
+    const { ctx, shown } = narrationCtx()
     // First render seeds: nobody solved yet.
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     const { rerender } = render(<PlayArea {...ctx} />)
-    feedback.show.mockClear()
+    shown.mockClear()
     // moth solves → narrated (the only peer event compete can surface).
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
       me,
       { ...moth, solved: true },
     ])
     rerender(<PlayArea {...ctx} />)
-    expect(feedback.show).toHaveBeenCalledTimes(1)
-    expect(nodeText(feedback.show.mock.calls[0][0].text)).toBe('moth solved it')
-    // Green — a solve is a solve regardless of whose (tone follows the event).
-    expect(feedback.show.mock.calls[0][0].tone).toBe('won')
+    expect(shown).toHaveBeenCalledTimes(1)
+    const feedbackMsg = shown.mock.calls[0]![0]
+    expect(feedbackMsg.actor?.username).toBe('moth')
+    expect(feedbackMsg.text).toBe('solved it')
+    // Green — a solve is a solve regardless of whose (the outcome follows the event).
+    expect(feedbackMsg.outcome).toBe('won')
   })
 })
 

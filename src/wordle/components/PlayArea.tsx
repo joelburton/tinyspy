@@ -6,7 +6,6 @@ import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -15,28 +14,25 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { DotActor } from '@/common/members/ActorMention'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
-import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -74,7 +70,7 @@ export function PlayArea({
   currentTurnUserId,
   setup,
   status,
-  globalFeedback,
+  globalFeedbackSlot,
   clubHandle,
   goToGame,
   menu,
@@ -101,12 +97,12 @@ export function PlayArea({
   // keyboard always fits — lives in Board.module.css, not here.
   const infoSheet = useInfoSheet()
 
-  // The own-move local feedback pill (soft reject / RPC error), shown in the
-  // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
-  // by the player's next edit (in BoardCol), the "next move dismisses it" rule. Lives
-  // HERE because BOTH columns write it: BoardCol's guess dispatch AND InfoCol's End /
-  // Concede. Accepted guesses get NO pill — the colored row that lands IS the feedback.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
+  // The local feedback slot — the fixed-height slot between the board and the
+  // keyboard. A soft reject or an RPC not-ok is shown into it by BoardCol, the
+  // End / Concede races by InfoCol's actions, and the three standing
+  // conditions below are effects on it. Accepted guesses get NO message — the
+  // colored row that lands IS the feedback.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn's board (the guess rows up to that turn,
@@ -184,17 +180,9 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
       const member = memberById(members, g.user_id)
-      return {
-        tone: 'neutral',
-        text: (
-          <>
-            <DotActor actor={member} fallback="Someone" /> guessed {g.guess.toUpperCase()}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      return FeedbackMessage.peer(member, 'neutral', `guessed ${g.guess.toUpperCase()}`)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
   // ─── Compete opponent-solve narration (global header) ──────────
@@ -215,34 +203,102 @@ export function PlayArea({
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
       const member = memberById(members, id)
-      return {
-        tone: 'won',
-        text: (
-          <>
-            <DotActor actor={member} fallback="Someone" /> solved it
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      return FeedbackMessage.peer(member, 'won', 'solved it')
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
+
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The per-status terminal message. Memoized on its inputs so the verdict
+  // effect sees one object per outcome, not one per render. The compete
+  // tie-break is inferred here (no backend flag needed): the server picks the
+  // winner by fewest guesses, then earliest solved_at, so if any OTHER solver
+  // used the same guess count as the winner, the clock broke the tie.
+  const winnerId = status?.winner_user_id as string | undefined
+  const selfWon = winnerId === session.user.id
+  const winnerState = playerStates.find((p) => p.user_id === winnerId)
+  const wonByClock =
+    !!winnerState &&
+    playerStates.some(
+      (p) =>
+        p.user_id !== winnerId &&
+        p.solved &&
+        p.guesses_used === winnerState.guesses_used,
+    )
+  // Did the viewer lose specifically on the clock (tied the winner's guess
+  // count but solved later)?
+  const selfTiedWinner =
+    !selfWon &&
+    !!self &&
+    self.solved &&
+    !!winnerState &&
+    self.guesses_used === winnerState.guesses_used
+  const gameMode = game?.mode
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({ mode: gameMode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
+        : null,
+    [isTerminal, gameMode, playState, timer.expired, selfWon, wonByClock, selfTiedWinner],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I'm done — solved, or out of my own
+  // guesses, or conceded — but the game continues for the others still racing.
+  // Coop has no such state (one shared board: over for me ⇒ over for everyone).
+  // Solving is the GOOD way to be done: compete is won by fewest guesses,
+  // decided when everyone finishes, so a solver may well be winning, and the
+  // default "Lost — race continues" would be flatly wrong for them.
+  const isLocallyDone =
+    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.outOfRace(myConceded, mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting'),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone, myConceded, mySolved])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. The holder is
+  // read as two primitives so the effect settles in one pass.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = currentTurnUserId === null ? undefined : memberById(members, currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); wordle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
-  // history view, clear the pill, re-hide the answer so the new run starts
-  // blind). Failures arrive fully classified — tone and fault styling intact.
-  // New game + Reveal answer stay below — their paths diverge (new game is a
-  // direct create_game).
+  // history view, dismiss a lingering result — a restart is the player's next
+  // action; the verdict leaves by its own effect — and re-hide the answer so
+  // the new run starts blind). New game + Reveal answer stay below — their
+  // paths diverge (new game is a direct create_game).
   const onRestarted = useCallback(() => {
     exitViewing()
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     // The same word, hunted again — so forget my choice about the answer.
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
     // the win-implied default, so solving the replayed word wouldn't show it.
     resetAnswer()
-  }, [exitViewing, clearLocalFeedback, resetAnswer])
+  }, [exitViewing, localFeedbackSlot, resetAnswer])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -252,7 +308,7 @@ export function PlayArea({
     // Solved and waiting for the others: conceding would forfeit a win already
     // banked, so it goes gray and you leave via Back to club.
     selfSolved: solvedIds.includes(session.user.id),
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted,
   })
 
@@ -285,7 +341,6 @@ export function PlayArea({
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so `setup` and `members` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
-  const gameMode = game?.mode
   const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
@@ -302,17 +357,17 @@ export function PlayArea({
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
       //
       // Unlike waffle's, everything this can answer is a FAULT — wordle's
       // create_game raises no form-validation at all, since every value it
       // refuses is one no control offers. PN057 was the last exception and
       // became a fault on 2026-08-30.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`wordle_${gameMode}`, res.data.id)
@@ -379,7 +434,7 @@ export function PlayArea({
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. Reveal wears the
   // same two faces here as on the terminal button, because it IS that binding.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -411,96 +466,25 @@ export function PlayArea({
   // only grows the log past `viewingId`, so a past turn holds.
   const snap = viewing && viewingId !== null ? turnSnapshot(myGuesses, viewingId) : null
 
-  const winnerId = status?.winner_user_id as string | undefined
-  const selfWon = winnerId === session.user.id
-  // Tie-break inference (no backend flag needed): the server picks the winner by fewest
-  // guesses, then earliest solved_at. So if any OTHER solver used the same guess count
-  // as the winner, the clock broke the tie — say "same guesses, but faster".
-  const winnerState = playerStates.find((p) => p.user_id === winnerId)
-  const wonByClock =
-    !!winnerState &&
-    playerStates.some(
-      (p) =>
-        p.user_id !== winnerId &&
-        p.solved &&
-        p.guesses_used === winnerState.guesses_used,
-    )
-  // Did the viewer lose specifically on the clock (tied the winner's guess count but
-  // solved later)?
-  const selfTiedWinner =
-    !selfWon &&
-    !!self &&
-    self.solved &&
-    !!winnerState &&
-    self.guesses_used === winnerState.guesses_used
-  const over = isTerminal
-    ? buildOver({
-        mode: game.mode,
-        playState,
-        timerExpired: timer.expired,
-        selfWon,
-        wonByClock,
-        selfTiedWinner,
-      })
-    : null
-
-  // Locally terminal (compete only): I'm done — solved, or out of my own guesses — but
-  // the game continues for the others still racing. Coop has no such state (one shared
-  // board: over for me ⇒ over for everyone). Shown as the terminal LOOK (a status line +
-  // Concede), not a quietly-swapped help line.
-  const isLocallyDone =
-    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
-
   // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
   // state. `readOnly` (glossary): the board is inert when there's no self row, the
   // game's terminal, I've solved / conceded, or I'm out of guesses. (De Morgan of
   // the old positive `guessingAllowed`.)
   // `!isMyTurn` folds in turn-order (coop only): a waiting player's board is
   // inert. Always true for free-for-all / solo, so it only tightens a turn
-  // game. Unlike psychicnum, wordle's below-board pill has no coop "locally
-  // done" look (isLocallyDone is compete-only), so a waiting coop player sees
-  // no false "out" — just the disabled keyboard + the waiting pill below.
+  // game. Unlike psychicnum, wordle has no coop "locally done" look
+  // (isLocallyDone is compete-only), so a waiting coop player sees no false
+  // "out" — just the disabled keyboard + the whose-turn note below.
   const readOnly =
     !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there — the pill's presence is
-  // fixed for the game's life, no reflow.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-
   const wordleSetup = setup as WordleSetup
 
-
-  // ─── The below-board pill (terminal / locally-terminal / waiting / own-move) ─────
-  // The fixed-height feedback slot under the board shows exactly one pill, chosen here
-  // by priority (BoardCol just renders it):
-  //   - terminal → a PERMANENT (fill) verdict pill: the terse verdict ALONE. The answer
-  //     is NOT folded in — the pill is a one-line, ellipsising row (~48 chars on a
-  //     phone) and the word has its own home in the info column's terminalExtra ("The
-  //     answer was CRANE", click-to-define), so duplicating it here only crowded out
-  //     the verdict;
-  //   - locally terminal (compete: I'm done while the others race) → a sticky "you're
-  //     out" pill (the target isn't revealed until the whole game ends);
-  //   - waiting on a teammate's turn → "Waiting for ● moth…", the ONLY whose-turn
-  //     indicator on mobile (the InfoCol's TurnStatusLine is off-canvas there);
-  //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
-  // Waiting out-ranks own-move: when it isn't your turn there's no fresh own-move
-  // result to lose, and a stale one would bury the answer to "why can't I type?".
-  const localPill: GenericFeedbackMsg | null = over
-    ? terminalPill(over.tone, over.verdict)
-    : isLocallyDone
-      ? outOfRacePill(
-          myConceded,
-          // `isLocallyDone` folds THREE states together, and solving is the good
-          // one: compete is won by fewest guesses, decided when everyone
-          // finishes, so a solver may well be winning. The default
-          // 'Lost — race continues' would be flatly wrong for them. (waffle's
-          // identical branch does the same.)
-          mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting',
-        )
-      : waiting
-        ? waitingTurnPill(memberById(members, currentTurnUserId))
-        : localFeedback
+  // The verdict in the slot is the terse verdict ALONE. The answer is NOT
+  // folded in — the pill is a one-line, ellipsising row (~48 chars on a phone)
+  // and the word has its own home in the info column's terminalExtra ("The
+  // answer was CRANE", click-to-define), so duplicating it there only crowded
+  // out the verdict.
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -515,15 +499,13 @@ export function PlayArea({
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
         readOnly={readOnly}
-        showLocalFeedback={showLocalFeedback}
-        clearLocalFeedback={clearLocalFeedback}
-        // ── Below-board pill ──
-        localPill={localPill}
+        // ── The below-board slot: BoardCol shows rejects into it and draws it ──
+        localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
         // The finished board wears its verdict, and the keyboard goes with it:
-        // `over` is the same TerminalCopy the below-board pill reads, so the two
-        // can't disagree about how this game went.
-        gameOver={over ? over.tone : null}
+        // `over` is the same terminal message the slot shows, so the two can't
+        // disagree about how this game went.
+        gameOver={over ? over.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
       />
@@ -576,9 +558,9 @@ export function PlayArea({
 }
 
 /**
- * Per-status terminal copy (the shared `TerminalCopy` shape). `tone` + `verdict`
- * drive the below-board terminal pill; `tone` + `message` drive the short,
- * color-coded info-column outcome line. Mode- and (compete) self-aware.
+ * Per-status terminal message. `outcome` + `pillText` are the below-board
+ * verdict; `outcome` + `infoColText` are the short, color-coded info-column
+ * outcome line. Mode- and (compete) self-aware.
  */
 function buildOver({
   mode,
@@ -596,38 +578,38 @@ function buildOver({
   wonByClock: boolean
   /** The viewer lost specifically on the clock (tied the winner's count). */
   selfTiedWinner: boolean
-}): TerminalCopy {
-  // Manual end (wordle.end_game) → the shared neutral 'ended' copy. Deliberately
+}): TerminalMessage {
+  // Manual end (wordle.end_game) → the shared neutral message. Deliberately
   // NOT worded here: manual end is the one terminal every game shares, so it
   // stays in one place rather than drifting per game.
-  if (playState === 'ended') return endedCopy(mode)
+  if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { verdict: 'Won: solved it', message: 'Solved it!', tone: 'won' }
+      return { pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' }
     }
     return {
-      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
-      message: timerExpired ? 'Out of time' : 'Out of guesses',
-      tone: 'lost',
+      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
+      infoColText: timerExpired ? 'Out of time' : 'Out of guesses',
+      outcome: 'lost',
     }
   }
-  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the copy distinguishes
-  // "fewest guesses" from "same guesses, but faster".
+  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the words
+  // distinguish "fewest guesses" from "same guesses, but faster".
   if (playState === 'won_compete') {
     if (selfWon) {
       return wonByClock
-        ? { verdict: 'Won: same guesses, but faster', message: 'You won (faster)', tone: 'won' }
-        : { verdict: 'Won: fewest guesses', message: 'You won!', tone: 'won' }
+        ? { pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won' }
+        : { pillText: 'Won: fewest guesses', infoColText: 'You won!', outcome: 'won' }
     }
     return selfTiedWinner
-      ? { verdict: 'Lost: beaten on the clock', message: 'Opponent won (faster)', tone: 'lost' }
-      : { verdict: 'Lost: beaten on guesses', message: 'Opponent won', tone: 'lost' }
+      ? { pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' }
+      : { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' }
   }
   // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
   // beaten, the board just ran out.
   return {
-    verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
-    message: timerExpired ? 'Out of time' : 'No winner',
-    tone: 'lost',
+    pillText: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
+    infoColText: timerExpired ? 'Out of time' : 'No winner',
+    outcome: 'lost',
   }
 }

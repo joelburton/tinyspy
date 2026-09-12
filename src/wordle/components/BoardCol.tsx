@@ -1,15 +1,14 @@
 // cs-unmet
 
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useEffect, useCallback, useState } from 'react'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { db } from '../db'
-import { stickyPill } from '@/common/feedback/localPills'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { SnapshotRow, TurnSnapshot } from '../lib/history'
 import { Board } from './Board'
@@ -31,11 +30,10 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * `useCaptureKeys` + the on-screen keyboard drive the same `current`. It does NOT own
  * the game state: PlayArea hands it **the board to render** (the live `rows` + the
  * `snap` history override) + `readOnly` (the game-state half of "is the board
- * inert", which this column ORs with its own mid-submit state). Own-move
- * feedback lifts to PlayArea (its `showLocalFeedback` / `clearLocalFeedback` write the
- * shared below-board channel, which InfoCol's End / Concede also write), and the
- * fully-resolved below-board pill comes down as `localPill`. See
- * docs/playarea.md.
+ * inert", which this column ORs with its own mid-submit state). The local
+ * feedback slot is PlayArea's (its standing conditions and InfoCol's End /
+ * Concede show into it too); this column shows the soft rejects and draws it.
+ * See docs/playarea.md.
  */
 /** How long the rejected row keeps its amber ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */
@@ -83,10 +81,7 @@ export function BoardCol({
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   readOnly,
-  showLocalFeedback,
-  clearLocalFeedback,
-  // ── Below-board pill (resolved by PlayArea) ──
-  localPill,
+  localFeedbackSlot,
   // ── Board-scope marks (see <Board>) ──
   gameOver,
   notMyTurn,
@@ -115,16 +110,9 @@ export function BoardCol({
    *  terminal, solved/conceded, out of guesses). This column ORs it with its own
    *  mid-submit / word-in-flight state to get the live `canGuess`. */
   readOnly: boolean
-  /** Show an own-move pill (soft reject / RPC error). PlayArea owns the shared
-   *  below-board channel (InfoCol's End / Concede write it too). */
-  showLocalFeedback: (msg: GenericFeedbackMsg) => void
-  /** Clear the sticky own-move pill (a keystroke / edit dismisses it). */
-  clearLocalFeedback: () => void
-
-  // ── Below-board pill ──
-  /** The one pill to render in the fixed-height slot (terminal verdict / "you're out"
-   *  / own-move soft-reject — resolved by PlayArea), or null. */
-  localPill: GenericFeedbackMsg | null
+  /** PlayArea's below-board slot. This column shows the soft rejects and RPC
+   *  not-oks into it and draws its top between the board and the keyboard. */
+  localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks ──
   /** The game is finished, and how — bands the board, and withdraws the keyboard
@@ -211,18 +199,17 @@ export function BoardCol({
     if (col !== 'blank') keyTones.set(ch, col)
   }
 
-  // ─── Edit the active row (dismisses any sticky local pill) ─────
-  // Typing a letter is the player's "next move", so it clears the last
-  // soft-reject pill. Both keyboards route through here — the physical one via
-  // `act-type-letter` inside the capture hook, an on-screen cap by calling it —
-  // so the clear lives in one place. Backspace needs no twin: the ⌫ cap IS
-  // `act-delete-last`, and that binding already dismisses on the way through.
-  // `clearLocalFeedback` is stable (the hook memoizes it), so this stays
-  // effectively constant.
+  // ─── Edit the active row (the player's next action) ─────
+  // Typing a letter is the player's "next move", so it dismisses a
+  // gesture-cleared soft reject. Both keyboards route through here — the
+  // physical one via `act-type-letter` inside the capture hook, an on-screen
+  // cap by calling it — so the dismiss lives in one place. Backspace needs no
+  // twin: the ⌫ cap IS `act-delete-last`, and that binding already dismisses
+  // on the way through. The slot is stable, so this stays effectively constant.
   const typeLetter = useCallback((ch: string) => {
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
-  }, [clearLocalFeedback])
+  }, [localFeedbackSlot])
 
   /**
    * What BOTH soft rejects do — `duplicate` and `notAWord`. They are separate
@@ -235,29 +222,29 @@ export function BoardCol({
    * because the server wrote both, per answer — this function is the shared
    * mechanism, never the source of the words.
    *
-   * `tone` widens to the two ring colors `Board` renders: amber for a warning,
-   * red for anything else, which is what a failure looks like anyway. It is a
-   * TOTAL map rather than a filter — a bare `if` on the value it knows would
-   * leave the PREVIOUS rejection's color on the row when anything else arrived,
-   * wrong and silent. (The real fix is for `Board` to take an `Outcome` and
-   * map it to its two colors itself; docs/ui.md → "The verdict mark's state"
-   * has why the rest of this state stays per game.)
+   * `outcome` widens to the two ring colors `Board` renders: amber for a
+   * warning, red for anything else, which is what a failure looks like anyway.
+   * It is a TOTAL map rather than a filter — a bare `if` on the value it knows
+   * would leave the PREVIOUS rejection's color on the row when anything else
+   * arrived, wrong and silent. (The real fix is for `Board` to take an
+   * `Outcome` and map it to its two colors itself; docs/ui.md → "The verdict
+   * mark's state" has why the rest of this state stays per game.)
    */
   const softReject = useCallback(
-    (tone: Outcome, text: string) => {
+    (outcome: Outcome, text: string) => {
       setPending(null)
-      setRejectTone(tone === 'warning' ? 'warning' : 'lost')
+      setRejectTone(outcome === 'warning' ? 'warning' : 'lost')
       setRejectNonce((n) => n + 1)
-      showLocalFeedback({ tone, text, mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
     },
-    [showLocalFeedback],
+    [localFeedbackSlot],
   )
 
   // ─── Submit a guess (stable across keystrokes) ────────────────
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        showLocalFeedback(stickyPill('warning', 'Not enough letters'))
+        localFeedbackSlot.show(FeedbackMessage.result('warning', 'Not enough letters'))
         return
       }
       setSubmitting(true)
@@ -271,7 +258,7 @@ export function BoardCol({
       if (res.type === 'not-ok') {
         setPending(null)
         setRejectNonce((n) => n + 1)
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'duplicate' && res.message !== null) {
         softReject(res.outcome, res.message)
@@ -301,7 +288,7 @@ export function BoardCol({
         return
       }
     },
-    [gameId, showLocalFeedback, softReject],
+    [gameId, localFeedbackSlot, softReject],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -316,12 +303,13 @@ export function BoardCol({
     onChange: setCurrent,
     onSubmit: () => void doSubmit(current),
     charFor: asciiLetters('lower'),
-    onAnyKey: clearLocalFeedback,
+    onAnyKey: localFeedbackSlot.dismiss,
     // Hard-off when the player can't act (loading / terminal / out of guesses /
-    // mid-submit) OR while viewing history — no dispatch AND no feedback dismissal (the
-    // sticky verdict survives a stray key). Freezing capture while viewing lets a
-    // keystroke fall through to `act-exit-viewer` (return to live) instead of typing
-    // behind the banner. clearLocalFeedback is a no-op at terminal anyway.
+    // mid-submit) OR while viewing history — no dispatch AND no dismissal.
+    // Freezing capture while viewing lets a keystroke fall through to
+    // `act-exit-viewer` (return to live) instead of typing behind the banner.
+    // (A stray key could never remove the verdict anyway: it leaves only by
+    // its owner.)
     disabled: !canGuess || viewing,
     maxLength: 5, // a guess is one 5-letter word
   })
@@ -344,12 +332,11 @@ export function BoardCol({
         myTurnJustStarted={myTurnJustStarted}
       />
       {/* The below-board region (universal). wordle is NON-SWAP: the feedback and the
-          keyboard are separate and both always present, so the local feedback area sits
+          keyboard are separate and both always present, so the local feedback slot sits
           BETWEEN the board and the keyboard (Joel's call). `.localFeedback` reserves its
-          own height so neither the board above nor the keyboard below reflows when its
-          pill appears/clears; it holds exactly one centered pill (own-move soft-reject,
-          sticky "you're out", or the permanent terminal verdict — see
-          `localPill`) — or nothing. */}
+          own height so neither the board above nor the keyboard below reflows as the
+          slot's top message comes and goes — a soft reject, "you're out", the
+          whose-turn note, the verdict, whichever ranks highest. */}
       <div className={styles.belowBoard}>
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the feedback slot + the keyboard stay mounted underneath,
@@ -373,7 +360,7 @@ export function BoardCol({
           </div>
         )}
         <div className={shared.localFeedback}>
-          {localPill && <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />}
+          <FeedbackPill slot={localFeedbackSlot} />
         </div>
         <div className={styles.moveArea}>
           {/* Withdrawn at terminal, and its space kept — see `.gameOver` in

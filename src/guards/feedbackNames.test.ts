@@ -33,7 +33,6 @@ const SRC = join(process.cwd(), 'src')
 /** Files still writing the bare name, each waiting on its game's conversion. */
 const pending = new Set<string>([
   'codenamesduet/components/PlayArea.tsx', // `useTurnPill`'s `feedback` parameter
-  'wordle/components/PlayArea.test.tsx', // a fake global slot named `feedback`
 ])
 
 function walk(dir: string): string[] {
