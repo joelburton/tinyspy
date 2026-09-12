@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 /**
  * Tests for useGameInvitations — specifically that entering the invited game

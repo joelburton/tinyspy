@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 /**
  * The fault store's queue: faults come out in the order they went in, and the

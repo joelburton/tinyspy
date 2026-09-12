@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { render, screen } from '@testing-library/react'
 import { act } from 'react'

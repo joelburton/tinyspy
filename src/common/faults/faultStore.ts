@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { useSyncExternalStore, type ReactNode } from 'react'
 

@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'

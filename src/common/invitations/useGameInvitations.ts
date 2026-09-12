@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'

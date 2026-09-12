@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { useEffect } from 'react'
 import { cls } from '../utils/cls'

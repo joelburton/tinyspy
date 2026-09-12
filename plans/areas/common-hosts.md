@@ -4,7 +4,9 @@ The folders it reads: `toasts` · `tooltips` · `faults` · `invitations`. The p
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed (Joel: "just the ones you listed are
+**Status: CLOSED 2026-09-11, blessed.** Joel: *"bless the files in the area,
+then close and commit."* All eighteen code files read `cs-blessed-common-hosts`.
+Opened the same day. Roster agreed (Joel: "just the ones you listed are
 in the area. audit the area") and the eighteen code files stamped
 `cs-audited-common-hosts`. Findings recorded from one read of all twenty-three
 files, the three doc sections they answer to, and every cross-file claim a
@@ -761,8 +763,14 @@ in any of the eighteen code files.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group (2026-09-11,
+      F-27..F-36)
 - [x] the four folders' `doc.md` Designs written; their rows off `DESIGNS_OWED`
-      (2026-09-11, and the guard planted both ways)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+      (2026-09-11, and the guard planted both ways); rewritten the same day to
+      the narrative shape
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (tooltips → Someday: richer-than-text bubbles; faults → Maybe: storm
+      batching)
+- [x] every file on the roster blessed — the eighteen code files say
+      `cs-blessed-common-hosts`, set on Joel's words "bless the files in the
+      area" (2026-09-11); `doc.md` / `todo.md` are outside the stamp's scope

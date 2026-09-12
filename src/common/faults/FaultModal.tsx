@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import { dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'

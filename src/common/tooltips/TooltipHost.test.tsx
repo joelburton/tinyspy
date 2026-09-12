@@ -1,4 +1,4 @@
-// cs-audited-common-hosts
+// cs-blessed-common-hosts
 
 /**
  * TooltipHost — the delegated `data-tooltip` renderer. Pins the interaction

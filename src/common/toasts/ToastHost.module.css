@@ -1,4 +1,4 @@
-/* cs-audited-common-hosts */
+/* cs-blessed-common-hosts */
 
 /* The fixed bottom-right toast stack. It sits at `--z-toast`: above chat and
  * any window you left open, below a modal that stops the world — base.css's
