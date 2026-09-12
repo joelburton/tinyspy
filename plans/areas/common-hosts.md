@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2 — and, riding on two of those, the halves of F-9
-they consumed.
+F-24's corner inset, F-6, F-2, F-21 — and, riding on two of those, the halves
+of F-9 they consumed.
 
 ## The roster
 
@@ -83,7 +83,7 @@ half the list.
 `TooltipHost`'s long-press timer sets `suppressClick = true` so the click the
 browser synthesizes on lift does not fire the held button. A press the system
 takes over (a gesture, an incoming call) ends in `touchcancel` instead, which
-synthesizes no click — and `onTouchEnd`, bound to both events, only cancelled
+synthesizes no click — and `onTouchEnd`, bound to both events, only canceled
 the pending timer. `suppressClick` stayed armed, and `onClickCapture` ate the
 next click on ANY element. Reproduced: hold a button past the beat, cancel the
 touch, tap a plain button — its handler is never called.
@@ -291,15 +291,32 @@ paragraph explains its own existence by what "used to land in the global slot".
 The paths become `common/toasts/`; the "used to" stays if it is the reason the
 row exists, and goes if it is only history.
 
-## F-common-hosts-21 · `ui-md-faults-stale` · docs/ui.md → Faults points at the wrong file and apologizes for its own heading
+## F-common-hosts-21 · `ui-md-faults-stale` · docs/ui.md → Faults points at the wrong file and apologizes for its own heading — WORKED
 
-"`reportDbFault` in `dbResult.ts`" — it is in `dbEnvelope.ts`. The heading
-"the one thing that is NOT a pill" is followed, five paragraphs down, by a
-parenthetical saying the heading is older than the rule and describes the
-system it replaced; rename the heading and drop the apology. And the
-`GenericFeedbackMsg` `fault` flag paragraph ("until 2026-09-01… the branches
-and their test went") is the before; the rule that holds by construction is
-the sentence to keep.
+The heading "the one thing that is NOT a pill" was followed, five paragraphs
+down, by a parenthetical saying the heading is older than the rule and
+describes the system it replaced — so a reader met a claim, carried it through
+the whole spec, and was then told it was never true.
+
+**DECIDED 2026-09-11 (Joel): `#### Faults — "the app is broken", in a blocking
+modal`.** It takes the section's own phone-line shape test, which is what
+someone arriving here is actually trying to tell apart. The alternatives were a
+bare `the fault MODAL`, promoting the escalation rule into the heading (long,
+and it front-loads a distinction that only lands once you know a fault also
+reaches the pill), and `the blocking modal` (shortest, but it names the
+component rather than the thing). The parenthetical is gone; the escalation
+rule keeps its own bolded paragraph.
+
+Three no-decision fixes rode along: `reportDbFault` now points at
+`dbEnvelope.ts` (it was `dbResult.ts`, which exports `runRpc`); "the classifier
+logs before routing" is now the wrapper, which is what logs; and the
+`GenericFeedbackMsg` `fault`-flag paragraph — seven lines of what changed on
+2026-09-01 to arrive at a one-line rule — is the rule alone, said in terms of
+why it holds by construction.
+
+**Pointers checked, none broken.** Every reference in the repo is the prose
+form `docs/ui.md → Faults`, which still resolves; no markdown anchor links at
+the old heading exist.
 
 ## F-common-hosts-22 · `common-md-invitation-popup` · docs/common.md's invitation section describes a popup and the auto-nav it replaced
 

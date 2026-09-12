@@ -107,7 +107,7 @@ Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** 
 - The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
 - **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
 
-#### Faults — the one thing that is NOT a pill: the fault MODAL
+#### Faults — "the app is broken", in a blocking modal
 
 A **fault** is a failure nobody planned for: a bug, or a request that never
 reached the server. It renders as a blocking **modal** (`<FaultModal>`, one
@@ -132,8 +132,8 @@ Three lines (Joel's spec, 2026-08-13):
 Dismissal: the Close button or Esc — scrim clicks are deliberately inert
 (see-and-acknowledge). One fault at a time; each fault is its own modal
 (no batching); the queue caps at 5 and silently drops overflow from the UI —
-every dropped fault still has its `[db]` line, since the classifier logs
-before routing.
+every dropped fault still has its `[db]` line, since the wrapper logs before
+it raises the modal.
 
 **The one rule:** *every failure that classifies as fault/transport pops the
 modal, on every surface; expected rejections, validation, and answers stay
@@ -142,25 +142,21 @@ where they are.*
 **The modal is an ESCALATION, not a replacement** — the fault also appears in
 the pill or on the form line, like any other answer, so that dismissing the
 modal doesn't leave a form looking fine or a board still showing "FOOZLE: not a
-word" when the real news is that the server is down. (The heading above, "the
-one thing that is NOT a pill", is older than that rule and describes the system
-this replaced, where a fault took the pill's place.)
+word" when the real news is that the server is down.
 
 Mechanics:
 
 - **Nothing authors a fault by hand, and nothing can.** The layer that received
   the failure raises the modal itself — `reportDbFault` in
-  [`dbResult.ts`](../src/common/supabase/dbResult.ts), called from the
+  [`dbEnvelope.ts`](../src/common/supabase/dbEnvelope.ts), called from the
   wrappers, with the transport facts no call site could rebuild
   ([envelopes.md → How the frontend receives one](envelopes.md)). Every call
   goes through a wrapper, so there is no second path.
-- **A fault therefore never reaches a feedback sink at all**, and the sinks no
-  longer check. `GenericFeedbackMsg` carried a `fault` flag until 2026-09-01,
-  and both sinks branched on it — necessary while ONE classifier returned
-  either a pill or a fault and the sink had to tell them apart. With the
-  classifier gone the branch had no input, so the flag, the branches and their
-  test went. The rule they encoded still holds; it holds by construction.
-  `GenericFeedbackPill` has no fault branch either, for the same reason.
+- **A fault therefore never reaches a feedback sink at all**, and no sink
+  checks for one. The wrapper raises the modal before a call site has an answer
+  to hand a sink, so a fault has no way to arrive where a pill is chosen. The
+  rule holds by construction, not by a branch — which is why neither sink nor
+  `GenericFeedbackPill` has a fault case to read.
 - **Form/panel surfaces** put the envelope's own `message` on their red line —
   the setup dialog's validation, the club-name rules, the AI panels' "the model
   declined — try again" — and a fault's modal has already fired. The two page
