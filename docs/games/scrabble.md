@@ -580,9 +580,11 @@ width and split by a divider — Shuffle (`act-shuffle`, `⌥Z`) + the icon-only
 (`act-recall-tiles`) on the left; the **commit slot** ([Swap] [Pass] [Submit]) on the
 right. The shell-wide keys apply as everywhere: `+` New game, `⌥⌫` End / Concede.
 The commit
-slot doubles as the **local feedback area**: an own-move result (or the terminal
-verdict) shows as a sticky `<FeedbackPill>` in place of the commit buttons,
-dismissed by the player's next move (a tile tap / a keystroke). To keep that row
+slot doubles as the **local feedback area**: the local feedback slot's
+`<FeedbackPill>` — an own-move result, dismissed by the player's next move (a tile
+tap / a keystroke); a not-ok with its ×; "you're out"; whose turn; the terminal
+verdict ([ui.md → Feedback pill](../ui.md#feedback-pill)) — shows in place of the
+commit buttons. To keep that row
 on one line within the board width, the buttons are compact — **Swap is
 icon-only** (`act-exchange`, two-way-arrows glyph, carrying its own reason when it
 can't act); Pass hides itself outside compete and is the end-turn octagon in the
@@ -639,7 +641,7 @@ disabled Submit showing "+N"). Pre-played tiles use the same bright tentative fa
 When an opponent commits, your pre-play **persists** (the version-move effect keeps
 it + your rack order, since your rack is untouched) — *unless* the opponent placed a
 tile on a cell you'd pre-played, in which case the whole pre-play is cleared with a
-terse local `warning` pill, "Pre-play cleared: conflict" (no name/disc — the commit
+terse local `warning` result, "Pre-play cleared: conflict" (no name/disc — the commit
 slot is too narrow). When your turn then starts with tiles already staged, Submit is enabled and
 Pass is disabled (you have a move pending). Coop is unchanged — no turns, and a
 teammate's commit still resets your in-progress staging (the stackdown-style "first
@@ -723,8 +725,8 @@ board rotation) — never shared, never persisted, doesn't pause.
   OR a coop teammate's shared move — the `ViewTarget` union it switches on; and owns
   the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
   button + the GameTurnLog), `PlayArea` (the thin coordinator: `useGame`, the shared
-  below-board feedback channel [both columns write it], the coop `useSharedMove`
-  transport, the terminal copy + the compete-win `CelebrationBlockingModal`, and the
+  below-board feedback slot [both columns show into it], the coop `useSharedMove`
+  transport, the terminal message + the compete-win `CelebrationBlockingModal`, and the
   board-viewer state), `SetupForm`
   (`<SetupCoopStyleSection>` [coop pacing + first turn], two `<DictBandField>`s,
   the AI opponent count/level controls [compete], + timer), `Help`.
@@ -1021,7 +1023,7 @@ no *strategic* exchange — the AI only swaps when it has no legal play at all.
 **Surfacing.** Solo clubs get the compete Start button (`scrabble_compete`'s
 `min_players` is 1 — you race the AI alone), badged **"AI Compete"** by
 `ModePill`. Each opponent's committed move (human OR AI) is announced in the
-global peer-news header ("AI 1 played COATS (+18)"); an AI seat's score shows in
+global header as a `peer` message ("● AI 1 played COATS (+18)"); an AI seat's score shows in
 a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).
 

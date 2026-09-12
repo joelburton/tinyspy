@@ -1,7 +1,8 @@
 // cs-unmet
 
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
+import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
@@ -13,10 +14,11 @@ import shared from '@/common/game-page/PlayArea.module.css'
  * The action half of scrabble's below-board row (the rack — with its floating
  * Shuffle — is rendered beside it by PlayArea). Recall on the left; the **commit
  * slot** ([Swap] [Pass] [Submit]) pushed to the right edge. That slot doubles as
- * the **local feedback area**: when `pill` is set (an own-move result, or the
- * terminal verdict) it shows a `<GenericFeedbackPill>` in place of the buttons AND fills
- * the whole space (so a longer message reads before it clips). The rack (to the
- * left) stays interactive, so a keystroke / tile tap dismisses the pill.
+ * the **local feedback area**: while the slot holds a message (an own-move
+ * result, a not-ok, "you're out", whose turn, the terminal verdict) it draws
+ * the `<FeedbackPill>` in place of the buttons AND fills the whole space (so a
+ * longer message reads before it clips). The rack (to the left) stays
+ * interactive, so a keystroke / tile tap dismisses a gesture-cleared result.
  *
  * The commit buttons:
  *   - **Swap** (`act-exchange`, icon-only) — return rack tiles. Its bubble
@@ -47,8 +49,7 @@ export function Controls({
   actSharePreview,
   actExchange,
   actPass,
-  pill,
-  onDismissPill,
+  localFeedbackSlot,
 }: {
   /** The staged play's score for the Submit preview; `null` (empty board) shows
    *  an em-dash. Its own prop, not the action's: the score is what this control
@@ -65,13 +66,11 @@ export function Controls({
   actExchange: BoundAction
   /** Pass the turn. Hides itself in coop. */
   actPass: BoundAction
-  /** An own-move / terminal pill to show IN the commit slot (replacing the commit
-   *  buttons + filling its width), or null to show the buttons. */
-  pill: GenericFeedbackMsg | null
-  /** Clear the pill — tapping a transient one dismisses it, the same way the
-   *  next keystroke does (docs/ui.md → Feedback pill). */
-  onDismissPill: () => void
+  /** PlayArea's below-board slot, drawn IN the commit slot (replacing the
+   *  commit buttons + filling its width) while it holds anything. */
+  localFeedbackSlot: FeedbackSlot
 }) {
+  const top = useTopFeedbackMessage(localFeedbackSlot)
   return (
     <div className={styles.controls}>
       <ActionButton action={actRecallTiles} show="icon" />
@@ -81,12 +80,11 @@ export function Controls({
       <ActionButton action={actSharePreview} show="icon" />
 
       <div
-        className={cls(styles.moveAreaOrLocalFeedback, pill && styles.moveAreaOrLocalFeedbackPill)}
+        className={cls(styles.moveAreaOrLocalFeedback, top !== null && styles.moveAreaOrLocalFeedbackPill)}
       >
-        {pill ? (
-          // Sticky local feedback — no × (the next move dismisses it). onClose is
+        {top !== null ? (
           <div className={shared.localFeedback}>
-            <GenericFeedbackPill msg={pill} onClose={onDismissPill} />
+            <FeedbackPill slot={localFeedbackSlot} />
           </div>
         ) : (
           <div className={styles.commitButtons}>

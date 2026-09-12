@@ -1,19 +1,16 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import type { Member } from '@/common/members/member'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { cls } from '@/common/utils/cls'
-import { outOfRacePill, terminalPill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
-import { DotActor } from '@/common/members/ActorMention'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage, type Actor } from '@/common/feedback/FeedbackMessage'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -21,7 +18,6 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
-import { colorVarFor } from '@/common/members/memberColor'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
@@ -30,7 +26,7 @@ import type { RankedMove } from '../lib/rank'
 import { useGame, type PlayRow } from '../hooks/useGame'
 import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
-import { BoardCol, type LocalFeedbackMsg, type ViewTarget } from './BoardCol'
+import { BoardCol, type ViewTarget } from './BoardCol'
 import { InfoCol, type SuggestState } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -38,7 +34,6 @@ import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Disc colors for AI seats (up to 3), kept distinct from the common
@@ -50,13 +45,13 @@ const AI_DISC_COLORS = ['brown', 'purple', 'pink']
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
  * `ViewTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
  * coop "show a move" Broadcast transport (`useSharedMove`), the below-board feedback
- * channel (`useLocalFeedback` — lifted here because InfoCol's End/Concede write to it
- * too), and the terminal copy; it wires two columns:
+ * slot (born here because InfoCol's End/Concede show into it too), and the
+ * terminal message; it wires two columns:
  *
  *   - **`<BoardCol>`** — the 15×15 board + the rack + the whole turn machine
  *     (staging via drag/keyboard, the blank picker, the optimistic hold, and the
  *     play_word/exchange/pass RPCs, which are inseparable from that state). Takes the
- *     game data + gameId + the feedback channel + the history-view inputs down.
+ *     game data + gameId + the feedback slot + the history-view inputs down.
  *   - **`<InfoCol>`** — the turn/score readout, OpponentStrip, action row, help,
  *     setup disclosure, and the Moves log. Named callbacks up.
  *
@@ -79,7 +74,7 @@ export function PlayArea({
   menu,
   brand,
   title,
-  globalFeedback,
+  globalFeedbackSlot,
 }: GamePageCtx) {
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
@@ -103,21 +98,11 @@ export function PlayArea({
   // it; acceptable for the keyboard-tablet class this targets.
   const infoSheet = useInfoSheet()
 
-  // The player's own-move result — a sticky pill in the commit slot (the local
-  // feedback area; docs/ui.md → Feedback pill). Lifted to the coordinator
-  // because BOTH columns write it: BoardCol's turn machine (played/rejected/…) AND
-  // InfoCol's End/Concede failures. The thin builder keeps the terse `{ tone, text }`
-  // call sites (own-move results are outline + sticky — the next move dismisses them).
-  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
-
-  // Sticky is a DEFAULT, not an override: hand-built {tone, text} pills omit
-  // `mode` and get it stamped; a classified message keeps the mode the
-  // classifier chose — a fault's `manual` must not be downgraded to sticky,
-  // or a play_word fault could vanish mid-read behind the next feedback event.
-  const showLocalFeedback = useCallback(
-    (m: LocalFeedbackMsg) => showMsg({ ...m, mode: m.mode ?? { kind: 'sticky' } }),
-    [showMsg],
-  )
+  // The below-board slot — drawn in the commit slot (docs/ui.md → Feedback
+  // pill). Born in the coordinator because BOTH columns show into it:
+  // BoardCol's turn machine (played / rejected / …) AND InfoCol's End /
+  // Concede; the standing conditions further down are its too.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Win celebration (COMPETE only) ────────────────────
   // scrabble inverts the usual gate. Everywhere else the celebration is the
@@ -265,15 +250,14 @@ export function PlayArea({
     })
   }, [currentSeatIsAi, game, gameId, isTerminal])
 
-  // Peer-move news → the GLOBAL header (the peer-news channel; my own move goes
-  // to the below-board pill — docs/code-conventions.md → Feedback naming).
+  // Peer-move news → the GLOBAL header (the peer channel; my own move goes to
+  // the below-board slot — docs/code-conventions.md → Feedback naming).
   // Compete only: announce each OPPONENT's committed move (human OR AI), so a
   // move that lands while I'm looking elsewhere — especially an AI's, which has
   // no visible human actor — gets noticed. Seeded to the current tail on the
-  // first run so the existing log isn't replayed. `globalFeedback.show` is a
-  // prop callback, so there's no local setState in this effect.
+  // first run so the existing log isn't replayed.
   const announcedSeqRef = useRef<number | null>(null)
-  useEffect(() => {
+  useEffect(function announceOpponentMoves() {
     if (!game || !isCompete) return
     const tailSeq = plays.length ? plays[plays.length - 1].seq : 0
     if (announcedSeqRef.current === null) {
@@ -289,13 +273,10 @@ export function PlayArea({
     const actor = latest.user_id
       ? players.find((m) => m.user_id === latest.user_id)
       : aiMemberOfSeat(latest.seat)
-    globalFeedback.show({
-      tone: latest.kind === 'word' ? 'won' : 'neutral',
-      dot: colorVarFor(actor?.color),
-      text: peerMoveText(actor?.username ?? 'Someone', latest),
-      mode: { kind: 'timed' },
-    })
-  }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedback])
+    globalFeedbackSlot.show(
+      FeedbackMessage.peer(actor, latest.kind === 'word' ? 'won' : 'neutral', peerMoveText(latest)),
+    )
+  }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedbackSlot])
 
   // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
@@ -357,9 +338,9 @@ type Suggested =
 
   // ─── End / Concede / Replay — the shared trio ─────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own
-  // bits are the failure-pill format, the replay sentence, and the post-replay
-  // cleanup (leave whichever read-only overlay is open — a past turn or a
-  // teammate's shared move — since the board it described is gone).
+  // bits are the replay sentence and the post-replay cleanup (leave whichever
+  // read-only overlay is open — a past turn or a teammate's shared move — since
+  // the board it described is gone; dismiss the last result).
   //
   // What "Restart" means here is worth stating: scrabble's 15×15 grid is
   // the standard layout, not a generated puzzle, so there's no board to restore.
@@ -367,15 +348,15 @@ type Suggested =
   // roster, seats and any AI opponents. Hence the confirm's wording.
   const onRestarted = useCallback(() => {
     exitViewing()
-    clearLocalFeedback()
-  }, [exitViewing, clearLocalFeedback])
+    localFeedbackSlot.dismiss()
+  }, [exitViewing, localFeedbackSlot])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode: isCompete ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted,
   })
 
@@ -424,15 +405,12 @@ type Suggested =
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      //
-      // Straight to `showMsg`: the sticky-forcing wrapper would flatten the
-      // manual-dismiss mode this message needs.
-      showMsg({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`scrabble_${gameMode}`, res.data.id)
@@ -488,7 +466,7 @@ type Suggested =
   // above, Back to club below); the middle is this game's own rows, each one a
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -502,7 +480,84 @@ type Suggested =
         ],
       }),
     )
-    return () => menu.setGameSections([])  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+    return () => menu.setGameSections([])
+  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. The compete winner is a human from the common
+  // roster, or — when `winner_seat` names an AI seat — the synthetic "AI n"
+  // member; either way reduced to name + color for the identity dot. Undefined
+  // on a tie / all-conceded / coop, where nobody is named.
+  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winnerSeat = (status?.winner_seat as number | null | undefined) ?? null
+  const winnerMember =
+    players.find((m: Member) => m.user_id === winnerId) ??
+    (winnerSeat != null ? aiMemberOfSeat(winnerSeat) : undefined)
+  const winnerName =
+    winnerMember?.username ??
+    (winnerId !== null || winnerSeat !== null ? (status?.winner_username as string | undefined) : undefined)
+  const winnerColor = winnerMember?.color
+  const hasWinner = winnerId !== null || winnerSeat !== null
+  const teamScore = game?.teamScore ?? null
+  const over = useMemo(
+    () =>
+      isTerminal && game
+        ? buildOver({
+            mode: game.mode,
+            playState,
+            statusOutcome,
+            teamScore,
+            selfWon: winnerId === session.user.id,
+            winner: hasWinner ? { username: winnerName ?? 'a player', color: winnerColor ?? '' } : undefined,
+          })
+        : null,
+    // `game` stands in for its mode, which never changes once loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isTerminal, game?.mode, playState, statusOutcome, teamScore, winnerId, session.user.id, hasWinner, winnerName, winnerColor],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete: I conceded while the others play on). The
+  // InfoCol's LocalTerminalRow carries the terse half of this; dual placement
+  // is the rule (docs/playarea.md), and on a phone the InfoCol is off-canvas,
+  // making this the ONLY copy the player sees.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. (Compete is
+  // ALWAYS turn-based, but its status line already names the current player,
+  // so the note would be redundant — hence the coop-only pointer, which
+  // compete leaves null.) The note lands where the commit buttons would be:
+  // they're useless on a teammate's turn, so swapping them for the reason is
+  // exactly right.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((m: Member) => m.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -524,54 +579,11 @@ type Suggested =
     suggest.status === 'ready' && (isTerminal || suggest.version !== game.version)
       ? { status: 'idle' }
       : suggest
-  // The winner's member row for the terminal identity dot: a human from the
-  // common roster, or — when `winner_seat` names an AI seat — the synthetic
-  // "AI n" member. Undefined on a tie / all-conceded / coop, where nobody is named.
-  const winnerSeat = status?.winner_seat as number | null | undefined
-  const winnerMember =
-    players.find((m: Member) => m.user_id === (status?.winner_user_id as string | undefined)) ??
-    (winnerSeat != null ? aiMemberOfSeat(winnerSeat) : undefined)
-  const over = isTerminal
-    ? buildOver({
-        game,
-        playState,
-        status,
-        selfId: session.user.id,
-        nameOf,
-        winnerMember,
-      })
-    : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
   // A human (by currentUserId) or, when it's an AI seat's turn, the synthetic
   // "AI n" member.
   const currentMember =
     players.find((m: Member) => m.user_id === game.currentUserId) ?? aiMemberOfSeat(game.currentSeat)
-
-  // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
-  // else the sticky own-move result (transient outline), else nothing (the commit
-  // buttons show). Passed down to BoardCol, which renders it in the Controls.
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there. (Compete is ALWAYS
-  // turn-based, but its status line already names the current player, so the
-  // pill would be redundant — hence the coop-only pointer, which compete leaves
-  // null.) The pill lands where the commit buttons would be: they're useless on a
-  // teammate's turn, so swapping them for the reason is exactly right.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  // Locally terminal (compete: I conceded while the others play on). Mutually
-  // exclusive with `waiting` — that pointer is coop-only here — but ordered first
-  // to match the other games' chains. The InfoCol's LocalTerminalRow carries the
-  // terse half of this; dual placement is the rule (docs/playarea.md), and on a
-  // phone the InfoCol is off-canvas, making this the ONLY copy the player sees.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-  const localPill: GenericFeedbackMsg | null = over
-    ? // `verdict` (or its `verdictNode` widget, when the winner is named) — the
-      // pill's own string, distinct from the info column's shorter `message`.
-      terminalPill(over.tone, over.verdictNode ?? over.verdict)
-    : isLocallyDone
-      ? outOfRacePill(true)
-      : waiting
-        ? waitingTurnPill(players.find((m: Member) => m.user_id === currentTurnUserId))
-        : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -592,9 +604,7 @@ type Suggested =
         myTurn={myTurn}
         isTerminal={isTerminal}
         myConceded={myConceded}
-        showLocalFeedback={showLocalFeedback}
-        clearLocalFeedback={clearLocalFeedback}
-        localPill={localPill}
+        localFeedbackSlot={localFeedbackSlot}
         plays={plays}
         viewTarget={viewTarget}
         viewing={viewing}
@@ -643,7 +653,7 @@ type Suggested =
       </InfoSheet>
 
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the commit-slot pill + the info-column outcome line. Only a COMPETE
+          in-page by the commit slot's verdict + the info-column outcome line. Only a COMPETE
           win celebrates — coop has no win to celebrate (see useCelebration above). */}
       {celebration.show && (
         <CelebrationBlockingModal title="You win! 🎉" onClose={celebration.close} />
@@ -652,15 +662,16 @@ type Suggested =
   )
 }
 
-/** One opponent move as a terse peer-news line for the global header. */
-function peerMoveText(name: string, p: PlayRow): string {
+/** One opponent move as a terse peer line for the global header — the actor
+ *  leads it, drawn by the pill, so this is what follows their name. */
+function peerMoveText(p: PlayRow): string {
   if (p.kind === 'word') {
     const w = (p.words ?? [])[0]?.toUpperCase() ?? ''
-    return `${name} played ${w} (+${p.score ?? 0})`
+    return `played ${w} (+${p.score ?? 0})`
   }
-  if (p.kind === 'exchange') return `${name} exchanged ${p.tile_count} tiles`
-  if (p.kind === 'pass') return `${name} passed`
-  return `${name} ended the game`
+  if (p.kind === 'exchange') return `exchanged ${p.tile_count} tiles`
+  if (p.kind === 'pass') return 'passed'
+  return 'ended the game'
 }
 
 /** SPIKE: format one play for the print moves table (mirrors BoardCol's turnSummary). */
@@ -675,83 +686,69 @@ function moveText(p: PlayRow): string {
 }
 
 /**
- * Terminal copy, mode- and self-aware.
+ * The terminal message, mode- and self-aware.
  *
- *   - `verdict` (+ the `verdictNode` widget when the winner is NAMED) drives the
- *     permanent pill in the commit slot. ONE OR TWO WORDS — far terser than the
- *     other games' verdicts, because scrabble's slot is not a full below-board
- *     row: it's the sub-area that swaps in for the commit buttons, with the rack
- *     still beside it, and on a phone the rack + controls have already wrapped to
+ *   - `pillText` (+ the winner as `actor` when one is NAMED) is the verdict in
+ *     the commit slot. ONE OR TWO WORDS — far terser than the other games'
+ *     verdicts, because scrabble's slot is not a full below-board row: it's
+ *     the sub-area that swaps in for the commit buttons, with the rack still
+ *     beside it, and on a phone the rack + controls have already wrapped to
  *     two rows. No score in it either — the mobile status bar above the board
  *     carries the live number, so repeating it here spends the width twice.
- *   - `message` (+ `tone`) drives the bold info-column outcome line. Deliberately
- *     UNCHANGED by the end-states sweep — the two surfaces carry two lengths.
+ *   - `infoColText` (+ `outcome`) is the bold info-column outcome line.
+ *     Deliberately UNCHANGED by the end-states sweep — the two surfaces carry
+ *     two lengths.
  *
  * COOP has no win — one shared rack, no opponent — so its three endings are all
  * neutral, and they're distinguished rather than collapsed: `Completed:` for
  * playing the board out, `Ended: time` for the clock, plain `Ended:` for a manual
- * stop. COMPETE names who won, which is the one case the pill wants a WIDGET (the
- * winner's identity dot, the way peer feedback names people elsewhere).
+ * stop. COMPETE names who won: the winner rides as `actor`, and the pill draws
+ * the mention the way every other message names someone.
  */
 function buildOver({
-  game,
+  mode,
   playState,
-  status,
-  selfId,
-  nameOf,
-  winnerMember,
+  statusOutcome,
+  teamScore,
+  selfWon,
+  winner,
 }: {
-  game: { mode: 'coop' | 'compete'; teamScore: number | null }
+  mode: 'coop' | 'compete'
   playState: string
-  status: Record<string, unknown> | null
-  selfId: string
-  nameOf: (id: string | null) => string
-  /** The winner's member row (a human from the roster, or the synthetic "AI n"),
-   *  for the identity dot. Undefined on a tie / all-conceded / coop. */
-  winnerMember: Member | undefined
-}): {
-  verdict: string
-  verdictNode?: ReactNode
-  message: string
-  tone: TerminalOutcome
-} {
-  const outcome = (status?.outcome as string | undefined) ?? ''
-  if (game.mode === 'coop') {
-    const score = game.teamScore ?? 0
-    if (outcome === 'manual') return { verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
+  /** `status.outcome`, or null when the status carries none. */
+  statusOutcome: string | null
+  teamScore: number | null
+  selfWon: boolean
+  /** The winner as name + color — a human from the roster, or the synthetic
+   *  "AI n" (whose label `status.winner_username` also carries). Undefined on
+   *  a tie / all-conceded / coop, where nobody is named. */
+  winner: Actor | undefined
+}): TerminalMessage {
+  if (mode === 'coop') {
+    const score = teamScore ?? 0
+    if (statusOutcome === 'manual') return { pillText: 'Ended', infoColText: `${score} pts`, outcome: 'neutral' }
     // The clock is the ONE way a coop table loses: it failed to finish in time,
     // which is how every other game on the roster reads a timeout (the server
     // agrees — scrabble._finish writes play_state 'lost' for it alone).
-    if (outcome === 'timeout') {
-      return { verdict: 'Lost: out of time', message: `${score} pts`, tone: 'lost' }
+    if (statusOutcome === 'timeout') {
+      return { pillText: 'Lost: out of time', infoColText: `${score} pts`, outcome: 'lost' }
     }
     // Played all the way out (coop's only automatic ending — the blocked end
     // needs passes, and coop has no turns to pass). Not a WIN (coop has no
     // opponent), but a real completion, worth distinguishing from "it just
     // stopped".
-    return { verdict: 'Completed', message: `${score} pts`, tone: 'won' }
+    return { pillText: 'Completed', infoColText: `${score} pts`, outcome: 'won' }
   }
-  if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }
+  if (playState === 'ended') return { pillText: 'Ended', infoColText: 'Ended', outcome: 'neutral' }
   // Everyone conceded (play_state 'lost_compete', outcome 'conceded'): a collective
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
-  if (outcome === 'conceded') return { verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
-  const winner = status?.winner_user_id as string | null | undefined
-  if (winner === selfId) return { verdict: 'You won', message: 'You won!', tone: 'won' }
-  const named = (name: string) => ({
-    verdict: `${name} won`,
-    verdictNode: (
-      <>
-        <DotActor actor={winnerMember} fallback="Someone" show="both" /> won
-      </>
-    ),
-    message: `${name} won`,
-    tone: 'lost' as const,
-  })
-  if (winner) return named(nameOf(winner))
-  // An AI winner: `status.winner_user_id` is null, but `winner_seat` names the seat and
-  // `winner_username` carries its "AI n" label (from scrabble._finish).
-  const winnerSeat = status?.winner_seat as number | null | undefined
-  if (winnerSeat != null) return named((status?.winner_username as string | undefined) ?? 'The AI')
-  return { verdict: 'Tie', message: 'Tie', tone: 'neutral' }
+  if (statusOutcome === 'conceded') {
+    return { pillText: 'All conceded', infoColText: 'All conceded', outcome: 'lost' }
+  }
+  if (selfWon) return { pillText: 'You won', infoColText: 'You won!', outcome: 'won' }
+  if (winner) {
+    return { pillText: 'won', infoColText: `${winner.username} won`, outcome: 'lost', actor: winner }
+  }
+  return { pillText: 'Tie', infoColText: 'Tie', outcome: 'neutral' }
 }

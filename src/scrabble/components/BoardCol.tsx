@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useFlash } from '@/common/move-flash/useFlash'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
@@ -45,21 +45,6 @@ const PASS_CONFIRM: ConfirmOptions = {
 type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-/**
- * The player's own-move result, shown as a sticky pill in the commit slot. The
- * turn machine reports these UP via `showLocalFeedback`; PlayArea owns the channel
- * (it also folds the terminal verdict in), because InfoCol's End/Concede write to
- * it too.
- *
- * The shared message shape with its `mode` OPTIONAL. Hand-built own-move pills
- * omit it and get the wrapper's sticky default; a classified message
- * (`failureMessage`) carries its own — and a fault's `manual` mode must survive
- * the trip, or the one message meant to be read down a phone line is dismissed
- * by the next tile click (docs/envelopes.md → Appearance).
- */
-export type LocalFeedbackMsg = Omit<GenericFeedbackMsg, 'mode'> & {
-  mode?: GenericFeedbackMsg['mode']
-}
 
 /**
  * What read-only overlay is open on the board — the shared history viewer's id,
@@ -157,8 +142,8 @@ function nextRackOrder(
  * for the realtime-beats-RPC race, and their results mutate `optimistic`/`staged`,
  * which the version-reset effect reads). So, unlike the other games' BoardCol which
  * emit one action up, scrabble's owns its RPCs; PlayArea hands it the game data +
- * gameId + the feedback channel + the history-view inputs, and renders it beside the
- * InfoCol. See docs/playarea.md.
+ * gameId + the local feedback slot + the history-view inputs, and renders it beside
+ * the InfoCol. See docs/playarea.md.
  *
  * Two more deliberate divergences from the stackdown/waffle contract, for the same
  * reason (the raw play data already lives here):
@@ -198,9 +183,7 @@ export function BoardCol({
   myTurn,
   isTerminal,
   myConceded,
-  showLocalFeedback,
-  clearLocalFeedback,
-  localPill,
+  localFeedbackSlot,
   plays,
   viewTarget,
   viewing,
@@ -230,13 +213,12 @@ export function BoardCol({
   isTerminal: boolean
   myConceded: boolean
 
-  // ── Below-board feedback (channel owned by PlayArea — see LocalFeedbackMsg) ──
-  /** Report an own-move result (played / rejected / no-tile / …). */
-  showLocalFeedback: (m: LocalFeedbackMsg) => void
-  /** Clear the sticky own-move pill (a board/rack interaction or a keystroke dismisses it). */
-  clearLocalFeedback: () => void
-  /** The pill to render in the commit slot (terminal verdict or own-move result), or null. */
-  localPill: GenericFeedbackMsg | null
+  // ── Below-board feedback (the slot is PlayArea's) ──
+  /** PlayArea's below-board slot. The turn machine shows its results into it
+   *  (played / rejected / no-tile / …), Controls draws it in the commit slot,
+   *  and a board or rack interaction or a keystroke dismisses a gesture-
+   *  cleared result. */
+  localFeedbackSlot: FeedbackSlot
 
   // ── Board viewer (state owned by PlayArea; this renders the snapshot) ──
   plays: PlayRow[]
@@ -381,7 +363,7 @@ export function BoardCol({
       if (conflict) {
         setStaged([])
         // Terse on purpose — the commit slot is narrow.
-        showLocalFeedback({ tone: 'warning', text: 'Pre-play cleared: conflict' })
+        localFeedbackSlot.show(FeedbackMessage.result('warning', 'Pre-play cleared: conflict'))
       }
       pendingDrawRef.current = 0
       return
@@ -396,14 +378,14 @@ export function BoardCol({
       flashYellow(Array.from({ length: n }, (_, i) => rackLen - n + i))
     }
     pendingDrawRef.current = 0
-  }, [game.version, game.board, rackLen, isCompete, showLocalFeedback, flashYellow, onExitViewing])
+  }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitViewing])
 
   // Apply an accepted AI suggestion (docs/scrabble-ai.md S5): fill the staging
   // state with the suggested placements — the SAME state a hand-placed move
   // uses, so the player reviews the ghost tiles on the board and commits
   // through the normal play flow. The suggester is advisory: it never submits.
   // Each placement is re-resolved against the live rack (a blank consumes a
-  // '?'), and the whole apply bails with the terse pill if the board or rack
+  // '?'), and the whole apply bails with a terse result if the board or rack
   // changed under it (a teammate played while the list was open — PlayArea
   // derives staleness off game.version, but the click can race it). Runs in
   // the InfoCol list's click handler — PlayArea holds it via the register
@@ -419,16 +401,16 @@ export function BoardCol({
         const want = p.blank ? BLANK : p.letter
         const rackIdx = actingRackRef.current.findIndex((g, i) => !used.has(i) && g === want)
         if (!free || rackIdx < 0) {
-          showLocalFeedback({ tone: 'warning', text: 'Board changed' })
+          localFeedbackSlot.show(FeedbackMessage.result('warning', 'Board changed'))
           return
         }
         used.add(rackIdx)
         next.push({ x: p.x, y: p.y, letter: p.letter, blank: p.blank, rackIdx })
       }
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       setStaged(next) // replaces any hand-staged tiles — the player asked for this move
     },
-    [onExitViewing, showLocalFeedback, clearLocalFeedback],
+    [onExitViewing, localFeedbackSlot],
   )
   useEffect(() => {
     registerSuggestionApplier(applySuggestedMove)
@@ -531,22 +513,22 @@ export function BoardCol({
         return
       }
       if (!canPlaceRef.current) return
-      clearLocalFeedback() // a board interaction dismisses the sticky own-move pill
+      localFeedbackSlot.dismiss() // a board interaction is the next move
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
     // onExitViewing + viewTargetRef are stable (from useHistoryViewer), so listing
     // them keeps this handler's single-registration without churn.
-    [stagedAt, start, clearLocalFeedback, onExitViewing, viewTargetRef],
+    [stagedAt, start, localFeedbackSlot, onExitViewing, viewTargetRef],
   )
 
   const onRackPointerDown = useCallback(
     (rackIdx: number, glyph: string, e: React.PointerEvent) => {
       if (!canPlaceRef.current) return
-      clearLocalFeedback() // a rack interaction dismisses the sticky own-move pill
+      localFeedbackSlot.dismiss() // a rack interaction is the next move
       start({ kind: 'rack', rackIdx }, glyph, null, e)
     },
-    [start, clearLocalFeedback],
+    [start, localFeedbackSlot],
   )
 
   const pickBlank = useCallback(
@@ -596,14 +578,14 @@ export function BoardCol({
         blank = true
       }
       if (rackIdx < 0) {
-        showLocalFeedback({ tone: 'noted', text: `No “${letter}” tile` })
+        localFeedbackSlot.show(FeedbackMessage.result('noted', `No “${letter}” tile`))
         return
       }
       setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
       const nxt = nextEmpty(tx, ty, cursor.dir)
       setCursor(nxt ? { x: nxt.x, y: nxt.y, dir: cursor.dir } : { x: tx, y: ty, dir: cursor.dir })
     },
-    [cursor, staged, actingRack, committedAt, nextEmpty, showLocalFeedback],
+    [cursor, staged, actingRack, committedAt, nextEmpty, localFeedbackSlot],
   )
 
   const backspace = useCallback(() => {
@@ -619,11 +601,11 @@ export function BoardCol({
     const placements: Placement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
     const ev = evaluatePlay(board, placements)
     // Submit is allowed for any placed tiles (it doesn't gate on legal geometry).
-    // An illegal shape never reaches the server; surface the reason as an own-move
-    // error pill in the commit slot and stop here. (`ev.error` is evaluatePlay's
-    // own FE-authored sentence — gameplay validation copy, not server text.)
+    // An illegal shape never reaches the server; surface the reason as an
+    // own-move result in the commit slot and stop here. (`ev.error` is
+    // evaluatePlay's own FE-authored sentence, not server text.)
     if (!ev.valid) {
-      showLocalFeedback({ tone: 'lost', text: ev.error })
+      localFeedbackSlot.show(FeedbackMessage.result('lost', ev.error))
       return
     }
     setSubmitting(true)
@@ -651,7 +633,7 @@ export function BoardCol({
     if (res.type === 'not-ok') {
       lastActionRef.current = prevAction // the move didn't land — un-claim it
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'accepted') {
       // Hold the played tiles on the board (as committed) until the realtime
@@ -663,7 +645,9 @@ export function BoardCol({
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
-      showLocalFeedback({ tone: 'won', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
+      localFeedbackSlot.show(
+        FeedbackMessage.result('won', `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}`),
+      )
       return
     } else if (res.type === 'ok' && res.data.result === 'invalid') {
       // The dictionary refused it — the one validation this client cannot do,
@@ -672,7 +656,9 @@ export function BoardCol({
       lastActionRef.current = prevAction
       pendingDrawRef.current = prevDraw
       const badWords = res.data.bad_words ?? []
-      showLocalFeedback({ tone: 'lost', text: `No: ${badWords.join(', ').toUpperCase()}` })
+      localFeedbackSlot.show(
+        FeedbackMessage.result('lost', `No: ${badWords.join(', ').toUpperCase()}`),
+      )
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
       const bad = new Set(badWords.map((w) => w.toUpperCase()))
@@ -689,7 +675,7 @@ export function BoardCol({
       reportUnhandled('play_word', res)
       return
     }
-  }, [game.version, board, staged, actingRack, gameId, showLocalFeedback, flashGreen, flashRed])
+  }, [game.version, board, staged, actingRack, gameId, localFeedbackSlot, flashGreen, flashRed])
 
   const exchange = useCallback(async () => {
     const tiles = [...selected].map((i) => actingRack[i])
@@ -706,12 +692,12 @@ export function BoardCol({
     if (res.type === 'not-ok') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'exchanged') {
       setSelected(new Set())
       pendingDrawRef.current = res.data.drawn?.length ?? tiles.length
-      showLocalFeedback({ tone: 'won', text: `Swapped ${tiles.length}` })
+      localFeedbackSlot.show(FeedbackMessage.result('won', `Swapped ${tiles.length}`))
       return
     } else {
       lastActionRef.current = prevAction
@@ -719,7 +705,7 @@ export function BoardCol({
       reportUnhandled('exchange_tiles', res)
       return
     }
-  }, [game.version, selected, actingRack, gameId, showLocalFeedback])
+  }, [game.version, selected, actingRack, gameId, localFeedbackSlot])
 
   const pass = useCallback(async () => {
     // Confirm — passing forfeits the turn AND feeds the blocked-end streak (once
@@ -733,7 +719,7 @@ export function BoardCol({
       db.rpc('pass_turn', { target_game: gameId, base_version: game.version }),
     )
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'passed') {
       // Nothing to say: the turn hands on, and the seat strip redraws from the
@@ -743,7 +729,7 @@ export function BoardCol({
       reportUnhandled('pass_turn', res)
       return
     }
-  }, [game.version, gameId, showLocalFeedback])
+  }, [game.version, gameId, localFeedbackSlot])
 
   // Show-a-move (coop): broadcast my staged tiles to teammates for a read-only
   // preview. Snapshot semantics — one send per click; re-click to re-show an
@@ -763,10 +749,10 @@ export function BoardCol({
     })
   }, [staged, board, shareMove, selfId, game.version])
 
-  // Any key dismisses the sticky own-move pill (a no-op at terminal). A
-  // NON-consuming watcher, so the same press still stages its tile — which is
-  // why this is the shared hook rather than a branch inside the board's keys.
-  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // Any key dismisses a gesture-cleared result. A NON-consuming watcher, so the
+  // same press still stages its tile — which is why this is the shared hook
+  // rather than a branch inside the board's keys.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // Board-cursor keyboard — the shared 2-D placement engine (bananagrams' twin),
   // four bound actions. scrabble supplies its 5%: type stages a tile, Backspace
@@ -957,9 +943,7 @@ export function BoardCol({
                 actSharePreview={actSharePreview}
                 actExchange={actExchange}
                 actPass={actPass}
-
-                onDismissPill={clearLocalFeedback}
-                pill={localPill}
+                localFeedbackSlot={localFeedbackSlot}
               />
             </div>
           ) : (

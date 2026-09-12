@@ -2,7 +2,7 @@
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type Member, type GamePlayer } from '@/common/members/member'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
@@ -19,8 +19,8 @@ import { StateLine } from './StateLine'
 import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
-/** The AI suggest-a-move box's state (owned by PlayArea, rendered here —
- *  the LocalFeedbackMsg convention). `idle` renders NOTHING — the box claims
+/** The AI suggest-a-move box's state (owned by PlayArea, rendered here).
+ *  `idle` renders NOTHING — the box claims
  *  no space until there's something to show (a deliberate exception to the
  *  pre-claim-space rule; see the render site). `ready` remembers the board
  *  `version` the moves were computed against, so PlayArea can derive
@@ -81,8 +81,8 @@ export function InfoCol({
   isCompete: boolean
   /** Whose turn it is is mine (compete); always true in coop. */
   myTurn: boolean
-  /** Terminal copy when the game is over (drives the action row + modal), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** I conceded (compete) — drives the "You conceded" terminal look. */
   myConceded: boolean
   isTerminal: boolean

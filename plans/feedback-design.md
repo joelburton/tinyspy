@@ -220,7 +220,23 @@ click are `dismiss`. The old "derived, not pushed — a pushed verdict would
 break Restart" reasoning is retired: the verdict's owner effect retracts it
 when `isTerminal` flips (§4.4 row 10).
 
-**crosswords COMMITTED**, its two e2e specs green.
+**crosswords COMMITTED** (`7d1e13f4`), its two e2e specs green.
+
+**scrabble CONVERTED (2026-09-12).** Three
+condition effects: the verdict, out of the race, whose turn (coop turn
+order). The turn machine's own results — "CAT +10", "Swapped 3", "No: CATT",
+the illegal-shape sentence, "No “Q” tile", "Pre-play cleared: conflict",
+"Board changed" from a stale suggestion — are `result`s; every not-ok
+(play, swap, pass, New Game, End / Concede) is `notOk`, so a race's "Board
+changed" now waits for its ×. `LocalFeedbackMsg` and its sticky-default
+wrapper are gone (§11 table). The compete peer move draws the actor the
+standard way (§4.4 row 8): `peer(actor, outcome, 'played CAT (+10)')`, the
+name no longer baked into the text; an AI seat's synthetic member is the
+actor. `buildOver` → `TerminalMessage` on primitives with the named winner
+as `actor`. Controls draws `<FeedbackPill>` in the commit slot on the
+slot's top.
+
+**scrabble COMMITTED**, its six e2e specs green.
 
 **Next:** the other games, one by one.
 
