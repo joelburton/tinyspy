@@ -11,7 +11,7 @@ import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
-import { FailureLine } from '../feedback/FailureLine'
+import { FailureLine } from '../forms/FailureLine'
 import { SimpleScrollableList } from '../lists/SimpleScrollableList'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 

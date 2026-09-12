@@ -12,8 +12,9 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which three are WORKED:
-F-2 and F-12 (the rank work, `07996523`) and F-13 (`peerMilestone`).
+came out of settling the first of them — thirteen, of which four are WORKED:
+F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`)
+and F-1 (`FailureLine` moved to `forms/`).
 
 ## The roster
 
@@ -24,8 +25,10 @@ the area still owns of the original roster is six files:
 - `src/common/feedback/` — ~~`genericFeedback.ts`, `genericPills.ts` (+
   test), `localPills.ts` (+ test), `useLocalFeedback.ts` (+ test),
   `GenericFeedbackPill.tsx` (+ test + stylesheet)~~ — deleted;
-  `usePeerFeedback.ts` (+ test), `useDismissLocalFeedbackOnKey.ts` (+ test),
-  `FailureLine.tsx` (+ stylesheet; not feedback, decided on contact) — kept.
+  `usePeerFeedback.ts` (+ test), `useDismissLocalFeedbackOnKey.ts` (+ test) —
+  kept; `FailureLine.tsx` (+ stylesheet) — MOVED to `common/forms/` by F-1,
+  and audited on the way out, so it keeps its `cs-audited-feedback` stamp in
+  its new folder.
 - ~~`src/common/terminal/terminalCopy.ts` and
   `src/common/info-sheet/turnCopy.tsx`~~ — deleted; their successors are on
   the created list below.
@@ -63,7 +66,7 @@ means OPEN)*
 
 ### The area's question
 
-## F-feedback-1 · `failure-line-home` · `FailureLine` lives in `feedback/` and its own docstring says it is not feedback
+## F-feedback-1 · `failure-line-home` · `FailureLine` lives in `feedback/` and its own docstring says it is not feedback — WORKED
 
 The plan row asked for this to be settled at the opening, and the opening
 deferred it ("not feedback, decided on contact") to the build. Now the build
@@ -88,6 +91,28 @@ Options:
    feedback message; here because a surface's failure line is the third
    thing a player reads after the pill and the modal". Costs nothing; leaves
    a reader who opens the folder for the pill finding a form component.
+
+**DECIDED 2026-09-12 — moved, but to `forms/`, not `fields/`.** Re-reading the
+call sites before presenting the options turned up two things this finding had
+wrong, and both point away from `fields/`:
+
+- **Every use is the same one line.** All nine importers render exactly
+  `<FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>` — the club modals,
+  both auth screens, the profile modal, the setup dialog, the anagram dialog
+  and the two definitions dialogs. It is not a general "something went wrong"
+  line with varied uses; it is the renderer for a form's form-wide error.
+- **Nothing in `fields/` imports it.** `Field.tsx` and `errorUnder.ts` were
+  listed above as importers; they only MENTION it in comments, describing the
+  split. So "beside `<Field>`" had no call-site argument behind it.
+
+The two folders' own ledes then decide it. `fields/` is "a component for each
+kind of control", and a failure line is not a control; `forms/` is "the frame
+a form is built on … and `FormErrors`, the one shape every form's messages
+take … what every form needs that is not a field". `forms/doc.md` already
+documented the file and flagged its address as an aside — "drawn by
+`<FailureLine>` (`common/feedback`)" — which is the parenthetical the move
+retires. Its lede now names the file, and `feedback/`'s Design can describe
+the folder without an exception in it.
 
 ### Behavior
 

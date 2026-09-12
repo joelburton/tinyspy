@@ -2,7 +2,7 @@
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
-import { FailureLine } from '../feedback/FailureLine'
+import { FailureLine } from '../forms/FailureLine'
 import { useRef, useState } from 'react'
 import { useTabRing } from '../keyboard/useTabRing'
 import { db as commonDb } from '../supabase/db'

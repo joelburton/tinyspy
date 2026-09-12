@@ -1,9 +1,10 @@
 # forms
 
 The frame a form is built on: `StandardForm`, which holds the values a player
-is typing and hands them to the fields, and `FormErrors`, the one shape every
-form's messages take. The fields themselves are `fields/`; this folder is what
-every form needs that is not a field.
+is typing and hands them to the fields, `FormErrors`, the one shape every
+form's messages take, and `FailureLine`, which draws the form-wide one. The
+fields themselves are `fields/`; this folder is what every form needs that is
+not a field.
 
 ## Design
 
@@ -57,7 +58,7 @@ shape rather than inventing one.
 ## Details
 
 - **The form-wide key** is `FORM_ERROR_KEYNAME`, the string `_`. The message
-  filed there is drawn by `<FailureLine>` (`common/feedback`), which stamps
+  filed there is drawn by `<FailureLine>`, which stamps
   itself with that key so a test can read it the way it reads a field's.
 - **The gap between fields** is one step, `--spacer-3`, the same one
   `<SetupSection>` puts between its fields. The gap around the whole form is

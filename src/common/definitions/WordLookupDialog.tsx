@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
-import { FailureLine } from '../feedback/FailureLine'
+import { FailureLine } from '../forms/FailureLine'
 import { DefinitionView } from './DefinitionView'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './WordLookupDialog.module.css'

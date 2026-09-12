@@ -2,7 +2,7 @@
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
-import { FailureLine } from '../feedback/FailureLine'
+import { FailureLine } from '../forms/FailureLine'
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { readRows, runRpc } from '../supabase/dbResult'
