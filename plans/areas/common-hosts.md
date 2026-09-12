@@ -289,10 +289,21 @@ dismissed by ✕ is marked dismissed, one joined is not — and nothing pins it.
 line-height `1.35`, border `4px` (the tone stripe); `ToastHost.module.css` —
 spacer `0.6rem`; `FaultModal.module.css` — spacer `0.5rem`, type `1.1rem` and
 `0.78rem`; `TooltipHost.module.css` — type `0.75rem`, line-height `1.2`.
-Padding is parked and not on them. Also in view: `ToastHost`'s corner inset is
-a hand-written `1rem` (`right`, `bottom`, and the `2rem` inside the width cap)
-beside `--page-padding-x`, which is `1rem` on desktop and `0.25rem` on a
-phone — the same distance or a different decision. And the bubble's
+Padding is parked and not on them.
+
+**The corner inset is DECIDED 2026-09-11 (Joel) and WORKED: the horizontal
+follows the page gutter, the vertical does not.** `right` and the width cap
+read `--page-padding-x`, so a toast lines up with the content behind it and
+widens to near-full width on a phone, where the gutter drops to `0.25rem` and
+the card used to sit a visible `0.75rem` narrower on each side than everything
+under it. `bottom` and `max-height` keep their hand-written `1rem`: that edge
+is where a thumb rests and where a phone draws its home indicator, so a
+floating card wants more room there than a page margin gives. Desktop is
+pixel-identical to before. The alternatives were keeping the hand-written
+number on both axes, and taking `--page-padding-y` on the vertical too (which
+would have tightened the desktop bottom gap to 8px for no gain).
+
+Still open in this finding: the spacer/type rows above, and the bubble's
 `animation: tooltipIn 120ms` — animations are out of the guard's scope by its
 own note. The a/b/c question per value, with the file open.
 

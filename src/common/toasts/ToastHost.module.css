@@ -8,16 +8,21 @@
  * of toasts scrolls WITHIN the stack instead of extending the document — the
  * "page never scrolls" invariant holds (see docs/ui.md). `pointer-events: none`
  * on the host lets clicks through the empty gaps around the cards; each card
- * re-enables them. */
+ * re-enables them.
+ *
+ * The right inset and the width cap read the page gutter, so a card lines up
+ * with the content behind it and widens with the page on a phone. The bottom
+ * keeps a full 1rem instead of following the gutter down: that edge is where a
+ * thumb rests and where a phone draws its home indicator. */
 /* @@ */ .host {
   position: fixed;
-  right: 1rem;
+  right: var(--page-padding-x);
   bottom: 1rem;
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: min(24rem, calc(100vw - 2rem));
+  width: min(24rem, calc(100vw - 2 * var(--page-padding-x)));
   max-height: calc(100svh - 2rem);
   overflow-y: auto;
   pointer-events: none;
