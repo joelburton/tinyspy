@@ -4,15 +4,19 @@ The folders it reads: `menu`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-11.** Roster agreed (Joel: "audit the area") and
-stamped `cs-audited-menu`. Findings recorded from one read of all eleven
-files. The prose findings were worked first, on Joel's ask ("make the
-lede/doc.md and fix docstrings and missing docstrings — this will help me
-understand this section"): F-6, F-7, F-8, F-10 and F-11 are WORKED, F-9 in
-this folder's files; the behavior, shape and stylesheet findings wait. The three behavior findings (F-1, F-2 and the
-masked half of F-2) were CHECKED with a throwaway spec before being written
-down, since last area's reading was wrong in the direction of "nothing is
-wrong here" three times; the spec was deleted after the run.
+**Status: CLOSED 2026-09-11, blessed.** Roster agreed (Joel: "audit the
+area") and stamped `cs-audited-menu`; the nine code files are
+`cs-blessed-menu` on Joel's word the same day (`doc.md` and `todo.md` take no
+stamp). Fourteen findings from one
+read of all eleven files, every one worked or closed; the closing re-read
+found eight more, all worked the same sitting. `doc.md` is harvested and
+`todo.md` holds the one thing owed. The
+prose findings were worked first, on Joel's ask ("make the lede/doc.md and fix
+docstrings and missing docstrings — this will help me understand this
+section"). The three behavior findings (F-1, F-2 and the masked half of F-2)
+were CHECKED with a throwaway spec before being written down, since last
+area's reading was wrong in the direction of "nothing is wrong here" three
+times; the spec was deleted after the run.
 
 ## The roster
 
@@ -26,7 +30,7 @@ All in `src/common/menu/`:
 | `gameMenuStore.ts` + `.test.ts` | the sections a game has pushed |
 | `pageMenuStore.ts` | how to open the page's menu, for the `?` key |
 | `doc.md` | lede + Design, present (not on `DESIGNS_OWED`) |
-| `todo.md` | empty |
+| `todo.md` | one Maybe: a disabled row cannot say why |
 
 Left off: the three things that render or fill it — `PageHeaderMenu`, which
 is the only thing that mounts `<Menu>`; `GameHeaderMenu`, the one subscriber
@@ -149,8 +153,10 @@ like the other handlers here, and the handle's dep list went with it — the
 comment there now says why no memo is possible AND why none is wanted:
 nothing reads the handle's identity, because `PageHeaderMenu` registers a
 closure over its ref ONCE and `pageMenuStore` is a slot rather than a
-subscription. The other memo in the file (`openSubmenu`, on `[isMobile]`) is
-genuinely stable and was left alone.
+subscription. The file's other memos — `openSubmenu` on `[isMobile]`,
+`closeMenu` on `[returnFocusOnClose]`, `closeSubmenu` and `dismiss` on
+nothing — are genuinely stable and were left alone. (The re-read corrected
+this sentence: it had said "the other memo", and there are four.)
 
 **An absence found while there, and closed: the imperative handle had NO
 spec.** It is the `?` key's whole path into the menu — nothing else opens one
@@ -437,6 +443,106 @@ viewBox". The old glyph is gone, so the number has no live referent. Either it
 matches a mark on screen today, and the comment names that, or it is a tuned
 number and says so.
 
+## The closing re-read
+
+The whole area in one sitting, 2026-09-11, after F-2 (the last group): every
+file on the roster, the two docs the folder answers to (docs/ui.md → GamePage
+menu, docs/keyboard-shortcuts.md → Menus, dialogs, and panels), and every
+cross-file claim a docstring makes, checked against the file it names —
+`useStandardGameActions`, the `<` on Back to club, where `act-open-menu` and
+`act-open-chat` are bound, the store's one reader, the unmount that clears it,
+the paused page. Eight things, all WORKED the same sitting (the eighth on
+Joel's pick). Three of them were written by this area, and one is a claim
+three files made that the render tree disproves — the case the re-read exists
+for.
+
+## F-menu-15 · `menu-unmounts-on-pause` · Three files say the game menu unmounts while paused, and it does not — WORKED
+
+`pageMenuStore.ts` ("GamePage's menu unmounts while the game is paused, so
+`?` during a pause finds nothing registered"), `PageHeaderMenu.tsx` ("a page
+that drops its menu (GamePage does, while paused)") and `doc.md` ("the game
+page while paused — makes `?` a no-op"). Checked: `<GameHeaderMenu>` renders
+inside `<PageHeader>`, ABOVE `<PauseBoundary>` in GamePage's tree, and the
+pause gate is a render gate over what sits under it. The menu stays mounted
+through a pause, `?` opens it, and it holds only the account row — the game's
+sections are cleared by the PlayArea's effect cleanup when IT unmounts.
+docs/ui.md → Pause behavior had it right and now also says what the paused
+menu holds. The no-op case is real and is a page with no header at all: the
+sign-in gate, a loading screen, the moment between one page's release and the
+next's claim — which is what the three sites say now. `PageHeaderMenu.tsx` is
+`page-header`'s and `cs-unmet`; a comment-only conformance edit.
+
+## F-menu-16 · `tab-advances-focus` · Three sites say Tab "advances focus", and the key is consumed — WORKED
+
+docs/ui.md → Keyboard ("Tab while the menu is open closes it and advances
+focus normally"), the spec's name ("closes on Tab so focus advances to the
+next page element") and the render helper's comment ("so we can test
+Tab-closes-and-advances-focus"). The code `preventDefault`s the Tab and
+`dismiss`es; keyboard-shortcuts.md says consumed; the spec asserted only that
+the menu was gone. All three say consumed now, and the spec pins it — after
+two wrong aims. Focus cannot tell the two apart in jsdom: the focused row
+unmounts under the press, so focus falls to `<body>` whether or not the key
+was claimed, and an assertion on "the next control is not focused" was green
+against a planted `preventDefault`-less branch, and so was one on `<body>`.
+What tells them apart is the EVENT: a capture-phase listener on `document`
+sees it before the popover does and reads `defaultPrevented` afterwards.
+Planted: red without the `preventDefault`, green with it.
+
+## F-menu-17 · `dot-size-two-places` · `.item`'s `--dot-size` comment cites the branch F-12 deleted — WORKED
+
+"Set on the ROW rather than on the disc's own class because a disc renders in
+two places (inside the leading slot when the menu has icons, inline when it
+has none) and only one of those carries that class." The inline branch and
+`.itemDot` went with the slot being reserved on every row, in this area, the
+same day. The reason the variable is on the row is simpler now — the disc is
+drawn in the slot with no class of its own — and that is what it says. Written
+by this area.
+
+## F-menu-18 · `design-restated-in-docstrings` · `NavRow` and `MenuSubmenu` restate two doc.md paragraphs — WORKED
+
+F-10 shrank the stores' and the icon note's docstrings to a sentence and a
+pointer, and left these two: `NavRow`'s second paragraph is doc.md's
+Back-as-a-row sentence, and `MenuSubmenu`'s second and third are doc.md's
+one-level cap and "earns it by not being one". Both are a sentence and a
+pointer now; what stayed is what a CALLER needs — that Back is a nav row, that
+a submenu's items are actions and not submenus, why the type carries its own
+words and glyph.
+
+## F-menu-19 · `chip-archaeology` · `MenuSubmenu.dot` justified by the chip it replaced — WORKED
+
+"the fixed top-right chip it replaced WAS the dot, so without one the menu
+drops the only place you see your own color" — the chip is gone and the
+"only place" is not true of a page whose players strip shows every disc. The
+live reason is that the account row shows who you are the way every surface
+does, name beside disc; the mechanism half (a color NAME so `label` stays a
+string) stays.
+
+## F-menu-20 · `covered-list-regrew` · The test header's census came back as a list of block names — WORKED
+
+F-8 struck "What's covered" because the list had rotted and "the describe
+blocks are the list"; the fix wrote the block names out in a sentence instead.
+The list matched today and would rot the same way. The header now says each
+block pins one piece of the contract and the block names are the list.
+Written by this area.
+
+## F-menu-21 · `shell-no-longer-injects` · docs/ui.md → GamePage menu narrates the old model — WORKED
+
+"The shell no longer injects a fixed common section … which the old 'one
+common section + one game slot' model couldn't express." A doc describes now;
+it says the shell injects nothing and why only the game knows the shape.
+
+## F-menu-22 · `hint-in-the-owning-section` · The menu's owning doc section says "key hint" twice and "Shortcut hints" once — WORKED
+
+docs/ui.md → GamePage menu is the section this folder answers to, and it
+used the word Joel ruled has one meaning here (priced help) for the key label
+at a row's right edge — the same use this area fixed six of in the folder.
+
+**WORKED 2026-09-11** (Joel: fix the three now, as this area's owning doc).
+"key hint" is "shortcut" twice, and the bold lede "Shortcut hints" is "The
+shortcut at a row's right edge". The folder and its doc agree; the repo-wide
+question — a sweep plus a guard, or a rule that binds only new writing — is
+still his, and untouched everywhere else.
+
 ## Notes
 
 - **`buildGameMenu` takes `MenuApi` whole** (Joel, 2026-09-11), not a `Pick`
@@ -468,10 +574,21 @@ number and says so.
   help identifiers still matches hundreds of lines across the games and the
   docs, and no guard holds the word. Deciding whether that is a sweep plus a
   guard, or a rule that only applies going forward, is Joel's.
-- **`todo.md` is empty** and the icons area's handoff — "a menu row picks its
-  glyph by hand, so every game names the same action's glyph twice" — is not
-  in it. That handoff is DONE: `menuRow` takes `icon ?? item.spec.icon` from
-  the registry, and no game passes a glyph to a row.
+- **`todo.md` was empty at the opening** and the icons area's handoff — "a menu
+  row picks its glyph by hand, so every game names the same action's glyph
+  twice" — was not in it. That handoff is DONE: `menuRow` takes
+  `icon ?? item.spec.icon` from the registry, and no game passes a glyph to a
+  row. It holds one Maybe now, from F-12: a disabled row cannot say why.
+- **F-9's question is answered, and the reason holds in today's terms.** "Is
+  the trigger still the thing that would swallow a board key?" — yes:
+  `onTriggerKeyDown` stops propagation while the trigger has focus, and the
+  dispatcher listens on `window`, so a focused trigger keeps every key from it
+  and Enter reopens the menu. docs/ui.md → Focus already says it that way.
+- **The re-read looked at two things and left them.** The `popoverId` and
+  `.item:focus-visible` comments argue in screen-reader and forced-colors
+  terms; they are the existing ARIA rationale the Notes above keep. And
+  docs/ui.md → Z-index quotes `--z-menu`'s number; a doc may state a value
+  that base.css owns, and it is right today.
 
 ## Predicted test breaks
 
@@ -486,10 +603,17 @@ number and says so.
 - F-menu-12: CSS modules are proxies under vitest, so nothing runs
   differently; the guard's `pending` rows must shrink as each value converts,
   or the guard fails on the stale row.
+- F-menu-16: one spec rewritten, not added — the Tab spec pins the consumed
+  key instead of the menu merely closing. Planted both ways.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design harvested (the hybrid, the gutter)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-11,
+      F-15 through F-22, all worked)
+- [x] the folder's `doc.md` Design harvested — the hybrid and the gutter were
+      already there from the rewrite; the re-read added the marks (sized by
+      the label, one ink, the two exceptions) and corrected the paused page
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not (Joel,
+      2026-09-11: "bless the files here and close and commit" — the nine code
+      files; the stamp tool takes no markdown)

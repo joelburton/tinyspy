@@ -1231,7 +1231,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
 
-**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `<`) and `ctx.menu.actChat`, which is bound at the app root.
+**Each game owns its WHOLE menu.** The shell injects nothing — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, and only the game knows that shape. The `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `<`) and `ctx.menu.actChat`, which is bound at the app root.
 
 ```
 [logo ▼]   ← click
@@ -1249,9 +1249,9 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 
 **The `buildGameMenu` helper** ([common/menu/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with the game's **exits** + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the row is where `/` is written down. Most games call it in one line with `extra: [{ items: [actPrintBoard] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
-**A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its key hint and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
+**A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its shortcut and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
 
-**Shortcut hints** are the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **`<`** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
+**The shortcut at a row's right edge** is the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **`<`** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
 **⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. Its chord is the registry's `altShift('Equal', '⌥+')` — matched on `code`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
 
@@ -1268,7 +1268,7 @@ menu: {
 }
 ```
 
-**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is a bound action, or a submenu (`MenuSubmenu`: its own `label` and `icon`, and `items`, a list of bound actions, one level deep). There is no hand-written row shape: a row's words, glyph, key hint and availability are read off the action by `menuRow()` when the menu draws, and a row the action calls hidden is dropped before anything counts rows. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
+**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is a bound action, or a submenu (`MenuSubmenu`: its own `label` and `icon`, and `items`, a list of bound actions, one level deep). There is no hand-written row shape: a row's words, glyph, shortcut and availability are read off the action by `menuRow()` when the menu draws, and a row the action calls hidden is dropped before anything counts rows. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
 
 **When rows are read.** The menu asks each action `describe()` as it draws its rows, which is when it opens, and not in between: nothing the player does can reach past an open menu (activating a row closes it first, and the popover keeps its keys to itself), so the only staleness reachable is a change arriving from another player while the menu sits open. Closing and reopening is the fix, and clicking a stale row is safe regardless — the run reads the live binding.
 
@@ -1278,9 +1278,9 @@ menu: {
 
 **Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100svh - 5rem)` and scrolls internally.
 
-**Pause behavior.** The menu is openable while paused. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu is empty until resume.
+**Pause behavior.** The menu stays mounted and openable while paused — the header sits outside the pause boundary, so `?` still reaches it. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu holds only the account row until resume.
 
-**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
+**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and is consumed — focus does not advance; the next press is the page's ring's ([keyboard-shortcuts.md → Menus, dialogs, and panels](keyboard-shortcuts.md#menus-dialogs-and-panels)). Disabled items are skipped by arrow navigation.
 
 **Submenus** are a two-shape hybrid, one level deep. A row that is a [`MenuSubmenu`](../src/common/menu/menuModel.ts) rather than an action opens:
 

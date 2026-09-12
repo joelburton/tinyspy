@@ -1,12 +1,10 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 /**
  * Tests for the shared Menu component — every page's header menu. The
  * keyboard contract (docs/keyboard-shortcuts.md → Menus, dialogs, and panels)
  * is intricate enough that manual smoke-testing leaves blind spots, so each
- * describe block below pins one piece of it: open and close, focus and arrow
- * navigation, activation, key isolation, focus on close, sections and
- * dividers, the two submenu presentations, and the icon gutter.
+ * describe block below pins one piece of it; the block names are the list.
  *
  * Out of scope: how anything looks (CSS only), and where the menu stacks.
  */
@@ -36,8 +34,8 @@ function renderMenu(
         triggerLabel={opts.triggerLabel ?? 'Test menu'}
         returnFocusOnClose={opts.returnFocusOnClose}
       />
-      {/* A focusable element after the menu so we can test
-       *  Tab-closes-and-advances-focus. */}
+      {/* A focusable element after the menu: the target of an outside click,
+       *  and the place a Tab would land if the menu did NOT consume it. */}
       <button type="button">after</button>
     </>,
   )
@@ -156,12 +154,28 @@ describe('Menu — open/close', () => {
     expect(trigger).toHaveFocus()
   })
 
-  it('closes on Tab so focus advances to the next page element', async () => {
+  it('closes on Tab, and the press is consumed', async () => {
     const user = userEvent.setup()
-    renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
-    await user.click(screen.getByRole('button', { name: 'Test menu' }))
-    await user.keyboard('{Tab}')
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    // Where the press lands is not observable here — the focused row unmounts
+    // under it, so jsdom moves focus nowhere either way. What IS observable is
+    // the event itself: a capture-phase listener sees it before the popover
+    // does, and reads afterwards whether the popover claimed it.
+    const seen: KeyboardEvent[] = []
+    const capture = (e: KeyboardEvent) => { seen.push(e) }
+    document.addEventListener('keydown', capture, true)
+    try {
+      renderMenu(singleSection([{ id: 'act-help', label: 'Alpha' }]))
+      await user.click(screen.getByRole('button', { name: 'Test menu' }))
+      await user.keyboard('{Tab}')
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+      // Consumed: the page's tab ring never hears this press, and a native Tab
+      // does not walk on. The NEXT press is the ring's
+      // (docs/keyboard-shortcuts.md → Menus, dialogs, and panels).
+      const tab = seen.find((e) => e.key === 'Tab')
+      expect(tab?.defaultPrevented).toBe(true)
+    } finally {
+      document.removeEventListener('keydown', capture, true)
+    }
   })
 
   it('closes when the user mousedowns outside the popover', async () => {

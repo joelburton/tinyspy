@@ -1,4 +1,4 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 /**
  * The store's whole job is that a PUSH reaches the menu, and that is exactly

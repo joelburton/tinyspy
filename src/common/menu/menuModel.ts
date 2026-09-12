@@ -1,4 +1,4 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 import type { AppIcon } from '../icons/icons'
 import type { BoundAction } from '../actions/useBoundAction'
@@ -23,17 +23,14 @@ import type { BoundAction } from '../actions/useBoundAction'
 
 /**
  * A row that OPENS A SUBMENU instead of acting — crosswords' Check and Reveal
- * by scope, and the account row.
+ * by scope, and the account row. One level deep only: its items are actions,
+ * not further submenus (doc.md → Design says why the cap).
  *
- * One level deep only: a submenu's items are actions, not further submenus.
- * That cap is deliberate — the flyout half of the desktop presentation would
- * need cascade positioning to go deeper, and no menu in the app wants it.
- *
- * The only kind of row that is not itself an action, and it earns that by not
- * BEING one: opening is the whole behavior, so there is nothing to run and no
- * key to advertise. Its own words and glyph are written here because a family
- * name ("Check", "Reveal") belongs to the grouping rather than to any command
- * in it — and the account row's, because what it shows is who you are.
+ * The only kind of row that is not itself an action: opening is the whole
+ * behavior, so there is nothing to run and no key to advertise. Its own words
+ * and glyph are written here because a family name ("Check", "Reveal") belongs
+ * to the grouping rather than to any command in it — and the account row's,
+ * because what it shows is who you are.
  */
 export type MenuSubmenu = {
   // Stable id for React keying, and the name the menu holds an open submenu by.
@@ -47,11 +44,11 @@ export type MenuSubmenu = {
   // label — the app-wide "this color is this player" marker (docs/ui.md →
   // "Player identity = a colored disc").
   //
-  // Exists for the account row, which is labeled with your username: the fixed
-  // top-right chip it replaced WAS the dot, so without one the menu drops the
-  // only place you see your own color. A color name rather than a ReactNode
-  // label, so `label` stays a plain string — the drill-down's "‹ {label}" row
-  // and the button's accessible name both depend on that.
+  // Exists for the account row, which is labeled with your username and shows
+  // who you are the way every other surface does: name beside disc. A color
+  // name rather than a ReactNode label, so `label` stays a plain string — the
+  // drill-down's "‹ {label}" row and the button's accessible name both depend
+  // on that.
   dot?: string
   // The family's glyph, drawn before the label. The menu is the icon language's
   // legend (doc.md → Design), so take it from `common/icons/icons.ts`, never

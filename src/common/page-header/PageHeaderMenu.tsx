@@ -42,8 +42,8 @@ export function PageHeaderMenu({ logo, sections, label, returnFocusOnClose }: Pr
   const ref = useRef<MenuHandle>(null)
 
   // Claim the `?` slot for as long as this menu is mounted. The release runs on
-  // unmount, so a page that drops its menu (GamePage does, while paused) leaves
-  // the shortcut with nothing to open rather than a stale handle.
+  // unmount, so a page on its way out leaves the shortcut with nothing to open
+  // rather than a stale handle.
   useEffect(() => registerPageMenu(() => ref.current?.open()), [])
 
   return (

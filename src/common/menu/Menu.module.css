@@ -1,4 +1,4 @@
-/* cs-audited-menu */
+/* cs-blessed-menu */
 
 /* The one menu: a trigger button anchored to a popover, in every page's header
  * through <PageHeaderMenu>. See docs/ui.md → "GamePage menu" for the contract.
@@ -112,9 +112,8 @@
   /* EVERY MARK IN A ROW IS `1em` — the identity disc here, the leading glyph
      and the submenu chevron at their call sites — so the marks are sized by
      the label they sit beside and the menu's type moves all of them at once.
-     Set on the ROW rather than on the disc's own class because a disc renders
-     in two places (inside the leading slot when the menu has icons, inline
-     when it has none) and only one of those carries that class. */
+     Set on the ROW because the disc is drawn inside the leading slot with no
+     class of its own; the row is the nearest thing that can size it. */
   --dot-size: 1em;
   /* Flex so the glyph, the label and the shortcut share one line. The gap is
      the distance from a leading glyph or disc to its label; the wide gutter

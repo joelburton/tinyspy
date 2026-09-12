@@ -1,4 +1,4 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 import type { BoundAction } from '../actions/useBoundAction'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'

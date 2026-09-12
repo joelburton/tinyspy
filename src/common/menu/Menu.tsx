@@ -1,4 +1,4 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 import {
   forwardRef,
@@ -21,11 +21,9 @@ import styles from './Menu.module.css'
 /**
  * One row the arrow keys can land on. Almost always a real `MenuItem`; the
  * exception is the mobile drill-down's "‹ Back" row, which is navigable and
- * activatable but isn't a menu item the caller supplied.
- *
- * Modeling Back as a nav row (rather than special-casing it around the
- * keyboard code) is what keeps the flat-index model intact: there is still
- * exactly ONE list of rows on screen with focus in it, mobile or desktop.
+ * activatable but isn't a menu item the caller supplied. Back is a row rather
+ * than a special case so there is exactly ONE list of rows with focus in it,
+ * mobile or desktop — doc.md → Design.
  */
 type NavRow =
   | { kind: 'back' }

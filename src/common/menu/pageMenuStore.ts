@@ -1,4 +1,4 @@
-// cs-audited-menu
+// cs-blessed-menu
 
 /**
  * How to open the page's menu, so the `?` key can reach it without the page
@@ -8,9 +8,10 @@
  * a keydown handler, which asks at the moment the key is pressed; doc.md →
  * Design says why one slot is safe.
  *
- * **A missing menu is a no-op, deliberately.** GamePage's menu unmounts while
- * the game is paused, so `?` during a pause finds nothing registered and does
- * nothing.
+ * **A missing menu is a no-op, deliberately.** Every real page has a header
+ * and so a menu; what has none is the sign-in gate, a loading screen, the
+ * moment between one page's release and the next's claim. `?` there finds
+ * nothing registered and does nothing.
  */
 
 let open: (() => void) | null = null
