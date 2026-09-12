@@ -266,7 +266,7 @@ Stated so a review does not spend its budget re-deciding it:
 | `common/feedback/useDismissLocalFeedbackOnKey.ts` | the any-key dismiss, bound to `act-dismiss-feedback` | `feedback` |
 | `common/feedback/GenericFeedbackPill.tsx` | the rendered pill | `feedback` |
 | `common/terminal/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `feedback` (the file stays in `terminal`) |
-| `common/turn-log/turnCopy.tsx` | two more builders | `feedback` (the file stays in `turn-log`) |
+| `common/info-sheet/turnCopy.tsx` | two more builders | `feedback` (the file stays in `info-sheet`, where it moved from `turn-log` 2026-09-12) |
 | `common/chat/useChatFeedback.tsx` | chat's producer into the global slot | `chat`; converted by `feedback` |
 | `common/game-page/GamePage.tsx` | the global slot's state | `game-page`; the slot's state is replaced by `feedback` |
 | `common/club/ClubPage.tsx` | a second global slot | `club-page`; the slot's state is replaced by `feedback` |

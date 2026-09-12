@@ -1,6 +1,6 @@
 # Area: feedback
 
-The folders it reads: `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `turn-log`). The process is
+The folders it reads: `feedback` · `terminalCopy` (in `terminal`) · `turnCopy` (in `info-sheet`). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 

@@ -110,7 +110,7 @@ anything *else* to say:
 
 - **The line is only a turn indicator** → it goes **inert but keeps its height**
   — a blank height-holder, no wording. That's the shared
-  [`<TurnStatusLine>`](../src/common/turn-log/TurnStatusLine.tsx), used by
+  [`<TurnStatusLine>`](../src/common/info-sheet/TurnStatusLine.tsx), used by
   connections / psychicnum / strands / waffle / wordiply / wordle / scrabble
   coop, and pinned by its own test ("goes inert at terminal"). The height is held
   because dropping the element would reflow the column below on the
@@ -306,7 +306,7 @@ games share this (eleven drive `useLocalFeedback` directly, the four word-list g
 `useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
 removed. In the eight turn-order coop games the same slot also carries the sticky
 "Waiting for ● Name…" pill (the shared `waitingTurnPill` in
-`common/components/game/turnCopy.tsx`), slotted into the precedence chain as
+`common/info-sheet/turnCopy.tsx`), slotted into the precedence chain as
 terminal verdict → locally-done → **waiting-for-turn** → own-move
 ([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
 

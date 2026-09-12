@@ -19,7 +19,7 @@ DECIDED / PROPOSED / OPEN); both fold into this folder's `doc.md` when the
 work lands. The boundary: from where a wrapper hands back an `Envelope` to
 where a slot's contents reach `<GenericFeedbackPill>`. The envelope layer
 below it is not this folder's. `terminalCopy` (in `terminal`) and `turnCopy`
-(in `turn-log`) are message builders and belong to this vocabulary, and
+(in `info-sheet`) are message builders and belong to this vocabulary, and
 "copy" is the wrong word for a message's words in this repo — its TEXT.
 
 - **`stickyPill` and `getNotOkFeedback` cannot compose.** `stickyPill` is

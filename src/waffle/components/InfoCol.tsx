@@ -14,7 +14,7 @@ import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
 import { GameTurnLog } from './GameTurnLog'
-import { TurnStatusLine } from '@/common/turn-log/TurnStatusLine'
+import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/game-page/PlayArea.module.css'
 
 /**

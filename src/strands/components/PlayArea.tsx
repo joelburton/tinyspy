@@ -16,7 +16,7 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useFlash } from '@/common/move-flash/useFlash'
 import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/turn-log/turnCopy'
+import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { memberById } from '@/common/members/memberList'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'

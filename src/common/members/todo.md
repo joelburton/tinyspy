@@ -35,6 +35,12 @@
   split. (The same question is open in `turn-log` for `TurnLog.tsx`, in
   `game-page` for `PlayAreaMountLog.tsx`, and in setgame for `Card.tsx`.)
 
+- **`ActorDot` and `DotActor` default `show` differently** — `both` and
+  `auto` — so a caller who switches one for the other because they only want
+  the disc on the other side gets a name that starts hiding on phones, or
+  stops. Joel (2026-09-12): *"it sounds dumb that we have different APIs for
+  both."* One default for the pair; the widget that wants the other passes it.
+
 ## Someday
 
 - **Much of the app writes prop notes with `/**`.** This folder's are `//`,

@@ -890,7 +890,7 @@ games answer that in the info column too (`<TurnStatusLine>`), so it went
 off-canvas with the rest — and a waiting player on a phone had no cue at all
 (the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
 did nothing). The shared **`waitingTurnPill()`**
-(`common/turn-log/turnCopy.tsx`) puts the same "Waiting for ● Name…"
+(`common/info-sheet/turnCopy.tsx`) puts the same "Waiting for ● Name…"
 wording into the fixed-height below-board feedback slot as a sticky neutral
 pill — shown only when it ISN'T your turn (the turn signal is the pill
 clearing), costing no layout since the slot already exists. See

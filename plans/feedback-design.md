@@ -57,7 +57,7 @@ built for tidying files that stay, and this area replaces most of its files:
 
 ## 1. What counts as feedback
 
-**PROPOSED — keep the definition the repo already has.** Feedback is a message
+**DECIDED 2026-09-12 — keep the definition the repo already has.** Feedback is a message
 that lands in one of the two slots: below the board, or in the page header.
 Nothing else. The test is physical — *does it end up in a slot?* — and it holds
 for every borderline case checked:
@@ -90,9 +90,27 @@ with no home today.**
 - **Text** is a string someone wrote for a player: the server's
   `envelope.message`, a game's terminal verdict from `buildOver`, a builder's
   wording. Text has no mode, no dot, and no idea where it will be shown.
-- A **message** is text plus everything a slot needs: `tone`, `mode`, an
-  optional `dot`, and a `text` that may be a `ReactNode` (a string is one, so
-  nothing is lost; 21 sites pass JSX today, mostly a leading `<Dot>`).
+- A **message** is text plus everything a slot needs: `tone`, its kind, an
+  optional `actor`, and a `text` that may be a `ReactNode` (a string is one, so
+  nothing is lost; 21 sites pass JSX today, mostly a leading `<DotActor>`).
+
+**DECIDED 2026-09-12 — the message carries the ACTOR, not a dot.** Today's
+`dot?: string | null` is a color name the pill draws as a bare `<Dot>`, with
+the name left to the text string; two sites use it, and nineteen put a
+`<DotActor>` inside the text node instead. `members` has since ruled that
+identity is carried by exactly one shape, the name-and-disc pair, and names
+the feedback pill as one of the surfaces the rule is for. So a peer
+constructor takes the member, the pill draws the `<DotActor>` before the
+text, and the text at those sites goes back to a string. What sits between
+the mention and the text is the KIND's: the gap is CSS on the pill, never a
+leading space in a text; chat's ": " join, and whether its sender is bold
+(almost certainly never designed), are the chat kind's constructor's, one
+line to change. The fallback for a missing actor is one string, "a player":
+a PlayArea never mounts before its roster has loaded, and a player cannot be
+added to a game, so no reachable case uses it — it exists because the actor
+is optional in the type. The seven fallback strings in use today ("Someone",
+"someone", "A teammate", "An opponent", "Your partner", "your partner", "?")
+retire at the feedback sites.
 
 The conversion from text to message is where the **mode** is chosen, and the
 mode is the surface's decision, not the answer's (feedback-system.md §4 has the
@@ -110,7 +128,16 @@ that say which surface each serves (OPEN: the names — `pill` / `line`?).
 **DECIDED:** one message type, carrying the mode, whose `text` accepts a string
 or a `ReactNode`. Named `FeedbackMessage`.
 
-**PROPOSED — it is a `class`, because the message owns behavior.** Four things
+**DECIDED 2026-09-12 — it is a `class`, with a private constructor.** The
+reason that survived the kinds table is not the getters: once a constructor
+per kind sets fill, rank and leaves-by, a reader reads a field under any
+shape. It is that a class is the one shape an object literal cannot satisfy
+and a spread cannot re-mode (the spread has no prototype), so a hand-built or
+re-ranked message is a compile error, in tests too — and that is the defect
+this area exists to end. It is the repo's first data-carrying class, so
+`docs/code-conventions.md` gets a sentence on when a class is the shape; and
+getters are not enumerable, so the log at the one door spells rank and kind.
+The original reasoning, kept: four things
 follow from a message's mode, and today each is decided by the *reader*, in
 four different files:
 
@@ -223,12 +250,31 @@ message is the thing the pill renders, the slot stores, a producer's
 it is not a distraction; a HALF-built one (today's `Pick`) is.
 The toast store has the same seam (`ToastSpec` → `showToast`).
 
-**PROPOSED — one hook, two instances.** Today the local slot is a hook and the
-global slot is inline state written twice (`GamePage`, `ClubPage`), each with
-its own auto-clear effect and its own default duration. One `useFeedbackSlot`
-owns the message, the timer and the replace semantics; `GamePage`, `ClubPage`
-and every PlayArea call it. The type and hook are unqualified; only the two
+**DECIDED 2026-09-12 — one hook, and a slot's list lives in its host.** Today
+the local slot is a hook and the global slot is inline state written twice
+(`GamePage`, `ClubPage`), each with its own auto-clear effect and its own
+default duration. One `useFeedbackSlot` owns the list, the timers and the
+draw-the-top rule; each PlayArea calls it for the local slot and each page
+for the global one, and the page still hands its instance down as
+`ctx.globalFeedback`. The type and hook are unqualified; only the two
 *instances* are called local and global.
+
+Why in the host and not a module singleton keyed by slot name (the toast
+store's shape): a slot must die with its page or its PlayArea, and a list
+held in the host does that for free, where a singleton would need every host
+to empty it by hand on unmount and on game change — and a result left showing
+when a player leaves a game would otherwise be drawn by the next game's
+PlayArea. The root-mount rule (`App.tsx`'s docstring) does not apply: a
+slot's pusher and drawer are both inside one page. The list logic — add,
+remove by id, top by rank, timers — is a pure module tested without React,
+and the hook is its React wrapper. A console trigger (`puppill`) and a test
+peek need a reachable instance, so a mounted host registers its slot in a
+module registry keyed by slot name for as long as it is mounted.
+
+Not built here: a shared core under the toast, fault and slot stores. The two
+existing stores are blessed and would share only subscribe-and-snapshot; if
+the slot's pure module turns out to be that core with "which to draw" as its
+one parameter, it is a `todo.md` Someday.
 
 ### 4.1 What the inventory found: two mechanisms
 
@@ -515,7 +561,7 @@ name with a subject. `useChatFeedback` is the same kind of thing for chat.
 | word | means | and nothing else |
 |---|---|---|
 | **text** | the words a message shows (string or node) | not "copy", not "verdict", not "message" |
-| **message** | the object a slot holds: text + tone + mode (+ dot) | not a string |
+| **message** | the object a slot holds: text + tone + kind (+ actor) | not a string |
 | **slot** | the holder of one message; local or global | not a hook name, not "area" |
 | **pill** | the rendered component, `<…Pill>` | not a message, not a builder, not a slot |
 | **producer** | a hook that fires messages into a slot from a stream | not a slot |
@@ -565,15 +611,30 @@ a rediscovery:
 
 ## 9. Open questions, in one place
 
-1. Is §1's definition of feedback agreed as written?
-2. `class` (§3), or type + module?
+1. ~~Is §1's definition of feedback agreed as written?~~ — **decided 2026-09-12: yes, as written.**
+2. ~~`class` (§3), or type + module?~~ — **decided 2026-09-12: a class, private constructor.**
 2a. ~~One mechanism (§4.2)~~ — **decided: (a′), push with a rank.** Still
-    open under it: the rank order in §3.1's table, and the internal
-    representation of fill / rank / leaves-by (§5).
+    open under it: the rank order in §3.1's table (see 7).
+2b. ~~The internal representation of fill / rank / leaves-by (§5)~~ —
+    **decided 2026-09-12: the message stores its `kind`; one `KINDS` table
+    holds fill, rank, leaves-by AND the duration of a timed kind, and the
+    getters read it.** The slot keeps no default duration, and a message
+    carries no `ms` of its own; the four sites that pass one today
+    (bananagrams' peel and dump at 2500, chat at 2000) become one question
+    each when their surfaces convert.
+2c. ~~`dot` on the message~~ — **decided 2026-09-12: the message carries the
+    actor (§2); the pill draws the mention; join and weight are the kind's;
+    one fallback, "a player".**
 3. The mode argument's shape (§5).
 4. The producer names (§6).
 5. The names of the two-surface terminal text type and its fields (§2, §7).
 6. The slot API object's name (§7).
+6a. ~~Where a slot's list lives~~ — **decided 2026-09-12: in its host (§4),
+    not a module singleton; no shared store core in this area.**
+7. **The kinds table itself (§3.1) — examined LAST, once 1–6 are answered
+   and the plan is being written up** (Joel, 2026-09-12). Its kind names,
+   its rank order, the "waiting above result" question, and now its duration
+   column.
 
 ---
 
