@@ -31,29 +31,29 @@ export const DEFAULT_TOAST_MS = 4000
 export type ToastAction = {
   label: string
   onClick: () => void
-  /** Keep the toast open after the action runs. Default: the action closes it
-   *  (acting is "handled", so the announcement retires). */
+  // Keep the toast open after the action runs. Default: the action closes it
+  // (acting is "handled", so the announcement retires).
   keepOpen?: boolean
 }
 
 /** What a caller passes to `showToast`. */
 export type ToastSpec = {
-  /** Stable id → replaces an existing toast in place (a reactive source keeps
-   *  one toast per thing this way). Auto-generated when omitted (one-off). */
+  // Stable id → replaces an existing toast in place (a reactive source keeps
+  // one toast per thing this way). Auto-generated when omitted (one-off).
   id?: string
-  /** The announcement body. A node so callers can bold names etc. */
+  // The announcement body. A node so callers can bold names etc.
   message: ReactNode
-  /** Accent-stripe color; purely cosmetic. Default `info`. */
+  // Accent-stripe color; purely cosmetic. Default `info`.
   tone?: ToastTone
-  /** Self-clear after this many milliseconds. Omitted, it waits for the X or
-   *  the action button. `DEFAULT_TOAST_MS` is the usual value. */
+  // Self-clear after this many milliseconds. Omitted, it waits for the X or
+  // the action button. `DEFAULT_TOAST_MS` is the usual value.
   ms?: number
-  /** An optional single action button (e.g. Join). */
+  // An optional single action button (e.g. Join).
   action?: ToastAction
-  /** Side effect when the user CLOSES the toast (the X). Not fired by the
-   *  action button — acting isn't dismissing. */
+  // Side effect when the user CLOSES the toast (the X). Not fired by the
+  // action button — acting isn't dismissing.
   onClose?: () => void
-  /** Whether to render the X. Default true. */
+  // Whether to render the X. Default true.
   dismissible?: boolean
 }
 

@@ -113,7 +113,14 @@ export function TooltipHost() {
     // containers scroll programmatically right after state transitions (which
     // would otherwise eat a tooltip scheduled in that window).
     const onMouseDown = () => hide()
-    const onScroll = () => setAnchor(null)
+    const onScroll = () => {
+      // `current` goes with the anchor. Leaving it set would make the control
+      // you are still pointing at look like one you never left, so its own
+      // `mouseover` would return early and the bubble could not come back
+      // without leaving the control and re-entering it.
+      current = null
+      setAnchor(null)
+    }
 
     // ── Touch: LONG-PRESS reveals the label ──────────────────────────────
     //

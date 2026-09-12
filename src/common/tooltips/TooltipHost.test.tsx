@@ -64,6 +64,26 @@ describe('TooltipHost', () => {
     expect(screen.queryByText('End the game')).not.toBeInTheDocument()
   })
 
+  // A scroll hides the bubble because its measured position is now stale — but
+  // the pointer has not moved, so the same control must be able to show it
+  // again without the pointer leaving and coming back.
+  it('hides on scroll, and the same control can show it again', () => {
+    setup()
+    const btn = screen.getByRole('button')
+    fireEvent.mouseOver(btn)
+    act(() => vi.advanceTimersByTime(450))
+    expect(screen.getByText('End the game')).toBeInTheDocument()
+
+    fireEvent.scroll(document)
+    expect(screen.queryByText('End the game')).toBeNull()
+
+    // Still inside the same button — moving onto its icon fires this in a real
+    // browser.
+    fireEvent.mouseOver(btn)
+    act(() => vi.advanceTimersByTime(450))
+    expect(screen.getByText('End the game'), 'the bubble must be reachable again').toBeInTheDocument()
+  })
+
   it('hides on a press (the user is acting; state may change under the text)', () => {
     setup()
     fireEvent.mouseOver(screen.getByRole('button'))
@@ -126,13 +146,6 @@ describe('TooltipHost', () => {
       expect(screen.queryByText('End the game')).toBeNull()
     })
 
-    /**
-     * The suppression is armed by the hold and disarmed by swallowing the
-     * click. A press that produces no click — the system taking the gesture,
-     * or the held element leaving the DOM before the lift — would otherwise
-     * leave it armed to eat an unrelated tap, which reads as the app having
-     * dropped a press.
-     */
     let onOther = vi.fn()
     beforeEach(() => {
       onOther = vi.fn()
@@ -148,6 +161,11 @@ describe('TooltipHost', () => {
       return { held: screen.getAllByRole('button')[0]!, other: screen.getByText('other') }
     }
 
+    // The two below guard the same thing from opposite ends. The suppression
+    // is armed by the hold and disarmed by swallowing the click, so a press
+    // that produces NO click — the system taking the gesture, or the held
+    // element leaving the DOM before the lift — would leave it armed to eat an
+    // unrelated tap, which reads as the app having dropped a press.
     it('a canceled press disarms at once — the next tap is not eaten', () => {
       const { held, other } = pair()
       fireEvent.touchStart(held, touch())

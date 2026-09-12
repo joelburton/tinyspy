@@ -12,9 +12,9 @@ docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
 F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, the `faults`
-group F-12 · F-13 · F-17 · F-19, and the prose group F-9 · F-10 · F-11 · F-18.
-Left: F-3 (the scroll bug), F-14 (the marker pass), F-23 (the toast-exit spec)
-and F-26 (the four Designs).
+group F-12 · F-13 · F-17 · F-19, the prose group F-9 · F-10 · F-11 · F-18, and
+F-3 · F-14 · F-23. **Twenty-five of the twenty-six are worked; only F-26, the
+four Designs, is left**, and then the closing re-read.
 
 ## The roster
 
@@ -107,14 +107,20 @@ planted**: removing the `onTouchCancel` line reds "a canceled press disarms at
 once" and nothing else; removing the `onTouchStart` line reds "a lift whose
 click never arrives is disarmed by the next press" and nothing else.
 
-## F-common-hosts-3 · `scroll-strands-current` · After a scroll hides the bubble, the same control cannot show it again — CHECKED
+## F-common-hosts-3 · `scroll-strands-current` · After a scroll hides the bubble, the same control cannot show it again — CHECKED, WORKED
 
-`onScroll` clears the anchor but leaves `current` naming the element, so the
-next `mouseover` from inside that element (`el === current`) returns before
-scheduling. The bubble cannot come back until the pointer leaves and re-enters.
-Reproduced. In a real browser the trigger is narrower than the probe — moving
-from a button's padding onto its icon is what fires `mouseover` again — so this
-is a minor one; the fix is to clear `current` with the anchor.
+`onScroll` cleared the anchor but left `current` naming the element, so the
+next `mouseover` from inside that element (`el === current`) returned before
+scheduling. The bubble could not come back until the pointer left and
+re-entered. Reproduced.
+
+**Worked 2026-09-11: `current` goes with the anchor.** The pending timer still
+survives a scroll, which was the deliberate part of the old behavior — clearing
+`current` does not cancel a scheduled bubble, only `hide()` does, so a
+programmatic scroll right after a state transition still cannot eat a tooltip
+scheduled in that window. A test ships with it and was **planted**: removing
+the one line reds "hides on scroll, and the same control can show it again" and
+nothing else.
 
 ### Shape
 
@@ -299,11 +305,21 @@ It now says the line is the envelope's own `message`, whoever wrote it, wrapping
 freely and never ellipsising — a raw Postgres sentence is the case that needs
 the room, and half of one is no use to whoever reads it aloud.
 
-## F-common-hosts-14 · `docstring-marker-pass` · `/**` on members
+## F-common-hosts-14 · `docstring-marker-pass` · `/**` on members — WORKED
 
-`toastStore.ts`: `ToastAction.keepOpen` and all seven `ToastSpec` members.
-`faultStore.ts`: both `FaultEntry` members. A note on one member takes `//`.
-`gameInvites.ts` and `menuModel`-style `//` elsewhere are already right.
+`toastStore.ts`'s `ToastAction.keepOpen` and all seven `ToastSpec` members, and
+`faultStore.ts`'s two `FaultEntry` members, took `//`. A `/**` lights up as
+"read this before calling", which a note about one field is not.
+
+The pass also caught one this area WROTE: in `TooltipHost.test.tsx` the
+explanation of F-2's two new tests sat as a `/**` on `let onOther = vi.fn()` —
+a docstring on a member, describing something else entirely. It is a `//` block
+above the tests it is about. That is the failure mode the process warns of:
+prose written while working an area's own findings is prose nothing has
+checked.
+
+The `/**` on the `long-press (touch)` describe stays — a describe is a unit,
+and the file already documented one that way.
 
 ## F-common-hosts-15 · `unnamed-effects` · Three multi-line effects with no name — WORKED
 
@@ -447,13 +463,23 @@ popup" and stays: a comment in an APPLIED migration is not edited.
 
 ### Tests
 
-## F-common-hosts-23 · `toast-exits-untested` · The card's two exits have no spec
+## F-common-hosts-23 · `toast-exits-untested` · The card's two exits have no spec — WORKED
 
-`Toast.tsx`'s docstring and `puptoast`'s comment both say the two things worth
-looking at are: the ✕ fires `onClose` and removes; the action runs, removes
-unless `keepOpen`, and does NOT fire `onClose`. `Toast.test.tsx` covers the
-clock only. `GameInvitations` depends on exactly that split — an invite
-dismissed by ✕ is marked dismissed, one joined is not — and nothing pins it.
+`Toast.tsx`'s docstring and `puptoast`'s comment both said the two things worth
+looking at were the exits, and `Toast.test.tsx` covered only the clock.
+`GameInvitations` depends on exactly that split — an invite dismissed by ✕ is
+marked dismissed, one joined is not — and nothing pinned it.
+
+**Worked 2026-09-11: four tests in a second describe**, "the two exits a person
+can take". The ✕ fires `onClose` then removes; the action runs and removes
+without firing it; `keepOpen` leaves the card up; `dismissible: false` draws no
+✕ at all.
+
+**Both halves of the split were planted.** Adding `onClose?.()` to the action
+path reds only "the action runs and removes, WITHOUT firing onClose"; removing
+it from the ✕ path reds only "the ✕ fires onClose, then removes". So the pair
+fails in opposite directions, which is what makes it a guard on the split
+rather than on either exit.
 
 ### The stylesheet
 

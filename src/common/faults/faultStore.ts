@@ -28,17 +28,17 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  */
 
 export type FaultEntry = {
-  /** The player-facing message. For a fault we declared, the sentence its
-   *  author wrote at the raise; for a raw one, Postgres's own text; for an
-   *  environmental failure, the frontend's sentence. */
+  // The player-facing message. For a fault we declared, the sentence its
+  // author wrote at the raise; for a raw one, Postgres's own text; for an
+  // environmental failure, the frontend's sentence.
   text: ReactNode
-  /** The k=v diagnostics line — `diagnosticsLine` in `dbLog.ts`, the same
-   *  content as the `[db]` log line.
-   *
-   *  Optional, and `<FaultModal>` renders it only when present — so a fault
-   *  built by hand rather than routed through `reportDbFault` shows a sentence
-   *  and nothing under it. That is deliberate where the words are the server's
-   *  own: there are no transport facts to put under them. */
+  // The k=v diagnostics line — `diagnosticsLine` in `dbLog.ts`, the same
+  // content as the `[db]` log line.
+  //
+  // Optional, and `<FaultModal>` renders it only when present — so a fault
+  // built by hand rather than routed through `reportDbFault` shows a sentence
+  // and nothing under it. That is deliberate where the words are the server's
+  // own: there are no transport facts to put under them.
   diagnostics?: string
 }
 
