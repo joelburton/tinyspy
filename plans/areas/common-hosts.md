@@ -146,8 +146,9 @@ nothing.
 
 - `FaultModal.tsx`: "Harmless to ship for a friends-only alpha" — CLAUDE.md
   says the app is not alpha; the helper's reason to exist is the same either
-  way (no honest UI path to a fault). And "the same contract as the manual pill
-  mode this replaces".
+  way (no honest UI path to a fault). **Done with F-25**, which replaced it
+  with the reason the helper ships. Still open in the same file: "the same
+  contract as the manual pill mode this replaces".
 - `Toast.module.css`: "Mirrors the old invitation card look".
 - `TooltipHost.tsx`: "Why JS-positioned (vs the earlier pure-CSS `::after`
   bubble)…" is a paragraph about the old bubble's failures; "matches the CSS
@@ -295,18 +296,27 @@ phone — the same distance or a different decision. And the bubble's
 `animation: tooltipIn 120ms` — animations are out of the guard's scope by its
 own note. The a/b/c question per value, with the file open.
 
-## F-common-hosts-25 · `typeof-window-guards` · The two todo items, Soon in both folders
+## F-common-hosts-25 · `typeof-window-guards` · The two todo items, Soon in both folders — WORKED
 
-`toastStore.ts` and `FaultModal.tsx` install `window.puptoast` /
+`toastStore.ts` and `FaultModal.tsx` installed `window.puptoast` /
 `window.pupfault` behind `typeof window !== 'undefined'`, which cannot fail
-(docs/code-conventions.md → Known gotchas). The guard goes either way; the
-question the todos leave is whether the helper installs at all in production.
-Evidence: two e2e specs call `pupfault` and run against `npm run dev`, so a
-`DEV`-only install keeps them; nothing calls `puptoast`.
+(docs/code-conventions.md → Known gotchas). The guard was never the question;
+what the todos left open was whether the helper installs at all in production.
 
-1. Install under `import.meta.env.DEV` only — five sites already gate on it.
-2. Install unconditionally, and say why in the comment (a console helper on
-   prod costs nothing and lets a fault's look be checked where it matters).
+**DECIDED 2026-09-11 (Joel): unconditionally, with the reason written at the
+line.** A fault is rare and unplannable, so the deployed site is the only place
+its modal's look can be checked where it matters, and a helper nobody is
+looking for costs nothing to carry. `FaultModal.tsx` holds the reason;
+`toastStore.ts` says "for the reason its twin gives", which is what their
+docstrings already do for each other. The rejected alternative was
+`import.meta.env.DEV` only — it would have kept both e2e specs working
+(`playwright.config.ts` runs them against `npm run dev`) and dropped the canned
+strings from the bundle, at the cost of never seeing either card on the real
+site.
+
+Worked: the guard removed in both files, the comments written, and both
+folders' `todo.md` Soon items closed. It also settles half of F-9 — "Harmless
+to ship for a friends-only alpha" is gone, replaced by the actual reason.
 
 ## F-common-hosts-26 · `four-designs-owed` · All four `doc.md` files are a single line
 

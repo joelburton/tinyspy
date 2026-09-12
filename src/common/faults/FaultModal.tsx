@@ -55,23 +55,25 @@ export function FaultModal() {
 }
 
 /**
- * Dev/test trigger: pop a realistic fault from the browser console —
+ * Hand trigger: pop a realistic fault from the browser console —
  * `pupfault()` for a canned one, `pupfault('text', 'diagnostics')` to
  * shape your own. Real faults are bugs or dead networks, so there's no
  * honest UI path to one on demand; this is how the modal's look gets
- * checked. Harmless to ship for a friends-only alpha.
+ * checked.
  */
 declare global {
   interface Window {
     pupfault?: (text?: string, diagnostics?: string) => void
   }
 }
-if (typeof window !== 'undefined') {
-  window.pupfault = (text?: string, diagnostics?: string) =>
-    showFaultModal({
-      text: text ?? 'word|unplayable-board|EXAMPLE|',
-      diagnostics:
-        diagnostics ??
-        'word — key=unplayable-board code=P0001 detail="a hand-triggered test fault (window.pupfault)" — 00:00:00',
-    })
-}
+// Installed in production too, not only in dev: a fault is rare and
+// unplannable, so the deployed site is the only place the modal's look can be
+// checked where it matters, and a console helper nobody is looking for costs
+// nothing to carry.
+window.pupfault = (text?: string, diagnostics?: string) =>
+  showFaultModal({
+    text: text ?? 'word|unplayable-board|EXAMPLE|',
+    diagnostics:
+      diagnostics ??
+      'word — key=unplayable-board code=P0001 detail="a hand-triggered test fault (window.pupfault)" — 00:00:00',
+  })

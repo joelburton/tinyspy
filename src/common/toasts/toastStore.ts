@@ -102,7 +102,7 @@ export function useToasts(): Toast[] {
 }
 
 /**
- * Dev/test trigger: pop a toast from the browser console — `puptoast()` for a
+ * Hand trigger: pop a toast from the browser console — `puptoast()` for a
  * canned one, `puptoast('hey')` for your own words, `puptoast('hey', 'error')`
  * to check a tone. The twin of `window.pupfault()` (see `FaultModal.tsx`), and
  * for the same reason: every real toast needs a real event behind it — an
@@ -119,12 +119,12 @@ declare global {
     puptoast?: (message?: string, tone?: ToastTone) => string
   }
 }
-if (typeof window !== 'undefined') {
-  window.puptoast = (message?: string, tone?: ToastTone) =>
-    showToast({
-      message: message ?? 'A hand-triggered test toast (window.puptoast).',
-      tone: tone ?? 'info',
-      action: { label: 'Got it', onClick: () => console.log('puptoast: action') },
-      onClose: () => console.log('puptoast: dismissed'),
-    })
-}
+// Installed in production too, not only in dev, for the reason its twin
+// `window.pupfault` gives.
+window.puptoast = (message?: string, tone?: ToastTone) =>
+  showToast({
+    message: message ?? 'A hand-triggered test toast (window.puptoast).',
+    tone: tone ?? 'info',
+    action: { label: 'Got it', onClick: () => console.log('puptoast: action') },
+    onClose: () => console.log('puptoast: dismissed'),
+  })
