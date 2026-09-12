@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7 — and, riding on several
-of those, the halves of F-9 and F-10 they consumed.
+F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4 — and, riding on
+several of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -116,11 +116,20 @@ is a minor one; the fix is to clear `current` with the anchor.
 
 ### Shape
 
-## F-common-hosts-4 · `toast-type-name-collision` · The store's `Toast` type and the `Toast` component share a name
+## F-common-hosts-4 · `toast-type-name-collision` · The store's `Toast` type and the `Toast` component share a name — WORKED
 
-`Toast.tsx` imports `type Toast as ToastModel` to get around it. The sibling
-store spells its entry `FaultEntry`; `ToastEntry` would match and the alias
-would go. A rename with five reads, all in this folder.
+`Toast.tsx` imported `type Toast as ToastModel` to get around it.
+
+**DECIDED 2026-09-11 (Joel): `ToastEntry`.** It matches the sibling store's
+`FaultEntry` exactly, and the two stores are twins in every other respect —
+same module shape, same host pattern, adjacent folders. Both aliases are gone.
+The refused alternatives were `ToastState` (more precise about the pair
+`ToastSpec` in → state held, but it breaks the symmetry faults do not make) and
+renaming the component to `ToastCard` (which would move a file, a stylesheet
+and a test to leave the store's readers with the bare noun anyway).
+
+Six reads, one of them outside the folder — `useClubSetupPresence.test.tsx`,
+which types the live toast list it watches.
 
 ## F-common-hosts-5 · `default-toast-ms-lives-on-the-card` · The one duration constant is exported by the card, not the store
 

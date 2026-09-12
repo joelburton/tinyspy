@@ -52,10 +52,10 @@ export type ToastSpec = {
 }
 
 /** A live toast (a spec with its id resolved). */
-export type Toast = Omit<ToastSpec, 'id'> & { id: string }
+export type ToastEntry = Omit<ToastSpec, 'id'> & { id: string }
 
 // ── The store: a plain array + listener set, swapped by reference on change ──
-let toasts: Toast[] = []
+let toasts: ToastEntry[] = []
 const listeners = new Set<() => void>()
 let seq = 0
 
@@ -70,7 +70,7 @@ function subscribe(listener: () => void): () => void {
 
 // getSnapshot MUST return a stable reference when nothing changed (we only
 // reassign `toasts` on a real mutation), so `useSyncExternalStore` doesn't loop.
-function getSnapshot(): Toast[] {
+function getSnapshot(): ToastEntry[] {
   return toasts
 }
 
@@ -81,7 +81,7 @@ function getSnapshot(): Toast[] {
  */
 export function showToast(spec: ToastSpec): string {
   const id = spec.id ?? `toast-${++seq}`
-  const toast: Toast = { ...spec, id }
+  const toast: ToastEntry = { ...spec, id }
   const at = toasts.findIndex((t) => t.id === id)
   toasts = at >= 0 ? toasts.map((t, i) => (i === at ? toast : t)) : [...toasts, toast]
   emit()
@@ -97,7 +97,7 @@ export function dismissToast(id: string): void {
 }
 
 /** Subscribe a component to the live toast list (the host uses this). */
-export function useToasts(): Toast[] {
+export function useToasts(): ToastEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
 

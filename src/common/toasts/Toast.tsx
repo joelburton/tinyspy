@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { cls } from '../utils/cls'
-import { dismissToast, type Toast as ToastModel } from './toastStore'
+import { dismissToast, type ToastEntry } from './toastStore'
 import styles from './Toast.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CloseButton } from '../buttons/CloseButton'
@@ -25,7 +25,7 @@ export const DEFAULT_TOAST_MS = 4000
  *   - **action** → run it; unless `keepOpen`, remove the toast — but WITHOUT
  *     firing `onClose`, because acting on an announcement isn't dismissing it.
  */
-export function Toast({ toast }: { toast: ToastModel }) {
+export function Toast({ toast }: { toast: ToastEntry }) {
   const { id, message, tone = 'info', action, onClose, dismissible = true } = toast
 
   // Depends on the whole `toast`, not on `id`/`ms`: the store replaces a toast

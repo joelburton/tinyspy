@@ -35,7 +35,7 @@ vi.mock('../supabase/supabase', () => ({
 import { useClubSetupPresence } from './useClubSetupPresence'
 import { __resetChannelTeardowns } from './channelTeardown'
 import { fakeChannel, lastFakeChannel } from './channel.fake'
-import { dismissToast, showToast, useToasts, type Toast } from '../toasts/toastStore'
+import { dismissToast, showToast, useToasts, type ToastEntry } from '../toasts/toastStore'
 
 const SELF = 'u1'
 type Announce = { brand: string; mode: 'coop' | 'compete'; username: string }
@@ -48,7 +48,7 @@ function peer(user_id: string, username: string) {
 
 // The toast store is a module singleton, so a test that leaves a toast up
 // hands it to the next one. Held live here and emptied in afterEach.
-let live: { current: Toast[] } | null = null
+let live: { current: ToastEntry[] } | null = null
 
 /** Mount the hook beside the toast list, both under one act() umbrella. */
 function mount(announce: Announce | null = null, clubHandle: string | null = 'cl1') {
