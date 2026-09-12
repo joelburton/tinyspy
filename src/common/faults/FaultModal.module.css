@@ -19,9 +19,9 @@
   margin: 0;
 }
 
-/* Line 2: the classifier's words — copy sentence or raw fe-error-key. Wraps
-   freely; a raw key must be readable in full (no ellipsis — the modal exists
-   because the pill slot couldn't afford that). */
+/* Line 2: the envelope's own `message`, whoever wrote it. Wraps freely and
+   never ellipsises — a raw Postgres sentence is the case that needs the room,
+   and half of one is no use to whoever reads it aloud. */
 /* @@ */ .message {
   margin: 0;
   overflow-wrap: anywhere;

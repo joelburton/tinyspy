@@ -15,9 +15,9 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * words and writes the `[db]` line, then calls `showFaultModal` — including for
  * every call site's `else` scream, which reaches it through `reportUnhandled`.
  *
- * Four callers reach past it, each with a reason: `HomePage` and the
- * `window.pupfault` trigger build their own diagnostics, and `useGameTimer` and
- * `useWordSubmit` show a fault whose words are already chosen.
+ * A caller reaches past it only when the words are already chosen — a sentence
+ * the server worded, or a diagnostics line built by hand. Everything else goes
+ * through `reportDbFault`.
  *
  * Queue semantics (Joel's rulings, 2026-08-13 — docs/ui.md → Faults):
  *   - Each fault is its OWN modal; strictly one visible; dismissing shows the
@@ -37,8 +37,8 @@ export type FaultEntry = {
    *
    *  Optional, and `<FaultModal>` renders it only when present — so a fault
    *  built by hand rather than routed through `reportDbFault` shows a sentence
-   *  and nothing under it. Two do that on purpose (`useGameTimer`, which is
-   *  showing a fault the server worded). */
+   *  and nothing under it. That is deliberate where the words are the server's
+   *  own: there are no transport facts to put under them. */
   diagnostics?: string
 }
 

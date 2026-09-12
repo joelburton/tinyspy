@@ -11,8 +11,9 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15 — and, riding
-on several of those, the halves of F-9 and F-10 they consumed.
+F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, and the
+`faults` group F-12 · F-13 · F-17 · F-19 — and, riding on several of those, the
+halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -44,7 +45,7 @@ against the dev server; `window.puptoast` by nothing.
 **The docs.** docs/ui.md → Toasts, docs/ui.md → Faults (a `####` under
 Feedback pill) and docs/ui.md → Button iconography → Conventions (the tooltip
 bubble) are the owning sections; docs/common.md → Joining a game — the
-invitation popup is the invitations' one. All four four-line `doc.md` files
+invitation toast is the invitations' one (F-22 renamed it from "popup"). All four four-line `doc.md` files
 are on `DESIGNS_OWED`.
 
 ## Findings
@@ -229,11 +230,10 @@ what base.css says.
 
 ## F-common-hosts-9 · `alpha-and-archaeology` · "Friends-only alpha", and nine passages about what the code replaced
 
-- `FaultModal.tsx`: "Harmless to ship for a friends-only alpha" — CLAUDE.md
-  says the app is not alpha; the helper's reason to exist is the same either
-  way (no honest UI path to a fault). **Done with F-25**, which replaced it
-  with the reason the helper ships. Still open in the same file: "the same
-  contract as the manual pill mode this replaces".
+- `FaultModal.tsx`: **DONE.** "Harmless to ship for a friends-only alpha" went
+  with F-25, replaced by the reason the helper ships; "the same contract as the
+  manual pill mode this replaces" went with the `faults` group, and now says
+  why a backdrop click is inert without naming what it once matched.
 - `Toast.module.css`: "Mirrors the old invitation card look".
 - `TooltipHost.tsx`: "Why JS-positioned (vs the earlier pure-CSS `::after`
   bubble)…" is a paragraph about the old bubble's failures; "matches the CSS
@@ -270,23 +270,28 @@ own. The docstring should say the attribute is written by the button
 components and `actionSurface`, and point at docs/ui.md → Conventions for the
 rule.
 
-## F-common-hosts-12 · `diagnostics-line-optional` · The modal's docstring promises a third line it renders conditionally — the todo's Bug, confirmed
+## F-common-hosts-12 · `diagnostics-line-optional` · The modal's docstring promises a third line it renders conditionally — the todo's Bug, confirmed — WORKED
 
 `faults/todo.md` asked for a check before editing. Checked: `reportDbFault`
 always builds a line, and every wrapper route goes through it; the three
 direct callers do not — `HomePage` builds one by hand, `useGameTimer` and
 `useWordSubmit` pass a sentence alone. So the line is optional, and the
-docstring's flat "3. Small muted diagnostics" should say so. `FaultEntry.diagnostics`
-already does, but says "Two do that on purpose (`useGameTimer`, …)" and names
-one of the two. Working this closes the todo item.
+docstring's flat "3. Small muted diagnostics" now says so — a fault routed
+through `reportDbFault` always has a line, one raised by hand from words the
+server already wrote has nothing to put there, and the modal is two lines.
+`FaultEntry.diagnostics` said the same but leaked a census — "Two do that on
+purpose (`useGameTimer`, …)", naming one of the two — which is now the
+condition instead. **This closed `faults/todo.md`'s only Bug.**
 
-## F-common-hosts-13 · `copy-and-fe-error-key` · `FaultModal.module.css` uses a banned word and a retired name
+## F-common-hosts-13 · `copy-and-fe-error-key` · `FaultModal.module.css` uses a banned word and a retired name — WORKED
 
-`.message`: "the classifier's words — copy sentence or raw fe-error-key". "Copy"
-for a message's words is banned; `fe-error-key` and the classifier went with
-the error sprint. And "the modal exists because the pill slot couldn't afford
-that" is the before. The line is the envelope's `message`, wrapping freely
-because a raw Postgres sentence must be readable in full.
+`.message` read "the classifier's words — copy sentence or raw fe-error-key",
+which was three faults in one line: "copy" for a message's words is banned, and
+`fe-error-key` and the classifier both went with the error sprint. The trailing
+"the modal exists because the pill slot couldn't afford that" was the before.
+It now says the line is the envelope's own `message`, whoever wrote it, wrapping
+freely and never ellipsising — a raw Postgres sentence is the case that needs
+the room, and half of one is no use to whoever reads it aloud.
 
 ## F-common-hosts-14 · `docstring-marker-pass` · `/**` on members
 
@@ -336,13 +341,12 @@ Riding along, from F-9: both test files stated the failure in the past tense.
 Join (F-10's word) in the same comment it explained a fix by — both now say
 what must hold, in the present.
 
-## F-common-hosts-17 · `census-in-faultstore` · "Four callers reach past it, each with a reason"
+## F-common-hosts-17 · `census-in-faultstore` · "Four callers reach past it, each with a reason" — WORKED
 
-`faultStore.ts` lists them. A tally that rots the day a fifth arrives (or the
-timer's goes). The condition is what to say: `showFaultModal` is for a caller
-whose words are already chosen — a sentence the server worded, or a
-diagnostics line built by hand — and everything else goes through
-`reportDbFault`.
+`faultStore.ts` listed them by name — a tally that rots the day a fifth
+arrives, or the timer's goes. Replaced by the condition, which does not: a
+caller reaches past `reportDbFault` only when the words are already chosen —
+a sentence the server worded, or a diagnostics line built by hand.
 
 ## F-common-hosts-18 · `stale-doc-pointers` · Two pointers that do not land
 
@@ -350,11 +354,13 @@ diagnostics line built by hand — and everything else goes through
 "Page-height fits the viewport". `toastStore.ts`: "(see docs/ui.md)" with no
 section, for the toasts-are-not-panels claim (it is docs/ui.md → Toasts).
 
-## F-common-hosts-19 · `ruling-letter-unglossed` · "Joel's ruling D"
+## F-common-hosts-19 · `ruling-letter-unglossed` · "Joel's ruling D" — WORKED
 
-`faultStore.test.ts`, on the cap: a letter from a conversation nobody can
-open. Say the ruling: beyond the cap a fault gets no modal, and its `[db]` line
-already fired.
+`faultStore.test.ts`, on the cap, cited "Joel's ruling D" — a letter from a
+conversation nobody can open. It now says the rule: no batching, no filtering,
+and beyond the cap a fault simply gets no modal, with nothing lost to diagnosis
+because its `[db]` line was written before it ever reached the queue. (The same
+sentence also dropped "the classifier logs", a name the error sprint retired.)
 
 ## F-common-hosts-20 · `ui-md-toasts-stale-paths` · docs/ui.md → Toasts names files that moved — WORKED
 

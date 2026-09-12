@@ -32,9 +32,9 @@ describe('faultStore', () => {
   })
 
   it('caps the queue at 5 — overflow is silently dropped from the UI', () => {
-    // Joel's ruling D: no batching, no filtering; beyond the cap a new fault
-    // just doesn't get a modal. (Its [db] console line already fired — the
-    // classifier logs before any routing.)
+    // The rule: no batching, no filtering. Beyond the cap a new fault simply
+    // gets no modal — and nothing is lost to diagnosis, because whoever routed
+    // it wrote its [db] console line before ever reaching the queue.
     const { result } = renderHook(() => useCurrentFault())
     act(() => {
       for (let i = 1; i <= 8; i++) showFaultModal({ text: `f${i}` })

@@ -14,15 +14,18 @@ import { StandardButton } from '../buttons/StandardButton'
  *   2. The message — the envelope's own `message`, whoever authored it: the
  *      raise's sentence, or the transport line when nothing answered. Never
  *      edited here.
- *   3. Small muted diagnostics — everything we know (the call, severity,
- *      outcome, dbcode, HTTP status, ms, field, detail, timestamp), the SAME
- *      string the `[db]` console line carries (one builder — `diagnosticsLine`
- *      in `dbLog.ts`).
+ *   3. Small muted diagnostics, WHEN THERE ARE ANY — everything we know (the
+ *      call, severity, outcome, dbcode, HTTP status, ms, field, detail,
+ *      timestamp), the SAME string the `[db]` console line carries (one
+ *      builder — `diagnosticsLine` in `dbLog.ts`). A fault routed through
+ *      `reportDbFault` always has one; one raised by hand from words the
+ *      server already wrote has nothing to put there, and the modal is two
+ *      lines.
  *
  * **A `<BlockingModal>`**, so it inherits the whole category: the world stops,
  * nothing underneath is live, Tab stays inside it, and it cannot be dragged aside.
- * Backdrop click deliberately does NOT dismiss — see-and-acknowledge, the same
- * contract as the manual pill mode this replaces. Close + Esc only.
+ * Backdrop click deliberately does NOT dismiss: a fault is see-and-acknowledge,
+ * so it takes a deliberate Close or Esc and never a stray click.
  *
  * Its family is `modal-fault`, which is why it outranks a blocking modal;
  * `FloatingPanel`'s family table says what that resolves to.
