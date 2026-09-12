@@ -536,6 +536,9 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     expect(feedbackMsg.text).toBe('solved it')
     // Green — a solve is a solve regardless of whose (the outcome follows the event).
     expect(feedbackMsg.outcome).toBe('won')
+    // A solve is where the peer STANDS, not a move of theirs, so it outranks
+    // the guess narration above and a chat line.
+    expect(feedbackMsg.kind).toBe('peerMilestone')
   })
 })
 

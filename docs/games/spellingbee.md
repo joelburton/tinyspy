@@ -479,8 +479,10 @@ src/spellingbee/
                           longer a spellingbee-local usePeerFeedback hook. It fires header pills
                           for other players' activity — the complement to the below-board
                           own-move pill. coop: a peer found a good/pangram word (found_words is
-                          club-wide). compete: an opponent climbed a rank (RLS-hidden words, but
-                          rank rides status.leaderboard). Each names the player with a leading
+                          club-wide) — a `peer`. compete: an opponent climbed a rank (RLS-hidden
+                          words, but rank rides status.leaderboard) — a `peerMilestone`, which
+                          outranks a chat line because a climb happens once or twice a game.
+                          Each names the player with a leading
                           color disc; both bootstrap on the first loaded render so a reconnect
                           doesn't replay a backlog; self-activity is excluded.)
 

@@ -468,7 +468,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
         globalFeedbackSlot.show(
-          FeedbackMessage.peer(member, 'noted', `reached ${RANKS[row.rank_idx] ?? 'a new rank'}`),
+          FeedbackMessage.peerMilestone(member, 'noted', `reached ${RANKS[row.rank_idx] ?? 'a new rank'}`),
         )
       }
     }

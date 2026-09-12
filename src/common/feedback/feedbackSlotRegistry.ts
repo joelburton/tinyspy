@@ -59,6 +59,7 @@ const CANNED: Record<Kind, (text: string) => FeedbackMessage> = {
   waiting: () => FeedbackMessage.waiting({ username: 'moth', color: 'green' }),
   standingNote: (text) => FeedbackMessage.note(text),
   prompt: (text) => FeedbackMessage.prompt(text),
+  peerMilestone: (text) => FeedbackMessage.peerMilestone({ username: 'moth', color: 'green' }, 'noted', text),
   chat: (text) => FeedbackMessage.chat({ username: 'moth', color: 'green' }, text),
   peer: (text) => FeedbackMessage.peer({ username: 'moth', color: 'green' }, 'won', text),
   peerStatus: (text) => FeedbackMessage.peerStatus({ username: 'moth', color: 'green' }, text),

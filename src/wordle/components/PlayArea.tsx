@@ -203,7 +203,7 @@ export function PlayArea({
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
       const member = memberById(members, id)
-      return FeedbackMessage.peer(member, 'won', 'solved it')
+      return FeedbackMessage.peerMilestone(member, 'won', 'solved it')
     },
     globalFeedbackSlot,
   })

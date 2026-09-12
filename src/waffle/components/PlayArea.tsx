@@ -167,10 +167,10 @@ export function PlayArea({
           // word reads as in both modes (docs/ui.md → Feedback pill: the
           // outcome follows the event). Adverse to me in compete, but the
           // outcome names the event, not my stake.
-          globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'solved it'))
+          globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, 'won', 'solved it'))
         } else if (out && !prev.out) {
-          // Out of swaps is a milestone — important, neither clearly good nor bad → warning.
-          globalFeedbackSlot.show(FeedbackMessage.peer(member, 'warning', 'out of swaps'))
+          // Out of swaps: neither clearly good nor bad → warning.
+          globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, 'warning', 'out of swaps'))
         }
       }
     },

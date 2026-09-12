@@ -502,6 +502,9 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
 - **Feedback split** — own not-oks (a refused swap / a failed End) show **locally**
   below the board; the header's global slot carries **peer** news (compete: "● moth
   solved it", "● moth out of swaps"; coop needs none — the swap log shows every move).
+  Both of those are `peerMilestone`s rather than `peer`s — each is a flag on the
+  opponent's row rather than a move of theirs, so neither gets buried by a chat
+  line ([ui.md → Feedback pill](../ui.md#feedback-pill)).
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
   four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop pacing +
   its first-turn picker — self-gates to nothing for compete / solo), a

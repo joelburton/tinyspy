@@ -48,6 +48,7 @@ export type Kind =
   | 'waiting'
   | 'standingNote'
   | 'prompt'
+  | 'peerMilestone'
   | 'chat'
   | 'peer'
   | 'peerStatus'
@@ -100,6 +101,10 @@ export const KINDS: Record<Kind, KindDefaults> = {
   standingNote:    { fill: false, rank: 60, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
   // What an empty slot says. Everything outranks it.
   prompt:          { fill: false, rank: 70, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
+  // A peer crossed a threshold or finished — where they STAND changed, which
+  // is not another move. Above chat and the ordinary narration, because it
+  // happens once or twice a game and the stream of finds must not bury it.
+  peerMilestone:   { fill: false, rank: 72, leavesBy: 'timer',   ms: 3000, outcome: null },
   // A chat line, announced in the header. Above a narration: a person typing
   // at you outranks an automatic one.
   chat:            { fill: false, rank: 75, leavesBy: 'timer',   ms: 2000, outcome: 'neutral' },
@@ -216,6 +221,17 @@ export class FeedbackMessage {
   /** What an empty slot says: "Waiting for your move". */
   static prompt(text: ReactNode, overrides?: Overrides): FeedbackMessage {
     return new FeedbackMessage('prompt', text, undefined, defaultsFor('prompt', null, overrides))
+  }
+
+  /**
+   * A peer crossed a threshold or finished: `peerMilestone(moth, 'noted',
+   * 'reached Genius')` → "● moth reached Genius". Reach for this where the
+   * thing narrated is a FLAG OR LEVEL on their player row — solved, out of
+   * swaps, a rank climbed — and for `peer` where it is a row in a move
+   * stream, however good the move was.
+   */
+  static peerMilestone(member: Actor | undefined, outcome: Outcome, text: ReactNode, overrides?: Overrides): FeedbackMessage {
+    return new FeedbackMessage('peerMilestone', text, member, defaultsFor('peerMilestone', outcome, overrides))
   }
 
   /** A peer did something: `peer(moth, 'won', 'found APPLE +7')` → "● moth found APPLE +7". */

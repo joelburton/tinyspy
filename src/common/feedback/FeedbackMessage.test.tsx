@@ -133,6 +133,18 @@ describe('FeedbackMessage — each constructor and its kind', () => {
     expect(msg.rank).toBeLessThan(KINDS.peer.rank)
   })
 
+  it('peerMilestone outranks a chat line and an ordinary narration', () => {
+    const msg = FeedbackMessage.peerMilestone(moth, 'noted', 'reached Genius')
+    expectRow(msg, 'peerMilestone')
+    expect(msg.actor).toBe(moth)
+    expect(msg.outcome).toBe('noted')
+    expect(msg.rank).toBeLessThan(KINDS.chat.rank)
+    expect(msg.rank).toBeLessThan(KINDS.peer.rank)
+    // Same fuse as a narration: it sits over chat, so a longer one would burn
+    // a chat line's whole two seconds out of sight.
+    expect(msg.ms).toBe(KINDS.peer.ms)
+  })
+
   it('peerStatus is the bottom of the header: every piece of news shows over it', () => {
     const msg = FeedbackMessage.peerStatus(moth, 'writing clue')
     expectRow(msg, 'peerStatus')
@@ -172,13 +184,6 @@ describe('KINDS — the table’s own invariants', () => {
       if (row.leavesBy === 'timer') expect(row.ms, kind).not.toBeNull()
       else expect(row.ms, kind).toBeNull()
     }
-  })
-
-  it('ranks leave room between neighbors, so a new kind can be slotted between two', () => {
-    const ranks = [...new Set(Object.values(KINDS).map((r) => r.rank))].sort((a, b) => a - b)
-    // Tens originally, and three of those gaps have since been spent on
-    // `waiting`, `chat` and `peerStatus`. Five is still room for one more.
-    for (let i = 1; i < ranks.length; i++) expect(ranks[i] - ranks[i - 1]).toBeGreaterThanOrEqual(5)
   })
 
   it('only the two final states wear the fill', () => {

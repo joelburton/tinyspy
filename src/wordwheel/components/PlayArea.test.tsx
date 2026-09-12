@@ -483,7 +483,7 @@ describe('wordwheel PlayArea — compete opponent rank climb', () => {
     // Same slot + players, new leaderboard with u2 climbing 1 → 2.
     rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
     const feedbackMsg = shown.mock.calls.at(-1)![0]
-    expect(feedbackMsg.kind).toBe('peer')
+    expect(feedbackMsg.kind).toBe('peerMilestone')
     expect(feedbackMsg.actor?.username).toBe('moth')
     expect(feedbackMsg.text).toMatch(/^reached /)
   })

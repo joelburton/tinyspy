@@ -12,8 +12,8 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which two are WORKED
-(F-2 and F-12, the rank work, `07996523`).
+came out of settling the first of them — thirteen, of which three are WORKED:
+F-2 and F-12 (the rank work, `07996523`) and F-13 (`peerMilestone`).
 
 ## The roster
 
@@ -407,7 +407,7 @@ info column — off-canvas on a phone — is the only sudden-death signal left.
 That gap is transient and self-healing, and it is duet's question to answer
 with its own layout in front of it.
 
-## F-feedback-13 · `peer-lumps-a-feat-in-with-a-move` · "● moth reached Genius" and "● moth found APPLE +3" are the same kind at the same rank
+## F-feedback-13 · `peer-lumps-a-feat-in-with-a-move` · "● moth reached Genius" and "● moth found APPLE +3" are the same kind at the same rank — WORKED
 
 `peer` is one kind covering every "someone else did a thing", so a rank climb
 (`narrateRankClimbs`, spellingbee `PlayArea.tsx:471` and wordwheel `:477`) and
@@ -421,11 +421,42 @@ the word list anyway and another is along in ten seconds, while a climb
 happens once or twice a game and is the thing a player would react to. Same
 shape of answer as chat's: a priority difference belongs in the number.
 
-Open questions this needs before it can be built — which call sites are feats
-rather than moves (waffle's and wordle's "solved it" are candidates; every
-`+points` narration is not), what the constructor is called, and whether a
-feat outranks a chat line or sits just under it. A feat may also want a
-longer fuse than 3000ms if it is going to wait underneath a chat line at all.
+**DECIDED and built 2026-09-12.** Joel ruled that such a thing outranks a
+chat line and left the naming and the roster to the reading of the code.
+
+The kind is **`peerMilestone`** — the repo's own word for it, from waffle's
+`announceOpponentMilestones` and its comment "Out of swaps is a milestone" —
+at **rank 72**, above `chat` (75) and the ordinary `peer` (80), with `peer`'s
+3000ms fuse. The fuse deliberately did NOT grow: a milestone now sits over
+chat, so a chat line arriving underneath is hidden while its own two seconds
+burn, and a longer milestone would mean that line is never seen at all.
+
+The line between the two, which is what made the roster decidable: a
+`peerMilestone` narrates a **flag or level on the peer's player row**; a
+`peer` narrates a **row in a move stream**. All 23 `FeedbackMessage.peer`
+sites read cleanly against it, and five are milestones — spellingbee `:471`
+and wordwheel `:477` (`row.rank_idx` off the leaderboard), waffle `:170` and
+`:173` (`ps.solved`, `swaps_used >= max_swaps`) and wordle `:206`
+(`players.solved`).
+
+Two exclusions worth recording, because they are the arguable ones.
+wordwheel's and spellingbee's "pangram 🦌 WORD +14" and boggle's "wow! WORD
++5" are flourished in their own text and are rare, but they are rows in
+`foundWords` — a fine MOVE, not a change in where the player stands — and the
+flourish already puts the headline first. The help narrations (stackdown's
+"revealed a hint", letterboxed's "got a hint", psychicnum's "got hint") are
+`warning`-toned commentary on a stream, not a standing.
+
+The rank-gap test in `FeedbackMessage.test.tsx` was DELETED rather than
+relaxed again (Joel: "we don't need a guard for this kind of stuff"). It
+asserted every gap was ten, went red on the three insertions above, and was
+loosened to five in the same sitting — a proxy for "room to insert" that says
+nothing about the thing that matters, which is whether two kinds share a rank
+on purpose.
+
+Untested: waffle's two milestone narrations have no unit test of their own,
+before or after. The kind is pinned by `FeedbackMessage.test.tsx` and by
+wordle's compete-solve test.
 
 ## Notes
 
