@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import type { Outcome } from '../outcomes/outcomes'
 import type { Actor } from '../members/member'

@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { useBoundAction } from '../actions/useBoundAction'
 

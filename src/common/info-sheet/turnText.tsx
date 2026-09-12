@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { Dot } from '../members/Dot'
 import type { Actor } from '../members/member'

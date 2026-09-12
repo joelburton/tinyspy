@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes/outcomes'

@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { cls } from '../utils/cls'
 import { DotActor } from '../members/ActorMention'

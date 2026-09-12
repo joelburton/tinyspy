@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'

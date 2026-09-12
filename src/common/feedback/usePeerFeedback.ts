@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { useEffect, useRef } from 'react'
 import type { FeedbackMessage } from './FeedbackMessage'

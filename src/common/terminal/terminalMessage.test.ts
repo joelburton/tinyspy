@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { describe, expect, it } from 'vitest'
 import { gameEndedTerminalMessage } from './terminalMessage'

@@ -1,4 +1,4 @@
-// cs-audited-feedback
+// cs-blessed-feedback
 
 import { FeedbackMessage, KINDS, type Kind } from './FeedbackMessage'
 import type { FeedbackSlot, SlotEntry, SlotName } from './feedbackSlotStore'

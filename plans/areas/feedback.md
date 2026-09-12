@@ -4,7 +4,7 @@ The folders it reads: `feedback` · `terminalCopy` (in `terminal`) · `turnCopy`
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, 2026-09-12; BUILT and AUDITED the same day.** The design was
+**Status: CLOSED 2026-09-12, blessed — twenty-two files `cs-blessed-feedback`.** The design was
 decided before the opening (`plans/feedback-design.md`, every item DECIDED),
 and that plan is the working record of the build; this file holds the
 roster, the findings, the notes and the closing. By Joel's ruling the area
@@ -690,5 +690,6 @@ The two specs above; both changed with their games and are green.
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (`feedback/todo.md` is empty; the one owed test is in `waffle/todo.md`)
-- [ ] every file on the roster blessed, or its stamp says why not — the stamp
-      is Joel's to set; every roster file reads `cs-audited-feedback` today
+- [x] every file on the roster blessed (Joel, 2026-09-12): twenty-two files
+      `cs-blessed-feedback`, `FailureLine` and its stylesheet among them in
+      `forms/`

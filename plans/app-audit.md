@@ -275,6 +275,24 @@ the area itself had written, several of them that same day. Owed work is in
 `members/todo.md`; the handoff to `club` is that a first-load roster read that
 fails leaves `members` at `[]` for the life of the page.
 
+**`feedback` is closed** (2026-09-12): twenty-two files `cs-blessed-feedback`,
+twenty-one findings, all worked or closed. A redesign rather than a tidy:
+the machinery was built first, every one of the sixteen games converted to it
+the same day, and the old system's twelve files were deleted before the audit
+began — so the audit read what the build left. A message is now a class with
+a private constructor, one constructor per KIND, and the kind decides fill,
+rank, exit and duration in one table; a slot is a list that discards nothing
+and draws the lowest rank; a standing condition is an effect whose cleanup
+retracts. Three ranks moved during the audit, each for a stated reason — a
+rank is a priority and nothing more, so `waiting`, `chat`, `peerMilestone`
+and `peerStatus` became kinds of their own — and two placements changed:
+setgame's whose-turn note left the header for the board, and codenamesduet's
+header sudden-death line was deleted outright. `FailureLine` moved to
+`forms/`, `Actor` to `members/`, and the names guard lost its allowlist.
+**The closing re-read earned its place again** — eight more, and two of them
+were the area's own earlier findings recurring in a sibling file. Owed: one
+unit test, in `waffle/todo.md`.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -396,7 +414,7 @@ will list the other as a dependency whichever goes first.
 | 21 | `menu` | `menu` | **CLOSED 2026-09-11, blessed.** the one menu, its store, and what a game puts in it. Twenty-two findings, all worked or closed. Two were live bugs a throwaway spec caught before they were written down — an outside click that forgot the open submenu, and a second flyout opened by click recording its parent as row 0 — and the second copy of the popover that let the first one hide is gone: one render path. The stylesheet joined the vocabulary (two type sizes on the ramp, every mark in a row `1em`, one muted ink of the menu's own, the submenu mark a registry glyph); a disabled fade that had never painted was deleted. The closing re-read's catch: three files said the game menu unmounts while paused, and it does not. Handed on: "hint" as a repo-wide vocabulary ruling with no guard; a disabled row cannot say why |
 | 22 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **CLOSED 2026-09-11, blessed.** the three root hosts and the headless watcher. Thirty-six findings: thirty-four worked, one closed, one withdrawn. The area's question — what earns a mount at the root — got the wide rule: a thing is mounted at the root when its state crosses subtrees, and the store is how a page reaches it; home is App.tsx's docstring. Two live bugs a throwaway spec caught first: a long press ended by `touchcancel` left the click suppression armed, and a scroll left the hovered control unable to show its bubble again. The card's two exits got the spec they never had; `puptoast` and `pupfault` install in prod; the fault modal's canned fault is built by `diagnosticsLine`; the toast stripe is `--toast-stripe-width`. The closing re-read's lesson: prose names a game by its codename, never the brand. Handed on: `@starting-style` (`core-css`), `FaultModal` hand-draws its title (`floating-panels`) |
 |    | **The feedback system** | | |
-| 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-design.md](feedback-design.md) is the design and the working record; the old system and its description (`feedback-system.md`) were deleted 2026-09-12 once every game converted. `FailureLine` and its stylesheet sit in the folder and were not on the earlier sixteen-file roster — settle that at the opening |
+| 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | **CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-design.md](feedback-design.md) is the design's reasoning; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start" |
 |    | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
 | 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
