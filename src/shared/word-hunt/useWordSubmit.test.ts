@@ -13,6 +13,7 @@ import { renderHook, act } from '@testing-library/react'
  * releases the word so a retry works.
  */
 import { clearFaultsForTest } from '@/common/faults/faultStore'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useWordSubmit, type WordSubmitConfig, type WordEntry } from './useWordSubmit'
 
 const APPLE: WordEntry = { word: 'apple', points: 5, isBonus: false }
@@ -28,6 +29,8 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     userId: 'u1',
     isTerminal: false,
     minWordLength: 4,
+    // A real slot: what the hook shows is read back as its top message.
+    localFeedbackSlot: createFeedbackSlot('local'),
     foundWords: [],
     lookup,
     commit: vi.fn().mockResolvedValue(null), // null = the word landed
@@ -35,6 +38,9 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     ...over,
   }
 }
+
+/** The message the hook last showed — the slot's top. */
+const shown = (cfg: WordSubmitConfig) => cfg.localFeedbackSlot.getTop()
 
 /** Render the hook and give back a typed handle + the ability to swap config
  *  (e.g. to simulate a realtime `found_words` update mid-test). */
@@ -63,35 +69,36 @@ describe('useWordSubmit', () => {
 
     expect(cfg.commit).toHaveBeenCalledTimes(1)
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
-    expect(result.current.localFeedback?.tone).toBe('won')
-    expect(result.current.localFeedback?.text).toBe('APPLE — +5')
+    expect(shown(cfg)?.kind).toBe('result')
+    expect(shown(cfg)?.outcome).toBe('won')
+    expect(shown(cfg)?.text).toBe('APPLE — +5')
     expect(result.current.word).toBe('') // box cleared
     expect(result.current.lastWord).toBe('apple')
   })
 
   it('appends the bonus dot for a bonus word, not for a required word', async () => {
     const cfg = makeCfg()
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     // Bonus dot sits right after the word, before the em-dash.
     type('zesty')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('ZESTY • — +9')
+    expect(shown(cfg)?.text).toBe('ZESTY • — +9')
 
     type('apple')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('APPLE — +5')
+    expect(shown(cfg)?.text).toBe('APPLE — +5')
   })
 
   it('keeps the bonus dot on an already-found bonus word', async () => {
     const cfg = makeCfg()
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('zesty') // ZESTY is a bonus word
     await submit()
     type('zesty')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('ZESTY • — already found')
+    expect(shown(cfg)?.text).toBe('ZESTY • — already found')
   })
 
   it('guards against a same-word re-submit during the realtime-lag window', async () => {
@@ -99,7 +106,7 @@ describe('useWordSubmit', () => {
     // still empty (the realtime insert hasn't landed), so without the pending
     // guard the second submit would double-commit.
     const cfg = makeCfg()
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('apple')
     await submit()
@@ -107,8 +114,8 @@ describe('useWordSubmit', () => {
     await submit()
 
     expect(cfg.commit).toHaveBeenCalledTimes(1)
-    expect(result.current.localFeedback?.tone).toBe('warning')
-    expect(result.current.localFeedback?.text).toMatch(/already found/i)
+    expect(shown(cfg)?.outcome).toBe('warning')
+    expect(shown(cfg)?.text).toMatch(/already found/i)
   })
 
   it('a same-tick double submit fires commit once (input consumed synchronously)', async () => {
@@ -154,7 +161,7 @@ describe('useWordSubmit', () => {
     c1.type('apple')
     await c1.submit()
     expect(coop.commit).not.toHaveBeenCalled()
-    expect(c1.result.current.localFeedback?.text).toMatch(/already found/i)
+    expect(shown(coop)?.text).toMatch(/already found/i)
 
     // In compete, a different player's find does NOT block me.
     const compete = makeCfg({ mode: 'compete', userId: 'u1', foundWords: found })
@@ -166,24 +173,24 @@ describe('useWordSubmit', () => {
 
   it('rejects a too-short word with a warning and no commit', async () => {
     const cfg = makeCfg({ minWordLength: 4 })
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('ab')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(result.current.localFeedback?.tone).toBe('warning')
-    expect(result.current.localFeedback?.text).toMatch(/too short/i)
+    expect(shown(cfg)?.outcome).toBe('warning')
+    expect(shown(cfg)?.text).toMatch(/too short/i)
   })
 
   it('rejects a non-legal word via explainReject (wrapped as WORD — reason)', async () => {
     const cfg = makeCfg({ explainReject: () => 'not on board' })
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(result.current.localFeedback?.tone).toBe('lost')
-    expect(result.current.localFeedback?.text).toBe('QQQQ — not on board')
+    expect(shown(cfg)?.outcome).toBe('lost')
+    expect(shown(cfg)?.text).toBe('QQQQ — not on board')
   })
 
   it('formats a pangram accept as "WORD — pangram +N"', async () => {
@@ -191,21 +198,21 @@ describe('useWordSubmit', () => {
     // also gets the dot after the word.
     const PANGRAM = { word: 'abcdefg', points: 17, isBonus: true, isPangram: true }
     const cfg = makeCfg({ lookup: (w) => (w === 'abcdefg' ? PANGRAM : null) })
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('abcdefg')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('ABCDEFG • — pangram +17')
+    expect(shown(cfg)?.text).toBe('ABCDEFG • — pangram +17')
   })
 
   it('is a no-op once terminal', async () => {
     const cfg = makeCfg({ isTerminal: true })
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('apple')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(result.current.localFeedback).toBeNull()
+    expect(shown(cfg)).toBeNull()
   })
 
   it('releases the word on a failed commit so a retry succeeds', async () => {
@@ -220,24 +227,24 @@ describe('useWordSubmit', () => {
       })
       .mockResolvedValueOnce(null)
     const cfg = makeCfg({ commit })
-    const { result, type, submit } = setup(cfg)
+    const { type, submit } = setup(cfg)
 
     type('apple')
     await submit()
-    // The commit lost → the word is freed and the optimistic "+N" is REPLACED
-    // by the server's own sentence, in red (the `fault` severity's default).
-    // The modal is raised centrally by `runRpc`, not here — so unlike the old
-    // classifier this leaves the pill carrying the words rather than blanking
-    // the slot.
-    expect(result.current.localFeedback).toMatchObject({
-      tone: 'error',
-      text: 'You appear to be offline. Please refresh and try again.',
-    })
+    // The commit lost → the word is freed and the server's own sentence goes
+    // up as a notOk — over the optimistic "+N", in red (the `fault` severity's
+    // default), and × only. The modal is raised centrally by `runRpc`, not
+    // here — so the slot carries the words rather than going blank.
+    expect(shown(cfg)?.kind).toBe('notOk')
+    expect(shown(cfg)?.outcome).toBe('error')
+    expect(shown(cfg)?.text).toBe('You appear to be offline. Please refresh and try again.')
 
-    // Retyping + resubmitting is allowed (not stuck on "already found").
+    // Retyping + resubmitting is allowed (not stuck on "already found"). The
+    // notOk keeps its place until its ×; the new result sits under it.
+    cfg.localFeedbackSlot.close()
     type('apple')
     await submit()
     expect(commit).toHaveBeenCalledTimes(2)
-    expect(result.current.localFeedback?.tone).toBe('won')
+    expect(shown(cfg)?.outcome).toBe('won')
   })
 })

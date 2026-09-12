@@ -1,12 +1,10 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { showFaultModal } from '@/common/faults/faultStore'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
-import { stickyPill } from '@/common/feedback/localPills'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 
 /**
  * The shared **type-a-word-and-submit** engine for the two word-list games
@@ -34,11 +32,11 @@ import { stickyPill } from '@/common/feedback/localPills'
  * `pendingRef` of words accepted-but-not-yet-landed, which closes the realtime-lag
  * window that would otherwise allow a double count.
  *
- * It owns `word`/`lastWord` state and `useLocalFeedback` (the own-move pill is a
- * submit concern — this hook is its only writer). It does NOT own `useCaptureKeys`;
- * that lives inside the shared `<EntryRow>`. A PlayArea wires the returned
- * `word`/`setWord`/`submit`/`localFeedback`/`clearLocalFeedback` into `<EntryRow>`
- * exactly as before.
+ * It owns `word`/`lastWord` state and shows every own-move result into the
+ * game's local feedback slot, which the PlayArea makes (`useFeedbackSlot`) and
+ * hands in — the slot stays the host's, since a game's End / Concede show into
+ * it too. It does NOT own `useCaptureKeys`; that lives inside the shared
+ * `<EntryRow>`, which draws the same slot.
  */
 
 /** One entry of a game's shipped legal list. `word` is the canonical lowercase
@@ -59,6 +57,8 @@ export type WordSubmitConfig = {
   /** True once the game is over — submit becomes a no-op. */
   isTerminal: boolean
   minWordLength: number
+  /** The game's below-board slot: every result this hook produces is shown here. */
+  localFeedbackSlot: FeedbackSlot
   /** Committed rows (from `useGame`), the dedup source. Mode-aware: coop dedups
    *  across all players (one shared find list); compete dedups per-player. */
   foundWords: ReadonlyArray<{ word: string; user_id: string }>
@@ -113,14 +113,6 @@ export type WordSubmitApi = {
   lastWord: string
   /** Fire a submit of the current `word`. */
   submit: () => void
-  localFeedback: GenericFeedbackMsg | null
-  clearLocalFeedback: () => void
-  /** Push a message into the same below-board pill — for the game's *sibling*
-   *  own-actions that aren't word submits (a failed End, a failed New game).
-   *  Takes the full msg (build one with `stickyPill`) so a message carrying
-   *  more than tone+text — `faultMessage`'s fault styling — isn't flattened on
-   *  the way through. Keeps one feedback slot with one look. */
-  showLocalFeedback: (msg: GenericFeedbackMsg) => void
 }
 
 /**
@@ -149,15 +141,14 @@ const line = (word: string, body: string, isBonus = false): string =>
 export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [word, setWordState] = useState('')
   const [lastWord, setLastWord] = useState('')
-  const { localFeedback, showLocalFeedback: showPill, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
 
-  // Latest config held in a ref so `submit` can stay a STABLE callback (deps
-  // `[showPill]`) without listing every cfg field. Synced in a passive effect —
-  // never written during render (react-hooks/refs forbids that). A one-render lag
+  // Latest config held in a ref so `submit` can stay a STABLE callback (no
+  // deps) without listing every cfg field. Synced in a passive effect — never
+  // written during render (react-hooks/refs forbids that). A one-render lag
   // here is harmless: the only race-sensitive cfg use is the `foundWords` dedup,
   // which `pendingRef` already closes synchronously.
   const cfgRef = useRef(cfg)
-  useEffect(() => {
+  useEffect(function syncConfigRef() {
     cfgRef.current = cfg
   })
 
@@ -188,6 +179,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
 
   const submit = useCallback(() => {
     const c = cfgRef.current
+    const slot = c.localFeedbackSlot
     const raw = wordRef.current
     const w = raw.trim().toLowerCase()
     if (w === '' || c.isTerminal) return
@@ -200,7 +192,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      showPill(stickyPill('warning', line(w, 'too short')))
+      slot.show(FeedbackMessage.result('warning', line(w, 'too short')))
       c.recordReject?.(w, 'too_short')
       return
     }
@@ -216,12 +208,12 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      showPill(stickyPill('warning', line(w, 'already found', entry?.isBonus)))
+      slot.show(FeedbackMessage.result('warning', line(w, 'already found', entry?.isBonus)))
       return
     }
 
     if (!entry) {
-      showPill(stickyPill('lost', line(w, c.explainReject(w))))
+      slot.show(FeedbackMessage.result('lost', line(w, c.explainReject(w))))
       // One reason for both misses the lookup can't tell apart (not in the
       // list vs doesn't fit the board); the SERVER re-derives which, since it
       // owns the structural rules and this hook doesn't know them.
@@ -235,31 +227,27 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // right after the word.
     pendingRef.current.add(w)
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    showPill(stickyPill('won', line(w, body, entry.isBonus)))
+    slot.show(FeedbackMessage.result('won', line(w, body, entry.isBonus)))
 
-    // The commit lost: free the word so it can be retried, and replace the
-    // optimistic "+N" with the server's own sentence. Nothing is cleared
-    // first — showing the new pill IS the correction, and a fault's modal is
-    // raised centrally by `runRpc` rather than by anything here.
-    const release = (msg: GenericFeedbackMsg) => {
-      pendingRef.current.delete(w) // free it so the player can retry
-      showPill(msg)
-    }
+    // The commit lost: free the word so it can be retried, and put the
+    // server's own sentence up — a notOk, which ranks over the optimistic "+N"
+    // and needs its × (docs/ui.md → Feedback pill). A fault's modal is raised
+    // centrally by `runRpc` rather than by anything here.
     c.commit(entry).then(
       (failure) => {
         if (failure === null) return // it landed; the optimistic pill stands
+        pendingRef.current.delete(w) // free it so the player can retry
         // The SERVER's sentence, verbatim — never re-wrapped in `line()`. The
         // duplicate's message is already the whole line (`CAT — already
         // found`), composed server-side precisely so the two routes to that
         // rejection read identically; wrapping it again would double the word.
-        // The tone comes from the severity: orange for a race, red for a fault.
-        release({ ...getNotOkFeedback(failure), mode: { kind: 'sticky' } })
+        slot.show(FeedbackMessage.notOk(failure))
       },
       // `runRpc` resolves for every answer it can classify, so a REJECTION here
       // is ours — a commit that threw rather than answering.
       () => showFaultModal({ text: 'BUG: a word commit threw instead of answering' }),
     )
-  }, [showPill, clearLocalFeedback])
+  }, [])
 
-  return { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback: showPill }
+  return { word, setWord, lastWord, submit }
 }

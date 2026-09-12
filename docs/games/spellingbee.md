@@ -415,9 +415,9 @@ src/spellingbee/
                           act-delete-last + act-submit-entry flanking the EntryBox in the input
                           row, and a floating <ShuffleButton> over the board's top-right.)
                           (The own-move result pill is no longer a per-game Feedback.tsx:
-                          it's the shared GenericFeedbackPill, sticky, rendered in the below-board
-                          .localFeedback slot. success / warning / error are all in the common
-                          FeedbackTone now, so the surface needs no game-specific tone type.
+                          it's a `result` in the shared local feedback slot, drawn in the below-board
+                          .localFeedback slot. won / warning / lost are the common `Outcome`, so
+                          the surface needs no game-specific type for them.
                           Peer/opponent events still go to the HEADER slot via the common
                           usePeerFeedback — two distinct LOCATIONS for the same shared pill component.)
     (RankBar)             SHARED common/components/game/RankBar — 7 squares from Start to

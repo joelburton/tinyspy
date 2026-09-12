@@ -21,8 +21,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ReactNode } from 'react'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -34,9 +34,12 @@ import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
 
-// Feedback `text` is now a ReactNode (a <DotActor> widget + sentence) rather
-// than a string — render it and read the plain text to assert on the wording.
-const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
+/** A ctx whose global slot is real, with a spy on its one door. */
+function narrationCtx(over: Partial<GamePageCtx> = {}) {
+  const globalFeedbackSlot = createFeedbackSlot('global')
+  const shown = vi.spyOn(globalFeedbackSlot, 'show')
+  return { ctx: makeCtx({ globalFeedbackSlot, ...over }), shown }
+}
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -101,7 +104,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     // A realistic setup blob — the info-column disclosure + rank target read it.
     setup: { required: 3, legal: 5, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
@@ -383,50 +386,48 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
     }
   }
 
-  it("narrates a teammate's find with the word + points", () => {
-    const ctx = makeCtx({ players: twoMembers })
+  it("narrates a teammate's find with the word + points, the actor leading", () => {
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bead', points: 1 })])
     rerender(<PlayArea {...ctx} />)
-    const msg = vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0]
-    expect(nodeText(msg.text)).toBe('moth found BEAD +1')
-    expect(msg.tone).toBe('won')
+    const feedbackMsg = shown.mock.calls.at(-1)![0]
+    expect(feedbackMsg.kind).toBe('peer')
+    expect(feedbackMsg.actor?.username).toBe('moth')
+    expect(feedbackMsg.text).toBe('found BEAD +1')
+    expect(feedbackMsg.outcome).toBe('won')
   })
 
   it('adds the pangram flourish for a peer pangram', () => {
-    const ctx = makeCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth pangram 🐝 ABCDEFG +17',
-    )
+    expect(shown.mock.calls.at(-1)![0].text).toBe('pangram 🐝 ABCDEFG +17')
   })
 
   it('shows the bonus dot after a peer bonus find', () => {
-    const ctx = makeCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bcdfge', points: 6, is_bonus: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth found BCDFGE • +6',
-    )
+    expect(shown.mock.calls.at(-1)![0].text).toBe('found BCDFGE • +6')
   })
 
-  it('does not narrate your own find (that goes to the local pill)', () => {
-    const ctx = makeCtx({ players: twoMembers })
+  it('does not narrate your own find (that goes to the local slot)', () => {
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'bead', points: 1 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 })
 
 describe('spellingbee PlayArea — compete opponent rank climb', () => {
   // The compete channel is a hand-rolled rank-delta detector over
   // `status.leaderboard` (opponents' words are private, so it reads the aggregate
-  // rank). It seeds each opponent's rank on the first render, then fires a
-  // **sticky** pill when a rank INCREASES.
+  // rank). It seeds each opponent's rank on the first render, then shows a
+  // `peer` message when a rank INCREASES.
   const entry = (rank_idx: number) => ({
     user_id: 'u2',
     rank_idx,
@@ -441,16 +442,18 @@ describe('spellingbee PlayArea — compete opponent rank climb', () => {
       ...over,
     })
 
-  it('fires a sticky pill when an opponent reaches a higher rank', () => {
+  it('narrates an opponent reaching a higher rank', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    const gf = { show: vi.fn(), clear: vi.fn() }
-    const props = competeCtx(1, { globalFeedback: gf as unknown as GamePageCtx['globalFeedback'] })
+    const globalFeedbackSlot = createFeedbackSlot('global')
+    const shown = vi.spyOn(globalFeedbackSlot, 'show')
+    const props = competeCtx(1, { globalFeedbackSlot })
     const { rerender } = render(<PlayArea {...props} />)
-    // Same globalFeedback + players, new leaderboard with u2 climbing 1 → 2.
+    // Same slot + players, new leaderboard with u2 climbing 1 → 2.
     rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
-    const rankMsg = vi.mocked(gf.show).mock.calls.at(-1)![0]
-    expect(nodeText(rankMsg.text)).toMatch(/^moth reached /)
-    expect(rankMsg.mode).toEqual({ kind: 'sticky' })
+    const feedbackMsg = shown.mock.calls.at(-1)![0]
+    expect(feedbackMsg.kind).toBe('peer')
+    expect(feedbackMsg.actor?.username).toBe('moth')
+    expect(feedbackMsg.text).toMatch(/^reached /)
   })
 })
 

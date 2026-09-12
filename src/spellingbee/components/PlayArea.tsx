@@ -1,22 +1,21 @@
 // cs-unmet
 
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import type { Member } from '@/common/members/member'
 import { runRpc } from '@/common/supabase/dbResult'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage, type Actor } from '@/common/feedback/FeedbackMessage'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { memberById } from '@/common/members/memberList'
-import { outOfRacePill } from '@/common/feedback/localPills'
 import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { SpellingbeeSetup } from '../lib/setup'
@@ -36,7 +35,6 @@ import { buildWordSections } from '@/common/pdf/wordSections'
 import shared from '@/common/game-page/PlayArea.module.css'
 import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -77,10 +75,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     setup, clubHandle, goToGame, menu, brand, title,
-    // The COMMON header slot (peer/opponent events, via usePeerFeedback + the compete rank effect) — as
-    // opposed to the local in-body `localFeedback` state below, which carries
+    // The page's header slot (peer/opponent events, via usePeerFeedback + the
+    // compete rank effect) — as opposed to the local slot below, which carries
     // the player's own word result. Two different surfaces.
-    globalFeedback,
+    globalFeedbackSlot,
   } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
@@ -241,13 +239,18 @@ export function PlayArea(ctx: GamePageCtx) {
   // (The local outer-letter shuffle + the letter-click input moved into BoardCol,
   // beside the honeycomb + entry.)
 
-  // ─── Move entry + own-move feedback (shared engine) ────
+  // ─── The local feedback slot ────
+  // The below-board slot every own-move result lands in: the word engine's
+  // results, End / Concede's not-oks, and the two standing conditions below.
+  const localFeedbackSlot = useFeedbackSlot('local')
+
+  // ─── Move entry + own-move results (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word. useWordSubmit owns the typed-word state, the
-  // sticky own-move pill, and the optimistic commit + dedup; spellingbee supplies
-  // the lookup, the RPC, the reject reason (bad-letters / missing-center /
-  // not-a-word), and the success label (with the pangram flourish). See
-  // docs/games/spellingbee.md.
+  // index required ∪ bonus by word. useWordSubmit owns the typed-word state,
+  // the results it shows into the slot, and the optimistic commit + dedup;
+  // spellingbee supplies the lookup, the RPC, the reject reason (bad-letters /
+  // missing-center / not-a-word), and the success label (with the pangram
+  // flourish). See docs/games/spellingbee.md.
   const legalIndex = useMemo(() => {
     const m = new Map<string, WordEntry>()
     for (const r of game?.requiredWords ?? []) {
@@ -260,12 +263,13 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [game?.requiredWords, game?.bonusWords])
 
   const center = game?.center_letter.toLowerCase() ?? ''
-  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
+  const { word, setWord, lastWord, submit } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
       isTerminal: isTerminal || myConceded,
       minWordLength: 4,
+      localFeedbackSlot,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
       // Four ok answers, all meaning the row landed: three classifications the
@@ -319,15 +323,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // styled modal. Concede (compete) is a real loss for the conceder while the
   // others race on. Replay restarts this board, clearing everyone's finds. All
   // three are the byte-identical shared handlers (useStandardGameActions); only
-  // the failure-pill format + the replay sentence are spellingbee's. New game
-  // stays below — its create path diverges per game.
+  // the replay sentence is spellingbee's. New game stays below — its create
+  // path diverges per game.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
   })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
@@ -360,12 +364,12 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`spellingbee_${gameMode}`, res.data.id)
@@ -393,7 +397,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -427,28 +431,15 @@ export function PlayArea(ctx: GamePageCtx) {
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
-      if (r.user_id === session.user.id) return null // own word → in-body pill
+      if (r.user_id === session.user.id) return null // own word → the local slot
       const member = players.find((p) => p.user_id === r.user_id)
-      return {
-        tone: 'won',
-        // A pangram leads with the label + the bee, so the headline reads before
-        // the word does — and so the line fits the header pill's ~26 phone
-        // characters, which "found WORD +14 — pangram! 🐝" did not.
-        text: r.is_pangram ? (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> pangram 🐝{' '}
-            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
-          </>
-        ) : (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> found{' '}
-            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      // A pangram leads with the label + the bee, so the headline reads before
+      // the word does — and so the line fits the header's ~26 phone characters,
+      // which "found WORD +14 — pangram! 🐝" did not.
+      const what = `${r.is_pangram ? 'pangram 🐝' : 'found'} ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`
+      return FeedbackMessage.peer(member, 'won', what)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
   // ─── Compete opponent-rank narration (global header) ───────────
@@ -457,9 +448,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // detector (bucket B in docs/peer-feedback-audit.md), NOT a seen-set: it fires
   // on a rank INCREASE, not a new row, so it stays hand-rolled here. `ranksReady`
   // seeds each player's last-seen rank on first load so history isn't replayed.
+  // A `peer` message like the rest of the header's news: it fades, where it
+  // used to stay until replaced.
   const prevRankRef = useRef<Map<string, number>>(new Map())
   const ranksReadyRef = useRef(false)
-  useEffect(() => {
+  useEffect(function narrateRankClimbs() {
     if (game?.mode !== 'compete') return
     const board = readLeaderboard(status)
     const prev = prevRankRef.current
@@ -474,22 +467,69 @@ export function PlayArea(ctx: GamePageCtx) {
       if (row.user_id === session.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
-        globalFeedback.show({
-          tone: 'noted',
-          text: (
-            <>
-              <DotActor actor={member} fallback="An opponent" /> reached{' '}
-              {RANKS[row.rank_idx] ?? 'a new rank'}
-            </>
-          ),
-          mode: { kind: 'sticky' },
-        })
+        globalFeedbackSlot.show(
+          FeedbackMessage.peer(member, 'noted', `reached ${RANKS[row.rank_idx] ?? 'a new rank'}`),
+        )
       }
     }
-  }, [game, status, players, session.user.id, globalFeedback])
+  }, [game, status, players, session.user.id, globalFeedbackSlot])
 
-  // Called UNCONDITIONALLY here, before any early returns —
-  // React forbids conditional hook calls.
+  // ─── The two standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The per-status terminal message, memoized on primitives so the verdict
+  // effect sees one object per outcome, not one per render. The winner is
+  // read as name + color rather than as the member object for the same reason.
+  const isCompete = game?.mode === 'compete'
+  const selfRankIdx = currentRankIndex(foundWordsScore, game?.required_words_score ?? 0)
+  // Target rank reads off `setup`, NOT `status.target_rank`. Setup is fixed at
+  // create_game time and lives on every code path; the status copy is written by
+  // submit_word and the terminals, but reading it would make the verdict depend
+  // on which terminal path ran. Both modes now: compete's race finish line, and
+  // coop's OPTIONAL win threshold (null = the open-ended hunt).
+  const targetRankIdx = spellingbeeSetup.target_rank ?? null
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winner = players.find((p) => p.user_id === winnerId)
+  const winnerName = winner?.username
+  const winnerColor = winner?.color
+  const statusOutcome = (status?.outcome as string | undefined) ?? 'ended'
+  const requiredWordsScore = game?.required_words_score ?? 0
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({
+            mode: gameMode,
+            playState,
+            statusOutcome,
+            winnerId,
+            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
+            targetRankIdx,
+            foundWordsScore,
+            requiredWordsScore,
+            selfRankIdx,
+            selfId: session.user.id,
+          })
+        : null,
+    [isTerminal, gameMode, playState, statusOutcome, winnerId, winnerName, winnerColor, targetRankIdx,
+     foundWordsScore, requiredWordsScore, selfRankIdx, session.user.id],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I conceded but the game continues for the
+  // others. spellingbee has no other per-player "done" state (no elimination),
+  // so conceding is the only way to reach it.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
 
   if (loading) {
     return <div className={surface.loading}>Loading…</div>
@@ -502,18 +542,9 @@ export function PlayArea(ctx: GamePageCtx) {
     return <div className={surface.empty}>Game not found.</div>
   }
 
-  const isCompete = game.mode === 'compete'
-  // Locally terminal (compete only): I conceded but the game continues for the
-  // others. spellingbee has no other per-player "done" state (no elimination),
-  // so conceding is the only way to reach it.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-
-  // Caller's current rank in the local ladder. For compete this
-  // is the value the OpponentStrip surfaces for the "You:
-  // <rank>" entry. For coop it's the team rank (same number, same
-  // computation — the RLS-narrowed sum just happens to equal the
-  // team sum in coop because everyone sees every row).
-  const selfRankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
+  // (`selfRankIdx` — the caller's rank in the local ladder, which compete's
+  // OpponentStrip surfaces as "You: <rank>" and coop reads as the team rank —
+  // is derived above, beside the verdict that reads it.)
 
   // Compete-only: pull the leaderboard payload off the live
   // status jsonb. Pre-first-submission the array is empty and
@@ -523,26 +554,6 @@ export function PlayArea(ctx: GamePageCtx) {
     : null
   // Each peer's rank index, keyed by user — the OpponentStrip metric reads it.
   const rankByUser = new Map(leaderboard?.map((e) => [e.user_id, e.rank_idx]) ?? [])
-  // Target rank reads off `setup`, NOT `status.target_rank`. Setup is fixed at
-  // create_game time and lives on every code path; the status copy is written by
-  // submit_word and the terminals, but reading it would make the verdict depend
-  // on which terminal path ran. Both modes now: compete's race finish line, and
-  // coop's OPTIONAL win threshold (null = the open-ended hunt).
-  const targetRankIdx = spellingbeeSetup.target_rank ?? null
-
-  const over = isTerminal
-    ? buildOver({
-      mode: game.mode,
-      playState,
-      status,
-      targetRankIdx,
-      foundWordsScore,
-      requiredWordsScore: game.required_words_score,
-      selfRankIdx,
-      selfId: session.user.id,
-      players,
-    })
-    : null
 
   // Merged, alphabetized rows for the shared WordList (found + the terminal
   // reveal). The reveal covers BOTH shipped lists — the missed bonus words are
@@ -571,17 +582,13 @@ export function PlayArea(ctx: GamePageCtx) {
         word={word}
         onChange={setWord}
         onSubmit={submit}
-        // Locally terminal (compete: I conceded while the others play on) gets the
-        // standard "you're out" pill, so the frozen entry has an explanation right
-        // beside it. The InfoCol's LocalTerminalRow says the same thing tersely —
-        // dual placement is the rule (docs/playarea.md), and on a phone the InfoCol
-        // is off-canvas, making this the ONLY copy the player sees.
-        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
-        clearLocalFeedback={clearLocalFeedback}
+        // The slot the entry row draws: a word result, the "you're out" state
+        // (its info-column twin is the LocalTerminalRow — dual placement is the
+        // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
+        // this is the ONLY copy the player sees), the verdict.
+        localFeedbackSlot={localFeedbackSlot}
         lastWord={lastWord}
         isTerminal={isTerminal}
-        // ── Below-board pill ──
-        over={over}
       />
 
       {/* The info column. Its top region — the readouts + action row + setup — is
@@ -645,10 +652,10 @@ export function PlayArea(ctx: GamePageCtx) {
 
 
 /**
- * The terminal copy: `verdict` + `tone` drive the permanent below-board pill,
- * `message` + `tone` the short bold line in the info-column action row. No modal
- * carries the verdict — a coop WIN pops `<CelebrationBlockingModal>` and everything
- * else lives in-page.
+ * The terminal message: `pillText` + `outcome` are the below-board verdict,
+ * `infoColText` + `outcome` the short bold line in the info-column action row.
+ * No modal carries the verdict — a coop WIN pops `<CelebrationBlockingModal>`
+ * and everything else lives in-page.
  *
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the
  * result reads before the detail does, and they stay short enough for the
@@ -664,27 +671,33 @@ export function PlayArea(ctx: GamePageCtx) {
  *
  * **Compete** (a target rank is always set):
  *   - `won_compete`, caller won → `Won: "Amazing" 47/50 points`
- *   - `won_compete`, beaten → `● alice won at "Amazing"` (a WIDGET — the
- *     opponent's identity dot — hence `verdictNode`; `verdict` carries the
- *     plain-text twin for anything that needs a string)
+ *   - `won_compete`, beaten → `● alice won at "Amazing"` — the winner is the
+ *     message's `actor`, drawn as the leading mention the way every other
+ *     peer message names a person; no "Lost:" prefix, the loss is implicit
  *   - `lost_compete` + outcome `conceded` (everyone dropped) → `Lost: all conceded`
  *   - `lost_compete` + outcome `timeout` → `Lost: ran out of time`
- *   - `ended` + outcome `manual` → the shared `endedCopy('compete')` → `Game ended — no winner`
+ *   - `ended` + outcome `manual` → the shared `gameEndedTerminalMessage('compete')` → `Game ended — no winner`
  */
 function buildOver({
   mode,
   playState,
-  status,
+  statusOutcome,
+  winnerId,
+  winner,
   targetRankIdx,
   foundWordsScore,
   requiredWordsScore,
   selfRankIdx,
   selfId,
-  players,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  status: Record<string, unknown> | null
+  /** `status.outcome`, or 'ended' when the status carries none. */
+  statusOutcome: string
+  /** `status.winner_user_id`, or null. */
+  winnerId: string | null
+  /** The winner's identity, when the roster knows them. */
+  winner: Actor | undefined
   /** From `setup.target_rank`: always set in compete, optional in coop (null =
    *  the open-ended hunt, which has no win condition). */
   targetRankIdx: number | null
@@ -692,11 +705,7 @@ function buildOver({
   requiredWordsScore: number
   selfRankIdx: number
   selfId: string
-  players: Member[]
-  // The shared TerminalCopy plus an optional NODE verdict — the one case where
-  // the pill needs a widget (the winner's identity dot) rather than a string.
-  // InfoCol consumes it as a plain TerminalCopy.
-}): TerminalCopy & { verdictNode?: ReactNode } {
+}): TerminalMessage {
   const rankName = RANKS[selfRankIdx]
   const points = `${foundWordsScore}/${requiredWordsScore} points`
 
@@ -706,28 +715,18 @@ function buildOver({
     const targetRankName = RANKS[targetRankIdx ?? 6]
 
     if (playState === 'won_compete') {
-      const winnerId = (status?.winner_user_id as string | undefined) ?? null
       if (winnerId === selfId) {
         return {
-          verdict: `Won: "${targetRankName}" ${points}`,
-          message: 'You won!',
-          tone: 'won',
+          pillText: `Won: "${targetRankName}" ${points}`,
+          infoColText: 'You won!',
+          outcome: 'won',
         }
       }
-      const winner = players.find((p) => p.user_id === winnerId)
-      const winnerName = winner?.username ?? 'someone'
       return {
-        verdict: `${winnerName} won at "${targetRankName}"`,
-        // The identity dot names the winner the way every other peer message
-        // does — no "Lost:" prefix needed, the loss is implicit in "they won".
-        verdictNode: (
-          <>
-            <DotActor actor={winner} fallback="someone" show="both" /> won at "
-            {targetRankName}"
-          </>
-        ),
-        message: `${winnerName} won`,
-        tone: 'lost',
+        pillText: `won at "${targetRankName}"`,
+        infoColText: `${winner?.username ?? 'a player'} won`,
+        outcome: 'lost',
+        actor: winner,
       }
     }
 
@@ -737,24 +736,23 @@ function buildOver({
     // last racer dropped, via common.concede), 'timeout' (the clock beat
     // everyone to the target), or 'manual'. The clock and attrition are
     // losses; agreeing to stop isn't.
-    const outcome = (status?.outcome as string | undefined) ?? 'ended'
-    if (outcome === 'conceded') {
+    if (statusOutcome === 'conceded') {
       return {
-        verdict: 'Lost: all conceded',
-        message: 'All conceded',
-        tone: 'lost',
+        pillText: 'Lost: all conceded',
+        infoColText: 'All conceded',
+        outcome: 'lost',
       }
     }
-    if (outcome === 'timeout') {
+    if (statusOutcome === 'timeout') {
       return {
-        verdict: 'Lost: ran out of time',
-        message: 'Out of time',
-        tone: 'lost',
+        pillText: 'Lost: ran out of time',
+        infoColText: 'Out of time',
+        outcome: 'lost',
       }
     }
-    // The shared neutral manual-end copy, like every other game — the friends
-    // agreed to stop, and that sentence isn't per-game.
-    return endedCopy('compete')
+    // The shared neutral manual-end message, like every other game — the
+    // friends agreed to stop, and that sentence isn't per-game.
+    return gameEndedTerminalMessage('compete')
   }
 
   // ─── coop ───
@@ -762,24 +760,24 @@ function buildOver({
     // The rank NAMED is the one they set out for; the score can overshoot it.
     const targetRankName = RANKS[targetRankIdx ?? selfRankIdx]
     return {
-      verdict: `Won: "${targetRankName}" ${points}`,
-      message: 'You won!',
-      tone: 'won',
+      pillText: `Won: "${targetRankName}" ${points}`,
+      infoColText: 'You won!',
+      outcome: 'won',
     }
   }
   if (playState === 'lost') {
     // Only reachable with a target set: the countdown beat them to it.
     return {
-      verdict: 'Lost: ran out of time',
-      message: 'Out of time',
-      tone: 'lost',
+      pillText: 'Lost: ran out of time',
+      infoColText: 'Out of time',
+      outcome: 'lost',
     }
   }
   // 'ended' — the open-ended hunt finishing, or an early stop. Neutral, and the
   // same sentence at every rank (Genius included): they didn't fail at anything.
   return {
-    verdict: `Ended: ${rankName} ${points}`,
-    message: rankName,
-    tone: 'neutral',
+    pillText: `Ended: ${rankName} ${points}`,
+    infoColText: rankName,
+    outcome: 'neutral',
   }
 }

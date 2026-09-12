@@ -71,6 +71,21 @@ and not-oks as constructors, `buildOver` → `TerminalMessage`; BoardCol draws
 took it off the name guard's pending list. Its four e2e specs (history,
 keyboard, mobile, print) run on Joel's word.
 
+**wordle COMMITTED** (`ff6670c0`), its e2e green.
+
+**spellingbee CONVERTED (2026-09-12), uncommitted, awaiting Joel's read**,
+and with it the shared `useWordSubmit` (the word-hunt engine boggle,
+wordwheel and wordiply also use): the hook no longer owns a slot — it takes
+the host's `localFeedbackSlot` and shows results into it, so its API drops
+the three feedback fields; a failed commit shows a `notOk` over the
+optimistic "+N" instead of replacing it. spellingbee: two condition effects
+(the verdict, out of the race — no turn order here), `over` memoized on
+primitives with the winner read as name + color, `buildOver` →
+`TerminalMessage` with the compete loser's `actor` in place of the old
+`verdictNode`; "reached Genius" is a `peer` message (§4.4 row 5); BoardCol
+hands the slot to `<EntryRow>` and a letter click is `dismiss`. Its five
+e2e specs run on Joel's word.
+
 **Next:** the other games, one by one.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
