@@ -166,7 +166,20 @@ the header. `buildOver` → `TerminalMessage` on primitives; `Board` reads its
 `TerminalOutcome` from `terminalMessage.ts`. Restart dismisses the last
 result.
 
-**waffle COMMITTED**, its four e2e specs green.
+**waffle COMMITTED** (`e74ce47f`), its four e2e specs green.
+
+**connections CONVERTED (2026-09-12).**
+Three condition effects in PlayArea: the verdict, out of the race
+(eliminated or conceded), whose turn. BoardCol owns the guess and shows its
+own results — "Correct" / "One away!" / "Incorrect" / "You already tried
+that" as `result`s, a refused guess as `notOk` — and the verdict RING on the
+guessed tiles takes the message's `outcome` and remembers the slot entry it
+belongs to, drawing only while that entry is still in the slot: a tap on
+the pill takes the ring with it, with no dismiss callback threaded through.
+A tile click is `dismiss` + the ring off. The coop peer narration is `peer`
+with the guess's outcome. `buildOver` → `TerminalMessage` on primitives.
+
+**connections COMMITTED**, its five e2e specs green.
 
 **Next:** the other games, one by one.
 

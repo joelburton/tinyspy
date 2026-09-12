@@ -374,9 +374,11 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 ## Frontend
 
-The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback +
-the terminal/eliminated message are the shared `<FeedbackPill>` (sticky, dismissed on
-the next tile click); every command — Hints, Clear, Submit, End, Concede, Restart,
+The FE follows the v3 conventions (see [ui.md](../ui.md)): an own-guess result, a
+not-ok, "you're out", whose turn, and the terminal verdict all show through the
+local feedback slot's `<FeedbackPill>` in the commit row's place (a result is
+dismissed by the next tile click; [ui.md → Feedback pill](../ui.md#feedback-pill));
+every command — Hints, Clear, Submit, End, Concede, Restart,
 New game, Reveal — is an `<ActionButton>` over a bound action, so its words, glyph,
 availability and key are stated once ([common/actions](../../src/common/actions/doc.md));
 mistakes
@@ -410,6 +412,8 @@ undo:
   stays, because a fast teammate must not rob you of your own answer. `BoardCol`
   reads the guess log for this: a row that isn't mine, or a shrinking log (a
   restart), clears the mark — while my own row landing a beat later does not.
+  The mark also remembers which slot entry it belongs to and is drawn only while
+  that entry is still in the slot, so a tap on the pill takes the mark with it.
 - **Attention is gated on the log, never on a board diff.** A restart re-deals and
   the reveal swaps four bands in at once; both differ wildly from the previous
   render and neither is news (`useMoveCausedChange`). It also never fires for the
@@ -437,9 +441,9 @@ nothing.
 **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
 a dialog would duplicate the below-board pill — same verdict, same moment — so it
 would only cost a dismiss. The
-result lives in-page: the below-board slot swaps the commit row for a permanent
-outcome-colored pill carrying `over.verdict`, and the info-column action row swaps
-its buttons for the bold `over.message` line + a back-to-club button.
+result lives in-page: the below-board slot swaps the commit row for the filled
+verdict carrying `over.pillText`, and the info-column action row swaps its buttons
+for the bold `over.infoColText` line + a back-to-club button.
 
 A **coop solve** additionally pops the shared `<CelebrationBlockingModal>` ("You win! 🎉"),
 driven by `useCelebration(playState === 'won')` — once, at the moment the fourth
@@ -490,10 +494,10 @@ src/connections/
                           in coop) and passes down to BoardCol.
                           **Feedback splits local vs group** (like psychicnum; see ui.md +
                           deferred.md → Feedback channels): my OWN guess result shows
-                          green/amber/red as the shared below-board <GenericFeedbackPill>
-                          (`useLocalFeedback`, in the fixed-height `.localFeedback` slot),
-                          dismissed on the next move; a teammate's
-                          guess is a header pill ("● Bea found category"). Only coop reaches
+                          green/amber/red as a `result` in the local feedback slot
+                          (the shared `<FeedbackPill>`, in the fixed-height `.localFeedback`
+                          slot), dismissed on the next move; a teammate's
+                          guess is a `peer` message in the header ("● Bea found category"). Only coop reaches
                           the header — compete's guesses log is RLS-scoped to the caller.
     PlayArea.module.css
     PlayArea.test.tsx     Render + concede-wiring tests (useGame + db mocked; everything else

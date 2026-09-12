@@ -5,13 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { colorByUserIdMap } from '@/common/members/memberColor'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
@@ -20,8 +20,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { memberById } from '@/common/members/memberList'
-import { DotActor } from '@/common/members/ActorMention'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -34,7 +33,6 @@ import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { turnSnapshot } from '../lib/history'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -69,12 +67,12 @@ const MISTAKE_BUDGET = 4
  *     compete distinguishes "you won the race" from "beaten to
  *     the punch" using the caller's matched-count.
  *   - **Feedback split** (docs/deferred.md → Feedback channels;
- *     mirrors psychicnum): my OWN guess result flashes green/red
+ *     mirrors psychicnum): my OWN guess result shows green/red
  *     in the commit slot below the board (local — near my eyes,
  *     about what I just did); a teammate's guess is narrated in
- *     the GamePage header pill (group). Compete reaches neither
- *     header branch — the guesses log is RLS-scoped to the caller,
- *     so there are no peer events to announce.
+ *     the GamePage header (the global slot). Compete reaches
+ *     neither header branch — the guesses log is RLS-scoped to the
+ *     caller, so there are no peer events to announce.
  *
  * Submission flow:
  *   1. FE evaluates the guess locally against board.categories
@@ -105,7 +103,7 @@ export function PlayArea({
   isMyTurn,
   currentTurnUserId,
   setup,
-  globalFeedback,
+  globalFeedbackSlot,
   clubHandle,
   goToGame,
   menu,
@@ -180,26 +178,20 @@ export function PlayArea({
   // free-for-all game, where `isMyTurn` is permanently true.
   const turnFlash = useTurnStartFlash(isMyTurn)
 
-  // ─── Commit-slot flash (own-action feedback, local) ─────
-  // A transient message shown *in place of the commit buttons* for the
-  // player's own guess: "Correct!" (green) / "One away!" (amber) /
-  // "Incorrect" (red), or a validation/RPC error (red). It lives in the
-  // commit row's already-reserved height (never a new line that would
-  // reflow the board — docs/ui.md → Layout stability), and `clearLocalFeedback`
-  // dismisses it the moment the player clicks a tile to start a fresh selection
-  // (handleToggle below) — the tile-click analog of psychicnum's "typing
-  // dismisses the flash". Local channel: near my eyes, about what I just did
-  // (docs/deferred.md → Feedback channels). Shared machinery; the host owns
-  // where it renders + when it clears early.
-  const {
-    localFeedback,
-    showLocalFeedback,
-    clearLocalFeedback,
-  } = useLocalFeedback({ locked: isTerminal })
-  // Any key is the player's next move → dismiss the own-move pill, even though
-  // connections has no keyboard entry (guesses are tile clicks). No-op at
-  // terminal (locked).
-  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // ─── The local feedback slot (own-action feedback) ─────
+  // Shown *in place of the commit buttons*: the player's own guess result —
+  // "Correct" (green) / "One away!" (amber) / "Incorrect" (red) — a not-ok,
+  // and the standing conditions further down. It lives in the commit row's
+  // already-reserved height (never a new line that would reflow the board —
+  // docs/ui.md → Layout stability), and a tile click dismisses a result the
+  // moment the player starts a fresh selection (BoardCol's handleToggle) —
+  // the tile-click analog of psychicnum's "typing dismisses the result".
+  // Local channel: near my eyes, about what I just did (docs/deferred.md →
+  // Feedback channels).
+  const localFeedbackSlot = useFeedbackSlot('local')
+  // Any key is the player's next move → dismiss a gesture-cleared message,
+  // even though connections has no keyboard entry (guesses are tile clicks).
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn (the bands matched before it + this
@@ -217,41 +209,24 @@ export function PlayArea({
   // get the local commit flash above; my guess also already shows in the
   // turn log. Compete never reaches here: the guesses log is RLS-scoped to
   // the caller server-side, so no foreign rows arrive, and we gate on coop
-  // besides. globalFeedback.show is a prop callback, so no local set-state here.
+  // besides.
   usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
     keyOf: (g) => g.id,
     messageFor: (g) => {
-      if (g.user_id === session.user.id) return null // mine → local commit flash
+      if (g.user_id === session.user.id) return null // mine → the local slot
       const member = memberById(players, g.user_id)
       if (g.matched) {
         // NOT the category's name: it's puzzle data of unbounded length (a NYT
-        // category can run 25+ chars), and the header pill fits ~26 on a phone
+        // category can run 25+ chars), and the header fits ~26 on a phone
         // before it ellipsises. The solved band appears on the reader's own
         // board at the same moment, so naming it here says nothing new.
-        return {
-          tone: 'won',
-          text: (
-            <>
-              <DotActor actor={member} fallback="Someone" /> found category
-            </>
-          ),
-          mode: { kind: 'timed' },
-        }
+        return FeedbackMessage.peer(member, 'won', 'found category')
       }
-      return {
-        tone: g.outcome,
-        text: (
-          <>
-            <DotActor actor={member} fallback="Someone" />{' '}
-            {g.outcome === 'near' ? 'was one away' : 'guessed wrong'}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      return FeedbackMessage.peer(member, g.outcome, g.outcome === 'near' ? 'was one away' : 'guessed wrong')
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
@@ -267,7 +242,7 @@ export function PlayArea({
   // column and a menu row, one binding. Concede is compete's drop-out (a real
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
-  // and `onRestarted` leaves the turn-history view + clears the pill.
+  // and `onRestarted` leaves the turn-history view + dismisses the last result.
   // ─── The categories show only when I ask for them ─────
   // Never automatically. connections used to be one of the two games registered
   // hides_solution = false, so a loss (or, in compete, being eliminated) put the
@@ -303,10 +278,10 @@ export function PlayArea({
       isTerminal,
       mode: game?.mode === 'compete' ? 'compete' : 'coop',
       myConceded,
-      showError: showLocalFeedback,
+      localFeedbackSlot,
       onRestarted: () => {
         exitViewing()
-        clearLocalFeedback()
+        localFeedbackSlot.dismiss()
         // The same sixteen tiles again, so whatever was picked for the guess
         // that is now gone must go with it — and this one BROADCASTS, so every
         // teammate's board drops it too rather than starting the replay with a
@@ -350,8 +325,8 @@ export function PlayArea({
   const createNewGame = async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
 
-    // Ask what we'd get, purely so running out can be a NOTICE rather than an
-    // error pill: "there is no next puzzle" is a fact about the archive, not a
+    // Ask what we'd get, purely so running out can be a NOTICE rather than a
+    // not-ok: "there is no next puzzle" is a fact about the archive, not a
     // failure of this click. Same shape strands uses. The answer is advisory —
     // the create below derives it again, so a peer taking that puzzle in the
     // gap costs nothing.
@@ -375,11 +350,11 @@ export function PlayArea({
       })
       return
     } else if (preview.type === 'not-ok') {
-      // Anything else: the pill carries the words, because the fault modal that
+      // Anything else: the slot carries the words, because the fault modal that
       // just fired is dismissable and this is what remains once it is gone. It
       // also has to be said HERE — the new game never happens, and a player who
       // pressed a button and saw nothing change is owed a reason.
-      showLocalFeedback({ ...getNotOkFeedback(preview), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(preview))
       return
     } else if (preview.type === 'ok' && preview.data.result === 'found') {
       // A puzzle is waiting, so the create below runs. Nothing to do HERE: the
@@ -409,11 +384,12 @@ export function PlayArea({
     )
     if (res.type === 'not-ok') {
       // The same envelope the setup form reads, read differently: there is no
-      // field and no form here, so whatever came back goes in the pill as it
-      // reads. Shown even for a fault, whose modal has already fired centrally
-      // — the modal escalates, it does not replace, and dismissing it must not
-      // leave the board silent about why the game did not start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      // field and no form here, so whatever came back goes in the slot as it
+      // reads, over the verdict, until its × is pressed. Shown even for a
+      // fault, whose modal has already fired centrally — the modal escalates,
+      // it does not replace, and dismissing it must not leave the board silent
+      // about why the game did not start.
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`connections_${gameMode}`, res.data.id)
@@ -521,7 +497,7 @@ export function PlayArea({
   //
   // Hints is a MENU row as well as an info-column button: that button is
   // icon-only, so the row is where its name is taught beside its glyph.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -543,6 +519,65 @@ export function PlayArea({
 
   // (The guess dispatch — submit_guess + dup detection + the wrong-guess shake — and
   // the local tile shuffle moved into BoardCol, beside the board + commit row.)
+
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. Compete distinguishes the winner (caller hit 4
+  // matches — RLS hides peer matches, so caller-with-4-matched is the
+  // server-confirmed winner) from two kinds of loser: eliminated (used all 4
+  // mistakes) vs "beaten to the punch" (still racing when an opponent solved
+  // it). Coop verdicts are team-wide.
+  const timerExpired = timer.expired
+  const selfMatched = matchedCategories.length
+  const selfEliminated = mistakeCount >= MISTAKE_BUDGET
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({ mode: gameMode, playState, timerExpired, selfMatched, selfEliminated })
+        : null,
+    [isTerminal, gameMode, playState, timerExpired, selfMatched, selfEliminated],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete, not game-over): caller is out of the race but
+  // the game continues for the survivors — either eliminated (hit 4 mistakes)
+  // OR they conceded (dropped out). It freezes this player's input; it does NOT
+  // open the answer, which waits for the game to be over for everyone (see the
+  // reveal below). Sitting out with the puzzle unspoiled is the better version
+  // of spectating, and it's the same rule every other game follows.
+  const locallyDone = isEliminated || myConceded
+  useEffect(function showOutOfRace() {
+    if (!locallyDone || isTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(myConceded))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, locallyDone, isTerminal, myConceded])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. It carries the
+  // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
+  // off-canvas in the InfoSheet; without it a frozen board just ignored taps
+  // with no explanation.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
 
   if (loading) return <p>Loading board…</p>
   // THE LOAD FAILED, which is not the same as the game being absent — and used
@@ -580,13 +615,6 @@ export function PlayArea({
 
   const colorByUserId = colorByUserIdMap(players)
 
-  // Locally terminal (compete, not game-over): caller is out of the race but
-  // the game continues for the survivors — either eliminated (hit 4 mistakes)
-  // OR they conceded (dropped out). It freezes this player's input; it does NOT
-  // open the answer, which waits for the game to be over for everyone (see the
-  // reveal below). Sitting out with the puzzle unspoiled is the better version
-  // of spectating, and it's the same rule every other game follows.
-  const locallyDone = isEliminated || myConceded
   const showInput = !isTerminal && !locallyDone
 
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
@@ -594,31 +622,8 @@ export function PlayArea({
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
-  // Modal copy. Compete distinguishes the winner (caller hit 4 matches —
-  // RLS hides peer matches, so caller-with-4-matched is the server-confirmed
-  // winner) from two kinds of loser: eliminated (used all 4 mistakes) vs
-  // "beaten to the punch" (still racing when an opponent solved it). Coop
-  // verdicts are team-wide.
-  const over = isTerminal ? buildOver({
-    mode: game.mode,
-    playState,
-    timerExpired: timer.expired,
-    selfMatched: matchedCategories.length,
-    selfEliminated: mistakeCount >= MISTAKE_BUDGET,
-  }) : null
-
   const connSetup = setup as ConnectionsSetup
   const found = matchedCategories.length
-
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there — the pill's presence is
-  // fixed for the game's life, no reflow. It carries the whose-turn answer on
-  // MOBILE, where the InfoCol's TurnStatusLine is off-canvas in the InfoSheet;
-  // without it a frozen board just ignored taps with no explanation.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const boardPill = waiting
-    ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
-    : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -640,7 +645,7 @@ export function PlayArea({
         // the verdict's), or this player is out of a compete race while the
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
-        gameOver={over ? over.tone : locallyDone ? 'neutral' : null}
+        gameOver={over ? over.outcome : locallyDone ? 'neutral' : null}
         onExitViewing={exitViewing}
         // ── Tile selection (state in useGame; rendered + committed here) ──
         ownerByTile={ownerByTile}
@@ -654,18 +659,14 @@ export function PlayArea({
         // be decoration on top of the selection border; in compete the selection
         // never leaves this client, so the same holds however many are racing.
         sharedBoard={game.mode === 'coop' && players.length > 1}
-        // ── Own-guess feedback (channel owned by PlayArea) ──
-        localPill={boardPill}
-        showLocalFeedback={showLocalFeedback}
-        clearLocalFeedback={clearLocalFeedback}
+        // ── Own-guess feedback (the slot is PlayArea's) ──
+        localFeedbackSlot={localFeedbackSlot}
         // ── Guess dispatch ──
         gameId={gameId}
         guesses={guesses}
-        // ── Below-board readout / slot content ──
+        // ── Below-board readout ──
         mistakeCount={mistakeCount}
         mistakeBudget={MISTAKE_BUDGET}
-        over={over}
-        myConceded={myConceded}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -711,7 +712,7 @@ export function PlayArea({
       </InfoSheet>
 
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line,
+          in-page by the below-board slot + the info-column outcome line,
           and a coop solve gets the celebration instead — once, when it happens. */}
       {celebration.show && (
         <CelebrationBlockingModal
@@ -726,8 +727,8 @@ export function PlayArea({
 }
 
 /**
- * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
- * pill; `message` + `tone` drive the short, bold, color-coded line in the
+ * The per-status terminal message. `pillText` + `outcome` are the below-board
+ * verdict; `infoColText` + `outcome` the short, bold, color-coded line in the
  * info-column action row (won = green, lost = red, manual end = neutral). Same
  * shape as psychicnum's buildOver. Coop
  * verdicts are team-wide; compete distinguishes the racer who hit 4 matches (the
@@ -738,7 +739,7 @@ export function PlayArea({
  *
  * Verdicts are terse and unpunctuated ("Lost: out of mistakes", not "You lost:
  * out of mistakes."): the pill is a fixed-height, ellipsising row that has to fit
- * a phone (docs/mobile.md → feedback copy).
+ * a phone (docs/mobile.md → feedback text).
  */
 function buildOver({
   mode,
@@ -754,40 +755,41 @@ function buildOver({
   /** Compete: did the caller use all their mistakes? Distinguishes the
    *  out-of-mistakes loss from "beaten to the punch". */
   selfEliminated: boolean
-}): TerminalCopy {
+}): TerminalMessage {
   // Manual end (connections.end_game) — NEUTRAL terminal in BOTH modes: the
-  // friends chose to stop, nobody won or lost. The shared endedCopy() owns it
-  // (green modal, neutral copy). Must come first — 'ended' is mode-independent.
-  if (playState === 'ended') return endedCopy(mode)
+  // friends chose to stop, nobody won or lost. The shared
+  // gameEndedTerminalMessage() owns it. Must come first — 'ended' is
+  // mode-independent.
+  if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { verdict: 'You win!', message: 'You won!', tone: 'won' }
+      return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }
     }
     return {
-      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
-      message: timerExpired ? 'Out of time' : 'Out of mistakes',
-      tone: 'lost',
+      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
+      infoColText: timerExpired ? 'Out of time' : 'Out of mistakes',
+      outcome: 'lost',
     }
   }
   // compete
   if (playState === 'won_compete') {
     if (selfMatched >= CATEGORY_COUNT) {
-      return { verdict: 'Won: the race', message: 'You won!', tone: 'won' }
+      return { pillText: 'Won: the race', infoColText: 'You won!', outcome: 'won' }
     }
     // I lost — but WHY matters. If I used all my mistakes I was eliminated
     // (out of mistakes); "beaten to the punch" is only for a still-racing player
     // whose opponent solved it first.
     if (selfEliminated) {
-      return { verdict: 'Lost: out of mistakes', message: 'Out of mistakes', tone: 'lost' }
+      return { pillText: 'Lost: out of mistakes', infoColText: 'Out of mistakes', outcome: 'lost' }
     }
-    return { verdict: 'Beaten to the punch', message: 'Opponent won', tone: 'lost' }
+    return { pillText: 'Beaten to the punch', infoColText: 'Opponent won', outcome: 'lost' }
   }
   // lost_compete (everyone eliminated OR timeout)
   return {
-    verdict: timerExpired
+    pillText: timerExpired
       ? 'Out of time — no winner'
       : 'Everyone eliminated',
-    message: timerExpired ? 'Out of time' : 'All eliminated',
-    tone: 'lost',
+    infoColText: timerExpired ? 'Out of time' : 'All eliminated',
+    outcome: 'lost',
   }
 }

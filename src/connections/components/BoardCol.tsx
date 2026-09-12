@@ -1,12 +1,13 @@
 // cs-unmet
 
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { runRpc } from '@/common/supabase/dbResult'
 import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy, TerminalOutcome } from '@/common/terminal/terminalCopy'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
+import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { StrikeMarks } from './StrikeMarks'
@@ -15,7 +16,6 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
-import { stickyPill, terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
 import type { TurnSnapshot } from '../lib/history'
@@ -33,9 +33,10 @@ const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
  * connections's board column — the `<Board>` (one grid of bands + tiles) with the
- * floating Shuffle, plus the fixed-height below-board slot (the
- * turn-viewer banner, the Clear/Submit commit row + inline mistakes, or a local
- * `<GenericFeedbackPill>` for an own-guess result / the terminal / eliminated verdict).
+ * floating Shuffle, plus the fixed-height below-board slot (the turn-viewer
+ * banner, the Clear/Submit commit row + inline mistakes, or the local feedback
+ * slot's top message — an own-guess result, "you're out", whose turn, the
+ * verdict).
  *
  * This is the **input engine**: the local board shuffle, the in-flight + verdict
  * marks on the guessed tiles, and —
@@ -46,9 +47,9 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * `toggleTile` / `sendClear` / `unionTiles`) DOWN and this column renders + commits
  * them. Like the other games' BoardCol it does NOT own the game state: PlayArea hands
  * it **the board to render** (live OR a `snap` snapshot) + `viewing`, which is what
- * makes the turn-history viewer a drop-in. Own-guess feedback lifts to PlayArea (its
- * `showLocalFeedback` / `clearLocalFeedback` write the shared below-board channel,
- * which InfoCol's End / Concede also write). See docs/playarea.md.
+ * makes the turn-history viewer a drop-in. Own-guess results show into PlayArea's
+ * local slot, the same slot InfoCol's End / Concede and PlayArea's standing
+ * conditions show into. See docs/playarea.md.
  */
 /**
  * What `connections.submit_guess` puts in `data`: the verdict it RECORDED.
@@ -85,18 +86,14 @@ export function BoardCol({
   selfId,
   colorByUserId,
   sharedBoard,
-  // ── Own-guess feedback (channel owned by PlayArea) ──
-  localPill,
-  showLocalFeedback,
-  clearLocalFeedback,
+  // ── Own-guess feedback (the slot is PlayArea's) ──
+  localFeedbackSlot,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   guesses,
-  // ── Below-board readout / slot content ──
+  // ── Below-board readout ──
   mistakeCount,
   mistakeBudget,
-  over,
-  myConceded,
 }: {
   // ── Board to render ──
   game: ConnectionsGame
@@ -146,23 +143,20 @@ export function BoardCol({
   sharedBoard: boolean
 
   // ── Own-guess feedback ──
-  /** The own-guess pill to render in the commit slot, or null. */
-  localPill: GenericFeedbackMsg | null
-  showLocalFeedback: (msg: GenericFeedbackMsg) => void
-  clearLocalFeedback: () => void
+  /** PlayArea's below-board slot. This column shows each guess's result into
+   *  it, and while it holds anything — a result, "you're out", whose turn,
+   *  the verdict — the pill takes the commit row's place. A tile click is the
+   *  player's next move, so it dismisses a gesture-cleared result. */
+  localFeedbackSlot: FeedbackSlot
 
   // ── Guess dispatch ──
   gameId: string
   /** The guess log — for FE-side dup detection before firing submit_guess. */
   guesses: GuessRow[]
 
-  // ── Below-board readout / slot content ──
+  // ── Below-board readout ──
   mistakeCount: number
   mistakeBudget: number
-  /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
-  over: TerminalCopy | null
-  /** I conceded a compete race — picks the "you're out / conceded" pill's wording. */
-  myConceded: boolean
 }) {
   const [submitting, setSubmitting] = useState(false)
   // On a phone the below-board commit row is tight: the Clear/Submit buttons go
@@ -179,21 +173,31 @@ export function BoardCol({
   // locally: "sent, waiting" is honest, where coloring them now would be
   // inventing a verdict we'd have to take back.
   const [inFlightTiles, setInFlightTiles] = useState<ReadonlySet<string>>(NO_TILES)
-  // The verdict ring on the tiles of my last guess, in the tone its PILL wears —
-  // the two are one message arriving in two places, so they share a lifetime as
-  // well as a color: both last until my next action (a tile click, or dismissing
-  // the pill). See plans/tile-feedback.md → Every mark has a lifetime.
-  const [verdict, setVerdict] = useState<BoardVerdict | null>(null)
+  // The verdict ring on the tiles of my last guess, in the outcome its PILL
+  // wears — the two are one message arriving in two places, so they share a
+  // lifetime as well as a color: both last until my next action (a tile
+  // click, or a tap on the pill). The ring remembers which slot entry it
+  // belongs to (`msgId`), and below it is drawn only while that entry is
+  // still in the slot — so a tap on the pill takes the ring with it without
+  // this column being told. See plans/tile-feedback.md → Every mark has a
+  // lifetime.
+  const [verdict, setVerdict] = useState<(BoardVerdict & { msgId: string }) | null>(null)
   // Bumped per verdict so the ring's shake replays on a repeat (Board keys the
   // ringed tiles on it). A ref, not state: it is read while setting state and
   // never rendered on its own.
   const verdictSeq = useRef(0)
 
-  /** Mark these tiles with the verdict in the given tone, replaying the shake. */
-  function markVerdict(tiles: string[], tone: BoardVerdict['tone']) {
+  /** Show a message into the slot and ring these tiles in its outcome,
+   *  replaying the shake — one message, two places. */
+  function showWithVerdict(tiles: string[], feedbackMsg: FeedbackMessage) {
+    const msgId = localFeedbackSlot.show(feedbackMsg)
     verdictSeq.current += 1
-    setVerdict({ tiles: new Set(tiles), tone, nonce: verdictSeq.current })
+    setVerdict({ tiles: new Set(tiles), tone: feedbackMsg.outcome, nonce: verdictSeq.current, msgId })
   }
+  // Subscribes to the slot, so the ring re-derives when its message leaves.
+  const top = useTopFeedbackMessage(localFeedbackSlot)
+  const ringShown =
+    verdict !== null && localFeedbackSlot.peek().some((entry) => entry.id === verdict.msgId)
 
   // ─── When the verdict mark expires ──────────────────────────────────────
   //
@@ -251,14 +255,13 @@ export function BoardCol({
     // to carry its own copy rather than re-reading `unionTiles` afterwards.
     const sent = [...unionTiles]
 
-    // Dup detection (FE-side per the FE-knows model). My own action, so it flashes
-    // locally (the selection stays put; clicking a tile dismisses it) — and the
-    // ring goes on the four tiles it is about, in the pill's amber. A refusal is
-    // the one verdict whose pill I might not be looking at: my eyes are on the
-    // board, having just clicked four tiles there.
+    // Dup detection (FE-side per the FE-knows model). My own action, so it
+    // shows locally (clicking a tile dismisses it) — and the ring goes on the
+    // four tiles it is about, in the pill's amber. A refusal is the one
+    // verdict whose pill I might not be looking at: my eyes are on the board,
+    // having just clicked four tiles there.
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback(stickyPill('warning', 'You already tried that'))
-      markVerdict(sent, 'warning')
+      showWithVerdict(sent, FeedbackMessage.result('warning', 'You already tried that'))
       // Cleared like any other answered guess. The refusal never reached the
       // server, so this one could have kept its selection for tweaking — but
       // then one of the three answers would leave the board in a different state
@@ -292,19 +295,18 @@ export function BoardCol({
     setInFlightTiles(NO_TILES)
     // A guess that isn't taken can be a RACE — a teammate ended the game, your
     // own concede landed first, your own fourth mistake landed — or a fault.
-    // `getNotOkFeedback` decides how each reads (docs/envelopes.md).
+    // The not-ok reads as the server wrote it, and stays until its × is
+    // pressed (docs/envelopes.md).
     if (res.type === 'not-ok') {
-      const msg = getNotOkFeedback(res)
-      showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
       // The move wasn't taken, so the four tiles are still sitting there
-      // un-played — ring them in the PILL'S OWN TONE, no translation. This used
-      // to squeeze seven outcomes into three by hand (`=== 'warning' ?
+      // un-played — ring them in the PILL'S OWN OUTCOME, no translation. This
+      // used to squeeze seven outcomes into three by hand (`=== 'warning' ?
       // 'warning' : 'lost'`), which painted anything it did not recognize red;
       // the tile vocabulary is complete now, so the two cannot disagree.
-      markVerdict(sent, msg.tone)
+      showWithVerdict(sent, FeedbackMessage.notOk(res))
       return
-    // Own-result flash in the commit slot, then clear the selection — the sticky
-    // flash shows over the cleared board; clicking a tile dismisses it
+    // Own result in the commit slot, then clear the selection — the result
+    // shows over the cleared board; clicking a tile dismisses it
     // (handleToggle) and starts the next guess.
     //
     // `sendClear()` is called from each branch that takes the move rather than
@@ -313,9 +315,9 @@ export function BoardCol({
     // not taken — and a statement at the bottom would have to be reasoned about
     // branch by branch to see that (docs/envelopes.md → The shape of a call site).
     //
-    // The ring follows the pill's tone, and only where there is something left to
-    // ring: a correct guess's four tiles collapse into a band on this very render,
-    // so a mark on them would have nothing to land on.
+    // The ring follows the pill's outcome, and only where there is something
+    // left to ring: a correct guess's four tiles collapse into a band on this
+    // very render, so a mark on them would have nothing to land on.
     //
     // One branch per recorded verdict, each asserting `data` and nothing else.
     // The FE computed these three itself and sent the answer up — but reading
@@ -325,17 +327,15 @@ export function BoardCol({
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
       // into a band on this very render, leaving nothing to ring.
-      showLocalFeedback(stickyPill('won', 'Correct'))
+      localFeedbackSlot.show(FeedbackMessage.result('won', 'Correct'))
       sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'near') {
-      showLocalFeedback(stickyPill('near', 'One away!'))
-      markVerdict(sent, 'near')
+      showWithVerdict(sent, FeedbackMessage.result('near', 'One away!'))
       sendClear()
       return
     } else if (res.type === 'ok' && res.data.result === 'lost') {
-      showLocalFeedback(stickyPill('lost', 'Incorrect'))
-      markVerdict(sent, 'lost')
+      showWithVerdict(sent, FeedbackMessage.result('lost', 'Incorrect'))
       sendClear()
       return
     } else {
@@ -389,9 +389,9 @@ export function BoardCol({
     run: handleShuffle,
   })
 
-  // Tile click: dismiss any lingering own-result flash first (the commit buttons
-  // return), then toggle the tile — connections's analog of "typing dismisses the
-  // entry flash" (the player has moved on to the next selection).
+  // Tile click: dismiss any lingering own-result first (the commit buttons
+  // return), then toggle the tile — connections's analog of "typing dismisses
+  // the entry's result" (the player has moved on to the next selection).
   function handleToggle(tile: string) {
     // Turn-order: a waiting player can't build (or broadcast) a selection — the
     // tile toggle is shared over Broadcast in coop, so freezing it here keeps a
@@ -400,23 +400,11 @@ export function BoardCol({
     // players got to), so the guard that used to be implicit — no tiles, no
     // clicks — has to be explicit.
     if (!showInput || !isMyTurn) return
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     // The ring goes with the pill it belongs to — one message, one dismissal.
     setVerdict(null)
     toggleTile(tile)
   }
-
-  // The below-board slot shows exactly ONE pill, by the shared priority
-  // (localPills.ts): the terminal verdict, then "you're out of the race" while
-  // the others play on, then your own move result. `null` means the slot is free
-  // for the move controls instead. Resolving it here rather than branching in
-  // the JSX is what keeps one render and one dismiss handler — the permanent
-  // pills simply never call it.
-  const slotPill = !showInput
-    ? over
-      ? terminalPill(over.tone, over.verdict)
-      : outOfRacePill(myConceded)
-    : localPill
 
   return (
     <div className={shared.boardCol}>
@@ -445,7 +433,7 @@ export function BoardCol({
         ownerByTile={viewing || !showInput ? NO_OWNERS : ownerByTile}
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
-        verdict={verdict}
+        verdict={ringShown ? verdict : null}
         colorByUserId={colorByUserId}
         sharedBoard={sharedBoard}
         notMyTurn={notMyTurn}
@@ -474,9 +462,10 @@ export function BoardCol({
       />
 
       {/* The slot below the board: the commit row (Clear/Submit + inline mistakes)
-          during play, or an own-guess / terminal / eliminated pill — all in the same
-          reserved height so the flex:1 board never shifts. While viewing a past turn
-          the history banner overlays it. */}
+          during play, or the feedback slot's top message — a result, "you're
+          out", whose turn, the verdict — all in the same reserved height so the
+          flex:1 board never shifts. While viewing a past turn the history
+          banner overlays it. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {viewing && snap && (
@@ -495,20 +484,12 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {/* One slot, one pill. The priority is resolved into `slotPill` above,
-              not branched here (localPills.ts → the below-board slot's order), so
-              there's a single render and a single dismiss handler. */}
-          {slotPill ? (
+          {/* One slot, one pill: whatever ranks highest in it. A tap on a
+              gesture-cleared result dismisses it, and the ring above leaves
+              with it — the two are one message, so they end together. */}
+          {top !== null ? (
             <div className={shared.localFeedback}>
-              {/* Dismissing the pill takes its ring off the board with it — the
-                  two are one message, so they end together. */}
-              <GenericFeedbackPill
-                msg={slotPill}
-                onClose={() => {
-                  clearLocalFeedback()
-                  setVerdict(null)
-                }}
-              />
+              <FeedbackPill slot={localFeedbackSlot} />
             </div>
           ) : (
               <div className={styles.moveArea}>

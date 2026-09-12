@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -65,7 +65,7 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   /** Terminal copy when the game is over (drives the action row), else null. */
-  over: TerminalCopy | null
+  over: TerminalMessage | null
   /** May I still submit? Gates the play action row + help (vs the locally-done look). */
   showInput: boolean
   /** I conceded / was eliminated in a compete race — picks the locally-done wording. */
