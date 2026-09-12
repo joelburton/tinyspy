@@ -104,7 +104,7 @@
   padding: 0.5rem 0.85rem;
   cursor: pointer;
   color: var(--page-text-color);
-  font-size: 0.95rem;
+  font-size: var(--font-size-1);
   font-weight: 500;
   text-align: left;
   /* Flex so the glyph, the label and the shortcut hint share one line. The gap
@@ -127,7 +127,7 @@
   margin-left: auto;
   padding-left: var(--spacer-1);
   color: var(--page-text-muted-color);
-  font-size: 0.82rem;
+  font-size: var(--font-size-2);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -167,12 +167,12 @@
 }
 /* @@ */ .headerTitle {
   color: var(--page-text-color);
-  font-size: 0.95rem;
+  font-size: var(--font-size-1);
   font-weight: 600;
 }
 /* @@ */ .headerLine {
   color: var(--page-text-muted-color);
-  font-size: 0.82rem;
+  font-size: var(--font-size-2);
   margin-top: 0.1rem;
 }
 
@@ -190,7 +190,7 @@
   margin-left: auto;
   padding-left: 0.5rem;
   color: var(--page-text-muted-color);
-  font-size: 1rem;
+  font-size: var(--font-size-1);
   line-height: 1;
 }
 

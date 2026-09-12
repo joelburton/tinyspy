@@ -256,6 +256,25 @@ a/b/c question, in context:
   looked at on screen: that takes a run of the app, which is Joel's to okay.
 - The item's `0.95rem` / `0.82rem` type against the ramp; the header's are
   the same two numbers.
+  **WORKED 2026-09-11** (Joel: fit them to the ramp). The menu has two
+  sizes, not four — the section title reads at item size and the sub-lines
+  match the hint — so they moved together: label and title to
+  `--font-size-1`, hint and sub-line to `--font-size-2`, and
+  `.itemChevron`'s `1rem` converted silently since it already WAS the
+  token's value. Five declarations, no literal left, and the file's
+  font-size row is off the guard. The argument for 1rem: nothing states why
+  a menu row should be quieter than body text, and `SelectionList` — closed
+  and blessed — sets no size on a row at all, so its rows already render at
+  that size. `KeyList` puts `--font-size-2` on the whole help list, which
+  is what the hint is.
+  **This is the first change in the area that moves pixels**, and it has not
+  been seen: the label grew 0.8px, so every popover is fractionally wider
+  (`max-content`), and on a phone, where the width is already clamped to the
+  viewport cap, labels wrap sooner. Crosswords is the stress case (~20 rows,
+  "Print answer key (PDF)"). A run of the app is Joel's to okay.
+  **Knock-on for the bullet below**: `.itemIconSlot`'s `1.05rem` box and the
+  `size={15}` glyph were tuned against a 15.2px label that is now 16px, so
+  the four mark sizes are now being judged against a moved reference.
 - **`opacity: 0.45` for a disabled row, and it never paints.** The app has
   ONE disabled treatment — `--chrome-disabled-opacity: 0.75` on
   `button:disabled` in base.css, with the argument written there (raised
