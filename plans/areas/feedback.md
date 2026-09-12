@@ -27,7 +27,12 @@ Agreed 2026-09-12, eighteen files, all `cs-met-feedback`:
   elsewhere.
 
 Files this area creates are stamped `cs-met-feedback` at birth and join
-this list.
+this list. Created 2026-09-12, the machinery (fifteen files):
+`feedback/FeedbackMessage.tsx`, `feedback/feedbackSlotStore.ts`,
+`feedback/useFeedbackSlot.ts`, `feedback/feedbackSlotRegistry.ts`,
+`feedback/FeedbackPill.tsx` + `.module.css`, each with its test;
+`terminal/terminalMessage.ts` + test; `info-sheet/turnText.tsx` + test;
+`src/guards/feedbackNames.test.ts`.
 
 Edited by the area, owned elsewhere (stamps do not move):
 `common/chat/useChatFeedback.tsx` (+ test), `game-page/GamePage.tsx`,

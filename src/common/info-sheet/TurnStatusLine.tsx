@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '../members/member'
-import { waitingFor } from './turnCopy'
+import { waitingForText } from './turnText'
 import shared from '../game-page/PlayArea.module.css'
 
 type Props = {
@@ -57,7 +57,7 @@ export function TurnStatusLine({
 
   // A teammate's turn. Leading color disc + the bare name (never the
   // possessive "name's turn" — we don't apostrophize usernames), an
-  // ellipsis for the wait. Shares `waitingFor` with the below-board
-  // `waitingTurnPill()`, so the two surfaces can't word it differently.
-  return <p className={shared.infoState}>{waitingFor(players.find((p) => p.user_id === currentTurnUserId))}</p>
+  // ellipsis for the wait. Shares `waitingForText` with the below-board
+  // whose-turn message, so the two surfaces can't word it differently.
+  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.user_id === currentTurnUserId))}</p>
 }

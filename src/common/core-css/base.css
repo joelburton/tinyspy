@@ -238,6 +238,13 @@
      so sharing the token would name the number instead of the job. */
   --toast-stripe-width:       4px;
 
+  /* The feedback pill's two widths. The sides are an ordinary thick line and
+     say so; the left edge is the outcome BAR, thicker than any frame, and
+     named for the job the way the toast's stripe is. Both here, not in the
+     theme: a width is not a theme decision. */
+  --pill-border-width:        var(--border-width-line-thick);
+  --pill-bar-width:           0.4rem;
+
   /* Border WIDTH is the "selected" channel on a game piece — the
      tile's edge thickens to say "this piece is part of the move I'm
      building", leaving the background free for state and attention,

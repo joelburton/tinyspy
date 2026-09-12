@@ -1,18 +1,10 @@
 // cs-met-feedback
 
-import type { Outcome } from '../outcomes/outcomes'
+import type { TerminalOutcome } from './terminalMessage'
 
-/**
- * How a FINISHED game reads: won, lost, or neither.
- *
- * Cut from the outcome vocabulary rather than spelled out, so renaming a member
- * of that list breaks here instead of silently leaving this one behind. The
- * three are a real closed set and not a ceiling nobody revisited — a game that
- * is over has been won, been lost, or was stopped with neither happening, and
- * there is no fourth thing for it to be. (`near` and `warning` judge a MOVE,
- * which is why they cannot appear once there are no more moves.)
- */
-export type TerminalOutcome = Extract<Outcome, 'won' | 'lost' | 'neutral'>
+/** The type now lives in `terminalMessage.ts`; re-exported here until the
+ *  last game converts from `TerminalCopy` to `TerminalMessage`. */
+export type { TerminalOutcome } from './terminalMessage'
 
 /**
  * The per-status copy a game's terminal state shows — every game's `buildOver()`

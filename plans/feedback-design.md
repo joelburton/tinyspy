@@ -14,11 +14,29 @@ Every statement here carries one of three marks:
 
 Started 2026-09-04 from the design review in the Fable session that opened it.
 
-**Status: about to open under the `feedback` area** (2026-09-12). Nothing in
-code has changed for it yet. Where it stands: the mechanism is decided (§4.2,
-push with a rank), the two-step API is decided (§4), the vocabulary is decided
-(§7); the kinds table (§3.1) is the thing to tweak next, and §9 lists what is
-open.
+**Status: OPEN; the machinery is BUILT and awaits Joel's read** (2026-09-12).
+Every design item is decided (§9, §11.3). Built, alongside the old files,
+which stay until each game converts:
+
+| file | what it is |
+|---|---|
+| `common/feedback/FeedbackMessage.tsx` (+ test) | the class, `KINDS`, `Overrides`, the fourteen constructors |
+| `common/feedback/feedbackSlotStore.ts` (+ test) | `createFeedbackSlot`: the list, the rank rule, timers, `dismiss` / `close` — no React |
+| `common/feedback/useFeedbackSlot.ts` (+ test) | the hook: one stable slot per host, registered while mounted; `useTopFeedbackMessage` |
+| `common/feedback/feedbackSlotRegistry.ts` (+ test) | mounted slots by name; `peekFeedbackSlotForTest`; `window.puppill` / `pupretract` |
+| `common/feedback/FeedbackPill.tsx` (+ test + stylesheet) | draws a slot's top: outcome border, fill by kind, tap for gesture kinds, × for close kinds, the actor mention |
+| `common/terminal/terminalMessage.ts` (+ test) | `TerminalMessage`, `TerminalOutcome`, `gameEndedTerminalMessage` |
+| `common/info-sheet/turnText.tsx` (+ test) | `waitingForText` — one sentence for the status line and the pill |
+| `guards/feedbackNames.test.ts` | bare `feedback` is never a declared name; two files pending until they convert |
+
+Two old files were touched so old and new cannot drift while both exist:
+`turnCopy.tsx`'s `waitingFor` IS `waitingForText`, and `terminalCopy.ts`
+re-exports `TerminalOutcome` from `terminalMessage.ts`. `TurnStatusLine`
+reads `waitingForText` directly; its fallback is "a player" now.
+
+**Next:** Joel reads the machinery; then psychicnum converts entirely; STOP;
+then the other games. The docs in §8 change at the first conversion, when
+the app first uses the new names.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
 built for tidying files that stay, and this area replaces most of its files:

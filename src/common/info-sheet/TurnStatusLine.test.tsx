@@ -36,7 +36,10 @@ describe('TurnStatusLine', () => {
     expect(screen.getByText(/bea/)).toBeInTheDocument()
   })
 
-  it('falls back to "someone" for an unknown pointer', () => {
+  // Unreachable in practice — a PlayArea never mounts before its roster has
+  // loaded, and a player cannot be added to a game — but the pointer is a
+  // lookup, and a lookup can miss by type.
+  it('falls back to "a player" for an unknown pointer', () => {
     render(
       <TurnStatusLine
         currentTurnUserId="ghost"
@@ -45,7 +48,7 @@ describe('TurnStatusLine', () => {
         isTerminal={false}
       />,
     )
-    expect(screen.getByText(/someone/)).toBeInTheDocument()
+    expect(screen.getByText(/a player/)).toBeInTheDocument()
   })
 
   it('goes inert at terminal (no "Your turn" / "Waiting for" nag)', () => {

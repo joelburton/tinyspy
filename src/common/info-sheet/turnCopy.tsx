@@ -1,8 +1,8 @@
 // cs-met-feedback
 
-import { Dot } from '../members/Dot'
 import type { Member } from '../members/member'
 import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
+import { waitingForText } from './turnText'
 
 /**
  * The whose-turn copy for turn-order coop games, in its two renderings.
@@ -22,20 +22,9 @@ import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
  */
 type TurnHolder = Pick<Member, 'username' | 'color'>
 
-/**
- * "Waiting for ● Name…" — the wording, as a bare node.
- *
- * `current` is defensively optional: the turn pointer should always name a
- * player, but a departed member falls back to a neutral disc + "someone". Never
- * the possessive "name's turn" — we don't apostrophize usernames.
- */
-export function waitingFor(current: TurnHolder | undefined) {
-  return (
-    <>
-      Waiting for <Dot color={current?.color} /> {current?.username ?? 'someone'}…
-    </>
-  )
-}
+/** The wording now lives in `turnText.tsx`; this name stays until the last
+ *  caller of `waitingTurnPill` converts to `FeedbackMessage.waiting`. */
+export const waitingFor = waitingForText
 
 /**
  * The below-board twin of `<TurnStatusLine>`: the same "Waiting for ● Name…"

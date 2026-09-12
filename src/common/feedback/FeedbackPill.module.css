@@ -1,0 +1,131 @@
+/* cs-met-feedback */
+
+/* The feedback pill — header (global) and below-board (local). Same height as
+ * PageHeaderPlayersStrip so the header swap doesn't reflow (docs/ui.md →
+ * "Layout stability").
+ *
+ * The OUTCOME color is the WHOLE border: the left side is a thick bar (like
+ * the turn-log outcome bars, easy to read at a glance), the other three sides
+ * a uniform thin border in the SAME color. Border WIDTHS are uniform across
+ * every outcome and across fill/outline. A kind with `fill` adds the tint;
+ * every other kind stays white (`.outline`). */
+
+/* @@ */ .pill {
+  display: inline-flex;
+  align-items: center;
+  /* The one gap between the mention and the text — never a leading space in
+   * a message's text. */
+  gap: var(--spacer-4);
+  padding: 0.3rem 0.85rem;
+  /* A rounded rectangle, not a full lozenge: a thick left border reads as a
+   * straight accent BAR here, but would curve into a crescent on a 999px pill. */
+  border-radius: var(--radius-lg);
+  /* Uniform thick-line top/right/bottom + the LEFT BAR (the two widths are
+   * base.css's `--pill-*-width` pair). The COLOR (all four sides) is set per
+   * outcome below. */
+  border: var(--pill-border-width) solid var(--page-surface-border-color);
+  border-left-width: var(--pill-bar-width);
+  background: var(--default-bg-color);
+  font-weight: 500;
+  /* Long messages truncate with ellipsis; the host slot bounds width via flex. */
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* @@ */ .text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The leading mention's disc, sized to match the PageHeaderPlayersStrip dot
+ * so the two read as the same convention. Set on the mention's root; the
+ * disc inherits the two variables. */
+/* @@ */ .actor {
+/* @@ */   --dot-size: 0.85rem;
+/* @@ */   --dot-border-width: var(--border-width-line-thick);
+}
+
+/* The shared `<CloseButton>` draws the glyph, the box and the hover. THE INK IS
+   THE PILL'S: a pill is colored by its outcome — border and text carry
+   won/lost/near — and its × takes that color rather than the button's quiet gray.
+
+   `currentColor` RE-POINTS THE SLOT rather than out-cascading `color`: the
+   button's ink comes from `.secondary { color: var(--button-slot-secondary-color) }`,
+   so setting the slot is how to change it without fighting that rule
+   (code-conventions.md → state classes win by re-setting tokens).
+
+   DESCENDANT ON PURPOSE. One class here would tie with `.quiet`'s own slot rule
+   in the shared module, leaving bundle order to pick the winner. */
+/* @@ */ .pill .close {
+  --button-slot-secondary-color: currentColor;
+}
+
+/* Outcome variants. Each colors the WHOLE border (all four sides; the left is
+ * just thicker) + the fill background (the tint a `fill` kind wears; `.outline`
+ * below drops it back to white). Every one reads a `--pill-*` pair and nothing
+ * else: the values live in the theme (daylight.css → PILL). The class names
+ * ARE the outcome names, and that is the point. */
+
+/* @@ */ .won {
+  border-color: var(--pill-won-color);
+  background: var(--pill-won-tint-color);
+  color: var(--pill-won-ink-color);
+}
+
+/* @@ */ .lost {
+  border-color: var(--pill-lost-color);
+  background: var(--pill-lost-tint-color);
+  color: var(--pill-lost-ink-color);
+}
+
+/* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
+ * wears. A result, not a caution. */
+/* @@ */ .near {
+  border-color: var(--pill-near-color);
+  background: var(--pill-near-tint-color);
+  color: var(--pill-near-ink-color);
+}
+
+/* ORANGE — "important, but not good/bad" (a hint was asked for, an opponent
+ * made progress, you can't do that yet). */
+/* @@ */ .warning {
+  border-color: var(--pill-warning-color);
+  background: var(--pill-warning-tint-color);
+  color: var(--pill-warning-ink-color);
+}
+
+/* @@ */ .neutral {
+  border-color: var(--pill-neutral-color);
+  background: var(--pill-neutral-tint-color);
+  color: var(--pill-neutral-ink-color);
+}
+
+/* error — the failure that ISN'T a move: a lost connection, a service that
+ * didn't answer. A step angrier than `lost`, because a refused move and a
+ * broken thing must not look the same. */
+/* @@ */ .error {
+  border-color: var(--pill-error-color);
+  background: var(--pill-error-tint-color);
+  color: var(--pill-error-ink-color);
+}
+
+/* @@ */ .noted {
+  border-color: var(--pill-noted-color);
+  background: var(--pill-noted-tint-color);
+  color: var(--pill-noted-ink-color);
+}
+
+/* Outline = every kind without `fill`: drop the tint back to the plain white
+ * surface, keeping the outcome-colored border. Defined AFTER the outcome rules
+ * so this background wins for `.outline.<outcome>`; it deliberately does NOT
+ * touch the border. */
+/* @@ */ .outline {
+  background: var(--default-bg-color);
+}
+
+/* Tap/click anywhere on the pill to dismiss it — the gesture-cleared kinds
+ * only (see FeedbackPill.tsx). The cursor is the only affordance: on touch
+ * the gesture teaches itself by working. */
+/* @@ */ .tappable {
+  cursor: pointer;
+}
