@@ -7,11 +7,9 @@ import { FeedbackMessage } from './FeedbackMessage'
 import { createFeedbackSlot } from './feedbackSlotStore'
 
 /**
- * Tests for the shared peer-narration bootstrap. The cases that matter are the
- * seed-TIMING ones, which the games' synchronous PlayArea mocks never
- * reproduced — they hand the backlog to the first render, hiding the
- * async-load bug. Here the async is explicit: `enabled` and `items` flip
- * across `rerender`s the way a real load does.
+ * The seed-TIMING cases: `enabled`, `ready` and `items` flip across
+ * `rerender`s the way a real load does, which is what a game's synchronous
+ * PlayArea mock — the backlog handed to the first render — can never show.
  */
 
 type Props = { enabled: boolean; items: readonly string[]; ready?: boolean }
@@ -64,9 +62,8 @@ describe('usePeerFeedback', () => {
     expect(textOf(shown, 0)).toBe('a')
   })
 
-  // §1.1 — the confirmed wordle bug: enabled/items are the loading values on the
-  // first render, then the real backlog arrives. The seed must capture it, not
-  // replay it.
+  // enabled/items are the loading values on the first render, then the real
+  // backlog arrives. The seed must capture it, not replay it.
   it('does NOT replay a backlog that arrives after the loading render', () => {
     const { shown, rerender } = setup({ enabled: false, items: [] })
     // game loads: mode becomes coop AND the backlog arrives in the same commit
@@ -74,8 +71,8 @@ describe('usePeerFeedback', () => {
     expect(shown).not.toHaveBeenCalled()
   })
 
-  // §1.1 — the opposite bug (psychicnum/connections): a fresh game seeds empty,
-  // so the peer's FIRST event must fire, not get adopted as "seen".
+  // The opposite edge: a fresh game seeds empty, so the peer's FIRST event
+  // must fire, not get adopted as "seen".
   it('shows the FIRST peer event of a fresh game', () => {
     const { shown, rerender } = setup({ enabled: true, items: [] })
     rerender({ enabled: true, items: ['a'] })
@@ -96,7 +93,7 @@ describe('usePeerFeedback', () => {
     expect(textOf(shown, 0)).toBe('c')
   })
 
-  // L4 — the TWO-FETCH race (found-words games): `enabled` derives from the
+  // The TWO-FETCH race (found-words games): `enabled` derives from the
   // HEADER fetch and can flip true while the SEPARATE rows fetch is still empty.
   // Without the `ready` gate the seed captured [] and then replayed the whole
   // backlog when the rows landed. With it, the seed waits for the rows.

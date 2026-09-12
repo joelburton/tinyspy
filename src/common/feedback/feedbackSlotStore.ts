@@ -3,23 +3,10 @@
 import type { FeedbackMessage } from './FeedbackMessage'
 
 /**
- * A FEEDBACK SLOT — the list of live feedback messages one place on screen
- * holds, and the rule for which one it draws.
- *
- * A slot is made by `useFeedbackSlot` and handed around as a `FeedbackSlot`:
- * `show(msg)` is the one door in and returns an id; `retract(id)` is how the
- * owner of a condition takes its message back; `dismiss()` and `close()` are
- * the player's two ways out, a gesture and the ×, each honored only by the
- * kinds that leave that way. The pill subscribes to `top`.
- *
- * One rule, and it is the whole design of the list: the slot draws the LOWEST
- * rank, and ties go to the newest. Nothing is discarded on the way in — a
- * message leaves only the way its kind says it leaves, so when the message on
- * top is retracted, whatever is still live underneath is drawn again.
- *
- * This is the toast store's shape held per instance rather than as a module
- * singleton, because a slot must die with its PlayArea or page: `destroy()`
- * clears every pending timer, and the hook calls it on unmount.
+ * The feedback slot's list rules, with no React in them: `FeedbackSlot` is
+ * the shape every host hands around (its docstring is the one to read first),
+ * and `createFeedbackSlot` makes one. `useFeedbackSlot` is the hook that owns
+ * an instance for a component's life.
  */
 
 export type SlotName = 'local' | 'global'
@@ -30,6 +17,21 @@ export type SlotEntry = {
   message: FeedbackMessage
 }
 
+/**
+ * A FEEDBACK SLOT — the list of live feedback messages one place on screen
+ * holds, and the rule for which one it draws.
+ *
+ * Made by `useFeedbackSlot` and handed around as this type: `show(msg)` is the
+ * one door in and returns an id; `retract(id)` is how the owner of a condition
+ * takes its message back; `dismiss()` and `close()` are the player's two ways
+ * out, a gesture and the ×, each honored only by the kinds that leave that
+ * way. The pill subscribes to `top`.
+ *
+ * One rule, and it is the whole design of the list: the slot draws the LOWEST
+ * rank, and ties go to the newest. Nothing is discarded on the way in — a
+ * message leaves only the way its kind says it leaves, so when the message on
+ * top is retracted, whatever is still live underneath is drawn again.
+ */
 export type FeedbackSlot = {
   readonly name: SlotName
   // Put a message up. Returns its id, for `retract`.
@@ -60,6 +62,11 @@ function byRankThenNewest(entries: readonly SlotEntry[]): SlotEntry[] {
   return [...entries].reverse().sort((a, b) => a.message.rank - b.message.rank)
 }
 
+/**
+ * The toast store's shape held per instance rather than as a module
+ * singleton, because a slot must die with its PlayArea or page: `destroy()`
+ * clears every pending timer, and the hook calls it on unmount.
+ */
 export function createFeedbackSlot(name: SlotName): FeedbackSlot {
   let entries: SlotEntry[] = []
   let top: FeedbackMessage | null = null

@@ -24,6 +24,12 @@
   `labelFor` and its in-game verdict treat `ended` in COMPETE as neutral, since
   nobody won is not the same as everyone losing.
 
+- **The two header milestones have no unit test.** `PlayArea.tsx` narrates a
+  peer solving and a peer running out of swaps as `peerMilestone`s off the
+  players' rows; the kind itself is pinned in `common/feedback`'s test and by
+  wordle's compete-solve test, but nothing checks that waffle fires each one
+  on its edge and only once.
+
 ## Someday
 
 - `SolutionReveal` sets monospace twice, so the revealed grid's letters line

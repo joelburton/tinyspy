@@ -16,7 +16,9 @@ came out of settling the first of them — thirteen: twelve WORKED and one CLOSE
 F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`),
 F-1 (`FailureLine` moved to `forms/`, `0f1f8413`), F-4 (`Actor` moved to
 `members/member.ts`, `f792cfd0`), F-5 (the names guard flattened,
-`08755988`) and the prose pass, F-6 through F-11.
+`08755988`) and the prose pass, F-6 through F-11. **The closing re-read
+(2026-09-12) added eight more, F-14 to F-21, all WORKED — F-14 (a constructor
+with no caller) DECIDED 2026-09-12: kept, the prose fixed.**
 
 ## The roster
 
@@ -567,6 +569,109 @@ Untested: waffle's two milestone narrations have no unit test of their own,
 before or after. The kind is pinned by `FeedbackMessage.test.tsx` and by
 wordle's compete-solve test.
 
+### The closing re-read, 2026-09-12
+
+Twenty-three files read in one sitting, after the prose pass. Eight more, and
+the re-read earned its place again: one is a constructor left with no caller
+by F-12, one is F-6's defect standing in a sibling file, one is F-7's residue,
+and the rest are prose the area itself wrote or edited that week.
+
+## F-feedback-14 · `standing-state-has-no-caller` · `standingState(outcome, text)` has no caller since F-12 deleted duet's sudden death, and four places still name sudden death as a live message — WORKED
+
+F-12 deleted codenamesduet's header `standingState('lost', 'Sudden death:
+wrong loses')` and said "the `standingState` KIND stays — `outOfRace` uses it
+in five games — this is one call site." The kind does stay. But the
+`standingState` CONSTRUCTOR had exactly that one call site, and nothing in
+`src/` calls it now except its own unit test. Meanwhile the prose written
+around it still describes the deleted message as if it were showing: the
+`KINDS` row comment ("out of the race, sudden death"), the constructor's
+docstring ("codenamesduet's sudden death"), `docs/ui.md`'s kinds row ("out
+while the others race on; sudden death") and its look paragraph ("a kind with
+`fill` — the verdict, out-of-race, sudden death"). And the `Kind` docstring's
+example of several constructors making one kind ("`outOfRace` and
+`standingState` are both a `standingState`") is the only such pair left in the
+table.
+
+Options:
+
+1. **Delete the constructor and its test; the prose says out-of-race only.**
+   The kind and `outOfRace` stay untouched. The `Kind` docstring's sentence
+   becomes "a kind is not a shape of words: `notOk(res)` and a game's own
+   `result(…)` can say the same thing at two kinds" — or simply drops the
+   example. `puppill('hey', 'standingState')` builds its canned message
+   through `outOfRace`. **Recommended:** the constructor existed for one
+   message, that message is gone, and a door nobody walks through is the kind
+   of generic layer the repo does not keep.
+2. **Keep it as the general door and fix the prose.** The four sites stop
+   naming sudden death; the docstring says "a game-specific standing state,
+   with its own outcome and words" and names no example, since there is none.
+   Costs nothing now; the next reader finds a constructor whose only use is a
+   test.
+
+**DECIDED 2026-09-12 — option 2.** The constructor stays as the general door.
+The four sites no longer name sudden death: the `KINDS` row comment says "out
+of the race while the others play on", the constructor's docstring says no
+game writes one today and `outOfRace` is the shared one, `docs/ui.md`'s row
+says "or a game's own standing state, with its outcome and words", and its
+look paragraph lists the verdict and out-of-race. The `Kind` docstring's
+example (two constructors, one kind) stays true.
+
+## F-feedback-15 · `slot-type-has-no-docstring` · `FeedbackSlot`'s docstring was the file header, so hovering the type every PlayArea takes showed nothing — WORKED
+
+F-6's defect in a sibling file: `feedbackSlotStore.ts` opened with the
+eighteen-line "A FEEDBACK SLOT —" block as a file header, followed by a blank
+line and `SlotName`; `export type FeedbackSlot`, the name every host's props
+spell, had no docstring, and neither did `createFeedbackSlot`. The block now
+sits on the type; the file keeps a four-line header saying what it holds and
+which docstring to read first; the "toast store's shape, held per instance"
+paragraph is `createFeedbackSlot`'s, since that is what it describes.
+
+## F-feedback-16 · `spaced-by-ten-is-false` · `KindDefaults.rank`'s comment says the ranks are "spaced by ten", and 55, 72, 75 and 85 are in the table — WORKED
+
+The sentence was true of the first table and survived F-2 and F-13, which put
+four kinds between the tens and deleted the test that asserted the spacing.
+Now: "The numbers are not evenly spaced: a new kind takes whatever number
+puts it where it belongs."
+
+## F-feedback-17 · `peer-test-cites-the-missing-doc` · Three anchors into the deleted peer-feedback audit survived F-7 in `usePeerFeedback.test.ts` — WORKED
+
+F-7 removed the cites that named the file; the test still opened two cases
+with `§1.1 —` and one with `L4 —`, section labels from the document that no
+longer exists, and called one "the confirmed wordle bug". Each comment now
+says what the case is; the file docstring dropped its history and says why
+the cases take the shape they do (a synchronous PlayArea mock cannot show a
+seed-timing edge).
+
+## F-feedback-18 · `dismiss-test-says-clear` · `useDismissLocalFeedbackOnKey.test.ts` names the callback `clear` and its first case "clears local feedback" — WORKED
+
+The hook's parameter is `dismiss` and the slot's verb is `dismiss`; "clear"
+was the old slot's. Renamed in the three cases and the first title.
+
+## F-feedback-19 · `ui-md-examples-invented` · The Feedback pill section opened with four example texts no game shows and the old mode words — WORKED
+
+"Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow
+first" — none is in the repo — under "transient and permanent feedback", and
+a "future Boggle" in the next sentence. Now the four are real ("Not a word,"
+"Correct," "Waiting for ● moth…," "Hint: a fruit") and the register sentence
+names connections' "Incorrect", codenamesduet's rejected clue and boggle's
+"CAT — too short".
+
+## F-feedback-20 · `folder-table-row-stale` · `docs/common-folders.md`'s row for `feedback` said "the near-input pill and its local/global state" — WORKED
+
+The hand-held state is gone. The row now says what the folder holds: the
+message and its kinds, the two slots, and the pill.
+
+## F-feedback-21 · `conventions-sentence-garbled` · code-conventions' "same role → same name" example read "`usePeerFeedback` everywhere, not `usePeerFeedback` in one game" — WORKED
+
+A rename sweep replaced both halves of the contrast. The sentence now
+contrasts the shared hook with a hand-rolled `announcePeerGuess`.
+
+Also in this sitting, at Joel's ask: `feedback/doc.md`'s lede was rewritten
+as an inventory of the folder — message, slot, peer narrator, any-key
+dismisser, registry — the way `terminal/`'s and `info-sheet/`'s ledes list
+theirs; and F-13's one owed test, waffle's two milestone narrations, is
+recorded in `src/waffle/todo.md` under Soon, since it is waffle's file.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
@@ -580,7 +685,10 @@ The two specs above; both changed with their games and are green.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group (2026-09-12;
+      F-14 to F-21 above, all WORKED)
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (`feedback/todo.md` is empty; the one owed test is in `waffle/todo.md`)
+- [ ] every file on the roster blessed, or its stamp says why not — the stamp
+      is Joel's to set; every roster file reads `cs-audited-feedback` today

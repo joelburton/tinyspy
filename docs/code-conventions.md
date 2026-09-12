@@ -794,7 +794,7 @@ Two hard rules for anything that *sets, holds, renders, or types* one of those m
 
 2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** How a message leaves — a gesture, a timer, the ×, its owner — is its KIND's property, not something a name should assert.
 
-Same role → same name across games (a peer-narration producer is `usePeerFeedback` everywhere, not `usePeerFeedback` in one game and `announcePeerGuess` in another).
+Same role → same name across games (a peer-narration producer is `usePeerFeedback` everywhere, not a hand-rolled `announcePeerGuess` in one game).
 
 | role | name |
 |---|---|

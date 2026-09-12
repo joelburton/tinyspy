@@ -50,7 +50,8 @@ export type KindDefaults = {
   // Which live message the slot draws: LOWER shows over higher. A rank is a
   // priority and nothing more — showing a message never takes another down —
   // so two kinds may share one where neither outranks the other, and the slot
-  // then draws the newest. Spaced by ten to leave room between two.
+  // then draws the newest. The numbers are not evenly spaced: a new kind takes
+  // whatever number puts it where it belongs.
   rank: number
   leavesBy: LeavesBy
   // Read only when `leavesBy` is `'timer'`.
@@ -71,7 +72,8 @@ export const KINDS: Record<Kind, KindDefaults> = {
   notOk:           { fill: false, rank: 10, leavesBy: 'close',   ms: null, outcome: null },
   // The game is over, and this is how it ended.
   terminalVerdict: { fill: true,  rank: 20, leavesBy: 'owner',   ms: null, outcome: null },
-  // A state you are in for the rest of the game: out of the race, sudden death.
+  // A state you are in for the rest of the game — out of the race while the
+  // others play on.
   standingState:   { fill: true,  rank: 30, leavesBy: 'owner',   ms: null, outcome: null },
   // What your last action did, in the FE's own words.
   result:          { fill: false, rank: 40, leavesBy: 'gesture', ms: null, outcome: null },
@@ -186,7 +188,10 @@ export class FeedbackMessage {
     return new FeedbackMessage('standingState', text, undefined, defaultsFor('standingState', 'neutral', overrides))
   }
 
-  /** A game-specific standing state — codenamesduet's sudden death. */
+  /**
+   * A game-specific standing state, with its own outcome and words. No game
+   * writes one today; `outOfRace` is the standing state every game shares.
+   */
   static standingState(outcome: Outcome, text: ReactNode, overrides?: Overrides): FeedbackMessage {
     return new FeedbackMessage('standingState', text, undefined, defaultsFor('standingState', outcome, overrides))
   }

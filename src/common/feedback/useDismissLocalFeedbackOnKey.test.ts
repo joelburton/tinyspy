@@ -18,39 +18,39 @@ describe('useDismissLocalFeedbackOnKey', () => {
     document.body.innerHTML = ''
   })
 
-  it('clears local feedback on a bare keypress with nothing focused', async () => {
-    const clear = vi.fn()
+  it('dismisses local feedback on a bare keypress with nothing focused', async () => {
+    const dismiss = vi.fn()
     renderHook(() => {
       useActionDispatcher()
-      useDismissLocalFeedbackOnKey(clear)
+      useDismissLocalFeedbackOnKey(dismiss)
     })
     await press(document.body)
-    expect(clear).toHaveBeenCalledTimes(1)
+    expect(dismiss).toHaveBeenCalledTimes(1)
   })
 
   it('ignores modifier chords (Cmd-R / Ctrl-C etc. are not a move)', async () => {
-    const clear = vi.fn()
+    const dismiss = vi.fn()
     renderHook(() => {
       useActionDispatcher()
-      useDismissLocalFeedbackOnKey(clear)
+      useDismissLocalFeedbackOnKey(dismiss)
     })
     await press(document.body, { metaKey: true })
     await press(document.body, { ctrlKey: true })
     await press(document.body, { altKey: true })
-    expect(clear).not.toHaveBeenCalled()
+    expect(dismiss).not.toHaveBeenCalled()
   })
 
   // Inherited from the dispatcher: a key aimed at a focused field (chat, a
   // game input) never reaches here — so typing in chat can't wipe game feedback.
   it('ignores keystrokes aimed at a focused text field', async () => {
-    const clear = vi.fn()
+    const dismiss = vi.fn()
     renderHook(() => {
       useActionDispatcher()
-      useDismissLocalFeedbackOnKey(clear)
+      useDismissLocalFeedbackOnKey(dismiss)
     })
     const input = document.createElement('input')
     document.body.append(input)
     await press(input)
-    expect(clear).not.toHaveBeenCalled()
+    expect(dismiss).not.toHaveBeenCalled()
   })
 })

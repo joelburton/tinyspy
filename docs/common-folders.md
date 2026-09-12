@@ -240,7 +240,7 @@ area is audited. No sweep.
 | `devtools` | pages that ship for the author, not for players (palette, font specimen) |
 | `error-page` | the stand-in when a page can't render |
 | `faults` | the fault sink and its modal |
-| `feedback` | the near-input pill and its local/global state |
+| `feedback` | the feedback message and its kinds, the two slots that hold them, and the pill that draws one |
 | `fields` | every field — the repo of fields, whoever renders them |
 | `floating-panels` | the shell every floating thing rides on, and the panels on it |
 | `forms` | the form frame and what every form shares that isn't a field |

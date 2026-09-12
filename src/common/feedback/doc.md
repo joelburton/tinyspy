@@ -1,7 +1,11 @@
 # feedback
 
-The pill a game shows near the board or in the page header, and the two slots
-behind it. One shape for every message the app says to a player about their own
+The feedback pill a game shows under its board or in the page header, and
+everything behind it: the message and its kinds (`FeedbackMessage`), the slot
+that holds the live ones and picks which to draw (`useFeedbackSlot`), the hook
+that narrates a peer's stream into the header (`usePeerFeedback`), the any-key
+dismisser, and the registry a console trigger and a test reach a mounted slot
+through. One shape for every message the app says to a player about their own
 last action, the state they are in, or what someone else just did — and one
 rule for which of them is on screen.
 

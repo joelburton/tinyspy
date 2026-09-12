@@ -15,9 +15,10 @@ Every statement here carries one of three marks:
 
 Started 2026-09-04 from the design review in the Fable session that opened it.
 
-**Status: OPEN; the machinery is BUILT and awaits Joel's read** (2026-09-12).
-Every design item is decided (§9, §11.3). Built, alongside the old files,
-which stay until each game converts:
+**Status: BUILT, every game CONVERTED, the old system DELETED, AUDITED and
+RE-READ — awaiting Joel's blessing** (2026-09-12; the record of the audit is
+`plans/areas/feedback.md`). Every design item is decided (§9, §11.3). The
+build, as it went — written while the old files still stood beside the new:
 
 | file | what it is |
 |---|---|
@@ -278,11 +279,13 @@ the old pill. `feedback/todo.md` rewritten: its bug named a deleted file and
 its two Soon items were this redesign. Whole project typechecks; 3080 unit
 tests green.
 
-**Left for the closing:** `feedback/doc.md`'s Design (and `terminal/`'s and
-`info-sheet/`'s one-line mentions), the DESIGNS_OWED row, the closing
-re-read of the roster, and the memory pickup.
-
-**Next:** the other games, one by one.
+**The closing (2026-09-12):** `feedback/doc.md` has its lede and Design and
+is off `DESIGNS_OWED`; `terminal/doc.md` and `info-sheet/doc.md` each name
+their feedback file; the roster was re-read in one sitting (eight findings,
+`plans/areas/feedback.md`, all eight worked). **Left:** the blessing, which is
+Joel's. When the roster is blessed this file's durable content is already in
+`docs/ui.md`, `docs/code-conventions.md` and `feedback/doc.md`, and the file
+is deleted with the area.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
 built for tidying files that stay, and this area replaces most of its files:
