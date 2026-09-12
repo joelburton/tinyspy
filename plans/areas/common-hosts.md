@@ -10,7 +10,8 @@ in the area. audit the area") and the eighteen code files stamped
 files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
-deleted after the run. Nothing worked yet.
+deleted after the run. The area's own question (F-1) is decided; no other
+finding is worked.
 
 ## The roster
 
@@ -51,22 +52,28 @@ are on `DESIGNS_OWED`.
 
 ## F-common-hosts-1 · `root-mount-rule` · What earns a mount at the root — the plan row's question, and App.tsx has already answered it
 
-The row offers two rules: *wide* (mounted once at the root, driven by a store,
-because what triggers it is elsewhere) and *narrow* (renders other people's
-content). App.tsx's docstring states the wide one today, in its own words:
-"Each is a singleton whose state crosses subtrees, which is why none of them
-lives in a page" — and applies it to all six root mounts, `EditProfileModal`
-and `WordEditDialog` included. No file says the narrow one. The row's second
-question, whether the stores come with the components, is moot: every store
-already sits in its component's folder.
+**DECIDED 2026-09-11 (Joel): the wide rule.** A thing is mounted at the root
+when its state crosses subtrees, and a store is how a page reaches it. It
+covers all six root mounts — the three hosts, the headless watcher, and the two
+`FloatingPanel` instances whose positioning keeps them out of a page column —
+so no second rule is needed and no mount is an exception.
 
-1. **Adopt the wide rule as App.tsx states it, and give each of the four
-   `doc.md` Designs the sentence** — "mounted once at the root because its
-   state crosses subtrees; the store is how a page reaches it". App.tsx keeps
-   the list. **Recommended**: it is what the code does, and it needs no second
-   home for the two panels.
-2. Adopt the narrow rule — the three hosts render other people's content — and
-   say where the two panels and `GameInvitations` go instead.
+The rule's durable home is App.tsx's docstring, which already words it: "Each
+is a singleton whose state crosses subtrees, which is why none of them lives in
+a page." Nothing in code changes. What the decision fixes is the sentence each
+of the four folders owes its Design, which lands when the Designs are written:
+*mounted once at the root because its state crosses subtrees; the store is how
+a page reaches it*.
+
+The row's second question, whether the stores come with the components, was
+moot on arrival: every store already sits in its component's folder.
+
+The rejected alternative, for the record: the *narrow* rule — a root mount
+renders other people's content. It admits only `ToastHost`, `TooltipHost` and
+`FaultModal`, and then needs a second name for `GameInvitations` (headless, and
+there is no subtree it could watch every club from) and a third for
+`EditProfileModal` / `WordEditDialog` — one rule and two exceptions covering
+half the list.
 
 ### Behavior
 
@@ -311,7 +318,7 @@ its swallowed click, why the beat is 400ms; faults — the queue's rules (one at
 a time, cap 5, dropped from the UI only), why nothing authors a fault by hand,
 the three lines and which is optional; invitations — seated at creation but
 never dragged in, the seen set and the age bound and why both, the mirror
-into the toast store. Plus whatever F-1 decides about the root.
+into the toast store. Plus the root-mount sentence F-1 settled, in each.
 
 ## Notes
 
