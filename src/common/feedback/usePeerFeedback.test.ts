@@ -8,10 +8,10 @@ import { createFeedbackSlot } from './feedbackSlotStore'
 
 /**
  * Tests for the shared peer-narration bootstrap. The cases that matter are the
- * seed-TIMING ones from docs/peer-feedback-audit.md → §1.1, which the games'
- * synchronous PlayArea mocks never reproduced (they hand the backlog to the
- * first render, hiding the async-load bug). Here we drive the async explicitly
- * via `rerender`: enabled/items flip across renders the way a real load does.
+ * seed-TIMING ones, which the games' synchronous PlayArea mocks never
+ * reproduced — they hand the backlog to the first render, hiding the
+ * async-load bug. Here the async is explicit: `enabled` and `items` flip
+ * across `rerender`s the way a real load does.
  */
 
 type Props = { enabled: boolean; items: readonly string[]; ready?: boolean }

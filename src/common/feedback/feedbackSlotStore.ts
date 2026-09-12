@@ -32,21 +32,23 @@ export type SlotEntry = {
 
 export type FeedbackSlot = {
   readonly name: SlotName
-  /** Put a message up. Returns its id, for `retract`. */
+  // Put a message up. Returns its id, for `retract`.
   show: (message: FeedbackMessage) => string
-  /** Take a message down by id — the owner of a condition, when it ends. No-op if it is already gone. */
+  // Take a message down by id — the owner of a condition, when it ends.
+  // No-op if it is already gone.
   retract: (id: string) => void
-  /** The player's next action (a key, a tile click, a tap): removes the top message if it leaves by gesture. */
+  // The player's next action (a key, a tile click, a tap): removes the top
+  // message if it leaves by gesture.
   dismiss: () => void
-  /** The × on the pill: removes the top message if it leaves by the ×. */
+  // The × on the pill: removes the top message if it leaves by the ×.
   close: () => void
-  /** The message the slot draws, or null. Reference-stable per change. */
+  // The message the slot draws, or null. Reference-stable per change.
   getTop: () => FeedbackMessage | null
-  /** Subscribe to changes of `top`; the hook wires this to `useSyncExternalStore`. */
+  // Subscribe to changes of `top`; the hook wires this to `useSyncExternalStore`.
   subscribe: (listener: () => void) => () => void
-  /** Every live entry, lowest rank first — a test seam, and the console's. */
+  // Every live entry, lowest rank first — a test seam, and the console's.
   peek: () => readonly SlotEntry[]
-  /** Clear every timer. Called by the hook on unmount; the slot is dead after. */
+  // Clear every timer. Called by the hook on unmount; the slot is dead after.
   destroy: () => void
 }
 

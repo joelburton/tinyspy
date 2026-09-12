@@ -66,7 +66,7 @@ describe('useTopFeedbackMessage', () => {
         // The shape every converted game writes: an effect keyed on a
         // primitive, whose cleanup retracts.
         useEffect(
-          function announceWaiting() {
+          function showWaiting() {
             if (!waiting) return
             const id = slot.show(FeedbackMessage.waiting(moth))
             return () => slot.retract(id)

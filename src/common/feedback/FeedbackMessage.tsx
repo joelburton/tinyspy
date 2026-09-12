@@ -10,20 +10,10 @@ import type { TerminalMessage } from '../terminal/terminalMessage'
 import { waitingForText } from '../info-sheet/turnText'
 
 /**
- * A FEEDBACK MESSAGE — the one thing a feedback slot holds and a pill draws.
- *
- * Reach for a static constructor, never a literal: `FeedbackMessage.notOk(res)`
- * when the server said no, `.result('lost', 'Not a word')` for the FE's own
- * verdict on a move, `.terminalVerdict(over)` when the game ends, `.waiting(m)`
- * while it is a teammate's turn, `.peer(m, 'won', 'found APPLE')` to narrate
- * someone else. Each names a KIND, and the kind is what decides how the message
- * looks and leaves (below). Hand it to a slot: `localFeedbackSlot.show(msg)`.
- *
- * A class with a private constructor on purpose: an object literal cannot be
- * one, and a spread loses the getters, so a hand-built or re-ranked message
- * is a compile error — in tests too. The one door in is a constructor, and
- * every constructor takes `overrides` for the rare site that needs to bend
- * its kind's behavior in the open.
+ * The vocabulary of feedback: what a message can BE (`Kind`), what its kind
+ * decides for it (`KindDefaults`, and `KINDS`, the table of every row), and
+ * the message itself (`FeedbackMessage`, at the bottom — the class docstring
+ * is the one to read first).
  */
 
 /** How a message leaves its slot. */
@@ -130,6 +120,23 @@ function defaultsFor(kind: Kind, outcome: Outcome | null, overrides: Overrides |
   return { ...row, outcome: outcome ?? row.outcome, ...overrides }
 }
 
+/**
+ * A FEEDBACK MESSAGE — the one thing a feedback slot holds and a pill draws.
+ *
+ * Reach for a static constructor, never a literal: `FeedbackMessage.notOk(res)`
+ * when the server said no, `.result('lost', 'Not a word')` for the FE's own
+ * verdict on a move, `.terminalVerdict(over)` when the game ends, `.waiting(m)`
+ * while it is a teammate's turn, `.peer(m, 'won', 'found APPLE')` to narrate
+ * someone else. Each names a KIND, and the kind is what decides how the message
+ * looks and leaves — see `KINDS` above. Hand it to a slot:
+ * `localFeedbackSlot.show(feedbackMsg)`.
+ *
+ * A class with a private constructor on purpose: an object literal cannot be
+ * one, and a spread loses the getters, so a hand-built or re-ranked message
+ * is a compile error — in tests too. The one door in is a constructor, and
+ * every constructor takes `overrides` for the rare site that needs to bend
+ * its kind's behavior in the open.
+ */
 export class FeedbackMessage {
   readonly kind: Kind
   readonly text: ReactNode

@@ -12,10 +12,11 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which six are WORKED and one CLOSED with no change (F-3):
+came out of settling the first of them — thirteen: twelve WORKED and one CLOSED with no change (F-3):
 F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`),
 F-1 (`FailureLine` moved to `forms/`, `0f1f8413`), F-4 (`Actor` moved to
-`members/member.ts`, `f792cfd0`) and F-5 (the names guard flattened).
+`members/member.ts`, `f792cfd0`), F-5 (the names guard flattened,
+`08755988`) and the prose pass, F-6 through F-11.
 
 ## The roster
 
@@ -334,7 +335,7 @@ removed. The unit suite is 3082 rather than 3083, the one deleted test.
 
 ### Prose
 
-## F-feedback-6 · `class-docstring-on-leavesby` · `FeedbackMessage`'s class docstring sits above `LeavesBy`; the class has none
+## F-feedback-6 · `class-docstring-on-leavesby` · `FeedbackMessage`'s class docstring sits above `LeavesBy`; the class has none — WORKED
 
 Lines 12–27 of `FeedbackMessage.tsx` — *"A FEEDBACK MESSAGE — the one thing
 a feedback slot holds and a pill draws"*, the reach-for-a-constructor
@@ -345,7 +346,7 @@ guard did not catch it because the block is followed by another `/**`.
 Fix: the block moves to sit on `export class FeedbackMessage`; the file
 keeps a shorter header if one is wanted.
 
-## F-feedback-7 · `peer-feedback-cites-a-missing-doc` · `usePeerFeedback` and its test cite `docs/peer-feedback-audit.md`, which does not exist, and the docstring is fifty lines of history
+## F-feedback-7 · `peer-feedback-cites-a-missing-doc` · `usePeerFeedback` and its test cite `docs/peer-feedback-audit.md`, which does not exist, and the docstring is fifty lines of history — WORKED
 
 Two cites in `usePeerFeedback.ts` (*"→ §1.1"*, *"→ bucket B"*), one in its
 test, and one comment each in spellingbee's and wordwheel's `PlayArea.tsx`
@@ -359,7 +360,7 @@ docstring of the hover length — what it does, the three parameters a
 caller decides, and that `messageFor` returns a `FeedbackMessage` or
 `null` — with the cites gone at all four files.
 
-## F-feedback-8 · `dismiss-hook-stale-cite` · `useDismissLocalFeedbackOnKey` cites an anchor `ui.md` no longer has, and calls the message an "own-move pill"
+## F-feedback-8 · `dismiss-hook-stale-cite` · `useDismissLocalFeedbackOnKey` cites an anchor `ui.md` no longer has, and calls the message an "own-move pill" — WORKED
 
 *"docs/ui.md → Feedback pill (dismissal modes)"* — the Feedback pill
 section has no such heading since the rewrite, and its rule is now the
@@ -367,7 +368,7 @@ kind's `leavesBy`, which the hook's last paragraph already describes
 correctly. *"clear their own-move pill"* is the old vocabulary for a
 `result`. One paragraph to rewrite.
 
-## F-feedback-9 · `member-notes-wear-docstring-marker` · `FeedbackSlot`'s eight members and `FailureLine`'s two props are noted with `/**`
+## F-feedback-9 · `member-notes-wear-docstring-marker` · `FeedbackSlot`'s eight members and `FailureLine`'s two props are noted with `/**` — WORKED
 
 The rule is `/**` on a file, a type or a function, and `//` on a field,
 prop or member. `feedbackSlotStore.ts`:
@@ -391,7 +392,7 @@ Every other roster type does it the other way (`KindDefaults`,
 `TerminalMessage`, `FeedbackPill`'s `Props`, `usePeerFeedback`'s
 parameter). Nothing a person can see changes; ten markers.
 
-## F-feedback-10 · `examples-not-from-the-repo` · Two examples in docstrings are not what the repo says
+## F-feedback-10 · `examples-not-from-the-repo` · Two examples in docstrings are not what the repo says — WORKED
 
 - `useFeedbackSlot.ts`'s worked example (and the test that mirrors it) name
   the effect `announceWaiting`; the nine games that write it call it
@@ -401,7 +402,7 @@ parameter). Nothing a person can see changes; ten markers.
   *"(`Ended: 12/40`)"*; boggle's text is `` `Ended: ${tally}` `` where
   `tally` is `"12 words, 34 points"`.
 
-## F-feedback-11 · `designs-owed` · The folder's `doc.md` has no Design and a lede written before the build; `terminal/` and `info-sheet/` say nothing about their feedback file
+## F-feedback-11 · `designs-owed` · The folder's `doc.md` has no Design and a lede written before the build; `terminal/` and `info-sheet/` say nothing about their feedback file — WORKED
 
 `feedback/doc.md` is a title and one paragraph that still describes the
 folder from outside. The `DESIGNS_OWED` row is open. The Design to write
@@ -413,6 +414,42 @@ trigger, the registry) under Details. `terminal/doc.md` and
 `info-sheet/doc.md` each need the one sentence saying `terminalMessage` /
 `turnText` lives there and that `feedback` owns its words — the plan's own
 rows already say so.
+
+**The prose pass, 2026-09-12 — what each of F-6 to F-11 turned into.**
+
+- F-6: the block moved onto `export class FeedbackMessage`, so hovering the
+  class at a call site shows something. The file kept a short header of its
+  own, naming what it holds and pointing at the class docstring as the one to
+  read first — the shape the `orphanedDocstrings` guard exempts, and the
+  reason it never caught this.
+- F-7: the docstring is now the four things a caller decides (`enabled`,
+  `ready`, `keyOf`, `messageFor`) and the one warning that matters — this is
+  for a stream, and a delta read off a scalar is not one. The
+  gate-before-seeding rationale is a comment on the gate line, once, where the
+  code is. All four cites to the missing doc are gone, and the two games'
+  "bucket B" comments now say what the mechanism IS instead of naming a bucket.
+- F-8: the dead `ui.md` anchor trimmed to the section that exists, and
+  "own-move pill" is a `result`.
+- F-9: ten markers, eight on `FeedbackSlot`'s members and two on
+  `FailureLine`'s props — those two in `forms/` now, since F-1 moved the file
+  before this pass ran.
+- F-10: the worked example's effect is `showWaiting`, which is what the nine
+  games call it; boggle's tally reads `Ended: 12 words, 34 points`, which is
+  what its `buildOver` builds.
+- F-11: `feedback/doc.md` has a lede and a Design, and `common/feedback` is
+  off `DESIGNS_OWED` in `src/guards/folderDocs.test.ts` (verified by planting:
+  renaming the heading fails the guard). `terminal/doc.md` and
+  `info-sheet/doc.md` each gained the sentence saying which file of theirs
+  holds a message's words, and why it is theirs and not feedback's — two
+  surfaces have to say the same thing.
+
+The Design carries five things: a message is a kind and the kind decides
+everything else; the private constructor is what makes that enforced rather
+than encouraged; a slot is a list that draws the lowest rank and discards
+nothing, with the letterboxed failure as the reason; a condition is an effect
+whose cleanup retracts; and the two slots split by WHO a message is about,
+with "Waiting for ● moth…" as the case that tests the split. The kinds table
+itself stays in `docs/ui.md`, which the Design points at rather than copying.
 
 ## F-feedback-12 · `standing-notes-bury-the-header` · A standing message in the GLOBAL slot outranks chat and every narration for as long as it holds — two games do this — WORKED
 
@@ -544,6 +581,6 @@ The two specs above; both changed with their games and are green.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

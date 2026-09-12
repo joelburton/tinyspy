@@ -44,7 +44,8 @@ export type TerminalMessage = {
  * that outcome is game-specific, which is why it can live here at all.
  *
  * A game may still write its own — boggle does, spending the pill on the
- * tally (`Ended: 12/40`) — so read the game's `buildOver` before assuming.
+ * tally (`Ended: 12 words, 34 points`) — so read the game's `buildOver`
+ * before assuming.
  */
 export function gameEndedTerminalMessage(mode: 'coop' | 'compete'): TerminalMessage {
   return {

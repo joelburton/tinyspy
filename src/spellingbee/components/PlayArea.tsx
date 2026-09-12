@@ -446,11 +446,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── Compete opponent-rank narration (global header) ───────────
   // Opponents' words are RLS-hidden in compete, so the one competitively-
   // meaningful signal is a rank CLIMB, read off `status.leaderboard` — a delta
-  // detector (bucket B in docs/peer-feedback-audit.md), NOT a seen-set: it fires
-  // on a rank INCREASE, not a new row, so it stays hand-rolled here. `ranksReady`
-  // seeds each player's last-seen rank on first load so history isn't replayed.
-  // A `peer` message like the rest of the header's news: it fades, where it
-  // used to stay until replaced.
+  // detector, NOT a seen-set — it fires on a rank INCREASE rather than a new
+  // row — so it stays hand-rolled here rather than going through
+  // `usePeerFeedback`. `ranksReady` seeds each player's last-seen rank on first
+  // load so history isn't replayed. A `peerMilestone`: a climb is where a
+  // player STANDS, so it outranks the stream of finds and a chat line.
   const prevRankRef = useRef<Map<string, number>>(new Map())
   const ranksReadyRef = useRef(false)
   useEffect(function narrateRankClimbs() {

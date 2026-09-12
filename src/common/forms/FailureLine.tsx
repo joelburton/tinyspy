@@ -5,9 +5,9 @@ import { cls } from '../utils/cls'
 import styles from './FailureLine.module.css'
 
 type Props = {
-  /** What went wrong, in a sentence. */
+  // What went wrong, in a sentence.
   children: ReactNode
-  /** Where the line sits in its own parent. Placement is the caller's. */
+  // Where the line sits in its own parent. Placement is the caller's.
   className?: string
 }
 

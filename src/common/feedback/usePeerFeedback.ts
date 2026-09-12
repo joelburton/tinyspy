@@ -5,48 +5,26 @@ import type { FeedbackMessage } from './FeedbackMessage'
 import type { FeedbackSlot } from './feedbackSlotStore'
 
 /**
- * The shared **peer-narration producer** for the global feedback slot: watch
- * an append-only stream of peer events (a teammate's accepted guess, an
- * opponent's solve) and show a message for each NEW one — without replaying
- * the backlog that already existed when this client loaded or remounted.
+ * Narrate a peer's events into the global slot: watch an append-only stream
+ * (a teammate's accepted word, an opponent's solve) and show a message for
+ * each NEW one, never replaying the backlog that was already there when this
+ * client loaded or remounted.
  *
- * Every coop/compete game narrated peers by hand-rolling the same "seen-set
- * bootstrap": a `Set` of already-accounted-for keys, seeded silently on first
- * load. Five copies drifted, and the seed *timing* was wrong in three of them
- * (see docs/peer-feedback-audit.md → §1.1). This owns the one correct bootstrap.
+ * Four things the caller decides:
+ *   - `enabled` — the mode gate, `mode === 'coop'` or `=== 'compete'`;
+ *   - `ready` — whether `items` holds the real backlog yet. Leave it alone
+ *     unless the game loads its header and its rows in SEPARATE fetches, in
+ *     which case pass "the rows have arrived once" or the backlog replays;
+ *   - `keyOf` — what makes a peer event unique;
+ *   - `messageFor` — the `FeedbackMessage` to show for it, or `null` to skip
+ *     (your own action, or an event not worth surfacing).
  *
- * **The correct bootstrap — gate BEFORE you seed.** The bug was seeding the ref
- * on the first effect run, which happens while the game is still loading and
- * `items` is `[]`: the seed captures an empty set, then the real backlog arrives
- * and every row looks "new", so the whole history replays as a burst of pills.
- * The fix: return early when `!enabled` *before* touching the ref, so the seed
- * runs on the first render where the game is actually loaded — at which point
- * `items` holds the real backlog, the seed captures it, and nothing replays. On
- * a fresh game (`items` genuinely empty at load) the seed is an empty set, so the
- * peer's FIRST event is new and fires — fixing the opposite bug
- * (psychicnum/connections silently dropping it).
+ * `keyOf` and `messageFor` are read through refs, so passing fresh closures
+ * each render is fine: the effect re-runs only when `items` changes.
  *
- * **Two-fetch hooks need `ready`.** The above holds only when the game row and
- * its rows arrive in ONE fetch. The found-words hooks (spellingbee / wordwheel /
- * wordiply / boggle) load the immutable header in one fetch and the rows in a
- * SEPARATE realtime-refetch, so `enabled` (derived from the header) can flip true
- * while `items` (the rows) is still `[]` — the seed captures nothing and the
- * backlog replays. Such callers pass `ready` = "the rows have loaded at least
- * once", so the seed waits for the real backlog. Single-fetch callers leave
- * `ready` at its default `true` and are unaffected.
- *
- * `enabled` is the mode gate (e.g. `mode === 'coop'`, or `=== 'compete'` for a
- * solve stream). `keyOf` identifies a peer event uniquely; `messageFor` returns
- * the message to show — usually `FeedbackMessage.peer(member, outcome, text)` —
- * or `null` to skip it (own actions, or an event that isn't worth surfacing).
- * `keyOf`/`messageFor` are read through refs, so callers may pass fresh
- * closures each render without re-running the effect — it re-runs only when
- * `items` (or `enabled`) actually changes.
- *
- * This is the coop *event-stream* flavor. Compete *state-transition* signals
- * that read a threat level off a changing scalar (rank climbs, milestone flips)
- * are a genuinely different mechanism — a delta detector, not a seen-set — and
- * stay hand-rolled (docs/peer-feedback-audit.md → bucket B).
+ * For an event STREAM only. A signal read off a changing scalar — a rank
+ * climbed, a `solved` flag flipping — is a delta detector rather than a
+ * seen-set, and those stay hand-rolled in the games that need them.
  */
 export function usePeerFeedback<T>({
   enabled,
@@ -83,10 +61,11 @@ export function usePeerFeedback<T>({
   })
 
   useEffect(function narrateNewItems() {
-    // Gate BEFORE seeding (the §1.1 fix): don't seed until the game narrates
-    // this mode (`enabled`) AND its backlog has actually arrived (`ready`) — so
-    // the first seed captures the real `items`, not the empty loading value or a
-    // pre-rows-fetch snapshot (see the `ready` note in the header).
+    // Gate BEFORE seeding: don't seed until the game narrates this mode
+    // (`enabled`) AND its backlog has actually arrived (`ready`), so the first
+    // seed captures the real `items`. Seeding against the empty loading value
+    // makes every row that follows look new, and the whole history replays as
+    // a burst of pills.
     if (!enabled || !ready) return
     const key = keyOfRef.current
     if (seenRef.current === null) {

@@ -16,7 +16,7 @@ export type { FeedbackSlot, SlotName } from './feedbackSlotStore'
  * keeps the same identity across renders, so it is safe in a dependency
  * array — which is what lets a condition be an effect:
  *
- *     useEffect(function announceWaiting() {
+ *     useEffect(function showWaiting() {
  *       if (!waiting) return
  *       const id = localFeedbackSlot.show(FeedbackMessage.waiting(who))
  *       return () => localFeedbackSlot.retract(id)

@@ -4,10 +4,9 @@ import { useBoundAction } from '../actions/useBoundAction'
 
 /**
  * Dismiss the game's local feedback on ANY key — the "your next keystroke is your
- * next move" rule (docs/ui.md → Feedback pill (dismissal modes)), made universal so
- * even games with **no keyboard capture** (waffle, connections, codenamesduet
- * when not clueing) clear their own-move pill on a keypress, the same way the
- * capture games do.
+ * next move" rule (docs/ui.md → Feedback pill), made universal so even games with
+ * **no keyboard capture** (waffle, connections, codenamesduet when not clueing)
+ * clear a `result` on a keypress, the same way the capture games do.
  *
  * It binds `act-dismiss-feedback`, whose any-key wildcard does NOT consume the
  * keystroke — so the letter that clears a stale verdict still plays its move.
