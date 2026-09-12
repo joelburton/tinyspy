@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-common-hosts
 
 /**
  * Tests for useGameInvitations — specifically the "entering the invited
