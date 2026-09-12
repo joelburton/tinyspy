@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5 — and, riding on
-several of those, the halves of F-9 and F-10 they consumed.
+F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8 — and,
+riding on several of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -51,7 +51,7 @@ are on `DESIGNS_OWED`.
 
 ### The area's question
 
-## F-common-hosts-1 · `root-mount-rule` · What earns a mount at the root — the plan row's question, and App.tsx has already answered it
+## F-common-hosts-1 · `root-mount-rule` · What earns a mount at the root — the plan row's question, and App.tsx has already answered it — WORKED
 
 **DECIDED 2026-09-11 (Joel): the wide rule.** A thing is mounted at the root
 when its state crosses subtrees, and a store is how a page reaches it. It
@@ -201,14 +201,31 @@ already within one import hop, in `BlockingModal`, `FloatingPanel` and
 It was the only bare plan cite in the area's code; the remaining `§` marks in
 the repo cite docs, except `PalettePage`'s, which is out of scope.
 
-## F-common-hosts-8 · `retired-ladder-numbers` · Three sites quote a z-index ladder that no longer exists
+## F-common-hosts-8 · `retired-ladder-numbers` · Three sites quote a z-index ladder that no longer exists — WORKED
 
-`ToastHost.module.css`: "chat is 10000; toasts sit at 12000".
-`TooltipHost.module.css`: "Above the chat panel (10000) and level with toasts
-(12000)" — and level is wrong twice over: `--z-tooltip` is 9000, `--z-toast`
-4000. `ToastHost.tsx`: "including the chat panel (z-index 10000)". Each reads
-its token; the comment should say what base.css says about the rung and quote
-nothing.
+Six dead numbers, and two false orderings underneath them.
+`ToastHost.module.css` claimed toasts sit "above EVERYTHING (chat is 10000;
+toasts sit at 12000)" — but `--z-toast` is 4000, under both modal rungs and
+under the tooltip, which is what docs/ui.md → Toasts already says correctly
+("a blocking modal outranks them — the world stopping beats an announcement").
+`ToastHost.tsx` repeated the same "above every other layer". And
+`TooltipHost.module.css` said the bubble was "level with toasts (12000)" when
+`--z-tooltip` is 9000 and `--z-toast` 4000 — five thousand above them, at the
+ladder's top. Its conclusion was right; only the arithmetic offered as evidence
+was invented.
+
+Each of the three files already reads its token on the line below the comment,
+so the numbers were a second copy of a fact the code gets right from one home —
+F-16's shape, except these copies had already rotted into claims that would
+mislead anyone asking whether a modal can cover a toast. It can, deliberately.
+
+**Worked 2026-09-11 under F-7's rule: name the rung, quote no number.** The two
+toast sites say `--z-toast` is above chat and any open window and below a modal
+that stops the world; the tooltip says `--z-tooltip` is the ladder's top
+because a tooltip blocks nothing. `ToastHost.tsx`'s portal sentence also stops
+claiming the portal is what puts it above things — the portal is what keeps an
+ancestor's stacking context from trapping it, which is what makes the rung mean
+what base.css says.
 
 ## F-common-hosts-9 · `alpha-and-archaeology` · "Friends-only alpha", and nine passages about what the code replaced
 

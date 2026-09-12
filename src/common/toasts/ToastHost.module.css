@@ -1,7 +1,8 @@
 /* cs-audited-common-hosts */
 
-/* The fixed bottom-right toast stack — above EVERYTHING (chat is 10000; toasts
- * sit at 12000). Newest toast is last in the DOM and, with a normal column,
+/* The fixed bottom-right toast stack. It sits at `--z-toast`: above chat and
+ * any window you left open, below a modal that stops the world — base.css's
+ * ladder says why. Newest toast is last in the DOM and, with a normal column,
  * renders at the bottom nearest the corner; older ones sit above it.
  *
  * `bottom`-anchored + capped to the viewport + `overflow-y: auto` means a flood

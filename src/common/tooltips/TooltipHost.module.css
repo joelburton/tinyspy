@@ -2,8 +2,8 @@
 
 /* The styled-tooltip bubble (see TooltipHost.tsx). Fixed + body-portaled so
  * it clamps to the VIEWPORT and escapes overflow-hidden ancestors; the host
- * sets left/top imperatively after measuring. Above the chat panel (10000)
- * and level with toasts (12000) — a tooltip should never sit under anything. */
+ * sets left/top imperatively after measuring. At `--z-tooltip`, the top of
+ * base.css's ladder: a tooltip blocks nothing, so nothing needs to cover it. */
 /* @@ */ .bubble {
   position: fixed;
   z-index: var(--z-tooltip);

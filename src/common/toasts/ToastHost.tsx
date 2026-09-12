@@ -7,8 +7,9 @@ import styles from './ToastHost.module.css'
 
 /**
  * The one shared toast stack — mounted ONCE (App.tsx) and portaled to
- * `document.body`, so it sits above every other layer including the chat panel
- * (z-index 10000). Renders every toast in the store, newest nearest the corner.
+ * `document.body`, so no ancestor's stacking context can trap it and its
+ * `--z-toast` rung means what base.css says it means. Renders every toast in
+ * the store, newest nearest the corner.
  *
  * Every source funnels through the store (`showToast`/`dismissToast`), so
  * announcements from different places share this one column and stack together
