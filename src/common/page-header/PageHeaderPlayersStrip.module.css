@@ -1,20 +1,17 @@
-/* cs-unmet */
+/* cs-audited-page-header */
 
-/* Colored-username row. Inline flow with middle-dot separators
- * between entries; truncates with ellipsis if the entire strip
- * overflows the available width (the parent <PageHeaderStatusSlot> sets
- * `min-width: 0` to allow shrinking past the intrinsic width).
+/* Colored-username row: one line of entries, and an ellipsis where the header
+ * runs out of room for it (the parent <PageHeaderStatusSlot> sets
+ * `min-width: 0` so this can shrink past its intrinsic width).
  *
- * Same height contract as the FeedbackPill — see
- * docs/ui.md → "Layout stability."
- */
+ * A BLOCK container, not a flex row, and that is what makes the ellipsis
+ * real: `text-overflow` applies to a block's inline content and does nothing
+ * for flex items, so a flex strip clips a long roster mid-name with no sign.
+ * The entries are inline-level (`inline-flex`), the spacing between them is a
+ * margin rather than a `gap`, and `vertical-align: middle` centers each entry
+ * on the line — which is what a flex row's `align-items` used to do. */
 
 /* @@ */ .strip {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  /* Space between players (replaces the old middle-dot separator). */
-  gap: 1.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -22,9 +19,15 @@
 }
 
 /* @@ */ .entry {
-  white-space: nowrap;
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Space between players. */
+/* @@ */ .entry + .entry {
+  margin-left: 1.25rem;
 }
 
 /* Per-player dot — the shared <Dot> (present = fill + paired border ring;
@@ -32,7 +35,7 @@
  * doesn't shift the row. This class only sizes + spaces it. */
 /* @@ */ .dot {
 /* @@ */   --dot-size: 0.85rem;
-/* @@ */   --dot-border-width: 2px;
+/* @@ */   --dot-border-width: var(--border-width-line-thick);
   margin-right: 0.4rem;
 }
 
@@ -46,23 +49,20 @@
  * variable-length (and can be long handles) — on a narrow header they'd
  * overflow and scroll the page. The dot already carries the whole signal
  * (color = which player, filled/hollow = present/away), so the name is
- * the droppable half. Desktop is untouched: names show as before.
- *
- * 56.25rem (900px) is the app's shared desktop→mobile line — see
- * ClubPage.module.css, where this breakpoint was first established. */
+ * the droppable half. Desktop is untouched: names show as before. */
 @media (--mobile) {
 /* @@ */   .username {
     display: none;
   }
 
   /* The margin existed to separate the dot from its (now-hidden) name;
-   * with dots alone, the strip's own `gap` does the spacing. */
+   * with dots alone, the space between entries does the spacing. */
 /* @@ */   .dot {
     margin-right: 0;
   }
 
   /* Dots sit closer together than the name-bearing entries did. */
-/* @@ */   .strip {
-    gap: 0.6rem;
+/* @@ */   .entry + .entry {
+    margin-left: 0.6rem;
   }
 }

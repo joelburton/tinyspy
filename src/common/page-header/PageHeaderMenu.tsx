@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-page-header
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Menu, type MenuHandle } from '../menu/Menu'
@@ -6,18 +6,18 @@ import { registerPageMenu } from '../menu/pageMenuStore'
 import type { MenuSection } from '../menu/menuModel'
 
 type Props = {
-  /** The identity element the menu hangs off — the app logo on home and the
-   *  club page, the gametype's logo on a game. Menu adds the chevron. */
+  // The identity element the menu hangs off — the app logo on home and the
+  // club page, the gametype's logo on a game. Menu adds the chevron.
   logo: ReactNode
-  /** The menu's contents. Home passes one account section; a game's PlayArea
-   *  pushes the whole thing through `ctx.menu.setGameSections`. */
+  // The menu's contents. Home passes one account section; a game's PlayArea
+  // pushes the whole thing through `ctx.menu.setGameSections`.
   sections: MenuSection[]
-  /** Names the trigger — "Main menu", "Club menu", "Game menu". */
+  // Names the trigger — "Main menu", "Club menu", "Game menu".
   label: string
-  /** Let focus fall back to the page instead of returning to the trigger on
-   *  close. GamePage's only, and for a documented reason: the game menu sits
-   *  over boards that read window keydowns for play (crosswords' cursor), and a
-   *  focused trigger would swallow those keys or reopen the menu. */
+  // Let focus fall back to the page instead of returning to the trigger on
+  // close. GamePage's only, and for a documented reason: the game menu sits
+  // over boards that read window keydowns for play (crosswords' cursor), and a
+  // focused trigger would swallow those keys or reopen the menu.
   returnFocusOnClose?: boolean
 }
 

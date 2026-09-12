@@ -1,10 +1,7 @@
-/* cs-unmet */
+/* cs-audited-page-header */
 
-/* The page header's marks — see PageHeaderButton.tsx.
- *
- * A MODULE rather than a global class, and that is the point: one component
- * renders this, so nothing else can wear the look by sprinkling a class name
- * on. Anything that wants it renders the component. */
+/* The page header's marks — what they are, and why this is a module rather
+ * than a global class, is PageHeaderButton.tsx's docstring. */
 
 /* @@ */ .button {
   display: inline-flex;

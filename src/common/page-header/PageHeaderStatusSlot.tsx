@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-page-header
 
 import type { Member } from '../members/member'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
@@ -9,11 +9,11 @@ import styles from './PageHeaderStatusSlot.module.css'
 
 type Props = {
   players: Member[]
-  /** The page's global feedback slot; the pill draws its top message here. */
+  // The page's global feedback slot; the pill draws its top message here.
   globalFeedbackSlot: FeedbackSlot
-  /** Forwarded to PageHeaderPlayersStrip — when set, absent members render
-   *  dimmed. The club page passes its live presence set; the in-game
-   *  header omits it. */
+  // Forwarded to PageHeaderPlayersStrip — when set, absent members render as a
+  // hollow dot. The club page passes its live presence set; the in-game header
+  // omits it.
   presentUserIds?: Set<string>
 }
 
@@ -25,9 +25,8 @@ type Props = {
  *  - **feedback**: `<FeedbackPill>` — the global slot's top message,
  *    replacing the strip while one is showing.
  *
- * Same height in both states. See docs/ui.md → Layout stability
- * — the slot doesn't reflow the header as feedback comes and
- * goes, because the slot's own height is fixed via CSS.
+ * Swapping between them reflows nothing: `<PageHeader>` fixes the strip's
+ * height, and both states fit inside it (docs/ui.md → Layout stability).
  *
  * Pause transitions don't clear feedback — the slot sits in the header,
  * which is outside `<PauseOverlay>`'s coverage, so an active message stays

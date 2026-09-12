@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-page-header
 
 import type { CSSProperties } from 'react'
 import { setChatOpen, useChatOpen } from '../chat/chatOpenStore'
@@ -15,7 +15,7 @@ import styles from './ChatButton.module.css'
  * `<Chat>` panel subscribe to the store.
  *
  * **Unread indicator.** When the panel is closed and there are unread
- * messages (see lib/chatUnread), the speech bubble GLYPH fills with the
+ * messages (`chat/chatUnread.ts`), the speech bubble GLYPH fills with the
  * latest unread sender's profile color, and a count pill sits at the
  * top-left. Both clear the moment the panel opens (presumed read).
  *

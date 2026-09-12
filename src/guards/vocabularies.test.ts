@@ -162,11 +162,11 @@ const VOCABULARIES: Vocabulary[] = [
     // which is the opposite of writing a literal.
     allowed: /^(0|50%|inherit|initial|unset|revert)$/,
     pending: {
-      // The two `999px` writers left in `common/`, each a shape question its
-      // own area answers rather than a rounding: a counter chip and a round
-      // icon button. Both may want `50%` instead — they are square boxes, and
-      // `50%` says circle without leaning on a number the browser clamps.
-      'src/common/page-header/ChatButton.module.css': ['999px'],
+      // The one `999px` writer left in `common/`, a shape question its own
+      // area answers rather than a rounding: a round icon button, which may
+      // want `50%` instead — it is a square box, and `50%` says circle without
+      // leaning on a number the browser clamps. (The chat count was the other;
+      // it is a lozenge that grows with its digits, so it took `--radius-round`.)
       'src/common/buttons/ShuffleButton.module.css': ['999px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
       'src/common/turn-log/TurnLog.module.css': ['3px'],

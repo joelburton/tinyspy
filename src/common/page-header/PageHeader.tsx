@@ -1,15 +1,15 @@
-// cs-unmet
+// cs-audited-page-header
 
 import type { ReactNode } from 'react'
 import styles from './PageHeader.module.css'
 
 type Props = {
-  /** The LEFT slot: the menu trigger, and whatever travels with it —
-   *  a `<ChatButton>`, a `<PageHeaderStatusSlot>`. Every page has this. */
+  // The LEFT slot: the menu trigger, and whatever travels with it — a
+  // `<ChatButton>`, a `<PageHeaderStatusSlot>`. Every page has this.
   children: ReactNode
-  /** The RIGHT slot. Home and club pass nothing; the slot still renders,
-   *  so all three pages have one shape and adding something later is
-   *  adding a child rather than restructuring a header. */
+  // The RIGHT slot. Home and club pass nothing; the slot still renders, so all
+  // three pages have one shape and adding something later is adding a child
+  // rather than restructuring a header.
   right?: ReactNode
 }
 
@@ -29,15 +29,10 @@ type Props = {
  * header; docs/code-conventions.md → Patterns: a shared stylesheet with
  * several consumers and no component is a component waiting to be written).
  *
- * **THE HEIGHT IS A CONTRACT.** All three pages were `2.5rem` tall by
- * arithmetic nobody had written down — a 32px logo plus the menu trigger's
- * `0.25rem` of padding on each side — while `base.css` hard-coded that same
- * `2.5rem` into `--game-header-bottom`, the value that positions the mobile
- * `<InfoSheet>` just under this rule. Two places agreeing by coincidence is
- * how the sheet ends up riding 4px over the rule at one viewport, which has
- * happened once already (the token's comment records it). Both now read
- * `--pageHeader-height`, so moving the strip's height moves the sheet with
- * it.
+ * **Its height is `--pageHeader-height`, and the strip never grows.** A
+ * second file composes from that token to place the mobile `<InfoSheet>`
+ * under this rule (base.css says how and why), so a child that overflows is
+ * fixed at the child — never by letting the strip give.
  *
  * What each page puts in it:
  *

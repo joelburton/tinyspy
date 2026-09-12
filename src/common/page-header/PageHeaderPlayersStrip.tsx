@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-page-header
 
 import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
@@ -6,11 +6,9 @@ import styles from './PageHeaderPlayersStrip.module.css'
 
 type Props = {
   players: Member[]
-  /** When provided, members NOT in this set render their dot as an
-   *  empty black outline rather than a filled color circle. Drives
-   *  the club-page member strip's live presence (who's in the club
-   *  orbit right now). Omit — as the in-game header does — to render
-   *  every dot filled. */
+  // When provided, members NOT in this set render their dot as an empty black
+  // outline rather than a filled color circle — the club page's live presence.
+  // Omit, as the in-game header does, to render every dot filled.
   presentUserIds?: Set<string>
 }
 
@@ -30,14 +28,9 @@ type Props = {
  *
  * Replaced by `<FeedbackPill>` while the global slot holds a message; the
  * underlying roster keeps updating in the background, so when the slot
- * empties the strip reflects whoever is in the game
- * right now. Per docs/ui.md → Layout stability, the slot height
- * stays constant whether the strip or the pill is showing.
- *
- * Real-estate caveat: inline-with-middle-dot today,
- * ellipsis-on-overflow. As the player count grows (or screen width
- * shrinks during a future mobile pass), the strip will need a
- * different shape. Deferred until those constraints actually bite.
+ * empties the strip reflects whoever is in the game right now. Below
+ * `--mobile` the names drop and the dots carry the whole signal (the module
+ * says why).
  */
 export function PageHeaderPlayersStrip({ players, presentUserIds }: Props) {
   return (

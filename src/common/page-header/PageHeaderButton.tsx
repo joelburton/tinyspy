@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-page-header
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -6,21 +6,21 @@ import type { AppIcon } from '../icons/icons'
 import styles from './PageHeaderButton.module.css'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  /** The glyph. The icon registry's own type, so a glyph held as an `AppIcon`
-   *  (an action's face, a menu row's) can be handed straight here; our inline
-   *  ones (the pause bars) satisfy it too, since they take `size`. */
+  // The glyph. The icon registry's own type, so a glyph held as an `AppIcon`
+  // (an action's face, a menu row's) can be handed straight here; our inline
+  // ones (the pause bars) satisfy it too, since they take `size`.
   icon: AppIcon
-  /** Per-glyph display size. Here rather than in the icons registry: the same
-   *  glyph appears at different sizes in different places. */
+  // Per-glyph display size. Here rather than in the icons registry: the same
+  // glyph appears at different sizes in different places.
   iconSize?: number
-  /** What the control does, as a sentence. There is no visible text, so this is
-   *  the accessible name AND the hover tooltip. */
+  // What the control does, as a sentence. There is no visible text, so this is
+  // the accessible name AND the hover tooltip.
   label: string
-  /** Override the tooltip when it should differ from the label. */
+  // Override the tooltip when it should differ from the label.
   tooltip?: string
-  /** A small decoration pinned to the button — chat's unread count. NOT a
-   *  label: this button is icon-only by definition, and the glyph is the whole
-   *  message. The module supplies the positioning anchor. */
+  // A small decoration pinned to the button — chat's unread count. NOT a
+  // label: this button is icon-only by definition, and the glyph is the whole
+  // message. The module supplies the positioning anchor.
   badge?: ReactNode
 }
 

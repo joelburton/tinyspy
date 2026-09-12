@@ -1,15 +1,12 @@
-/* cs-unmet */
+/* cs-audited-page-header */
 
-/* The middle cell of the header. Fixed minimum height so the
- * slot occupies the same vertical space whether it's holding a
- * PageHeaderPlayersStrip (slimmer) or a FeedbackPill (taller padding).
- * Grows horizontally to fill space between the logo+chat group
- * and the pause+timer group.
+/* The middle cell of the header: grows horizontally to fill the space between
+ * the logo+chat group and the pause+timer group. Its height is the header's
+ * business — <PageHeader> fixes the strip's height, and both things this
+ * cell can hold (the players strip, the feedback pill) fit inside it.
  *
- * `min-width: 0` lets the slot shrink below the intrinsic width
- * of its children — required for the inner PageHeaderPlayersStrip's
- * `overflow: hidden; text-overflow: ellipsis` to actually kick
- * in when usernames are long.
+ * `min-width: 0` lets the slot shrink below the intrinsic width of its
+ * children, so a long roster is bounded by the header instead of widening it.
  */
 
 /* @@ */ .slot {
@@ -17,5 +14,4 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  min-height: 2.25rem;
 }

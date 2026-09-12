@@ -1314,7 +1314,7 @@ The club page wears the same chrome the game page does. Same "no title in the he
 
 - **`<PuzpuzpuzLogo />`** — the app's "P" mark (`src/common/branding/puzpuzpuz.svg`), a white P on an indigo tile. It renders as the same bare 32×32 image `<GameLogo>` does, which is what keeps the two triggers interchangeable. Wrapped by `<PageHeaderMenu>` exactly like the game logo: click opens the club menu.
 - **`<ChatButton />`** — the same shared component as GamePage. Both pages bubble open/close the same Chat panel via the shared `chatOpenStore`.
-- **`<PageHeaderStatusSlot />`** — same shared component. Default content is the `<PageHeaderPlayersStrip>` of club **members** (the variable name in club context, per [naming.md](naming.md#member)). **Here each member's dot is a live presence light:** ClubPage feeds the strip the `useClubPresence` roster as `presentUserIds`, so a member who's connected (on the club page or in any of the club's games) shows a filled color dot and an absent one an empty outline — at-a-glance "who's in the club right now." (On GamePage the strip gets no `presentUserIds`, so every dot is simply filled.) When `setFeedback(...)` fires, the strip is replaced by the `<FeedbackPill>` for the configured dismiss mode. Because that costs the presence lights, the slot is reserved for **other people's** news — a club chat message from another member (`useChatFeedback`) is the live case. Your own actions announce themselves in a [toast](#toasts) instead; deleting a game used to use this slot and no longer does.
+- **`<PageHeaderStatusSlot />`** — same shared component. Default content is the `<PageHeaderPlayersStrip>` of club **members** (the variable name in club context, per [naming.md](naming.md#member)). **Here each member's dot is a live presence light:** ClubPage feeds the strip the `useClubPresence` roster as `presentUserIds`, so a member who's connected (on the club page or in any of the club's games) shows a filled color dot and an absent one an empty outline — at-a-glance "who's in the club right now." (On GamePage the strip gets no `presentUserIds`, so every dot is simply filled.) While the page's global feedback slot holds a message, the strip is replaced by the `<FeedbackPill>` for as long as that message's kind keeps it up. Because that costs the presence lights, the slot is reserved for **other people's** news — a club chat message from another member (`useChatFeedback`) is the live case. Your own actions announce themselves in a [toast](#toasts) instead; deleting a game used to use this slot and no longer does.
 
 **ClubPage menu items:**
 
@@ -1323,7 +1323,7 @@ All four are bound actions (`act-help`, `act-back-to-home`, `act-edit-club`, `ac
 - **Help** — opens `<ClubHelpCompanion>` (parity with the GamePage menu's Help, and like it ends with the generated key list). No key of its own: `?` opens the menu.
 - **Back to home** — `navigate('/')`, and `<`.
 - **Edit club** — opens the edit-club modal.
-- **Rename club** — placeholder. Click pops a "coming soon" `timed` feedback pill.
+- **Rename club** — placeholder. Click shows a "coming soon" `acknowledgment` in the header, which fades on its own.
 
 **Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The body below the header is a two-column flex row that takes the rest of the viewport height (per [Page-height fits the viewport](#page-height-fits-the-viewport)):
 
@@ -1644,12 +1644,13 @@ assembling the same skeleton by hand is how they drifted apart before.
 - **The left slot takes `flex: 1` and `min-width: 0`** — that's the room a
   `<PageHeaderStatusSlot>` has to render a feedback pill or the players strip into, and
   the `min-width` is what lets it ellipsize instead of widening the strip.
-- **One gap on every page**, `0.375rem`. GamePage used `0.75rem` and carried a
-  rationale about its logo reading differently; the two logos are both 32×32 and
-  deliberately interchangeable inside the menu trigger, so there was nothing to
-  compensate for. The marks add their own hover padding on top (`0.25rem` on the
-  trigger, `0.3rem` on the chat bubble), which is why the visible separation is
-  wider than the number.
+- **One gap on every page**, `0.375rem`, and it is a base rather than the
+  separation you see: each mark carries its own hover padding inside its box
+  as part of its look (`0.25rem` on the trigger, `0.3rem` on a header button),
+  so the visible distance between two marks is the gap plus both paddings,
+  and it differs per pair on purpose — the two panel bubbles on a game page
+  sit closest. The seen separations are not meant to be equal, which is why
+  the number is bespoke rather than a ramp step.
 
 ## A segmented choice
 
