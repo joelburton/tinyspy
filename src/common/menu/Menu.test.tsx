@@ -586,6 +586,23 @@ describe('Menu — submenus (desktop flyout)', () => {
     expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
   })
+
+  it('…and the same after a click OUTSIDE closed it, which is the other way out', async () => {
+    // The trigger closes through `closeMenu`; a click elsewhere closes through
+    // the outside-click listener. Both have to forget the submenu, or the
+    // flyout comes back up with the next open.
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+    expect(screen.getAllByRole('menu')).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: 'after' }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+  })
 })
 
 describe('Menu — submenus (mobile drill-down)', () => {
@@ -622,6 +639,18 @@ describe('Menu — submenus (mobile drill-down)', () => {
 
     expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+
+  it('a click outside while drilled in closes the menu — the drill-down is not its own window', async () => {
+    stubMatchMedia(true)
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'after' }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
   it('keyboard: focus lands past the Back row, and ArrowUp reaches it', async () => {

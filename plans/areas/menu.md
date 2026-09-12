@@ -54,7 +54,7 @@ finding.
 
 ### Behavior
 
-## F-menu-1 · `outside-click-leaves-submenu-open` · A mousedown outside closes the menu and forgets the submenu
+## F-menu-1 · `outside-click-leaves-submenu-open` · A mousedown outside closes the menu and forgets the submenu — WORKED
 
 `closeOnOutsideClick` calls `setOpen(false)` and nothing else; every other
 way out (`closeMenu`, Tab) also clears `submenu`. Two consequences, both
@@ -68,10 +68,14 @@ reproduced:
   and never asks `open`, so after an outside click the drilled list STAYS ON
   SCREEN. Nothing closes it but the trigger or a key.
 
-One path forgot one piece of state, and the early-return branch (F-14) is
-what let the second half hide. Fix: the outside click closes the way the
-others do, and the drill-down render requires `open`. Three specs to add,
-which the probe already wrote once.
+One path forgot one piece of state, and the early-return branch (F-4) is
+what let the second half hide.
+
+**WORKED 2026-09-11, with F-4.** A `dismiss` closes without touching focus
+and clears the submenu; Tab and the outside click both go through it, and
+`closeMenu` already did. With one render path the `open` guard covers the
+drill-down by construction. Two specs added, one per presentation — the two
+the probe had failed on the old code.
 
 ## F-menu-2 · `flyout-switch-loses-parent-index` · Opening a second flyout by click records its parent as row 0
 
@@ -107,7 +111,7 @@ wants right-anchoring we'll add a prop", about the prop that exists. Same
 shape as floating-panels' `phone` and `edgeMargin`. Delete, or keep with the
 reason written.
 
-## F-menu-4 · `two-popover-renders` · The drill-down returns early with its own copy of the popover
+## F-menu-4 · `two-popover-renders` · The drill-down returns early with its own copy of the popover — WORKED
 
 `if (isMobile && openParent)` returns a second `<div className={styles.menu}>`
 with its own popover — `ref`, `id`, `className`, `role`, `onKeyDown` — and
@@ -115,7 +119,14 @@ then the desktop path builds the same wrapper again below. Two places to keep
 in sync, and the second is the one that forgot `open` (F-1). The presentations
 differ in WHICH rows are listed and whether a flyout is drawn beside them,
 not in the popover; one render with the list chosen by presentation would
-have had nowhere to forget it. A shape question; F-1's fix may answer it.
+have had nowhere to forget it.
+
+**WORKED 2026-09-11** (Joel: one render path). The popover is drawn once;
+the submenu's rows are rendered once and placed by presentation — in the
+popover for the drill-down, in the flyout beside the sections on desktop —
+and the section list moved into `renderSections()`, a nested function like
+`renderTrigger`. The early return is gone, and with it the second copy of
+the wrapper.
 
 ## F-menu-5 · `useCallback-with-unstable-deps` · `openMenu` is memoized on a fresh array
 
@@ -295,8 +306,11 @@ number and says so.
 
 *(written when the area starts changing things)*
 
-- F-menu-1 and F-menu-2: nothing red today, which is the fault — three specs
-  to add to `Menu.test.tsx` (the probe's three).
+- F-menu-1 and F-menu-2: nothing red today, which is the fault — the probe's
+  three specs go into `Menu.test.tsx`, two for F-1 (added with its fix) and
+  one for F-2.
+- F-menu-4: the whole existing suite is the check — 53 tests, green through
+  the merge.
 - F-menu-3: none; no caller, no spec.
 - F-menu-12: CSS modules are proxies under vitest, so nothing runs
   differently; the guard's `pending` rows must shrink as each value converts,

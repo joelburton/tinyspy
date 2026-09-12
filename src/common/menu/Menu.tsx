@@ -239,6 +239,15 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     itemRefsRef.current.get(focusedIndex)?.focus()
   }, [open, focusedIndex])
 
+  // Close WITHOUT touching focus — for the ways out where focus has already
+  // gone somewhere else (Tab, a click elsewhere). `closeMenu` is for the ways
+  // out that leave focus with the menu. Both clear the submenu: a menu that
+  // reopens still drilled in would be a stale surprise.
+  const dismiss = useCallback(() => {
+    setOpen(false)
+    setSubmenu(null)
+  }, [])
+
   // Mousedown-anywhere-outside closes the menu. Mousedown (not
   // click) so the close fires before any item-click handler
   // would; clicks inside the popover are gated by the contains()
@@ -250,11 +259,11 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       if (!target) return
       if (popoverRef.current?.contains(target)) return
       if (triggerRef.current?.contains(target)) return
-      setOpen(false)
+      dismiss()
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  }, [open, dismiss])
 
   function onPopoverKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     // While the menu is open it OWNS the keyboard: nothing here may also reach
@@ -276,8 +285,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       // Tab would walk off into the browser's chrome. The NEXT press is the
       // ring's, from wherever the close left focus.
       e.preventDefault()
-      setOpen(false)
-      setSubmenu(null)
+      dismiss()
       return
     }
     if (e.key === 'ArrowDown') {
@@ -403,71 +411,15 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     )
   }
 
-  // ── The DRILL-DOWN (mobile): the submenu REPLACES the list ──
-  // No sections and no dividers — a submenu is one group by construction, and
-  // the Back row is the only chrome it needs.
-  if (isMobile && openParent) {
-    const drilledRows = navRows.map((row, i) =>
-      renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id),
-    )
-    return (
-      <div className={styles.menu}>
-        {renderTrigger()}
-        <div
-          ref={popoverRef}
-          id={popoverId}
-          className={styles.popover}
-          role="menu"
-          aria-label={openParent.label}
-          onKeyDown={onPopoverKeyDown}
-        >
-          {drilledRows}
-        </div>
-      </div>
-    )
-  }
-
-  // Build the dropdown's children list. We walk sections in order,
-  // skip empty ones, insert a divider before each non-first
-  // section, and track a flat index per rendered item so each item
-  // can register itself in `itemRefsRef` and so keyboard nav can
-  // address it directly.
-  const renderedItems: ReactNode[] = []
-  let flatIdx = 0
-  drawn.forEach((section, sectionIdx) => {
-    if (section.rows.length === 0 && !section.header) return
-    if (renderedItems.length > 0) {
-      renderedItems.push(
-        <div
-          key={`sep-${sectionIdx}`}
-          className={styles.divider}
-          role="separator"
-        />,
-      )
-    }
-    // A non-clickable info header (crosswords puzzle title + credits). Not a
-    // menuitem — no keyboard-nav index, no ref registration; the popover's arrow
-    // navigation walks only the real `.item` buttons.
-    if (section.header) {
-      renderedItems.push(
-        <div key={`hdr-${sectionIdx}`} className={styles.header} role="presentation">
-          <div className={styles.headerTitle}>{section.header.title}</div>
-          {(section.header.lines ?? []).map((line, i) => (
-            <div key={i} className={styles.headerLine}>
-              {line}
-            </div>
-          ))}
-        </div>,
-      )
-    }
-    section.rows.forEach((row) => {
-      const idx = flatIdx
-      flatIdx += 1
-      // While a desktop flyout is open IT owns navigation, so the rows behind it
-      // pass `null` and register no ref (see renderRow).
-      renderedItems.push(renderRow({ kind: 'item', row }, openParent ? null : idx, row.id))
-    })
-  })
+  // The open submenu's rows, drawn once and placed by presentation: the
+  // DRILL-DOWN (mobile) puts them IN the popover in place of the sections —
+  // no dividers, since a submenu is one group by construction, and the Back
+  // row is the only chrome it needs — and the FLYOUT (desktop) puts them in a
+  // second panel beside the sections.
+  const drilledDown = isMobile && openParent !== null
+  const submenuRows = openParent
+    ? navRows.map((row, i) => renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id))
+    : null
 
   return (
     <div className={styles.menu}>
@@ -478,37 +430,81 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           id={popoverId}
           className={styles.popover}
           role="menu"
-          aria-label={triggerLabel}
+          aria-label={drilledDown && openParent ? openParent.label : triggerLabel}
           onKeyDown={onPopoverKeyDown}
           // Scrolling the list would leave a fixed-position flyout stranded
           // beside empty space (crosswords' ~20-item menu really does scroll),
           // so the flyout closes rather than detaching. Cheaper and steadier
           // than re-measuring on every scroll frame.
-          onScroll={openParent ? () => closeSubmenu() : undefined}
+          onScroll={openParent && !drilledDown ? () => closeSubmenu() : undefined}
         >
-          {renderedItems}
+          {drilledDown ? submenuRows : renderSections()}
           {/* ── The FLYOUT (desktop): a second panel beside the parent row ──
               `position: fixed`, which is not a stylistic choice: `.popover` is
               `overflow-y: auto`, and per spec that computes overflow-x to
               `auto` too — so a flyout absolutely positioned inside the popover
               would be CLIPPED at its edge instead of overflowing. Fixed
               coordinates escape the scroll container entirely. */}
-          {openParent && submenu && (
+          {openParent && submenu && !drilledDown && (
             <div
               className={styles.flyout}
               role="menu"
               aria-label={openParent.label}
               style={{ top: submenu.anchor.top, left: submenu.anchor.right }}
             >
-              {navRows.map((row, i) =>
-                renderRow(row, i, row.kind === 'back' ? '__back' : row.row.id),
-              )}
+              {submenuRows}
             </div>
           )}
         </div>
       )}
     </div>
   )
+
+  /**
+   * The sections as the popover lists them: each non-empty section's rows,
+   * a divider before every section but the first, a header block where a
+   * section has one. Tracks a flat index per row so each can register itself
+   * in `itemRefsRef` and keyboard nav can address it directly.
+   */
+  function renderSections(): ReactNode[] {
+    const renderedItems: ReactNode[] = []
+    let flatIdx = 0
+    drawn.forEach((section, sectionIdx) => {
+      if (section.rows.length === 0 && !section.header) return
+      if (renderedItems.length > 0) {
+        renderedItems.push(
+          <div
+            key={`sep-${sectionIdx}`}
+            className={styles.divider}
+            role="separator"
+          />,
+        )
+      }
+      // A non-clickable info header (crosswords puzzle title + credits). Not a
+      // menuitem — no keyboard-nav index, no ref registration; the popover's
+      // arrow navigation walks only the real `.item` buttons.
+      if (section.header) {
+        renderedItems.push(
+          <div key={`hdr-${sectionIdx}`} className={styles.header} role="presentation">
+            <div className={styles.headerTitle}>{section.header.title}</div>
+            {(section.header.lines ?? []).map((line, i) => (
+              <div key={i} className={styles.headerLine}>
+                {line}
+              </div>
+            ))}
+          </div>,
+        )
+      }
+      section.rows.forEach((row) => {
+        const idx = flatIdx
+        flatIdx += 1
+        // While a desktop flyout is open IT owns navigation, so the rows behind
+        // it pass `null` and register no ref (see renderRow).
+        renderedItems.push(renderRow({ kind: 'item', row }, openParent ? null : idx, row.id))
+      })
+    })
+    return renderedItems
+  }
 
   function renderTrigger() {
     return (
