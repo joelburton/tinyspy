@@ -10,8 +10,9 @@ in the area. audit the area") and the eighteen code files stamped
 files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
-deleted after the run. The area's own question (F-1) is decided; no other
-finding is worked.
+deleted after the run. Worked so far: F-1 (the area's own question), F-25,
+F-24's corner inset, F-6 — and, riding on those two, the halves of F-9 they
+consumed.
 
 ## The roster
 
@@ -112,14 +113,35 @@ would go. A rename with five reads, all in this folder.
 make one call. The constant belongs beside the spec it defaults. A move with
 two importers.
 
-## F-common-hosts-6 · `feedback-test-in-faultstore` · `faultStore.test.ts`'s second describe tests another folder's unit
+## F-common-hosts-6 · `feedback-test-in-faultstore` · `faultStore.test.ts`'s second describe tests another folder's unit — WORKED
 
-"a sink puts what it is handed in the slot" renders `useLocalFeedback` and
-asserts a pill lands in the slot and no fault is queued. That is `feedback`'s
-hook; the header explains it as the ghost of a routing branch removed
-2026-09-01. Delete it, or move it to `feedback`'s spec — the fault half of the
-assertion (`useCurrentFault()` stays null) is the only line that is this
-folder's, and it asserts nothing the first describe does not.
+"a sink puts what it is handed in the slot" rendered `useLocalFeedback` and
+asserted a pill lands in the slot and no fault is queued — `feedback`'s hook,
+in `faults`' spec, and the header explained it as the ghost of a routing branch
+removed 2026-09-01.
+
+**DECIDED 2026-09-11 (Joel): deleted.** Both halves were checked first. The
+pill half is covered better next door — `feedback/useLocalFeedback.test.ts`
+asserts a sticky message lands and stays in four tests, one of them with the
+same `'Game over'` string. The fault half could not fail: `useLocalFeedback.ts`
+imports React and its own type and nothing else, so there is no path, direct or
+transitive, from it to `faultStore`. The file's header loses the paragraph that
+explained the describe and gains one sentence saying why no routing test lives
+here — a fault raises its modal inside the wrapper, before a call site has an
+answer to hand a sink.
+
+Two alternatives were weighed and refused: moving it to `feedback`'s spec (that
+folder is NOT OPENED and the file is `cs-unmet`, and it would still be an
+unfalsifiable assertion), and re-aiming it as a static import ban in
+`src/guards/` (a guard built for one hypothetical, protecting a rule that holds
+for a different reason than where an import sits).
+
+**It took a dead pointer with it.** `feedback/GenericFeedbackPill.test.tsx`
+said faults reaching the pill were "guarded by faultStore.test.ts's routing
+tests" — tests that went with the `fault: true` flag on 2026-09-01. Rewritten
+in the same edit to say why no fault reaches that component. `feedback` does
+not open for this; it is the two-line conformance edit the process allows where
+the finding's area owns the fact being misstated.
 
 ### Code and prose
 
@@ -159,6 +181,8 @@ nothing.
   no longer hidden behind an open chat panel".
 - `useGameInvitations.test.ts`: "Pre-fix this re-showed the invite".
 - `faultStore.test.ts`'s header: the `fault: true` flag that went 2026-09-01.
+  **Done with F-6**, which deleted the describe the paragraph existed to
+  explain.
 
 Each keeps the reason that still holds (the viewport clamp, why headless, why
 the press is claimed) and drops the before.
