@@ -239,9 +239,9 @@ and `invalid` are the game's rules applied to a move that genuinely happened —
 and nothing local was consulted first, so there is no stale copy losing a race:
 strands ships **no word list to the client**, and the frontend deliberately does
 not gate on `min_word_length`. The server's verdict is the first anyone knows.
-Their outcomes (`warning`, `warning`, `lost`) are the tones `pillFor` was
-already choosing, moved into the answer; `message` stays null because the pill
-copy is the shared `WORD — body` format four other games speak.
+Their outcomes (`warning`, `warning`, `lost`) are the ones `resultFor` was
+already choosing, moved into the answer; `message` stays null because the
+result's text is the shared `WORD — body` format four other games speak.
 
 **What IS a `not-ok`** is a trace this board could not have produced, or a move
 somebody else overtook:
@@ -283,7 +283,7 @@ connecting line**, so the player still works out the order.
   lost, and nothing warns about it — the full bar is the signal, which is why the
   filled state is styled distinctly rather than merely being 100% wide.
 - **The button is clickable before the bar fills**, and answers the click with
-  the count still to go — a `warning` pill, "3 more words needed for a hint". The bar
+  the count still to go — a `warning` result, "3 more words needed for a hint". The bar
   shows *progress* but never states the remaining number, so an early click is a
   fair question, and a disabled button is the one response that can't answer it.
   The two states still read differently: the button only fills amber
@@ -363,8 +363,8 @@ next:
   "undo back to here", which stays click-only). A small field, so this is usually
   unique — which is what makes typing the *rest* of a word work.
 - **Several matches** → they ring **red** for a beat and wait for a click. No
-  pill: this slot IS the entry area, so a pill would hide the word being built to
-  say something the board says better. **No match** → an error pill, because
+  message: this slot IS the entry area, so a pill would hide the word being built
+  to say something the board says better. **No match** → a `lost` result, because
   that's nearly always a mistake rather than a choice.
 - An unmatched letter **never restarts the trace elsewhere** the way a far
   *click* does. A click names a cell unambiguously; a keystroke doesn't, so
@@ -373,7 +373,7 @@ next:
 So the rule the original design derived from still holds — it's refined, not
 reversed. Physical keys also do the rest: **Backspace** drops the last tile,
 **Enter** submits, **Tab** is caught and goes nowhere (the page declares an empty
-tab ring, so no tile is ever a tab stop), and any key dismisses the last pill.
+tab ring, so no tile is ever a tab stop), and any key dismisses the last result.
 
 **A click never submits.** Re-clicking the last tile would be a misclick
 magnet: that tile is where the cursor already is, so clipping it while reaching
@@ -391,10 +391,14 @@ take.
 can't use `<EntryRow>`: its string is *derived* from the path (`wordFromPath`),
 so EntryRow's `value`/`onChange` contract runs backwards. The buttons are the
 pointer twins of Backspace and Enter, and the win is touch — on a phone there's
-no keyboard, so the Submit button is the ONLY way to send a word. The row **shares its fixed-height slot with the verdict pill** (you're
-either building a word or reading what the last one did), which is `<EntryRow>`'s
-own behavior; stackdown, whose pill has a separate reserved row, is the odd one
-out.
+no keyboard, so the Submit button is the ONLY way to send a word. The row **shares its fixed-height slot with the feedback pill** (you're
+either building a word or reading what the last one did) — the same swap
+`<EntryRow>` makes; stackdown, whose pill has a separate reserved row, is the odd
+one out. The local slot's standing conditions are the verdict, out of the race
+("Solved — waiting on the rest" for a solver), whose turn, and the **theme clue
+as a `prompt`** on an untouched board — it leaves when a trace begins and comes
+back if that trace is taken back or rejected, until the first find, and a
+rejection shows over it ([ui.md → Feedback pill](../ui.md#feedback-pill)).
 
 **Bare letters, no tile boxes** — a documented departure from the
 tile-and-warm-ramp vocabulary in [ui.md](../ui.md). A disc IS the mark here, and
@@ -419,11 +423,11 @@ word so the two can never disagree about a row.
 
 **Colors**, and each says one thing: purple = a found theme word, gold = the
 spangram, light purple = the live trace, gray = a word nobody found (drawn at the
-reveal). Green belongs to the hint bar and the `valid word` pill. The turn log
+reveal). Green belongs to the hint bar and the `valid word` result. The turn log
 uses *darker text variants* of purple and gold — a color tuned as a disc fill
 under white letters is not the same color that reads as 15px type on a white row.
 
-**Pills speak the shared word-game format** — `WORD — body`, word first and in
+**Results speak the shared word-game format** — `WORD — body`, word first and in
 caps, which is `useWordSubmit`'s `line()` convention. strands can't use that hook
 (its acceptance is server-side, not a local list lookup), so it matches the
 *output* instead of inventing a second dialect; `too short` and `not a word` are

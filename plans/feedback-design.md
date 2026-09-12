@@ -139,7 +139,22 @@ gone: the row draws whatever is on top, and a gesture result leaves when a
 key dismisses it. Its e2e spec changes where it relied on the accepted
 word timing out.
 
-**letterboxed COMMITTED**, its two e2e specs green.
+**letterboxed COMMITTED** (`fdd71215`), its two e2e specs green.
+
+**strands CONVERTED (2026-09-12).** Four
+condition effects: the verdict, out of the race (a solver's "Solved —
+waiting on the rest"), whose turn, and the theme clue as a `prompt` on an
+untouched board (§11.3 item 6: it leaves when a trace begins, returns when
+the trace is taken back or rejected, until the first find; a rejection shows
+over it). The six move verdicts (`resultFor`), the hint bar's shortfall
+answer and the no-match typed letter are `result`s; every not-ok (submit,
+spend_hint, the two New Game answers) is `notOk`. `buildOver` →
+`TerminalMessage` on primitives — the winners' names, my solve and hint
+count, the winner's. BoardCol swaps the move row for `<FeedbackPill>` on
+the slot's top; a tile click and ⌫ are `dismiss`, and the any-key hook takes
+the slot's `dismiss`.
+
+**strands COMMITTED**, its four e2e specs green.
 
 **Next:** the other games, one by one.
 

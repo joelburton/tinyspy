@@ -5,7 +5,7 @@ import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -28,7 +28,8 @@ type Props = {
   /** Solved, as opposed to conceded — they read very differently. */
   iSolved: boolean
   isTerminal: boolean
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** The theme words, SPANGRAM FIRST — non-null only while the solution is
    *  showing, since this is the same secret the board's gray lines are. The
    *  board draws paths and never spells anything out, so without this the

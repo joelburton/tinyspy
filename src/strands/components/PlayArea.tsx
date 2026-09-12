@@ -7,18 +7,15 @@ import { cls } from '@/common/utils/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import type { GamePlayer } from '@/common/members/member'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useFlash } from '@/common/move-flash/useFlash'
-import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
-import { memberById } from '@/common/members/memberList'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
@@ -39,7 +36,6 @@ import { InfoCol } from './InfoCol'
 import type { PuzzleAnswer, StrandsSetup } from '../lib/setup'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -67,7 +63,7 @@ type SubmitResult = {
 }
 
 /**
- * Own-move pill copy, in the **shared word-game format**: `WORD — body`, word
+ * A move's result, in the **shared word-game format**: `WORD — body`, word
  * first and in caps. That is `useWordSubmit`'s `line()` convention, which
  * spellingbee / wordwheel / boggle all speak — strands can't use that hook
  * (its acceptance is server-side, not a local list lookup), so it matches the
@@ -80,49 +76,64 @@ type SubmitResult = {
  * Leading with the word also keeps the pill short on a phone — `MEDICINE —
  * theme` fits where `Theme word: MEDICINE` starts to run out of room.
  *
- * `valid word` is deliberately quiet: the BAR carries hint progress, and a pill
- * claiming "hint earned" on every find would be wrong most of the time. The
- * capped-bar case says nothing extra for the same reason — per Joel's ruling
- * the full bar IS the signal.
+ * `valid word` is deliberately quiet: the BAR carries hint progress, and a
+ * result claiming "hint earned" on every find would be wrong most of the
+ * time. The capped-bar case says nothing extra for the same reason — per
+ * Joel's ruling the full bar IS the signal.
  */
-function pillFor(r: SubmitResult) {
+function resultFor(r: SubmitResult): FeedbackMessage {
   const line = (body: string) => `${r.word.toUpperCase()} — ${body}`
   switch (r.result) {
     case 'spangram':
-      return stickyPill('won', line('spangram'))
+      return FeedbackMessage.result('won', line('spangram'))
     case 'theme':
-      return stickyPill('won', line('theme'))
+      return FeedbackMessage.result('won', line('theme'))
     case 'hint_word':
-      return stickyPill('won', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
+      return FeedbackMessage.result('won', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
     case 'duplicate':
-      return stickyPill('warning', line('already found'))
+      return FeedbackMessage.result('warning', line('already found'))
     case 'too_short':
-      return stickyPill('warning', line('too short'))
+      return FeedbackMessage.result('warning', line('too short'))
     default:
-      return stickyPill('lost', line('not a word'))
+      return FeedbackMessage.result('lost', line('not a word'))
   }
 }
 
-/** Terminal copy, in the shared `TerminalCopy` shape. The manual stop delegates
- *  to the shared `endedCopy` rather than writing its own neutral strings.
+/** The terminal message, in the shared `TerminalMessage` shape. The manual
+ *  stop delegates to the shared `gameEndedTerminalMessage` rather than
+ *  writing its own neutral strings.
  *
  *  The loss line counts what was found and never says out of how many — the
  *  total is part of the answer, and a game that ended without a win hasn't
  *  earned it. */
-function buildOver(
-  playState: string,
-  found: number,
-  isCompete: boolean,
-  players: GamePlayer[],
-  selfId: string,
-  playerStates: readonly { user_id: string; hints_spent: number; solved: boolean }[],
-): TerminalCopy {
+function buildOver({
+  playState,
+  found,
+  isCompete,
+  iWon,
+  winnerNames,
+  iSolved,
+  myHints,
+  winnerHints,
+}: {
+  playState: string
+  found: number
+  isCompete: boolean
+  /** My own `result.won` flag — the server's verdict, not an inference. */
+  iWon: boolean
+  /** Every winner's name, joined with " + ". */
+  winnerNames: string
+  iSolved: boolean
+  myHints: number
+  /** The first winner's hints, or null when there is none. */
+  winnerHints: number | null
+}): TerminalMessage {
   // ── Coop ──
   if (playState === 'won') {
-    return { verdict: 'Won: every word found', message: 'You found them all!', tone: 'won' }
+    return { pillText: 'Won: every word found', infoColText: 'You found them all!', outcome: 'won' }
   }
   if (playState === 'lost') {
-    return { verdict: `Lost: out of time — ${found} found`, message: 'Out of time', tone: 'lost' }
+    return { pillText: `Lost: out of time — ${found} found`, infoColText: 'Out of time', outcome: 'lost' }
   }
 
   // ── Compete ──
@@ -130,30 +141,23 @@ function buildOver(
   // COUNT rather than the finish order — "won by 1 hint" is the actual contest,
   // and saying "first to finish" would describe a race nobody ran.
   if (playState === 'won_compete') {
-    const iWon = players.find((p) => p.user_id === selfId)?.result?.won === true
-    const winners = players.filter((p) => p.result?.won === true)
-    const names = winners.map((p) => p.username).join(' + ')
-    if (iWon) return { verdict: 'Won: fewest hints', message: 'You win!', tone: 'won' }
+    if (iWon) return { pillText: 'Won: fewest hints', infoColText: 'You win!', outcome: 'won' }
     // Three ways to lose, and the verdict names the one that happened: the
     // winner beat you on hints; they MATCHED your hints and the earlier solve
     // broke the tie (saying "fewer hints" there would be flatly false); or you
     // never solved at all. Terminal-time RLS has opened every player row, so
     // the counts are readable here.
-    const mine = playerStates.find((p) => p.user_id === selfId)
-    const winnerHints = playerStates.find(
-      (p) => p.user_id === winners[0]?.user_id,
-    )?.hints_spent
-    const verdict = !mine?.solved
-      ? `Lost: ${names} solved it`
-      : mine.hints_spent === winnerHints
-        ? `Lost: ${names} solved it sooner`
-        : `Lost: ${names} used fewer hints`
-    return { verdict, message: `${names} won`, tone: 'lost' }
+    const pillText = !iSolved
+      ? `Lost: ${winnerNames} solved it`
+      : myHints === winnerHints
+        ? `Lost: ${winnerNames} solved it sooner`
+        : `Lost: ${winnerNames} used fewer hints`
+    return { pillText, infoColText: `${winnerNames} won`, outcome: 'lost' }
   }
   if (playState === 'lost_compete') {
-    return { verdict: 'Lost: nobody solved it', message: 'Nobody solved it', tone: 'lost' }
+    return { pillText: 'Lost: nobody solved it', infoColText: 'Nobody solved it', outcome: 'lost' }
   }
-  return endedCopy(isCompete ? 'compete' : 'coop')
+  return gameEndedTerminalMessage(isCompete ? 'compete' : 'coop')
 }
 
 /**
@@ -200,10 +204,10 @@ export function PlayArea(ctx: GamePageCtx) {
     playState === 'won_compete'
     && players.find((p) => p.user_id === session.user.id)?.result?.won === true
   const celebration = useCelebration(playState === 'won' || iWonCompete)
-  // `locked` at terminal, like every other game: the permanent verdict owns the
-  // slot then, so a stale own-move pill must not be able to replace it.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } =
-    useLocalFeedback({ locked: isTerminal })
+  // The below-board slot: a move's result, the hint bar's answers, End /
+  // Concede's not-oks, and the standing conditions further down (the theme
+  // clue among them).
+  const localFeedbackSlot = useFeedbackSlot('local')
   const { acknowledge, acknowledgeModal } = useAcknowledge()
   const infoSheet = useInfoSheet()
 
@@ -275,22 +279,22 @@ export function PlayArea(ctx: GamePageCtx) {
       // turn`. Either way the trace goes, because it no longer describes
       // anything on the board.
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         setTrace([])
         return
       } else if (res.type === 'ok') {
-        // ONE branch over the six, uniquely here: `pillFor` is a total switch
-        // over `result` and the tone travels in the envelope, so splitting this
-        // into six identical bodies would say less, not more. What the six DO
-        // differ on is the trace, and that is the line below.
+        // ONE branch over the six, uniquely here: `resultFor` is a total
+        // switch over `result` and the outcome travels in the envelope, so
+        // splitting this into six identical bodies would say less, not more.
+        // What the six DO differ on is the trace, and that is the line below.
         const r = res.data
-        showLocalFeedback(pillFor(r))
+        localFeedbackSlot.show(resultFor(r))
         // Only a found word keeps its tiles: they stay lit as the in-progress
         // thread until the events refetch lands and the derived clear above
         // hands them over to their found colors — no blank flash in between.
-        // (The success pill outranks the echo in BoardCol's slot, so keeping the
-        // trace doesn't delay the verdict.) Everything else clears at once,
-        // which is what stops the board filling with non-theme paths.
+        // (The result takes the echo's place in BoardCol's slot, so keeping
+        // the trace doesn't delay the verdict.) Everything else clears at
+        // once, which is what stops the board filling with non-theme paths.
         if (r.result !== 'theme' && r.result !== 'spangram') setTrace([])
         return
       } else {
@@ -299,7 +303,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
     },
-    [gameId, showLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
 
   const onTileClick = useCallback(
@@ -311,7 +315,7 @@ export function PlayArea(ctx: GamePageCtx) {
         viewer.exitViewing()
         return
       }
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
       // A click ANSWERS the ambiguous-letter question, so the red rings go now
       // rather than sitting there for the rest of their second, pointing at
       // cells the player has already chosen between.
@@ -325,7 +329,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // `consumed` is rebuilt each render from `found`; listing it would rerun
     // this on every render for no benefit, so the found LENGTH stands in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, trace, found.length, submit, clearLocalFeedback, flashAmbiguous, viewer],
+    [busy, trace, found.length, submit, localFeedbackSlot, flashAmbiguous, viewer],
   )
 
   /** Take back the last traced cell — the ⌫ button and Backspace share it.
@@ -333,9 +337,9 @@ export function PlayArea(ctx: GamePageCtx) {
    *  selected tiles the visible trace is already empty, and popping the raw one
    *  would resurrect its stale prefix. */
   const deleteLast = useCallback(() => {
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     setTrace(trace.slice(0, -1))
-  }, [trace, clearLocalFeedback])
+  }, [trace, localFeedbackSlot])
 
   /** Submit the trace — the Submit button and Enter both land here, and since
    *  2026-08-14 they are the only two routes: a click never submits. */
@@ -393,11 +397,10 @@ export function PlayArea(ctx: GamePageCtx) {
    * holds no focus — there is no text input to type into, so there would be
    * nothing for a local handler to hang off.
    */
-  // Any key dismisses the last verdict, matching every other game: the own-move
-  // pill is `sticky`, which by convention means "stays until the next move
-  // dismisses it". A watcher that claims nothing, so the same press still traces
-  // its letter.
-  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // Any key dismisses the last result, matching every other game — a
+  // gesture-cleared message stays until the next move. A watcher that claims
+  // nothing, so the same press still traces its letter.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
   useTabRing([])
 
   // A letter EXTENDS the trace, if exactly one neighboring tile bears it. A
@@ -415,16 +418,16 @@ export function PlayArea(ctx: GamePageCtx) {
         flashAmbiguous([])
         setTrace([...trace, r.at])
       } else if (r.kind === 'ambiguous') {
-        // No pill here on purpose: that row IS the entry area, so a pill would
-        // hide the word being built to say something the board can say better.
-        // The red rings ARE the message.
+        // No message here on purpose: that row IS the entry area, so a pill
+        // would hide the word being built to say something the board can say
+        // better. The red rings ARE the message.
         flashAmbiguous(r.candidates)
       } else {
         // Nothing matched. Unlike the ambiguous case there is nothing on the
         // board to point at, and it's nearly always a player mistake rather than
         // a choice to make — so it gets words.
-        showLocalFeedback(
-          stickyPill(
+        localFeedbackSlot.show(
+          FeedbackMessage.result(
             'lost',
             trace.length
               ? `No “${key.toUpperCase()}” next to that letter`
@@ -443,7 +446,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // question it was really asking — "how much further?".
     const short = (game?.hint_cost ?? 0) - (me?.hint_points ?? 0)
     if (short > 0) {
-      showLocalFeedback(stickyPill('warning', hintShortfallText(short)))
+      localFeedbackSlot.show(FeedbackMessage.result('warning', hintShortfallText(short)))
       return
     }
     const res = await runRpc<HintAnswer>(db.rpc('spend_hint', { target_game: gameId }))
@@ -451,24 +454,24 @@ export function PlayArea(ctx: GamePageCtx) {
     // and this call — a teammate filled the bar, spent it, or ringed a word.
     // They read orange, which is what a race looks like.
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'hinted') {
       // Nothing to say: the ringed coords land on every coop player's row and
-      // the board draws them. A pill would describe what is already on screen.
+      // the board draws them. A message would describe what is already on screen.
       return
     } else {
       reportUnhandled('spend_hint', res)
       return
     }
-  }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
+  }, [gameId, localFeedbackSlot, game?.hint_cost, me?.hint_points])
 
   // Cash a hint — the hint bar's button, and nothing else (strands' hints are
   // EARNED, so there is no key to press for one).
   //
   // Live on an UNFILLED bar on purpose. Clicking early is a question — "how many
   // more?" — and a dead button refuses to answer, so `spendHint` says the number
-  // in the pill instead. A hint already on the board is the one state that does
+  // in the slot instead. A hint already on the board is the one state that does
   // gray it: the board can only ring one word legibly, and the server refuses a
   // second anyway.
   //
@@ -546,7 +549,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // Solved and waiting for the others: conceding would forfeit a win already
     // banked, so it goes gray and you leave via Back to club.
     selfSolved: me?.solved ?? false,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     // The same board, traced again — so forget my choice about the answer.
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
     // the solve-implied default, so solving the replayed board wouldn't show
@@ -608,11 +611,11 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       return
     } else if (preview.type === 'not-ok') {
-      // Anything else: the pill carries the words, because the fault modal that
+      // Anything else: the slot carries the words, because the fault modal that
       // just fired is dismissable and this is what remains once it is gone. It
       // also has to be said HERE — the new game never happens, and a player who
       // pressed a button and saw nothing change is owed a reason.
-      showLocalFeedback({ ...getNotOkFeedback(preview), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(preview))
       return
     } else if (preview.type === 'ok' && preview.data.result === 'found') {
       // A puzzle is waiting — carry on and create.
@@ -641,12 +644,12 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`strands_${game.mode}`, res.data.id)
@@ -705,7 +708,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. Every action the
   // terminal row offers is ALSO a row here, which is the roster's rule.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -721,52 +724,89 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
+  // ─── The four standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. The compete arm reads the winners off the roster
+  // and the hint counts off the now-open player rows, reduced here to the
+  // few values the text needs.
+  const iWon = players.find((p) => p.user_id === selfId)?.result?.won === true
+  const winners = players.filter((p) => p.result?.won === true)
+  const winnerNames = winners.map((p) => p.username).join(' + ')
+  const iSolved = me?.solved ?? false
+  const myHints = me?.hints_spent ?? 0
+  const winnerHints =
+    playerStates.find((p) => p.user_id === winners[0]?.user_id)?.hints_spent ?? null
+  const foundCount = found.length
+  const over = useMemo(
+    () =>
+      isTerminal
+        ? buildOver({ playState, found: foundCount, isCompete, iWon, winnerNames, iSolved, myHints, winnerHints })
+        : null,
+    [isTerminal, playState, foundCount, isCompete, iWon, winnerNames, iSolved, myHints, winnerHints],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Out of the race while the others play on. `isLocallyDone` folds solved
+  // and conceded together, and solving is the GOOD one — compete is won by
+  // fewest hints, decided when everyone finishes, so a solver may well be
+  // winning. The default 'Lost — race continues' would be flatly wrong for
+  // them (wordle/waffle's identical branch makes the same call).
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.outOfRace(myConceded, 'Solved — waiting on the rest'),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone, myConceded])
+
+  // Whose turn it is, under turn order. On a phone the InfoCol's TurnStatusLine
+  // is off-canvas, so this is the only whose-turn indicator beside the frozen
+  // board.
+  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
+
+  // The THEME, quoted, on an untouched board — what an empty slot says before
+  // anything has happened. The clue also sits in the info column, but that
+  // column is off-canvas on a phone: without this a mobile player would open
+  // the game with no idea what they were looking for until they thought to
+  // open the sheet. It leaves the moment a trace begins (the echo needs the
+  // row) and comes back if that trace is taken back or rejected, until the
+  // first find — a `prompt`, which everything else outranks, so a rejection
+  // shows over it and dismissing that uncovers it again. The quotes carry
+  // it: no "Theme:" prefix, which a phone has no room for and which a quoted
+  // phrase under the board doesn't need.
+  const untouched = events.length === 0 && trace.length === 0
+  const clue = game?.clue
+  useEffect(function showThemeClue() {
+    if (!untouched || clue === undefined) return
+    const id = localFeedbackSlot.show(FeedbackMessage.prompt(`“${clue}”`))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, untouched, clue])
+
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
   // "Game not found." about a dead connection is a confident wrong answer —
   // this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
-
-  const over = isTerminal
-    ? buildOver(playState, found.length, isCompete, players, selfId, playerStates)
-    : null
-
-  /**
-   * What the below-board slot shows, in priority order: the permanent terminal
-   * verdict, then the locally-done pill, then the waiting-for-turn pill, then
-   * your last move's result, then — on an untouched board — the THEME, quoted.
-   * Waiting out-ranks own-move because a waiting player has no fresh own-move
-   * result to lose, and a stale one would bury the answer to "why can't I
-   * trace?" — the shared precedence chain (see turnCopy).
-   *
-   * The clue also sits in the info column, but that column is off-canvas on a
-   * phone: without this a mobile player would open the game with no idea what
-   * they were looking for until they thought to open the sheet. Showing it here
-   * puts the prompt where the eyes already are.
-   *
-   * DERIVED, not shown by an effect on mount. It simply is what an empty slot
-   * displays while nothing has happened yet, so the first submission replaces
-   * it and it never comes back — no timer, no "have I shown this?" flag, and no
-   * setState-in-effect (which this repo bans outright).
-   */
-  const pill = over
-    ? terminalPill(over.tone, over.verdict)
-    : isLocallyDone
-      // `isLocallyDone` folds solved and conceded together, and solving is the
-      // GOOD one — compete is won by fewest hints, decided when everyone
-      // finishes, so a solver may well be winning. The default 'Lost — race
-      // continues' would be flatly wrong for them (wordle/waffle's identical
-      // branch makes the same call).
-      ? outOfRacePill(myConceded, 'Solved — waiting on the rest')
-      : waiting
-        ? waitingTurnPill(memberById(players, currentTurnUserId))
-        : localFeedback
-        ?? (events.length === 0 && trace.length === 0
-        // The quotes carry it: no "Theme:" prefix, which a phone has no room
-        // for and which a quoted phrase under the board doesn't need.
-          ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, mode: { kind: 'sticky' as const } }
-          : null)
 
   const foundPaths = found.map((f) => ({
     path: f.path,
@@ -813,7 +853,7 @@ export function PlayArea(ctx: GamePageCtx) {
         hintCoords={viewer.viewing ? snap?.hintCoords ?? null : me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
         // `waiting` folds in turn-order (coop only): a waiting player's board
-        // is inert, and the pill below says why.
+        // is inert, and the slot below says why.
         disabled={isTerminal || isLocallyDone || busy || waiting}
         // The hint bar keeps its own gate: spend_hint is deliberately NOT
         // turn-gated (a team decision, not a move), so waiting must not dim
@@ -823,14 +863,13 @@ export function PlayArea(ctx: GamePageCtx) {
         highlight={snap?.highlight ?? []}
         viewingDescription={snap?.description ?? ''}
         onExitViewing={viewer.exitViewing}
-        // The word being traced. Shares its slot with the verdict pill — you are
-        // either building a word or reading what the last one did.
+        // The word being traced. Shares its slot with the feedback pill — you
+        // are either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
         actDelete={actDropLastCell}
         actSubmit={actSubmitEntry}
         ambiguous={[...ambiguous]}
-        pill={pill}
-        onDismissPill={clearLocalFeedback}
+        localFeedbackSlot={localFeedbackSlot}
         hintPoints={me?.hint_points ?? 0}
         hintCost={game.hint_cost}
         hintShowing={(me?.active_hint_coords ?? null) !== null}

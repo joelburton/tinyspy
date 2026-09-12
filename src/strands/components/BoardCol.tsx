@@ -1,8 +1,9 @@
 // cs-unmet
 
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import type { Coord } from '../lib/board'
 import { MoveRow } from '@/common/word-entry/MoveRow'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -37,9 +38,10 @@ type Props = {
   actSubmit: BoundAction
   /** Cells a typed letter matched when it matched several — ringed red for a beat. */
   ambiguous: Coord[]
-  /** The pill that replaces the echo: an own-move verdict, or the terminal one. */
-  pill: GenericFeedbackMsg | null
-  onDismissPill: () => void
+  /** PlayArea's below-board slot. While it holds a message — a move's result,
+   *  the theme clue, whose turn, the verdict — the pill takes the move row's
+   *  place. */
+  localFeedbackSlot: FeedbackSlot
   // ── Hint economy ──
   hintPoints: number
   hintCost: number
@@ -53,10 +55,10 @@ type Props = {
  *
  * The **move row and the pill share one fixed-height slot** because they are
  * mutually exclusive in time — you are either building a word or reading what
- * the last one did. (That swap is `<EntryRow>`'s own behavior; stackdown, whose
- * pill has a separate reserved row, is the odd one out.) Fixed height because
- * the slot empties between traces, and a collapsing row would bounce the board
- * on every submission (the no-reflow rule).
+ * the last one did. (The same swap `<EntryRow>` makes; stackdown, whose pill
+ * has a separate reserved row, is the odd one out.) Fixed height because the
+ * slot empties between traces, and a collapsing row would bounce the board on
+ * every submission (the no-reflow rule).
  *
  * The **hint bar lives here rather than in the info column**, deliberately: on a
  * phone the info column goes off-canvas into the InfoSheet, and the hint economy
@@ -78,13 +80,13 @@ export function BoardCol({
   actDelete,
   actSubmit,
   ambiguous,
-  pill,
-  onDismissPill,
+  localFeedbackSlot,
   hintPoints,
   hintCost,
   hintShowing,
   actHint,
 }: Props) {
+  const top = useTopFeedbackMessage(localFeedbackSlot)
   return (
     <div className={shared.boardCol}>
       <Board
@@ -127,8 +129,8 @@ export function BoardCol({
               ✕
             </button>
           </div>
-        ) : pill ? (
-          <GenericFeedbackPill msg={pill} onClose={onDismissPill} />
+        ) : top !== null ? (
+          <FeedbackPill slot={localFeedbackSlot} />
         ) : (
           /* The shared move row (docs/playarea.md → Text entry) around the
              traced word. strands can't use <EntryRow>: its string is DERIVED
