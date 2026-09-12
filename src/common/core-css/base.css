@@ -196,8 +196,12 @@
      journey. `paint` and `nudge` are kept apart until we know whether
      they are one thing.
 
-     ANIMATIONS ARE NOT IN THIS. The flash and shake durations are
-     game-surface and tuned; they keep their own names. */
+     A GAME-SURFACE ANIMATION IS NOT IN THIS: the flash and shake
+     durations are tuned to the board they play on and keep their own
+     names. A shell animation that is only a paint may take one of these
+     — the tooltip bubble's fade does — because what these name is how
+     long a kind of change should take, not which CSS property spends
+     it. */
   --transition-duration-paint:   100ms;
   --transition-duration-nudge:   80ms;
   --transition-duration-travel:  180ms;
@@ -226,6 +230,13 @@
   --border-width-line:        1px;
   --border-width-line-thick:  2px;
   --border-width-frame:       4px;
+
+  /* The toast card's tone stripe — its left edge, the one thing tone colors
+     (`--toast-*-stripe-color`, per theme). A width is not a theme decision, so
+     it sits here rather than beside those. Not `--border-width-frame`, which
+     is the same 4px today: a frame encloses a thing and this marks one edge,
+     so sharing the token would name the number instead of the job. */
+  --toast-stripe-width:       4px;
 
   /* Border WIDTH is the "selected" channel on a game piece — the
      tile's edge thickens to say "this piece is part of the move I'm

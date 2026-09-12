@@ -275,7 +275,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/StartGameRow.module.css': ['0.4rem'],
       'src/common/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
       'src/common/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
-      'src/common/faults/FaultModal.module.css': ['0.5rem'],
       'src/common/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
@@ -329,8 +328,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],
       // Lives with <PlayersField>, which draws the rows these size.
       // Same values, new file — the debt traveled, it did not grow.
-      'src/common/toasts/Toast.module.css': ['0.7rem'],
-      'src/common/toasts/ToastHost.module.css': ['0.6rem'],
     },
     fix:
       'Use `--spacer-1` … `-5` (1.5 · 1 · 0.75 · 0.5 · 0.25rem), remembering ' +
@@ -364,7 +361,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
-      'src/common/faults/FaultModal.module.css': ['1.1rem', '0.78rem'],
       // ErrorPage is FaultModal's twin as a PAGE; its two sizes are copied to
       // the digit so the two read as one event. They convert together or not
       // at all.
@@ -386,7 +382,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
-      'src/common/tooltips/TooltipHost.module.css': ['0.75rem'],
       'src/common/core-css/patterns/badge.css': ['0.7rem'],
       'src/common/buttons/Segmented.module.css': ['0.8rem'],
       'src/common/core-css/utilities.css': ['0.9rem'],
@@ -422,8 +417,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/rank-ladder/Stats.module.css': ['1.2'],
       'src/common/devtools/PalettePage.module.css': ['1.35'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1.5'],
-      'src/common/toasts/Toast.module.css': ['1.35'],
-      'src/common/tooltips/TooltipHost.module.css': ['1.2'],
       'src/common/core-css/patterns/badge.css': ['1.4'],
     },
     fix:
@@ -543,7 +536,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1px'],
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],
-      'src/common/toasts/Toast.module.css': ['4px'],
     },
     fix:
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +

@@ -44,7 +44,7 @@ export function FaultModal() {
       }
     >
       <div className={styles.report}>
-        <p className={styles.heading}>Error</p>
+        <h3 className={styles.heading}>Error</h3>
         <p className={styles.message}>{fault.text}</p>
         {fault.diagnostics && <p className={styles.diagnostics}>{fault.diagnostics}</p>}
       </div>

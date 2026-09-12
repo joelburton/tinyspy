@@ -22,7 +22,7 @@
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--spacer-4);
   width: min(24rem, calc(100vw - 2 * var(--page-padding-x)));
   max-height: calc(100svh - 2rem);
   overflow-y: auto;

@@ -6,14 +6,16 @@
 /* @@ */ .report {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
 }
 
-/* Line 1: the shape test. Red, unmissable, no softening. */
+/* Line 1: the shape test. Red, unmissable, no softening. An `<h3>` — it is
+   this modal's title, drawn in the body because the shell is given none — so
+   its size comes from base.css and only the color, the weight and the killed
+   margin are ours. */
 /* @@ */ .heading {
   color: var(--chrome-fault-color);
   font-weight: 700;
-  font-size: 1.1rem;
   margin: 0;
 }
 
@@ -30,7 +32,7 @@
    whoever debugs). Same content as the [db] console line. */
 /* @@ */ .diagnostics {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
   overflow-wrap: anywhere;
 }

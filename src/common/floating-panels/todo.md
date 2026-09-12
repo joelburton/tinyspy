@@ -7,6 +7,13 @@
 - **Action row** — the end-aligned row of buttons that closes a floating
   panel (`modalActions`), plus a pinned-to-bottom variant `WordEditDialog`
   wrote its own copy of.
+- **`FaultModal` draws its own title instead of passing one.** It renders
+  `<BlockingModal>` with no `title` and puts the red "Error" in the body as an
+  `<h3>` it styles itself, where every other blocking modal hands its title to
+  the shell. Either the shell's title can carry a fault's look (a color and a
+  weight it does not offer today) or the fault is a deliberate exception and
+  should say so. Decide with the shell open — what a `title` renders as is this
+  folder's question, not `faults`'.
 
 ## Someday
 

@@ -8,7 +8,7 @@
   position: relative;
   background: var(--default-bg-color);
   border: var(--border-width-line) solid var(--page-surface-border-color);
-  border-left: 4px solid var(--stripe, var(--toast-info-stripe-color));
+  border-left: var(--toast-stripe-width) solid var(--stripe, var(--toast-info-stripe-color));
   border-radius: var(--radius-md);
   /* `floating`, the same rung as a panel: a toast is a surface over the page.
      It sits on the topmost layer, so it can land on a scrim or on an open
@@ -18,7 +18,7 @@
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: var(--spacer-3);
 }
 
 /* Tone drives ONLY the left stripe color (cosmetic — the message text carries
@@ -37,7 +37,7 @@
   margin: 0;
   padding-right: 1.25rem; /* clear the close button */
   color: var(--page-text-color);
-  line-height: 1.35;
+  line-height: var(--line-height-2);
 }
 
 /* @@ */ .action {

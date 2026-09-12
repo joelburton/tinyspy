@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8 — and,
-riding on several of those, the halves of F-9 and F-10 they consumed.
+F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22 — and, riding on
+several of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
 
@@ -395,15 +395,31 @@ why it holds by construction.
 form `docs/ui.md → Faults`, which still resolves; no markdown anchor links at
 the old heading exist.
 
-## F-common-hosts-22 · `common-md-invitation-popup` · docs/common.md's invitation section describes a popup and the auto-nav it replaced
+## F-common-hosts-22 · `common-md-invitation-popup` · docs/common.md's invitation section describes a popup and the auto-nav it replaced — WORKED
 
-The heading "Joining a game — the invitation popup"; "`<GameInvitations>`
-renders the popups"; "instant popup while online"; a closing paragraph "This
-**replaces the previous ClubPage auto-nav**…". The invite is a toast in the
-shared stack, `GameInvitations` renders nothing, and the auto-nav is not in
-the tree. Also `migrations/…_common.sql`'s `created_by` comment says
-"join-invitation popup" — a comment in an APPLIED migration, so it stays as it
-is; the doc is the copy to fix.
+The heading said "Joining a game — the invitation popup"; the body said
+"`<GameInvitations>` renders the popups" and "instant popup while online"; and
+a closing paragraph explained the section by "This **replaces the previous
+ClubPage auto-nav**". There is no popup — the invite is a toast in the shared
+stack, `GameInvitations` renders nothing — and the auto-nav is not in the tree.
+
+**Worked 2026-09-11 on Joel's word, to my recommendation: the heading is
+"Joining a game — the invitation toast"**, which names what the reader is
+looking for, as F-21's did. Its one inbound link (docs/common.md itself, in the
+`is_current_view` paragraph) moved with it, label and anchor.
+
+The body now says the invite arrives as a toast in the shared bottom-right
+stack — with the consequence that matters, that an open chat panel never hides
+one — and that `GameInvitations` renders nothing, mirroring the hook's live
+list into the toast store. Three "before" passages became present-tense claims:
+the auto-nav paragraph is now "Nothing else pulls a player in" (ClubPage's
+subscription only refreshes its list; `is_current_view` is a pointer and
+nothing more), the presence-pause argument no longer contrasts with what the
+auto-nav could do, and the realtime section's aside says what the subscription
+does rather than what it drove.
+
+`migrations/…_common.sql`'s `created_by` comment still says "join-invitation
+popup" and stays: a comment in an APPLIED migration is not edited.
 
 ### Tests
 
@@ -417,13 +433,59 @@ dismissed by ✕ is marked dismissed, one joined is not — and nothing pins it.
 
 ### The stylesheet
 
-## F-common-hosts-24 · `vocabulary-pending` · The guard's rows for the four stylesheets
+## F-common-hosts-24 · `vocabulary-pending` · The guard's rows for the four stylesheets — WORKED
 
-`vocabularies.test.ts` carries: `Toast.module.css` — spacer `0.7rem`,
-line-height `1.35`, border `4px` (the tone stripe); `ToastHost.module.css` —
-spacer `0.6rem`; `FaultModal.module.css` — spacer `0.5rem`, type `1.1rem` and
-`0.78rem`; `TooltipHost.module.css` — type `0.75rem`, line-height `1.2`.
-Padding is parked and not on them.
+`vocabularies.test.ts` carried nine values across the four stylesheets, and the
+four folders now have **no rows left on any vocabulary**. Padding was and is
+parked, so none of the four stylesheets' paddings were in scope.
+
+**All nine decided 2026-09-11 (Joel), one at a time with the files open.** Five
+were near-misses that fitted an existing level — (b), the usual answer — and
+each moved by a pixel or less on screen:
+
+| value | was | now |
+|---|---|---|
+| `Toast` card gap | `0.7rem` | `--spacer-3` (0.75) |
+| `Toast` message leading | `1.35` | `--line-height-2` (1.25) |
+| `ToastHost` stack gap | `0.6rem` | `--spacer-4` (0.5) |
+| `FaultModal` diagnostics type | `0.78rem` | `--font-size-3` (0.75) |
+| `TooltipHost` bubble leading | `1.2` | `--line-height-2` (1.25) |
+
+Two were exact matches for a token and converted without a question:
+`FaultModal`'s `0.5rem` line gap → `--spacer-4`, `TooltipHost`'s `0.75rem` →
+`--font-size-3`.
+
+**The toast stripe took a new token — (a), a level nobody had named.** Its
+`4px` equalled `--border-width-frame`, but Joel's ruling was that sharing that
+token would name the number rather than the job: a frame encloses a thing, and
+this marks one edge. It is `--toast-stripe-width`, named for the toast as he
+asked (an earlier `--border-width-accent` was rejected for being generic), and
+it sits in base.css beside the widths rather than with the per-theme
+`--toast-*-stripe-color`, because a width is not a theme decision.
+
+**The fault modal's `1.1rem` was the one real orphan** — above the type ramp's
+top, and not an h-element, so no level owned it. Checking it turned up that
+`FaultModal` passes no `title` to `BlockingModal` at all: the red "Error" IS
+the modal's title, hand-drawn in the body. Joel's answer: make it the `<h3>` it
+already is, so `base.css` sizes it and the literal goes. The alternative of
+passing it as the shell's `title` and deleting `.heading` is `floating-panels`'
+question, not this area's, and is recorded there rather than taken here.
+
+**The tooltip's fade** (`animation: tooltipIn 120ms`) was never a guard row —
+animations sit outside the guard's scope. Joel took
+`--transition-duration-paint` (100ms) for it, which is the semantically right
+one: the keyframe animates opacity and nothing else. That made base.css's
+"ANIMATIONS ARE NOT IN THIS" false, so it was narrowed in the same pass to what
+it had always meant — a game-surface animation, tuned to its board, keeps its
+own name; a shell animation that is only a paint may take one of these.
+
+**Left as it is: the keyframe itself.** A `transition` cannot animate this,
+because the bubble MOUNTS when it shows (`if (!anchor) return null`) and an
+entering element has no previous computed value to interpolate from. The modern
+answer is `@starting-style`, which would replace eleven lines with three and is
+supported everywhere the app cares about — but nothing in the repo uses it, so
+the first file to would set a house pattern. Handed to `core-css/todo.md` →
+Soon, with the tooltip named as its first customer.
 
 **The corner inset is DECIDED 2026-09-11 (Joel) and WORKED: the horizontal
 follows the page gutter, the vertical does not.** `right` and the width cap
@@ -437,9 +499,6 @@ pixel-identical to before. The alternatives were keeping the hand-written
 number on both axes, and taking `--page-padding-y` on the vertical too (which
 would have tightened the desktop bottom gap to 8px for no gain).
 
-Still open in this finding: the spacer/type rows above, and the bubble's
-`animation: tooltipIn 120ms` — animations are out of the guard's scope by its
-own note. The a/b/c question per value, with the file open.
 
 ## F-common-hosts-25 · `typeof-window-guards` · The two todo items, Soon in both folders — WORKED
 

@@ -9,14 +9,14 @@
   z-index: var(--z-tooltip);
   background: var(--page-text-color);
   color: var(--default-bg-color);
-  font-size: 0.75rem;
+  font-size: var(--font-size-3);
   font-weight: 500;
-  line-height: 1.2;
+  line-height: var(--line-height-2);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   pointer-events: none;
-  animation: tooltipIn 120ms ease;
+  animation: tooltipIn var(--transition-duration-paint) ease;
 }
 
 /* @@ */ @keyframes tooltipIn {
