@@ -2,6 +2,8 @@
 
 import type { ReactNode, RefObject } from 'react'
 import { ActionButton } from '@/common/actions/ActionButton'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { cls } from '@/common/utils/cls'
 import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
@@ -28,9 +30,9 @@ import styles from './PlayerBoard.module.css'
  * docs/games/bananagrams.md + docs/playarea.md.
  *
  * This owns the two-column layout; the OUTER coordinator (`PlayArea`) owns the game
- * data, the peel/dump/concede RPCs, the local-feedback channel, and the terminal
- * verdict, passing the info-column chrome down as the `infoTop` / `infoActions` /
- * `localPill` slots. bananagrams' info column is the documented exception to the
+ * data, the peel/dump/concede RPCs, the local feedback slot, and the terminal
+ * verdict, passing the info-column chrome down as the `infoTop` / `infoActions`
+ * slots and the slot itself. bananagrams' info column is the documented exception to the
  * canonical order: readouts (infoTop) → the HAND card → Peel → the bottom action row
  * (Concede / Dump) — its hand + peel live in the info column, so the actions sit below
  * them, not in the shared `.actionSlot`.
@@ -48,10 +50,10 @@ type Props = {
   /** The bottom action row (Concede / Dump, or the terminal / locally-terminal line),
    *  rendered BELOW the hand card (bananagrams' documented order exception). */
   infoActions: ReactNode
-  /** The below-board local feedback pill (a draw announcement, an RPC error, or the
-   *  terminal / locally-terminal message), or null. In the fixed-height slot under the
-   *  board so the arena never reflows. */
-  localPill?: ReactNode
+  /** PlayArea's below-board slot (a draw acknowledgment, a check result, a
+   *  not-ok, "you're out", the verdict), drawn in the fixed-height slot under
+   *  the board so the arena never reflows. */
+  localFeedbackSlot: FeedbackSlot
   /** True once the game is over — disables Peel (the race is run). */
   isTerminal?: boolean
   /** True once THIS player has conceded (game still live for the others): freezes the
@@ -82,7 +84,7 @@ export function PlayerBoard({
   tiles,
   infoTop,
   infoActions,
-  localPill,
+  localFeedbackSlot,
   isTerminal,
   isConceded,
   onPeel,
@@ -132,7 +134,9 @@ export function PlayerBoard({
             pill appears/clears. */}
         <div className={styles.belowBoard}>
           <div className={styles.moveArea} />
-          <div className={shared.localFeedback}>{localPill}</div>
+          <div className={shared.localFeedback}>
+            <FeedbackPill slot={localFeedbackSlot} />
+          </div>
         </div>
       </div>
 

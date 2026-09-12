@@ -4,7 +4,6 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { timerLabel } from '@/common/timer/timerLabel'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -12,13 +11,12 @@ import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { DeviceBlockNotice } from '@/common/game-page/DeviceBlockNotice'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { IconExchange } from '@/common/icons/icons'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
-import { outOfRacePill, terminalPill } from '@/common/feedback/localPills'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -38,7 +36,6 @@ import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
@@ -51,21 +48,21 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * is deliberate (see docs/games/bananagrams.md). So `<PlayerBoard>` owns the
  * whole two-column shell (the shared `.layout` / `.infoCol` / `.actionSlot`
  * scaffold, with a fill — not hug — board column), and THIS component supplies
- * the v3 info-column chrome (`infoTop`) + the below-board feedback pill.
+ * the v3 info-column chrome (`infoTop`) + the below-board feedback slot.
  *
- * Feedback is LOCAL (a `<GenericFeedbackPill>` in the below-board slot), not the global
- * header channel: a peel/dump draw, an RPC error, and the terminal verdict are
- * all about the player's own game, so they belong in the local feedback area.
+ * Feedback is LOCAL (the slot drawn under the board), not the global header: a
+ * peel/dump draw, a not-ok, and the terminal verdict are all about the player's
+ * own game, so they belong in the local feedback area.
  *
  * Win flow: `peel` (enabled only when the hand is empty) either deals everyone a
  * tile or — when the bunch can't refill the ACTIVE table — goes out and wins.
  * The `is_terminal` flip arrives over `useCommonGame`'s realtime; the winner gets
- * a `<CelebrationBlockingModal>`, everyone else the below-board verdict pill.
+ * a `<CelebrationBlockingModal>`, everyone else the below-board verdict.
  *
  * Concede: bananagrams is compete, so conceding is a real loss — but it only
  * drops YOU out (`bananagrams.concede`); the others keep racing. A conceded
- * player sees the terminal LOOK locally (board frozen, "you're out" pill) while
- * the game stays live; the last player to concede ends it as a collective loss.
+ * player sees the terminal LOOK locally (board frozen, "you're out") while the
+ * game stays live; the last player to concede ends it as a collective loss.
  */
 
 /** What `bananagrams.peel` puts in `data`. `illegal` is an ok answer on purpose:
@@ -116,38 +113,39 @@ export function PlayArea(ctx: GamePageCtx) {
   // print's onClick snapshots it at click time.
   const boardRef = useRef<string>('')
 
-  // ─── Local feedback (own-move) ─────────────────────────────────────────
-  // The below-board pill: a peel/dump draw announcement (timed — the hook
-  // auto-clears it), or an RPC error (sticky). The terminal verdict and the
-  // locally-terminal "you're out" message are layered on top of this in
-  // `localFeedbackMsg` below.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
-  // Any key is the player's next move → dismiss the own-move pill. (bananagrams's
-  // own board keys live in PlayerBoard; this is the shared `act-dismiss-feedback`,
-  // which the dispatcher's field gate keeps away from chat.) No-op at terminal (locked).
-  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // ─── The local feedback slot (own-move) ─────────────────────────────────
+  // The below-board slot: a peel/dump draw acknowledgment, a check result, a
+  // not-ok, and the two standing conditions further down (the verdict, "you're
+  // out").
+  const localFeedbackSlot = useFeedbackSlot('local')
+  // Any key is the player's next move → dismiss a gesture-cleared message.
+  // (bananagrams's own board keys live in PlayerBoard; this is the shared
+  // `act-dismiss-feedback`, which the dispatcher's field gate keeps away from
+  // chat.)
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const res = await runRpc<PeelResult>(db.rpc('peel', { target_game: gameId }))
     if (res.type === 'not-ok') {
       // Two races (the game ended, or a second tab conceded) and three faults,
-      // and the pill says the server's sentence for all five — orange for the
+      // and the slot says the server's sentence for all five — orange for the
       // races, red for the faults, which is what the severity already means.
       // `runRpc` has already raised the modal for the faults.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return null
     } else if (res.type === 'ok' && res.data?.result === 'illegal') {
       // The board isn't win-legal (disconnected, or — with word_check
       // 'win'/'strict' — an invalid word), so the game stays in progress and
-      // the RPC hands back the offending cells. Show the player an error and
+      // the RPC hands back the offending cells. Show the player the result and
       // let PlayerBoard paint those cells red. In 'strict' this also fires on a
       // CONTINUING peel (you can't peel an invalid board), not only on a
       // winning one.
-      showLocalFeedback({
-        tone: 'lost',
-        text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
-        mode: { kind: 'sticky' },
-      })
+      localFeedbackSlot.show(
+        FeedbackMessage.result(
+          'lost',
+          'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
+        ),
+      )
       return { illegalCells: res.data.invalid_cells }
     } else if (res.type === 'ok' && res.data?.result === 'dealt') {
       // Nothing to say: the draw grows `tiles`, and the announcement effect
@@ -155,35 +153,36 @@ export function PlayArea(ctx: GamePageCtx) {
       return null
     } else if (res.type === 'ok' && res.data?.result === 'won') {
       // Nothing to say here either: the win flips is_terminal, and the verdict
-      // pill + the winner's celebration react to that.
+      // + the winner's celebration react to that.
       return null
     } else {
       reportUnhandled('peel', res)
       return null
     }
-  }, [gameId, showLocalFeedback])
+  }, [gameId, localFeedbackSlot])
 
-  // Check words → the local pill. Four outcomes, and the wording matters more than
-  // usual because the RED CELLS are the real answer — the pill only says how to read
-  // them. A clean board says so plainly (there's nothing on screen to notice
-  // otherwise), and an empty board is called out separately so "all good" can't
-  // congratulate someone who hasn't placed a tile.
+  // Check words → a result in the local slot. Four outcomes, and the wording
+  // matters more than usual because the RED CELLS are the real answer — the
+  // result only says how to read them. A clean board says so plainly (there's
+  // nothing on screen to notice otherwise), and an empty board is called out
+  // separately so "all good" can't congratulate someone who hasn't placed a
+  // tile.
   const showCheckResult = useCallback(
     (r: BananagramsCheckResult) => {
-      const msg =
+      const feedbackMsg =
         r.kind === 'clean'
-          ? { tone: 'won' as const, text: 'Every word checks out, and the grid is one piece.' }
+          ? FeedbackMessage.result('won', 'Every word checks out, and the grid is one piece.')
           : r.kind === 'empty'
-            ? { tone: 'noted' as const, text: 'Nothing on the board to check yet.' }
+            ? FeedbackMessage.result('noted', 'Nothing on the board to check yet.')
             : r.kind === 'invalid'
-              ? {
-                  tone: 'lost' as const,
-                  text: `${r.count} tile${r.count === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
-                }
-              : { tone: 'error' as const, text: `Check failed: ${r.message}` }
-      showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
+              ? FeedbackMessage.result(
+                  'lost',
+                  `${r.count} tile${r.count === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
+                )
+              : FeedbackMessage.result('error', `Check failed: ${r.message}`)
+      localFeedbackSlot.show(feedbackMsg)
     },
-    [showLocalFeedback],
+    [localFeedbackSlot],
   )
 
   // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so
@@ -202,23 +201,25 @@ export function PlayArea(ctx: GamePageCtx) {
       } else if (res.type === 'not-ok') {
         // Four races (the game ended, a second tab conceded, a rival drained
         // the bunch, the server's hand disagrees with the screen) and two
-        // faults, and the pill says the server's sentence for all six.
+        // faults, and the slot says the server's sentence for all six.
         // `runRpc` has already raised the modal for the faults.
         dumpPending.current = false // no tiles change is coming
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else {
         dumpPending.current = false
         reportUnhandled('dump', res)
       }
     },
-    [gameId, showLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
 
-  // Announce a draw: my own `tiles` growing means a peel dealt me a tile (or my
-  // dump just resolved). Seed the baseline after load so the initial deal
-  // doesn't read as a draw.
+  // Acknowledge a draw: my own `tiles` growing means a peel dealt me a tile
+  // (or my dump just resolved). Seed the baseline after load so the initial
+  // deal doesn't read as a draw. An `acknowledgment` held a little longer than
+  // its kind's default — a sentence with a number in it, read at a glance
+  // between moves — which is bananagrams' own call, made here.
   const seenTilesLen = useRef<number | null>(null)
-  useEffect(() => {
+  useEffect(function acknowledgeDraw() {
     if (loading) return
     if (seenTilesLen.current === null) {
       seenTilesLen.current = tiles.length
@@ -228,26 +229,28 @@ export function PlayArea(ctx: GamePageCtx) {
       const grew = tiles.length - seenTilesLen.current
       if (dumpPending.current) {
         dumpPending.current = false
-        showLocalFeedback({
-          tone: 'neutral',
-          text: (
+        localFeedbackSlot.show(
+          FeedbackMessage.acknowledgment(
+            'neutral',
             <>
               <IconExchange size={14} aria-hidden style={{ verticalAlign: '-2px' }} /> Dumped 1,
               drew {grew + 1}.
-            </>
+            </>,
+            { ms: 2500 },
           ),
-          mode: { kind: 'timed', ms: 2500 },
-        })
+        )
       } else {
-        showLocalFeedback({
-          tone: 'neutral',
-          text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
-          mode: { kind: 'timed', ms: 2500 },
-        })
+        localFeedbackSlot.show(
+          FeedbackMessage.acknowledgment(
+            'neutral',
+            `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
+            { ms: 2500 },
+          ),
+        )
       }
     }
     seenTilesLen.current = tiles.length
-  }, [tiles, loading, showLocalFeedback])
+  }, [tiles, loading, localFeedbackSlot])
 
   // ─── Concede / Restart — the shared exits ──────────────────────────────
   // bananagrams is compete-only and is the one game that can ALSO stop the
@@ -266,7 +269,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // the plain fact, and grays itself at terminal on its own.
     myConceded: !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded,
     offersEndForAll: true,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
   })
 
   // The printout's inputs, through a ref for the SAME reason as the thunks
@@ -308,12 +311,12 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       ctx.goToGame('bananagrams', res.data.id)
@@ -390,7 +393,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made. The game is compete-only, so the only exit row is
   // Concede — which here reads "Concede / End game", because this game offers
   // both endings inside its question (useStandardGameActions' offersEndForAll).
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -434,6 +437,49 @@ export function PlayArea(ctx: GamePageCtx) {
   // mount, so re-opening a won game stays quiet.
   const celebration = useCelebration(isTerminal && selfWon)
 
+  // ─── The two standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. Three terminal shapes: a peel-win
+  // (status.winner_username set), a countdown timeout (outcome 'timeout',
+  // everyone lost), and an all-conceded collective loss (outcome 'conceded',
+  // everyone lost). The no-winner cases are checked FIRST — with no
+  // winner_username the peel-win branch would fall through to "someone went
+  // out — Bananas!" and show everyone a loss for the wrong reason.
+  const statusOutcome = (ctx.status?.outcome as string | undefined) ?? null
+  const over = useMemo((): TerminalMessage | null => {
+    if (!isTerminal) return null
+    if (statusOutcome === 'timeout') {
+      return { pillText: "⏰ Time's up — no winner", infoColText: 'Out of time', outcome: 'lost' }
+    }
+    if (statusOutcome === 'conceded') {
+      return { pillText: '🏳️ All conceded — no winner', infoColText: 'All conceded', outcome: 'lost' }
+    }
+    if (selfWon) {
+      return { pillText: '🍌 Bananas! You went out first', infoColText: 'You won!', outcome: 'won' }
+    }
+    return { pillText: `${winnerName} went out — Bananas!`, infoColText: `${winnerName} won`, outcome: 'lost' }
+  }, [isTerminal, statusOutcome, selfWon, winnerName])
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal: I've conceded but the game is still live for the others.
+  // Shown as the terminal LOOK (frozen board + "you're out"), not a silent
+  // swap. Concede lives on the shared roster (ctx.players →
+  // common.game_players).
+  const isConceded = !!ctx.players.find((p) => p.user_id === selfId)?.conceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isConceded) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isConceded])
+
   // Desktop-only block (see `isTouch` above). Rendered AFTER every hook so the
   // Rules of Hooks hold, and in place of the whole play surface so the drag
   // arena never mounts on touch. GamePage's chrome (header menu, Back to club)
@@ -457,42 +503,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // the difference between a dead read and a deal that has not landed yet.
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
-  // Locally terminal: I've conceded but the game is still live for the others.
-  // Shown as the terminal LOOK (frozen board + "you're out"), not a silent swap.
-  // Concede lives on the shared roster (ctx.players → common.game_players).
-  const isConceded = !!ctx.players.find((p) => p.user_id === selfId)?.conceded && !isTerminal
-
-  // ─── Terminal verdict ──────────────────────────────────────────────────
-  // Three terminal shapes: a peel-win (status.winner_username set), a countdown
-  // timeout (outcome 'timeout', everyone lost), and an all-conceded collective
-  // loss (outcome 'conceded', everyone lost). The no-winner cases are checked
-  // FIRST — with no winner_username the peel-win branch would fall through to
-  // "someone went out — Bananas!" and show everyone a loss for the wrong reason.
-  // (`winnerName` / `selfWon` are derived above the early returns, for the
-  // celebration hook.)
-  const over: TerminalCopy | null = !isTerminal
-    ? null
-    : ctx.status?.outcome === 'timeout'
-      ? { verdict: "⏰ Time's up — no winner", message: 'Out of time', tone: 'lost' }
-      : ctx.status?.outcome === 'conceded'
-        ? { verdict: '🏳️ All conceded — no winner', message: 'All conceded', tone: 'lost' }
-        : selfWon
-          ? { verdict: '🍌 Bananas! You went out first', message: 'You won!', tone: 'won' }
-          : { verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
-
   const bunchCount = ctx.status?.bunch_remaining as number | undefined
   const bagCount = ctx.status?.bag_remaining as number | undefined
   const setup = ctx.setup as unknown as BananagramsSetup
-
-  // ─── The below-board pill (terminal / locally-terminal / own-move) ──────
-  // Exactly one, by priority: the permanent (fill) terminal verdict; else the
-  // sticky "you conceded" when locally terminal; else the own-move draw/error
-  // pill (or nothing).
-  const localFeedbackMsg: GenericFeedbackMsg | null = over
-    ? terminalPill(over.tone, over.verdict)
-    : isConceded
-      ? outOfRacePill(true)
-      : localFeedback
 
   // ─── Info-column chrome ─────────────────────────────────────────────────
   // bananagrams' info column is a DOCUMENTED EXCEPTION to the canonical v3
@@ -601,10 +614,10 @@ export function PlayArea(ctx: GamePageCtx) {
         reportBoardRef={boardRef}
         infoTop={infoTop}
         infoActions={infoActions}
-        localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={clearLocalFeedback} />}
+        localFeedbackSlot={localFeedbackSlot}
       />
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line. The WINNER gets
+          in-page by the below-board slot + the info-column outcome line. The WINNER gets
           the celebration instead — bananagrams is compete-only, so there's no
           coop win to pop it for (see useCelebration above). */}
       {celebration.show && (

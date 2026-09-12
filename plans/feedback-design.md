@@ -236,7 +236,17 @@ actor. `buildOver` → `TerminalMessage` on primitives with the named winner
 as `actor`. Controls draws `<FeedbackPill>` in the commit slot on the
 slot's top.
 
-**scrabble COMMITTED**, its six e2e specs green.
+**scrabble COMMITTED** (`215f52a2`), its six e2e specs green.
+
+**bananagrams CONVERTED (2026-09-12).** Two condition effects: the verdict, out of the race. The peel and dump
+draws are `acknowledgment`s with the site's `{ ms: 2500 }` override (§11.3
+item 7); the four check answers and the illegal-peel sentence are
+`result`s; every not-ok (peel, dump, New Game, Concede / End) is `notOk`.
+`buildOver`'s inline object → a memoized `TerminalMessage` on primitives.
+`PlayerBoard` takes the slot and draws `<FeedbackPill>` in its reserved
+row.
+
+**bananagrams COMMITTED**, its three e2e specs green.
 
 **Next:** the other games, one by one.
 
