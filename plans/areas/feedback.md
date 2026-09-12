@@ -12,7 +12,7 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which six are WORKED:
+came out of settling the first of them — thirteen, of which six are WORKED and one CLOSED with no change (F-3):
 F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`),
 F-1 (`FailureLine` moved to `forms/`, `0f1f8413`), F-4 (`Actor` moved to
 `members/member.ts`, `f792cfd0`) and F-5 (the names guard flattened).
@@ -210,7 +210,7 @@ which was `peer`/`chat`, and nowhere else.
 
 ### Shape
 
-## F-feedback-3 · `canned-not-ok-is-a-result` · The console's and the store test's "not-ok" are results wearing `notOk`'s row
+## F-feedback-3 · `canned-not-ok-is-a-result` · The console's and the store test's "not-ok" are results wearing `notOk`'s row — CLOSED, NO CHANGE
 
 `feedbackSlotRegistry.ts`:
 
@@ -241,6 +241,20 @@ Options:
    the store test does the same, or borrows the pill test's literal.
    **Recommended.**
 2. **Leave the registry's** (a console toy) and fix only the test.
+3. **Leave both.** Nothing a player sees is wrong — `fill`, `rank` and
+   `leavesBy` all come out right.
+
+**CLOSED 2026-09-12, no change — option 3** (Joel, on being told what the two
+sites are). They are the whole of it: one store test and the `puppill` console
+entry, and nothing else in `src/` spreads a `KINDS` row. All 54 real not-ok
+sites go through `FeedbackMessage.notOk(res)` with the server's envelope, so
+no game and no production path fakes a kind, and nothing a player sees is
+affected.
+
+What the closing costs, recorded because it is the argument that was made for
+fixing it: `puppill('hey', 'notOk')` is the one tool whose job is to show what
+a kind looks like, and it hands back a `result`. Anything that reads `kind`
+off it — a future pill variant, a test — sees the wrong answer.
 
 ## F-feedback-4 · `actor-type-spelled-five-times` · `Actor` is exported from `FeedbackMessage.tsx`, and five other sites spell `Pick<Member, 'username' | 'color'>` by hand — WORKED
 
