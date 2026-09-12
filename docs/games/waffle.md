@@ -404,10 +404,11 @@ Two details the formula is careful about:
 
 ## Frontend (`src/waffle/`)
 
-The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback,
-the locally-terminal "waiting" message, and the terminal verdict are all the shared
-`<FeedbackPill>` in the `.belowBoard` slot (transient outline error / sticky neutral
-waiting / permanent fill verdict); the action row places both exits and lets each hide itself
+The FE follows the v3 conventions (see [ui.md](../ui.md)): a refused swap, the
+locally-terminal "waiting" state, whose turn it is, and the terminal verdict all show
+through the local feedback slot's `<FeedbackPill>` in the `.belowBoard` slot (a
+`notOk` with its ×, the owner-cleared standing states, the filled verdict —
+[ui.md → Feedback pill](../ui.md#feedback-pill)); the action row places both exits and lets each hide itself
 (coop shows End, a race shows Concede); a **locally-terminal** state (compete: solved
 or out of swaps while others race on) reuses the terminal look (a bold status line +
 Concede) and disables the grid — and Concede goes gray once you have SOLVED, since
@@ -462,8 +463,8 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   an exchange that never happens that way (the comment in `PlayArea` records
   the decision). Below it the
   **`.belowBoard` local-feedback slot** holds a centered `<FeedbackPill>` — a
-  transient own-action error during play, the sticky "waiting" pill when the
-  player is locally terminal, or the permanent fill verdict at game-over. (The
+  refused swap during play, the "waiting" state when the player is locally
+  terminal, whose turn it is, or the filled verdict at game-over. (The
   `SolutionReveal` answer list is NOT here — it lives in the info column's status
   section.) There's no special "reveal" board mode: the **"Reveal answer"** menu
   action ENDS the game and overwrites every board with the solution server-side
@@ -498,9 +499,9 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows
   the shared `common/components/game/OpponentStrip` instead, with `metricLabel="Swaps"`
   and a `metricFor` returning swaps-used + a ✓/✗ mark.
-- **Feedback split** — own errors (rejected swap / failed End) flash **locally**
-  below the board; the header pill carries **peer** news (compete: an opponent
-  solved or ran out of swaps; coop needs none — the swap log shows every move).
+- **Feedback split** — own not-oks (a refused swap / a failed End) show **locally**
+  below the board; the header's global slot carries **peer** news (compete: "● moth
+  solved it", "● moth out of swaps"; coop needs none — the swap log shows every move).
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
   four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop pacing +
   its first-turn picker — self-gates to nothing for compete / solo), a

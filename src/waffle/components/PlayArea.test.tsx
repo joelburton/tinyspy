@@ -20,6 +20,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -147,7 +148,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
@@ -222,7 +223,7 @@ describe('waffle PlayArea — render smoke', () => {
 
   it('renders the coop win with the golf-style par verdict', () => {
     // 11 swaps against par 9 → "Won: par +2", shown in BOTH terminal spots: the
-    // below-board pill (verdict) and the info-column outcome line (message).
+    // below-board verdict (pillText) and the info-column line (infoColText).
     h.result = loaded(
       { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
       [{ ...me, swaps_used: 11, solved: true }],
@@ -360,9 +361,9 @@ describe('waffle PlayArea — new game (menu)', () => {
       },
     })
     // A live two-player game, like the happy-path test above: the below-board
-    // pill has a precedence chain (terminal verdict → out-of-race → whose-turn
-    // → this), so a game that is over or waiting would hide the message being
-    // asserted and pass for the wrong reason.
+    // slot ranks the terminal verdict, out-of-race and whose-turn among what
+    // it shows, so a game that is over or waiting would put more in the slot
+    // than the message being asserted.
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(

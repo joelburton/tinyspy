@@ -4,15 +4,12 @@ import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
 import { cls } from '@/common/utils/cls'
-import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
-import { DotActor } from '@/common/members/ActorMention'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { buildWafflePrintModel } from '../pdf/model'
 import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -40,7 +37,6 @@ import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** What `waffle.submit_swap` puts in `data` for a swap it took. Only `result` is
@@ -74,10 +70,10 @@ type SwapAnswer = {
  * optimistic local state. Turn-history (coop only) replays past boards, coloring them
  * on the FE (see lib/history + lib/colors). See docs/playarea.md.
  *
- * **Feedback split** (docs/deferred.md → Feedback channels): the player's OWN errors
- * (a rejected swap, a failed End) flash LOCALLY in BoardCol's below-board slot; the
- * header pill carries PEER/group news — in compete, when an opponent solves or runs
- * out of swaps (coop needs none: the swap log already shows every move).
+ * **Feedback split** (docs/deferred.md → Feedback channels): the player's OWN
+ * not-oks (a refused swap, a failed End) show in BoardCol's below-board slot; the
+ * header's global slot carries PEER news — in compete, when an opponent solves
+ * or runs out of swaps (coop needs none: the swap log already shows every move).
  */
 export function PlayArea({
   session,
@@ -92,7 +88,7 @@ export function PlayArea({
   currentTurnUserId,
   setup,
   status,
-  globalFeedback,
+  globalFeedbackSlot,
   clubHandle,
   goToGame,
   menu,
@@ -109,12 +105,12 @@ export function PlayArea({
     [setup, game, players],
   )
 
-  // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
-  // below-board slot — never the header pill (that's the peer/group channel).
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
-  // Any key is the player's next move → dismiss the own-move pill, even though
-  // waffle has no keyboard entry (swaps are clicks). No-op at terminal (locked).
-  useDismissLocalFeedbackOnKey(clearLocalFeedback)
+  // The below-board slot: a refused swap, a failed End, and the three standing
+  // conditions further down — never the header (that's the peer channel).
+  const localFeedbackSlot = useFeedbackSlot('local')
+  // Any key is the player's next move → dismiss a gesture-cleared message,
+  // even though waffle has no keyboard entry (swaps are clicks).
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer (coop only) ───────────────────
   // The shared coordination state: which swap-log row (by POSITION in the coop log)
@@ -167,33 +163,18 @@ export function PlayArea({
         if (prev === undefined) continue // first sighting — seed, don't announce
         const member = players.find((m) => m.user_id === ps.user_id)
         if (ps.solved && !prev.solved) {
-          // A solve is a GOOD outcome → success (green) — the same green a found word
-          // reads as in both modes (docs/ui.md → Feedback pill: tone follows the
-          // event). Adverse to me in compete, but the tone names the event, not my stake.
-          globalFeedback.show({
-            tone: 'won',
-            text: (
-              <>
-                <DotActor actor={member} fallback="Someone" /> solved it
-              </>
-            ),
-            mode: { kind: 'timed' },
-          })
+          // A solve is a GOOD outcome → won (green) — the same green a found
+          // word reads as in both modes (docs/ui.md → Feedback pill: the
+          // outcome follows the event). Adverse to me in compete, but the
+          // outcome names the event, not my stake.
+          globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'solved it'))
         } else if (out && !prev.out) {
           // Out of swaps is a milestone — important, neither clearly good nor bad → warning.
-          globalFeedback.show({
-            tone: 'warning',
-            text: (
-              <>
-                <DotActor actor={member} fallback="Someone" /> out of swaps
-              </>
-            ),
-            mode: { kind: 'timed' },
-          })
+          globalFeedbackSlot.show(FeedbackMessage.peer(member, 'warning', 'out of swaps'))
         }
       }
     },
-    [playerStates, game, players, session.user.id, globalFeedback],
+    [playerStates, game, players, session.user.id, globalFeedbackSlot],
   )
 
   // ─── A swap in flight ──────────────────────────────────
@@ -238,9 +219,9 @@ export function PlayArea({
       if (res.type === 'not-ok') {
         // Refused (the turn moved, the game ended, you conceded). Optimism is
         // about ACCEPTANCE, so this is the price: take the letters back, then
-        // say why in the below-board flash, in the words the server sent.
+        // say why in the below-board slot, in the words the server sent.
         setOptimisticSwap(null)
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'swapped') {
         // Accepted: leave the overlay standing. It clears when the server's own
@@ -260,7 +241,7 @@ export function PlayArea({
         return
       }
     },
-    [gameId, showLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
   const [handleSwap] = useSingleFlight(doSwap)
 
@@ -297,14 +278,11 @@ export function PlayArea({
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
-  // history view, clear the pill, re-hide a locally-revealed answer).
-  // Failures arrive fully classified. (The old local `ownAction` builder
-  // stamped these TIMED so they auto-faded — ruled drift 2026-08-13; a race's
-  // "Game over" now sticks like every other game's, and a fault is manual.)
-  // New game + Reveal answer stay below.
+  // history view, dismiss the last result, re-hide a locally-revealed
+  // answer). New game + Reveal answer stay below.
   const onRestarted = useCallback(() => {
     exitViewing()
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     // The same board, scrambled back — so forget my choice about the answer.
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
     // the solve-implied default, so solving the replayed board wouldn't show it.
@@ -314,7 +292,7 @@ export function PlayArea({
     // first-move swap was made — which would make a long-answered swap look
     // live again on the fresh board.
     setOptimisticSwap(null)
-  }, [exitViewing, clearLocalFeedback, resetAnswer])
+  }, [exitViewing, localFeedbackSlot, resetAnswer])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -324,7 +302,7 @@ export function PlayArea({
     // Solved and waiting for the others: conceding would forfeit a win already
     // banked, so it goes gray and you leave via Back to club.
     selfSolved: playerStates.find((p) => p.user_id === session.user.id)?.solved ?? false,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted,
   })
 
@@ -374,17 +352,18 @@ export function PlayArea({
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
       //
       // This is one of only two New Game buttons where a `form-validation` can
       // genuinely arrive rather than a fault: `waffle-build-board` answers PN121
-      // when the generator gives up at that difficulty. It reads as a pill, which
-      // is what its raise site asked for — there is no field here to put it under.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      // when the generator gives up at that difficulty. It reads in the slot,
+      // which is what its raise site asked for — there is no field here to put
+      // it under.
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`waffle_${gameMode}`, res.data.id)
@@ -393,7 +372,7 @@ export function PlayArea({
       reportUnhandled('waffle-build-board', res)
       return
     }
-  }, [gameMode, clubHandle, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, goToGame, localFeedbackSlot])
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
@@ -475,7 +454,7 @@ export function PlayArea({
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -491,6 +470,73 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const isPlayer = self !== undefined
+  const swapsUsed = self?.swaps_used ?? 0
+  const remaining = Math.max(0, (game?.max_swaps ?? 0) - swapsUsed)
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. Coop swaps for the win-vs-par verdict: coop rows
+  // are kept in lock-step, so any row carries the group's count — falling
+  // back to row 0 keeps the label honest for a non-player watcher (whose
+  // `self` is undefined).
+  const selfWon = (status?.winner_user_id as string | undefined) === session.user.id
+  const swapsOverPar = ((self ?? playerStates[0])?.swaps_used ?? 0) - (game?.par_swaps ?? 0)
+  const timerExpired = timer.expired
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({ mode: gameMode, playState, timerExpired, selfWon, swapsOverPar })
+        : null,
+    [isTerminal, gameMode, playState, timerExpired, selfWon, swapsOverPar],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // LOCALLY TERMINAL (compete only): the game continues but *I* can't act —
+  // I've solved my board (waiting), run out of swaps, OR conceded (a real
+  // loss, the rest race on). Shown with the terminal LOOK, not a quietly
+  // swapped help line. Like wordle, this is compete-only, so a waiting coop
+  // player sees only the inert board + the whose-turn note — no false "out
+  // of swaps".
+  const selfSolved = self?.solved === true
+  const selfDone = isPlayer && (selfSolved || remaining === 0 || myConceded)
+  useEffect(function showOutOfRace() {
+    if (!selfDone) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.outOfRace(
+        myConceded,
+        selfSolved ? 'Solved — waiting on the rest' : 'Out of swaps — waiting',
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, selfDone, myConceded, selfSolved])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. On a phone the
+  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
+  // indicator beside the dimmed board.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((m) => m.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
+
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
   // "Game not found." about a dead connection is a confident wrong answer —
@@ -500,11 +546,7 @@ export function PlayArea({
 
   const waffleSetup = setup as WaffleSetup
 
-  const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
-  const swapsUsed = self?.swaps_used ?? 0
-  const remaining = Math.max(0, game.max_swaps - swapsUsed)
 
   // `concededIds` marks a conceded opponent 'out' in the strip mid-game.
   // (`myConceded` — my own drop-out flag — is derived at the top.)
@@ -580,53 +622,10 @@ export function PlayArea({
     revealSolution ? computeColors(revealSolution, revealSolution) : (self?.colors ?? null),
   )
 
-  const selfWon = (status?.winner_user_id as string | undefined) === session.user.id
-  // Coop swaps for the win-vs-par verdict: coop rows are kept in lock-step, so
-  // any row carries the group's count — falling back to row 0 keeps the label
-  // honest for a non-player watcher (whose `self` is undefined).
-  const coopSwapsUsed = (self ?? playerStates[0])?.swaps_used ?? 0
-  const over = isTerminal
-    ? buildOver({
-        mode: game.mode,
-        playState,
-        timerExpired: timer.expired,
-        selfWon,
-        swapsOverPar: coopSwapsUsed - game.par_swaps,
-      })
-    : null
-
-  // LOCALLY TERMINAL (compete only): the game continues but *I* can't act — I've
-  // solved my board (waiting), run out of swaps, OR conceded (a real loss, the rest
-  // race on). Shown with the terminal LOOK, not a quietly swapped help line.
-  const selfDone = isPlayer && (self?.solved === true || remaining === 0 || myConceded)
-
   // The board is inert whenever I can't act OR I'm peeking at history. `!isMyTurn`
   // folds in turn-order (coop only): a waiting player's board freezes. Always true
-  // for free-for-all / solo. Like wordle, waffle's `selfDone` "waiting" pill is
-  // compete-only, so a waiting coop player sees only the inert board + the InfoCol
-  // TurnStatusLine — no false "out of swaps".
+  // for free-for-all / solo.
   const readOnly = isTerminal || !isPlayer || selfDone || viewing || !isMyTurn
-
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there — the pill's presence is
-  // fixed for the game's life, no reflow.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-
-  // The below-board local pill. Precedence: the permanent terminal verdict → the
-  // sticky locally-terminal "waiting" pill → the whose-turn pill (the ONLY
-  // whose-turn indicator on mobile, where the InfoCol's TurnStatusLine is
-  // off-canvas) → the transient own-move error. (While
-  // viewing, BoardCol's history banner covers this region with the swap description.)
-  const localPill: GenericFeedbackMsg | null = over
-    ? terminalPill(over.tone, over.verdict)
-    : selfDone
-      ? outOfRacePill(
-          myConceded,
-          self?.solved ? 'Solved — waiting on the rest' : 'Out of swaps — waiting',
-        )
-      : waiting
-        ? waitingTurnPill(players.find((m) => m.user_id === currentTurnUserId))
-        : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -649,17 +648,18 @@ export function PlayArea({
         pendingSwap={pendingSwap}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
-        // The finished board wears its verdict: `over` is the same TerminalCopy
-        // the below-board pill and the info-column line read, so the three can't
-        // disagree about how this game went.
-        gameOver={over ? over.tone : null}
+        // The finished board wears its verdict: `over` is the same
+        // TerminalMessage the below-board verdict and the info-column line
+        // read, so the three can't disagree about how this game went.
+        gameOver={over ? over.outcome : null}
         // The swaps behind the board on show — coop's shared log, or my own in
         // compete (`replaySwaps`, the same filtered list the history viewer
         // replays). A restart deletes these rows, which is exactly what tells
         // the flash that a re-dealt board was not played into existence.
         moveCount={replaySwaps.length}
-        onDismissPill={clearLocalFeedback}
-        localPill={localPill}
+        // (While viewing, BoardCol's history banner covers the slot's region
+        // with the swap description.)
+        localFeedbackSlot={localFeedbackSlot}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -704,10 +704,10 @@ export function PlayArea({
 }
 
 /**
- * Per-status terminal copy (the shared `TerminalCopy`), mode- and (compete)
- * self-aware. `tone` + `verdict` drive the below-board terminal pill; `tone` +
- * `message` drive the short bold info-column line (won = green, lost = red,
- * manual end = neutral).
+ * The per-status terminal message (the shared `TerminalMessage`), mode- and
+ * (compete) self-aware. `outcome` + `pillText` are the below-board verdict;
+ * `outcome` + `infoColText` the short bold info-column line (won = green,
+ * lost = red, manual end = neutral).
  */
 function buildOver({
   mode,
@@ -722,13 +722,14 @@ function buildOver({
   selfWon: boolean
   /** Swaps used minus par — the coop win verdict is golf-style ("Par +2"). */
   swapsOverPar: number
-}): TerminalCopy {
-  // Manual end (waffle.end_game) → 'ended' in either mode. Neutral result: nobody
-  // won or lost; tone:'neutral' keeps the info-column line plain. Handled first so
-  // an 'ended' game never falls through to a loss verdict. Deliberately NOT worded
-  // here: manual end is the one terminal every game shares, so it stays in the
-  // shared `endedCopy()` rather than drifting per game.
-  if (playState === 'ended') return endedCopy(mode)
+}): TerminalMessage {
+  // Manual end (waffle.end_game) → 'ended' in either mode. Neutral result:
+  // nobody won or lost; outcome 'neutral' keeps the info-column line plain.
+  // Handled first so an 'ended' game never falls through to a loss verdict.
+  // Deliberately NOT worded here: manual end is the one terminal every game
+  // shares, so it stays in the shared `gameEndedTerminalMessage()` rather
+  // than drifting per game.
+  if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       // Golf-style verdict: how the solve measured against par, not a generic
@@ -743,25 +744,25 @@ function buildOver({
           : swapsOverPar > 0
             ? `Won: par +${swapsOverPar}`
             : `Won: par −${-swapsOverPar}`
-      return { verdict: parVerdict, message: parVerdict, tone: 'won' }
+      return { pillText: parVerdict, infoColText: parVerdict, outcome: 'won' }
     }
     return {
-      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of swaps',
-      message: timerExpired ? 'Out of time' : 'Out of swaps',
-      tone: 'lost',
+      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of swaps',
+      infoColText: timerExpired ? 'Out of time' : 'Out of swaps',
+      outcome: 'lost',
     }
   }
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { verdict: 'Won: fewest swaps', message: 'You won!', tone: 'won' }
-      : { verdict: 'Lost: beaten on swaps', message: 'Opponent won', tone: 'lost' }
+      ? { pillText: 'Won: fewest swaps', infoColText: 'You won!', outcome: 'won' }
+      : { pillText: 'Lost: beaten on swaps', infoColText: 'Opponent won', outcome: 'lost' }
   }
   // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
   // beaten, the board just ran out.
   return {
-    verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
-    message: timerExpired ? 'Out of time' : 'No winner',
-    tone: 'lost',
+    pillText: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
+    infoColText: timerExpired ? 'Out of time' : 'No winner',
+    outcome: 'lost',
   }
 }

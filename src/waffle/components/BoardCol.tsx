@@ -1,9 +1,9 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
 import shared from '@/common/game-page/PlayArea.module.css'
@@ -33,8 +33,7 @@ export function BoardCol({
   myTurnJustStarted,
   gameOver,
   moveCount,
-  localPill,
-  onDismissPill,
+  localFeedbackSlot,
 }: {
   // ── Mobile-only status strip ──
   /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
@@ -78,12 +77,10 @@ export function BoardCol({
    *  so a re-dealt or revealed board doesn't light up. See `<Board>`. */
   moveCount: number
 
-  // ── Below-board own-move feedback (PlayArea computes the pill) ──
-  /** The below-board pill to show (terminal verdict / waiting / own-move error), or null. */
-  localPill: GenericFeedbackMsg | null
-  /** Clear the local pill — tapping a transient one dismisses it, the same
-   *  way the next keystroke does (docs/ui.md → Feedback pill). */
-  onDismissPill: () => void
+  // ── Below-board feedback ──
+  /** PlayArea's below-board slot — a refused swap, "you're out", whose turn,
+   *  the verdict. Drawn in the reserved-height slot under the board. */
+  localFeedbackSlot: FeedbackSlot
 }) {
   const viewing = viewingDescription !== null
 
@@ -137,11 +134,11 @@ export function BoardCol({
             board itself, so `.moveArea` is empty. */}
         <div className={styles.moveArea} />
         {/* The LOCAL feedback slot — a reserved height keeps the top-anchored board
-            from shifting as the pill (own-action error / waiting / terminal verdict)
+            from shifting as the pill (a refused swap / waiting / the verdict)
             appears/clears. The multi-line answer reveal is NOT here (it lives in the
             info column's `<SolutionReveal>` — it would overflow the viewport). */}
         <div className={shared.localFeedback}>
-          {localPill && <GenericFeedbackPill msg={localPill} onClose={onDismissPill} />}
+          <FeedbackPill slot={localFeedbackSlot} />
         </div>
       </div>
     </div>

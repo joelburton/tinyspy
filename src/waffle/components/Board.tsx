@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { tileColor } from '@/shared/wordle-style/tileColor'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'

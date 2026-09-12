@@ -154,7 +154,19 @@ count, the winner's. BoardCol swaps the move row for `<FeedbackPill>` on
 the slot's top; a tile click and ⌫ are `dismiss`, and the any-key hook takes
 the slot's `dismiss`.
 
-**strands COMMITTED**, its four e2e specs green.
+**strands COMMITTED** (`6ba0ab57`), its four e2e specs green.
+
+**waffle CONVERTED (2026-09-12).** No
+entry row — the move is the board — so the slot is just `<FeedbackPill>` in
+the reserved below-board slot. Three condition effects: the verdict, out of
+the race ("Solved — waiting on the rest" / "Out of swaps — waiting"), whose
+turn. A refused swap and the New Game answer are `notOk`; the compete
+opponent milestones ("solved it", "out of swaps") are `peer` messages in
+the header. `buildOver` → `TerminalMessage` on primitives; `Board` reads its
+`TerminalOutcome` from `terminalMessage.ts`. Restart dismisses the last
+result.
+
+**waffle COMMITTED**, its four e2e specs green.
 
 **Next:** the other games, one by one.
 
