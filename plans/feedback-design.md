@@ -14,11 +14,44 @@ Every statement here carries one of three marks:
 
 Started 2026-09-04 from the design review in the Fable session that opened it.
 
-**Status: PAUSED 2026-09-04, to resume when `game-lib` closes** (Joel: *"we'll
-pick up this plan when i'm done with the game-lib area"*). Nothing in code has
-changed for it yet. Where it stands: the mechanism is decided (§4.2, push with
-a rank), the two-step API is decided (§4), the vocabulary is decided (§7);
-the kinds table (§3.1) is the thing to tweak next, and §9 lists what is open.
+**Status: about to open under the `feedback` area** (2026-09-12). Nothing in
+code has changed for it yet. Where it stands: the mechanism is decided (§4.2,
+push with a rank), the two-step API is decided (§4), the vocabulary is decided
+(§7); the kinds table (§3.1) is the thing to tweak next, and §9 lists what is
+open.
+
+**How the area runs — DECIDED 2026-09-12**, because the audit process was
+built for tidying files that stay, and this area replaces most of its files:
+
+- **This file is the working record.** Its open items are the findings list,
+  worked in this file's order; `F-feedback-n` is reserved for what the read
+  turns up that the design did not foresee. A statement leaves this file for
+  `feedback/doc.md` the moment it is built, so the file empties as the area
+  closes.
+- **Build order: the machinery first, then STOP for Joel to read it.** Not a
+  thin layer over today's types — *"a 'thin layer' sounds like a shim."* Then
+  psychicnum converts entirely, and STOP again for a look. Then the other
+  games, probably one by one. Other games may be broken in between.
+- **Every game converts in this area.** Not the `shuffle` pattern of a
+  `todo.md` line per game. When the area closes, nothing relies on the old
+  builders, the old message shape or the hand-held global slots — including
+  the producers outside the folder (`turnCopy`, `terminalCopy`,
+  `useChatFeedback`) and the slot state in `GamePage` and `ClubPage`, which
+  are edited here without opening their areas.
+- **Stamps.** A file edited in another area keeps its stamp. A file this area
+  creates is stamped `cs-met-feedback` at birth and `cs-audited-feedback` once
+  audited.
+- **Verification.** The general e2e run, plus any feedback-specific specs,
+  after the machinery is built; each game's own e2e as that game converts.
+  Every run is asked for first.
+- **`FailureLine`** is not a pill and not bound for a slot; it is on the
+  roster because it is in the folder, and whatever it needs is decided when
+  the read reaches it.
+- **`useDismissLocalFeedbackOnKey`** is not rewritten. It binds
+  `act-dismiss-feedback` to whatever dismiss function it is handed and knows
+  nothing about the game state; the slot decides whether the top message
+  leaves by a gesture. What changes is the function it is handed and the
+  docstring paragraph that explains permanence via `locked`.
 
 ---
 
@@ -105,9 +138,9 @@ FeedbackMessage.outOfRace(myConceded, …)  // permanent; neutral
 FeedbackMessage.waitingTurn(current)      // sticky; neutral; the <Dot> node
 ```
 
-That closes **F-feedback-1** (`sticky-pill-and-not-ok-dont-compose`) by
-construction — the half-built `Pick<…>` that `getNotOkFeedback` returns stops
-existing.
+That closes the `todo.md` item "`stickyPill` and `getNotOkFeedback` cannot
+compose" by construction — the half-built `Pick<…>` that `getNotOkFeedback`
+returns stops existing.
 
 **Two costs, both of which are also the point.** A class with getters is not
 structurally satisfied by an object literal, so (a) every test builds messages

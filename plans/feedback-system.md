@@ -255,19 +255,24 @@ Stated so a review does not spend its budget re-deciding it:
 
 | file | what it holds | area |
 |---|---|---|
-| `common/supabase/envelope.ts` | the envelope type | `deep` (blessed) |
-| `common/supabase/dbResult.ts` | the three wrappers, `notOkOutcome` | `deep` |
-| `common/supabase/dbEnvelope.ts` | envelope builders, `reportDbFault` | `deep` |
-| `common/feedback/genericFeedback.ts` | `GenericFeedbackMsg`, `GenericFeedbackApi` | `game-lib` (blessed) |
-| `common/feedback/genericPills.ts` | `getNotOkFeedback` | `game-lib` |
-| `common/feedback/localPills.ts` | the three builders | `game-lib` |
-| `common/terminal/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `game-lib` (blessed) |
-| `common/turn-log/turnCopy.tsx` | two more builders | `shared-game-chrome` |
-| `common/feedback/useLocalFeedback.ts` | the local slot | `hooks` |
-| `common/feedback/useGlobalFeedback.ts` | peer narration | `hooks` |
-| `common/feedback/GenericFeedbackPill.tsx` | the rendered pill | **unassigned** (`cs-unmet`) |
-| `common/game-page/GamePage.tsx` | the global slot's state | `shared-game-chrome` |
-| `common/club/ClubPage.tsx` | a second global slot | `club-page` |
+| `common/supabase/envelope.ts` | the envelope type | `supabase` (closed, blessed) |
+| `common/supabase/dbResult.ts` | the three wrappers, `notOkOutcome` | `supabase` (closed, blessed) |
+| `common/supabase/dbEnvelope.ts` | envelope builders, `reportDbFault` | `supabase` (closed, blessed) |
+| `common/feedback/genericFeedback.ts` | `GenericFeedbackMsg`, `GenericFeedbackApi` | `feedback` |
+| `common/feedback/genericPills.ts` | `getNotOkFeedback` | `feedback` |
+| `common/feedback/localPills.ts` | the three builders | `feedback` |
+| `common/feedback/useLocalFeedback.ts` | the local slot | `feedback` |
+| `common/feedback/useGlobalFeedback.ts` | peer narration | `feedback` |
+| `common/feedback/useDismissLocalFeedbackOnKey.ts` | the any-key dismiss, bound to `act-dismiss-feedback` | `feedback` |
+| `common/feedback/GenericFeedbackPill.tsx` | the rendered pill | `feedback` |
+| `common/terminal/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `feedback` (the file stays in `terminal`) |
+| `common/turn-log/turnCopy.tsx` | two more builders | `feedback` (the file stays in `turn-log`) |
+| `common/chat/useChatFeedback.tsx` | chat's producer into the global slot | `chat`; converted by `feedback` |
+| `common/game-page/GamePage.tsx` | the global slot's state | `game-page`; the slot's state is replaced by `feedback` |
+| `common/club/ClubPage.tsx` | a second global slot | `club-page`; the slot's state is replaced by `feedback` |
 
-**That spread is the argument for a new area.** Six areas, one vocabulary, and
-the component at the end of the chain belongs to none of them.
+The spread was the argument for a new area, and `feedback` is that area now.
+What is still outside its folder — the two builders in `terminal` and
+`turn-log`, chat's producer, and the two hand-held global slots — is converted
+by the area anyway: when it closes, nothing in the app relies on the shapes
+this document describes.
