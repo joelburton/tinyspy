@@ -251,9 +251,25 @@ a/b/c question, in context:
   element — it belongs to `.itemShortcut` (`margin-left: auto` is already
   there), after which the row's `gap` is the ordinary small one.
   **WORKED 2026-09-11** (Joel: move it). The row's gap is `--spacer-4`, the
-  hint carries `padding-left: var(--spacer-1)` as its floor, both negative
+  shortcut carries `padding-left: var(--spacer-1)` as its floor, both negative
   margins are gone, and the guard's spacer row lost `1.5rem` and `-1rem`. Not
   looked at on screen: that takes a run of the app, which is Joel's to okay.
+- **The last of the literals — CLOSED 2026-09-11.** The file writes one
+  number that is not a token, and it is there by decision:
+  - `100ms` / `80ms` / the divider's `1px` converted silently, as planned.
+    The menu is the FIRST reader of `--transition-duration-nudge`, so that
+    token came off `cssTokens.test.ts`'s declared-ahead list — the guard asks
+    for that itself when a token stops being declared ahead of anything.
+  - The divider's margin is `--spacer-5` (Joel). The popover's and the
+    flyout's vertical padding stay at `0.3rem`: padding is parked and not on
+    the ramp, so the rule now sits a hair tighter than the panel's own inset.
+  - The flyout's `-1px` overlap is `calc(-1 * var(--border-width-line))`. It
+    was never a spacing choice — it is the border's width negated, so the seam
+    between the two panels stays closed if that edge ever thickens. Off the
+    spacer list because it is no longer a spacer.
+  - `0.1rem` STAYS, twice, with the reason in the file: the trigger's
+    logo-to-chevron gap and the credit line's leading both say "these two are
+    one thing", which the ramp's smallest step (`0.25rem`) is too big to say.
 - The item's `0.95rem` / `0.82rem` type against the ramp; the header's are
   the same two numbers.
   **WORKED 2026-09-11** (Joel: fit them to the ramp). The menu has two
@@ -380,7 +396,17 @@ line, which is what eleven other multi-selector rules across the shell do.
 `corecss.md`'s F-corecss-9 says the convention is the FIRST selector; no live
 site follows it, and that mismatch is left alone too.
 
-## F-menu-14 · `chevron-stroke-archaeology` · A number justified by a glyph that no longer exists
+## F-menu-14 · `chevron-stroke-archaeology` · A number justified by a glyph that no longer exists — WORKED
+
+**WORKED 2026-09-11** (Joel: keep 3, rewrite the comment). The number did not
+move; the argument did. It now says what a reader can check — this is the
+smallest mark the menu draws (`0.65em`, sized to the header's type), and at
+that size a default-weight chevron thins out against the logo beside it
+instead of reading as a separate affordance. The arithmetic it used to cite
+was correct and unusable: 3/24 matching the retired glyph's 2/16 is a fact
+about something not in the tree. The app's only other stroke override, the
+registry's back arrow at 2.75, is the model — it says "made thicker so it's
+easier to read" and invokes nothing.
 
 `strokeWidth={3}`, with a comment that it is "an IDENTITY rather than a tuned
 number" because "the hand-drawn chevron this replaced was stroke 2 on a 16

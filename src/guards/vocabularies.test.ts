@@ -319,7 +319,11 @@ const VOCABULARIES: Vocabulary[] = [
       // stay; the two literals are connections's to keep or convert.
       'src/common/devtools/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
-      'src/common/menu/Menu.module.css': ['0.3rem', '0.1rem', '-1px'],
+      // DECIDED and staying: the trigger's logo-to-chevron gap and the credit
+      // line's leading are both "these two are one thing", which the ramp's
+      // smallest step (0.25rem) is too big to say. Both carry the reason in
+      // the file. Nothing else in the menu is off the ramp.
+      'src/common/menu/Menu.module.css': ['0.1rem'],
       // The picker's summary dots moved out of the modal with <PlayersSection>.
       // Same value, new file — the debt traveled, it did not grow.
       'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],
@@ -490,7 +494,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/info-sheet/InfoSheet.module.css': ['160ms'],
       'src/common/game-page/PlayArea.module.css': ['80ms'],
       'src/shared/rank-ladder/RankBar.module.css': ['80ms'],
-      'src/common/menu/Menu.module.css': ['100ms', '80ms'],
     },
     fix:
       'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
@@ -538,7 +541,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/rank-ladder/Stats.module.css': ['1px'],
       'src/common/devtools/PalettePage.module.css': ['1px'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1px'],
-      'src/common/menu/Menu.module.css': ['1px'],
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],
       'src/common/toasts/Toast.module.css': ['4px'],

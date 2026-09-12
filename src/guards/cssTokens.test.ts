@@ -192,7 +192,6 @@ describe('CSS custom-property tokens', () => {
     // simply use it.
     '--line-height-3',
     '--opacity-2',
-    '--transition-duration-nudge',
     '--transition-duration-travel',
     '--letter-spacing-label',
     '--letter-spacing-wide',

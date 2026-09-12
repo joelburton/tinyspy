@@ -521,11 +521,10 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
             reads as ONE clickable unit rather than two marks. */}
         <span className={styles.triggerRow}>
           {logo}
-          {/* 3, not the set's default 2, and it is an IDENTITY rather than a
-              tuned number: the hand-drawn chevron this replaced was stroke 2 on
-              a 16 viewBox and Lucide draws on 24, so 3/24 == 2/16. Same
-              relative weight, same glyph — that path normalizes to exactly the
-              old one's coordinates. */}
+          {/* 3, not the set's default 2: this is the smallest mark the menu
+              draws (0.65em, sized to the header's type), and at that size a
+              default-weight chevron thins out against the logo it sits beside
+              instead of reading as a separate affordance. */}
           <IconMenuChevron className={styles.chevron} strokeWidth={3} aria-hidden />
         </span>
       </button>

@@ -13,7 +13,9 @@
 
 /* The identity element + down-chevron row inside the trigger button. The gap is
    deliberately tiny — the chevron hugs the logo so the pair reads as ONE
-   clickable unit, not two icons. */
+   clickable unit, not two icons. KEPT off the spacer ramp (Joel, 2026-09-11):
+   the ramp's smallest step is 0.25rem, which is enough room to separate two
+   things, and separating them is the one thing this gap must not do. */
 /* @@ */ .triggerRow {
   display: inline-flex;
   align-items: center;
@@ -39,7 +41,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  transition: background 100ms ease;
+  transition: background var(--transition-duration-paint) ease;
 }
 
 .trigger:hover,
@@ -123,7 +125,7 @@
   gap: var(--spacer-4);
   width: 100%;
   border-radius: 0;
-  transition: background 80ms ease;
+  transition: background var(--transition-duration-nudge) ease;
 }
 
 /* The shortcut (e.g. "⌥C") — pushed to the right edge, de-emphasized (it's an
@@ -158,11 +160,15 @@
 }
 
 /* Section divider — the thin rule between one section and the next. Margins
- * inside the padding so it doesn't touch the popover edges. */
+ * inside the padding so it doesn't touch the popover edges.
+ *
+ * The margin is the ramp's smallest step. The popover's and the flyout's
+ * vertical padding is 0.3rem and stays there — padding is not on the ramp —
+ * so the rule sits a hair tighter than the panel's own edge inset. */
 /* @@ */ .divider {
   height: 0;
-  margin: 0.3rem 0;
-  border-top: 1px solid var(--page-surface-border-color);
+  margin: var(--spacer-5) 0;
+  border-top: var(--border-width-line) solid var(--page-surface-border-color);
 }
 
 /* Non-clickable info header at the top of a section — the crosswords puzzle
@@ -180,6 +186,9 @@
 /* @@ */ .headerLine {
   color: var(--page-text-muted-color);
   font-size: var(--font-size-2);
+  /* KEPT off the spacer ramp (Joel, 2026-09-11), same reason as `.triggerRow`'s
+     gap: this is leading between two lines of one block, not room between two
+     things, and the ramp's smallest step would read as a paragraph break. */
   margin-top: 0.1rem;
 }
 
@@ -246,9 +255,11 @@
    * growing the page. */
   max-height: calc(100svh - 5rem);
   overflow-y: auto;
-  /* Overlap the parent's border by a pixel so the two panels read as joined
-   * rather than as two unrelated cards with a seam between them. */
-  margin-left: -1px;
+  /* Overlap the parent's border so the two panels read as joined rather than
+   * as two unrelated cards with a seam between them. The BORDER's width
+   * negated, not a chosen amount of space — derived so a thicker edge can't
+   * leave the seam half-closed. */
+  margin-left: calc(-1 * var(--border-width-line));
 }
 
 /* The leading glyph slot — the icon language's legend (`MenuRow.icon`).
