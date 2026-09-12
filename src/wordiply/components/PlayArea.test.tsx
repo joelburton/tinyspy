@@ -17,6 +17,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -99,7 +100,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     currentTurnUserId: null,
     setup: { difficulty: 5, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),

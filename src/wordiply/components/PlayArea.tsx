@@ -1,19 +1,17 @@
 // cs-unmet
 
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import type { Member } from '@/common/members/member'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { outOfRacePill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage, type Actor } from '@/common/feedback/FeedbackMessage'
 import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { lengthScore } from '../lib/scoring'
 import type { WordiplySetup } from '../lib/setup'
@@ -32,7 +30,6 @@ import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -79,7 +76,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
 
@@ -146,21 +143,30 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const base = game?.base ?? ''
 
-  // ─── Move entry + own-move feedback (shared engine) ────
+  // ─── The local feedback slot ────
+  // The slot above the keyboard: the word engine's rejections, End / Concede's
+  // not-oks, and the standing conditions below. At terminal it takes the
+  // keyboard's place.
+  const localFeedbackSlot = useFeedbackSlot('local')
+
+  // ─── Move entry + own-move results (shared engine) ────
   // The legal list ships to the FE, so a guess validates locally against a
-  // Set. useWordSubmit owns the typed word, the sticky own-move pill, and the
-  // optimistic commit + dedup; wordiply supplies the lookup (points = the
-  // word's LENGTH, so the success pill shows the length — the one live
-  // readout), the submit_guess RPC, and the reject reason.
+  // Set. useWordSubmit owns the typed word, the results it shows into the
+  // slot, and the optimistic commit + dedup; wordiply supplies the lookup
+  // (points = the word's LENGTH), the submit_guess RPC, and the reject reason.
   const legalSet = useMemo(() => new Set(game?.legalWords ?? []), [game?.legalWords])
 
-  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
+  const { word, setWord, lastWord, submit } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
       isTerminal: isTerminal || myConceded,
       // Must be LONGER than the base, so the minimum length is base + 1.
       minWordLength: base.length + 1,
+      localFeedbackSlot,
+      // The board row shows an accepted word and its length — the one live
+      // readout — so the engine says nothing on an accept.
+      hideAccepted: true,
       foundWords: guesses, // ALL rows: the server dedups on rejects too, so a re-try reads as 'already found' here rather than round-tripping
       lookup: (w): WordEntry | null =>
         legalSet.has(w) ? { word: w, points: w.length, isBonus: false } : null,
@@ -189,7 +195,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // the guesses table header). We hand the server `fe_legal: false` and it
       // re-derives WHICH guard applies, since it owns the structural rules; a
       // structural reject also costs the caller their go in turn-by-turn coop.
-      // Fire-and-forget: the pill already says the same thing, so a failed
+      // Fire-and-forget: the result already says the same thing, so a failed
       // write must not change what the player sees.
       recordReject: (w) => {
         void runRpc<GuessResult>(
@@ -197,10 +203,10 @@ export function PlayArea(ctx: GamePageCtx) {
         ).then((res) => {
           if (res.type === 'ok' && res.data?.result === 'rejected') {
             // The expected answer: the turn is logged and the server has told
-            // us which guard applied. Nothing to show — the pill saying the
+            // us which guard applied. Nothing to show — the result saying the
             // same thing went up before this call.
           } else if (res.type === 'not-ok') {
-            // Log-and-swallow: the pill already told the player, so a failed
+            // Log-and-swallow: the result already told the player, so a failed
             // write must not change what they see — but it must not vanish
             // silently either (the log would just be missing a row). `runRpc`
             // has raised the modal for the faults among these.
@@ -214,15 +220,15 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
-  // failure-pill format + the replay sentence are wordiply's. New game stays
-  // below — its create path diverges per game.
+  // replay sentence is wordiply's. Its not-oks land in the same slot as a
+  // rejected word. New game stays below — its create path diverges per game.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     // The same base, extended again — so put the best word away. Nothing on the
     // server remembers the reveal any more, which is why this is explicit.
     onRestarted: hideSolution,
@@ -254,12 +260,12 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`wordiply_${gameMode}`, res.data.id)
@@ -330,7 +336,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. Reveal wears the
   // same two faces here as on the terminal button, because it IS that binding.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -349,31 +355,96 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── Coop peer-guess narration (global header) ─────────
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
   // surface it with its length (the one live readout — no scores). Own guesses
-  // go to the in-body local pill.
+  // show on the board row.
   usePeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the guesses fetch (separate from the header that sets
-    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
+    // `game`), so a coop rejoin doesn't replay the backlog as a burst.
     ready: rowsLoaded,
     items: validGuesses,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === r.user_id)
-      return {
-        tone: 'won',
-        // No verb: the dot names who, the word is the news, the count is its
-        // length. "played" earned no room in a ~26-char header pill.
-        text: (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> {r.word.toUpperCase()} ({r.length})
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      // No verb: the dot names who, the word is the news, the count is its
+      // length. "played" earned no room in the header's ~26 phone characters.
+      return FeedbackMessage.peer(member, 'won', `${r.word.toUpperCase()} (${r.length})`)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
+
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. The one person it can name — a sole compete
+  // winner — is resolved here to name + color; a tie is a string of names.
+  const isCompete = game?.mode === 'compete'
+  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winners = useMemo(() => leaderboard.filter((e) => e.won), [leaderboard])
+  const soleWinner = players.find((p) => p.user_id === (winners[0]?.user_id ?? winnerId))
+  const soleWinnerName = soleWinner?.username
+  const soleWinnerColor = soleWinner?.color
+  const tiedNames = winners
+    .map((e) => players.find((p) => p.user_id === e.user_id)?.username ?? 'a player')
+    .join(' & ')
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({
+            mode: gameMode,
+            playState,
+            statusOutcome,
+            longest,
+            letters,
+            maxWordLength: game?.max_word_length ?? 0,
+            winnerId,
+            winners,
+            selfId: session.user.id,
+            soleWinner:
+              soleWinnerName === undefined
+                ? undefined
+                : { username: soleWinnerName, color: soleWinnerColor ?? '' },
+            tiedNames,
+          })
+        : null,
+    [isTerminal, gameMode, playState, statusOutcome, longest, letters, game?.max_word_length,
+     winnerId, winners, session.user.id, soleWinnerName, soleWinnerColor, tiedNames],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I conceded but the others race on.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. On a phone the
+  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
+  // indicator beside the frozen keyboard.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -382,31 +453,10 @@ export function PlayArea(ctx: GamePageCtx) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
-  const isCompete = game.mode === 'compete'
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there — the pill's presence is
-  // fixed for the game's life, no reflow.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-
   const guessesByUser = new Map(leaderboard.map((e) => [e.user_id, e.guesses_used ?? 0]))
   const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.length_score ?? 0]))
 
   const active = !isTerminal && !myConceded && guessesUsed < MAX_GUESSES
-
-  const over = isTerminal
-    ? buildOver({
-        mode: game.mode,
-        playState,
-        status,
-        longest,
-        letters,
-        maxWordLength: game.max_word_length,
-        leaderboard,
-        selfId: session.user.id,
-        players,
-      })
-    : null
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -414,28 +464,18 @@ export function PlayArea(ctx: GamePageCtx) {
         base={base}
         guesses={boardRows}
         // `!isMyTurn` folds in turn-order (coop only): a waiting player's entry
-        // freezes. Always true for free-for-all / solo. wordiply's disabled entry
-        // shows no "locally done" pill, so a waiting coop player sees only the
-        // frozen keyboard + the InfoCol TurnStatusLine.
+        // freezes. Always true for free-for-all / solo.
         entryDisabled={!active || !isMyTurn}
         word={word}
         onChange={setWord}
         onSubmit={submit}
-        clearLocalFeedback={clearLocalFeedback}
+        // The slot the keyboard area draws: a rejection, "you're out", whose
+        // turn it is, the verdict — so the frozen keyboard always has its
+        // explanation beside it, matching every other game's below-board
+        // treatment.
+        localFeedbackSlot={localFeedbackSlot}
         lastWord={lastWord}
-        // Locally terminal (compete: I conceded while the others race on) gets
-        // the standard "you're out" pill; a teammate's turn (coop turn-order)
-        // gets the whose-turn pill — the ONLY such indicator on mobile, where the
-        // InfoCol's TurnStatusLine is off-canvas. Either way the frozen keyboard
-        // gets an explanation, matching every other game's below-board treatment.
-        localPill={
-          isLocallyDone
-            ? outOfRacePill(true)
-            : waiting
-              ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
-              : localFeedback
-        }
-        over={over}
+        isTerminal={isTerminal}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -470,7 +510,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
-          shown in the below-board pill (BoardCol) + the info column (score bar,
+          shown in the below-board slot (BoardCol) + the info column (score bar,
           letters, reveal), so a modal would just interrupt. wordiply has no win
           state, so there's no celebration either. */}
     </div>
@@ -478,17 +518,16 @@ export function PlayArea(ctx: GamePageCtx) {
 }
 
 /**
- * Maps the terminal play_state to the shared `TerminalCopy`. The scores that
- * were hidden all game land here: `tone` + `verdict` drive the below-board
- * terminal pill, `tone` + `message` the short info-column outcome line.
+ * Maps the terminal play_state to the shared `TerminalMessage`. The scores
+ * that were hidden all game land here: `outcome` + `pillText` are the
+ * below-board verdict, `outcome` + `infoColText` the short info-column line.
  *
  * Verdicts lead with the outcome word (`Won:` / `Lost:` / `Ended:`) and carry
  * no trailing period — the pill is a one-line, ellipsising row (~48 chars on a
- * phone), so it's a LABEL, not prose. A compete loss names WHO beat you, which
- * is the one case the pill wants a WIDGET (the winner's identity dot, the way
- * peer feedback names people elsewhere) — returned as `verdictNode`, with
- * `verdict` carrying the plain-text twin. A CO-win has 2+ winners, so it stays
- * a plain string (a row of dots would read as noise).
+ * phone), so it's a LABEL, not prose. A compete loss names WHO beat you: a
+ * sole winner rides as `actor`, so the pill draws the mention the way every
+ * other message names someone. A CO-win has 2+ winners, so it stays a plain
+ * string (a row of dots would read as noise).
  *
  * Coop: no clear win — the team just did as well as it did — so every coop
  * terminal reports the result neutrally, manual end included; the clock is
@@ -496,68 +535,66 @@ export function PlayArea(ctx: GamePageCtx) {
  * Compete: `won_compete` → self won / tied vs a named winner;
  * `lost_compete` → a collective loss naming its cause (all conceded, or a
  * nobody-scored race that ran out of time / guesses); `ended` + manual → the
- * shared neutral copy.
+ * shared neutral message.
  */
 function buildOver({
   mode,
   playState,
-  status,
+  statusOutcome,
   longest,
   letters,
   maxWordLength,
-  leaderboard,
+  winnerId,
+  winners,
   selfId,
-  players,
+  soleWinner,
+  tiedNames,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  status: Record<string, unknown> | null
+  /** `status.outcome`, or null when the status carries none. */
+  statusOutcome: string | null
   longest: number
   letters: number
   maxWordLength: number
-  leaderboard: LeaderRow[]
+  /** `status.winner_user_id` — null on a co-win the server didn't break. */
+  winnerId: string | null
+  /** The leaderboard rows flagged `won` — every tied player on a co-win. */
+  winners: LeaderRow[]
   selfId: string
-  players: Member[]
-}): TerminalCopy & { verdictNode?: ReactNode } {
+  /** The one winner when there is exactly one, resolved to name + color. */
+  soleWinner: Actor | undefined
+  /** The winners' names joined with " & ", for a co-win. */
+  tiedNames: string
+}): TerminalMessage {
   if (mode === 'compete') {
     if (playState === 'won_compete') {
       // winner_user_id is null on co-winners (a tie the server didn't break);
       // every tied player is flagged won in the leaderboard, so I read my own
       // row rather than trust a single-winner id. The winners share one score
       // (they tied on it), so any winner row gives the % to show.
-      const winnerId = (status?.winner_user_id as string | undefined) ?? null
-      const winners = leaderboard.filter((e) => e.won)
       const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
       const pct = winners[0]?.length_score ?? 0
       const shared = winners.length > 1
       if (iWon) {
         return {
-          verdict: shared ? `Won: tied at ${pct}%` : `Won: ${pct}%`,
-          message: shared ? 'You tied for the win!' : 'You won!',
-          tone: 'won',
+          pillText: shared ? `Won: tied at ${pct}%` : `Won: ${pct}%`,
+          infoColText: shared ? 'You tied for the win!' : 'You won!',
+          outcome: 'won',
         }
       }
-      const nameOf = (id?: string) => players.find((p) => p.user_id === id)?.username ?? 'someone'
       if (shared) {
-        const label = winners.map((e) => nameOf(e.user_id)).join(' & ')
         return {
-          verdict: `${label} tied at ${pct}%`,
-          message: `${label} tied`,
-          tone: 'lost',
+          pillText: `${tiedNames} tied at ${pct}%`,
+          infoColText: `${tiedNames} tied`,
+          outcome: 'lost',
         }
       }
-      const soleId = winners[0]?.user_id ?? winnerId ?? undefined
-      const label = nameOf(soleId)
       return {
-        verdict: `${label} won at ${pct}%`,
-        verdictNode: (
-          <>
-            <DotActor actor={players.find((p) => p.user_id === soleId)} fallback="Someone" show="both" /> won
-            at {pct}%
-          </>
-        ),
-        message: `${label} won`,
-        tone: 'lost',
+        pillText: `won at ${pct}%`,
+        infoColText: `${soleWinner?.username ?? 'a player'} won`,
+        outcome: 'lost',
+        actor: soleWinner,
       }
     }
     // The three compete collective losses all land on `lost_compete`, told
@@ -566,18 +603,17 @@ function buildOver({
     // guesses (wordiply._finish_compete's best_score=0 path). Each names its
     // cause, agreeing with the club card's `Lost (…)` label.
     if (playState === 'lost_compete') {
-      const outcome = (status?.outcome as string | undefined) ?? ''
-      if (outcome === 'conceded') {
-        return { verdict: 'Lost: all conceded', message: 'All conceded', tone: 'lost' }
+      if (statusOutcome === 'conceded') {
+        return { pillText: 'Lost: all conceded', infoColText: 'All conceded', outcome: 'lost' }
       }
-      if (outcome === 'timeout') {
-        return { verdict: 'Lost: out of time, nobody scored', message: 'Out of time', tone: 'lost' }
+      if (statusOutcome === 'timeout') {
+        return { pillText: 'Lost: out of time, nobody scored', infoColText: 'Out of time', outcome: 'lost' }
       }
-      return { verdict: 'Lost: out of guesses, nobody scored', message: 'Nobody scored', tone: 'lost' }
+      return { pillText: 'Lost: out of guesses, nobody scored', infoColText: 'Nobody scored', outcome: 'lost' }
     }
-    // ended / manual — no winner. The shared neutral copy, so the one terminal
-    // every game has stays worded in one place.
-    return endedCopy('compete')
+    // ended / manual — no winner. The shared neutral message, so the one
+    // terminal every game has stays worded in one place.
+    return gameEndedTerminalMessage('compete')
   }
 
   // coop — the team's collaborative result. There's no "win" in coop (you just
@@ -592,14 +628,14 @@ function buildOver({
   const pct = lengthScore(longest, maxWordLength)
   if (playState === 'lost') {
     return {
-      verdict: `Lost: out of time, ${pct}%`,
-      message: `Length ${pct}%`,
-      tone: 'lost',
+      pillText: `Lost: out of time, ${pct}%`,
+      infoColText: `Length ${pct}%`,
+      outcome: 'lost',
     }
   }
   return {
-    verdict: `Ended: ${pct}%, ${letters} letters`,
-    message: `Length ${pct}%`,
-    tone: 'neutral',
+    pillText: `Ended: ${pct}%, ${letters} letters`,
+    infoColText: `Length ${pct}%`,
+    outcome: 'neutral',
   }
 }

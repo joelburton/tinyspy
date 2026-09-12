@@ -99,7 +99,21 @@ that person as `actor` in place of `verdictNode`. A teammate's find is a
 `peer` message ("found DOG +2", "wow! JACKPOT +9"). BoardCol hands the slot
 to `<EntryRow>`; a keystroke or a tile tap is `dismiss`.
 
-**boggle COMMITTED**, its three e2e specs green.
+**boggle COMMITTED** (`0d0c2c96`), its three e2e specs green.
+
+**wordiply CONVERTED (2026-09-12).** The
+last `useWordSubmit` host, and the one that says nothing on an accepted
+word (the board row already shows it): that stays, as a `hideAccepted`
+option on the hook — the message is not produced, rather than filtered out
+by the host. Three condition effects (the verdict, out of the race, whose
+turn — wordiply has coop turn order), `over` memoized on primitives with a
+sole compete winner read as name + color and a tie as a string of names,
+`buildOver` → `TerminalMessage` with the sole winner as `actor`. BoardCol
+draws `<FeedbackPill>` above the keyboard during play and in the keyboard's
+place at terminal — the same slot, two places; an on-screen or physical
+key is `dismiss`.
+
+**wordiply COMMITTED**, its three e2e specs green.
 
 **Next:** the other games, one by one.
 

@@ -1,11 +1,9 @@
 // cs-unmet
 
-import { useCallback, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { useCallback, type Dispatch, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
-import { terminalPill } from '@/common/feedback/localPills'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
@@ -23,10 +21,11 @@ const MAX_LEN = 28
  * keyboard (a physical one still works via `useCaptureKeys`, feeding the
  * same word state).
  *
- * The keyboard slot doubles as the feedback area: a soft-reject line sits
- * above the keys (successful guesses show NO pill — the row already shows
- * the word + its length), and at terminal the verdict fills the slot in
- * place of the keyboard.
+ * The keyboard slot doubles as the feedback area: the local slot's top
+ * message sits above the keys (a rejection, "you're out", whose turn it is —
+ * an accepted guess shows nothing, the row already shows the word + its
+ * length), and at terminal the keyboard goes and the same slot fills its
+ * place with the verdict.
  */
 export function BoardCol({
   base,
@@ -34,38 +33,36 @@ export function BoardCol({
   word,
   onChange,
   onSubmit,
-  clearLocalFeedback,
+  localFeedbackSlot,
   lastWord,
   entryDisabled,
-  localPill,
-  over,
+  isTerminal,
 }: {
   base: string
   guesses: { word: string; length: number }[]
   word: string
   onChange: Dispatch<SetStateAction<string>>
   onSubmit: () => void
-  clearLocalFeedback: () => void
+  /** PlayArea's below-board slot — drawn above the keyboard during play and
+   *  in the keyboard's place at terminal. A key, on screen or physical, is
+   *  the player's next move, so it dismisses a gesture-cleared message. */
+  localFeedbackSlot: FeedbackSlot
   /** The last submitted guess — ArrowUp recalls it (the next guess is often the
    *  previous one with another letter). */
   lastWord: string
   /** Freeze input (terminal / conceded / out of guesses). */
   entryDisabled: boolean
-  /** The own-move pill (from useWordSubmit). Success is dropped; only a
-   *  soft-reject reason is shown. */
-  localPill: GenericFeedbackMsg | null
-  /** Terminal copy at game-over — `verdict` (or the `verdictNode` widget, when
-   *  the winner is named) fills the keyboard slot as the permanent pill. */
-  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
+  /** Game over for everyone: the keyboard leaves and the slot takes its place. */
+  isTerminal: boolean
 }) {
   // On-screen key → append/backspace (updater form, so it reads the latest
   // word); each edit dismisses a sticky reject.
   const typeLetter = useCallback(
     (ch: string) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       onChange((w) => (w.length < MAX_LEN ? w + ch.toLowerCase() : w))
     },
-    [clearLocalFeedback, onChange],
+    [localFeedbackSlot, onChange],
   )
   // Physical keyboard (desktop convenience) drives the SAME word + submit — and
   // hands back the two bindings the ⌫ and Enter caps below place, so a cap and
@@ -76,7 +73,7 @@ export function BoardCol({
     onChange,
     onSubmit,
     disabled: entryDisabled,
-    onAnyKey: clearLocalFeedback,
+    onAnyKey: localFeedbackSlot.dismiss,
     charFor: asciiLetters('lower'),
     maxLength: MAX_LEN,
   })
@@ -85,9 +82,6 @@ export function BoardCol({
   // the same one <EntryRow> uses).
   useArrowHistory({ recall: lastWord, onChange, enabled: !entryDisabled })
 
-  // Drop success feedback (the row shows the word + length); keep soft rejects.
-  const rejectPill = localPill && localPill.tone !== 'won' ? localPill : null
-
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <div className={styles.starterWord}>{base.toUpperCase()}</div>
@@ -95,22 +89,14 @@ export function BoardCol({
       <GuessBoard base={base} guesses={guesses} activeWord={word} showActive={!entryDisabled} />
 
       <div className={styles.inputArea}>
-        {over ? (
+        {isTerminal ? (
           <div className={styles.verdictSlot}>
-            <GenericFeedbackPill
-              msg={terminalPill(over.tone, over.verdictNode ?? over.verdict)}
-              // Permanent, so this is never called — but the real dismiss beats
-              // an inline no-op that reads like an oversight. (wordiply keeps two
-              // separate slots rather than one: the verdict replaces the whole
-              // keyboard area, while a reject pill sits above a keyboard that
-              // stays. So there's nothing here to resolve into one pill.)
-              onClose={clearLocalFeedback}
-            />
+            <FeedbackPill slot={localFeedbackSlot} />
           </div>
         ) : (
           <>
             <div className={styles.kbFeedback}>
-              {rejectPill && <GenericFeedbackPill msg={rejectPill} onClose={clearLocalFeedback} />}
+              <FeedbackPill slot={localFeedbackSlot} />
             </div>
             <GuessKeyboard
               onKey={typeLetter}

@@ -101,6 +101,17 @@ export type WordSubmitConfig = {
    * it is exactly what the reminder exists to prevent.
    */
   recordReject?: (word: string, reason: 'too_short' | 'not_legal') => void
+  /**
+   * Optional: say nothing when a word is ACCEPTED.
+   *
+   * Omitted (spellingbee / wordwheel / boggle) → the accepted word shows as a
+   * result, `CAT +3`, the one place the player learns it landed.
+   *
+   * Supplied (wordiply) → the board row already shows the word and its
+   * length the moment it is accepted, so a result would say it twice; only
+   * the rejections show.
+   */
+  hideAccepted?: boolean
 }
 
 export type WordSubmitApi = {
@@ -227,7 +238,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // right after the word.
     pendingRef.current.add(w)
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    slot.show(FeedbackMessage.result('won', line(w, body, entry.isBonus)))
+    if (!c.hideAccepted) slot.show(FeedbackMessage.result('won', line(w, body, entry.isBonus)))
 
     // The commit lost: free the word so it can be retried, and put the
     // server's own sentence up — a notOk, which ranks over the optimistic "+N"

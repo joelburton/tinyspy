@@ -482,10 +482,12 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   hook's per-word value IS the length), `commit` calls the `submit_guess` RPC (and surfaces a
   server `{ok:false}` as a release). `minWordLength = base.length + 1`; `explainReject`
   distinguishes "must contain BASE" from "not a word". A rejected guess never hits the server.
-  **Success feedback is dropped** (the row already shows the word + its length); only soft
-  rejects show a pill.
+  **An accepted word shows no result** (`hideAccepted` — the row already shows the word +
+  its length); only rejections show, as `result` messages in the local slot.
 - **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` + `InfoCol`,
-  the submit hook, terminal copy (`buildOver`), and the coop peer-guess `usePeerFeedback`.
+  the submit hook, the terminal message (`buildOver`), the local feedback slot's three
+  standing conditions (the verdict, out of the race, whose turn), and the coop peer-guess
+  `usePeerFeedback`.
 - **`components/BoardCol.tsx` + the guess board**:
   - **On-screen keyboard, no text box.** wordiply plays on **touch alone** — input is the
     shared **`common/…/entry/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
@@ -496,8 +498,9 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
     both go gray on an EMPTY entry, so Enter there does nothing rather than asking for letters.
     `↑` recalls the last word and `↓` clears the entry (`useArrowHistory`, the same two
     actions the EntryBox games bind). The keyboard sits **below** the grid and **doubles as the
-    feedback area**: a soft-reject line above the keys, and at terminal the keyboard is
-    replaced by the verdict pill.
+    feedback area**: the local slot's top message above the keys (a rejection, "you're
+    out", whose turn it is), and at terminal the keyboard leaves and the same slot fills
+    its place with the verdict ([ui.md → Feedback pill](../ui.md#feedback-pill)).
   - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD layout-stability rule; compact
     vertical rhythm so the keyboard fits on mobile). Completed rows render the guess via
     `<DimmedBaseWord>` + a small **length badge** (teal-on-white — the one live readout); the
@@ -517,7 +520,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   back-to-club; terminal = the outcome line + Restart / Reveal / New game / primary Club —
   every one an `<ActionButton>` over a bound action;
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
-  + the below-board out-of-race pill —
+  + the below-board out-of-race message —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**
   ("Best possible word: **HANGARS** (7)" — full-color, no card; it grows the column when
   opened and gives the space back when closed, a blessed exception to
@@ -545,7 +548,7 @@ computes a score filters `where valid`. That's the same shape
 
 **Why store rejects** (2026-08-02). Two reasons, both coop-shaped:
 
-1. The reject pill is *local*, so three players independently try the same
+1. The rejection shows *locally*, so three players independently try the same
    non-word and nobody can see it happened. Cross-player memory is the part that
    can't be done client-side.
 2. A recorded move is what lets a bad guess cost a turn.
@@ -699,7 +702,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   driving the same `word`. Submit reuses **`useWordSubmit`** (shipped-list, trusting-commit)
   with a wordiply validator (points = the word's length). No `<EntryRow>` / `<EntryBox>` (that
   needs a physical keyboard).
-- **Feedback:** `useLocalFeedback` / `usePeerFeedback` / `<GenericFeedbackPill>`.
+- **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,
   `<TerminalActionRow>` / `<LocalTerminalRow>`, the standard actions (`act-end-game` /
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each placed as an

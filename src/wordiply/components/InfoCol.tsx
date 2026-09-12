@@ -2,7 +2,7 @@
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -73,7 +73,8 @@ export function InfoCol({
    *  shared with the menu twin; nothing is written, no peer affected, and it
    *  carries its own two faces. */
   actReveal: BoundAction
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
   isLocallyDone: boolean
   /** Whose turn it is under turn-order, or null for a free-for-all game.

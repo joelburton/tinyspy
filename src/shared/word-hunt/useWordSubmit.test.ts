@@ -76,6 +76,20 @@ describe('useWordSubmit', () => {
     expect(result.current.lastWord).toBe('apple')
   })
 
+  it('with hideAccepted, an accepted word commits but shows nothing; a rejection still shows', async () => {
+    const cfg = makeCfg({ hideAccepted: true, explainReject: () => 'not a word' })
+    const { type, submit } = setup(cfg)
+
+    type('apple')
+    await submit()
+    expect(cfg.commit).toHaveBeenCalledWith(APPLE)
+    expect(shown(cfg)).toBeNull()
+
+    type('zzzzz')
+    await submit()
+    expect(shown(cfg)?.text).toBe('ZZZZZ — not a word')
+  })
+
   it('appends the bonus dot for a bonus word, not for a required word', async () => {
     const cfg = makeCfg()
     const { type, submit } = setup(cfg)
