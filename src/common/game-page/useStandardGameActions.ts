@@ -1,9 +1,9 @@
 // cs-unmet
 
 import type { DbError } from '../supabase/dbEnvelope'
-import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
+import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { GameStopResult } from '../manifest/gameManifest'
-import { getNotOkFeedback } from '../feedback/genericPills'
 import { runRpc } from '../supabase/dbResult'
 import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
 import { reportUnhandled } from '../supabase/dbEnvelope'
@@ -48,13 +48,10 @@ type ReplayResult = { result: 'replayed' }
  * hidden in a race unless the game opts in, Concede is hidden outside one, and
  * both go disabled once the game is over.
  *
- * The genuinely per-game bits stay callbacks:
- *   - `showError` is the game's own local-feedback sink (`useLocalFeedback`'s
- *      `showLocalFeedback`, whatever the game names it). The hook hands it a
- *      fully-built `GenericFeedbackMsg`, so a failure keeps everything the
- *      classifier decided: an expected race is a pill in its copy's tone
- *      ("Game over" as info), and a FAULT keeps the bare-red look + manual
- *      dismissal that a string could not carry;
+ * The genuinely per-game bits:
+ *   - `localFeedbackSlot` is the game's own below-board slot, where a not-ok
+ *      answer is shown as `FeedbackMessage.notOk(res)` — the server's words,
+ *      in the outcome the envelope carries;
  *   - `onRestarted` runs a game's post-replay cleanup (wordle/waffle re-hide the
  *      answer + leave the history view; the others pass nothing).
  *
@@ -75,7 +72,7 @@ export function useStandardGameActions({
   myConceded,
   selfSolved,
   offersEndForAll,
-  showError,
+  localFeedbackSlot,
   onRestarted,
 }: {
   db: GameRpcClient
@@ -109,9 +106,8 @@ export function useStandardGameActions({
    */
   offersEndForAll?: boolean
 
-  /** The game's local-feedback sink. Receives the full classified message so
-   *  tone and fault styling survive the trip (see the docstring above). */
-  showError: (msg: GenericFeedbackMsg) => void
+  // The game's below-board slot, where a not-ok answer is shown.
+  localFeedbackSlot: FeedbackSlot
   /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
   onRestarted?: () => void
 }): StandardGameActions {
@@ -123,7 +119,7 @@ export function useStandardGameActions({
     if (res.type === 'not-ok') {
       // The one race is `isTerminal` losing to the subscription that feeds it:
       // somebody else stopped the game while the question was open.
-      showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing to do: the terminal arrives by subscription.
     } else {
@@ -171,7 +167,7 @@ export function useStandardGameActions({
         // Both races reachable here are the two gates above losing to the
         // subscription that feeds them: the game ended, or this player already
         // conceded. Sticky — a drop-out that did not happen is worth reading.
-        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data?.result === 'conceded') {
         // Nothing to do here. The conceded flag, the roster the others see, and
         // a terminal if this was the last racer all arrive by subscription.
@@ -194,7 +190,7 @@ export function useStandardGameActions({
       if (res.type === 'not-ok') {
         // The one race here is the game having been deleted out from under the
         // page — a club member tidying the list while you had it open.
-        showError({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data?.result === 'replayed') {
         // The fresh board arrives by subscription; this is the game's own
         // post-replay cleanup (wordle/waffle re-hide the answer).

@@ -1,13 +1,14 @@
 // cs-met-feedback
 
 import { useEffect, useRef } from 'react'
-import type { GenericFeedbackApi, GenericFeedbackMsg } from './genericFeedback'
+import type { FeedbackMessage } from './FeedbackMessage'
+import type { FeedbackSlot } from './feedbackSlotStore'
 
 /**
- * The shared **peer-narration machinery** for the global feedback area: watch an
- * append-only stream of peer events (a teammate's accepted guess, an opponent's
- * solve) and fire a header pill for each NEW one — without replaying the backlog
- * that already existed when this client loaded or remounted.
+ * The shared **peer-narration producer** for the global feedback slot: watch
+ * an append-only stream of peer events (a teammate's accepted guess, an
+ * opponent's solve) and show a message for each NEW one — without replaying
+ * the backlog that already existed when this client loaded or remounted.
  *
  * Every coop/compete game narrated peers by hand-rolling the same "seen-set
  * bootstrap": a `Set` of already-accounted-for keys, seeded silently on first
@@ -36,34 +37,35 @@ import type { GenericFeedbackApi, GenericFeedbackMsg } from './genericFeedback'
  *
  * `enabled` is the mode gate (e.g. `mode === 'coop'`, or `=== 'compete'` for a
  * solve stream). `keyOf` identifies a peer event uniquely; `messageFor` returns
- * the pill to fire, or `null` to skip it (own actions, or an event that isn't
- * worth surfacing). `keyOf`/`messageFor` are read through refs, so callers may
- * pass fresh closures each render without re-running the effect — it re-runs
- * only when `items` (or `enabled`) actually changes.
+ * the message to show — usually `FeedbackMessage.peer(member, outcome, text)` —
+ * or `null` to skip it (own actions, or an event that isn't worth surfacing).
+ * `keyOf`/`messageFor` are read through refs, so callers may pass fresh
+ * closures each render without re-running the effect — it re-runs only when
+ * `items` (or `enabled`) actually changes.
  *
  * This is the coop *event-stream* flavor. Compete *state-transition* signals
  * that read a threat level off a changing scalar (rank climbs, milestone flips)
  * are a genuinely different mechanism — a delta detector, not a seen-set — and
  * stay hand-rolled (docs/peer-feedback-audit.md → bucket B).
  */
-export function useGlobalFeedback<T>({
+export function usePeerFeedback<T>({
   enabled,
   ready = true,
   items,
   keyOf,
   messageFor,
-  globalFeedback,
+  globalFeedbackSlot,
 }: {
   enabled: boolean
-  /** Whether `items` holds the real backlog yet. Defaults true (single-fetch
-   *  callers). Two-fetch hooks pass their "rows loaded once" flag so the seed
-   *  doesn't run against an empty pre-rows `items` and then replay the backlog. */
+  // Whether `items` holds the real backlog yet. Defaults true (single-fetch
+  // callers). Two-fetch hooks pass their "rows loaded once" flag so the seed
+  // doesn't run against an empty pre-rows `items` and then replay the backlog.
   ready?: boolean
   items: readonly T[]
   keyOf: (item: T) => string
-  /** The pill to fire for a new peer event, or `null` to skip it. */
-  messageFor: (item: T) => GenericFeedbackMsg | null
-  globalFeedback: GenericFeedbackApi
+  // The message to show for a new peer event, or `null` to skip it.
+  messageFor: (item: T) => FeedbackMessage | null
+  globalFeedbackSlot: FeedbackSlot
 }): void {
   // `seen` keys every event already accounted for; `null` means "not yet
   // bootstrapped" (distinct from an empty-but-seeded set).
@@ -75,12 +77,12 @@ export function useGlobalFeedback<T>({
   // current when it reads them.
   const keyOfRef = useRef(keyOf)
   const messageForRef = useRef(messageFor)
-  useEffect(() => {
+  useEffect(function syncCallbackRefs() {
     keyOfRef.current = keyOf
     messageForRef.current = messageFor
   })
 
-  useEffect(() => {
+  useEffect(function narrateNewItems() {
     // Gate BEFORE seeding (the §1.1 fix): don't seed until the game narrates
     // this mode (`enabled`) AND its backlog has actually arrived (`ready`) — so
     // the first seed captures the real `items`, not the empty loading value or a
@@ -97,8 +99,8 @@ export function useGlobalFeedback<T>({
       const k = key(item)
       if (seen.has(k)) continue
       seen.add(k)
-      const msg = messageForRef.current(item)
-      if (msg) globalFeedback.show(msg)
+      const feedbackMsg = messageForRef.current(item)
+      if (feedbackMsg) globalFeedbackSlot.show(feedbackMsg)
     }
-  }, [enabled, ready, items, globalFeedback])
+  }, [enabled, ready, items, globalFeedbackSlot])
 }

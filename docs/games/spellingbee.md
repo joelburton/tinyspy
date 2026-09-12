@@ -357,7 +357,7 @@ src/spellingbee/
                           coordinator, because its feedback channel is ALSO written by InfoCol's
                           End / Concede; it passes the entry primitives (word / setWord / submit /
                           localFeedback / …) DOWN to BoardCol (a thin-input game, like
-                          boggle/connections). Wires the common useGlobalFeedback to the header slot
+                          boggle/connections). Wires the common usePeerFeedback to the header slot
                           for peer/opponent events. buildOver branches mode → terminal verdict
                           copy (a TerminalCopy the pill + the info-column row share), and pops the
                           shared CelebrationBlockingModal on a coop win via useCelebration.
@@ -419,7 +419,7 @@ src/spellingbee/
                           .localFeedback slot. success / warning / error are all in the common
                           FeedbackTone now, so the surface needs no game-specific tone type.
                           Peer/opponent events still go to the HEADER slot via the common
-                          useGlobalFeedback — two distinct LOCATIONS for the same shared pill component.)
+                          usePeerFeedback — two distinct LOCATIONS for the same shared pill component.)
     (RankBar)             SHARED common/components/game/RankBar — 7 squares from Start to
                           Genius, filled up to the current rank, with the rank NAME inline
                           to their left ("GENIUS ▪-▪-▪…"). Per-square hover tooltip with
@@ -475,7 +475,7 @@ src/spellingbee/
                           hook. Tracks freshly-arrived words, each "recent" for 5s via
                           per-word setTimeouts in a ref, NOT effect cleanup.)
                           (Peer HEADER narration is now the SHARED
-                          common/hooks/feedback/useGlobalFeedback, called from PlayArea — no
+                          common/hooks/feedback/usePeerFeedback, called from PlayArea — no
                           longer a spellingbee-local usePeerFeedback hook. It fires header pills
                           for other players' activity — the complement to the below-board
                           own-move pill. coop: a peer found a good/pangram word (found_words is
@@ -509,7 +509,7 @@ src/spellingbee/
     (foundWordsLeaderboard) SHARED common/lib/game/foundWordsLeaderboard.ts — LeaderboardEntry
                           type + readLeaderboard(status): the compete rank payload off
                           common.games.status. Shared by the OpponentStrip and the common
-                          useGlobalFeedback.
+                          usePeerFeedback.
 ```
 
 ### Routes & shell

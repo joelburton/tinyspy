@@ -34,9 +34,31 @@ Two old files were touched so old and new cannot drift while both exist:
 re-exports `TerminalOutcome` from `terminalMessage.ts`. `TurnStatusLine`
 reads `waitingForText` directly; its fallback is "a player" now.
 
-**Next:** Joel reads the machinery; then psychicnum converts entirely; STOP;
-then the other games. The docs in §8 change at the first conversion, when
-the app first uses the new names.
+**psychicnum CONVERTED (2026-09-12), uncommitted, awaiting Joel's read**,
+and with it the shared hosts it needed — every one now speaks the new
+system, so every other game is red at `tsc -b` until it converts (accepted):
+
+| file | what changed |
+|---|---|
+| `game-page/GamePage.tsx` + `gamePageCtx.ts` | `useFeedbackSlot('global')`; the hand-held state, its timer and `PEER_PILL_MS` are gone; `ctx.globalFeedbackSlot` |
+| `club/ClubPage.tsx` | the same slot; "Rename club: coming soon" is an `acknowledgment` |
+| `page-header/PageHeaderStatusSlot.tsx` | takes the slot, draws `<FeedbackPill>` while it holds a message |
+| `word-entry/EntryRow.tsx` (+ new test) | takes `localFeedbackSlot`; draws its top in place of the controls. **WITHDRAWN and corrected the same day:** the first version kept the hosts' old "only while the entry is empty" gate for every kind, so typing hid a ×-only not-ok. Joel: *"the reason they're '×-to-close' is so THEY DON'T GO AWAY WHEN YOU TYPE."* Now only a gesture-cleared result yields to typing (the keystroke dismisses it anyway); every other kind holds the slot until it leaves the way its kind says |
+| `game-page/useStandardGameActions.ts` | takes `localFeedbackSlot`; a not-ok is `FeedbackMessage.notOk(res)` |
+| `terminal/TerminalActionRow.tsx` | takes a `TerminalMessage` (`infoColText`, `outcome`) |
+| `chat/useChatFeedback.tsx` · `feedback/usePeerFeedback.ts` | producers take the slot; `messageFor` returns a `FeedbackMessage` |
+| `feedback/useDismissLocalFeedbackOnKey.ts` | takes the slot's `dismiss`; docstring no longer names `locked` |
+| psychicnum `PlayArea.tsx` · `BoardCol.tsx` · `InfoCol.tsx` | the three standing conditions are effects (`over` is memoized on primitives); results and not-oks are constructors; `buildOver` returns a `TerminalMessage`; the precedence expression and `boardPill` are gone; the entry row is always mounted, disabled once done |
+| the tests of each, and `feedbackNames`' allowlist | a real slot with a spy on `show` replaces the `{ show, clear }` fakes |
+| `docs/code-conventions.md` → Feedback naming · `docs/ui.md` → Feedback pill · `docs/outcomes.md` · `docs/games/psychicnum.md` | say the shipped system; the kinds table is in ui.md |
+
+Docs that still name the old builders (`playarea.md`, `mobile.md`,
+`deferred.md`, `envelopes.md`, `common.md`, six game docs) stay as they are
+until the old files are deleted at the end of the conversion, since what they
+describe still exists.
+
+**Next:** Joel reads psychicnum; then the other games, one by one. The
+e2e specs for psychicnum (`e2e/psychicnum-*.e2e.ts`, five) run on his word.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
 built for tidying files that stay, and this area replaces most of its files:
@@ -629,14 +651,17 @@ The four meanings and their behaviors are settled and not reopened
 
 ## 6. The producers
 
-**DECIDED (vocabulary):** `useGlobalFeedback` is not a slot; it *produces*
+**DECIDED (vocabulary):** `usePeerFeedback` is not a slot; it *produces*
 messages from a peer-event stream into someone else's slot. `useChatFeedback`
 is the same kind of thing for chat.
 
-**DECIDED 2026-09-12 — both keep their names.** Joel: *"useGlobalFeedback.
-We call our feedback slots 'local' and 'global'."* The producer is named for
-the slot it feeds, and the hook that MAKES a slot is `useFeedbackSlot`, so
-the two read apart.
+**DECIDED 2026-09-12 — `usePeerFeedback`, after one reversal.** First ruling
+(from the names table): keep `useGlobalFeedback` — *"We call our feedback
+slots 'local' and 'global'."* Then, on reading the hook itself: *"it's not
+at all about the slot — it's about streaming peer messages to it. Let's
+change it to your original name, usePeerFeedback."* A producer is named for
+what it produces from, and the slot it feeds is an argument.
+`useChatFeedback` already followed that rule and keeps its name.
 
 ---
 
@@ -652,7 +677,7 @@ the two read apart.
 | **outcome** | the `won` / `lost` / `near` / … value a message carries, typed `Outcome` — the field and every variable holding one is `outcome` | never `tone`: that word bled into a synonym for outcome (`GenericFeedbackMsg.tone`, `TerminalCopy.tone`, `stickyPill(tone, …)`) and stops here. A button's or a toast's `tone` (`caution`, `destructive`, `info`, …) is a different thing — how a control or an announcement is styled, not an outcome — and keeps its name (Joel, 2026-09-12) |
 | **slot** | the holder of live feedback messages, drawing the top one; the two instances are `localFeedbackSlot` and `globalFeedbackSlot` | not a hook name, not "area", never bare `feedback` |
 | **pill** | the visual thing, `<FeedbackPill>` — and only the visual thing | not a message, not a builder, not a slot, not "the words a pill shows" |
-| **producer** | a hook that fires feedback messages into a slot from a stream; named for the slot it feeds | not a slot |
+| **producer** | a hook that fires feedback messages into a slot from a stream; named for the stream it reads (`usePeerFeedback`, `useChatFeedback`), and handed the slot | not a slot |
 
 Joel's four rules, 2026-09-12, which the table above and the one below
 follow: *"text" is a good name for a field that is literally the text; if
@@ -671,7 +696,7 @@ are fine"*), each re-derived from the four rules:
 | `GenericFeedbackApi` | `FeedbackSlot`, what `useFeedbackSlot()` returns | DECIDED 2026-09-12 |
 | `useLocalFeedback`; its value `localFeedback` | `useFeedbackSlot()` in a PlayArea; the instance is `localFeedbackSlot` | DECIDED 2026-09-12 |
 | `GamePage` / `ClubPage` inline state; `ctx.globalFeedback` | `useFeedbackSlot()` in the page; the instance is `globalFeedbackSlot`, on `ctx` under that name | DECIDED 2026-09-12 |
-| `useGlobalFeedback` / `useChatFeedback` | unchanged — a producer is named for the slot it feeds | DECIDED |
+| `useGlobalFeedback` | `usePeerFeedback` — a producer is named for the stream it reads; `useChatFeedback` unchanged | DECIDED |
 | `GenericFeedbackPill` (+ stylesheet) | `FeedbackPill` | DECIDED 2026-09-12 |
 | `getNotOkFeedback` | `FeedbackMessage.notOk(res)` | DECIDED 2026-09-12 |
 | `stickyPill` / `terminalPill` / `outOfRacePill` / `waitingTurnPill` / `yourTurnPill` | constructors on `FeedbackMessage`, named at the kinds review (§9 item 7) | DECIDED 2026-09-12 |
@@ -1035,7 +1060,7 @@ something; the header narrates it and lets it fade. The actor leads.
   tried CAT" (stackdown `:584`, `lost`), scrabble's peer move (`:292–297`),
   "● moth reached Genius" (spellingbee `:477`, wordwheel `:484`, sticky
   today; timed by §4.4 row 5): 23 sites, 21 of them through
-  `useGlobalFeedback`'s `messageFor`.
+  `usePeerFeedback`'s `messageFor`.
 
 **`chat` — rank 80, outline, neutral, timed 2000.** A chat line announced in
 the header. Its own kind because its join is ": " and its duration is
@@ -1228,7 +1253,7 @@ leads.*
 - "● moth found APPLE +7", "● moth guessed CRANE", "● moth solved it",
   "● moth found a set", "● moth got a hint", "● moth tried CAT", "● moth
   reached Genius" — every coop and compete game's narration of a teammate
-  or opponent, through `useGlobalFeedback`.
+  or opponent, through `usePeerFeedback`.
 
 ### `chat`
 

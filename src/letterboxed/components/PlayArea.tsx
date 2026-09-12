@@ -12,7 +12,7 @@ import { outOfRacePill, stickyPill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
@@ -556,7 +556,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Coop peer narration (global header) ───────────────
   // In coop the chain is shared, so a teammate's word changes MY board; say so.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     ready: rowsLoaded,
     items: events,

@@ -1,15 +1,14 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
-import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
+import { useTopFeedbackMessage } from '../feedback/useFeedbackSlot'
+import { FeedbackPill } from '../feedback/FeedbackPill'
 import { useCaptureKeys } from '../keyboard/useCaptureKeys'
 import { useArrowHistory } from './useArrowHistory'
 import { EntryBox } from './EntryBox'
 import { MoveRow } from './MoveRow'
-import { GenericFeedbackPill } from '../feedback/GenericFeedbackPill'
 import shared from '../game-page/PlayArea.module.css'
-
-const noop = () => {}
 
 type Props = {
   /** The pending entry text. */
@@ -24,22 +23,17 @@ type Props = {
    *  (spellingbee's `<TypedWord>` dims out-of-puzzle letters). Plain text if omitted. */
   children?: ReactNode
   /**
-   * When set, this local-feedback pill **replaces** the input controls in the same
-   * slot — an own-move result or the terminal verdict. The host resolves the
-   * precedence (terminal vs own-move) and the "only while the entry is empty" gate,
-   * and passes the message (or `null` to show the controls). Keeping the entry row
-   * mounted through the swap is what lets a keystroke dismiss a sticky pill: the
-   * capture hook below stays live and the next key reclaims the slot.
+   * The game's below-board slot. While it holds a message, the pill
+   * **replaces** the input controls in the same slot — an own-move result,
+   * the whose-turn note, the terminal verdict, a not-ok, whatever is on top.
+   * A message leaves the way its KIND says and no other way: a ×-only
+   * message stays over the controls however much is typed, and only a
+   * gesture-cleared result yields to typing (the keystroke is what dismisses
+   * it). Keeping the row mounted through the swap is what lets that
+   * keystroke reach the slot: the capture hook below stays live and
+   * `onAnyKey` is its `dismiss`.
    */
-  pill?: GenericFeedbackMsg | null
-  /**
-   * Dismiss the pill. Tapping a transient pill clears it, the same way the next
-   * keystroke does (docs/ui.md → Feedback pill) — which matters most on touch,
-   * where there IS no next keystroke. Optional: a host whose pill is built
-   * inline from game state (a terminal verdict) has nothing to clear, and such
-   * pills are `fill`, which is never tap-dismissable anyway.
-   */
-  onDismissPill?: () => void
+  localFeedbackSlot: FeedbackSlot
   /** Loading / terminal: capture is a hard no-op and the buttons are disabled. */
   disabled?: boolean
   /** Mid-submit: capture blocks edits/submit and the Submit button is disabled. */
@@ -52,8 +46,9 @@ type Props = {
    * be spelled from the wheel's tiles never submits + reads as "not a word".
    */
   submitDisabled?: boolean
-  /** Dismiss sticky local feedback on any move — passed to the capture hook (any
-   *  keystroke) and called on a Delete click too, so the two dismiss identically. */
+  /** The player's next action, on any keystroke and on a Delete click — pass
+   *  the slot's `dismiss`, so a gesture-cleared message leaves the same way
+   *  from the keyboard and the button. */
   onAnyKey?: () => void
   /** What may be entered (default lowercase A–Z). spellingbee/boggle pass upper. */
   charFor?: (key: string) => string | null
@@ -73,10 +68,10 @@ type Props = {
  *      `useArrowHistory` — the ArrowUp-recall / ArrowDown-clear history);
  *   2. the **controls** — the shared `<MoveRow>` (⌫ | display | Submit) around a
  *      chrome-less `<EntryBox>`;
- *   3. the **pill swap** — when `pill` is set it replaces the controls with a
- *      centered `<GenericFeedbackPill>` (the own-move result / terminal verdict), in the
- *      same slot, without unmounting (so the capture stays live and a keystroke
- *      dismisses the pill).
+ *   3. the **pill swap** — while the slot has a message, a centered
+ *      `<FeedbackPill>` replaces the controls in the same slot, without
+ *      unmounting (so the capture stays live and a keystroke dismisses a
+ *      gesture-cleared message — the one kind that yields to typing).
  *
  * **This is the TYPING half.** The row itself is `<MoveRow>`, split out because
  * two games need the same control without this keyboard: stackdown enters TILES
@@ -87,7 +82,7 @@ type Props = {
  *
  * What stays with the host: the below-board *slot* (its board-matched width +
  * reserved height), the capture *values* (`value`/`onSubmit`/`charFor`/…), and
- * resolving which `pill` (if any) to show. See docs/ui.md → "Text entry".
+ * which messages go into the slot. See docs/ui.md → "Text entry".
  */
 export function EntryRow({
   value,
@@ -95,8 +90,7 @@ export function EntryRow({
   onSubmit,
   placeholder,
   children,
-  pill,
-  onDismissPill,
+  localFeedbackSlot,
   disabled = false,
   busy = false,
   submitDisabled = false,
@@ -106,7 +100,7 @@ export function EntryRow({
   className,
 }: Props) {
   // Always called (never behind the early return below), so the keyboard stays
-  // live while a sticky pill is shown — the next keystroke dismisses it. The
+  // live while a message is shown — the next keystroke dismisses it. The
   // generic capture core + the EntryBox-only history arrows are two layers:
   // useCaptureKeys handles letters/Backspace/Enter; useArrowHistory adds the
   // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
@@ -119,11 +113,17 @@ export function EntryRow({
     value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
   useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
+  const top = useTopFeedbackMessage(localFeedbackSlot)
 
-  if (pill) {
+  // A gesture-cleared result gives way to typing, since the keystroke has
+  // already dismissed it (and a result pushed while text was already typed
+  // waits until the entry empties). Every other kind holds the slot: it
+  // leaves by its ×, its timer or its owner, never by a letter.
+  const showing = top !== null && (top.leavesBy !== 'gesture' || value === '')
+  if (showing) {
     return (
       <div className={shared.localFeedback}>
-        <GenericFeedbackPill msg={pill} onClose={onDismissPill ?? noop} />
+        <FeedbackPill slot={localFeedbackSlot} />
       </div>
     )
   }

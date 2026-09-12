@@ -973,7 +973,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
   flashes *render* inside `BoardCol`'s subtree, but ownership follows the trigger:
   the red ambiguous-tile flash (`useFlash`) is purely input-engine → lives in
   `BoardCol`; the green/red word-slot flash lives in `PlayArea` because a **coop
-  teammate's move** (via `useGlobalFeedback`) is one of its triggers. Render location
+  teammate's move** (via `usePeerFeedback`) is one of its triggers. Render location
   ≠ state location — lift state to wherever all its triggers already are.
 
 - **`readOnly` cleanly encodes `viewing || !canPlay`.** `BoardCol` takes one

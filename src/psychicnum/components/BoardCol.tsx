@@ -1,19 +1,17 @@
 // cs-unmet
 
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy, TerminalOutcome } from '@/common/terminal/terminalCopy'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
-import { stickyPill, terminalPill, outOfRacePill } from '@/common/feedback/localPills'
 import { Board } from './Board'
 import shared from '@/common/game-page/PlayArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
@@ -40,9 +38,9 @@ function shuffled<T>(arr: readonly T[]): T[] {
 
 /**
  * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
- * fixed-height below-board slot under it (the turn-viewer banner, the guess entry,
- * or a local `<GenericFeedbackPill>` for an own-move result / the waiting / terminal
- * verdict).
+ * fixed-height below-board slot under it (the turn-viewer banner, the guess
+ * entry, or the local feedback slot's top message: an own-move result, the
+ * whose-turn note, the verdict).
  *
  * This is the **input engine**: the pending guess (a board tile click and the entry
  * drive the same word), the local board shuffle, and — because the guess is a board
@@ -50,9 +48,9 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * `submit_guess` RPC itself, kept beside the entry it commits. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it **the board to render**
  * (the live `results` OR a historical snapshot) + `viewing`, which is what makes the
- * turn-history viewer a drop-in. Own-move feedback lifts to PlayArea (its
- * `showLocalFeedback` / `clearLocalFeedback` write the shared below-board channel,
- * which InfoCol's Hint / Reveal / End also write). See docs/playarea.md.
+ * turn-history viewer a drop-in. The local feedback slot is PlayArea's (its
+ * standing conditions and InfoCol's Hint / Spoiler / End also show into it);
+ * this column shows the guess results and draws it. See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──
@@ -69,17 +67,12 @@ export function BoardCol({
   gameId,
   canGuess,
   isMyTurn,
-  showLocalFeedback,
-  clearLocalFeedback,
-  localPill,
-  // ── Below-board slot content ──
-  over,
+  localFeedbackSlot,
   decidedBy,
   gameOver,
   notMyTurn,
   myTurnJustStarted,
   moveCount,
-  myConceded,
 }: {
   // ── Mobile-only status strip ──
   /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
@@ -114,22 +107,9 @@ export function BoardCol({
    *  InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
    *  `canGuess` so a non-current turn doesn't read as "out of guesses". */
   isMyTurn: boolean
-  /** Show an own-move pill (Correct / Incorrect / a rejected guess). PlayArea owns
-   *  the shared below-board channel (InfoCol's Hint / Reveal / End write it too). */
-  showLocalFeedback: (msg: GenericFeedbackMsg) => void
-  /** Clear the sticky own-move pill (a new guess / keystroke dismisses it). */
-  clearLocalFeedback: () => void
-  /** The own-move pill to render in the entry's slot, or null. */
-  localPill: GenericFeedbackMsg | null
-
-  // ── Below-board slot content ──
-  /** Terminal copy — non-null means the game is over; its `verdict` + `tone` are
-   *  the permanent below-board pill (the same contract the other games use). The
-   *  secret reveal moved to the board's rings. */
-  over: TerminalCopy | null
-  /** The three secret words, revealed at game-over (terminal only), else null.
-  /** I conceded a compete race — picks the "waiting" pill's wording. */
-  myConceded: boolean
+  /** PlayArea's below-board slot. This column shows the guess results into it
+   *  (Correct / Incorrect / a rejected guess) and the entry row draws its top. */
+  localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks (see `<Board>`) ──
   /** Who decided each tile, for the identity dot — null outside coop. */
@@ -190,16 +170,16 @@ export function BoardCol({
     run: handleShuffle,
   })
 
-  // A user-driven entry change — typing a letter, or clicking a board tile — also
-  // dismisses a sticky own-move result, so route both through here: clear the flash,
-  // then update the pending guess. (submitGuess sets `pending` to '' directly, NOT
-  // through this, so it doesn't clear the flash it is about to show.)
+  // A user-driven entry change — typing a letter, or clicking a board tile — is
+  // the player's next action, so it dismisses a gesture-cleared result: route
+  // both through here. (submitGuess sets `pending` to '' directly, NOT through
+  // this, so it doesn't dismiss the result it is about to show.)
   const handleEntryChange = useCallback(
     (next: string) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       setPending(next)
     },
-    [clearLocalFeedback],
+    [localFeedbackSlot],
   )
 
   // Every submit clears the entry and shows a flash IN the box (success or error) —
@@ -213,7 +193,7 @@ export function BoardCol({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!words.includes(guess)) {
-      showLocalFeedback(stickyPill('lost', 'Not on the board'))
+      localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not on the board'))
       return
     }
     setSubmitting(true)
@@ -229,7 +209,7 @@ export function BoardCol({
     setSubmitting(false)
     if (res.type === 'not-ok') {
       setSubmittedWord(null)
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.dbcode === 'PA002' && res.message !== null) {
       // ALREADY GUESSED — an `ok`, because the rules were applied and nothing
       // moved. psychicnum's FE deliberately does not check for duplicates, so
@@ -241,11 +221,11 @@ export function BoardCol({
       // No `setSubmittedWord(null)`: the word is refused BECAUSE it is already
       // in the log, so it is already in `results` and the in-flight dim has
       // released itself.
-      showLocalFeedback(stickyPill(res.outcome, res.message))
+      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
     } else if (res.type === 'ok' && res.data?.verdict === 'hit') {
-      showLocalFeedback(stickyPill('won', 'Correct'))
+      localFeedbackSlot.show(FeedbackMessage.result('won', 'Correct'))
     } else if (res.type === 'ok' && res.data?.verdict === 'miss') {
-      showLocalFeedback(stickyPill('lost', 'Incorrect'))
+      localFeedbackSlot.show(FeedbackMessage.result('lost', 'Incorrect'))
     } else {
       // Nothing named this answer, so the tile must not keep claiming to be in
       // flight — there is no result coming that would release it.
@@ -258,16 +238,6 @@ export function BoardCol({
   // won't equal any board word, so the board only highlights once a tile is clicked
   // or the full word is typed.)
   const selected = pending === '' ? null : pending
-
-  // The below-board slot's one pill, by the shared priority (localPills.ts):
-  // the terminal verdict, then "out of guesses" while the others play on.
-  // `null` hands the slot to the entry row, which shows the own-move pill in
-  // place of its controls while nothing is typed.
-  const slotPill = over
-    ? terminalPill(over.tone, over.verdict)
-    : !canGuess
-      ? outOfRacePill(myConceded, 'Out of guesses — race continues')
-      : null
 
   return (
     <div className={shared.boardCol}>
@@ -304,12 +274,12 @@ export function BoardCol({
       />
       {/* The below-board slot: one fixed-height slot below the top-anchored board. It
           ALWAYS renders (never null) so it can't collapse and let the flex:1 board
-          grow (docs/ui.md → Layout stability). Three states + the history banner:
-            - terminal → a PERMANENT (fill, outcome-colored) pill carrying the secret
-              reveal;
-            - playing + can guess → the shared <EntryRow> (or a transient own-move pill);
-            - locally done but game not over (out of guesses OR conceded) → a sticky
-              "waiting" pill. */}
+          grow (docs/ui.md → Layout stability). The entry row is always mounted;
+          while the local feedback slot holds a message and nothing is typed, the
+          row draws that message in place of its controls — the verdict at
+          terminal, "out of guesses" while the others play on, the whose-turn
+          note, an own-move result — and the history banner overlays it all
+          while a past turn is open. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this slot
@@ -332,36 +302,26 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {/* One slot, one pill: the priority is resolved into `slotPill` above
-              rather than branched here (localPills.ts → the below-board slot's
-              order), so there's a single render and a single dismiss handler. */}
-          {slotPill ? (
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
-            </div>
-          ) : (
-            /* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
-               Submit + the capture keyboard). `bigEntry` bumps the entry font
-               (psychicnum's one short guess word reads large). The own-move pill
-               replaces the controls while the entry is empty (typing reclaims it). */
-            <EntryRow
-              value={pending}
-              onChange={handleEntryChange}
-              onSubmit={submitGuess}
-              placeholder="Click on a tile or type"
-              busy={submitting}
-              // Disabled while viewing history (capture is a hard no-op so typing
-              // behind the banner never accumulates, and the viewer's
-              // `act-exit-viewer` consumes the keystroke) OR when it's not my
-              // turn (the entry stays but inert).
-              disabled={viewing || !isMyTurn}
-              onAnyKey={clearLocalFeedback}
-              recall={lastGuess}
-              className={styles.bigEntry}
-              onDismissPill={clearLocalFeedback}
-              pill={pending === '' ? localPill : null}
-            />
-          )}
+          {/* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
+              Submit + the capture keyboard). `bigEntry` bumps the entry font
+              (psychicnum's one short guess word reads large). */}
+          <EntryRow
+            value={pending}
+            onChange={handleEntryChange}
+            onSubmit={submitGuess}
+            placeholder="Click on a tile or type"
+            busy={submitting}
+            // Disabled while viewing history (capture is a hard no-op so typing
+            // behind the banner never accumulates, and the viewer's
+            // `act-exit-viewer` consumes the keystroke), when it's not my turn,
+            // and once I'm done (out of guesses, conceded, the game over) —
+            // the entry stays, inert, under whatever the slot shows.
+            disabled={viewing || !isMyTurn || !canGuess}
+            onAnyKey={localFeedbackSlot.dismiss}
+            recall={lastGuess}
+            className={styles.bigEntry}
+            localFeedbackSlot={localFeedbackSlot}
+          />
         </div>
       </div>
     </div>

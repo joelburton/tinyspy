@@ -1,19 +1,20 @@
 // cs-unmet
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import type { ReactElement } from 'react'
+import { render, renderHook, screen } from '@testing-library/react'
 import { useChatFeedback } from './useChatFeedback'
 import type { ClubMessage } from './useClubChat'
 import type { Member } from '../members/member'
-import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
+import { createFeedbackSlot } from '../feedback/feedbackSlotStore'
+import type { FeedbackMessage } from '../feedback/FeedbackMessage'
 
 /**
- * useChatFeedback bridges club chat → the global feedback pill. We mock the chat
- * stream (`useClubChat`) so we can drive `{messages, loading}` across renders the
- * way a real load does, and assert the pills fired through a spy `globalFeedback`.
- * The important case is the historical one: a backlog present at load must NOT
- * replay — only messages arriving AFTER the client is connected pop.
+ * useChatFeedback bridges club chat → the global feedback slot. We mock the
+ * chat stream (`useClubChat`) so we can drive `{messages, loading}` across
+ * renders the way a real load does, and assert the messages shown through a
+ * spy on the slot's `show`. The important case is the historical one: a
+ * backlog present at load must NOT replay — only messages arriving AFTER the
+ * client is connected pop.
  */
 
 // A mutable holder the mocked useClubChat reads each call; tests reassign it then
@@ -35,23 +36,22 @@ const row = (id: string, user_id: string, content: string): ClubMessage => ({
   sent_at: id,
 })
 
-/** Pull the handle + body text out of a shown pill's ReactNode
- *  (`<><strong>{handle}</strong>: {body}</>`). Typed to the known element shape —
- *  React 19's default `ReactElement.props` is `unknown`. */
-type PillText = ReactElement<{
-  children: [ReactElement<{ children: string }>, string, string]
-}>
-function readPill(msg: GenericFeedbackMsg) {
-  const children = (msg.text as PillText).props.children
-  return { handle: children[0].props.children, body: children[2] }
+/** The words a shown message would put on screen — its node rendered, read
+ *  back as text: "bea: hello there". */
+function textOf(feedbackMsg: FeedbackMessage): string {
+  const { container, unmount } = render(<p>{feedbackMsg.text}</p>)
+  const text = container.textContent ?? ''
+  unmount()
+  return text
 }
 
 function setup(members: Member[] = MEMBERS) {
-  const globalFeedback = { show: vi.fn(), clear: vi.fn() }
+  const globalFeedbackSlot = createFeedbackSlot('global')
+  const shown = vi.spyOn(globalFeedbackSlot, 'show')
   const { rerender } = renderHook(() =>
-    useChatFeedback({ clubHandle: 'club', members, selfId: 'u-self', globalFeedback }),
+    useChatFeedback({ clubHandle: 'club', members, selfId: 'u-self', globalFeedbackSlot }),
   )
-  return { globalFeedback, rerender }
+  return { shown, rerender }
 }
 
 beforeEach(() => {
@@ -61,66 +61,74 @@ beforeEach(() => {
 describe('useChatFeedback', () => {
   it('does NOT pop historical messages present at load (the 9:05 sign-in case)', () => {
     // Mount while chat is still loading (nothing seeded yet)…
-    const { globalFeedback, rerender } = setup()
+    const { shown, rerender } = setup()
     // …then the backlog (9:00 + 9:01) arrives with loading:false — seeded silently.
     chat.state = { messages: [row('1', 'u-bea', 'nine oclock'), row('2', 'u-bea', 'nine oh one')], loading: false }
     rerender()
-    expect(globalFeedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 
-  it('pops a NEW message that arrives after load, as "HANDLE: text" with a color dot + timed 2s + neutral', () => {
-    const { globalFeedback, rerender } = setup()
+  it('pops a NEW message that arrives after load, as "HANDLE: text", the chat kind', () => {
+    const { shown, rerender } = setup()
     chat.state = { messages: [row('1', 'u-bea', 'old')], loading: false } // backlog
     rerender()
     chat.state = { messages: [row('1', 'u-bea', 'old'), row('2', 'u-bea', 'hello there')], loading: false }
     rerender()
 
-    expect(globalFeedback.show).toHaveBeenCalledTimes(1)
-    const msg = globalFeedback.show.mock.calls[0][0] as GenericFeedbackMsg
-    expect(readPill(msg)).toEqual({ handle: 'bea', body: 'hello there' })
-    expect(msg.dot).toBeTruthy() // a resolved member → an identity disc
-    expect(msg.mode).toEqual({ kind: 'timed', ms: 2000 })
-    expect(msg.tone).toBe('neutral')
+    expect(shown).toHaveBeenCalledTimes(1)
+    const feedbackMsg = shown.mock.calls[0]![0]
+    expect(feedbackMsg.kind).toBe('chat')
+    expect(feedbackMsg.outcome).toBe('neutral')
+    expect(textOf(feedbackMsg)).toBe('bea: hello there')
   })
 
   it("skips the viewer's OWN messages", () => {
-    const { globalFeedback, rerender } = setup()
+    const { shown, rerender } = setup()
     chat.state = { messages: [], loading: false }
     rerender()
     chat.state = { messages: [row('1', 'u-self', 'my own message')], loading: false }
     rerender()
-    expect(globalFeedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 
-  it("names an unknown sender '?' with no dot (roster not yet loaded)", () => {
-    const { globalFeedback, rerender } = setup([]) // empty roster
+  it('names an unknown sender "a player" (a roster that has not loaded)', () => {
+    const { shown, rerender } = setup([]) // empty roster
     chat.state = { messages: [], loading: false }
     rerender()
     chat.state = { messages: [row('1', 'u-ghost', 'who am i')], loading: false }
     rerender()
-    const msg = globalFeedback.show.mock.calls[0][0] as GenericFeedbackMsg
-    expect(readPill(msg).handle).toBe('?')
-    expect(msg.dot).toBeUndefined()
+    expect(textOf(shown.mock.calls[0]![0])).toBe('a player: who am i')
   })
 
   it("strips a leading '!' (the force-open marker) from the shown text", () => {
-    const { globalFeedback, rerender } = setup()
+    const { shown, rerender } = setup()
     chat.state = { messages: [], loading: false }
     rerender()
     chat.state = { messages: [row('1', 'u-bea', '!  everyone read this')], loading: false }
     rerender()
-    expect(readPill(globalFeedback.show.mock.calls[0][0]).body).toBe('everyone read this')
+    expect(textOf(shown.mock.calls[0]![0])).toBe('bea: everyone read this')
   })
 
   it('truncates a long message to keep the header slot from reflowing', () => {
-    const { globalFeedback, rerender } = setup()
+    const { shown, rerender } = setup()
     chat.state = { messages: [], loading: false }
     rerender()
     const long = 'x'.repeat(200)
     chat.state = { messages: [row('1', 'u-bea', long)], loading: false }
     rerender()
-    const body = readPill(globalFeedback.show.mock.calls[0][0]).body
+    const body = textOf(shown.mock.calls[0]![0]).slice('bea: '.length)
     expect(body.length).toBe(81) // 80 chars + the ellipsis
     expect(body.endsWith('…')).toBe(true)
+  })
+
+  it('the sender is drawn bold, with the disc', () => {
+    const { shown, rerender } = setup()
+    chat.state = { messages: [], loading: false }
+    rerender()
+    chat.state = { messages: [row('1', 'u-bea', 'hi')], loading: false }
+    rerender()
+    render(<p>{shown.mock.calls[0]![0].text}</p>)
+    const name = screen.getByText('bea')
+    expect(name.closest('strong')).not.toBeNull()
   })
 })

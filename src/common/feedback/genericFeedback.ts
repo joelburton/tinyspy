@@ -64,7 +64,7 @@ export type GenericFeedbackMsg = {
  * you so you can speak without knowing where the words land.
  *
  * A PlayArea receives one as `globalFeedback` on its `GamePageCtx`; the hooks
- * that narrate peers (`useGlobalFeedback`, `useChatFeedback`) take one as a
+ * that narrate peers (`usePeerFeedback`, `useChatFeedback`) take one as a
  * parameter. Two surfaces supply it today — `GamePage` for the header slot and
  * `ClubPage` for its own — and a caller cannot tell them apart, which is the
  * point of the shape.

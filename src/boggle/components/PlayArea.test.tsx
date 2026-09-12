@@ -74,7 +74,7 @@ function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
 function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
   // `rowsLoaded: true` because this helper builds a LOADED state — the rows
   // have arrived. It went missing while `GameHook` was hand-written, and the
-  // fake returned no such key: `useGlobalFeedback`'s `ready` then fell back to
+  // fake returned no such key: `usePeerFeedback`'s `ready` then fell back to
   // its `true` default, so these tests exercised the SINGLE-fetch narration
   // path while the real hook is two-fetch.
   return { game, foundWords, loading: false, rowsLoaded: true, failure: null }
@@ -367,7 +367,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
 })
 
 describe('boggle PlayArea — coop peer narration (global header)', () => {
-  // `useGlobalFeedback` seeds the backlog silently on the first loaded render,
+  // `usePeerFeedback` seeds the backlog silently on the first loaded render,
   // then fires a header pill for each NEW peer row. So each test renders once
   // (empty seed), pushes a peer row into the mocked useGame, and re-renders to
   // trigger the fire — asserting on the same ctx's stable `globalFeedback.show`.

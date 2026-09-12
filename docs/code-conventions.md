@@ -674,7 +674,7 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
 | `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer, setup, goToClub, globalFeedback, menu }`). |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer, setup, goToClub, globalFeedbackSlot, menu }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
 If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
@@ -760,18 +760,21 @@ the tree meanwhile. A new hook takes the rule.
 
 ### Feedback naming
 
-**"Feedback"** here means specifically **a message shown in the global feedback area (the GamePage-header pill) or the local feedback area (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). Only the two pill channels count.
+**"Feedback"** here means specifically **a message shown in the global feedback slot (the page-header pill) or the local feedback slot (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). The test is physical: does it end up in a slot? ([ui.md → Feedback pill](ui.md#feedback-pill) has the system.)
 
-**Never pass a server's `error.message` to a feedback sink.** Read the
+**Never pass a server's `error.message` to a feedback slot.** Read the
 envelope: `res.message` is a sentence someone wrote for a player, at the raise,
-on purpose — and `getNotOkFeedback(res)` turns it into the tone and text a pill
-wants ([envelopes.md](envelopes.md)). An `error.message` is the other thing:
-whatever the transport happened to produce, which is what put `TypeError: Load
-failed` in front of players. [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts)
-is the guard.
+on purpose — and `FeedbackMessage.notOk(res)` turns it into the message a slot
+takes, in the outcome the envelope carries ([envelopes.md](envelopes.md)). An
+`error.message` is the other thing: whatever the transport happened to produce,
+which is what put `TypeError: Load failed` in front of players.
+[`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) is the
+guard.
 
-A sink that takes a **string** loses the fault styling, since a string can't
-carry the flag: prefer `(msg: GenericFeedbackMsg) => void`.
+A slot takes a `FeedbackMessage` and nothing else — never a string, never a
+literal. The class has a private constructor, so a message can only come from
+one of its named constructors, and that is what makes every message carry its
+kind.
 
 **This is enforced, because being careful wasn't enough.**
 [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) fails on any
@@ -783,28 +786,28 @@ string straight to a pill, which defeats the copy table, the fault styling and
 the `[db]` log at once — and nothing failed. Writing the guard immediately found
 **nine more sites** a hand-grep had missed, all spelled `error?.message`.
 
-Two hard rules for anything that *sets, holds, renders, or types* one of those pill messages:
+Two hard rules for anything that *sets, holds, renders, or types* one of those messages:
 
-1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackMsg`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.
+1. **Bare `feedback` is never a declared name.** The type, the hook and the pill carry the word inside a longer name (`FeedbackMessage`, `useFeedbackSlot`, `FeedbackPill`); a variable holding a message is `feedbackMessage` or `feedbackMsg`; a slot instance is `localFeedbackSlot` or `globalFeedbackSlot`, and those two are the only qualified names. The bare word is what let "feedback" mean five things at once and let a parameter called `feedback` quietly mean "the local one". [`feedbackNames.test.ts`](../src/guards/feedbackNames.test.ts) enforces it; the files still on its `pending` list are games not yet converted.
 
-   The rule covers the feedback MACHINERY, not every type it happens to hold. A pill's `tone` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, a turn-log row and a server result reach for too — so naming it for the feedback channel would have claimed it for one consumer out of five.
+   The rule covers the feedback MACHINERY, not every type it happens to hold. A message's `outcome` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, a turn-log row and a server result reach for too — so naming it for feedback would have claimed it for one consumer out of five. And it is `outcome`, never `tone`: that word is a button's or a toast's styling (`caution`, `destructive`, `info`) and not a won/lost value.
 
-2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** In particular, avoid `flash` — whether a message is timed / sticky / closeable is a per-message property (the `dismiss` field), not something a name should assert.
+2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** How a message leaves — a gesture, a timer, the ×, its owner — is its KIND's property, not something a name should assert.
 
-Same role → same name across games (a peer-narration hook is `useGlobalFeedback` everywhere, not `usePeerFeedback` in one game and `announcePeerGuess` in another).
+Same role → same name across games (a peer-narration producer is `usePeerFeedback` everywhere, not `usePeerFeedback` in one game and `announcePeerGuess` in another).
 
-| role | name | channel |
-|---|---|---|
-| shared pill renderer | `GenericFeedbackPill` | Generic |
-| shared message type / API | `GenericFeedbackMsg` / `GenericFeedbackApi` | Generic |
-| the tone a message carries | `Outcome` — a shared vocabulary, not feedback machinery ([outcomes.md](outcomes.md)) | — |
-| the global sink on `GamePageCtx` | `globalFeedback` (`.show` / `.clear`) | Global |
-| per-game hook computing peer messages → global area | `useGlobalFeedback` | Global |
-| hook holding the own-move below-board message | `useLocalFeedback` | Local |
-| set / clear the local pill | `showLocalFeedback` / `clearLocalFeedback` | Local |
-| the local pill's CSS wrapper | `.localFeedback` (shared; centers the pill, reserves its own height) | Local |
+| role | name |
+|---|---|
+| the message type; its constructors are the only way to make one | `FeedbackMessage` — `.notOk(res)`, `.result(outcome, text)`, `.terminalVerdict(over)`, `.waiting(member)`, `.peer(member, outcome, text)`, … |
+| the outcome a message carries | `Outcome` — a shared vocabulary, not feedback machinery ([outcomes.md](outcomes.md)) |
+| the hook that makes a slot and owns it for its host's life | `useFeedbackSlot('local' \| 'global')` → a `FeedbackSlot` |
+| the slot's instances | `localFeedbackSlot` (a PlayArea's, below the board) · `globalFeedbackSlot` (a page's, in the header; on `GamePageCtx`) |
+| the slot's verbs | `show(feedbackMsg)` → id · `retract(id)` · `dismiss()` (a gesture) · `close()` (the ×) |
+| the pill | `<FeedbackPill slot={…} />` — draws the slot's top message |
+| the producers, named for the stream they read and handed the slot | `usePeerFeedback` (a peer-event stream) · `useChatFeedback` (chat) |
+| the local pill's CSS wrapper | `.localFeedback` (shared; centers the pill, reserves its own height) |
 
-Peer feedback goes to the **global** area; own-move feedback goes to the **local** area. Because that split is 1:1, `Global` and `Local` are effectively synonyms for "peer" and "own" — naming by channel loses no information and keeps the invariant visible.
+Peer news goes to the **global** slot; the player's own results and standing conditions go to the **local** slot. A slot holds every live message and draws the one that ranks highest; what ranks over what is the kinds table in [ui.md → Feedback pill](ui.md#feedback-pill).
 
 ### Below-board structure
 

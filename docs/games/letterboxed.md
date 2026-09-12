@@ -657,7 +657,7 @@ of `--avail-h`, shrinking the board once rather than scrolling the page. The
 `waitingTurnPill` covers whose-turn on the phone surface. See
 [mobile.md](../mobile.md).
 
-**Coop peer narration** (`useGlobalFeedback`): a teammate's word changes *my*
+**Coop peer narration** (`usePeerFeedback`): a teammate's word changes *my*
 board, so the header pill says so — `TRACE (7/12)`, "undid TRACE" (named, so
 peers know which word came off), or "cleared the chain". Help narrates on two
 channels at once — the header names the act, the local slot carries the

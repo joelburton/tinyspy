@@ -28,7 +28,7 @@ import { turnSnapshot } from '../lib/history'
 import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { DotActor } from '@/common/members/ActorMention'
@@ -149,7 +149,7 @@ export function PlayArea({
   // exposed tile (or too many), a reveal's answer, an RPC error — show as a centered
   // <GenericFeedbackPill> in BoardCol's below-board slot (docs/ui.md → Feedback pill:
   // local feedback area). Sticky: it persists until the player's NEXT action
-  // dismisses it. Peer narration goes to the GLOBAL header instead (useGlobalFeedback).
+  // dismisses it. Peer narration goes to the GLOBAL header instead (usePeerFeedback).
   // This channel lives in PlayArea because it has triggers in BOTH columns (the
   // keyboard input engine in BoardCol; the reveal/hint cheats in InfoCol) plus the
   // terminal verdict — so the coordinator owns it and both columns write through it.
@@ -176,7 +176,7 @@ export function PlayArea({
   // player starts a new word (BoardCol's tile click clears it). Two sources feed it:
   // the player's OWN just-accepted word (green "good move"), and — in coop — a
   // TEAMMATE's played word (green if valid, red if rejected), driven by
-  // useGlobalFeedback. Because a teammate can trigger it, the state lives here and is
+  // usePeerFeedback. Because a teammate can trigger it, the state lives here and is
   // passed down to BoardCol (which renders it via WordEntry).
   const [flash, setFlash] = useState<WordFlash | null>(null)
   const flashWordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -559,7 +559,7 @@ export function PlayArea({
   // growing. Surface each teammate submission as a GLOBAL feedback pill (with their
   // identity disc), and flash their played word (green/red) in the entry row. Called
   // unconditionally before the early returns; the hook no-ops off coop and until loaded.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: submissions,
     keyOf: (s) => `${s.user_id}:${s.seq}`,

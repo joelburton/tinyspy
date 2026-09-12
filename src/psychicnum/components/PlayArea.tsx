@@ -11,8 +11,9 @@ import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -21,21 +22,18 @@ import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
 import { memberById } from '@/common/members/memberList'
-import { DotActor } from '@/common/members/ActorMention'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
 import { turnSnapshot } from '../lib/history'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -91,7 +89,7 @@ export function PlayArea({
   currentTurnUserId,
   setup,
   status,
-  globalFeedback,
+  globalFeedbackSlot,
   clubHandle,
   goToGame,
   menu,
@@ -170,6 +168,64 @@ export function PlayArea({
   // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
   const canGuess = !isTerminal && selfBudget > 0 && !myConceded
 
+  // ─── The three standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+  const localFeedbackSlot = useFeedbackSlot('local')
+
+  // Per-status terminal message. Mode-aware so compete-mode winners get the
+  // "you won the race" vs "Bea won the race" distinction, while coop stays the
+  // simple team verdict. In compete the winner is the one who completed the
+  // set (their found_secrets_count hit 3). Memoized on its inputs so the
+  // verdict effect below sees one object per outcome, not one per render.
+  const selfSecretsFound =
+    playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
+  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
+  const selfWon = mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true
+  const over = useMemo(
+    () =>
+      isTerminal && mode
+        ? buildOver({ mode, playState, timerExpired: timer.expired, selfWon, winnerName })
+        : null,
+    [isTerminal, mode, playState, timer.expired, selfWon, winnerName],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Out of the race while the others play on: out of guesses, or conceded.
+  // A standing state with the fill; the verdict outranks it when the game ends.
+  useEffect(function showOutOfRace() {
+    if (isTerminal || canGuess) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.outOfRace(myConceded, 'Out of guesses — race continues'),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isTerminal, canGuess, myConceded])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. It carries the
+  // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
+  // off-canvas; without it a frozen board just ignored taps. The holder is
+  // read as two primitives so the effect settles in one pass — a fresh
+  // `players` array on a re-render would look like a change.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
+
   // The Hint / Spoiler in-flight flags (their buttons live in InfoCol, their
   // menu twins in the game menu; the RPCs stay here in the coordinator). Also up
   // here so the menu effect can read them — the guess input + the board shuffle
@@ -207,19 +263,9 @@ export function PlayArea({
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
-  // ─── Local feedback (own-action) — the coordinator owns the channel ────
-  // The below-board own-move pill ("Correct"/"Incorrect", a validation error) is the
-  // LOCAL half of the feedback split (peer/turn-state news → the header pill). It
-  // lives HERE because BOTH columns write it: BoardCol's guess dispatch AND InfoCol's
-  // Hint / Reveal / End / Concede. STICKY, dismissed by the next move (a keystroke /
-  // tile click routed through BoardCol's `clearLocalFeedback`). PlayArea passes
-  // `localFeedback` + `showLocalFeedback` / `clearLocalFeedback` down to BoardCol.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
-
-  // ─── Coop peer events (group feedback) ─────────────────
-  // A teammate's guess (green correct / red not) or hint request (amber) is
+  // ─── The two help asks ─────────────────────────────────
   // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
-  // via realtime; coop teammates get a header pill. Nothing to do with the
+  // via realtime; coop teammates get a header message. Nothing to do with the
   // return value here — the helper rows arrive over the subscription. The RPC
   // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
   // on this page means the whole solution at game-over.
@@ -232,7 +278,7 @@ export function PlayArea({
     const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
     setHinting(false)
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'hint') {
       // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
@@ -245,14 +291,14 @@ export function PlayArea({
       reportUnhandled('request_hint', res)
       return
     }
-  }, [gameId, showLocalFeedback])
+  }, [gameId, localFeedbackSlot])
 
   const getSpoiler = useCallback(async () => {
     setSpoiling(true)
     const res = await runRpc<RevealAnswer>(db.rpc('request_reveal', { target_game: gameId }))
     setSpoiling(false)
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'reveal') {
       // Same as the hint: the word arrives as a `kind = 'reveal'` row and the
@@ -263,16 +309,17 @@ export function PlayArea({
       reportUnhandled('request_reveal', res)
       return
     }
-  }, [gameId, showLocalFeedback])
+  }, [gameId, localFeedbackSlot])
 
+  // ─── Coop peer events → the header ─────────────────────
+  // A teammate's guess (green correct / red not) or help request (amber) is
   // narrated in the header. My own events are excluded — my guesses get the
-  // local flash, my hint shows in my own turn log. Compete never reaches here:
+  // local slot, my hint shows in my own turn log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
-  // globalFeedback.show is a prop callback, so no local set-state lives in here.
-  // The shared seen-set hook narrates EVERY new peer event (the old hand-rolled
-  // version only looked at the latest row, dropping any that batched between
-  // refetches). keyOf is the guess id; own events return null (mine → local).
-  useGlobalFeedback({
+  // The shared seen-set producer narrates EVERY new peer event (the old
+  // hand-rolled version only looked at the latest row, dropping any that
+  // batched between refetches). keyOf is the guess id; own events return null.
+  usePeerFeedback({
     enabled: mode === 'coop',
     items: guesses,
     keyOf: (g) => g.id,
@@ -283,33 +330,18 @@ export function PlayArea({
       // bad. (A reveal logs the answer word, but we narrate it without naming
       // the word — "revealed a word", not which one.)
       if (g.kind === 'hint' || g.kind === 'reveal') {
-        return {
-          tone: 'warning',
-          text: (
-            <>
-              <DotActor actor={member} fallback="Someone" />{' '}
-              {g.kind === 'hint' ? 'got hint' : 'revealed word'}
-            </>
-          ),
-          mode: { kind: 'timed' },
-        }
+        return FeedbackMessage.peer(member, 'warning', g.kind === 'hint' ? 'got hint' : 'revealed word')
       }
-      return {
-        tone: g.is_correct ? 'won' : 'lost',
-        // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
-        // the tone), leaving the header pill's ~26 phone characters for the word
-        // itself rather than a sentence around it.
-        text: (
-          <>
-            <DotActor actor={member} fallback="Someone" />{' '}
-            {g.is_correct ? 'Correct: ' : 'Wrong: '}
-            {g.word.toUpperCase()}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
+      // the color), leaving the header's ~26 phone characters for the word
+      // itself rather than a sentence around it.
+      return FeedbackMessage.peer(
+        member,
+        g.is_correct ? 'won' : 'lost',
+        `${g.is_correct ? 'Correct: ' : 'Wrong: '}${g.word.toUpperCase()}`,
+      )
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
   // ─── Compete opponent progress (group feedback) ────────
@@ -328,17 +360,9 @@ export function PlayArea({
       if (prev === undefined) continue  // first sighting — seed, don't announce
       if (p.found_secrets_count <= prev) continue
       const member = memberById(players, p.user_id)
-      globalFeedback.show({
-        tone: 'won',
-        text: (
-          <>
-            <DotActor actor={member} fallback="Someone" /> guessed a word
-          </>
-        ),
-        mode: { kind: 'timed' },
-      })
+      globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'guessed a word'))
     }
-  }, [playerBudgets, mode, players, session.user.id, globalFeedback])
+  }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn's board (the tiles decided up to that
@@ -352,26 +376,27 @@ export function PlayArea({
   // End / Concede / Restart come from the shared `useStandardGameActions` as
   // bound actions — the menu row, the button and ⌥⌫ are all the same binding, so
   // there is nothing to keep in step. psychicnum's own bits are which `db` they
-  // call and the post-replay cleanup (leave the turn-history view, clear the
-  // pill).
+  // call and the post-replay cleanup (leave the turn-history view; a restart
+  // is the player's next action, so it dismisses a lingering result — the
+  // verdict itself leaves by its own effect when the terminal state ends).
   //
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
   //  server-side, so the same three secrets are hunted blind again.)
   const onRestarted = useCallback(() => {
     exitViewing()
-    clearLocalFeedback()
+    localFeedbackSlot.dismiss()
     // The same board and the same three secrets, hunted again — so un-ring
     // them. Nothing on the server remembers the reveal any more, which is
     // exactly why this is spelled out.
     resetSecrets()
-  }, [exitViewing, clearLocalFeedback, resetSecrets])
+  }, [exitViewing, localFeedbackSlot, resetSecrets])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode: mode ?? 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted,
   })
 
@@ -394,12 +419,12 @@ export function PlayArea({
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`psychicnum_${mode}`, res.data.id)
@@ -408,7 +433,7 @@ export function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback])
+  }, [mode, clubHandle, setup, players, goToGame, localFeedbackSlot])
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
@@ -485,7 +510,7 @@ export function PlayArea({
   // availability come from the action rather than being typed here a second
   // time. The effect re-runs only when the SHAPE changes, which is why every
   // dep is a stable value.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -521,27 +546,11 @@ export function PlayArea({
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <p>Game not found.</p>
 
-  const selfSecretsFound =
-    playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
-
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
   // psychicnum.players (the budget rows). `myConceded` is derived above (the menu
   // effect needs it before the early returns). `concededIds` marks the players
   // who've bowed out, for the opponent strip's "out" cell.
   const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
-
-  // Per-status modal + indicator copy. Mode-aware so compete-mode
-  // winners get the "you won the race" vs "Bea won the race"
-  // distinction, while coop stays the simple team verdict. In compete the
-  // winner is the one who completed the set (their found_secrets_count hit 3).
-  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
-  const over = isTerminal ? buildOver({
-    mode: game.mode,
-    playState,
-    timerExpired: timer.expired,
-    selfWon: game.mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true,
-    winnerName,
-  }) : null
 
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
   // Hint rows are excluded (a hint reveals but doesn't mark a tile). In compete
@@ -590,16 +599,6 @@ export function PlayArea({
   // menu is assembled from those same bindings — so a row, a button and a key
   // are one thing rather than three that have to agree.)
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
-  // null in a free-for-all game, so this is false there — the pill's presence is
-  // fixed for the game's life, no reflow. It carries the whose-turn answer on
-  // MOBILE, where the InfoCol's TurnStatusLine is off-canvas in the InfoSheet;
-  // without it a frozen board just ignored taps with no explanation.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const boardPill = waiting
-    ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
-    : localFeedback
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -632,19 +631,15 @@ export function PlayArea({
         canGuess={canGuess}
         // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
         // above). Always true for free-for-all / solo. When false the waiting
-        // pill takes the entry slot (EntryRow's designed swap — same height), so
-        // the frozen input explains itself instead of silently ignoring taps.
+        // message takes the entry slot (EntryRow's designed swap — same height),
+        // so the frozen input explains itself instead of silently ignoring taps.
         isMyTurn={isMyTurn}
-        showLocalFeedback={showLocalFeedback}
-        clearLocalFeedback={clearLocalFeedback}
-        localPill={boardPill}
-        // ── Below-board slot content ──
-        over={over}
-        myConceded={myConceded}
+        // ── The below-board slot: BoardCol shows results into it and draws it ──
+        localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
-        // The finished board wears its verdict; `over` is the same TerminalCopy
-        // the below-board pill reads, so the two can't disagree.
-        gameOver={over ? over.tone : null}
+        // The finished board wears its verdict; `over` is the same terminal
+        // message the below-board slot shows, so the two can't disagree.
+        gameOver={over ? over.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
         // The CAUSE the attention flash reads: a board that changed while this
@@ -706,9 +701,9 @@ export function PlayArea({
 }
 
 /**
- * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
- * pill; `message` + `tone` drive the short, bold, color-coded line in the info
- * column (won = green, lost = red, manual end = neutral).
+ * Per-status terminal message. `pillText` + `outcome` are the below-board
+ * verdict; `infoColText` + `outcome` are the short, bold, color-coded line in
+ * the info column (won = green, lost = red, manual end = neutral).
  *
  * Verdicts are terse and unpunctuated ("Lost: out of guesses"), the shared
  * sweep vocabulary — the pill is a fixed-height, ellipsising row that has to fit
@@ -730,30 +725,30 @@ function buildOver({
   selfWon: boolean
   /** Compete: the winner's frozen username (for the "X won" message). */
   winnerName: string
-}): TerminalCopy {
+}): TerminalMessage {
   // Manual end ('ended', written by psychicnum.end_game) is the uniform neutral
-  // terminal shared with the other games — the shared endedCopy() owns it.
-  if (playState === 'ended') return endedCopy(mode)
+  // terminal shared with the other games — the shared message owns it.
+  if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { verdict: 'Won: all found', message: 'You won!', tone: 'won' }
+      return { pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' }
     }
     return {
-      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
-      message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
-      tone: 'lost',
+      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
+      infoColText: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+      outcome: 'lost',
     }
   }
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { verdict: 'Won: the race', message: 'You won!', tone: 'won' }
-      : { verdict: 'Beaten to the punch', message: `${winnerName} won`, tone: 'lost' }
+      ? { pillText: 'Won: the race', infoColText: 'You won!', outcome: 'won' }
+      : { pillText: 'Beaten to the punch', infoColText: `${winnerName} won`, outcome: 'lost' }
   }
   // lost_compete (all exhausted OR timeout in compete)
   return {
-    verdict: timerExpired ? 'Out of time — no winner' : 'Out of guesses — no winner',
-    message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
-    tone: 'lost',
+    pillText: timerExpired ? 'Out of time — no winner' : 'Out of guesses — no winner',
+    infoColText: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+    outcome: 'lost',
   }
 }

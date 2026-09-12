@@ -2,7 +2,7 @@
 
 import type { Session } from '@supabase/supabase-js'
 import type { GamePlayer } from '../members/member'
-import type { GenericFeedbackApi } from '../feedback/genericFeedback'
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { MenuApi } from '../menu/menuModel'
 
 /**
@@ -108,16 +108,12 @@ export type GamePageCtx = {
   // reads for its OpponentStrip. Most of the compete games do this. Anything
   // changing how this field is fetched or delivered affects them all.
   status: Record<string, unknown> | null
-  // Imperative API for the GLOBAL feedback area (the GamePage-header
-  // slot — peer/opponent news, per the feedback naming convention in
-  // docs/code-conventions.md). The PlayArea calls
-  // `globalFeedback.show({...})` to surface transient or persistent
-  // feedback in the `<PageHeaderStatusSlot>` (replacing the default
-  // `<PageHeaderPlayersStrip>` while active); `globalFeedback.clear()` empties
-  // the slot. See docs/ui.md → Feedback pill for the API + dismiss-mode
-  // semantics. The functions' identities are stable across renders, so
-  // they're safe to put in dep arrays.
-  globalFeedback: GenericFeedbackApi
+  // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
+  // peer and opponent news shows. A PlayArea calls
+  // `globalFeedbackSlot.show(FeedbackMessage.peer(…))`; a producer like
+  // `usePeerFeedback` takes the slot and shows into it. One instance for
+  // the life of the page, so it is safe in a dependency array.
+  globalFeedbackSlot: FeedbackSlot
   // Navigate to this game's club page directly — no suspend-
   // confirm modal. Wired by `<GamePage>` to use the resolved
   // `club_handle` for terminal-game navigation; downstream

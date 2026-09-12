@@ -14,7 +14,7 @@ import { setupRows } from '../lib/setupSummary'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -177,7 +177,7 @@ export function PlayArea({
   // scopes `guesses` to the caller, and we gate on coop besides. The shared hook's
   // seen-set (not "the last row") handles coop interleaving two players' rows by
   // seq, so the newest isn't last.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
     keyOf: (g) => `${g.user_id}-${g.seq}`,
@@ -208,7 +208,7 @@ export function PlayArea({
     () => playerStates.filter((p) => p.solved).map((p) => p.user_id),
     [playerStates],
   )
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'compete',
     items: solvedIds,
     keyOf: (id) => id,

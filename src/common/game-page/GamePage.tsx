@@ -11,9 +11,9 @@ import {
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import type { GamePageCtx } from './gamePageCtx'
-import type { GenericFeedbackApi, GenericFeedbackMsg } from '../feedback/genericFeedback'
+import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
+import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuApi } from '../menu/menuModel'
-import { getNotOkFeedback } from '../feedback/genericPills'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useAppAction, useBoundAction } from '../actions/useBoundAction'
 import { useIsMobile } from '../mobile/useIsMobile'
@@ -87,7 +87,7 @@ type Props = {
  *     GamePage
  *     ├── Header  (Menu(logo) + chat-bubble + status-slot | pause + timer)
  *     ├── PauseBoundary
- *     │     ├── if !paused → children({players, timer, feedback, menu, ...})
+ *     │     ├── if !paused → children({players, timer, globalFeedbackSlot, menu, ...})
  *     │     └── if  paused → <PauseOverlay/>
  *     ├── Help modal  (when menu's Help item is active)
  *     └── Chat  (z-index 10000, above everything else)
@@ -95,9 +95,9 @@ type Props = {
  * Header layout is layout-static per docs/ui.md → Layout
  * stability — the four chrome elements + the timer slot don't
  * reflow as state changes. The middle `<PageHeaderStatusSlot>` swaps
- * between `<PageHeaderPlayersStrip>` (default) and `<GenericFeedbackPill>` (when
- * the per-gametype PlayArea has called `ctx.globalFeedback.show()`)
- * at fixed slot height so neighbors don't move.
+ * between `<PageHeaderPlayersStrip>` (default) and `<FeedbackPill>` (while
+ * the global slot holds a message — a PlayArea's `ctx.globalFeedbackSlot.show()`,
+ * or the chat producer's) at fixed slot height so neighbors don't move.
  *
  * The logo is a menu trigger (see docs/ui.md → "GamePage menu"):
  * click opens a dropdown. Each game owns its WHOLE menu — the
@@ -116,10 +116,9 @@ type Props = {
  * Suspense boundary here so a slow chunk fetch doesn't crash.
  *
  * Header stays visible during pause; the overlay only covers
- * the play surface. Feedback that's active when pause fires
- * stays readable in the header — callers who want a specific
- * feedback to drop on pause must `clear()` explicitly. The menu
- * stays openable during pause for the same reason.
+ * the play surface. A header message that's showing when pause
+ * fires stays readable — its owner retracts it if it shouldn't.
+ * The menu stays openable during pause for the same reason.
  *
  * PlayArea unmounts on pause and remounts on resume — selections,
  * form state, and any per-gametype channels start fresh. State
@@ -141,9 +140,6 @@ type Props = {
  * peer navigates back to the club page; last-leaver clears
  * is_current_view.
  */
-/** The shared peer-pill lifetime (ms) — see the auto-clear effect below. */
-const PEER_PILL_MS = 3000
-
 /** Could this string BE a game id? Not "does the game exist" — that is a
  *  question for the server, and one worth asking only about ids that could
  *  have an answer. Postgres rejects anything else as `22P02`, once per query,
@@ -275,9 +271,10 @@ function GamePageInner({
   // Whether the per-game Help modal is mounted. Toggled by the
   // menu's "Help" item.
   const [helpOpen, setHelpOpen] = useState(false)
-  // The currently-active feedback message, or null when the
-  // PageHeaderStatusSlot should show its default (`<PageHeaderPlayersStrip>`).
-  const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
+  // The GLOBAL feedback slot — the header's status slot draws its top
+  // message in place of the players strip. One instance for the life of the
+  // page; a PlayArea reaches it as `ctx.globalFeedbackSlot`.
+  const globalFeedbackSlot = useFeedbackSlot('global')
   // A game's menu sections (pushed via `ctx.menu.setGameSections`) live in
   // `gameMenuStore`, not here: only the menu reads them, so a push must not
   // re-render the page and the board with it. Cleared on unmount, so a menu
@@ -340,34 +337,6 @@ function GamePageInner({
   useEffect(function startOnTheBoard() {
     setInfoSheetOpen(false)
   }, [gameId])
-
-  // Auto-clear `timed`-dismiss feedback after the configured duration. The
-  // default is the ONE peer-pill lifetime for the whole app (ClubPage matches):
-  // five games used to pass `ms: 3000` explicitly and five took a 2200 default,
-  // so the same class of message — a peer did something — read for different
-  // lengths depending on which game you were in. The other modes are
-  // explicit no-ops at this layer.
-  useEffect(function autoClearTimedFeedback() {
-    if (!globalFeedback) return
-    if (globalFeedback.mode.kind !== 'timed') return
-    const ms = globalFeedback.mode.ms ?? PEER_PILL_MS
-    const t = setTimeout(() => setGlobalFeedback(null), ms)
-    return () => clearTimeout(t)
-  }, [globalFeedback])
-
-  // Stable identities for the feedback API exposed to PlayArea. A fault never
-  // reaches here to be sorted out — it raises its modal in `runRpc`, before any
-  // call site has an answer to show (docs/ui.md → Faults).
-  const globalFeedbackShow = useCallback((msg: GenericFeedbackMsg) => {
-    setGlobalFeedback(msg)
-  }, [])
-  const globalFeedbackClear = useCallback(() => {
-    setGlobalFeedback(null)
-  }, [])
-  const globalFeedbackApi = useMemo<GenericFeedbackApi>(
-    () => ({ show: globalFeedbackShow, clear: globalFeedbackClear }),
-    [globalFeedbackShow, globalFeedbackClear],
-  )
 
   // Help for THIS game — the manifest's rules component. Bound here rather than
   // in each PlayArea because the page is what mounts it, and handed down on the
@@ -464,7 +433,7 @@ function GamePageInner({
         // A lost End race shows PN486's "Game over" in its own words and its
         // own tone — the same sentence the in-game End action shows, because it
         // is the same raise.
-        globalFeedbackShow({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        globalFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data?.result === 'ended') {
         // Nothing here: the terminal arrives by subscription and the overlay
         // unmounts with the pause.
@@ -479,14 +448,14 @@ function GamePageInner({
   // until the game row (and its club_handle) loads; `useClubRoster` no-ops on ''.
   const { members: clubMembers } = useClubRoster(clubHandle)
 
-  // Club chat → the global feedback pill, same as ClubPage: a NEW message from
-  // any OTHER member pops "● HANDLE: text" (sticky) in the header. Runs even
-  // during the pre-load '' phase (useClubChat no-ops, so no historic replay).
+  // Club chat → the global slot, same as ClubPage: a NEW message from any
+  // OTHER member shows "● HANDLE: text" in the header. Runs even during the
+  // pre-load '' phase (useClubChat no-ops, so no historic replay).
   useChatFeedback({
     clubHandle,
     members: clubMembers,
     selfId: session.user.id,
-    globalFeedback: globalFeedbackApi,
+    globalFeedbackSlot,
   })
 
   // `GamePage` proved the row existed before mounting this, so these are about
@@ -588,11 +557,7 @@ function GamePageInner({
               <ChatButton />
               {manifest.scratchpad?.enabled && <ScratchpadButton />}
             </div>
-            <PageHeaderStatusSlot
-              players={players}
-              globalFeedback={globalFeedback}
-              onCloseGlobalFeedback={globalFeedbackClear}
-            />
+            <PageHeaderStatusSlot players={players} globalFeedbackSlot={globalFeedbackSlot} />
           </>
         )}
       </PageHeader>
@@ -628,7 +593,7 @@ function GamePageInner({
           goToClub,
           clubHandle: commonGame.club_handle,
           goToGame,
-          globalFeedback: globalFeedbackApi,
+          globalFeedbackSlot,
           menu: menuApi,
         })}
       </PauseBoundary>

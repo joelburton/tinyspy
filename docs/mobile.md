@@ -300,7 +300,7 @@ names (`TurnLogActor` → `show="both"`).
 
 This required the feedback message's `text` to hold the **widget** instead of a
 string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pill
-(and `useGlobalFeedback`) dedup on a separate string key, not the text.
+(and `usePeerFeedback`) dedup on a separate string key, not the text.
 **Migrated: every mobile game's peer/opponent feedback** — codenamesduet,
 psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
 deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat

@@ -18,7 +18,7 @@ Agreed 2026-09-12, eighteen files, all `cs-met-feedback`:
 
 - `src/common/feedback/` — sixteen code files: `genericFeedback.ts`,
   `genericPills.ts` (+ test), `localPills.ts` (+ test),
-  `useLocalFeedback.ts` (+ test), `useGlobalFeedback.ts` (+ test),
+  `useLocalFeedback.ts` (+ test), `usePeerFeedback.ts` (+ test),
   `useDismissLocalFeedbackOnKey.ts` (+ test), `GenericFeedbackPill.tsx`
   (+ test + stylesheet), `FailureLine.tsx` (+ stylesheet; not feedback,
   decided on contact).
@@ -35,11 +35,14 @@ this list. Created 2026-09-12, the machinery (fifteen files):
 `src/guards/feedbackNames.test.ts`.
 
 Edited by the area, owned elsewhere (stamps do not move):
-`common/chat/useChatFeedback.tsx` (+ test), `game-page/GamePage.tsx`,
-`club/ClubPage.tsx`, `game-page/useStandardGameActions.ts`,
-`shared/word-hunt/useWordSubmit.ts`, and every game's PlayArea and BoardCol
-that creates a message. `e2e/chat-feedback.e2e.ts` and nine game specs
-assert on pill text.
+`common/chat/useChatFeedback.tsx` (+ test), `game-page/GamePage.tsx` +
+`gamePageCtx.ts`, `club/ClubPage.tsx`, `page-header/PageHeaderStatusSlot.tsx`,
+`word-entry/EntryRow.tsx`, `terminal/TerminalActionRow.tsx`,
+`game-page/useStandardGameActions.ts` (+ test), `guards/orphanedDocstrings`
+(one allowlist line), `shared/word-hunt/useWordSubmit.ts`, and every game's
+PlayArea, BoardCol and InfoCol that creates a message — psychicnum's three
+converted 2026-09-12. `e2e/chat-feedback.e2e.ts` and nine game specs assert
+on pill text.
 
 ## Findings
 

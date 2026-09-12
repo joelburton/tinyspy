@@ -13,6 +13,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStandardGameActions } from './useStandardGameActions'
+import { createFeedbackSlot } from '../feedback/feedbackSlotStore'
 
 const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
 vi.mock('../floating-panels/confirmationService', () => ({
@@ -40,7 +41,10 @@ function lastQuestion(): Record<string, unknown> {
 
 function setup(overrides: Overrides = {}) {
   const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
-  const showError = vi.fn()
+  // A real slot with a spy on its one door, so a test can say both "it was
+  // shown" and "as a notOk" without reaching into the rendered pill.
+  const localFeedbackSlot = createFeedbackSlot('local')
+  const shown = vi.spyOn(localFeedbackSlot, 'show')
   const onRestarted = vi.fn()
   askConfirmation.mockResolvedValue(
     overrides.answer ?? (overrides.confirmed === false ? null : 'confirm'),
@@ -53,11 +57,11 @@ function setup(overrides: Overrides = {}) {
       mode: overrides.mode ?? 'coop',
       myConceded: overrides.myConceded ?? false,
       offersEndForAll: overrides.offersEndForAll,
-      showError,
+      localFeedbackSlot,
       onRestarted,
     }),
   )
-  return { result, rpc, showError, onRestarted }
+  return { result, rpc, shown, onRestarted }
 }
 
 beforeEach(() => {
@@ -161,27 +165,27 @@ describe('endGame', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('surfaces a not-ok as a sticky pill', async () => {
-    const { result, rpc, showError } = setup()
+  it('shows a not-ok into the local slot, as a notOk', async () => {
+    const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ALREADY_CONCEDED)
     act(() => result.current.actEndGame.run())
     await flush()
-    expect(showError).toHaveBeenCalledTimes(1)
-    expect(showError.mock.calls[0]![0]).toMatchObject({ mode: { kind: 'sticky' } })
+    expect(shown).toHaveBeenCalledTimes(1)
+    expect(shown.mock.calls[0]![0].kind).toBe('notOk')
   })
 
   it('says nothing on the ok arm — the terminal arrives by subscription', async () => {
-    const { result, rpc, showError } = setup()
+    const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ENDED_OK)
     act(() => result.current.actEndGame.run())
     await flush()
-    expect(showError).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 })
 
 describe('concede', () => {
   it('asks, then fires concede', async () => {
-    const { result, rpc, showError } = setup({ mode: 'compete' })
+    const { result, rpc, shown } = setup({ mode: 'compete' })
     rpc.mockResolvedValue(CONCEDED_OK)
     act(() => result.current.actConcede.run())
     await flush()
@@ -189,16 +193,16 @@ describe('concede', () => {
     expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
     // The ok arm is silent: the conceded flag and any terminal arrive by
     // subscription, so there is nothing for the conceder to be told.
-    expect(showError).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 
   it('surfaces the lost race — somebody else ended it, or I already conceded', async () => {
-    const { result, rpc, showError } = setup({ mode: 'compete' })
+    const { result, rpc, shown } = setup({ mode: 'compete' })
     rpc.mockResolvedValue(ALREADY_CONCEDED)
     act(() => result.current.actConcede.run())
     await flush()
-    expect(showError).toHaveBeenCalledTimes(1)
-    expect(showError.mock.calls[0]![0]).toMatchObject({ mode: { kind: 'sticky' } })
+    expect(shown).toHaveBeenCalledTimes(1)
+    expect(shown.mock.calls[0]![0].kind).toBe('notOk')
   })
 
   /**
@@ -271,12 +275,12 @@ describe('restart', () => {
   })
 
   it('leaves the cleanup alone when the board was not replayed', async () => {
-    const { result, rpc, onRestarted, showError } = setup()
+    const { result, rpc, onRestarted, shown } = setup()
     rpc.mockResolvedValue(ALREADY_CONCEDED)
     act(() => result.current.actRestart.run())
     await flush()
     expect(onRestarted).not.toHaveBeenCalled()
-    expect(showError).toHaveBeenCalledTimes(1)
+    expect(shown).toHaveBeenCalledTimes(1)
   })
 
   it('drops a second press while the first is still out', async () => {

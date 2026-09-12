@@ -24,7 +24,7 @@ import { stickyPill } from '@/common/feedback/localPills'
  * `submit_word` and surface a raw unique-violation (code-review §1.4). Concentrating
  * the guard here fixes that class of bug by construction and keeps spellingbee from
  * ever growing it — the same "one correct implementation kills the duplicated bug"
- * move as `useGlobalFeedback`.
+ * move as `usePeerFeedback`.
  *
  * **Optimistic, never blocking.** Because the FE already knows the full legal
  * list, a valid word needs no server round-trip to *confirm* — we show `+points`

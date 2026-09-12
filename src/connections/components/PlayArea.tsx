@@ -13,7 +13,7 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useTurnStartFlash } from '@/common/move-flash/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -218,7 +218,7 @@ export function PlayArea({
   // turn log. Compete never reaches here: the guesses log is RLS-scoped to
   // the caller server-side, so no foreign rows arrive, and we gate on coop
   // besides. globalFeedback.show is a prop callback, so no local set-state here.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
     keyOf: (g) => g.id,

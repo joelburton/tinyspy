@@ -119,13 +119,13 @@ Two asymmetries live here:
 1. **The local slot is a hook; the global slot is not.** `GamePage` and
    `ClubPage` each hold the state inline and build the `{show, clear}` pair by
    hand.
-2. **`useGlobalFeedback` is not the global slot.** Despite the name, it owns no
+2. **`usePeerFeedback` is not the global slot.** Despite the name, it owns no
    state — it takes a `GenericFeedbackApi` as a parameter. It is a *producer*:
    it watches an append-only stream of peer events and fires a pill for each
    genuinely new one, with the seen-set bootstrap that stops the backlog
    replaying on load. Its true name is something like "peer narration".
 
-So the pair `useLocalFeedback` / `useGlobalFeedback` reads as one slot each and
+So the pair `useLocalFeedback` / `usePeerFeedback` reads as one slot each and
 is really one slot and one producer.
 
 ---
@@ -157,7 +157,7 @@ Two consequences worth holding onto:
 ```
   SERVER REFUSAL                    FE'S OWN CHECK          PEER EVENT         TERMINAL
         │                                 │                     │                 │
-   runRpc / runEdgeFn / readRows          │              useGlobalFeedback    buildOver()
+   runRpc / runEdgeFn / readRows          │              usePeerFeedback    buildOver()
         │                                 │                     │                 │
      Envelope                             │                     │            TerminalCopy
         │                                 │                     │             │        │
@@ -209,7 +209,7 @@ an appearance, and its docstring opens by arguing why it isn't called
 **"text" vs "verdict" vs "message"** — all three are the words a pill shows,
 depending on which object you are holding.
 
-**"feedback"** — `useLocalFeedback` (a slot), `useGlobalFeedback` (a producer),
+**"feedback"** — `useLocalFeedback` (a slot), `usePeerFeedback` (a producer),
 `globalFeedback` (a handle), `localFeedback` (a value), `getNotOkFeedback` (a
 converter). Five things, one word.
 
@@ -262,7 +262,7 @@ Stated so a review does not spend its budget re-deciding it:
 | `common/feedback/genericPills.ts` | `getNotOkFeedback` | `feedback` |
 | `common/feedback/localPills.ts` | the three builders | `feedback` |
 | `common/feedback/useLocalFeedback.ts` | the local slot | `feedback` |
-| `common/feedback/useGlobalFeedback.ts` | peer narration | `feedback` |
+| `common/feedback/usePeerFeedback.ts` | peer narration | `feedback` |
 | `common/feedback/useDismissLocalFeedbackOnKey.ts` | the any-key dismiss, bound to `act-dismiss-feedback` | `feedback` |
 | `common/feedback/GenericFeedbackPill.tsx` | the rendered pill | `feedback` |
 | `common/terminal/terminalCopy.ts` | `TerminalCopy`, `endedCopy` | `feedback` (the file stays in `terminal`) |

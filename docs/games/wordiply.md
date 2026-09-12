@@ -485,7 +485,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   **Success feedback is dropped** (the row already shows the word + its length); only soft
   rejects show a pill.
 - **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` + `InfoCol`,
-  the submit hook, terminal copy (`buildOver`), and the coop peer-guess `useGlobalFeedback`.
+  the submit hook, terminal copy (`buildOver`), and the coop peer-guess `usePeerFeedback`.
 - **`components/BoardCol.tsx` + the guess board**:
   - **On-screen keyboard, no text box.** wordiply plays on **touch alone** — input is the
     shared **`common/…/entry/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
@@ -699,7 +699,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   driving the same `word`. Submit reuses **`useWordSubmit`** (shipped-list, trusting-commit)
   with a wordiply validator (points = the word's length). No `<EntryRow>` / `<EntryBox>` (that
   needs a physical keyboard).
-- **Feedback:** `useLocalFeedback` / `useGlobalFeedback` / `<GenericFeedbackPill>`.
+- **Feedback:** `useLocalFeedback` / `usePeerFeedback` / `<GenericFeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,
   `<TerminalActionRow>` / `<LocalTerminalRow>`, the standard actions (`act-end-game` /
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each placed as an

@@ -1,15 +1,16 @@
 // cs-unmet
 
 import type { Member } from '../members/member'
-import type { GenericFeedbackMsg } from '../feedback/genericFeedback'
-import { GenericFeedbackPill } from '../feedback/GenericFeedbackPill'
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
+import { useTopFeedbackMessage } from '../feedback/useFeedbackSlot'
+import { FeedbackPill } from '../feedback/FeedbackPill'
 import { PageHeaderPlayersStrip } from './PageHeaderPlayersStrip'
 import styles from './PageHeaderStatusSlot.module.css'
 
 type Props = {
   players: Member[]
-  globalFeedback: GenericFeedbackMsg | null
-  onCloseGlobalFeedback: () => void
+  /** The page's global feedback slot; the pill draws its top message here. */
+  globalFeedbackSlot: FeedbackSlot
   /** Forwarded to PageHeaderPlayersStrip — when set, absent members render
    *  dimmed. The club page passes its live presence set; the in-game
    *  header omits it. */
@@ -17,34 +18,28 @@ type Props = {
 }
 
 /**
- * The middle cell of the GamePage header. Two states:
+ * The middle cell of the page header. Two states:
  *
  *  - **default**: `<PageHeaderPlayersStrip>` — colored usernames, the
  *    "who's playing and what color is who" reminder.
- *  - **feedback**: `<GenericFeedbackPill>` — the active feedback
- *    message, replacing the strip while it's showing. Three
- *    dismiss modes per docs/ui.md → "Feedback pill."
+ *  - **feedback**: `<FeedbackPill>` — the global slot's top message,
+ *    replacing the strip while one is showing.
  *
  * Same height in both states. See docs/ui.md → Layout stability
  * — the slot doesn't reflow the header as feedback comes and
  * goes, because the slot's own height is fixed via CSS.
  *
- * Pause transitions don't clear feedback by default — the slot
- * sits in the header, which is outside `<PauseOverlay>`'s
- * coverage, so an active pill stays readable through a pause.
- * Callers who want feedback to drop on pause must `clear()`
- * explicitly.
+ * Pause transitions don't clear feedback — the slot sits in the header,
+ * which is outside `<PauseOverlay>`'s coverage, so an active message stays
+ * readable through a pause. A message that should drop on pause is its
+ * owner's to retract.
  */
-export function PageHeaderStatusSlot({
-  players,
-  globalFeedback,
-  onCloseGlobalFeedback,
-  presentUserIds,
-}: Props) {
+export function PageHeaderStatusSlot({ players, globalFeedbackSlot, presentUserIds }: Props) {
+  const showing = useTopFeedbackMessage(globalFeedbackSlot) !== null
   return (
     <div className={styles.slot}>
-      {globalFeedback ? (
-        <GenericFeedbackPill msg={globalFeedback} onClose={onCloseGlobalFeedback} />
+      {showing ? (
+        <FeedbackPill slot={globalFeedbackSlot} />
       ) : (
         <PageHeaderPlayersStrip players={players} presentUserIds={presentUserIds} />
       )}

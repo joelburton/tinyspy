@@ -13,7 +13,7 @@ import { outOfRacePill } from '@/common/feedback/localPills'
 import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { lengthScore } from '../lib/scoring'
 import type { WordiplySetup } from '../lib/setup'
@@ -350,7 +350,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
   // surface it with its length (the one live readout — no scores). Own guesses
   // go to the in-body local pill.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the guesses fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.

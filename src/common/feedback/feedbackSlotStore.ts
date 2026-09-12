@@ -78,14 +78,14 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
       clearTimeout(t)
       timers.delete(id)
     }
-    entries = entries.filter((e) => e.id !== id)
+    entries = entries.filter((entry) => entry.id !== id)
   }
 
   function show(message: FeedbackMessage): string {
     const id = `${name}-${++seq}`
     // One message per rank: the newcomer replaces whatever shares its rank.
-    for (const e of entries) {
-      if (e.message.rank === message.rank) drop(e.id)
+    for (const entry of entries) {
+      if (entry.message.rank === message.rank) drop(entry.id)
     }
     entries = [...entries, { id, message }]
     if (message.leavesBy === 'timer' && message.ms !== null) {
@@ -96,7 +96,7 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
   }
 
   function retract(id: string): void {
-    if (!entries.some((e) => e.id === id)) return
+    if (!entries.some((entry) => entry.id === id)) return
     drop(id)
     emit()
   }

@@ -41,7 +41,8 @@ import { SelectionList } from '../lists/SelectionList'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { gametypes } from '@/gametypes'
 import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
-import type { GenericFeedbackApi, GenericFeedbackMsg } from '../feedback/genericFeedback'
+import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
+import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuSection } from '../menu/menuModel'
 import { useChatFeedback } from '../chat/useChatFeedback'
 import type { Database } from '@/types/db'
@@ -346,30 +347,11 @@ export function ClubPage({ handle, session }: Props) {
   // Whether the "Edit club" options dialog is open. Like the setup
   // dialog, the component is mounted iff this is true.
   const [editing, setEditing] = useState(false)
-  // The currently-active feedback pill shown in the header's
-  // <PageHeaderStatusSlot>, or null when the slot should show the default
-  // <PageHeaderPlayersStrip>. Local-only — ClubPage doesn't expose a
-  // ctx.globalFeedback API the way GamePage does, because there's no
-  // render-prop child here. Concrete uses today: the
-  // "<title> deleted" toast in handleDelete, and the "coming soon"
-  // toasts on the placeholder menu items.
-  const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
-
-  // Auto-clear `timed`-dismiss feedback after the configured
-  // duration. Mirrors GamePage's autoClearTimedFeedback — same
-  // shape; the duplication is borderline (5 lines twice), worth
-  // extracting into a hook if a third consumer arrives.
-  useEffect(function autoClearTimedFeedback() {
-    if (!globalFeedback) return
-    if (globalFeedback.mode.kind !== 'timed') return
-    const ms = globalFeedback.mode.ms ?? 3000
-    const t = setTimeout(() => setGlobalFeedback(null), ms)
-    return () => clearTimeout(t)
-  }, [globalFeedback])
-
-  // Stable identity for the PageHeaderStatusSlot's onCloseGlobalFeedback prop
-  // so passing it into props doesn't restage downstream effects.
-  const clearGlobalFeedback = useCallback(() => setGlobalFeedback(null), [])
+  // The page's GLOBAL feedback slot — the header's status slot draws its top
+  // message in place of the members strip. Two things show into it: the chat
+  // producer below, and the "coming soon" acknowledgment on the placeholder
+  // menu item. Nothing is handed down: this page has no render-prop child.
+  const globalFeedbackSlot = useFeedbackSlot('global')
 
   // ─── Keyboard navigation ────────────────────────────────
   // The cursor, the ring, Enter and focus-on-arrival belong to each
@@ -423,24 +405,15 @@ export function ClubPage({ handle, session }: Props) {
   })
   const actRenameClub = useBoundAction('act-rename-club', {
     describe: () => 'active',
-    run: () => setGlobalFeedback({
-      tone: 'noted',
-      text: 'Rename club: coming soon',
-      mode: { kind: 'timed' },
-    }),
+    run: () => {
+      globalFeedbackSlot.show(FeedbackMessage.acknowledgment('noted', 'Rename club: coming soon'))
+    },
   })
 
-  // The show/clear API over the single feedback slot (ClubPage sets the state
-  // directly for its own toasts; this wraps it for hook consumers like chat).
-  const globalFeedbackApi = useMemo<GenericFeedbackApi>(
-    () => ({ show: (msg) => setGlobalFeedback(msg), clear: clearGlobalFeedback }),
-    [clearGlobalFeedback],
-  )
-
-  // Club chat → the global feedback pill: a NEW message from any OTHER member
-  // pops "● HANDLE: text" (sticky) here. `members` is the full club roster, so
-  // every sender is named. Historic messages never pop (see useChatFeedback).
-  useChatFeedback({ clubHandle: handle, members, selfId, globalFeedback: globalFeedbackApi })
+  // Club chat → the global slot: a NEW message from any OTHER member shows
+  // "● HANDLE: text" here. `members` is the full club roster, so every sender
+  // is named. Historic messages never pop (see useChatFeedback).
+  useChatFeedback({ clubHandle: handle, members, selfId, globalFeedbackSlot })
 
   /**
    * Delete a game from this club. Same RPC for current vs
@@ -919,8 +892,7 @@ export function ClubPage({ handle, session }: Props) {
             + colored-name shape either way. */}
         <PageHeaderStatusSlot
           players={members}
-          globalFeedback={globalFeedback}
-          onCloseGlobalFeedback={clearGlobalFeedback}
+          globalFeedbackSlot={globalFeedbackSlot}
           presentUserIds={presentUserIds}
         />
       </PageHeader>

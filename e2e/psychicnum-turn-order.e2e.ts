@@ -43,9 +43,10 @@ test.describe('psychicnum turn order (coop)', () => {
     // element — so target the turn copy by Alice's username specifically.)
     await expect(pageA.getByText('Your turn')).toBeVisible({ timeout: 15000 })
     // TWO elements carry it, and both matter: the info column's TurnStatusLine
-    // (the desktop answer) and the below-board waitingTurnPill (the ONLY answer
-    // on mobile, where the info column is off-canvas in the InfoSheet). Both
-    // render the shared `waitingFor` copy, so this also guards them against drift.
+    // (the desktop answer) and the below-board whose-turn message (the ONLY
+    // answer on mobile, where the info column is off-canvas in the InfoSheet).
+    // Both render the shared `waitingForText`, so this also guards them
+    // against drift.
     await expect(
       pageB.getByText(new RegExp(`Waiting for.*${alice.username}`)),
     ).toHaveCount(2, { timeout: 15000 })
@@ -72,14 +73,21 @@ test.describe('psychicnum turn order (coop)', () => {
     await pageA.getByRole('button', { name: 'Submit' }).click()
 
     // ── The turn flips over realtime: Bob is now up, Alice waits for Bob. ──
-    // (Alice's own entry slot now carries her sticky own-move pill, so the flip
-    // is asserted via the turn lines, which both clients update over realtime.)
     await expect(pageB.getByText('Your turn')).toBeVisible({ timeout: 15000 })
-    // Alice's own sticky own-move pill is OUTRANKED by the waiting pill (see the
-    // precedence chain in turnCopy.tsx), so she gets both copies too.
+    // Alice's own result ("Correct" / "Incorrect") ranks OVER the whose-turn
+    // note in her slot (docs/ui.md → Feedback pill: a result is rank 40, a
+    // standing note 60), so for now only her turn line names Bob…
     await expect(
       pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
-    ).toHaveCount(2, { timeout: 15000 })
+    ).toHaveCount(1, { timeout: 15000 })
+    // …and dismissing the result — a tap is her next action — uncovers the
+    // waiting note that was live underneath it: the slot's copy, the second.
+    // The turn log repeats the word in a cell; the pill is the first match,
+    // since the board column precedes the info column.
+    await pageA.getByText(/^(Correct|Incorrect)$/).first().click()
+    await expect(
+      pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
+    ).toHaveCount(2)
 
     await ctxA.close()
     await ctxB.close()

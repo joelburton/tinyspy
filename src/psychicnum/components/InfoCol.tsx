@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -58,8 +58,8 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  /** Terminal copy when the game is over (drives the action row), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** May I still guess? Gates the play action row + help (vs the locally-done look). */
   canGuess: boolean
   /** I conceded a compete race (a real loss; the others keep racing) — picks the

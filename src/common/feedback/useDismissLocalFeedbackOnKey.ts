@@ -15,14 +15,14 @@ import { useBoundAction } from '../actions/useBoundAction'
  * never reaches here, so typing in chat can't wipe a game's feedback or the
  * other way round, and a modified chord isn't the player's next move.
  *
- * It deliberately does NOT know whether the game is over: `clearLocalFeedback`
- * is itself a no-op at terminal (terminal local feedback is permanent — see
- * `useLocalFeedback`'s `locked`), so the permanence is enforced in ONE place, not
- * re-checked here. Pass any `clearLocalFeedback` from `useLocalFeedback`.
+ * It deliberately does NOT know what the slot is showing: the slot's `dismiss`
+ * removes its top message only when that message's kind leaves by a gesture,
+ * so a verdict, a hint or a not-ok survives the keystroke and the rule is
+ * enforced in ONE place, not re-checked here. Pass the local slot's `dismiss`.
  */
-export function useDismissLocalFeedbackOnKey(clearLocalFeedback: () => void): void {
+export function useDismissLocalFeedbackOnKey(dismiss: () => void): void {
   useBoundAction('act-dismiss-feedback', {
     describe: () => 'active',
-    run: clearLocalFeedback,
+    run: dismiss,
   })
 }

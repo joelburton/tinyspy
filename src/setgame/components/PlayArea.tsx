@@ -11,7 +11,7 @@ import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/localPills'
 import { waitingTurnPill, yourTurnPill } from '@/common/info-sheet/turnCopy'
 import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -512,7 +512,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // "why can't I do anything?", which is a question that stays asked, while the
   // narration is redundant here anyway (the pill renaming itself IS the news
   // that the previous player claimed, and the log and counts both say so).
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop' && currentTurnUserId === null,
     ready: !loading,
     items: claims,
@@ -535,7 +535,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── "Waiting for ● Name…" in the header (turn-by-turn coop) ──
   //
-  // State-derived rather than event-driven, so it can't be a `useGlobalFeedback`
+  // State-derived rather than event-driven, so it can't be a `usePeerFeedback`
   // stream: it must be showing for as long as the wait lasts and gone the
   // instant the turn arrives, which is a function of the pointer, not of an
   // event. Hence the effect — `show`/`clear` are prop callbacks, so no local

@@ -1,24 +1,26 @@
 // cs-unmet
 
 import { useClubChat } from './useClubChat'
-import { useGlobalFeedback } from '../feedback/useGlobalFeedback'
+import { usePeerFeedback } from '../feedback/usePeerFeedback'
+import { FeedbackMessage } from '../feedback/FeedbackMessage'
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import { memberById } from '../members/memberList'
 import type { Member } from '../members/member'
-import type { GenericFeedbackApi } from '../feedback/genericFeedback'
 
-/** Longest chat text shown in the pill before it's clipped. The global-feedback
- *  slot is a small header element and this repo forbids header reflow (docs/ui.md
+/** Longest chat text shown in the pill before it's clipped. The global slot
+ *  is a small header element and this repo forbids header reflow (docs/ui.md
  *  → Layout stability), so a long message (chat allows up to 1000 chars) is
  *  truncated rather than allowed to grow the slot. */
 const MAX_PILL_CHARS = 80
 
 /**
- * Bridges club chat → the GLOBAL feedback area: every NEW chat message pops a
- * "● HANDLE: text" pill (neutral tone) for every club member EXCEPT the sender;
- * it auto-clears after 2s, or sooner if another global feedback replaces it.
+ * Bridges club chat → the GLOBAL feedback slot: every NEW chat message shows
+ * a "● HANDLE: text" message (the `chat` kind: neutral, fades after 2s or
+ * sooner if another header message replaces it) for every club member
+ * EXCEPT the sender.
  *
  * Reuses the two hooks built for exactly this: `useClubChat` for the message
- * stream, and `useGlobalFeedback` for the "fire on each NEW item, never replay
+ * stream, and `usePeerFeedback` for the "fire on each NEW item, never replay
  * the backlog" bootstrap. **`enabled: !loading` is what makes the historical
  * case correct** — the machinery seeds the already-loaded history as "seen" on
  * the first loaded render, so signing in at 9:05 does NOT pop the 9:00/9:01
@@ -30,23 +32,23 @@ const MAX_PILL_CHARS = 80
  *
  * `members` is the FULL club roster (not just a game's players) so a sender is
  * named even when they aren't in the current game. `selfId` is the viewer —
- * their own messages never pop. Call it wherever the global feedback area lives:
+ * their own messages never pop. Call it wherever the global slot lives:
  * ClubPage and GamePage.
  */
 export function useChatFeedback({
   clubHandle,
   members,
   selfId,
-  globalFeedback,
+  globalFeedbackSlot,
 }: {
   clubHandle: string
   members: Member[]
   selfId: string
-  globalFeedback: GenericFeedbackApi
+  globalFeedbackSlot: FeedbackSlot
 }): void {
   const { messages, loading } = useClubChat(clubHandle)
 
-  useGlobalFeedback({
+  usePeerFeedback({
     // Gate until the history has loaded so the seed captures the real backlog
     // (not an empty set that would replay everything on arrival).
     enabled: !loading,
@@ -55,27 +57,13 @@ export function useChatFeedback({
     messageFor: (m) => {
       if (m.user_id === selfId) return null // my own message — never pop it back at me
       const member = memberById(members, m.user_id)
-      const handle = member?.username ?? '?'
       // Mirror ChatBody: a leading '!' is the "force-open for everyone" marker,
       // not part of the shown text.
       const important = m.content.startsWith('!')
       const body = important ? m.content.slice(1).trimStart() : m.content
       const text = body.length > MAX_PILL_CHARS ? `${body.slice(0, MAX_PILL_CHARS)}…` : body
-      return {
-        tone: 'neutral',
-        // The leading identity disc in the caller's spec's "()"; omitted (no
-        // disc) for an unresolvable sender rather than a misleading default color.
-        dot: member?.color,
-        text: (
-          <>
-            <strong>{handle}</strong>: {text}
-          </>
-        ),
-        // Timed: auto-clears after 2s (or sooner if another global feedback —
-        // a peer game event, the next chat message — replaces it).
-        mode: { kind: 'timed', ms: 2000 },
-      }
+      return FeedbackMessage.chat(member, text)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 }

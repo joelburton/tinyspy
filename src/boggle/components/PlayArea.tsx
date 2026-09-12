@@ -16,7 +16,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { outOfRacePill } from '@/common/feedback/localPills'
 import { memberById } from '@/common/members/memberList'
 import { DotActor } from '@/common/members/ActorMention'
@@ -393,7 +393,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // suppress; own words go to the in-body local pill. boggle has no pangram, but
   // a long find (7+ letters) is its "wow" moment — flag those. Compete stays
   // silent by design (opponents' words are private; no rank ladder to announce).
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the found_words fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.

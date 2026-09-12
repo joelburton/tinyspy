@@ -20,6 +20,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -68,7 +69,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     // A realistic setup blob — the info column reads `guesses` + `difficulty`.
     setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),

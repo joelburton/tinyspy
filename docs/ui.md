@@ -55,57 +55,55 @@ The other exempt case is **loading state**: "Loading game…" doesn't have to oc
 
 A uniformly-styled component that carries every game's transient and permanent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a connections "wrong guess" should look like a codenamesduet "clue invalid" should look like a future Boggle "not a word."
 
-The **same pill serves both feedback areas** — two role phrases we use consistently, naming *where feedback appears*: the **global feedback area** — `<PageHeaderStatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat feedback (not the player's own moves) — and the **local feedback area** — a fixed-height slot in the `belowBoard` region, centered, for feedback about the player's *own* move. In the header, an active pill replaces the default `<PageHeaderPlayersStrip>` content; when cleared, the strip reappears.
+The **same pill serves both feedback slots** — two role phrases we use consistently, naming *where feedback appears*: the **global feedback slot** — `<PageHeaderStatusSlot>` in the page header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat news (not the player's own moves) — and the **local feedback slot** — a fixed-height slot in the `belowBoard` region, centered, for the player's *own* results and standing conditions. In the header, a showing message replaces the default `<PageHeaderPlayersStrip>` content; when the slot empties, the strip reappears.
 
-**API on `GamePageCtx`:**
+**A slot holds every live message and draws the one that ranks highest.** A message is a `FeedbackMessage`, made by one of its named constructors and never by hand; each constructor names a **kind**, and the kind decides everything about how the message looks and leaves. A call site names what happened and shows it:
 
 ```ts
-// A pill's tone IS an outcome — the same vocabulary a board, a tile, a
-// turn-log row and a server result reach for. What each word means is in
-// docs/outcomes.md.
-type Outcome =
-  'won' | 'lost' | 'near' | 'warning' | 'neutral' | 'noted' | 'error'
+localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not a word'))   // gone on your next action
+localFeedbackSlot.show(FeedbackMessage.notOk(res))                      // the server said no; × to dismiss
+globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'found APPLE +7'))  // fades after 3s
 
-type GenericFeedbackMsg = {
-  tone: Outcome
-  text: ReactNode                       // usually a string; a node so a message can embed an inline icon
-  dot?: string | null                   // leading player-color disc — identity anchor for peer messages (null = the neutral fallback; absent = none)
-  mode:                                 // what KIND of message — decides both behavior AND look
-    | { kind: 'sticky' }                // until replaced, or the player acts (key / tile / tap the pill)
-    | { kind: 'timed'; ms?: number }    // self-dismisses after the delay; a tap kills it early
-    | { kind: 'manual' }                // the × is the ONLY way out
-    | { kind: 'permanent' }             // a standing condition; only a later pill REPLACES it
-}
-
-globalFeedback: {
-  show: (msg: GenericFeedbackMsg) => void
-  clear: () => void
-}
+// A standing condition is an effect on a primitive: shown on the rising
+// edge, retracted by the cleanup. Nothing else ever removes it.
+useEffect(function showWaiting() {
+  if (!waiting) return
+  const id = localFeedbackSlot.show(FeedbackMessage.waiting(member))
+  return () => localFeedbackSlot.retract(id)
+}, [localFeedbackSlot, waiting, member])
 ```
 
-**Dismiss modes — when to use each:**
+**The kinds**, lowest rank on top. Two messages of the same rank replace each other; different ranks stack, and the lower one shows again when the upper leaves.
 
-- **`timed`** for transient acknowledgment that auto-fades. connections's "Already tried that," "Wrong guess." The default workhorse.
-- **`sticky`** for "make sure they see this" — an own-move result like "Not a word". Stays until something replaces it or the player acts: a keystroke, a tile click, or a tap on the pill.
-- **`manual`** for the rare message the player should actively acknowledge, where a stray keystroke mustn't wipe it — stackdown's revealed-word spoiler, which has to linger while they hunt for the tiles. The `×` is the only way out. (Named `manual`, not `closeable`: every mode but `permanent` can be closed, so `closeable` didn't distinguish it from anything.)
-- **`permanent`** for a standing CONDITION rather than a message: the terminal verdict, "Conceded — race continues", codenamesduet's sudden death. Nothing dismisses it — a later pill **replaces** it, which is how out-of-race gives way to the final verdict.
+| kind | what it is | look | rank | leaves by | constructors |
+|---|---|---|---|---|---|
+| `notOk` | the server said no — read why, press the ×; shows over the verdict so a move that raced the game's end still gets its "Someone got there first" | outline | 10 | the × | `notOk(res)` |
+| `terminalVerdict` | the game is over, and this is how it ended | **fill** | 20 | its owner (restart) | `terminalVerdict(over)` |
+| `standingState` | out while the others race on; sudden death | **fill** | 30 | its owner | `outOfRace(myConceded, activeText?)` · `standingState(outcome, text)` |
+| `result` | what your last action did, in the FE's own words | outline | 40 | your next action: any key, a tile click, a tap | `result(outcome, text)` |
+| `acknowledgment` | a success you already saw on the board | outline | 40 | a timer, 1.4s | `acknowledgment(outcome, text)` |
+| `hint` | priced help you asked for, kept while you hunt | outline | 50 | the × — a stray key must not cost you what you paid for | `hint(outcome, text)` |
+| `standingNote` | a state you are in until something changes | outline, neutral | 60 | its owner | `waiting(member)` · `peerStatus(member, text)` · `note(text)` |
+| `prompt` | what an empty slot says | outline, neutral | 70 | its owner | `prompt(text)` |
+| `peer` | a peer did something; the header says so | outline | 80 | a timer, 3s | `peer(member, outcome, text)` |
+| `chat` | a chat line, "● **moth**: hi" | outline, neutral | 80 | a timer, 2s | `chat(member, text)` |
 
-**One field, because the alternative leaked.** This used to be two — a `variant` for appearance beside a `dismiss` for behavior — whose product allowed six states for four real meanings. "Permanent" had no name; it was spelled `variant: 'fill'` + `sticky`, so *whether a pill could be dismissed* had to be read off a styling prop. Two bugs came straight out of that: the out-of-race pill was filed as `sticky` (so a keystroke wiped the only statement of the player's own status), and eight transient messages wore the permanent background by forgetting to say `outline`. Appearance now follows the mode, and neither mistake is expressible.
+Every constructor takes a trailing `overrides` — any of fill, rank, leaves-by, duration, outcome — for the rare site that has to bend its kind, in the open. The table itself is `KINDS` in [`FeedbackMessage.tsx`](../src/common/feedback/FeedbackMessage.tsx), and a message's getters read it.
 
-**Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via the `act-dismiss-feedback` watcher, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
+**Tapping the pill dismisses it** — the gesture-cleared kind, `result`. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via the `act-dismiss-feedback` watcher, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both slots behave the same way, because a rule the player has to learn twice isn't a rule.
 
-Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
+The ×-cleared kinds keep the `×` as their only target — a `notOk` or a `hint` is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. The owner-cleared kinds aren't dismissable at all: a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`FeedbackPill.test.tsx`](../src/common/feedback/FeedbackPill.test.tsx) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
-**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-gray side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark gray.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
+**The look.** Every pill's **whole border is the outcome color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, `--pill-bar-width` and `--pill-border-width`, uniform on every pill. (A pale-gray side border read as no border, so the sides carry the outcome too; `neutral` has no outcome color, so its border is a visible dark gray.) The kind only changes the **background**: a kind with `fill` — the verdict, out-of-race, sudden death — gets a **lightened-outcome background**, so a final `lost` reads as *more* emphatically lost than a passing one, and everything else stays white. The fill is the "final for you" signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries the actor as the leading name-and-disc mention whatever its kind — the disc, never the fill, says *who* (the rule from [Player identity = a colored disc](#player-identity--a-colored-disc)); on a phone the name drops and the disc stays.
 
-**Tone follows the event, not the viewer's stake.** One event reads as **one tone everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the identity `dot` already says *who*, so the tone is free to say only *what happened*.
+**Outcome follows the event, not the viewer's stake.** One event reads as **one color everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the actor already says *who*, so the outcome is free to say only *what happened*.
 
 **Semantics:**
 
-- Latest `show()` replaces whatever was there — no queue, no stack. Race-condition simple.
-- `clear()` empties the slot regardless of dismiss mode.
-- The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
-- **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
+- `show(feedbackMsg)` returns an id; `retract(id)` takes a message back. A message of the same rank as a live one replaces it; a different rank stacks.
+- The slot lives in its host — `useFeedbackSlot('local')` in a PlayArea, `useFeedbackSlot('global')` in a page — and dies with it, timers and all. The page hands its instance down as `ctx.globalFeedbackSlot`.
+- **Pause transitions don't clear feedback.** `<PauseOverlay>` covers the play surface, not the header; a showing message stays readable through a pause/resume cycle. A message that shouldn't survive a pause is its owner's to retract.
+- `window.puppill('hey', 'hint')` from the console shows a message into a mounted slot, the way `puptoast` does for toasts.
 
 #### Faults — "the app is broken", in a blocking modal
 
@@ -155,8 +153,8 @@ Mechanics:
 - **A fault therefore never reaches a feedback sink at all**, and no sink
   checks for one. The wrapper raises the modal before a call site has an answer
   to hand a sink, so a fault has no way to arrive where a pill is chosen. The
-  rule holds by construction, not by a branch — which is why neither sink nor
-  `GenericFeedbackPill` has a fault case to read.
+  rule holds by construction, not by a branch — which is why neither a slot
+  nor `FeedbackPill` has a fault case to read.
 - **Form/panel surfaces** put the envelope's own `message` on their red line —
   the setup dialog's validation, the club-name rules, the AI panels' "the model
   declined — try again" — and a fault's modal has already fired. The two page
@@ -1212,7 +1210,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 - **`<GameLogo manifest={…} />`** — square SVG (`src/<game>/logo.svg`). The logo is a menu trigger: click opens the GamePage menu (Help, Back to club, per-game items). See [GamePage menu](#gamepage-menu) below.
 - **`<ChatButton />`** — toggle for the floating chat panel. Same icon open or closed, but while **closed** it doubles as an unread indicator: the bubble fills with the latest unread sender's profile color, and a small count pill (top-left) shows how many messages arrived since this member last had the panel open. Opening clears it. The pill is **black**, not a player color — red and the other player hues are all valid profile colors, so a colored pill would read as "a sender" and could clash with the bubble's fill. Unread is tracked per-club via a localStorage `lastSeen` bookmark (`chatUnread.ts`), so it survives reloads and a never-opened panel shows the whole backlog as unread. Stays in place when chat is open per [Layout stability](#layout-stability).
 - **`<ScratchpadButton />`** — toggle for the floating scratchpad panel, rendered only when the game's manifest opts in (`scratchpad.enabled`). Grouped tight against the chat bubble (`.panelToggles`, a smaller gap than the header's) — the two are related in purpose (each toggles a floating panel), and the closeness signals the pairing.
-- **`<PageHeaderStatusSlot />`** — default content is `<PageHeaderPlayersStrip>` (colored usernames, one per `player`). When `ctx.globalFeedback.show()` has been called and isn't cleared yet, the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when feedback clears.
+- **`<PageHeaderStatusSlot />`** — default content is `<PageHeaderPlayersStrip>` (colored usernames, one per `player`). While the page's global feedback slot holds a message (`ctx.globalFeedbackSlot.show()`, or the chat producer), the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when the slot empties.
 
 **Right, right-justified:**
 
@@ -1406,7 +1404,7 @@ Same principle, applied to components.
 
 A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PageHeaderPlayersStrip>` presence dots, the `<ChatButton>` unread fill, the `<ColorChoiceList>` swatches, the per-finder markers in the spellingbee / boggle `<WordList>`, and the HomePage greeting ("● joel — welcome!"), which is the one place the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
-**The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **edge ring** (`--member-NAME-edge-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in `core-css/fixed.css`). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. Feedback pills take the actor's color **name** in `GenericFeedbackMsg.dot` and render it with `<Dot>` themselves.
+**The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **edge ring** (`--member-NAME-edge-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in `core-css/fixed.css`). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. A feedback message about a person carries the member as its `actor`, and the pill draws the name-and-disc mention (`<DotActor>`) before the text.
 
 **The name + disc cluster is `<ActorDot>` / `<DotActor>`** (`common/members/ActorMention`): a person's name and their identity disc, the "who did this" marker. The two differ only in ORDER, and each is **named in the order it draws** — `<ActorDot>` is actor-then-dot ("moth ●"), which is what a turn log's rows want; `<DotActor>` is dot-then-actor ("● moth"), which is what a sentence wants. Pass either the resolved member (`<ActorDot actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. Its `show` prop is what lets a tight surface drop the name and keep just the disc on a phone, which is the mobile fallback the first rule below promises. Reach for one before re-rolling a name-span + ● by hand — hand-rolling is how a surface ends up coloring the name text instead, which that same rule forbids.
 

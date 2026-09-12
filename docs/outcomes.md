@@ -66,9 +66,10 @@ this word — three of the four severities read `error` (see
 cannot do without. It is an angrier red than `lost`, and that difference is the
 whole reason it is a separate word rather than a reuse.
 
-**One type, one name.** `Outcome` is the list, and a feedback pill's `tone` is
-an `Outcome` — the claim this file makes, said in the type rather than
-alongside it.
+**One type, one name.** `Outcome` is the list, and a feedback message's
+`outcome` is an `Outcome` — the claim this file makes, said in the type rather
+than alongside it. The field is called `outcome`, never `tone`: that word is a
+button's or a toast's styling and not one of these values.
 
 What is still true is narrower, and it lives where it can be checked: **a
 successful result never reads as a failure.** No `PA` raise — the branch that
@@ -81,10 +82,10 @@ back as a `not-ok` carrying a `severity` instead.
 
 ### The feedback pill
 
-The main consumer. A pill's **whole border is the tone color** — a thick left
-bar plus thin sides in the same color — and the tone says which. See
+The main consumer. A pill's **whole border is the outcome color** — a thick
+left bar plus thin sides in the same color — and the outcome says which. See
 [ui.md → the feedback pill](ui.md) for the anatomy; the part that matters here
-is that the tone chooses the color and nothing else does.
+is that the outcome chooses the color and nothing else does.
 
 ### The turn log
 
@@ -115,9 +116,9 @@ overrides the default appearance its severity would otherwise give it. See
 [envelopes.md](envelopes.md).
 
 The two arms reach a pill differently, and the asymmetry is deliberate. A
-`not-ok` is mapped by one shared function (`getNotOkFeedback`), because severity
-already says how it should read and fifteen boards deriving that separately
-would drift. An `ok` is **not** mapped: what a successful answer shows is
+`not-ok` is mapped by one shared constructor (`FeedbackMessage.notOk`, reading
+`notOkOutcome`), because severity already says how it should read and fifteen
+boards deriving that separately would drift. An `ok` is **not** mapped: what a successful answer shows is
 game-specific — a pangram's score, a word's length, nothing at all — and no rule
 has been found there yet.
 

@@ -450,7 +450,7 @@ pill.
   a tile you were mid-building with is now gone (a teammate claimed it), `load()`
   resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
   shared Broadcast room that needed a stable name is gone.
-- **Peer narration** (coop-only) is the SHARED `common/hooks/feedback/useGlobalFeedback`,
+- **Peer narration** (coop-only) is the SHARED `common/hooks/feedback/usePeerFeedback`,
   wired inline in PlayArea — no game-local hook. It diffs the `submissions` list
   (via `keyOf: (user_id, seq)`), bootstrapping quietly on the first loaded render so
   a reconnect doesn't replay the backlog. Each *new* teammate submission fires a

@@ -13,7 +13,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { useGlobalFeedback } from '@/common/feedback/useGlobalFeedback'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { outOfRacePill } from '@/common/feedback/localPills'
@@ -77,7 +77,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     setup, clubHandle, goToGame, menu, brand, title,
-    // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
+    // The COMMON header slot (peer/opponent events, via usePeerFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
     // the player's own word result. Two different surfaces.
     globalFeedback,
@@ -426,7 +426,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
   // `foundWords`; surface good + pangram finds. Rejected words never become a
   // row, so there's nothing to suppress. Own words go to the in-body local pill.
-  useGlobalFeedback({
+  usePeerFeedback({
     enabled: game?.mode === 'coop',
     // Gate the seed on the found_words fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
