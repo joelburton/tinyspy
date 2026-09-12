@@ -2,10 +2,10 @@
 
 /**
  * Tests for useGameInvitations — specifically the "entering the invited
- * game dismisses the popup for good" behavior.
+ * game dismisses the invite for good" behavior.
  *
- * The regression this guards: the popup's `pending` state was only
- * cleared by the dialog's own Join/dismiss. Entering the game any other
+ * The regression this guards: the hook's `pending` state was only
+ * cleared by the toast's own Join/dismiss. Entering the game any other
  * way (the club's active-game card — a plain <Link> — a shared URL, the
  * back button) merely VIEW-FILTERED the current game out, so the invite
  * stayed in `pending` and re-appeared the moment you navigated away. The

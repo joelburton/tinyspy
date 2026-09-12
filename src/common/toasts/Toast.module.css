@@ -1,9 +1,8 @@
 /* cs-audited-common-hosts */
 
-/* One toast card. Mirrors the old invitation card look — a white surface with
- * a tone-colored left stripe, a soft shadow, an X top-right, and an optional
- * action button. The positioning/stacking is the host's job (ToastHost); this
- * is just the card. */
+/* One toast card: a white surface with a tone-colored left stripe, a soft
+ * shadow, an X top-right, and an optional action button. The
+ * positioning/stacking is the host's job (ToastHost); this is just the card. */
 /* @@ */ .toast {
   position: relative;
   background: var(--default-bg-color);

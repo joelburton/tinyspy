@@ -8,16 +8,15 @@ import { showToast, dismissToast } from '../toasts/toastStore'
 /**
  * The game-invitation announcements — mounted once on every authenticated page
  * (App.tsx). When a friend adds you to a game you get a toast: "Moth added you
- * to a new spellingbee game" with a Join button. Replaces the old
- * auto-navigate-into-the-club's-game behavior: you choose when to join (the
- * game also waits for you — it's paused until every invited player is present),
- * or dismiss and join later from the club page.
+ * to a new spellingbee game" with a Join button. Nothing pulls you in: you
+ * choose when to join (the game waits for you — it's paused until every invited
+ * player is present), or dismiss and join later from the club page.
  *
- * This is now HEADLESS (renders nothing): the reactive invite list from
- * `useGameInvitations` (realtime + dedup, unchanged) is mirrored into the shared
- * toast store, so invitations render in the same bottom-right stack as any other
- * announcement — and, since toasts sit above chat, they're no longer hidden
- * behind an open chat panel. One toast per invite, keyed by game id:
+ * HEADLESS — it renders nothing. The reactive invite list from
+ * `useGameInvitations` is mirrored into the shared toast store, so an
+ * invitation is drawn in the same bottom-right stack as any other
+ * announcement, which is also why an open chat panel never hides one. One
+ * toast per invite, keyed by game id:
  *   - **Join** → `join` (navigates; the invite then drops from the list, which
  *     removes the toast here — see the reconcile below).
  *   - **X** → `dismiss` (hide now; recoverable from the club page later).

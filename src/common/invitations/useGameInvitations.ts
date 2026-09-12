@@ -23,7 +23,8 @@ import {
  * Global game-invitation watcher — mounted once on every authenticated
  * page (App.tsx, after the claim-handle gate). When the caller is added
  * to a game (a `common.game_players` INSERT), it surfaces a "join this
- * game" invitation; the popup component renders the result.
+ * game" invitation; `<GameInvitations>` mirrors the result into the toast
+ * store, which is what draws it.
  *
  * Two trigger paths, mirroring the realtime data-hook pattern:
  *   - **realtime** — a stable subscription to `game_players` INSERTs
@@ -46,7 +47,8 @@ import {
  * from the returned list so you're never invited to the game you're in.
  *
  * `join` navigates to the game (leaving any game you're mid-play in,
- * which simply pauses it for the others). `dismiss` just hides the popup.
+ * which simply pauses it for the others). `dismiss` just drops the invite from
+ * the list, which retires its toast.
  */
 export function useGameInvitations(session: Session): {
   invites: GameInvite[]
@@ -156,8 +158,8 @@ export function useGameInvitations(session: Session): {
 
   // Entering the invited game by ANY route is a real dismissal — the
   // club's active-game card (a plain <Link>), a shared URL, the
-  // back/forward button, or the dialog's own Join. Without this, those
-  // non-dialog paths leave the invite in `pending`; the render-time filter
+  // back/forward button, or the toast's own Join. Without this, every route
+  // but Join leaves the invite in `pending`; the render-time filter
   // below only HIDES it while the URL is exactly that game, so it pops
   // right back the moment you navigate away (back to the club, or the
   // auto-redirect when the game ends / suspends). Dropping it from
@@ -190,8 +192,8 @@ export function useGameInvitations(session: Session): {
   }, [])
 
   // Never invite someone to the game they're already looking at. This
-  // suppresses the popup on the SAME render the path changes (no one-frame
-  // flash); the effect above then removes the invite from `pending` so the
+  // suppresses the invite on the SAME render the path changes (no one-frame
+  // flash); the render-time prune above then drops it from `pending` so the
   // dismissal is durable once they navigate away.
   const invites = pending.filter((i) => i.gameId !== currentGameId)
   return { invites, dismiss, join }

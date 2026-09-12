@@ -11,9 +11,10 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, and the
-`faults` group F-12 · F-13 · F-17 · F-19 — and, riding on several of those, the
-halves of F-9 and F-10 they consumed.
+F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, the `faults`
+group F-12 · F-13 · F-17 · F-19, and the prose group F-9 · F-10 · F-11 · F-18.
+Left: F-3 (the scroll bug), F-14 (the marker pass), F-23 (the toast-exit spec)
+and F-26 (the four Designs).
 
 ## The roster
 
@@ -228,47 +229,52 @@ claiming the portal is what puts it above things — the portal is what keeps an
 ancestor's stacking context from trapping it, which is what makes the rung mean
 what base.css says.
 
-## F-common-hosts-9 · `alpha-and-archaeology` · "Friends-only alpha", and nine passages about what the code replaced
+## F-common-hosts-9 · `alpha-and-archaeology` · "Friends-only alpha", and nine passages about what the code replaced — WORKED
 
-- `FaultModal.tsx`: **DONE.** "Harmless to ship for a friends-only alpha" went
-  with F-25, replaced by the reason the helper ships; "the same contract as the
-  manual pill mode this replaces" went with the `faults` group, and now says
-  why a backdrop click is inert without naming what it once matched.
-- `Toast.module.css`: "Mirrors the old invitation card look".
-- `TooltipHost.tsx`: "Why JS-positioned (vs the earlier pure-CSS `::after`
-  bubble)…" is a paragraph about the old bubble's failures; "matches the CSS
-  version it replaces"; "the old PauseButton special case, now automatic"; "the
-  old blanket touch gate".
-- `GameInvitations.tsx`: "Replaces the old auto-navigate-into-the-club's-game
-  behavior"; "This is now HEADLESS"; "(realtime + dedup, unchanged)"; "they're
-  no longer hidden behind an open chat panel".
-- `useGameInvitations.test.ts`: "Pre-fix this re-showed the invite".
-- `faultStore.test.ts`'s header: the `fault: true` flag that went 2026-09-01.
-  **Done with F-6**, which deleted the describe the paragraph existed to
-  explain.
+Each kept the reason that still holds and dropped the before. Where the reason
+only existed as a contrast with the old thing, it was rewritten as a claim
+about today — the tooltip is JS-positioned because CSS alone cannot see the
+viewport, not because an earlier bubble clipped; a touch bubble needs a
+dismissal of its own because it has no pointer-leave, not because a gate used
+to exist; the bubble flips below by measuring, so no anchor has to be marked as
+near the top.
 
-Each keeps the reason that still holds (the viewport clamp, why headless, why
-the press is claimed) and drops the before.
+Where each passage went:
 
-## F-common-hosts-10 · `popup-and-dialog-for-a-toast` · The invitations still call themselves a popup
+- `FaultModal.tsx` — "Harmless to ship for a friends-only alpha" with **F-25**,
+  replaced by the reason the helper ships; "the same contract as the manual pill
+  mode this replaces" with the **`faults` group**.
+- `faultStore.test.ts`'s header — with **F-6**, which deleted the describe the
+  paragraph existed to explain.
+- `useGameInvitations.test.ts`'s "Pre-fix this re-showed the invite" — with
+  **F-16**, which was already in that file.
+- `Toast.module.css`, `TooltipHost.tsx` (all four), `GameInvitations.tsx` (all
+  four) — with the **prose group**, alongside F-10, F-11 and F-18.
 
-`useGameInvitations.ts`: "the popup component renders the result", "`dismiss`
-just hides the popup", "the dialog's own Join"; its test: "the popup's
-`pending` state", "the dialog's own Join/dismiss". There is no popup — the
-invite is a toast, and `GameInvitations` is headless. One more in the same
-file: the last comment says "the effect above then removes the invite", and
-the block above is the render-time adjust that the same file explains is
-"rather than an effect".
+A sweep of all four folders for `popup`, "the old", "no longer", "used to",
+"Pre-fix" and "this replaces" now returns nothing.
 
-## F-common-hosts-11 · `stale-tooltip-writers` · `TooltipHost.tsx` names the wrong writers of `data-tooltip`
+## F-common-hosts-10 · `popup-and-dialog-for-a-toast` · The invitations still call themselves a popup — WORKED
+
+Five sites across `useGameInvitations.ts` and its test called the invite a
+popup with a dialog's Join. There is no popup — it is a toast, and
+`GameInvitations` is headless — so each now names what actually draws it.
+
+The second half was a contradiction rather than a word: the file's last comment
+said "the effect above then removes the invite", while the block above is the
+render-time adjust that the SAME file explains at length is used "rather than
+an effect". It says "the render-time prune above" now.
+
+## F-common-hosts-11 · `stale-tooltip-writers` · `TooltipHost.tsx` names the wrong writers of `data-tooltip` — WORKED
 
 "StandardButton wires `tooltip ?? label`; ShuffleButton / PauseButton carry
-theirs directly." `StandardButton`'s rule is `tooltip`, else the words when
-icon-only, else nothing, and `null` opts out; the two bespoke buttons get
-theirs from `actionSurface().buttonProps`, and `PageHeaderButton` writes its
-own. The docstring should say the attribute is written by the button
-components and `actionSurface`, and point at docs/ui.md → Conventions for the
-rule.
+theirs directly" was wrong twice: `StandardButton`'s rule is `tooltip`, else
+the words when icon-only, else nothing, with `null` opting out; and the two
+bespoke buttons get theirs from `actionSurface().buttonProps`, while
+`PageHeaderButton` writes its own. Rather than list four writers — a census
+that would rot on the fifth — the docstring now says the attribute is written
+by the button components and `actionSurface`, and points at docs/ui.md → Button
+iconography → Conventions for which of them puts what there.
 
 ## F-common-hosts-12 · `diagnostics-line-optional` · The modal's docstring promises a third line it renders conditionally — the todo's Bug, confirmed — WORKED
 
@@ -348,11 +354,12 @@ arrives, or the timer's goes. Replaced by the condition, which does not: a
 caller reaches past `reportDbFault` only when the words are already chosen —
 a sentence the server worded, or a diagnostics line built by hand.
 
-## F-common-hosts-18 · `stale-doc-pointers` · Two pointers that do not land
+## F-common-hosts-18 · `stale-doc-pointers` · Two pointers that do not land — WORKED
 
-`ToastHost.tsx`: "docs/ui.md → 'The page never scrolls'" — the heading is
-"Page-height fits the viewport". `toastStore.ts`: "(see docs/ui.md)" with no
-section, for the toasts-are-not-panels claim (it is docs/ui.md → Toasts).
+`ToastHost.tsx` cited a heading that does not exist — "The page never scrolls"
+is "Page-height fits the viewport" — and `toastStore.ts` pointed at the whole
+of docs/ui.md with no section for its toasts-are-not-panels claim. Both now
+name the section they mean.
 
 ## F-common-hosts-19 · `ruling-letter-unglossed` · "Joel's ruling D" — WORKED
 

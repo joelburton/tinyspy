@@ -8,7 +8,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * every source funnels into the ONE shared bottom-right stack (`<ToastHost>`).
  *
  * Toasts are for **announcements**, and are deliberately NOT floating panels
- * (see docs/ui.md): they can't be dragged, they live above everything (chat
+ * (docs/ui.md → Toasts): they can't be dragged, they live above everything (chat
  * included), they carry an X and an optional single action, and multiple ones
  * stack. See `Toast.tsx` (the card) + `ToastHost.tsx` (the fixed stack).
  *

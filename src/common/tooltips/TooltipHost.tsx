@@ -23,19 +23,18 @@ type Anchor = { el: Element; text: string }
 
 /**
  * The styled-tooltip renderer — the single host behind every `data-tooltip`
- * attribute (StandardButton wires `tooltip ?? label`; ShuffleButton /
- * PauseButton carry theirs directly). Mounted once in
- * App.tsx, like `<ToastHost>`.
+ * attribute. The attribute is written by the button components and by
+ * `actionSurface`; which of them puts what there is docs/ui.md → Button
+ * iconography → Conventions. Mounted once in App.tsx, like `<ToastHost>`.
  *
- * Why JS-positioned (vs the earlier pure-CSS `::after` bubble): a CSS bubble
- * can't see the viewport, so it overflowed off-screen near edges — the header
- * PauseButton needed a hand-placed `data-tooltip-below` variant, and a bubble
- * near a side edge just clipped. Here the bubble is measured and **clamped to
- * the viewport**: above the anchor by default, flipped below when there's no
- * room on top, x pinned inside the edges. Bonus: `position: fixed` in a body
- * portal escapes `overflow: hidden` ancestors, which clipped the CSS version.
+ * Why JS-positioned: a bubble drawn in CSS alone cannot see the viewport, so
+ * it has no way to stay on screen near an edge. Here it is measured and
+ * **clamped to the viewport** — above the anchor by default, flipped below
+ * when there's no room on top, x pinned inside the edges — and `position:
+ * fixed` in a body portal keeps an `overflow: hidden` ancestor from clipping
+ * it.
  *
- * Interaction contract (matches the CSS version it replaces): shows after a
+ * Interaction contract: shows after a
  * short beat on hover or keyboard focus (`:focus-visible` only — a mouse
  * click's focus doesn't count); hides instantly on leave/blur/scroll/press.
  * Delegated listeners on the document, so it costs one host regardless of how
@@ -125,8 +124,8 @@ export function TooltipHost() {
     // glyph (unlike a tap-to-reveal, which would tax every future tap).
     //
     // The bubble is dismissed by the next touch anywhere. That end matters: a
-    // touch bubble has no pointer-leave to close it, and a stuck bubble is the
-    // exact failure the old blanket touch gate existed to avoid.
+    // touch bubble has no pointer-leave to close it, so without a dismissal of
+    // its own it would simply stay up.
     let pressTimer: number | undefined
     let pressStart: { x: number; y: number } | null = null
     let suppressClick = false
@@ -241,8 +240,8 @@ export function TooltipHost() {
       Math.max(r.left + r.width / 2 - w / 2, EDGE_MARGIN_PX),
       window.innerWidth - w - EDGE_MARGIN_PX,
     )
-    // Above by default; below when the top edge is too close (the old
-    // PauseButton special case, now automatic for any anchor).
+    // Above by default; below when the top edge is too close — measured, so
+    // it holds for any anchor without one being marked as near the top.
     const above = r.top - h - GAP_PX
     const y = above >= EDGE_MARGIN_PX ? above : r.bottom + GAP_PX
     node.style.left = `${x}px`

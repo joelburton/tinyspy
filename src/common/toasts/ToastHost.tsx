@@ -17,7 +17,7 @@ import styles from './ToastHost.module.css'
  *
  * Layout invariant: the host is content-sized but capped to the viewport and
  * scrolls INTERNALLY past that, so even a flood of toasts never makes the whole
- * PAGE scroll (see docs/ui.md → "The page never scrolls").
+ * PAGE scroll (see docs/ui.md → Page-height fits the viewport).
  */
 export function ToastHost() {
   const toasts = useToasts()
