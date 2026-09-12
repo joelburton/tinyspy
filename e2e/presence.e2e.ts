@@ -25,16 +25,16 @@ test.describe('club presence', () => {
     await pageB.goto(`/c/${club.handle}`)
 
     // Both are on the club page → on Alice's strip, Bob's dot is
-    // filled ("In the club"). The member entry carries that title.
+    // filled ("In the club"). The member entry carries that hover text.
     await expect(
-      pageA.getByTitle('In the club').filter({ hasText: bob.username }),
+      pageA.locator('[data-tooltip="In the club"]').filter({ hasText: bob.username }),
     ).toBeVisible()
 
     // Bob disconnects (closes his context) → his presence expires →
     // on Alice's strip his dot becomes the hollow "Away" outline.
     await ctxB.close()
     await expect(
-      pageA.getByTitle('Away').filter({ hasText: bob.username }),
+      pageA.locator('[data-tooltip="Away"]').filter({ hasText: bob.username }),
     ).toBeVisible()
 
     await ctxA.close()
@@ -58,12 +58,12 @@ test.describe('club presence', () => {
     await page.goto(`/c/${club.handle}`)
 
     await expect(
-      page.getByTitle('In the club').filter({ hasText: alice.username }),
+      page.locator('[data-tooltip="In the club"]').filter({ hasText: alice.username }),
     ).toBeVisible()
     // Bob's presence is something only the server can report, so his dot
     // stays hollow — "present" here is a claim about self, not about everyone.
     await expect(
-      page.getByTitle('Away').filter({ hasText: bob.username }),
+      page.locator('[data-tooltip="Away"]').filter({ hasText: bob.username }),
     ).toBeVisible()
 
     await ctx.close()

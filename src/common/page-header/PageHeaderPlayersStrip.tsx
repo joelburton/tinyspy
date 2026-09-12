@@ -42,7 +42,9 @@ export function PageHeaderPlayersStrip({ players, presentUserIds }: Props) {
           <span
             key={p.user_id}
             className={styles.entry}
-            title={
+            // The styled hover bubble (TooltipHost), the same mechanism every
+            // other hover text in the header uses — never the native `title`.
+            data-tooltip={
               presentUserIds
                 ? present
                   ? 'In the club'

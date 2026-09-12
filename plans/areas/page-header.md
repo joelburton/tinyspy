@@ -7,9 +7,12 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN 2026-09-12; AUDITED the same day.** Thirteen files read in one
 sitting, with their six callers (home, club and game pages; the pause and
 info-switch marks; the game menu wrapper), the three ui.md sections that
-describe the header, and the tokens the folder reads. Fifteen findings: the
-prose pass and three no-decision fixes WORKED in the sitting, five OPEN for
-Joel — the area's own question first.
+describe the header, and the tokens the folder reads. Fifteen findings, all
+settled the same day: the prose pass and three no-decision fixes WORKED in
+the sitting; of the five put to Joel, two WORKED (the strip ellipsizes; the
+presence hint is a `data-tooltip`) and three CLOSED with no change (the mark
+gap, the badge's sizes, the strip's spacings — each now a stated decision).
+Left: the closing re-read, the `doc.md` Design (F-15), and the blessing.
 
 ## The roster
 
@@ -167,7 +170,7 @@ two digits, and `50%` would draw an oval. It is a lozenge, which is what the
 token is for. The literal is the token, the allowlist line is gone, and the
 comment on the remaining writer (`ShuffleButton`) says why this one left.
 
-## F-page-header-6 · `badge-type-literals` · The unread count's `0.7rem` type and `1.1rem` box are on the guard's pending lists
+## F-page-header-6 · `badge-type-literals` · The unread count's `0.7rem` type and `1.1rem` box are on the guard's pending lists — CLOSED, NO CHANGE
 
 Both sit in `vocabularies.test.ts` under `pending` — the type ramp's and the
 line-height's — for this area to settle. The ramp's smallest step is
@@ -186,7 +189,15 @@ Options:
 3. **Both on the ramp** — `--font-size-3` and a box of `--spacer-2` (1rem).
    A tighter badge; two digits get cramped.
 
-## F-page-header-7 · `strip-spacing-literals` · The strip's three spacings — `1.25rem` between players, `0.4rem` dot-to-name, `0.6rem` between dots on a phone — are on the guard's pending list
+**DECIDED 2026-09-12 — option 2.** Both stay bespoke. The two allowlist
+entries now say so and why (the app's smallest type, the same 0.7rem the
+badge pattern wears; a leading that IS the box height), and the
+`.unreadPill` rule's comment carries the same reason in the file, which is
+what the guard's `fix` line asks for. Nothing visible changed. Noted for
+`core-css`: the badge pattern and this chip agree on 0.7rem, which is the
+argument for a fourth ramp step if a third site ever wants it.
+
+## F-page-header-7 · `strip-spacing-literals` · The strip's three spacings — `1.25rem` between players, `0.4rem` dot-to-name, `0.6rem` between dots on a phone — are on the guard's pending list — CLOSED, NO CHANGE
 
 None is a ramp step (`1.5 / 1 / 0.75 / 0.5 / 0.25`). The spacer allowlist
 carries them as unconverted, not as decided.
@@ -204,7 +215,11 @@ Options:
    **Recommended** — the same reasoning `0.375rem` got; the guard's job is
    to make a bespoke number a stated one, not to force a ramp.
 
-## F-page-header-8 · `presence-hint-native-title` · The club strip's "In the club" / "Away" hover text is a native `title`, where every other hover text in the shell is a `data-tooltip`
+**DECIDED 2026-09-12 — option 2, keep them.** The allowlist entry says
+bespoke by decision and why; the `.entry + .entry` rule's comment carries the
+reason in the file. Nothing visible changed.
+
+## F-page-header-8 · `presence-hint-native-title` · The club strip's "In the club" / "Away" hover text is a native `title`, where every other hover text in the shell is a `data-tooltip` — WORKED
 
 `<PageHeaderButton>`'s own comment says why the shell moved off `title`:
 "the native `title`, which some browsers delay past noticing". The strip's
@@ -220,6 +235,12 @@ Options:
    calls that the whole signal. Nothing hovers on a phone anyway.
 3. **Leave it.** Desktop-only, and the native delay is a nuisance rather than
    a defect.
+
+**DECIDED and built 2026-09-12 — option 1.** The entry's `title` is
+`data-tooltip`, same two strings, with a comment saying it is the header's one
+hover mechanism. `e2e/presence.e2e.ts` located the entries by `getByTitle` at
+four sites; each is now `locator('[data-tooltip="…"]')` with the same text
+filter. Not run yet — see Predicted test breaks.
 
 ### Prose
 
@@ -283,9 +304,12 @@ is on `DESIGNS_OWED` until then.
 
 ## Predicted test breaks
 
-None yet. F-1 option 1 moves `--pageHeader-height` by 1.6px, which the mobile
-specs that assert the info sheet's position could notice; named when it is
-decided.
+- `e2e/presence.e2e.ts` — changed with F-8 (four `getByTitle` → attribute
+  locators). Not run; ask before running.
+- `e2e/club-keyboard.e2e.ts` reaches the header by "Close chat" and was red
+  before this area (3 of 4, focus-ring assertions). Not this area's.
+- F-2 changed the strip's box model; no spec asserts the strip's layout, and
+  the presence spec above is the only one that reads its entries.
 
 ## Closing
 

@@ -25,7 +25,9 @@
   white-space: nowrap;
 }
 
-/* Space between players. */
+/* Space between players. This, the dot-to-name margin below and the phone's
+ * dots-only spacing are bespoke by decision, not ramp steps: a row of
+ * identity marks, tuned by eye against the dot's 0.85rem. */
 /* @@ */ .entry + .entry {
   margin-left: 1.25rem;
 }

@@ -24,7 +24,12 @@
  * color, so a red pill could be mistaken for, or clash with, the
  * bubble's sender-color fill). A white count on black reads as
  * "unread" against any fill. Sits half-off the corner like a
- * notification badge. */
+ * notification badge.
+ *
+ * Its sizes are its own, by decision: the type is the app's smallest (the
+ * badge pattern's 0.7rem, below the ramp's last step), and the chip is a
+ * 1.1rem box whose leading equals its height so the digits center in it.
+ * A lozenge, not a circle — `min-width` lets two digits widen it. */
 /* @@ */ .unreadPill {
   position: absolute;
   top: -3px;

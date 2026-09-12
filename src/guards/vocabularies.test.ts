@@ -303,6 +303,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/info-sheet/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
       'src/common/game-page/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
+      // The players strip's three spacings are BESPOKE by decision (Joel,
+      // 2026-09-12), not unconverted: a row of identity marks, tuned by eye
+      // against the dot's 0.85rem — between players, dot to name, and between
+      // dots alone on a phone. See the file.
       'src/common/page-header/PageHeaderPlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
       'src/shared/rank-ladder/RankBar.module.css': ['8px', '0.5rem'],
       'src/shared/rank-ladder/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
@@ -347,6 +351,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/core-css/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
       'src/common/buttons/ShuffleButton.module.css': ['32px'],
       'src/common/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
+      // The chat unread count is BESPOKE by decision (Joel, 2026-09-12), not
+      // unconverted: the app's smallest type, on a chip that is its own size —
+      // the same 0.7rem the badge pattern wears, below the ramp's last step.
       'src/common/page-header/ChatButton.module.css': ['0.7rem'],
       'src/common/club/clubFilters.module.css': ['max(16px,', '1em)', '0.9rem'],
       'src/common/club/ClubGameCard.module.css': ['1.25rem', '0.85rem'],
@@ -398,6 +405,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/buttons/ShuffleButton.module.css': ['1'],
       // The textarea's leading, moved up from CreateClubModal with <TextField>.
       'src/common/chat/ChatBody.module.css': ['1.35'],
+      // The chat unread count's leading IS its box height, so the digits center
+      // in the chip. BESPOKE by decision (Joel, 2026-09-12): the chip is its own
+      // size, and no ratio expresses "as tall as the box".
       'src/common/page-header/ChatButton.module.css': ['1.1rem'],
       'src/common/club/ClubGameCard.module.css': ['1.2', '1.25'],
       'src/common/club/ClubGameRow.module.css': ['1.2', '1.25'],
