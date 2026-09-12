@@ -503,10 +503,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // opponent strip already ticks, and a message for every rival claim would
   // be a running commentary on the one activity that needs concentration.
   //
-  // OFF in turn-by-turn coop, where the same header slot carries "Waiting for
-  // ● Name…" (below). The narration is redundant there anyway: the note
-  // renaming itself IS the news that the previous player claimed, and the log
-  // and counts both say so.
+  // OFF in turn-by-turn coop, where the narration is redundant: the waiting
+  // note renaming itself IS the news that the previous player claimed, and
+  // the log and counts both say so.
   usePeerFeedback({
     enabled: game?.mode === 'coop' && currentTurnUserId === null,
     ready: !loading,
@@ -525,11 +524,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // its cleanup — a slot draws whichever ranks highest. Above the early
   // returns because effects must be.
 
-  // "Waiting for ● Name…" — in the HEADER, setgame's one departure: the
-  // below-board slot here carries the your-turn prompt instead (see the
-  // doc's turn-order table). Deps are PRIMITIVES — the holder's name and
-  // color, not the member object — so a fresh `players` array on a re-render
-  // doesn't look like a change.
+  // "Waiting for ● Name…" — below the board, and it shares that slot with the
+  // your-turn prompt below, which is safe because the two are exclusive on
+  // `isMyTurn`. Deps are PRIMITIVES — the holder's name and color, not the
+  // member object — so a fresh `players` array on a re-render doesn't look
+  // like a change.
   const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
@@ -538,15 +537,15 @@ export function PlayArea(ctx: GamePageCtx) {
   const waiting = isTurnGame && !isMyTurn && !isTerminal
   useEffect(function showWaiting() {
     if (!waiting) return
-    const id = globalFeedbackSlot.show(
+    const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     // The cleanup covers every way the wait can end — the turn arriving, the
     // game finishing, a peer conceding, leaving the page.
-    return () => globalFeedbackSlot.retract(id)
-  }, [globalFeedbackSlot, waiting, holderName, holderColor])
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. The compete names are reduced to strings here.
@@ -593,8 +592,8 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [localFeedbackSlot, isLocallyDone])
 
   // In turn-by-turn coop the slot prompts you when the table is waiting on
-  // YOU — the counterpart to the faded board and the header's "Waiting for
-  // ● Name…" while it isn't. A `prompt`, which everything else outranks:
+  // YOU — the counterpart to the faded board and to "Waiting for ● Name…"
+  // while it isn't. A `prompt`, which everything else outranks:
   // "Not a set" and "Someone got there first" both land while it is your
   // turn, and show over it rather than being evicted by it.
   const myMove = isTurnGame && isMyTurn && !isTerminal && !isLocallyDone

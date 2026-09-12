@@ -79,7 +79,7 @@ describe('useTopFeedbackMessage', () => {
     )
     expect(result.current).toBeNull()
     rerender({ waiting: true })
-    expect(result.current?.kind).toBe('standingNote')
+    expect(result.current?.kind).toBe('waiting')
     rerender({ waiting: false })
     expect(result.current).toBeNull()
   })

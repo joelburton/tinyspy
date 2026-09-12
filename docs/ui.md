@@ -57,6 +57,8 @@ A uniformly-styled component that carries every game's transient and permanent f
 
 The **same pill serves both feedback slots** — two role phrases we use consistently, naming *where feedback appears*: the **global feedback slot** — `<PageHeaderStatusSlot>` in the page header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat news (not the player's own moves) — and the **local feedback slot** — a fixed-height slot in the `belowBoard` region, centered, for the player's *own* results and standing conditions. In the header, a showing message replaces the default `<PageHeaderPlayersStrip>` content; when the slot empties, the strip reappears.
 
+The split is by **who the message is about**, and "Waiting for ● moth…" is the case that tests it: it names a peer but it is *your* standing condition — it says you cannot act — so it goes in the **local** slot, in every game. What earns the header is news the other player generated: their move narrated, their chat line, or a description of what they are doing that changes as they do it (codenamesduet's "● moth writing clue" versus "● moth guessing"). A message that holds the header holds it *against* chat and narrations and keeps the players strip hidden, so nothing goes there for the length of a game.
+
 **A slot holds every live message and draws the one that ranks highest.** A message is a `FeedbackMessage`, made by one of its named constructors and never by hand; each constructor names a **kind**, and the kind decides everything about how the message looks and leaves. A call site names what happened and shows it:
 
 ```ts
@@ -73,7 +75,7 @@ useEffect(function showWaiting() {
 }, [localFeedbackSlot, waiting, member])
 ```
 
-**The kinds**, lowest rank on top. Two messages of the same rank replace each other; different ranks stack, and the lower one shows again when the upper leaves.
+**The kinds**, lowest rank on top. A rank is a priority and nothing more: showing a message never takes another down, so messages stack and the one underneath is drawn again when the upper one leaves. Two kinds share a rank only where neither outranks the other, and the slot then draws the newest.
 
 | kind | what it is | look | rank | leaves by | constructors |
 |---|---|---|---|---|---|
@@ -82,11 +84,15 @@ useEffect(function showWaiting() {
 | `standingState` | out while the others race on; sudden death | **fill** | 30 | its owner | `outOfRace(myConceded, activeText?)` · `standingState(outcome, text)` |
 | `result` | what your last action did, in the FE's own words | outline | 40 | your next action: any key, a tile click, a tap | `result(outcome, text)` |
 | `acknowledgment` | a success you already saw on the board | outline | 40 | a timer, 1.4s | `acknowledgment(outcome, text)` |
-| `hint` | priced help you asked for, kept while you hunt | outline | 50 | the × — a stray key must not cost you what you paid for | `hint(outcome, text)` |
-| `standingNote` | a state you are in until something changes | outline, neutral | 60 | its owner | `waiting(member)` · `peerStatus(member, text)` · `note(text)` |
+| `hint` | a hint you asked for, kept while you hunt | outline | 50 | the × — a stray key must not cost you what you paid for | `hint(outcome, text)` |
+| `waiting` | whose turn it is, when it isn't yours | outline, neutral | 55 | its owner | `waiting(member)` |
+| `standingNote` | a state the board is in until something changes | outline, neutral | 60 | its owner | `note(text)` |
 | `prompt` | what an empty slot says | outline, neutral | 70 | its owner | `prompt(text)` |
+| `chat` | a chat line, "● **moth**: hi" | outline, neutral | 75 | a timer, 2s | `chat(member, text)` |
 | `peer` | a peer did something; the header says so | outline | 80 | a timer, 3s | `peer(member, outcome, text)` |
-| `chat` | a chat line, "● **moth**: hi" | outline, neutral | 80 | a timer, 2s | `chat(member, text)` |
+| `peerStatus` | what a peer is doing right now | outline, neutral | 85 | its owner | `peerStatus(member, text)` |
+
+**Three of those ranks answer a question the others don't raise.** `waiting` sits above `standingNote` because when both are true it is not your turn, so a note about the board describes something you couldn't act on anyway and the wait is what explains the screen. `chat` sits above `peer` because a person typing at you outranks an automatic narration. And `peerStatus` sits at the bottom of the header because it is background — a standing description of what someone else is doing — so every piece of news shows over it, and it is drawn again when the news fades.
 
 Every constructor takes a trailing `overrides` — any of fill, rank, leaves-by, duration, outcome — for the rare site that has to bend its kind, in the open. The table itself is `KINDS` in [`FeedbackMessage.tsx`](../src/common/feedback/FeedbackMessage.tsx), and a message's getters read it.
 
@@ -100,7 +106,7 @@ The ×-cleared kinds keep the `×` as their only target — a `notOk` or a `hint
 
 **Semantics:**
 
-- `show(feedbackMsg)` returns an id; `retract(id)` takes a message back. A message of the same rank as a live one replaces it; a different rank stacks.
+- `show(feedbackMsg)` returns an id; `retract(id)` takes a message back. Showing never removes anything: every live message stays until its own exit, and the slot simply draws the lowest rank (newest, within a rank).
 - The slot lives in its host — `useFeedbackSlot('local')` in a PlayArea, `useFeedbackSlot('global')` in a page — and dies with it, timers and all. The page hands its instance down as `ctx.globalFeedbackSlot`.
 - **Pause transitions don't clear feedback.** `<PauseOverlay>` covers the play surface, not the header; a showing message stays readable through a pause/resume cycle. A message that shouldn't survive a pause is its owner's to retract.
 - `window.puppill('hey', 'hint')` from the console shows a message into a mounted slot, the way `puptoast` does for toasts.

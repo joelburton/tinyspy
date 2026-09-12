@@ -12,10 +12,10 @@ import type { FeedbackMessage } from './FeedbackMessage'
  * the player's two ways out, a gesture and the ×, each honored only by the
  * kinds that leave that way. The pill subscribes to `top`.
  *
- * Two rules, and they are the whole design of the list:
- *   - the slot draws the LOWEST rank; ties go to the newest;
- *   - showing a message retracts any live message of the SAME rank, so a
- *     second "Not a word" replaces the first instead of queueing behind it.
+ * One rule, and it is the whole design of the list: the slot draws the LOWEST
+ * rank, and ties go to the newest. Nothing is discarded on the way in — a
+ * message leaves only the way its kind says it leaves, so when the message on
+ * top is retracted, whatever is still live underneath is drawn again.
  *
  * This is the toast store's shape held per instance rather than as a module
  * singleton, because a slot must die with its PlayArea or page: `destroy()`
@@ -83,10 +83,6 @@ export function createFeedbackSlot(name: SlotName): FeedbackSlot {
 
   function show(message: FeedbackMessage): string {
     const id = `${name}-${++seq}`
-    // One message per rank: the newcomer replaces whatever shares its rank.
-    for (const entry of entries) {
-      if (entry.message.rank === message.rank) drop(entry.id)
-    }
     entries = [...entries, { id, message }]
     if (message.leavesBy === 'timer' && message.ms !== null) {
       timers.set(id, setTimeout(() => retract(id), message.ms))

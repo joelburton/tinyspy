@@ -35,8 +35,8 @@ export type LeavesBy =
 
 /**
  * The buckets of behavior. A kind is not a shape of words: several
- * constructors make messages of one kind (`waiting`, `peerStatus` and `note`
- * are all a `standingNote`). What a kind decides is the row in `KINDS`.
+ * constructors can make messages of one kind (`outOfRace` and `standingState`
+ * are both a `standingState`). What a kind decides is the row in `KINDS`.
  */
 export type Kind =
   | 'notOk'
@@ -45,19 +45,21 @@ export type Kind =
   | 'result'
   | 'acknowledgment'
   | 'hint'
+  | 'waiting'
   | 'standingNote'
   | 'prompt'
-  | 'peer'
   | 'chat'
+  | 'peer'
+  | 'peerStatus'
 
 /** What a kind decides for every message of it. */
 export type KindDefaults = {
   // The tinted background — worn only by a state that is final for you.
   fill: boolean
-  // Which live message the slot draws: LOWER shows over higher. Spaced by
-  // ten so a kind can be moved by editing one number; two kinds share a rank
-  // only where replacing each other is wanted (a slot keeps one message per
-  // rank).
+  // Which live message the slot draws: LOWER shows over higher. A rank is a
+  // priority and nothing more — showing a message never takes another down —
+  // so two kinds may share one where neither outranks the other, and the slot
+  // then draws the newest. Spaced by ten to leave room between two.
   rank: number
   leavesBy: LeavesBy
   // Read only when `leavesBy` is `'timer'`.
@@ -83,20 +85,30 @@ export const KINDS: Record<Kind, KindDefaults> = {
   // What your last action did, in the FE's own words.
   result:          { fill: false, rank: 40, leavesBy: 'gesture', ms: null, outcome: null },
   // A success you already saw on the board, said once and gone. Shares the
-  // result's rank so an own-move thing replaces an own-move thing.
+  // result's rank: two ways of saying what your last action did, neither
+  // above the other.
   acknowledgment:  { fill: false, rank: 40, leavesBy: 'timer',   ms: 1400, outcome: null },
-  // Priced help you asked for, kept up while you hunt with it. Below results
-  // so "Not a word" shows over it and the hint is back when that clears.
+  // A hint you asked for, kept up while you hunt with it. Below results so
+  // "Not a word" shows over it and the hint is back when that clears.
   hint:            { fill: false, rank: 50, leavesBy: 'close',   ms: null, outcome: null },
-  // A state you are in until something changes; no fill because it is not final.
+  // Whose turn it is, when it is not yours. Above a board note: when both are
+  // true it is not your turn, so the note describes something you could not
+  // act on anyway and the wait is what explains the screen.
+  waiting:         { fill: false, rank: 55, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
+  // A state the BOARD is in until something changes; no fill because it is
+  // not final.
   standingNote:    { fill: false, rank: 60, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
   // What an empty slot says. Everything outranks it.
   prompt:          { fill: false, rank: 70, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
+  // A chat line, announced in the header. Above a narration: a person typing
+  // at you outranks an automatic one.
+  chat:            { fill: false, rank: 75, leavesBy: 'timer',   ms: 2000, outcome: 'neutral' },
   // A peer did something; the header says so and lets it fade.
   peer:            { fill: false, rank: 80, leavesBy: 'timer',   ms: 3000, outcome: null },
-  // A chat line, announced in the header. Shares the peer rank: a chat line
-  // replaces a narration, as it always has.
-  chat:            { fill: false, rank: 80, leavesBy: 'timer',   ms: 2000, outcome: 'neutral' },
+  // What a peer is doing right now, kept up while they do it. The bottom of
+  // the header: every piece of news shows over it, and it is drawn again when
+  // the news fades.
+  peerStatus:      { fill: false, rank: 85, leavesBy: 'owner',   ms: null, outcome: 'neutral' },
 }
 
 /**
@@ -182,21 +194,16 @@ export class FeedbackMessage {
     return new FeedbackMessage('acknowledgment', text, undefined, defaultsFor('acknowledgment', outcome, overrides))
   }
 
-  // ── rank 50 and 60: what you asked for; the state you are stuck in ──
+  // ── rank 50 to 60: what you asked for; whose turn it is; the board's state ──
 
-  /** Priced help you asked for. Stays until its ×, so a stray key can't cost you what you paid for. */
+  /** A hint you asked for. Stays until its ×, so a stray key can't cost you what you paid for. */
   static hint(outcome: Outcome, text: ReactNode, overrides?: Overrides): FeedbackMessage {
     return new FeedbackMessage('hint', text, undefined, defaultsFor('hint', outcome, overrides))
   }
 
   /** "Waiting for ● moth…" — the mention is mid-sentence, so no actor. */
   static waiting(member: Actor | undefined, overrides?: Overrides): FeedbackMessage {
-    return new FeedbackMessage('standingNote', waitingForText(member), undefined, defaultsFor('standingNote', null, overrides))
-  }
-
-  /** What a peer is doing right now: `peerStatus(partner, 'writing clue')` → "● moth writing clue". */
-  static peerStatus(member: Actor | undefined, text: string, overrides?: Overrides): FeedbackMessage {
-    return new FeedbackMessage('standingNote', text, member, defaultsFor('standingNote', null, overrides))
+    return new FeedbackMessage('waiting', waitingForText(member), undefined, defaultsFor('waiting', null, overrides))
   }
 
   /** A state you are stuck in, in the game's words: "Chain is full — remove a word". */
@@ -204,7 +211,7 @@ export class FeedbackMessage {
     return new FeedbackMessage('standingNote', text, undefined, defaultsFor('standingNote', null, overrides))
   }
 
-  // ── rank 70 and 80: what an empty slot says; what the others are doing ──
+  // ── rank 70 to 85: what an empty slot says; what the others are doing ──
 
   /** What an empty slot says: "Waiting for your move". */
   static prompt(text: ReactNode, overrides?: Overrides): FeedbackMessage {
@@ -214,6 +221,16 @@ export class FeedbackMessage {
   /** A peer did something: `peer(moth, 'won', 'found APPLE +7')` → "● moth found APPLE +7". */
   static peer(member: Actor | undefined, outcome: Outcome, text: ReactNode, overrides?: Overrides): FeedbackMessage {
     return new FeedbackMessage('peer', text, member, defaultsFor('peer', outcome, overrides))
+  }
+
+  /**
+   * What a peer is doing right now: `peerStatus(partner, 'writing clue')` →
+   * "● moth writing clue". Not a `waiting` — this one names WHICH of several
+   * things the peer is doing, so it is news about them rather than the fact
+   * that you cannot act, and it ranks below every other piece of news.
+   */
+  static peerStatus(member: Actor | undefined, text: string, overrides?: Overrides): FeedbackMessage {
+    return new FeedbackMessage('peerStatus', text, member, defaultsFor('peerStatus', null, overrides))
   }
 
   /**

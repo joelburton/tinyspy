@@ -91,25 +91,29 @@ describe('FeedbackMessage — each constructor and its kind', () => {
     expect(msg.leavesBy).toBe('close')
   })
 
-  it('waiting, peerStatus and note are all standingNotes, neutral', () => {
+  it('waiting is its own kind, above a board note, and sets no actor', () => {
     const w = FeedbackMessage.waiting(moth)
-    const p = FeedbackMessage.peerStatus(moth, 'writing clue')
-    const n = FeedbackMessage.note('Chain is full — remove a word')
-    for (const m of [w, p, n]) {
-      expectRow(m, 'standingNote')
-      expect(m.outcome).toBe('neutral')
-    }
-    // The mention sits mid-sentence in "Waiting for ● moth…", so that one
-    // builds its node and sets no actor; peerStatus leads with the person.
+    expectRow(w, 'waiting')
+    expect(w.outcome).toBe('neutral')
+    // Whose turn it is outranks a note about the board: when both are true it
+    // is not your turn, so the note describes what you could not act on.
+    expect(w.rank).toBeLessThan(KINDS.standingNote.rank)
+    // The mention sits mid-sentence in "Waiting for ● moth…", so this one
+    // builds its node rather than setting an actor.
     expect(w.actor).toBeUndefined()
-    expect(p.actor).toBe(moth)
-    expect(p.text).toBe('writing clue')
   })
 
-  it('prompt is the bottom of the pile', () => {
+  it('note is a standingNote, neutral', () => {
+    const n = FeedbackMessage.note('Chain is full — remove a word')
+    expectRow(n, 'standingNote')
+    expect(n.outcome).toBe('neutral')
+  })
+
+  it('prompt is the bottom of the local slot: every own-move message shows over it', () => {
     const msg = FeedbackMessage.prompt('Waiting for your move')
     expectRow(msg, 'prompt')
     expect(msg.rank).toBeGreaterThan(KINDS.standingNote.rank)
+    expect(msg.rank).toBeGreaterThan(KINDS.waiting.rank)
   })
 
   it('peer leads with the actor and takes its outcome per message', () => {
@@ -125,6 +129,18 @@ describe('FeedbackMessage — each constructor and its kind', () => {
     expectRow(msg, 'chat')
     expect(msg.actor).toBeUndefined()
     expect(msg.ms).toBe(2000)
+    // A person typing at you outranks an automatic narration.
+    expect(msg.rank).toBeLessThan(KINDS.peer.rank)
+  })
+
+  it('peerStatus is the bottom of the header: every piece of news shows over it', () => {
+    const msg = FeedbackMessage.peerStatus(moth, 'writing clue')
+    expectRow(msg, 'peerStatus')
+    expect(msg.actor).toBe(moth)
+    expect(msg.text).toBe('writing clue')
+    expect(msg.outcome).toBe('neutral')
+    expect(msg.rank).toBeGreaterThan(KINDS.chat.rank)
+    expect(msg.rank).toBeGreaterThan(KINDS.peer.rank)
   })
 })
 
@@ -158,9 +174,11 @@ describe('KINDS — the table’s own invariants', () => {
     }
   })
 
-  it('ranks are spaced so a kind can be moved by editing one number', () => {
+  it('ranks leave room between neighbors, so a new kind can be slotted between two', () => {
     const ranks = [...new Set(Object.values(KINDS).map((r) => r.rank))].sort((a, b) => a - b)
-    for (let i = 1; i < ranks.length; i++) expect(ranks[i] - ranks[i - 1]).toBeGreaterThanOrEqual(10)
+    // Tens originally, and three of those gaps have since been spent on
+    // `waiting`, `chat` and `peerStatus`. Five is still room for one more.
+    for (let i = 1; i < ranks.length; i++) expect(ranks[i] - ranks[i - 1]).toBeGreaterThanOrEqual(5)
   })
 
   it('only the two final states wear the fill', () => {

@@ -19,9 +19,10 @@ closeContextsAfterEach()
  *
  *   1. the board FADES for the player who is waiting (setgame's one deliberate
  *      exception to "a card never dims", since color is one of its attributes)
- *   2. the below-board pill prompts the player whose turn it IS
- *      ("Waiting for your move") — the fallback, below any own-move result
- *   3. the header pill names who the waiting player is waiting FOR
+ *   2. the below-board pill says one of two things, depending on which side of
+ *      the hand-off you are on: "Waiting for your move" for the mover — the
+ *      fallback, below any own-move result — or who they are waiting FOR
+ *   3. the info column's TurnStatusLine says the same as (2)
  *
  * Both players stay connected throughout, or presence-pause would take the
  * board away and none of the above would be on screen.
@@ -61,8 +62,8 @@ test.describe('setgame turn order (coop)', () => {
 
     // ── (2) The mover is prompted; (3) the waiter is told who by. ──
     await expect(pageA.getByText('Waiting for your move')).toBeVisible({ timeout: 15000 })
-    // Two surfaces on bob's screen: the header pill and the info column's
-    // TurnStatusLine. Both render the shared `waitingFor` copy.
+    // Two surfaces on bob's screen: the below-board pill and the info column's
+    // TurnStatusLine. Both render the shared waiting text.
     await expect(
       pageB.getByText(new RegExp(`Waiting for.*${alice.username}`)),
     ).toHaveCount(2, { timeout: 15000 })

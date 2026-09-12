@@ -130,6 +130,55 @@ Options:
 3. **Leave it** and record it in `feedback/todo.md`. The gap is one turn, in
    one mode, on one game.
 
+**DECIDED 2026-09-12, and none of the three:** a rank is a PRIORITY, and
+that is all it is. Sharing a rank says two kinds are equally important, which
+the tie rule already settles by drawing the newest; it was never meant to say
+the loser stops existing. Where two messages genuinely differ in importance,
+the answer is to give them different ranks, not to destroy one of them. So:
+
+- `KINDS.chat` moves from 80 to **75** — a person typing at you outranks an
+  automatic narration, which is a priority statement and belongs in the
+  number. A narration arriving mid-chat-line then waits underneath with its
+  own fuse burning, and shows for whatever time it has left, or is never seen
+  if it goes stale first. That is the right answer for ambient news.
+- The same-rank drop in `show` comes out. After the bump, no two kinds that
+  can be live together share a rank (`result` and `acknowledgment` do, but
+  each needs the gesture that clears the other), so the loop's only surviving
+  effect in the app is the letterboxed defect above.
+- **`waiting` becomes its own kind at rank 55**, above `standingNote` (60).
+  Removing the drop is not enough for letterboxed, because the tie rule —
+  newest wins — says nothing about two CONDITIONS: "newest" is whichever
+  effect React ran last, which is the order the two `useEffect`s happen to be
+  written in. Swapping `PlayArea.tsx:633` and `:648` would change the pill.
+  And the accident picks the wrong one: when both are true it is by
+  definition not your turn, so "Chain is full — remove a word" describes an
+  entry you could not type into anyway, while "Waiting for ● moth…" is what
+  explains the screen and is the only whose-turn indicator on a phone. Whose
+  turn it is outranks a note about the board, everywhere, so it is a rank and
+  not a per-site override. `waiting` already has its own constructor and its
+  own text builder; it gains a row in `KINDS` and nothing else changes at the
+  nine games that call it.
+- **`peerStatus` becomes its own kind at rank 85** — below `chat` (75) and
+  below `peer` (80). It is not the same message as `waiting`, and F-12 carries
+  the argument for why and what it fixes. `note` is then the only constructor
+  left making a `standingNote`.
+
+The table the three rows leave: `notOk` 10 · `terminalVerdict` 20 ·
+`standingState` 30 · `result` 40 · `acknowledgment` 40 · `hint` 50 ·
+**`waiting` 55** · `standingNote` 60 · `prompt` 70 · **`chat` 75** · `peer` 80
+· **`peerStatus` 85**.
+
+Two things fell out of settling this, and each is its own finding below: the
+routine-vs-achievement split inside `peer` (F-13), and setgame's standing
+note burying every header message for a whole turn (F-12).
+
+Worth recording, because it is what made the rule cheap to remove: WITHIN one
+kind, stacking and replacing are indistinguishable. Two chat lines a second
+apart share an `ms`, so the older fuse always burns out first and the second
+one's arrival is the only thing anyone sees either way. The drop only ever
+changed what a player saw across two kinds with different fuses at one rank —
+which was `peer`/`chat`, and nowhere else.
+
 ### Shape
 
 ## F-feedback-3 · `canned-not-ok-is-a-result` · The console's and the store test's "not-ok" are results wearing `notOk`'s row
@@ -289,6 +338,91 @@ trigger, the registry) under Details. `terminal/doc.md` and
 `info-sheet/doc.md` each need the one sentence saying `terminalMessage` /
 `turnText` lives there and that `feedback` owns its words — the plan's own
 rows already say so.
+
+## F-feedback-12 · `standing-notes-bury-the-header` · A standing message in the GLOBAL slot outranks chat and every narration for as long as it holds — two games do this
+
+Every rank below 75 beats the news, and two games park a standing message in
+the global slot and leave it there. While one is up, a chat line never pops
+and a peer's move is never narrated — the message is shown and live, it just
+never reaches the top, and a chat line's two seconds burn out underneath it
+unseen. Both games chose the header deliberately and documented it
+(`docs/games/setgame.md:196-217`, `docs/games/codenamesduet.md:514-518`), and
+setgame's doc even names the cost for peer narration and switches narration
+off in turn games. Neither doc accounts for CHAT, which `useChatFeedback`
+puts in the same slot and which no game can switch off.
+
+The two games are not the same case, and they get different answers (Joel,
+2026-09-12).
+
+**setgame — the placement is wrong; move `waiting` to the local slot.**
+Its "Waiting for ● Name…" carries nothing but "you cannot act right now"; it
+could as well read "it's not your turn". That is a condition of the player's,
+not news about a peer, so it belongs where every other game puts it. The
+below-board slot already holds setgame's "Waiting for your move" prompt, and
+the two are mutually exclusive — one is true exactly when the other is false
+— so they coexist without a rank fight (prompt 70, waiting 55). The header
+goes back to being news.
+
+Peer narration ("● moth found a set") stays OFF in turn games, and its reason
+was rewritten rather than deleted: the code gave two, and only the first
+dissolves with the move. What survives is that the narration is redundant
+there — the waiting note renaming itself IS the news that the previous player
+claimed, and the log and the counts both say so. Turning it back on is one
+flag, and nobody has argued for it on that ground.
+
+**codenamesduet — the placement is right; fix it with a rank.** Its
+`peerStatus` is genuinely different: the partner's turn is two distinct
+things, guessing your clue and then writing their own, and "● moth writing
+clue" vs "● moth guessing" narrates which. That is news about the peer, so
+the header is where it belongs and it is NOT the same message as `waiting`.
+What is wrong is only its rank: at 60 it outranks the news it sits among. It
+takes its own kind, `peerStatus`, ranked BELOW chat and below a narration —
+85 — so a chat line shows over it for its two seconds and the partner status
+is drawn again when the chat fades. That fall-back is exactly what removing
+the same-rank drop (F-2) buys, and it needs no slot move.
+
+**And duet's header sudden-death message is deleted, and nothing else in duet
+changes** (Joel, 2026-09-12). The `standingState` "Sudden death: wrong loses"
+(30, global, `PlayArea.tsx:193`) held the header for the rest of the game and
+buried chat exactly as `peerStatus` did, and it was never the primary surface:
+`CluePanel` replaces the below-board strip for the duration with "**Sudden
+death.** No more clues — any non-green reveal loses" (`CluePanel.tsx:111-117`),
+and the info column leads its help with a red **SUDDEN DEATH:** tag
+(`InfoCol.tsx:189`). Those two stay as they are. Deleting the header branch
+leaves `showTurnStatus` showing nothing during sudden death (`doing` is
+already null there), so the header falls back to the players strip and chat
+works again. The `standingState` KIND stays — `outOfRace` uses it in five
+games — this is one call site.
+
+Two alternatives were weighed and NOT taken, both deferred to duet's own area
+rather than settled from here: a rank override (`{ rank: 87 }`) keeping the
+header message below chat, and moving sudden death into the LOCAL slot as a
+standing state, which would have let the pill stack over it and retired
+`CluePanel`'s early return. The reason to defer: while a not-ok is open the
+pill takes the below-board strip, so the CluePanel line is off screen and the
+info column — off-canvas on a phone — is the only sudden-death signal left.
+That gap is transient and self-healing, and it is duet's question to answer
+with its own layout in front of it.
+
+## F-feedback-13 · `peer-lumps-a-feat-in-with-a-move` · "● moth reached Genius" and "● moth found APPLE +3" are the same kind at the same rank
+
+`peer` is one kind covering every "someone else did a thing", so a rank climb
+(`narrateRankClimbs`, spellingbee `PlayArea.tsx:471` and wordwheel `:477`) and
+a routine word narration (spellingbee `:440`) share rank 80 and a 3000ms fuse.
+They tie, so the newest wins: a word narration arriving half a second after a
+rank climb takes the header, and the climb is gone. In a busy compete
+spellingbee the ordinary narrations are the majority of the traffic.
+
+They are not equally important (Joel, 2026-09-12): a found word is visible in
+the word list anyway and another is along in ten seconds, while a climb
+happens once or twice a game and is the thing a player would react to. Same
+shape of answer as chat's: a priority difference belongs in the number.
+
+Open questions this needs before it can be built — which call sites are feats
+rather than moves (waffle's and wordle's "solved it" are candidates; every
+`+points` narration is not), what the constructor is called, and whether a
+feat outranks a chat line or sits just under it. A feat may also want a
+longer fuse than 3000ms if it is going to wait underneath a chat line at all.
 
 ## Notes
 

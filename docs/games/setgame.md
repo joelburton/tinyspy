@@ -195,8 +195,7 @@ roster's standard one (this section carries the argument; `FeedbackMessage.waiti
 | surface | when it's yours | when it isn't |
 |---|---|---|
 | the board | full color, live | **faded to 0.5**, inert |
-| below-board pill (local) | "Waiting for your move" | — |
-| header pill (global) | — | "Waiting for ● Name…" |
+| below-board pill (local) | "Waiting for your move" | "Waiting for ● Name…" |
 | info column line | "Your turn" | "Waiting for ● Name…" |
 
 Two departures worth knowing:
@@ -207,16 +206,17 @@ Two departures worth knowing:
   exception because the whole board fades together (nothing can be misread
   against an undimmed neighbor) and it is a state you wait through rather than
   study. Without it the board looks live and simply eats clicks.
-- **The waiting message moved to the header, and a your-turn prompt took its
-  place below the board.** Elsewhere the wait is the below-board message and
-  there is no your-turn prompt at all, deliberately: a permanent one would evict
-  the own-move results that land exactly when it IS your turn. Here it is a
-  `prompt`, the kind everything else outranks — "Not a set" and "Someone got
-  there first" show over it — so rank buys what absence bought there
-  ([ui.md → Feedback pill](../ui.md#feedback-pill)). The cost is real and worth
-  naming: a standing header message occupies the slot the players strip lives
-  in, so a waiting player doesn't see the strip. Peer narration ("● moth found a
-  set") is therefore switched OFF in turn games — the wait is the better tenant.
+- **A your-turn prompt, which no other game has.** Elsewhere there is none,
+  deliberately: a permanent one would evict the own-move results that land
+  exactly when it IS your turn. Here it is a `prompt`, the kind everything else
+  outranks — "Not a set" and "Someone got there first" show over it — so rank
+  buys what absence bought there ([ui.md → Feedback
+  pill](../ui.md#feedback-pill)). It shares the below-board slot with the
+  waiting message, which is safe because the two are exclusive: one is true
+  exactly when the other is false. Peer narration ("● moth found a set") stays
+  switched OFF in turn games, for its own reason — the waiting message renaming
+  itself IS the news that the previous player claimed, and the log and the
+  counts both say so.
 
 `e2e/setgame-turn-order.e2e.ts` drives two live clients and pins all three
 surfaces on both sides of a hand-off.

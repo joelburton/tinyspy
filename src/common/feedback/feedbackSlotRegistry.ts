@@ -55,10 +55,13 @@ const CANNED: Record<Kind, (text: string) => FeedbackMessage> = {
   result: (text) => FeedbackMessage.result('lost', text),
   acknowledgment: (text) => FeedbackMessage.acknowledgment('neutral', text),
   hint: (text) => FeedbackMessage.hint('noted', text),
+  // Builds its own words from the member, so the console's text is ignored.
+  waiting: () => FeedbackMessage.waiting({ username: 'moth', color: 'green' }),
   standingNote: (text) => FeedbackMessage.note(text),
   prompt: (text) => FeedbackMessage.prompt(text),
-  peer: (text) => FeedbackMessage.peer({ username: 'moth', color: 'green' }, 'won', text),
   chat: (text) => FeedbackMessage.chat({ username: 'moth', color: 'green' }, text),
+  peer: (text) => FeedbackMessage.peer({ username: 'moth', color: 'green' }, 'won', text),
+  peerStatus: (text) => FeedbackMessage.peerStatus({ username: 'moth', color: 'green' }, text),
 }
 
 // Installed in production too, not only in dev, for the reason its twin
