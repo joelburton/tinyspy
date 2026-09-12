@@ -1,4 +1,4 @@
-// cs-met-feedback
+// cs-audited-feedback
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from './feedbackSlotStore'

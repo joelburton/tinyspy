@@ -5,7 +5,7 @@
  * overflows the available width (the parent <PageHeaderStatusSlot> sets
  * `min-width: 0` to allow shrinking past the intrinsic width).
  *
- * Same height contract as the GenericFeedbackPill — see
+ * Same height contract as the FeedbackPill — see
  * docs/ui.md → "Layout stability."
  */
 

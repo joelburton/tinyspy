@@ -9,11 +9,11 @@
   misstates the rule on EITHER setting. One line; fix first and separately.
   It was invisible only because the recap is written twice (below), so this
   string never rendered on the surface players read mid-game.
-- **A manual end may print a winner that doesn't exist.** The terminal copy
-  in `PlayArea.tsx` is one ternary chain over `status.outcome` — `timeout`,
+- **A manual end may print a winner that doesn't exist.** The terminal message
+  in `PlayArea.tsx` is one chain over `status.outcome` — `timeout`,
   `conceded`, `selfWon`, then a final else that announces
   `${winnerName} went out — Bananas!`. There is no arm for `ended`, the
-  terminal every other game routes to the shared `endedCopy()`. **Verify
+  terminal every other game routes to the shared `gameEndedTerminalMessage()`. **Verify
   before believing it**: end a game manually and read the pill. The chain
   may be unreachable for `ended`, in which case the finding is that the code
   cannot say so.

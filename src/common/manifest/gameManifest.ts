@@ -33,7 +33,7 @@ import type { GamePageCtx } from '../game-page/gamePageCtx'
  *   - who someone is ......... `common/members/member.ts` ·
  *                              `common/terminal/terminalOutcomeVerb.ts`
  *   - what a setup form is ... `common/setup-form/setupForm.ts`
- *   - what a pill says ....... `common/feedback/genericFeedback.ts`
+ *   - what a message is ...... `common/feedback/FeedbackMessage.tsx`
  *   - what a menu is ......... `common/menu/menuModel.ts`
  *   - what a game is handed .. `common/game-page/gamePageCtx.ts`
  */

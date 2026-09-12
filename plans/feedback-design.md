@@ -1,10 +1,11 @@
 # The feedback system — the design
 
-**This is the target.** [feedback-system.md](feedback-system.md) describes the
-system as it stands; this file describes what it becomes, and is kept current
-as the design is agreed. `src/common/feedback/todo.md` holds what is already
-owed, and the work happens under the `feedback` area of
-[app-audit.md](app-audit.md) when it opens.
+**This is the design, and the area's working record.** It was written as the
+target for the system `feedback-system.md` described; that file, and the
+system, were deleted 2026-09-12 once every game had converted — the
+references to its sections below are to a document that no longer exists,
+kept as the record of what was argued from. The work happens under the
+`feedback` area of [app-audit.md](app-audit.md).
 
 Every statement here carries one of three marks:
 
@@ -259,8 +260,27 @@ pass, End, New Game — is `notOk`; the clue panel and its two inner panels
 take the slot in place of the `onError` callback. `buildOver` →
 `TerminalMessage`. The name guard's pending list is now EMPTY.
 
-**codenamesduet COMMITTED**, its five e2e specs green. **Every game is
-converted.**
+**codenamesduet COMMITTED** (`3068b7f3`), its five e2e specs green. **Every
+game is converted.**
+
+**The old system DELETED (2026-09-12), uncommitted, awaiting Joel's read:**
+the twelve files (`genericFeedback.ts`, `genericPills.ts` + test,
+`localPills.ts` + test, `useLocalFeedback.ts` + test, `GenericFeedbackPill`
++ test + stylesheet, `terminalCopy.ts`, `turnCopy.tsx`) and
+`plans/feedback-system.md`. Two `Board.tsx` imports re-pointed (psychicnum,
+wordle — an oversight from their games' conversions), the vocabularies
+guard's three allowlist lines for the old stylesheet gone, and §8's doc
+sweep done: code-conventions, common, deferred (its "two channels written
+twice" item is DONE by this area), envelopes (the mapping section now names
+`FeedbackMessage.notOk`), mobile, naming, playarea, ui, four game docs,
+CLAUDE.md's plans table, app-audit's rows, and a dozen comments that named
+the old pill. `feedback/todo.md` rewritten: its bug named a deleted file and
+its two Soon items were this redesign. Whole project typechecks; 3080 unit
+tests green.
+
+**Left for the closing:** `feedback/doc.md`'s Design (and `terminal/`'s and
+`info-sheet/`'s one-line mentions), the DESIGNS_OWED row, the closing
+re-read of the roster, and the memory pickup.
 
 **Next:** the other games, one by one.
 
@@ -692,7 +712,7 @@ ordered builder per game or an order the slot knows.
 
 ### 4.3 The whole flow, one picture
 
-The twin of [feedback-system.md §7](feedback-system.md). Four origins still;
+The twin of the deleted feedback-system.md's §7. Four origins still;
 the difference is that every one of them ends in a constructor, every
 constructor ends in `show`, and a condition is an origin like the others
 instead of a branch in a render expression.

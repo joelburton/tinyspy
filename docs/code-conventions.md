@@ -304,7 +304,7 @@ Roles, not implementations:
 | The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/game-page/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameModal` | `SetupForm` | per-game |
-| End-of-game info-column row | `TerminalActionRow` | shared (`common/terminal/`); per-game callers pass the `TerminalCopy` their `buildOver()` returns + any extra terminal actions as children |
+| End-of-game info-column row | `TerminalActionRow` | shared (`common/terminal/`); per-game callers pass the `TerminalMessage` their `buildOver()` returns + any extra terminal actions as children |
 | Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 

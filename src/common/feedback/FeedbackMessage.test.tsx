@@ -1,4 +1,4 @@
-// cs-met-feedback
+// cs-audited-feedback
 
 import { describe, expect, it } from 'vitest'
 import { FeedbackMessage, KINDS, type Kind } from './FeedbackMessage'

@@ -19,13 +19,14 @@
 ## Soon
 
 - **The manual-end terminal is hand-written and reads differently from every
-  other game.** `PlayArea.tsx` returns `{ verdict: 'Ended', message: 'Ended',
-  tone: 'neutral' }` where thirteen games call the shared `endedCopy(mode)`
-  (`Game ended` / `Game ended — no winner`, message `Game over`). Beyond the
-  drift, `verdict` and `message` are the same string, which is the one thing
-  the terminal copy type exists to separate, and no comment says why. Almost
-  certainly `return endedCopy(mode)`; if the divergence is wanted it needs a
-  comment instead.
+  other game.** `PlayArea.tsx` returns `{ pillText: 'Ended', infoColText:
+  'Ended', outcome: 'neutral' }` where thirteen games call the shared
+  `gameEndedTerminalMessage(mode)` (`Game ended` / `Game ended — no winner`,
+  info-column line `Game over`). Beyond the drift, `pillText` and
+  `infoColText` are the same string, which is the one thing the terminal
+  message type exists to separate, and no comment says why. Almost certainly
+  `return gameEndedTerminalMessage(mode)`; if the divergence is wanted it
+  needs a comment instead.
 - **Two raw `<button>`s take focus on click**, where every `StandardButton`
   suppresses it: the AI suggestion rows (`InfoCol.tsx`) and the history banner's
   ✕ (`BoardCol.tsx`). The suggestion row is the one that lingers — clicking it

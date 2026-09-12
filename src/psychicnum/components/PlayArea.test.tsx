@@ -212,8 +212,8 @@ describe('psychicnum PlayArea — concede', () => {
       />,
     )
     // The info-column action row swaps to the terminal LOOK ("You conceded"),
-    // and the below-board pill narrates the drop-out ("Conceded — race
-    // continues" — the shared `outOfRacePill`).
+    // and the below-board slot narrates the drop-out ("Conceded — race
+    // continues" — the shared `FeedbackMessage.outOfRace`).
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(screen.getByText(/Conceded — race continues/)).toBeInTheDocument()
   })
@@ -232,9 +232,9 @@ describe('psychicnum PlayArea — turn order', () => {
       />,
     )
     // The current player is named TWICE while I wait: the info column's
-    // TurnStatusLine (desktop) and the below-board waitingTurnPill (the only
+    // TurnStatusLine (desktop) and the below-board `waiting()` note (the only
     // whose-turn indicator on mobile, where the column is off-canvas). Both
-    // render the shared `waitingFor` copy; a regex because the name sits in a
+    // render the shared `waitingForText`; a regex because the name sits in a
     // text node beside the identity <Dot>. Coop has no OpponentStrip, but the
     // turn log's player picker also lists every player by handle — so exclude
     // its <option> to keep this counting the turn copy alone.

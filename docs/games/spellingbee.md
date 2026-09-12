@@ -359,7 +359,7 @@ src/spellingbee/
                           localFeedback / …) DOWN to BoardCol (a thin-input game, like
                           boggle/connections). Wires the common usePeerFeedback to the header slot
                           for peer/opponent events. buildOver branches mode → terminal verdict
-                          copy (a TerminalCopy the pill + the info-column row share), and pops the
+                          message (a TerminalMessage the verdict + the info-column row share), and pops the
                           shared CelebrationBlockingModal on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
                           top-right + the below-board <EntryRow> (the typed-word input + capture
@@ -551,7 +551,7 @@ The verdict copy is computed by `buildOver({mode, playState, status, targetRankI
 - `won_compete` + caller is NOT winner → tone lost, verdict `<winner-name> won at "<target rank>"` — rendered with the winner's identity dot as the pill's node; no "Lost:" prefix, the loss is implicit in "they won".
 - `lost` → tone lost, verdict `Lost: all conceded` (the branch written for the all-conceded collective loss).
 - `lost_compete` with `outcome='timeout'` → tone lost, verdict `Lost: ran out of time`.
-- `ended` (manual) → the shared neutral `endedCopy('compete')`: `Game ended — no winner`.
+- `ended` (manual) → the shared neutral `gameEndedTerminalMessage('compete')`: `Game ended — no winner`.
 
 ### Realtime channels
 

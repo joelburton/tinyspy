@@ -501,7 +501,7 @@ export function ClubPage({ handle, session }: Props) {
       // No `ms`, so it waits to be dismissed: the toast is the only lasting
       // record here, since this page has no pill.
       //
-      // `tone` by hand, and NOT from `getNotOkFeedback`: a toast has its own
+      // `tone` by hand, and NOT from `FeedbackMessage.notOk`: a toast has its own
       // three-value vocabulary (`info` / `success` / `error`, an accent stripe
       // — docs/ui.md → Toasts), not the seven outcomes. It has exactly one red,
       // so every severity that reads red lands on it and the envelope's own

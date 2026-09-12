@@ -298,9 +298,9 @@ rule, so a long username can't overflow a tight header or below-board pill —
 "● moth writing clue" becomes "● writing clue". Turn logs keep their
 names (`TurnLogActor` → `show="both"`).
 
-This required the feedback message's `text` to hold the **widget** instead of a
-string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pill
-(and `usePeerFeedback`) dedup on a separate string key, not the text.
+A message about a person carries them as its `actor`, and the pill draws the
+mention itself (`FeedbackMessage.peer(member, …)`); `usePeerFeedback` dedups on
+a separate string key, not the text.
 **Migrated: every mobile game's peer/opponent feedback** — codenamesduet,
 psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
 deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat
@@ -795,8 +795,8 @@ chain needs (`lib/chainRows.ts`, a crude greedy pack — no measuring) and sets
 2 rows (3 on a phone), and when a long chain genuinely needs more, the extra
 rows are subtracted inside `--avail-h` so the **board shrinks once** rather
 than the page scrolling (never-scroll outranks never-move; the shift is rare
-by design and Joel accepted it explicitly). The `waitingTurnPill` covers
-whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
+by design and Joel accepted it explicitly). The slot's "Waiting for ● Name…"
+covers whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
 
 ### The mobile status bar — core state above the board
 
@@ -889,11 +889,12 @@ would restate both and cost the board 1.75rem for nothing.
 games answer that in the info column too (`<TurnStatusLine>`), so it went
 off-canvas with the rest — and a waiting player on a phone had no cue at all
 (the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
-did nothing). The shared **`waitingTurnPill()`**
-(`common/info-sheet/turnCopy.tsx`) puts the same "Waiting for ● Name…"
-wording into the fixed-height below-board feedback slot as a sticky neutral
-pill — shown only when it ISN'T your turn (the turn signal is the pill
-clearing), costing no layout since the slot already exists. See
+did nothing). The shared **`FeedbackMessage.waiting()`** (its words from
+`common/info-sheet/turnText.tsx`) puts the same "Waiting for ● Name…"
+wording into the fixed-height below-board feedback slot as a standing note
+— shown by each game's whose-turn effect only while it ISN'T your turn (the
+turn signal is the note leaving), costing no layout since the slot already
+exists. See
 [common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### Tap feedback — one canonical treatment

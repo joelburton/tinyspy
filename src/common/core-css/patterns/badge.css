@@ -23,7 +23,7 @@
 
    `--radius-round` — the ends are semicircles and the middle is flat, so a
    badge reads as a lozenge. That is what separates it by SHAPE from the
-   feedback pill, which is a rounded RECTANGLE (`GenericFeedbackPill`, and
+   feedback pill, which is a rounded RECTANGLE (`FeedbackPill`, and
    deliberately: its thick left accent bar would curve into a crescent on
    round ends). Two roles, two shapes — a badge says what KIND of thing this
    is, a pill reports how something went.

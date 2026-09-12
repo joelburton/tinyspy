@@ -1,4 +1,4 @@
-// cs-met-feedback
+// cs-audited-feedback
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createFeedbackSlot, type FeedbackSlot, type SlotName } from './feedbackSlotStore'

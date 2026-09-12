@@ -192,7 +192,7 @@
   );
 }
 
-/* The LOCAL feedback area — centers a lone <GenericFeedbackPill> (or terminal message)
+/* The LOCAL feedback area — centers a lone <FeedbackPill> (or terminal message)
  * in the below-board slot, the universal "local feedback is centered" look
  * (docs/ui.md → Feedback pill; the global header pill is
  * left-justified instead). `flex: 1` fills its slot so it centers regardless of

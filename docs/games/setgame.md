@@ -190,7 +190,7 @@ just in the FE, and `supabase/tests/setgame/turn_order_test.sql` pins every row
 of that table.
 
 **Three surfaces say whose turn it is**, and setgame's arrangement is not the
-roster's standard one (`common/…/turnCopy.tsx` carries the argument):
+roster's standard one (this section carries the argument; `FeedbackMessage.waiting()` is the shared message):
 
 | surface | when it's yours | when it isn't |
 |---|---|---|

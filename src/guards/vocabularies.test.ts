@@ -168,11 +168,6 @@ const VOCABULARIES: Vocabulary[] = [
       // `50%` says circle without leaning on a number the browser clamps.
       'src/common/page-header/ChatButton.module.css': ['999px'],
       'src/common/buttons/ShuffleButton.module.css': ['999px'],
-      // Deliberate, and the reason is at the declaration: the pill's thick left
-      // accent bar would curve into a crescent on round ends. This is the
-      // sprint's first real bespoke-BY-INTENT value, and §18 has the open item
-      // about giving those somewhere better to live than a pending row.
-      'src/common/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
       'src/common/turn-log/TurnLog.module.css': ['3px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '4px'],
@@ -275,7 +270,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/StartGameRow.module.css': ['0.4rem'],
       'src/common/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
       'src/common/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
-      'src/common/feedback/GenericFeedbackPill.module.css': ['0.5rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // traveled with the markup; it did not grow.
@@ -522,7 +516,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/account/ColorChoiceList.module.css': ['1px'],
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
       'src/common/chat/ChatBody.module.css': ['1px'],
-      'src/common/feedback/GenericFeedbackPill.module.css': ['2px', '0.4rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/info-sheet/infoPanel.module.css': ['2px'],

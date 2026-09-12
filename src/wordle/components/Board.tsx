@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '@/common/game-page/PlayArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'

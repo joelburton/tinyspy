@@ -6,7 +6,7 @@ import { MODE_LABEL } from '../manifest/gameManifest'
  * The mode filter's vocabulary — its legal values and the buttons that offer
  * them. A plain module rather than part of `ModeFilter.tsx` because a component
  * file that also exports constants breaks Fast Refresh
- * (`react-refresh/only-export-components`), the same reason `turnCopy.tsx` and
+ * (`react-refresh/only-export-components`), the same reason `turnText.tsx` and
  * `monthGrid.ts` sit apart from their consumers.
  *
  * It lives next to the control anyway: ClubPage needs the value list to

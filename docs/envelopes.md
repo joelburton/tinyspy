@@ -23,9 +23,9 @@ The vocabulary here is the vocabulary in the code: all four severities, `race`
 included, are spelled as written here in TypeScript, in SQL's hints, in the Deno
 builders and in the guard. The default-appearance resolution lives in
 `notOkOutcome` (a severity's default, overridable per raise), the not-ok arm
-carries `outcome: Outcome | null`, `getNotOkFeedback` has 29 call sites, and
-raises do classify themselves as `race` — the four word games' duplicates are
-PN359/PN360/PN361/PN365.
+carries `outcome: Outcome | null`, `FeedbackMessage.notOk(res)` is how every
+surface shows one, and raises do classify themselves as `race` — the four
+word games' duplicates are PN359/PN360/PN361/PN365.
 
 ## Consumers
 
@@ -344,7 +344,7 @@ const res = await runRpc<WordAnswer>(db.rpc('submit_word', { … }))
 
 if (res.type === 'not-ok') {
   clearWord()
-  showMsg({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+  localFeedbackSlot.show(FeedbackMessage.notOk(res))
   return
 } else if (res.type === 'ok' && res.data.result === 'accepted') {
   commitWord(tileIds)
@@ -570,10 +570,10 @@ lines look independent and are not (Joel, 2026-08-29).
 ### The `not-ok` branch is one line
 
 It is a mapping, and the mapping is shared, so this branch rarely holds an `if`
-at all: `getNotOkFeedback(res)` plus whatever the surface has to undo — the
-selection cleared, the dim released. A call site that finds itself branching on
-`severity` or `dbcode` here should check that what it wants is not already in
-the mapping (→ [The mapping](#the-mapping)).
+at all: `FeedbackMessage.notOk(res)` plus whatever the surface has to undo —
+the selection cleared, the dim released. A call site that finds itself
+branching on `severity` or `dbcode` here should check that what it wants is
+not already in the mapping (→ [The mapping](#the-mapping)).
 
 ### The rare site with NO surface at all
 
@@ -674,34 +674,31 @@ too-short club name when the truth is the server is down. A board is the same:
 leaving "FOOZLE: not a word" in the pill is pointless when the real news is that
 nothing is reaching the server.
 
-So `getNotOkFeedback` maps **every** severity, `fault` included, and a form
-writes `res.message` to its error line whatever the severity says. Nothing
-anywhere reads `severity` to decide whether to display an answer — only to
-decide how it reads.
+So `FeedbackMessage.notOk` maps **every** severity, `fault` included, and a
+form writes `res.message` to its error line whatever the severity says.
+Nothing anywhere reads `severity` to decide whether to display an answer —
+only to decide how it reads.
 
 ### The mapping
 
 A `not-ok`'s appearance is derived, not decided at the call site.
-`getNotOkFeedback(envelope)` in `src/common/lib/game/genericPills.ts` maps it to
-the parts of a feedback message: the outcome — the author's, or the default its
-severity carries — and the text from `message`.
+`FeedbackMessage.notOk(envelope)` in `src/common/feedback/FeedbackMessage.tsx`
+maps it to a feedback message of the `notOk` kind: the outcome — the author's,
+or the default its severity carries — and the text from `message`.
 
-**One function, because it is one mapping.** The first surface where a single
+**One constructor, because it is one mapping.** The first surface where a single
 call can answer three ways — `submit_guess`, which returns `ok`, a race, or a
 fault — cannot have that line written by hand, and neither can the fifteen
 boards after it. Letting each derive its own is exactly the drift one shared mapping exists to
 prevent.
 
-`genericPills.ts` rather than `localPills.ts`: a **local** pill is specifically
-the below-board one, about this player. This mapping serves global pills too, so
-it does not belong in a file whose docstring says otherwise.
-
-**`mode` stays at the call site** — permanence is about the surface, not about
-the answer — so the function returns the message minus its mode:
+**How it leaves is the kind's, not the call site's** — a `notOk` stays until
+its × is pressed, over the verdict if the game has ended, wherever it is
+shown ([ui.md → Feedback pill](ui.md#feedback-pill)):
 
 ```ts
 if (res.type === 'not-ok') {
-  showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+  localFeedbackSlot.show(FeedbackMessage.notOk(res))
   return
 }
 ```
@@ -1174,7 +1171,7 @@ envelope, so one beside a 4xx means the RPC that raised it has no handler to
 catch it — during the rollout, an unconverted RPC calling a converted helper.
 
 **What reaches a call site is then only what it has an opinion about**: an `ok`,
-or a `not-ok` it renders with `getNotOkFeedback`. A declared fault still arrives
+or a `not-ok` it shows as `FeedbackMessage.notOk(res)`. A declared fault still arrives
 — one shape, always — but the modal is already up, so there is nothing left to
 render. The one `if` that stays is a caller noticing it didn't get data so it
 can clear a `busy` flag or roll back an optimistic write: a bail-out, not a

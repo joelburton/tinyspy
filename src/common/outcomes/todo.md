@@ -14,7 +14,7 @@
   and `outcome` is what a pill, a tile, a log bar and an envelope all say.
 
   `terminal_cause` is the right name on both halves: `terminal` is already how
-  this repo says game-end (`common/terminal/`, `terminalCopy`, the
+  this repo says game-end (`common/terminal/`, `terminalMessage`, the
   `--outcomes-*-terminalFrame-color` role), and `cause` is the word
   `docs/states.md` already uses to define the field — *"names the CAUSE, never
   the verdict"* — so the key comes to say what its own doc says about it.

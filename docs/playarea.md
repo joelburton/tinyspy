@@ -132,9 +132,9 @@ look** — a bold status line ("Waiting for others") + their End/Concede on the
 right — rather than a quietly-changed help line: being unable to act is basically
 terminal *for them*, so show it that way. Terminal **and** locally-terminal always
 show in **both** the action row (terse, carrying the button) and the below-board
-local-feedback pill (which reads slightly fuller — "Conceded — race continues"
-against the row's "You conceded"; the shared `outOfRacePill`). That dual
-placement is the rule, not redundancy to trim.
+local-feedback slot (which reads slightly fuller — "Conceded — race continues"
+against the row's "You conceded"; the shared `FeedbackMessage.outOfRace()`).
+That dual placement is the rule, not redundancy to trim.
 
 | class | what it is | style | terminal? |
 |---|---|---|---|
@@ -279,36 +279,31 @@ The contract for the capture model:
   supplies the per-cell edit rule
   (bananagrams overwrites any tile; scrabble locks committed ones) and what a
   letter / Enter does (place-from-hand + peel vs stage + play word).
-- **Terminal local feedback is permanent.** `clearLocalFeedback` is a no-op once
-  the game is over (`useLocalFeedback`'s `locked: isTerminal`), so no key, click,
-  or future entry method can dismiss a verdict — the permanence lives in the one
-  function that removes feedback, not re-checked at each dismissal site. During
-  play, the shared `useDismissLocalFeedbackOnKey` makes "any key clears the
-  own-move pill" universal (even games with no keyboard capture, like waffle /
-  connections), while the focused-input guard keeps a chat keystroke from wiping a
-  game's feedback.
+- **The verdict leaves only with the game.** A `terminalVerdict` is
+  owner-cleared: the effect that shows it retracts it when `isTerminal` flips
+  (a restart), and no key, click or tap can — a kind's exit is absolute
+  ([ui.md → Feedback pill](ui.md#feedback-pill)). During play, the shared
+  `useDismissLocalFeedbackOnKey` makes "any key dismisses a result" universal
+  (even games with no keyboard capture, like waffle / connections), while the
+  focused-input guard keeps a chat keystroke from wiping a game's feedback.
 
-**Local own-result feedback.** The player's own last move shows a result for the
-*local* half of the feedback split (the *group* half is the header pill, [Feedback
-pill](ui.md#feedback-pill) above): "Correct!" / "Incorrect" / "One away!" or a
-validation error, in the green/red/amber outcome palette.
+**Local own-result feedback.** The player's own last move shows a `result` for
+the *local* half of the feedback split (the *group* half is the header,
+[Feedback pill](ui.md#feedback-pill) above): "Correct" / "Incorrect" / "One
+away!" or a validation sentence, in the green/red/amber outcome palette.
 
-**How it renders.** It's the same **`<GenericFeedbackPill>`** as the header/global
+**How it renders.** It's the same **`<FeedbackPill>`** as the header/global
 area — identical CSS, centered, in the fixed-height **local feedback area**
 (`.localFeedback`) in the `belowBoard` region — so local and global feedback read as
-one register (see [ui.md → Feedback pill](ui.md#feedback-pill)).
-The pill is driven by the shared **`useLocalFeedback`** hook (holds one
-`GenericFeedbackMsg`, auto-clears on the next move / any key via
-`useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
-feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All sixteen
-games share this (eleven drive `useLocalFeedback` directly, the four word-list games via
-`useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
-removed. In the eight turn-order coop games the same slot also carries the sticky
-"Waiting for ● Name…" pill (the shared `waitingTurnPill` in
-`common/info-sheet/turnCopy.tsx`), slotted into the precedence chain as
-terminal verdict → locally-done → **waiting-for-turn** → own-move
-([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
+one register (see [ui.md → Feedback pill](ui.md#feedback-pill)). Every game's
+PlayArea makes the slot with `useFeedbackSlot('local')`, shows into it (a
+result, a not-ok, and its standing conditions as effects), and hands it to
+its BoardCol to draw; the four word-list games show their results through
+`useWordSubmit`. The slot reserves its height so swapping the pill in for the
+move controls never reflows the board. In the eight turn-order coop games the
+same slot also carries the "Waiting for ● Name…" standing note
+(`FeedbackMessage.waiting()`), which ranks under the verdict, out-of-race and a
+result ([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the
@@ -918,11 +913,10 @@ already knew. Drift here causes real head-scratching.
   already has under some name, REUSE that name; only diverge when the meaning truly
   differs, and say so. Treat this list as the seed glossary; grow it as games land.
   Easy to re-drift, so worth calling out:
-  - **Below-board feedback follows the `useLocalFeedback` hook's own names:** the
-    folded pill to render is **`localPill`** (`GenericFeedbackMsg | null` — the hook's
-    raw `localFeedback` with the terminal verdict folded in by PlayArea), and the
-    input-engine callbacks are **`showLocalFeedback` / `clearLocalFeedback`** (not
-    `showFeedback` / `localFeedbackMsg` — both had drifted).
+  - **Below-board feedback is the slot, under its one name:** a column takes
+    **`localFeedbackSlot`** (`FeedbackSlot`), shows its own results into it and
+    draws it with `<FeedbackPill>`; there is no folded pill prop and no
+    show/clear callback pair (both had drifted per game before the slots).
   - **`isLocallyDone`** = "I'm out (conceded), the others race on" — the codebase
     majority (boggle/spellingbee/wordle/stackdown share the identical
     `isCompete && myConceded && !isTerminal`). waffle deliberately uses **`selfDone`**
@@ -960,13 +954,13 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **Local below-board feedback lifts to `PlayArea`, NOT `BoardCol`.** The target
   table put "local below-board feedback" under `BoardCol`; building it disproved
-  that for stackdown. The pill has **four** sources and three are outside the board
-  column: the terminal verdict (derived), submit results, and — critically — the
-  **reveal/hint cheats, which are `InfoCol` actions**. A channel written from both
-  columns is coordination state, so the **coordinator owns it**: `PlayArea` holds
-  `useLocalFeedback`, computes `localPill`, passes it *down* to `BoardCol` to render,
-  and passes `showFeedback`/`clearFeedback` down for `BoardCol`'s own input-engine
-  messages (no-match / ambiguous letter). Watch for this in any game whose info-column
+  that for stackdown. The slot has **four** sources and three are outside the board
+  column: the terminal verdict (a condition effect), submit results, and — critically —
+  the **reveal/hint cheats, which are `InfoCol` actions**. A slot shown into from both
+  columns is coordination state, so the **coordinator owns it**: `PlayArea` makes
+  `useFeedbackSlot('local')`, shows the verdict and the cheats' answers into it, and
+  passes the slot *down* to `BoardCol`, which draws it and shows its own input-engine
+  results (no-match / ambiguous letter). Watch for this in any game whose info-column
   actions surface a result in the below-board slot.
 
 - **Split flashes by their trigger, not by where they render.** Both of stackdown's

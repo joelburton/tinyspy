@@ -1,4 +1,4 @@
-// cs-met-feedback
+// cs-audited-feedback
 
 import type { Outcome } from '../outcomes/outcomes'
 import type { Member } from '../members/member'

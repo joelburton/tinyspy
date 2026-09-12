@@ -7,7 +7,7 @@
  * board sizing (the waffle model — boggle's board is a square tile grid like
  * waffle's), the below-board input region, and the loading style. The info
  * column's readouts use the shared `.actionSlot` + readout classes; own-move and
- * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`. */
+ * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`. */
 
 /* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
  * here — boggle composes `shared.responsiveInfoCol`, which derives

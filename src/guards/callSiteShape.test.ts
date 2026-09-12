@@ -36,7 +36,7 @@ function offenders(): string[] {
       .split('\n')
       .forEach((line, i) => {
         // A docstring showing the bad form so a reader can recognize it is not
-        // an instance of it — dbResult's and genericPills' examples are the
+        // an instance of it — dbResult's and FeedbackMessage's examples are the
         // subject matter, the same trap serverErrorKeys fell into.
         if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
         if (NEGATED.test(line)) found.push(`${file}:${i + 1}  ${line.trim()}`)

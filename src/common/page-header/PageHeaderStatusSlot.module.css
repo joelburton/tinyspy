@@ -2,7 +2,7 @@
 
 /* The middle cell of the header. Fixed minimum height so the
  * slot occupies the same vertical space whether it's holding a
- * PageHeaderPlayersStrip (slimmer) or a GenericFeedbackPill (taller padding).
+ * PageHeaderPlayersStrip (slimmer) or a FeedbackPill (taller padding).
  * Grows horizontally to fill space between the logo+chat group
  * and the pause+timer group.
  *

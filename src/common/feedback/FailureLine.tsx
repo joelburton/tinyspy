@@ -1,4 +1,4 @@
-// cs-met-feedback
+// cs-audited-feedback
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -19,7 +19,7 @@ type Props = {
  * control it names, while this belongs to the SURFACE — the RPC failed, the
  * upload could not be parsed, the setup as a whole is not startable.
  *
- * Not a `<GenericFeedbackPill>` and not the fault modal. Those are the game's
+ * Not a `<FeedbackPill>` and not the fault modal. Those are the game's
  * two feedback channels (docs/ui.md → Feedback pill); this is what a form or a
  * dialog says about its own last action, next to the thing you pressed.
  *

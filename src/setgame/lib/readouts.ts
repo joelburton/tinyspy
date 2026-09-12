@@ -6,7 +6,7 @@
  *
  * Plain functions rather than part of `components/Counts.tsx`, because a file
  * that exports both a component and a function breaks Fast Refresh for itself
- * (`react-refresh/only-export-components`) — the same split `common/…/turnCopy`
+ * (`react-refresh/only-export-components`) — the same split `common/…/turnText`
  * makes, for the same reason.
  */
 

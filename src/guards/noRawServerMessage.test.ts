@@ -8,7 +8,7 @@
  * under `[db]`) — but it is a FUNCTION, so it only decides for call sites that
  * call it. A site doing this asks nothing and gets neither:
  *
- *     showLocalFeedback(stickyPill('error', error.message))   // ← the bug
+ *     localFeedbackSlot.show(FeedbackMessage.result('error', error.message))   // ← the bug
  *
  * That is how five games shipped, briefly, showing `no-guesses-left|` as a red
  * pill: their SQL was converted to keys while their own call sites still handed
@@ -126,7 +126,7 @@ describe('no raw server message reaches a UI sink', () => {
     }
     expect(
       offenders,
-      'the modal is raised centrally — use getNotOkFeedback and let the pill carry the words',
+      'the modal is raised centrally — show FeedbackMessage.notOk(res) and let the pill carry the words',
     ).toEqual([])
   })
 
