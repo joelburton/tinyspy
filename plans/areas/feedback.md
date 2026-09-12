@@ -11,7 +11,9 @@ roster, the findings, the notes and the closing. By Joel's ruling the area
 was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
-sitting after the old system was deleted. Eleven findings, none worked.
+sitting after the old system was deleted. Eleven findings, and two more that
+came out of settling the first of them — thirteen, of which two are WORKED
+(F-2 and F-12, the rank work, `07996523`).
 
 ## The roster
 
@@ -55,8 +57,9 @@ builders by name — stamps untouched.
 
 ## Findings
 
-*(`F-feedback-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+*(`F-feedback-1 · slug · title`, one heading each, with a status at the end of
+the line when it has one — as `plans/areas/menu.md` writes them; no status
+means OPEN)*
 
 ### The area's question
 
@@ -88,7 +91,7 @@ Options:
 
 ### Behavior
 
-## F-feedback-2 · `same-rank-owner-notes-erase-each-other` · Two owner-cleared notes at one rank: showing the second ends the first for good
+## F-feedback-2 · `same-rank-owner-notes-erase-each-other` · Two owner-cleared notes at one rank: showing the second ends the first for good — WORKED
 
 `show` keeps one message per rank: *"the newcomer replaces whatever shares
 its rank"* — the older entry is DROPPED, not hidden. For a `result` that is
@@ -339,7 +342,7 @@ trigger, the registry) under Details. `terminal/doc.md` and
 `turnText` lives there and that `feedback` owns its words — the plan's own
 rows already say so.
 
-## F-feedback-12 · `standing-notes-bury-the-header` · A standing message in the GLOBAL slot outranks chat and every narration for as long as it holds — two games do this
+## F-feedback-12 · `standing-notes-bury-the-header` · A standing message in the GLOBAL slot outranks chat and every narration for as long as it holds — two games do this — WORKED
 
 Every rank below 75 beats the news, and two games park a standing message in
 the global slot and leave it there. While one is up, a chat line never pops
