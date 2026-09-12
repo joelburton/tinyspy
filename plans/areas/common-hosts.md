@@ -13,8 +13,8 @@ throwaway spec before being written down — both reproduced — and the spec wa
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
 F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, the `faults`
 group F-12 · F-13 · F-17 · F-19, the prose group F-9 · F-10 · F-11 · F-18, and
-F-3 · F-14 · F-23. **Twenty-five of the twenty-six are worked; only F-26, the
-four Designs, is left**, and then the closing re-read.
+F-3 · F-14 · F-23, and F-26. **All twenty-six are worked.** What remains is the
+closing re-read in one sitting, and then the blessing, which is Joel's.
 
 ## The roster
 
@@ -572,17 +572,43 @@ Worked: the guard removed in both files, the comments written, and both
 folders' `todo.md` Soon items closed. It also settles half of F-9 — "Harmless
 to ship for a friends-only alpha" is gone, replaced by the actual reason.
 
-## F-common-hosts-26 · `four-designs-owed` · All four `doc.md` files are a single line
+## F-common-hosts-26 · `four-designs-owed` · All four `doc.md` files are a single line — WORKED
 
-Each is a lede and nothing else, and each is on `DESIGNS_OWED`. The Designs
-this read would write: toasts — one store, one host, why a toast is not a
-panel, the two lifetimes and why the clock never fires `onClose`; tooltips —
-one delegated host, why JS-positioned, the hover gate and the long press with
-its swallowed click, why the beat is 400ms; faults — the queue's rules (one at
-a time, cap 5, dropped from the UI only), why nothing authors a fault by hand,
-the three lines and which is optional; invitations — seated at creation but
-never dragged in, the seen set and the age bound and why both, the mirror
-into the toast store. Plus the root-mount sentence F-1 settled, in each.
+Each was a lede and nothing else. **All four Designs written 2026-09-11, and
+the four rows deleted from `DESIGNS_OWED`** — planted to confirm the guard bites
+both ways: putting `common/toasts` back on the list while its `doc.md` has a
+`## Design` reds `folderDocs.test.ts` with "has a `## Design` but is still on
+DESIGNS_OWED".
+
+Each opens by naming the doc that owns its rules and then says how the code
+answers them, rather than touring the files. What each one argues:
+
+- **toasts** — the store IS the interface, which is what lets unrelated sources
+  share one corner and what makes `puptoast` possible; a toast is not a panel,
+  and the difference is about being told something versus working in something;
+  the patient lifetime is the default; and the clock never fires `onClose`
+  because a toast that timed out was dealt with by nobody. The two exits' split
+  falls out of that same rule.
+- **tooltips** — one delegated host, so a button added tomorrow needs no wiring;
+  JS positioning because a CSS bubble cannot see the viewport and these
+  controls live in corners; why the beat is 400ms, and why moving between
+  controls restarts it; the hover gate and why it is asked once; the long press
+  and why claiming the gesture is free; and the swallowed click with BOTH
+  disarms, since a suppression left armed reads as the app dropping a press.
+- **faults** — nothing authors one by hand and nothing can; the store decides
+  nothing; one at a time, no batching, cap five with the console line already
+  written; the three lines and why only two are guaranteed; and that the modal
+  is an escalation rather than a replacement.
+- **invitations** — seated at creation but never pulled in, and the game waits;
+  why the re-scan needs BOTH bounds and how each hid the other's absence until
+  the seen set was empty; why entering by any route is a real dismissal and why
+  it is a render-time adjust rather than an effect; and the headless mirror.
+
+The root-mount sentence went into three of the four in the shape each needed —
+the host is at the root because what reaches it is everywhere, and the store is
+how those places reach it. `faults` carries it as the store's own paragraph
+instead, since there the interesting claim is that nothing authors a fault at
+all.
 
 ## Notes
 
@@ -627,6 +653,7 @@ into the toast store. Plus the root-mount sentence F-1 settled, in each.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the four folders' `doc.md` Designs written; their rows off `DESIGNS_OWED`
+- [x] the four folders' `doc.md` Designs written; their rows off `DESIGNS_OWED`
+      (2026-09-11, and the guard planted both ways)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

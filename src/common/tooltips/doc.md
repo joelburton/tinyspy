@@ -1,3 +1,23 @@
 # tooltips
 
-The tooltip host.
+The one renderer behind every `data-tooltip`: hover after a beat, keyboard focus, and a long press on touch.
+
+## Design
+
+docs/ui.md → Button iconography → Conventions says which controls carry a tooltip and what it says. This is how one host serves all of them.
+
+**One host, delegated, mounted once at the root.** Nothing renders a bubble of its own: `<TooltipHost>` listens on the document and any element carrying `data-tooltip` gets one, so the cost is one host no matter how many buttons opt in, and a button added tomorrow needs no wiring. The attribute is written by the button components and by `actionSurface`. The host is at the root because what it answers to is everywhere.
+
+**Why the bubble is positioned in JavaScript.** A bubble drawn in CSS alone cannot see the viewport, so it has no way to stay on screen near an edge — which is the whole job, since the controls that most need a tooltip are icon-only buttons in a header, at the top of the window and often at its corners. Here the bubble is measured and clamped: above the anchor by default, flipped below when there is no room on top, x pinned inside the edges. It flips by measuring rather than by an anchor declaring itself near the top, so no control has to be marked. `position: fixed` in a body portal keeps an `overflow: hidden` ancestor from clipping it, and `--z-tooltip` is the top of base.css's ladder because a tooltip blocks nothing and nothing needs to cover it.
+
+**Hover is gated to devices that have a pointer, and asked once.** A touch device synthesizes hover on a tap and leaves it applied, which would strand a bubble on screen with no pointer-leave coming to clear it. The gate is read at mount rather than subscribed to, because a device does not grow a mouse mid-session.
+
+**The beat is 400ms, and it is what makes the feature bearable.** A bubble that appeared instantly would flash at every button your pointer crosses on the way somewhere; one that waited much longer would not answer the question you are asking by hovering. Moving between two controls restarts the beat rather than reusing it, so crossing a row does not fire a bubble for the button you merely passed over. Focus opens a bubble too, but only `:focus-visible` — a click's focus is not a question, and answering it would put a bubble under the pointer that just dismissed one. A scroll hides a visible bubble because its measured position is now stale, but leaves a pending one alone: inner containers scroll programmatically right after state transitions, and eating a tooltip scheduled in that window would make the feature feel broken at exactly the moment it looks idle.
+
+**Touch gets the same bubble through a long press, and claiming that gesture is free.** Icon-only buttons carry their names in these bubbles and a touch device has no hover to ask with, so a press-and-hold reveals the label. Nothing is lost by taking the gesture: a button has no text to select, and a hold costs nothing to anyone who already knows the glyph — unlike a tap-to-reveal, which would tax every future tap. The bubble is dismissed by the next touch anywhere, because a touch bubble has no pointer-leave and without a dismissal of its own would simply stay up.
+
+**The swallowed click is the part that must not break.** Lifting after a long press still fires a click, so without intervention holding a button to learn that it says "Restart" would restart the game — which would make the feature worse than not having it. The host arms a suppression when the press completes and eats exactly the next click. The other half of that is disarming: a press that produces no click at all — the system taking the gesture for a call, or the held element leaving the DOM before the lift — would otherwise leave the suppression armed to swallow an unrelated tap, and the app would read as having dropped a press. So a canceled touch clears it at once, and the start of any new press clears whatever an absent click left behind.
+
+**The bubble is `aria-hidden`, deliberately.** It duplicates the control's own accessible name, which the button already carries. A disabled button shows its bubble like any other, and that is load-bearing rather than incidental: a disabled control's tooltip is where it says *why*.
+
+One half of the contract lives in CSS and is guarded by reading the stylesheet — iOS answers a long press with its own Copy / Look Up callout, which is not the `contextmenu` event the host suppresses for Android, so the only lever is `-webkit-touch-callout: none`. Without it every icon-only button on an iPhone is unlearnable: the label appears under a system menu covering it.
