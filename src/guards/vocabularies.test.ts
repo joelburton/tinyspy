@@ -319,7 +319,7 @@ const VOCABULARIES: Vocabulary[] = [
       // stay; the two literals are connections's to keep or convert.
       'src/common/devtools/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
-      'src/common/menu/Menu.module.css': ['1.5rem', '0.3rem', '0.1rem', '-1px', '-1rem'],
+      'src/common/menu/Menu.module.css': ['0.3rem', '0.1rem', '-1px'],
       // The picker's summary dots moved out of the modal with <PlayersSection>.
       // Same value, new file — the debt traveled, it did not grow.
       'src/common/setup-form/PlayersSection.module.css': ['0.3rem'],

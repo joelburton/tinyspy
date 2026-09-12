@@ -103,20 +103,25 @@
   font-size: 0.95rem;
   font-weight: 500;
   text-align: left;
-  /* Flex so an optional shortcut hint sits right-aligned on the same row;
-     the gap keeps the label and hint from touching on narrow items. */
+  /* Flex so the glyph, the label and the shortcut hint share one line. The gap
+     is the distance from a leading glyph or disc to its label; the wide gutter
+     before the hint is the hint's own (`.itemShortcut`), so nothing here has
+     to be undone by the children. */
   display: flex;
   align-items: baseline;
-  gap: 1.5rem;
+  gap: var(--spacer-4);
   width: 100%;
   border-radius: 0;
   transition: background 80ms ease;
 }
 
 /* The shortcut hint (e.g. "⌥C") — pushed to the right edge, de-emphasized
-   (it's an annotation, not the action). */
+   (it's an annotation, not the action). `auto` takes whatever the row has
+   left; the padding is the floor between label and hint on a row too narrow
+   for that to be much. */
 /* @@ */ .itemShortcut {
   margin-left: auto;
+  padding-left: var(--spacer-1);
   color: var(--page-text-muted-color);
   font-size: 0.82rem;
   font-weight: 500;
@@ -234,13 +239,10 @@
 }
 
 /* The identity disc on an item that carries one (the account row). Sized to the
- * label's text rather than a fixed px so it tracks the menu's type, and given a
- * little right margin — `.item` is a flex row whose `gap` is the wide
- * label↔shortcut gutter, which would fling the dot away from its own name. */
+ * label's text rather than a fixed px so it tracks the menu's type. */
 /* @@ */ .itemDot {
 /* @@ */   --dot-size: 0.7em;
   flex: none;
-  margin-right: -1rem;
 }
 
 /* The leading glyph slot — the icon language's legend (`MenuRow.icon`).
@@ -255,10 +257,6 @@
 /* @@ */ .itemIconSlot {
   flex: none;
   width: 1.05rem;
-  /* Cancel most of the row's `gap`, which exists as the wide label↔shortcut
-   * gutter and would otherwise strand the glyph far from the name it labels —
-   * the same negative-margin trick, for the same reason, as `.itemDot`. */
-  margin-right: -1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;

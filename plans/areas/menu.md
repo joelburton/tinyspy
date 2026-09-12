@@ -250,6 +250,10 @@ a/b/c question, in context:
   from its label. A gutter that two children have to undo is on the wrong
   element — it belongs to `.itemShortcut` (`margin-left: auto` is already
   there), after which the row's `gap` is the ordinary small one.
+  **WORKED 2026-09-11** (Joel: move it). The row's gap is `--spacer-4`, the
+  hint carries `padding-left: var(--spacer-1)` as its floor, both negative
+  margins are gone, and the guard's spacer row lost `1.5rem` and `-1rem`. Not
+  looked at on screen: that takes a run of the app, which is Joel's to okay.
 - The item's `0.95rem` / `0.82rem` type against the ramp; the header's are
   the same two numbers.
 - `opacity: 0.45` for a disabled row — whether buttons/forms settled a
