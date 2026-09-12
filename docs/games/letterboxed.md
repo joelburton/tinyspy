@@ -268,14 +268,14 @@ legend row, the only reveal-capable game missing one.
 
 Both call `log_help`, which bumps `hints_used` and writes an `events` row.
 
-**A failed help-log is shown, not swallowed** (Joel, 2026-09-01). The pill is
-already holding the help itself when the answer arrives, so a refusal replaces
-it — and nothing is lost by that, because `log_help` can only refuse in ways
-that make the help moot: one race that fires once the game is over, and three
-faults that mean a broken client. The reasoning that used to justify swallowing
-it — "the turn log keeps the content, so the pill is a convenience copy" — is
-true only when the write SUCCEEDS; a failed write is precisely the case where
-the log has nothing.
+**A failed help-log is shown, not swallowed** (Joel, 2026-09-01). The slot is
+already holding the help itself when the answer arrives, so the not-ok shows
+over it — and nothing is lost by that, because `log_help` can only refuse in
+ways that make the help moot: one race that fires once the game is over, and
+three faults that mean a broken client. The reasoning that used to justify
+swallowing it — "the turn log keeps the content, so the pill is a convenience
+copy" — is true only when the write SUCCEEDS; a failed write is precisely the
+case where the log has nothing.
 
 The content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line
@@ -291,16 +291,13 @@ a counter beside the score would read as something the game holds against you
 (help is deliberately unpenalized). The per-player tally stays as the cheap
 number the log would otherwise have to be folded to get.
 
-**The help pills are `sticky`, not `manual` — deliberately, and this is the one
-place a hint isn't** ([ui.md → Feedback pill](../ui.md#feedback-pill)). The mode
-exists for content the player must keep reading while they act on it, and
-stackdown's spoiler uses it for exactly that reason: you hunt tiles across the
-board with it open, so a click must not take it away. Here the opposite holds —
-the pill occupies the **entry's slot**, so the moment you act on the hint (type,
-or click a letter) you need that slot back. `manual` would mean either blocking
-input until the × is pressed, or a pill covering the entry you're typing into.
-Losing it costs nothing: the turn log keeps the CONTENT, so the pill is a
-convenience copy and never the record.
+**The help text is a `hint` message, and leaves only by its ×** ([ui.md →
+Feedback pill](../ui.md#feedback-pill)) — the rule for every priced help, so a
+keystroke can't clear a clue by accident. It sits in the **entry's slot** until
+the player presses ×; the capture keyboard still takes letters meanwhile, and
+the entry row comes back when the hint goes. The three diagnoses ("No word
+starts with G" and its siblings) are `hint` messages too — the reply to the
+same request, asked perhaps mid-word, and read the same way.
 
 A stuck **compete** player has no detector, which is fine: undo is free and
 refunds, so they can always back out — they just have to notice themselves.
@@ -609,8 +606,9 @@ into the chain, not away.
 letters laid clockwise from the top-left so the four sides read as one loop.
 Clicking a letter appends it to the draft; **clicking the word's current last
 letter again submits** (unambiguous, since a letter can never legally follow
-itself). The below-board slot is the shared reserved-height swap box: entry row
-↔ own-move pill ↔ "Chain is full — remove a word" ↔ the terminal verdict. A
+itself). The below-board slot is the shared reserved-height swap box: the entry
+row, or the local feedback slot's top message — a word result, a hint, "Chain is
+full — remove a word" (a standing note), the terminal verdict. A
 full chain freezes the **entry** but leaves the chain **editable** — two
 different gates, deliberately, because taking a word back is then the only move
 on the board.
@@ -648,17 +646,18 @@ click-to-define) → help line → setup disclosure → the log.
 **Mobile** — the standard conversion (`useInfoSheet` + `<InfoSheet>` +
 `shared.mobileFill`), and deliberately **no `<MobileStatusBar>`** (the adoption
 rule's clearest non-adopter): the board shows which letters are covered, the
-chain strip shows the words, and the cap is restated by the accepted-word pill
-("APPLE — 2 words left") after every move — so `<StateLine>` renders in the
+chain strip shows the words, and the cap is restated by the accepted-word result
+("APPLE — 2 words left", cleared by the next keystroke) after every move — so
+`<StateLine>` renders in the
 info column/sheet only. The chain strip's reserved height is **chain-aware**:
 `BoardCol` estimates rows from the live chain (`lib/chainRows.ts`) and a chain
 that outgrows the base reservation (2 rows / 3 on a phone) takes the extra out
 of `--avail-h`, shrinking the board once rather than scrolling the page. The
-`waitingTurnPill` covers whose-turn on the phone surface. See
+slot's "Waiting for ● moth" covers whose-turn on the phone surface. See
 [mobile.md](../mobile.md).
 
 **Coop peer narration** (`usePeerFeedback`): a teammate's word changes *my*
-board, so the header pill says so — `TRACE (7/12)`, "undid TRACE" (named, so
+board, so the header says so — `● moth TRACE (7/12)`, "undid TRACE" (named, so
 peers know which word came off), or "cleared the chain". Help narrates on two
 channels at once — the header names the act, the local slot carries the
 content (see §6 Hints). Compete has no narration — the race ends on first solve and the

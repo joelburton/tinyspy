@@ -113,7 +113,33 @@ draws `<FeedbackPill>` above the keyboard during play and in the keyboard's
 place at terminal — the same slot, two places; an on-screen or physical
 key is `dismiss`.
 
-**wordiply COMMITTED**, its three e2e specs green.
+**wordiply COMMITTED** (`654beb42`), its three e2e specs green.
+
+**letterboxed CONVERTED (2026-09-12).**
+The richest local slot so far. Four condition effects: the verdict, out of
+the race, whose turn, and the full chain as a `note`. The accepted word is a
+`result` (§4.4 row 4 — it was timed); the FE rejection a `result('lost')`;
+the hint and spoiler text a `hint` for the asker and for the teammates it
+echoes to (§11.3 item 4 — × only, where it was gesture-cleared: the hint now
+holds the entry's slot until its × is pressed, letters still capture). The
+three hint diagnoses ("No word starts with G", off par, no path) are
+`hint('warning')` too — the reply to the same request, which may come
+mid-word, where a gesture-cleared result would wait for the entry to empty;
+a call Joel should check. Every not-ok (submit, undo, help log, new game) is
+`notOk`. `buildOver` → `TerminalMessage` on primitives; no `actor` here (the
+compete loss names people in its text). Peer narration is `peer`.
+
+One thing the conversion turned up in the shared row: `EntryRow` showed a
+gesture-cleared result only while its value was `''` — a second gate the
+machinery conversion added beside the real mechanism (the keystroke's
+`dismiss`). letterboxed's box is never empty once the chain has a word (the
+seed letter is locked in), and it keeps a rejected draft for fixing, so
+neither its word results nor its "Not a word" ever showed. The gate is
+gone: the row draws whatever is on top, and a gesture result leaves when a
+key dismisses it. Its e2e spec changes where it relied on the accepted
+word timing out.
+
+**letterboxed COMMITTED**, its two e2e specs green.
 
 **Next:** the other games, one by one.
 

@@ -1,10 +1,9 @@
 // cs-unmet
 
 import type React from 'react'
-import type { ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { GamePlayer } from '@/common/members/member'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
@@ -70,7 +69,8 @@ export function InfoCol({
   onSelectTurn,
 }: {
   // ── Terminal & turn state ──
-  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   isTerminal: boolean
   isLocallyDone: boolean
   /** Turn-by-turn co-op. Fixed at create time, so the turn line's presence

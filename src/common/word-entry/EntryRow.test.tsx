@@ -26,13 +26,16 @@ describe('EntryRow — the pill swap', () => {
     expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
   })
 
-  it('a result replaces the controls while the entry is empty, and yields once something is typed', () => {
+  it('a result replaces the controls, even over a box that still holds text', () => {
+    // letterboxed keeps a rejected draft in the box for fixing; the result
+    // must show over it all the same. Typing gets the controls back only
+    // because the keystroke dismisses the result (the host's `onAnyKey`).
     const slot = createFeedbackSlot('local')
-    const { rerender } = mount(slot)
+    mount(slot, 'adgj')
     act(() => void slot.show(FeedbackMessage.result('lost', 'Not a word')))
     expect(screen.getByText('Not a word')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /submit/i })).toBeNull()
-    rerender(<EntryRow value="a" onChange={vi.fn()} onSubmit={vi.fn()} localFeedbackSlot={slot} />)
+    act(() => slot.dismiss())
     expect(screen.queryByText('Not a word')).toBeNull()
     expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
   })

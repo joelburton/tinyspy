@@ -1,10 +1,8 @@
 // cs-unmet
 
-import { useCallback, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useMemo, type CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
-import { stickyPill, terminalPill } from '@/common/feedback/localPills'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
@@ -53,13 +51,10 @@ export function BoardCol({
   onSubmit,
   onPick,
   onRemoveLast,
-  clearLocalFeedback,
+  localFeedbackSlot,
   entryDisabled,
   chainEditable,
-  chainFull,
   busy,
-  localPill,
-  over,
 }: {
   // ── Board & chain ──
   sides: string
@@ -84,7 +79,10 @@ export function BoardCol({
   onPick: (letter: string) => void
   /** The × on the chain's last word. */
   onRemoveLast: () => void
-  clearLocalFeedback: () => void
+  /** PlayArea's below-board slot — the entry row draws its top in place of
+   *  the controls, and a keystroke is the player's next move, so it dismisses
+   *  a gesture-cleared message. */
+  localFeedbackSlot: FeedbackSlot
   // ── Gates ──
   /** Terminal / conceded / not my turn / chain full: board + entry are inert. */
   entryDisabled: boolean
@@ -92,26 +90,10 @@ export function BoardCol({
    *  chain is full the entry freezes but the × must stay live, since taking a
    *  word back is then the only move on the board. */
   chainEditable: boolean
-  /** The cap is reached and the board isn't covered — the only move left is
-   *  taking a word back, so the entry gives way to a pill saying so. */
-  chainFull: boolean
   busy: boolean
-  // ── Below-board pill ──
-  localPill: GenericFeedbackMsg | null
-  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
   const seed = tailLetter(liveChain) ?? ''
   const word = seed + draft
-
-  // What occupies the swap box, most-final first. The terminal verdict wins
-  // over everything; a full chain is next, because until a word comes back off
-  // there is no move to make and the entry would only collect a word it must
-  // then refuse.
-  const pill = over
-    ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
-    : chainFull
-      ? stickyPill('neutral', 'Chain is full — remove a word')
-      : localPill
 
   const boardLetters = useMemo(() => new Set([...sides]), [sides])
 
@@ -181,7 +163,7 @@ export function BoardCol({
           column slides away). Here the board IS the letters readout — covered
           letters fill green — and the chain strip is the words readout; the
           one invisible number, words left under the cap, is restated by the
-          accepted-word pill after every move. */}
+          accepted-word result after every move. */}
 
       {/* The chain strip and the board are ONE SNAPSHOT, so they share one
           history outline rather than wearing one each.
@@ -228,8 +210,9 @@ export function BoardCol({
         />
       </div>
 
-      {/* The shared RESERVED-HEIGHT swap box: it holds exactly one of the
-          entry row, an own-move pill, or the terminal verdict, and its fixed
+      {/* The shared RESERVED-HEIGHT swap box: it holds either the entry row
+          or the slot's top message — a word result, a hint, "Chain is full",
+          the terminal verdict, whichever ranks highest — and its fixed
           min-height is what stops the board above from moving as those swap
           (docs/ui.md → layout stability). An earlier version used a bare div
           here and the whole column shifted every time a pill appeared. */}
@@ -256,14 +239,13 @@ export function BoardCol({
           // Per-character rendering, so the carried-over first letter can say
           // it isn't yours to delete.
           children={<TypedWord word={word} seedLength={seed.length} />}
-          onDismissPill={clearLocalFeedback}
-          pill={pill}
+          localFeedbackSlot={localFeedbackSlot}
           // Also hard-off while a past move is open: freezing capture lets the
           // viewer's `act-exit-viewer` consume the keystroke (back to live)
           // instead of editing the live draft behind the banner.
           disabled={entryDisabled || viewingDescription !== null}
           busy={busy}
-          onAnyKey={clearLocalFeedback}
+          onAnyKey={localFeedbackSlot.dismiss}
           charFor={charFor}
         />
       </div>

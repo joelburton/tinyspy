@@ -28,10 +28,10 @@ type Props = {
    * the whose-turn note, the terminal verdict, a not-ok, whatever is on top.
    * A message leaves the way its KIND says and no other way: a ×-only
    * message stays over the controls however much is typed, and only a
-   * gesture-cleared result yields to typing (the keystroke is what dismisses
-   * it). Keeping the row mounted through the swap is what lets that
-   * keystroke reach the slot: the capture hook below stays live and
-   * `onAnyKey` is its `dismiss`.
+   * gesture-cleared result yields to typing — because the keystroke
+   * dismisses it, not because the row hides it. Keeping the row mounted
+   * through the swap is what lets that keystroke reach the slot: the
+   * capture hook below stays live and `onAnyKey` is its `dismiss`.
    */
   localFeedbackSlot: FeedbackSlot
   /** Loading / terminal: capture is a hard no-op and the buttons are disabled. */
@@ -115,12 +115,13 @@ export function EntryRow({
   useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
   const top = useTopFeedbackMessage(localFeedbackSlot)
 
-  // A gesture-cleared result gives way to typing, since the keystroke has
-  // already dismissed it (and a result pushed while text was already typed
-  // waits until the entry empties). Every other kind holds the slot: it
-  // leaves by its ×, its timer or its owner, never by a letter.
-  const showing = top !== null && (top.leavesBy !== 'gesture' || value === '')
-  if (showing) {
+  // Whatever is on top takes the controls' place. No second gate on the
+  // value: a gesture-cleared result gives way to typing because the
+  // keystroke dismisses it (`onAnyKey`), and a result shown while text is
+  // still in the box — letterboxed keeps a rejected draft for fixing — must
+  // show all the same. Every other kind holds the slot: it leaves by its ×,
+  // its timer or its owner, never by a letter.
+  if (top !== null) {
     return (
       <div className={shared.localFeedback}>
         <FeedbackPill slot={localFeedbackSlot} />

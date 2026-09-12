@@ -46,17 +46,17 @@ test.describe('letterboxed', () => {
     await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
 
-    // The accepted-word pill restates the cap — there is no status bar to
-    // carry it (docs/mobile.md). It's TIMED: it occupies the entry's slot for
-    // ~1.4s and then hands the entry back on its own, so this assertion runs
-    // right after Enter (the pill appears on the RPC's return, not on the
-    // realtime refetch — asserting it later would race the auto-clear).
+    // The accepted-word result restates the cap — there is no status bar to
+    // carry it (docs/mobile.md). It holds the entry's slot until the next
+    // keystroke.
     await expect(page.getByText('ADG — 4 words left')).toBeVisible({ timeout: 10000 })
 
     // …and the entry re-seeds ITSELF with the letter the next word must start
     // with — so the box now holds "g", not a placeholder telling you to type
     // one. The seed is derived from the chain rather than typed, which is what
-    // lets Backspace stop at it instead of clearing it.
+    // lets Backspace stop at it instead of clearing it — which makes Backspace
+    // the keystroke that dismisses the result without touching the box.
+    await page.keyboard.press('Backspace')
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
 
     await ctx.close()
@@ -177,16 +177,17 @@ test.describe('letterboxed', () => {
     await page.keyboard.press('Enter')
     // Wait for the chain to land, not a clock: the next word is seeded with
     // ADG's last letter, so typing before the refetch spells something else.
-    // (The timed accepted-word pill clears itself; the entry-value wait
-    // already outlasts it.)
+    // (Backspace dismisses the accepted-word result and stops at the seed.)
+    await expect(page.getByText('ADG — 1 word left')).toBeVisible({ timeout: 10000 })
+    await page.keyboard.press('Backspace')
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
 
     // Two words spent, board not covered: the only move left is taking one
     // back, so the entry gives way rather than collecting a word it must
-    // then refuse. (No accepted-word pill here — the cap-filling word's
-    // words-left is zero, and the chain-full pill outranks it anyway.)
+    // then refuse. (No accepted-word result here — the cap-filling word's
+    // words-left is zero, so the chain-full note is what shows.)
     await expect(page.getByText(/Chain is full/)).toBeVisible({ timeout: 10000 })
 
     // Typing is inert — the entry is gone, so nothing accumulates.
@@ -277,8 +278,10 @@ test.describe('letterboxed', () => {
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    // Wait for the chain to land, not a clock — see above. (The timed
-    // accepted-word pill clears itself before this wait gives up.)
+    // Wait for the chain to land, not a clock — see above. (Backspace
+    // dismisses the accepted-word result and stops at the seed.)
+    await expect(page.getByText('ADG — 4 words left')).toBeVisible({ timeout: 10000 })
+    await page.keyboard.press('Backspace')
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
@@ -347,7 +350,9 @@ test.describe('letterboxed', () => {
     await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
     await page.keyboard.type('adgjbehk')
     await page.keyboard.press('Enter')
-    // The timed accepted-word pill clears itself; then the seeded entry shows.
+    // Backspace dismisses the accepted-word result; then the seeded entry shows.
+    await expect(page.getByText('ADGJBEHK — 4 words left')).toBeVisible({ timeout: 10000 })
+    await page.keyboard.press('Backspace')
     await expect(page.getByTestId('entry-value')).toHaveText('K', { timeout: 10000 })
     await page.keyboard.type('cfil')
     await page.keyboard.press('Enter')

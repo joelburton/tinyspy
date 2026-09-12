@@ -3,17 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
-import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { outOfRacePill, stickyPill } from '@/common/feedback/localPills'
-import { waitingTurnPill } from '@/common/info-sheet/turnCopy'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
 import type { LetterboxedSetup } from '../lib/setup'
@@ -36,7 +34,6 @@ import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -101,7 +98,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
 
@@ -124,7 +121,9 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  // The below-board slot: word results, help, End / Concede's not-oks, and
+  // the four standing conditions further down.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
   const leaderboard = useMemo(
     () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
@@ -177,7 +176,7 @@ export function PlayArea(ctx: GamePageCtx) {
     const word = (tailLetter(chain) ?? '') + draft
     const bad = rejectReason(word, { sides, chain, playable, maxWords })
     if (bad) {
-      showLocalFeedback(stickyPill('lost', bad))
+      localFeedbackSlot.show(FeedbackMessage.result('lost', bad))
       return
     }
     setBusy(true)
@@ -193,49 +192,46 @@ export function PlayArea(ctx: GamePageCtx) {
     // turn moving. Races, all of them, and the draft stays put: the word was
     // not taken, and it may well be legal again next second.
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'accepted') {
       // The next word's first letter comes from the chain, which the realtime
       // refetch is about to update — so clearing the draft is all that's needed.
       setDraft('')
-      // The accepted-word pill restates the cap: with no mobile status bar the
-      // board shows WHICH letters are covered and the strip shows the words, but
-      // "how many words are left" has no ambient home on a phone, so every
-      // accepted word says it. TIMED, not sticky (Joel's call, 2026-08-05): a
-      // sticky pill sits in the entry's slot until the next keystroke, which
-      // made every submit feel like a modal moment — this one says its piece
-      // and hands the entry back on its own. A cap-filling word is pre-empted by
-      // BoardCol's chainFull pill (which outranks localPill), so the zero case
-      // needs no branch here.
+      // The accepted-word result restates the cap: with no mobile status bar
+      // the board shows WHICH letters are covered and the strip shows the
+      // words, but "how many words are left" has no ambient home on a phone,
+      // so every accepted word says it. A cap-filling word says nothing: the
+      // chain-full note (below) is what the player needs to read then.
       const wordsLeft = maxWords - (chain.length + 1)
       if (wordsLeft > 0) {
-        showLocalFeedback({
-          tone: 'won',
-          text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
-          mode: { kind: 'timed' },
-        })
+        localFeedbackSlot.show(
+          FeedbackMessage.result(
+            'won',
+            `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
+          ),
+        )
       } else {
-        clearLocalFeedback()
+        localFeedbackSlot.dismiss()
       }
       return
     } else if (res.type === 'ok' && res.data.result === 'solved') {
-      // The terminal verdict outranks localPill and is about to arrive on the
-      // play_state, so this says nothing and only hands the entry back.
+      // The terminal verdict is about to arrive on the play_state, so this
+      // says nothing and only hands the entry back.
       setDraft('')
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       return
     } else {
       reportUnhandled('submit_word', res)
       return
     }
-  }, [game, busy, chain, draft, sides, playable, maxWords, gameId, showLocalFeedback, clearLocalFeedback])
+  }, [game, busy, chain, draft, sides, playable, maxWords, gameId, localFeedbackSlot])
 
   // A board click appends — unless it lands on the letter the word already
   // ends with, which submits (see Board.tsx for why that is unambiguous).
   const pick = useCallback(
     (letter: string) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
       const word = (tailLetter(chain) ?? '') + draft
       if (word.length > 0 && letter === word[word.length - 1]) {
         void submit()
@@ -243,7 +239,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }
       setDraft((d) => d + letter)
     },
-    [chain, draft, submit, clearLocalFeedback],
+    [chain, draft, submit, localFeedbackSlot],
   )
 
   const runChainRpc = useCallback(
@@ -252,24 +248,25 @@ export function PlayArea(ctx: GamePageCtx) {
       const res = await runRpc<ChainAnswer>(db.rpc(fn, { target_game: gameId }))
       setBusy(false)
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'undone') {
         // The shortened chain arrives by subscription and the strip redraws
-        // itself; all this owes the player is the entry back.
+        // itself; all this owes the player is the entry back — taking a word
+        // back is a move, so it dismisses the last result like a keystroke.
         setDraft('')
-        clearLocalFeedback()
+        localFeedbackSlot.dismiss()
         return
       } else if (res.type === 'ok' && res.data.result === 'cleared') {
         setDraft('')
-        clearLocalFeedback()
+        localFeedbackSlot.dismiss()
         return
       } else {
         reportUnhandled(fn, res)
         return
       }
     },
-    [gameId, showLocalFeedback, clearLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
   // The chain strip's × on the last word. `clear_chain` still exists
   // server-side but has no surface: clicking × repeatedly reaches the empty
@@ -317,10 +314,12 @@ export function PlayArea(ctx: GamePageCtx) {
         // All three are DIAGNOSIS ONLY — none of them ends in "take a word
         // back" any more. The remedy is the same in every case, the chain
         // strip's × is right there, and the pill is `nowrap` + ellipsis inside
-        // a reserved-height slot (GenericFeedbackPill), so a sentence that
-        // doesn't fit is a sentence nobody reads: the off-par one used to run
-        // 74 characters and truncated mid-word even on desktop. Spend the
-        // characters on WHICH wall you hit, not on the shared way out.
+        // a reserved-height slot, so a sentence that doesn't fit is a sentence
+        // nobody reads: the off-par one used to run 74 characters and
+        // truncated mid-word even on desktop. Spend the characters on WHICH
+        // wall you hit, not on the shared way out. A `hint` like the answer
+        // it stands in for: the player asked, maybe mid-word, and the reply
+        // holds the slot until they have read it and pressed ×.
         const tail = tailLetter(chain as string[])
         // Did I already SPEND a word starting with the tail letter? `suggest`
         // excludes words already in the chain (the server refuses a repeat), so
@@ -342,8 +341,8 @@ export function PlayArea(ctx: GamePageCtx) {
           r.kind === 'stuck' &&
           !(tail !== null &&
             game.playableWords.some((w) => w.startsWith(tail) && !chain.includes(w)))
-        showLocalFeedback(
-          stickyPill(
+        localFeedbackSlot.show(
+          FeedbackMessage.hint(
             'warning',
             stuck
               // Naming the letter is the whole message: "no word starts with G"
@@ -365,40 +364,34 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
 
-      // STICKY, not `manual` — deliberate, and the one place a hint isn't.
+      // A `hint` leaves only by its ×, like every priced help: it sits in the
+      // entry's slot until the player has read it, and a keystroke can't take
+      // it away by accident (docs/ui.md → Feedback pill).
       //
-      // stackdown's spoiler is `manual` because you hunt tiles across the board
-      // with it open; a click must not take it away. Here the opposite is true:
-      // the pill occupies the ENTRY's slot, so the moment you act on the hint —
-      // type, or click a letter — you need that slot back. Making it `manual`
-      // would mean either blocking input until the × is pressed, or a pill that
-      // hides the entry you're typing into.
-      //
-      // It costs nothing to lose WHEN THE LOG HAS IT: the turn log keeps the
-      // hint's CONTENT ("Hint: 8 letters: ADG"), so the pill is a convenience
-      // copy of that row — which is exactly what a failed write means there
-      // isn't. So a refusal REPLACES this pill rather than being swallowed.
-      // Nothing is lost by that: the four answers below are one race that only
-      // fires once the game is over (a hint has nothing left to be for) and
-      // three faults that mean a broken client, so no player is holding a hint
-      // they could still have used (Joel, 2026-09-01).
-      showLocalFeedback(stickyPill('noted', helpPillText(kind, r.word)))
+      // A failed log is shown, not swallowed: the turn log keeps the hint's
+      // CONTENT ("Hint: 8 letters: ADG") only when the write SUCCEEDS, so a
+      // not-ok goes up over the hint. Nothing is lost by that: the four
+      // answers below are one race that only fires once the game is over (a
+      // hint has nothing left to be for) and three faults that mean a broken
+      // client, so no player is holding a hint they could still have used
+      // (Joel, 2026-09-01).
+      localFeedbackSlot.show(FeedbackMessage.hint('noted', helpPillText(kind, r.word)))
       const res = await runRpc<HelpAnswer>(
         db.rpc('log_help', { target_game: gameId, word_shown: r.word, kind }),
       )
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'logged') {
-        // The help row arrives in the turn log by subscription. The pill above
-        // stands, which is the whole of what a successful log owes anyone.
+        // The help row arrives in the turn log by subscription. The hint
+        // above stands, which is the whole of what a successful log owes anyone.
         return
       } else {
         reportUnhandled('log_help', res)
         return
       }
     },
-    [game, sides, chain, maxWords, gameId, showLocalFeedback],
+    [game, sides, chain, maxWords, gameId, localFeedbackSlot],
   )
   const takeHint = useCallback(() => void askHelp('hint'), [askHelp])
   const takeSpoiler = useCallback(() => void askHelp('spoiler'), [askHelp])
@@ -419,7 +412,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     // The same board and the same seeded pair, hunted again — so put the pair
     // away. Nothing on the server remembers the reveal any more (it's local
     // state), which is exactly why this is spelled out.
@@ -439,16 +432,15 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start.
-      // FOUR of the answers here are form-validations rather than faults —
-      // PN214/PN215 (the letters have no solution), PN216/PN217 (the dictionary
-      // does not reach it) — so this branch renders whatever outcome arrived
-      // instead of assuming a fault look.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
+      // silent about why the game didn't start. FOUR of the answers here are
+      // form-validations rather than faults — PN214/PN215 (the letters have
+      // no solution), PN216/PN217 (the dictionary does not reach it) — and the
+      // message wears whatever outcome arrived.
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`letterboxed_${gameMode}`, res.data.id)
@@ -537,7 +529,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // from the action rather than being typed here a second time. The help ladder
   // hides itself in compete, which is why this list is the same in both modes.
   // The effect re-runs only when the SHAPE changes, hence every dep is stable.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -565,23 +557,14 @@ export function PlayArea(ctx: GamePageCtx) {
       if (e.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === e.user_id)
       // Peer help is TWO messages (Joel's spec, 2026-08-05): the header names
-      // the ACT ("● joel got a hint"), and the CONTENT — the same text the
-      // requester's own pill showed — lands in the local slot, so a hint one
-      // player asks for is a hint the whole team has. Side-effecting
-      // showLocalFeedback from here is sound: messageFor runs once per NEW
-      // event inside the hook's effect (the seen-set), never during render.
+      // the ACT ("● joel got a hint"), and the CONTENT — the same hint the
+      // requester saw — lands in the local slot, so a hint one player asks
+      // for is a hint the whole team has. Showing into the local slot from
+      // here is sound: messageFor runs once per NEW event inside the hook's
+      // effect (the seen-set), never during render.
       if (e.kind === 'hint' || e.kind === 'spoiler') {
-        if (e.word) showLocalFeedback(stickyPill('noted', helpPillText(e.kind, e.word)))
-        return {
-          tone: 'noted',
-          text: (
-            <>
-              <DotActor actor={member} fallback="A teammate" />{' '}
-              {e.kind === 'hint' ? 'got a hint' : 'revealed a word'}
-            </>
-          ),
-          mode: { kind: 'timed' },
-        }
+        if (e.word) localFeedbackSlot.show(FeedbackMessage.hint('noted', helpPillText(e.kind, e.word)))
+        return FeedbackMessage.peer(member, 'noted', e.kind === 'hint' ? 'got a hint' : 'revealed a word')
       }
       const what =
         e.kind === 'played'
@@ -591,18 +574,82 @@ export function PlayArea(ctx: GamePageCtx) {
               // say WHICH word came off (the log's "took back GJB" agrees).
               `undid ${e.word?.toUpperCase() ?? 'the last word'}`
             : 'cleared the chain'
-      return {
-        tone: e.kind === 'played' ? 'won' : 'noted',
-        text: (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> {what}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      return FeedbackMessage.peer(member, e.kind === 'played' ? 'won' : 'noted', what)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
+
+  // ─── The four standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. `leaderboard` is already memoized on the status.
+  const isCompete = game?.mode === 'compete'
+  const timedOut = status?.timed_out === true
+  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const winnerId = (status?.winner_id as string | undefined) ?? null
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({
+            mode: gameMode,
+            playState,
+            timedOut,
+            statusOutcome,
+            winnerId,
+            leaderboard,
+            selfId: session.user.id,
+            lettersCovered,
+            wordsUsed: chain.length,
+          })
+        : null,
+    [isTerminal, gameMode, playState, timedOut, statusOutcome, winnerId, leaderboard,
+     session.user.id, lettersCovered, chain.length],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I conceded but the others race on.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
+
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this never fires there. On a phone the
+  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
+  // indicator.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const holderName = turnHolder?.username
+  const holderColor = turnHolder?.color
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = localFeedbackSlot.show(
+      FeedbackMessage.waiting(
+        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+      ),
+    )
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, waiting, holderName, holderColor])
+
+  // The cap is spent and the board isn't covered. There is no legal move left
+  // but taking a word back, so the board and the entry both go inert rather
+  // than letting a player compose a sixth word only to be refused it — and
+  // the slot says so in the entry's place.
+  const chainFull = chain.length >= maxWords && lettersCovered < BOARD_SIZE
+  useEffect(function showChainFull() {
+    if (!chainFull) return
+    const id = localFeedbackSlot.show(FeedbackMessage.note('Chain is full — remove a word'))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, chainFull])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -627,16 +674,6 @@ export function PlayArea(ctx: GamePageCtx) {
   const viewingDescription =
     viewing && viewingIndex !== null ? describeAt(boardRows, viewingIndex) : null
 
-  const isCompete = game.mode === 'compete'
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
-  // is null in a free-for-all game, so this is false there — the pill's
-  // presence is fixed for the game's life, no reflow.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  // The cap is spent and the board isn't covered. There is no legal move left
-  // but taking a word back, so the board and the entry both go inert rather
-  // than letting a player compose a sixth word only to be refused it.
-  const chainFull = chain.length >= maxWords && lettersCovered < BOARD_SIZE
   // TWO different gates, and conflating them is a bug: a full chain freezes the
   // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
   // because taking a word back is the only move left. Passing the entry's gate
@@ -651,18 +688,6 @@ export function PlayArea(ctx: GamePageCtx) {
     playerRows.map((r) => [r.user_id, r.letters_covered]),
   )
 
-  const over = isTerminal
-    ? buildOver({
-        mode: game.mode,
-        playState,
-        status,
-        leaderboard,
-        selfId: session.user.id,
-        lettersCovered,
-        wordsUsed: chain.length,
-      })
-    : null
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -676,23 +701,12 @@ export function PlayArea(ctx: GamePageCtx) {
         onSubmit={() => void submit()}
         onPick={pick}
         onRemoveLast={removeLast}
-        clearLocalFeedback={clearLocalFeedback}
+        // The slot the entry row draws in its place: a word result, a hint,
+        // "you're out", whose turn it is, the full chain, the verdict.
+        localFeedbackSlot={localFeedbackSlot}
         entryDisabled={entryDisabled}
         chainEditable={chainEditable}
-        chainFull={chainFull}
         busy={busy}
-        // Locally terminal (compete: I conceded while the others race on) gets
-        // the standard "you're out" pill; a teammate's turn gets the
-        // whose-turn pill — the ONLY such indicator on a phone, where the
-        // InfoCol's TurnStatusLine is off-canvas.
-        localPill={
-          isLocallyDone
-            ? outOfRacePill(true)
-            : waiting
-              ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
-              : localFeedback
-        }
-        over={over}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -728,7 +742,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
-          in the below-board pill and the info column, so a modal would just
+          in the below-board slot and the info column, so a modal would just
           interrupt. */}
       {/* Confetti at the MOMENT the board is covered — coop's win, and compete's
           for whoever got there first. useCelebration never pops on mount, so
@@ -741,7 +755,7 @@ export function PlayArea(ctx: GamePageCtx) {
 }
 
 /**
- * Maps the terminal play_state to the shared `TerminalCopy`.
+ * Maps the terminal play_state to the shared `TerminalMessage`.
  *
  * Coop wins by covering all twelve inside the cap; its losses are the clock
  * and the group calling it. Compete's win is FIRST past that same bar, which
@@ -753,7 +767,9 @@ export function PlayArea(ctx: GamePageCtx) {
 function buildOver({
   mode,
   playState,
-  status,
+  timedOut,
+  statusOutcome,
+  winnerId,
   leaderboard,
   selfId,
   lettersCovered,
@@ -761,38 +777,40 @@ function buildOver({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  status: Record<string, unknown> | null
+  /** `status.timed_out` — the clock ended it. */
+  timedOut: boolean
+  /** `status.outcome`, or null when the status carries none. */
+  statusOutcome: string | null
+  /** `status.winner_id` — the solve-path winner, or null. */
+  winnerId: string | null
   leaderboard: LeaderRow[]
   selfId: string
   lettersCovered: number
   wordsUsed: number
-}): TerminalCopy {
-  const timedOut = status?.timed_out === true
-
+}): TerminalMessage {
   if (mode === 'coop') {
     if (playState === 'won') {
       return {
-        tone: 'won',
-        verdict: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
-        message: 'All letters used!',
+        outcome: 'won',
+        pillText: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
+        infoColText: 'All letters used!',
       }
     }
     if (playState === 'lost') {
       return timedOut
-        ? { tone: 'lost', verdict: `Lost: out of time at ${lettersCovered}/12`, message: 'Out of time' }
-        : { tone: 'lost', verdict: `Lost: stopped at ${lettersCovered}/12`, message: 'Called it' }
+        ? { outcome: 'lost', pillText: `Lost: out of time at ${lettersCovered}/12`, infoColText: 'Out of time' }
+        : { outcome: 'lost', pillText: `Lost: stopped at ${lettersCovered}/12`, infoColText: 'Called it' }
     }
-    return endedCopy('coop')
+    return gameEndedTerminalMessage('coop')
   }
 
   // Compete.
   if (playState === 'won_compete') {
-    const winnerId = status?.winner_id as string | undefined
     if (winnerId === selfId) {
       return {
-        tone: 'won',
-        verdict: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
-        message: 'You got there first!',
+        outcome: 'won',
+        pillText: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
+        infoColText: 'You got there first!',
       }
     }
     // A timeout resolves on coverage instead of a solve, so the verdict comes
@@ -805,32 +823,32 @@ function buildOver({
       const covered = winners[0]?.letters_covered ?? 0
       if (iWon) {
         return {
-          tone: 'won',
-          verdict:
+          outcome: 'won',
+          pillText:
             winners.length > 1
               ? `Won: tied at most letters (${covered}/12)`
               : `Won: most letters (${covered}/12)`,
-          message: 'Most letters when time ran out',
+          infoColText: 'Most letters when time ran out',
         }
       }
-      const names = winners.map((e) => e.username ?? 'someone').join(' & ')
+      const names = winners.map((e) => e.username ?? 'a player').join(' & ')
       return {
-        tone: 'lost',
-        verdict: `Lost: ${names || 'someone'} covered more`,
-        message: 'Out of time',
+        outcome: 'lost',
+        pillText: `Lost: ${names || 'a player'} covered more`,
+        infoColText: 'Out of time',
       }
     }
     const name = leaderboard.find((e) => e.user_id === winnerId)?.username
     return {
-      tone: 'lost',
-      verdict: `Lost: ${name ?? 'someone'} got there first`,
-      message: 'Beaten to it',
+      outcome: 'lost',
+      pillText: `Lost: ${name ?? 'a player'} got there first`,
+      infoColText: 'Beaten to it',
     }
   }
   if (playState === 'lost_compete') {
-    return status?.outcome === 'conceded'
-      ? { tone: 'lost', verdict: 'Lost: everyone conceded', message: 'Everyone dropped out' }
-      : { tone: 'lost', verdict: 'Lost: nobody covered the board', message: 'Nobody finished' }
+    return statusOutcome === 'conceded'
+      ? { outcome: 'lost', pillText: 'Lost: everyone conceded', infoColText: 'Everyone dropped out' }
+      : { outcome: 'lost', pillText: 'Lost: nobody covered the board', infoColText: 'Nobody finished' }
   }
-  return endedCopy('compete')
+  return gameEndedTerminalMessage('compete')
 }

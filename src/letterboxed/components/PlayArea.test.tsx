@@ -18,6 +18,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -106,7 +107,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     currentTurnUserId: null,
     setup: { extra_words: 3, difficulty: 3, timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
@@ -363,9 +364,8 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
  */
 describe('letterboxed PlayArea — a refused undo, and who wrote the words', () => {
   /** Take back the last word and have the server refuse it. Undo is used
-   *  rather than Reveal because it's reachable MID-GAME: at terminal the
-   *  verdict pill owns the slot by priority (localPills.ts) and would hide
-   *  whatever we're asserting. */
+   *  rather than Reveal because it's reachable MID-GAME, where nothing else
+   *  is in the slot beside what we're asserting. */
   async function undoAnswering(reply: unknown) {
     rpc.mockResolvedValue(reply)
     h.result = loaded(loadedGame())
