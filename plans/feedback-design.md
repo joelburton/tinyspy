@@ -86,6 +86,12 @@ primitives with the winner read as name + color, `buildOver` →
 hands the slot to `<EntryRow>` and a letter click is `dismiss`. Its five
 e2e specs run on Joel's word.
 
+**spellingbee COMMITTED** (`843ea1a6`), its e2e green.
+
+**wordwheel CONVERTED (2026-09-12), uncommitted, awaiting Joel's read** —
+spellingbee's fork, converted the same way line for line (the moose for the
+bee). Its four e2e specs run on Joel's word.
+
 **Next:** the other games, one by one.
 
 **How the area runs — DECIDED 2026-09-12**, because the audit process was
