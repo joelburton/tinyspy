@@ -1,10 +1,8 @@
 // cs-unmet
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
-import { terminalPill } from '@/common/feedback/localPills'
+import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -44,17 +42,18 @@ function pathWord(path: Cell[], view: string[][]): string {
 /**
  * boggle's board column — the square tile grid, a floating Rotate control over its
  * top-right, and the below-board slot (the shared `<EntryRow>` — the typed-word input
- * + capture keyboard — which renders the own-move / terminal pill in place of the
- * controls when `pill` is set).
+ * + capture keyboard — which draws the local feedback slot's top message in
+ * place of the controls).
  *
  * It owns the **local board rotation** (a per-player view-only matrix rotation — the
  * tiles reposition, each letter stays upright — never persisted or shared). The
- * word-entry ENGINE (`useWordSubmit`: the typed word, the submit RPC, the feedback)
- * stays in PlayArea, because its feedback channel is also written by InfoCol's End /
- * Concede — so PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit`
- * / `localPill` / …) DOWN and this column renders them. Like the other games'
- * BoardCol it does NOT own the game state: PlayArea hands it the display `grid`, and
- * the below-board `over` pill / `localPill`. See docs/playarea.md.
+ * word-entry ENGINE (`useWordSubmit`: the typed word, the submit RPC, the results)
+ * stays in PlayArea, as does the local feedback slot it shows into — InfoCol's
+ * End / Concede and PlayArea's standing conditions show into the same slot — so
+ * PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit` / the
+ * slot / …) DOWN and this column renders them. Like the other games' BoardCol
+ * it does NOT own the game state: PlayArea hands it the display `grid`. See
+ * docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──
@@ -66,13 +65,9 @@ export function BoardCol({
   word,
   onChange,
   onSubmit,
-  onAnyKey,
+  localFeedbackSlot,
   lastWord,
   readOnly,
-  // ── Below-board pill (channel owned by PlayArea) ──
-  over,
-  localPill,
-  onDismissPill,
 }: {
   // ── Mobile-only status block ──
   /** The figures behind the 4-cell `<Stats>` grid — the SAME component the info
@@ -93,21 +88,14 @@ export function BoardCol({
   word: string
   onChange: (next: string) => void
   onSubmit: () => void
-  /** Dismiss the sticky own-move pill on any keystroke (a new move clears it). */
-  onAnyKey: () => void
+  /** PlayArea's below-board slot — the entry row draws its top in place of the
+   *  controls, and a keystroke or tile tap is the player's next action, so it
+   *  dismisses a gesture-cleared result. */
+  localFeedbackSlot: FeedbackSlot
   /** The last submitted word, for ArrowUp recall. */
   lastWord: string
   /** Freeze entry (terminal / conceded). */
   readOnly: boolean
-
-  // ── Below-board pill ──
-  /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
-  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
-  /** The own-move pill to show while the entry is empty (a word result), or null. */
-  localPill: GenericFeedbackMsg | null
-  /** Clear the local pill — tapping a transient one dismisses it, the same
-   *  way the next keystroke does (docs/ui.md → Feedback pill). */
-  onDismissPill: () => void
 }) {
   // Number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
@@ -130,6 +118,7 @@ export function BoardCol({
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
     if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)
+    localFeedbackSlot.dismiss() // a tap is the next move, like a keystroke
     const idx = path.findIndex((c) => c.y === y && c.x === x)
     let next: Cell[]
     if (idx >= 0) {
@@ -242,10 +231,9 @@ export function BoardCol({
         <ShuffleButton action={actRotate} tooltip="Rotate board" className={shared.floatingShuffle} />
       </div>
       {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
-          + icon-only Submit, plus the capture keyboard). It renders the terminal
-          verdict / own-move feedback pill in place of the controls when `pill` is set
-          (terminal takes precedence; an own-move result shows only while the entry is
-          empty so typing reclaims the slot). */}
+          + icon-only Submit, plus the capture keyboard). While the slot holds a
+          message it draws it in place of the controls — the verdict, "you're
+          out", a word result, whichever ranks highest. */}
       <div className={styles.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
@@ -254,17 +242,10 @@ export function BoardCol({
             onSubmit={handleSubmit}
             placeholder="Type or tap letters"
             disabled={readOnly}
-            onAnyKey={onAnyKey}
+            onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}
-            onDismissPill={onDismissPill}
-            pill={
-              over
-                ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
-                : word === ''
-                  ? localPill
-                  : null
-            }
+            localFeedbackSlot={localFeedbackSlot}
           />
         </div>
       </div>

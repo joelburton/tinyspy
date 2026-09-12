@@ -88,9 +88,18 @@ e2e specs run on Joel's word.
 
 **spellingbee COMMITTED** (`843ea1a6`), its e2e green.
 
-**wordwheel CONVERTED (2026-09-12), uncommitted, awaiting Joel's read** —
-spellingbee's fork, converted the same way line for line (the moose for the
-bee). Its four e2e specs run on Joel's word.
+**wordwheel COMMITTED** (`929bb236`), its e2e green.
+
+**boggle CONVERTED (2026-09-12).** The
+word-hunt shape again: the slot into `useWordSubmit`, two condition effects
+(the verdict; out of the race — conceding is boggle's only path there),
+`over` memoized on primitives — the target crosser and the top non-conceded
+scorer each read as name + color — and `buildOver` → `TerminalMessage` with
+that person as `actor` in place of `verdictNode`. A teammate's find is a
+`peer` message ("found DOG +2", "wow! JACKPOT +9"). BoardCol hands the slot
+to `<EntryRow>`; a keystroke or a tile tap is `dismiss`.
+
+**boggle COMMITTED**, its three e2e specs green.
 
 **Next:** the other games, one by one.
 

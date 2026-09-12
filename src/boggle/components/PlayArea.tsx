@@ -1,11 +1,10 @@
 // cs-unmet
 
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import type { GamePlayer } from '@/common/members/member'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -13,13 +12,13 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import type { TerminalOutcome } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { outOfRacePill } from '@/common/feedback/localPills'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage, type Actor } from '@/common/feedback/FeedbackMessage'
 import { memberById } from '@/common/members/memberList'
-import { DotActor } from '@/common/members/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
@@ -35,7 +34,6 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { runRpc } from '@/common/supabase/dbResult'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -72,7 +70,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // The entry is typed at the window rather than into an input, so nothing here
@@ -135,13 +133,18 @@ export function PlayArea(ctx: GamePageCtx) {
   // in another.
   const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
 
-  // ─── Move entry + own-move feedback (shared engine) ────
+  // ─── The local feedback slot ────
+  // The below-board slot every own-move result lands in: the word engine's
+  // results, End / Concede's not-oks, and the two standing conditions below.
+  const localFeedbackSlot = useFeedbackSlot('local')
+
+  // ─── Move entry + own-move results (shared engine) ────
   // The board ships with its full legal list (required ∪ bonus), so a guess is
   // validated + scored locally — index it by word for O(1) lookup. `useWordSubmit`
-  // owns the typed-word state, the sticky own-move pill, and the optimistic
-  // commit + dedup; boggle only supplies the lookup, the RPC, the reject reason
-  // (not-on-board vs not-a-word, client-side via `traceableStr`), and the success
-  // label. See docs/games/boggle.md.
+  // owns the typed-word state, the results it shows into the slot, and the
+  // optimistic commit + dedup; boggle only supplies the lookup, the RPC, the
+  // reject reason (not-on-board vs not-a-word, client-side via `traceableStr`),
+  // and the success label. See docs/games/boggle.md.
   const legalIndex = useMemo(() => {
     const m = new Map<string, WordEntry>()
     for (const r of game?.required_words ?? []) {
@@ -158,13 +161,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
-  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
+  const { word, setWord, lastWord, submit } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
       // A conceder is locally done: gate word entry as if the game were terminal.
       isTerminal: isTerminal || myConceded,
       minWordLength: game?.min_word_length ?? 3,
+      localFeedbackSlot,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
       // Two ok answers, both meaning the row landed — the classification is the
@@ -295,16 +299,15 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
-  // failure-pill format + the replay sentence are boggle's. Its errors share the
-  // same below-board pill as a word submit (via showLocalFeedback). New game
-  // stays below — its create path diverges per game.
+  // replay sentence is boggle's. Its not-oks land in the same below-board slot
+  // as a word result. New game stays below — its create path diverges per game.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
   })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
@@ -331,17 +334,15 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start.
-      // THREE of the answers here are genuinely form-validations rather than
-      // faults — PN154 (no words for those letters), PN155 (no board met those
-      // constraints) and the RPC's own PN147 — which is the most of any game's
-      // New Game, and why this branch renders whatever outcome arrived instead
-      // of assuming a fault look.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
+      // silent about why the game didn't start. THREE of the answers here are
+      // genuinely form-validations rather than faults — PN154 (no words for
+      // those letters), PN155 (no board met those constraints) and the RPC's
+      // own PN147 — and the message wears whatever outcome arrived.
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`boggle_${gameMode}`, res.data.id)
@@ -369,7 +370,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -401,30 +402,77 @@ export function PlayArea(ctx: GamePageCtx) {
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
-      if (r.user_id === myId) return null // own word → in-body pill
+      if (r.user_id === myId) return null // own word → the local slot
       const member = players.find((p) => p.user_id === r.user_id)
       const wow = r.word.length >= 7
       const label = wordWithBonusDot(r.word, r.is_bonus)
-      return {
-        tone: 'won',
-        // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
-        // +14" shape) so the headline reads before the word does — and so the
-        // line fits the header pill's ~26 phone characters.
-        text: wow ? (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> wow! {label} +{r.points}
-          </>
-        ) : (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> found {label} +{r.points}
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
+      // +14" shape) so the headline reads before the word does — and so the
+      // line fits the header's ~26 phone characters.
+      return FeedbackMessage.peer(member, 'won', `${wow ? 'wow!' : 'found'} ${label} +${r.points}`)
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
+  // ─── The two standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // The per-status terminal message, memoized on primitives so the verdict
+  // effect sees one object per outcome, not one per render. The two people it
+  // can name — a target crosser, or the top scorer among the non-conceded —
+  // are resolved here to name + color for the same reason.
+  const isCompete = game?.mode === 'compete'
+  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winner = players.find((p) => p.user_id === winnerId)
+  const winnerName = winner?.username ?? (status?.winner_username as string | undefined)
+  const winnerColor = winner?.color
+  // The winning bar excludes conceded players — a drop-out can't be the
+  // winner anyone sees, matching boggle._finish's max_score.
+  const racers = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
+    (r) => !concededIds.has(r.user_id),
+  )
+  const leaderMax = racers.reduce((m, r) => Math.max(m, r.found_words_score), 0)
+  const leaderId = racers.find((r) => r.found_words_score === leaderMax)?.user_id ?? null
+  const leader = players.find((p) => p.user_id === leaderId)
+  const leaderName = leader?.username
+  const leaderColor = leader?.color
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({
+            mode: gameMode,
+            playState,
+            statusOutcome,
+            myCount,
+            myScore,
+            myConceded,
+            selfId: myId,
+            winnerId,
+            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
+            leaderMax,
+            leader: leaderName === undefined ? undefined : { username: leaderName, color: leaderColor ?? '' },
+          })
+        : null,
+    [isTerminal, gameMode, playState, statusOutcome, myCount, myScore, myConceded, myId,
+     winnerId, winnerName, winnerColor, leaderMax, leaderName, leaderColor],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I conceded but the game continues for the
+  // others. boggle has no elimination, so conceding is the only path to it.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -434,11 +482,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // `!grid` stays fused with `!game`: the grid is DERIVED from the game's board,
   // so it can only be absent when the game is, and it has no failure of its own.
   if (!game || !grid) return <div className={styles.empty}>Game not found.</div>
-
-  const isCompete = game.mode === 'compete'
-  // Locally terminal (compete only): I conceded but the game continues for the
-  // others. boggle has no elimination, so conceding is the only path to it.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // The reveal: every word nobody found, at game over. No button gates it —
   // the word list's KIND filter (found / missed) already IS that control, and a
@@ -462,15 +505,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // Merged, alphabetized rows for the shared WordList (found + the reveal).
   const wordRows = buildDisplayRows(foundWords, revealWords)
 
-  const over = isTerminal
-    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded, selfId: myId, playState })
-    : null
-
   // Index the compete leaderboard by user so the OpponentStrip metric can read
   // each peer's score (self reads the live local computation so it stays in lock
-  // step with the state line above).
-  const leaderboard = (status?.leaderboard as LeaderRow[] | undefined) ?? []
-  const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.found_words_score]))
+  // step with the state line above). Every row, conceded included: the strip
+  // shows a conceder's banked score beside their "out" cell.
+  const scoreByUser = new Map(
+    ((status?.leaderboard as LeaderRow[] | undefined) ?? []).map((e) => [e.user_id, e.found_words_score]),
+  )
 
   const ladderLabel = ladder.charAt(0).toUpperCase() + ladder.slice(1)
   const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
@@ -502,18 +543,13 @@ export function PlayArea(ctx: GamePageCtx) {
         word={word}
         onChange={setWord}
         onSubmit={submit}
-        onAnyKey={clearLocalFeedback}
+        // The slot the entry row draws: a word result, the "you're out" state
+        // (its info-column twin is the LocalTerminalRow — dual placement is the
+        // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
+        // this is the ONLY copy the player sees), the verdict.
+        localFeedbackSlot={localFeedbackSlot}
         lastWord={lastWord}
         readOnly={isTerminal || myConceded}
-        // ── Below-board pill ──
-        over={over}
-        // Locally terminal (compete: I conceded while the others play on) gets the
-        // standard "you're out" pill, so the frozen entry has an explanation right
-        // beside it. The InfoCol's LocalTerminalRow says the same thing tersely —
-        // dual placement is the rule (docs/playarea.md), and on a phone the InfoCol
-        // is off-canvas, making this the ONLY copy the player sees.
-        onDismissPill={clearLocalFeedback}
-        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
       />
 
       {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}
@@ -566,50 +602,51 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 }
 
-type StatusBlob = Record<string, unknown>
 type LeaderRow = { user_id: string; found_words_count: number; found_words_score: number }
 
 /**
- * Per-status terminal copy. A game ends three ways (`status.outcome`): a player
- * hitting End (`'manual'`), the timer expiring (`'timeout'`), or a score TARGET
- * being reached (`'target'`, when setup.win_percent is set — a real win). Coop is
- * otherwise a neutral shared hunt (no win/loss); compete without a target picks
- * the highest score. A `'target'` compete win names the crosser in
- * `status.winner_user_id` / `status.winner_username`.
+ * The per-status terminal message. A game ends three ways (`status.outcome`):
+ * a player hitting End (`'manual'`), the timer expiring (`'timeout'`), or a
+ * score TARGET being reached (`'target'`, when setup.win_percent is set — a
+ * real win). Coop is otherwise a neutral shared hunt (no win/loss); compete
+ * without a target picks the highest score. A `'target'` compete win names
+ * the crosser in `status.winner_user_id` / `status.winner_username`.
  *
- * `verdict` + `tone` drive the permanent below-board pill; `message` + `tone`
- * drive the short bold line in the info-column action row.
+ * `pillText` + `outcome` are the below-board verdict; `infoColText` +
+ * `outcome` the short bold line in the info-column action row. A verdict
+ * that names a person carries them as `actor`, and the pill draws the
+ * mention the way every other peer message names someone.
  */
 function buildOver({
   mode,
-  status,
+  playState,
+  statusOutcome,
   myCount,
   myScore,
-  players,
   myConceded,
   selfId,
-  playState,
+  winnerId,
+  winner,
+  leaderMax,
+  leader,
 }: {
   mode: 'coop' | 'compete'
-  status: StatusBlob | null
   /** The terminal play_state — coop distinguishes a missed TARGET (`lost`)
    *  from the neutral end of a no-target hunt (`ended`) by it. */
   playState: string
+  /** `status.outcome`, or null when the status carries none. */
+  statusOutcome: string | null
   myCount: number
   myScore: number
-  players: GamePlayer[]
   myConceded: boolean
   selfId: string
-}): {
-  verdict: string
-  /** The one case where the pill wants a WIDGET rather than a string: the
-   *  winner's identity dot, the same way peer feedback names people elsewhere.
-   *  `verdict` carries the plain-text twin for anything that needs a string. */
-  verdictNode?: ReactNode
-  message: string
-  tone: TerminalOutcome
-} {
-  const statusOutcome = status?.outcome as string | undefined
+  /** A target crosser — `status.winner_user_id`, or null. */
+  winnerId: string | null
+  winner: Actor | undefined
+  /** The best score among the non-conceded, and who holds it. */
+  leaderMax: number
+  leader: Actor | undefined
+}): TerminalMessage {
   const isTarget = statusOutcome === 'target'
   const reason = statusOutcome === 'timeout' ? "Time's up" : 'Game ended'
 
@@ -622,15 +659,15 @@ function buildOver({
     //   reached it            → a real win
     //   clock beat a target   → a real loss; there WAS a bar and we missed it
     //   anything else         → neutral (no bar to fail, or we chose to stop)
-    // Which of timeout-vs-manual ended it rides in `message` ("Time's up" /
-    // "Game ended") — the pill spends its width on the tally.
+    // Which of timeout-vs-manual ended it rides in the info-column line
+    // ("Time's up" / "Game ended") — the pill spends its width on the tally.
     if (isTarget) {
-      return { verdict: `Won: ${tally}`, message: 'Target reached!', tone: 'won' }
+      return { pillText: `Won: ${tally}`, infoColText: 'Target reached!', outcome: 'won' }
     }
     if (playState === 'lost') {
-      return { verdict: `Lost: ${tally}`, message: reason, tone: 'lost' }
+      return { pillText: `Lost: ${tally}`, infoColText: reason, outcome: 'lost' }
     }
-    return { verdict: `Ended: ${tally}`, message: reason, tone: 'neutral' }
+    return { pillText: `Ended: ${tally}`, infoColText: reason, outcome: 'neutral' }
   }
 
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).
@@ -638,72 +675,51 @@ function buildOver({
   // banked score was the highest (mirrors the server's won:false).
   if (myConceded) {
     return {
-      verdict: 'Lost: conceded',
-      message: 'You conceded',
-      tone: 'lost',
+      pillText: 'Lost: conceded',
+      infoColText: 'You conceded',
+      outcome: 'lost',
     }
   }
   // A target win is a RACE the server already decided: the crosser (named in the
   // status) wins outright, everyone else loses — no leaderboard comparison.
   if (isTarget) {
-    const winnerId = status?.winner_user_id as string | undefined
-    const winner = players.find((p) => p.user_id === winnerId)
-    const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
     if (winnerId === selfId) {
       return {
-        verdict: `Won: ${tally}`,
-        message: 'You won!',
-        tone: 'won',
+        pillText: `Won: ${tally}`,
+        infoColText: 'You won!',
+        outcome: 'won',
       }
     }
     return {
-      verdict: `${winnerName} won`,
-      verdictNode: (
-        <>
-          <DotActor actor={winner} fallback="Someone" show="both" /> won
-        </>
-      ),
-      message: `${winnerName} won`,
-      tone: 'lost',
+      pillText: 'won',
+      infoColText: `${winner?.username ?? 'a player'} won`,
+      outcome: 'lost',
+      actor: winner,
     }
   }
-  // The winning bar excludes conceded players — a drop-out can't be the
-  // winner anyone sees, matching boggle._finish's max_score.
-  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
-  const board = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
-    (r) => !concededIds.has(r.user_id),
-  )
-  const max = board.reduce((m, r) => Math.max(m, r.found_words_score), 0)
   // Nobody scored. The server agrees — boggle._finish writes lost_compete for
   // exactly this case, rather than flagging everyone a co-winner at 0 (which
   // is what "your score is the best score" does when every score is 0). This
   // used to render a neutral "Ended" while the club-page label read
   // "Won (co-winners)" off the same row; both now say the same thing.
-  if (max === 0) {
+  if (leaderMax === 0) {
     return {
-      verdict: 'Lost: no words found',
-      message: 'No winner',
-      tone: 'lost',
+      pillText: 'Lost: no words found',
+      infoColText: 'No winner',
+      outcome: 'lost',
     }
   }
-  if (myScore >= max) {
+  if (myScore >= leaderMax) {
     return {
-      verdict: `Won: ${tally}`,
-      message: 'You won!',
-      tone: 'won',
+      pillText: `Won: ${tally}`,
+      infoColText: 'You won!',
+      outcome: 'won',
     }
   }
-  const topRow = board.find((r) => r.found_words_score === max)
-  const topPlayer = players.find((p) => p.user_id === topRow?.user_id)
-  const topName = topPlayer?.username ?? 'Someone'
   return {
-    verdict: `${topName} won`,
-    verdictNode: (
-      <>
-        <DotActor actor={topPlayer} fallback="Someone" show="both" /> won
-      </>
-    ),
-    message: `${topName} won`,
-    tone: 'lost',
+    pillText: 'won',
+    infoColText: `${leader?.username ?? 'a player'} won`,
+    outcome: 'lost',
+    actor: leader,
   }
 }

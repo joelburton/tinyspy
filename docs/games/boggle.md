@@ -453,9 +453,10 @@ board), swapped in for spellingbee's hex flower.
   **cosmetic 90° matrix rotation** of the displayed grid — tiles reposition but each
   letter stays upright (a matrix rotation, not a CSS spin), so the board is readable
   from any side. **Local to this player in both modes**: never persisted, never seen
-  by others. A fixed-height **below-board slot** under the grid holds exactly one of:
-  the typed-word input row, the sticky own-move `<FeedbackPill>`, or the permanent
-  terminal pill (they replace each other so the board never reflows).
+  by others. A fixed-height **below-board slot** under the grid holds either the
+  typed-word input row or the local feedback slot's top message — an own-move
+  result, "you're out", the verdict — one replacing the other so the board
+  never reflows ([ui.md → Feedback pill](../ui.md#feedback-pill)).
   - **Move entry** is the shared **capture model** (`useCaptureKeys` + a chrome-less
     `<EntryBox>` display, same as spellingbee): window key-capture, letters stored
     UPPERCASE, the icon-only `act-delete-last` + `act-submit-entry` flanking the box. Enter
@@ -463,9 +464,10 @@ board), swapped in for spellingbee's hex flower.
     clears (the universal `useCaptureKeys` last-move history). Words can also be built
     by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
     [mobile.md](../mobile.md)); the traced word drives the same `word`/`onChange` engine,
-    and typing clears the path. Own-move results show as a **local sticky `<FeedbackPill>`**
-    (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
-    next keystroke — not the GamePage header feedback channel.
+    and typing clears the path. Own-move results are `result` messages in the
+    **local** slot (required `+N` / bonus / too-short / off-board / not-a-word),
+    dismissed by the next keystroke or tile tap — not the header's global slot,
+    which carries teammates' finds.
 - **Info column** (the canonical v3 order — see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
   the live **`<Stats>` grid** — a 4-cell three-line readout (a two-line stacked
   label over the value over the found-share percent), every cell `found / total`:
@@ -502,9 +504,10 @@ board), swapped in for spellingbee's hex flower.
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
 an info-column action-row button *and* a GamePage menu row — the SAME bound action
 in both, arranged by `buildGameMenu`.
-The terminal copy comes from a unified `buildOver` — the shared `TerminalCopy`
-shape (`{verdict, message, tone}`, `src/common/lib/game/terminalCopy.ts`) plus
-boggle's local `verdictNode?` — driving the below-board pill + the action-row line. **No modal
+The terminal message comes from a unified `buildOver` — the shared
+`TerminalMessage` shape (`{pillText, infoColText, outcome, actor?}`,
+`src/common/terminal/terminalMessage.ts`) — shown into the local slot as a
+`terminalVerdict` and driving the action-row line. **No modal
 carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)
 — it would duplicate the pill). Without a win
 target, coop is a neutral shared hunt and compete picks the highest score;
@@ -517,8 +520,8 @@ would pop confetti at someone opening a finished game.
 
 Verdicts are terse and lead with the outcome word ("Won: 12 words, 34 points";
 the coop neutral end "Ended: 12 words, 34 points"; the nobody-scored compete race
-"Lost: no words found"; "Lost: conceded"); a loss to a named player is a widget,
-"● alice won", carried in `verdictNode`.
+"Lost: no words found"; "Lost: conceded"); a loss to a named player carries
+them as the message's `actor` — "● alice won".
 
 **Mobile status block.** Below `--mobile` the info column moves off-canvas, taking
 the Stats grid with it — so `BoardCol` renders the SAME `<Stats>` above the tray in

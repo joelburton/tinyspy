@@ -2,7 +2,7 @@
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -52,8 +52,8 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   isTerminal: boolean
-  /** Terminal copy when the game is over (drives the action row), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   /** I conceded a compete race — the terminal LOOK while the others race on. */
   isLocallyDone: boolean
 

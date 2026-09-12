@@ -17,8 +17,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ReactNode } from 'react'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -30,9 +30,12 @@ import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { PlayArea } from './PlayArea'
 
-// Feedback `text` is now a ReactNode (a <DotActor> widget + sentence) rather
-// than a string — render it and read the plain text to assert on the wording.
-const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
+/** A ctx whose global slot is real, with a spy on its one door. */
+function narrationCtx(over: Partial<GamePageCtx> = {}) {
+  const globalFeedbackSlot = createFeedbackSlot('global')
+  const shown = vi.spyOn(globalFeedbackSlot, 'show')
+  return { ctx: makeCtx({ globalFeedbackSlot, ...over }), shown }
+}
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -105,7 +108,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       win_percent: null,
     },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
@@ -368,9 +371,9 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
 
 describe('boggle PlayArea — coop peer narration (global header)', () => {
   // `usePeerFeedback` seeds the backlog silently on the first loaded render,
-  // then fires a header pill for each NEW peer row. So each test renders once
-  // (empty seed), pushes a peer row into the mocked useGame, and re-renders to
-  // trigger the fire — asserting on the same ctx's stable `globalFeedback.show`.
+  // then shows a header message for each NEW peer row. So each test renders
+  // once (empty seed), pushes a peer row into the mocked useGame, and
+  // re-renders to trigger it — asserting through a spy on the slot's `show`.
 
   /** A peer's accepted found_words row (the coop header reads these). */
   function foundRow(over: Partial<FoundWordRow> = {}): FoundWordRow {
@@ -385,51 +388,49 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     }
   }
 
-  it("narrates a teammate's find with the word + points", () => {
-    const ctx = makeCtx({ players: twoMembers })
+  it("narrates a teammate's find with the word + points, the actor leading", () => {
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2 })])
     rerender(<PlayArea {...ctx} />)
-    const msg = vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0]
-    expect(nodeText(msg.text)).toBe('moth found DOG +2')
-    expect(msg.tone).toBe('won')
+    const feedbackMsg = shown.mock.calls.at(-1)![0]
+    expect(feedbackMsg.kind).toBe('peer')
+    expect(feedbackMsg.actor?.username).toBe('moth')
+    expect(feedbackMsg.text).toBe('found DOG +2')
+    expect(feedbackMsg.outcome).toBe('won')
   })
 
   it('flags a long (7+ letter) find with "wow!"', () => {
-    const ctx = makeCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'jackpot', points: 9 })])
     rerender(<PlayArea {...ctx} />)
-    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth wow! JACKPOT +9',
-    )
+    expect(shown.mock.calls.at(-1)![0].text).toBe('wow! JACKPOT +9')
   })
 
   it('shows the bonus dot after a bonus find', () => {
-    const ctx = makeCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2, is_bonus: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth found DOG • +2',
-    )
+    expect(shown.mock.calls.at(-1)![0].text).toBe('found DOG • +2')
   })
 
-  it('does not narrate your own find (that goes to the local pill)', () => {
-    const ctx = makeCtx({ players: twoMembers })
+  it('does not narrate your own find (that goes to the local slot)', () => {
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'cat', points: 1 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 
   it("stays silent in compete (opponents' finds are private)", () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    const ctx = makeCtx({ players: twoMembers })
+    const { ctx, shown } = narrationCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame({ mode: 'compete' }), [foundRow({ word: 'dog', points: 2 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+    expect(shown).not.toHaveBeenCalled()
   })
 })
 
