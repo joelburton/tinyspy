@@ -4,7 +4,7 @@ The folders it reads: `page-header`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-12; AUDITED the same day.** Thirteen files read in one
+**Status: CLOSED 2026-09-12, blessed — thirteen files `cs-blessed-page-header`.** Thirteen files read in one
 sitting, with their six callers (home, club and game pages; the pause and
 info-switch marks; the game menu wrapper), the three ui.md sections that
 describe the header, and the tokens the folder reads. Fifteen findings, all
@@ -12,7 +12,7 @@ settled the same day: the prose pass and three no-decision fixes WORKED in
 the sitting; of the five put to Joel, two WORKED (the strip ellipsizes; the
 presence hint is a `data-tooltip`) and three CLOSED with no change (the mark
 gap, the badge's sizes, the strip's spacings — each now a stated decision).
-Re-read and Design done the same day; left: the blessing.
+Re-read and Design done the same day; blessed the same evening.
 
 ## The roster
 
@@ -377,5 +377,5 @@ and a Details list for the sharp specifics. `common/page-header` is off
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (`page-header/todo.md` is empty — its one item closed as F-1)
-- [ ] every file on the roster blessed, or its stamp says why not — the stamp
-      is Joel's to set; every roster file reads `cs-audited-page-header` today
+- [x] every file on the roster blessed (Joel, 2026-09-12): thirteen files
+      `cs-blessed-page-header`

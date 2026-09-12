@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import type { ReactNode } from 'react'
 import styles from './PageHeader.module.css'

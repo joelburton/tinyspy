@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cls } from '../utils/cls'

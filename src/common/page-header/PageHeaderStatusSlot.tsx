@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import type { Member } from '../members/member'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'

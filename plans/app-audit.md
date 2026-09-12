@@ -293,6 +293,24 @@ header sudden-death line was deleted outright. `FailureLine` moved to
 were the area's own earlier findings recurring in a sibling file. Owed: one
 unit test, in `waffle/todo.md`.
 
+**`page-header` is closed** (2026-09-12): thirteen files
+`cs-blessed-page-header`, sixteen findings, all worked or closed. The area's
+own question — the marks' separation, the folder's one todo item — closed as
+a stated decision: the gap is a base and each mark's padding is part of its
+look. Two things a player could see: the players strip is now a block
+container, because `text-overflow` never paints on a flex row and a long
+roster was clipped mid-name with no sign (verified headless); and the club
+strip's presence hint is a `data-tooltip` like every other hover text in the
+header. The chat mark's `aria-label` is a fixed "Chat" — it computed three
+variants nobody read. Three literal-number questions closed as decisions
+written into the guard and the stylesheets. Joel's read of the re-read caught
+two "a component rather than a class, because…" paragraphs in docstrings —
+rationale, and the prose pass had trimmed around them. **The full e2e suite
+ran for the first time in a while and is green (233)**: four keyboard cases
+had been red since the lists area hid the cursor until asked without
+updating the two specs it left off, and one setgame spec bet on a deal the
+deal-three rule can overturn; all repaired from here. Owed: nothing.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -416,7 +434,7 @@ will list the other as a dependency whichever goes first.
 |    | **The feedback system** | | |
 | 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | **CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. The design plan (`feedback-design.md`) was deleted at the close; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start" |
 |    | **Page furniture** | | |
-| 24 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
+| 24 | `page-header` | `page-header` | **CLOSED 2026-09-12, blessed.** the top strip and the marks in it — furniture every page carries and no page owns. Sixteen findings; the summary is under "Where to start" |
 | 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
 | 26 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
 | 27 | `scratchpad` | `scratchpad` | the shared notes panel |

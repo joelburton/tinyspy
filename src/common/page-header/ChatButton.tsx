@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import type { CSSProperties } from 'react'
 import { setChatOpen, useChatOpen } from '../chat/chatOpenStore'

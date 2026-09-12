@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import { setScratchpadOpen, useScratchpadOpen } from '../scratchpad/scratchpadOpenStore'
 import { IconScratchpad } from '../icons/icons'

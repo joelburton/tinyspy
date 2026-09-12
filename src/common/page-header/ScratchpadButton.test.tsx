@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 /**
  * The scratchpad mark is an action surface like the pause mark: it says which

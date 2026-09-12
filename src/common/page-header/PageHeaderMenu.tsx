@@ -1,4 +1,4 @@
-// cs-audited-page-header
+// cs-blessed-page-header
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Menu, type MenuHandle } from '../menu/Menu'
