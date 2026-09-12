@@ -3,14 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import { cls } from '@/common/utils/cls'
-import { DotActor } from '@/common/members/ActorMention'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import type { Member } from '@/common/members/member'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { outOfRacePill, stickyPill, terminalPill } from '@/common/feedback/localPills'
-import { waitingTurnPill, yourTurnPill } from '@/common/info-sheet/turnCopy'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -36,7 +33,6 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/PlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -69,7 +65,7 @@ type LeaderRow = {
  * selection itself. Two things follow.
  *
  * **A wrong claim never reaches the server.** Picking a third card that doesn't
- * complete a set is refused right here, with a pill — so there is no
+ * complete a set is refused right here, with a result — so there is no
  * wrong-guess penalty to design, and no round trip to wait through. The server
  * still re-checks, because it is the authority; it just never sees one in
  * practice.
@@ -79,14 +75,14 @@ type LeaderRow = {
  * selection. Two defenses: selection is keyed by CARD rather than by slot, so a
  * card that leaves the board simply drops out of the selection; and the server
  * takes a row lock, so of two overlapping claims exactly one wins and the other
- * comes back `cards-gone` — a normal pill, not a fault: nobody did anything
+ * comes back `cards-gone` — a normal not-ok, not a fault: nobody did anything
  * wrong, and the cards visibly leaving is most of the explanation.
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, clubHandle, goToGame, menu, brand, globalFeedback, title,
+    setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
     useGame(gameId, session.user.id)
@@ -105,7 +101,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const viewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  // The below-board slot: a claim's result, the hint's not-oks, End /
+  // Concede's, and the standing conditions further down.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
   const myConceded = players.find((m) => m.user_id === selfId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -235,7 +233,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // isn't their mistake. Those cards are already gone, so this player
         // falls through to the same mark everyone else gets for them.
         setSubmitted([])
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data.result === 'claimed') {
         // Nothing to show and nothing to release: the cards leaving the board
         // IS the feedback, and the dim ends when they go (`marks` derives it
@@ -249,7 +247,7 @@ export function PlayArea(ctx: GamePageCtx) {
         reportUnhandled('submit_set', res)
       }
     },
-    [gameId, showLocalFeedback],
+    [gameId, localFeedbackSlot],
   )
 
   // NOT gated on a claim being in flight: the rest of the board stays live so a
@@ -264,7 +262,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const onCardClick = useCallback(
     (card: CardCode) => {
       if (!active) return
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
       const next = toggleCard(selected, card)
       if (next.length < CLAIM_SIZE) {
         setPicked(next)
@@ -278,10 +276,10 @@ export function PlayArea(ctx: GamePageCtx) {
       if (isSet(next[0], next[1], next[2])) {
         void submitClaim(next)
       } else {
-        showLocalFeedback(stickyPill('lost', 'Not a set'))
+        localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not a set'))
       }
     },
-    [active, selected, submitClaim, showLocalFeedback, clearLocalFeedback],
+    [active, selected, submitClaim, localFeedbackSlot],
   )
 
   // ─── Keyboard ──────────────────────────────────────────
@@ -312,7 +310,7 @@ export function PlayArea(ctx: GamePageCtx) {
     describe: () => (active && !viewer.viewing ? 'active' : 'hidden'),
     run: () => {
       setPicked([])
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
     },
   })
 
@@ -350,7 +348,7 @@ export function PlayArea(ctx: GamePageCtx) {
       db.rpc('record_hint', { target_game: gameId, cards: next }),
     )
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data.result === 'recorded') {
       // Nothing to show: the ring was drawn before the round trip, and it is the
       // whole of what a hint looks like. `hints_used` rides along unread here —
@@ -365,7 +363,7 @@ export function PlayArea(ctx: GamePageCtx) {
     } else {
       reportUnhandled('record_hint', res)
     }
-  }, [game, gameId, ring, submitClaim, showLocalFeedback])
+  }, [game, gameId, ring, submitClaim, localFeedbackSlot])
 
   // Hint — RENDERED IN COMPETE TOO, disabled and saying why. Hiding it would
   // leave a player hunting for a button they know this game has; a gray one
@@ -388,7 +386,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted: () => setPicked([]),
   })
 
@@ -409,12 +407,12 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
       // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the pill as it reads: a fault
-      // wears `error` and has already raised its modal centrally, anything else wears
-      // its own outcome. The pill is shown either way — the modal escalates, it does
-      // not replace (docs/envelopes.md), so dismissing it must not leave the board
+      // and no form, so whatever came back goes in the slot as it reads, over
+      // the verdict, until its × is pressed. Shown even for a fault whose
+      // modal has already fired centrally — the modal escalates, it does not
+      // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'manual' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
       goToGame(`setgame_${gameMode}`, res.data.id)
@@ -484,7 +482,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // binding it already made — so a row's words, glyph, key and availability come
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -502,16 +500,13 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Peer narration (coop, free-for-all only) ──────────
   // A teammate's claim, in the global header. Coop only: in compete the
-  // opponent strip already ticks, and a pill for every rival claim would be a
-  // running commentary on the one activity that needs concentration.
+  // opponent strip already ticks, and a message for every rival claim would
+  // be a running commentary on the one activity that needs concentration.
   //
-  // OFF in turn-by-turn coop, where the same header slot carries the sticky
-  // "Waiting for ● Name…" (below). One slot, one pill, last write wins — so the
-  // two would fight on every claim, since a claim is exactly what changes whose
-  // turn it is. The waiting pill is the better tenant of the two: it answers
-  // "why can't I do anything?", which is a question that stays asked, while the
-  // narration is redundant here anyway (the pill renaming itself IS the news
-  // that the previous player claimed, and the log and counts both say so).
+  // OFF in turn-by-turn coop, where the same header slot carries "Waiting for
+  // ● Name…" (below). The narration is redundant there anyway: the note
+  // renaming itself IS the news that the previous player claimed, and the log
+  // and counts both say so.
   usePeerFeedback({
     enabled: game?.mode === 'coop' && currentTurnUserId === null,
     ready: !loading,
@@ -520,48 +515,94 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (c) => {
       if (c.user_id === selfId) return null
       const member = players.find((p) => p.user_id === c.user_id)
-      return {
-        tone: 'won',
-        text: (
-          <>
-            <DotActor actor={member} fallback="A teammate" /> found a set
-          </>
-        ),
-        mode: { kind: 'timed' },
-      }
+      return FeedbackMessage.peer(member, 'won', 'found a set')
     },
-    globalFeedback,
+    globalFeedbackSlot,
   })
 
-  // ─── "Waiting for ● Name…" in the header (turn-by-turn coop) ──
-  //
-  // State-derived rather than event-driven, so it can't be a `usePeerFeedback`
-  // stream: it must be showing for as long as the wait lasts and gone the
-  // instant the turn arrives, which is a function of the pointer, not of an
-  // event. Hence the effect — `show`/`clear` are prop callbacks, so no local
-  // state is set here and the no-setState-in-effect rule is not in play.
-  //
-  // Deps are PRIMITIVES — the holder's name and color, not the member object.
-  // `show` re-renders the parent (the pill lives in GamePage's header), which
-  // re-renders this component; if a dep were the object `players.find` returns,
-  // a fresh `players` array on that render would look like a change and the
-  // effect would show again, forever. Primitives settle in one pass.
+  // ─── The standing conditions ───────────────────────────
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — a slot draws whichever ranks highest. Above the early
+  // returns because effects must be.
+
+  // "Waiting for ● Name…" — in the HEADER, setgame's one departure: the
+  // below-board slot here carries the your-turn prompt instead (see the
+  // doc's turn-order table). Deps are PRIMITIVES — the holder's name and
+  // color, not the member object — so a fresh `players` array on a re-render
+  // doesn't look like a change.
   const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
-  const stillWaiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  useEffect(() => {
-    if (!stillWaiting) return
-    globalFeedback.show(
-      waitingTurnPill(
+  // Turn-by-turn is fixed at create time, so this never changes mid-game.
+  const isTurnGame = currentTurnUserId !== null
+  const waiting = isTurnGame && !isMyTurn && !isTerminal
+  useEffect(function showWaiting() {
+    if (!waiting) return
+    const id = globalFeedbackSlot.show(
+      FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     // The cleanup covers every way the wait can end — the turn arriving, the
-    // game finishing, a peer conceding, leaving the page — so there is no
-    // separate "clear it" branch to keep in step with the show.
-    return () => globalFeedback.clear()
-  }, [stillWaiting, holderName, holderColor, globalFeedback])
+    // game finishing, a peer conceding, leaving the page.
+    return () => globalFeedbackSlot.retract(id)
+  }, [globalFeedbackSlot, waiting, holderName, holderColor])
+
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. The compete names are reduced to strings here.
+  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winners = useMemo(() => leaderboard.filter((e) => e.won), [leaderboard])
+  const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
+  const topFound = winners[0]?.sets_found ?? 0
+  const nameOf = (id: string | undefined) => players.find((p) => p.user_id === id)?.username ?? 'a player'
+  const winnerNames =
+    winners.length > 1
+      ? winners.map((e) => nameOf(e.user_id)).join(' & ')
+      : nameOf(winners[0]?.user_id ?? winnerId ?? undefined)
+  const stranded = game?.board.length ?? 0
+  const over = useMemo(
+    () =>
+      isTerminal && gameMode
+        ? buildOver({
+            mode: gameMode,
+            playState,
+            statusOutcome,
+            teamFound,
+            stranded,
+            iWon,
+            isShared: winners.length > 1,
+            topFound,
+            winnerNames,
+          })
+        : null,
+    [isTerminal, gameMode, playState, statusOutcome, teamFound, stranded, iWon, winners.length, topFound, winnerNames],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Locally terminal (compete only): I conceded but the others race on.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
+
+  // In turn-by-turn coop the slot prompts you when the table is waiting on
+  // YOU — the counterpart to the faded board and the header's "Waiting for
+  // ● Name…" while it isn't. A `prompt`, which everything else outranks:
+  // "Not a set" and "Someone got there first" both land while it is your
+  // turn, and show over it rather than being evicted by it.
+  const myMove = isTurnGame && isMyTurn && !isTerminal && !isLocallyDone
+  useEffect(function showYourTurnPrompt() {
+    if (!myMove) return
+    const id = localFeedbackSlot.show(FeedbackMessage.prompt('Waiting for your move'))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, myMove])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -570,26 +611,8 @@ export function PlayArea(ctx: GamePageCtx) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-  // Turn-by-turn is fixed at create time, so this never changes mid-game.
-  const isTurnGame = currentTurnUserId !== null
-  const waiting = isTurnGame && !isMyTurn && !isTerminal
-
   // The past turn being replayed, or null for the live board.
   const viewing = viewer.viewingId === null ? null : turnSnapshot(events, viewer.viewingId)
-
-  const over = isTerminal
-    ? buildOver({
-        mode: game.mode,
-        playState,
-        status,
-        teamFound,
-        stranded: game.board.length,
-        leaderboard,
-        selfId,
-        players,
-      })
-    : null
 
   return (
     <div
@@ -615,25 +638,12 @@ export function PlayArea(ctx: GamePageCtx) {
         hintsUsed={rows.reduce((n, p) => n + p.hints_used, 0)}
         actHint={actHint}
         onCardClick={onCardClick}
-        pill={
-          viewing
-            ? stickyPill('noted', viewing.description)
-            : over
-            ? terminalPill(over.tone, over.verdict)
-            : isLocallyDone
-              ? outOfRacePill(true)
-              : // In turn-by-turn coop the slot prompts you when the table is
-                // waiting on YOU — the counterpart to the faded board and the
-                // header's "Waiting for ● Name…" while it isn't.
-                //
-                // It sits BELOW an own-move result rather than above it, which
-                // is what makes a permanent prompt safe here: "Not a set" and
-                // "Cards gone" both land while it is your turn, so a prompt
-                // that outranked them would evict exactly the messages you
-                // need. It is the fallback for an empty slot, nothing more.
-                (localFeedback ?? (isMyTurn && isTurnGame ? yourTurnPill : null))
-        }
-        onDismissPill={clearLocalFeedback}
+        // The slot the pill row draws: a claim's result, the verdict, "you're
+        // out", the your-turn prompt. While a past turn is open, the shared
+        // history banner covers it with the turn's description.
+        localFeedbackSlot={localFeedbackSlot}
+        viewingDescription={viewing?.description ?? null}
+        onExitViewing={viewer.exitViewing}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -669,69 +679,67 @@ export function PlayArea(ctx: GamePageCtx) {
 }
 
 /**
- * Maps the terminal play_state to the shared `TerminalCopy`.
+ * Maps the terminal play_state to the shared `TerminalMessage`.
  *
  * **Coop wins by clearing the deck**, which means no sets left to find — NOT
  * using every card. Stranding six or nine is the normal ending (a full clear
- * happens in about 2% of games), so the copy leads with the sets found and
+ * happens in about 2% of games), so the text leads with the sets found and
  * mentions the leftovers as a fact rather than as a shortfall. Getting this
  * wrong would make an ordinary finish read as a near miss.
  *
  * **Compete ranks on sets found with no speed tiebreak**, so ties are real and
  * common. `winner_user_id` is null on co-winners — every tied player is flagged
- * `won` in the leaderboard instead, and each reads their own row.
+ * `won` in the leaderboard instead, and each reads their own row; the caller
+ * reduces that to `iWon`, `isShared` and the winners' names.
  */
 function buildOver({
   mode,
   playState,
-  status,
+  statusOutcome,
   teamFound,
   stranded,
-  leaderboard,
-  selfId,
-  players,
+  iWon,
+  isShared,
+  topFound,
+  winnerNames,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  status: Record<string, unknown> | null
+  /** `status.outcome`, or null when the status carries none. */
+  statusOutcome: string | null
   teamFound: number
   stranded: number
-  leaderboard: LeaderRow[]
-  selfId: string
-  players: Member[]
-}): TerminalCopy {
+  iWon: boolean
+  /** Two or more winners tied on sets found. */
+  isShared: boolean
+  /** The winners' sets found (they tied on it). */
+  topFound: number
+  /** The winner's name, or the tied winners' joined with " & ". */
+  winnerNames: string
+}): TerminalMessage {
   const sets = `${teamFound} ${teamFound === 1 ? 'set' : 'sets'}`
 
   if (mode === 'compete') {
     if (playState === 'won_compete') {
-      const winnerId = (status?.winner_user_id as string | undefined) ?? null
-      const winners = leaderboard.filter((e) => e.won)
-      const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
-      const top = winners[0]?.sets_found ?? 0
-      const isShared = winners.length > 1
       if (iWon) {
         return {
-          verdict: isShared ? `Won: tied on ${top}` : `Won: ${top} sets`,
-          message: isShared ? 'You tied for the win!' : 'You won!',
-          tone: 'won',
+          pillText: isShared ? `Won: tied on ${topFound}` : `Won: ${topFound} sets`,
+          infoColText: isShared ? 'You tied for the win!' : 'You won!',
+          outcome: 'won',
         }
       }
-      const nameOf = (id?: string) => players.find((p) => p.user_id === id)?.username ?? 'someone'
       if (isShared) {
-        const label = winners.map((e) => nameOf(e.user_id)).join(' & ')
-        return { verdict: `${label} tied on ${top}`, message: `${label} tied`, tone: 'lost' }
+        return { pillText: `${winnerNames} tied on ${topFound}`, infoColText: `${winnerNames} tied`, outcome: 'lost' }
       }
-      const label = nameOf(winners[0]?.user_id ?? winnerId ?? undefined)
-      return { verdict: `${label} won with ${top}`, message: `${label} won`, tone: 'lost' }
+      return { pillText: `${winnerNames} won with ${topFound}`, infoColText: `${winnerNames} won`, outcome: 'lost' }
     }
     if (playState === 'lost_compete') {
-      const outcome = (status?.outcome as string | undefined) ?? ''
-      if (outcome === 'conceded') {
-        return { verdict: 'Lost: all conceded', message: 'All conceded', tone: 'lost' }
+      if (statusOutcome === 'conceded') {
+        return { pillText: 'Lost: all conceded', infoColText: 'All conceded', outcome: 'lost' }
       }
-      return { verdict: 'Lost: nobody found a set', message: 'Nobody scored', tone: 'lost' }
+      return { pillText: 'Lost: nobody found a set', infoColText: 'Nobody scored', outcome: 'lost' }
     }
-    return endedCopy('compete')
+    return gameEndedTerminalMessage('compete')
   }
 
   // Coop.
@@ -743,13 +751,13 @@ function buildOver({
     // found, and that is what it says. A full clear is genuinely rare (~2% of
     // games) and keeps its own line.
     return {
-      verdict: stranded === 0 ? `Won: the whole deck, ${sets}` : `Won: all sets found, ${sets}`,
-      message: stranded === 0 ? 'A perfect clear!' : 'All sets found',
-      tone: 'won',
+      pillText: stranded === 0 ? `Won: the whole deck, ${sets}` : `Won: all sets found, ${sets}`,
+      infoColText: stranded === 0 ? 'A perfect clear!' : 'All sets found',
+      outcome: 'won',
     }
   }
   if (playState === 'lost') {
-    return { verdict: `Lost: out of time, ${sets}`, message: `${sets} found`, tone: 'lost' }
+    return { pillText: `Lost: out of time, ${sets}`, infoColText: `${sets} found`, outcome: 'lost' }
   }
-  return { verdict: `Ended: ${sets}`, message: `${sets} found`, tone: 'neutral' }
+  return { pillText: `Ended: ${sets}`, infoColText: `${sets} found`, outcome: 'neutral' }
 }

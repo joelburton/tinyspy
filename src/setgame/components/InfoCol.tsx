@@ -4,7 +4,7 @@ import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -24,7 +24,8 @@ type Props = {
   isTerminal: boolean
   /** Compete: I conceded but the others race on — the terminal LOOK. */
   isLocallyDone: boolean
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  over: TerminalMessage | null
   currentTurnUserId: string | null
   // ── State ──
   /** Sets taken by the whole table. */

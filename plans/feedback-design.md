@@ -179,7 +179,21 @@ the pill takes the ring with it, with no dismiss callback threaded through.
 A tile click is `dismiss` + the ring off. The coop peer narration is `peer`
 with the guess's outcome. `buildOver` → `TerminalMessage` on primitives.
 
-**connections COMMITTED**, its five e2e specs green.
+**connections COMMITTED** (`7a234676`), its five e2e specs green.
+
+**setgame CONVERTED (2026-09-12).** The
+three departures the plan named, each now ordinary: "Waiting for ● Name…"
+is `waiting()` shown into the GLOBAL slot by an owner effect (§4.4 row 2 —
+nothing special about it); "Waiting for your move" is a `prompt` in the
+local slot, which "Not a set" and a race show over; and the history
+viewer's description LEAVES the feedback system for the shared history
+banner over the pill slot (§11.3 item 3 — the same banner waffle and
+connections draw). Two more condition effects: the verdict, out of the
+race. "Not a set" is a `result`; a lost claim, a refused hint and the New
+Game answer are `notOk`; a teammate's claim is `peer`. `buildOver` →
+`TerminalMessage` on primitives (the winners reduced to names).
+
+**setgame COMMITTED**, its five e2e specs green.
 
 **Next:** the other games, one by one.
 
