@@ -193,7 +193,21 @@ race. "Not a set" is a `result`; a lost claim, a refused hint and the New
 Game answer are `notOk`; a teammate's claim is `peer`. `buildOver` →
 `TerminalMessage` on primitives (the winners reduced to names).
 
-**setgame COMMITTED**, its five e2e specs green.
+**setgame COMMITTED** (`7b3ad8e3`), its five e2e specs green.
+
+**stackdown CONVERTED (2026-09-12).** Two
+condition effects: the verdict, out of the race (conceding is the only
+path). The hint and the spoiler are `hint`s (× only, what their `manual`
+was — §11.3 item 5); their not-oks, a refused word and the New Game answer
+are `notOk`; the server's "not a word" `ok` and BoardCol's two input-engine
+messages ("No “Z” tile is on top", "2 “A” tiles are on top — click one")
+are `result`s. A teammate's move is `peer`. `buildOver` → `TerminalMessage`
+on primitives with the compete winner as `actor` in place of `verdictNode`.
+BoardCol keeps its own reserved row for the pill (non-swap) and takes the
+slot in place of the three callbacks; a tile click, ⌫ and any key are
+`dismiss`.
+
+**stackdown COMMITTED**, its four e2e specs green.
 
 **Next:** the other games, one by one.
 

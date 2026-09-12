@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
-import type { TerminalCopy } from '@/common/terminal/terminalCopy'
+import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -58,8 +58,8 @@ export function InfoCol({
   /** compete shows the OpponentStrip + Concede; coop shows End. */
   isCompete: boolean
   isTerminal: boolean
-  /** Terminal copy when the game is over (drives the action row + words reveal), else null. */
-  over: TerminalCopy | null
+  /** The terminal message when the game is over (drives the action row + words reveal), else null. */
+  over: TerminalMessage | null
   /** Am I a player in this game (gates the cheats + the "click tiles" help). */
   isPlayer: boolean
   /** I conceded but the others race on — a terminal LOOK without ending the game. */

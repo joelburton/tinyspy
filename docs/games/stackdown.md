@@ -379,12 +379,15 @@ two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `
 board, the **move row**, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in
 that fixed order. Feedback is **split** the canonical way: the player's OWN move
-results (a rejected word, a keystroke matching no/too-many exposed tiles, a
-reveal's answer, an error, the terminal verdict) show as a centered
-`<FeedbackPill>` in the local slot; **peer** narration goes to the GLOBAL header
-pill (with the teammate's identity disc). An accepted / rejected word additionally
-flashes its letters green/red in the `WordEntry` ring (strong outcome colors) — so
-the local pill carries only the results a ring can't.
+results (a rejected word, a keystroke matching no/too-many exposed tiles — all
+`result`s), a hint's or spoiler's answer (a `hint`, which leaves only by its ×
+so it stays up while the player hunts for the tiles), a not-ok and the terminal
+verdict show through the local feedback slot's centered `<FeedbackPill>`
+([ui.md → Feedback pill](../ui.md#feedback-pill)); **peer** narration goes to
+the GLOBAL header (a `peer` message with the teammate's identity disc). An
+accepted / rejected word additionally flashes its letters green/red in the
+`WordEntry` ring (strong outcome colors) — so the local slot carries only the
+results a ring can't.
 
 **The move row** is `⌫ | the five-slot WordEntry | Submit` — the arrangement the
 shared `<EntryRow>` gives every typing game ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)),
@@ -409,10 +412,10 @@ shared ones, so the control reads as the same control it is elsewhere.
 
 At terminal, no modal carries the verdict
 ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-`buildOver`'s terse copy fills the local pill + the info-column outcome line —
+`buildOver`'s terse text fills the local slot's verdict + the info-column outcome line —
 coop "Won: stack cleared" / "Lost: out of time" / "Lost: stack not cleared";
-compete "Won: cleared it first" vs a loss naming the winner with their identity
-dot ("● moth cleared it first"), while the no-winner endings ("Out of time — no
+compete "Won: cleared it first" vs a loss naming the winner as the message's
+`actor` ("● moth cleared it first"), while the no-winner endings ("Out of time — no
 winner" / "Nobody cleared it") drop the `Lost:` prefix — nobody was beaten, the
 stack just outlasted everyone. A **coop clear** pops the shared
 `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — at the moment
