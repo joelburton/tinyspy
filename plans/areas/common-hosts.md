@@ -11,7 +11,7 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4 — and, riding on
+F-24's corner inset, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5 — and, riding on
 several of those, the halves of F-9 and F-10 they consumed.
 
 ## The roster
@@ -131,12 +131,21 @@ and a test to leave the store's readers with the bare noun anyway).
 Six reads, one of them outside the folder — `useClubSetupPresence.test.tsx`,
 which types the live toast list it watches.
 
-## F-common-hosts-5 · `default-toast-ms-lives-on-the-card` · The one duration constant is exported by the card, not the store
+## F-common-hosts-5 · `default-toast-ms-lives-on-the-card` · The one duration constant is exported by the card, not the store — WORKED
 
-`DEFAULT_TOAST_MS` is in `Toast.tsx`; `ToastSpec.ms`'s note names it, and
-`ClubPage` imports the store for `showToast` and the card for the number, to
-make one call. The constant belongs beside the spec it defaults. A move with
-two importers.
+`DEFAULT_TOAST_MS` was in `Toast.tsx` while the field it is the value for —
+`ToastSpec.ms`, whose note named it — was in the store, so `ClubPage` imported
+two files to make one call.
+
+**DECIDED 2026-09-11 (Joel): moved to `toastStore.ts`, beside `ToastSpec.ms`.**
+Both call sites now take it from the same import as `showToast`. The refused
+alternatives were making it a real default (having `showToast` apply it, which
+changes behavior and invents a second way to say what `ms` already says — and
+today's explicit `ms` is honest about the two lifetimes) and leaving it on the
+card on the grounds that the card owns the clock's effect.
+
+Its docstring gained the sentence the old name implied but did not say: nothing
+applies it for you, and omitting `ms` means no clock at all rather than 4000.
 
 ## F-common-hosts-6 · `feedback-test-in-faultstore` · `faultStore.test.ts`'s second describe tests another folder's unit — WORKED
 

@@ -2,8 +2,7 @@
 
 import { diagnosticsLine } from '../supabase/dbLog'
 import { readRows, runRpc } from '../supabase/dbResult'
-import { showToast } from '../toasts/toastStore'
-import { DEFAULT_TOAST_MS } from '../toasts/Toast'
+import { showToast, DEFAULT_TOAST_MS } from '../toasts/toastStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'

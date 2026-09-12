@@ -21,6 +21,12 @@ import { useSyncExternalStore, type ReactNode } from 'react'
 
 export type ToastTone = 'info' | 'success' | 'error'
 
+/** The usual `ms` for a self-clearing toast — long enough to be noticed in the
+ *  corner as well as read, where a feedback pill (1400ms) is already under your
+ *  eyes. Nothing applies it for you: a caller that wants a clock passes it as
+ *  `ms`, and omitting `ms` means no clock at all. */
+export const DEFAULT_TOAST_MS = 4000
+
 /** A toast's single optional action button. */
 export type ToastAction = {
   label: string

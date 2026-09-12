@@ -4,8 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ToastHost } from './ToastHost'
-import { DEFAULT_TOAST_MS } from './Toast'
-import { showToast, dismissToast } from './toastStore'
+import { showToast, dismissToast, DEFAULT_TOAST_MS } from './toastStore'
 
 /**
  * A toast's two lifetimes (docs/ui.md → Toasts): with an `ms` it self-clears,

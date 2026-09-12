@@ -7,11 +7,6 @@ import styles from './Toast.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 import { CloseButton } from '../buttons/CloseButton'
 
-/** The usual `ms` for a self-clearing toast — long enough to be noticed in the
- *  corner as well as read, where a feedback pill (1400ms) is already under your
- *  eyes. */
-export const DEFAULT_TOAST_MS = 4000
-
 /**
  * One announcement card in the bottom-right toast stack (`<ToastHost>`). Dumb +
  * presentational: it renders a message, an optional action button, and the
