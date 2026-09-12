@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 /**
  * LOOK UP A WORD — the one converted form with no server of its own.
@@ -42,7 +42,7 @@ describe('WordLookupDialog', () => {
     expect(screen.getByText(/looking up: moth/)).toBeInTheDocument()
   })
 
-  it('does nothing at all on an empty submit', async () => {
+  it('looks nothing up on an empty submit', async () => {
     const user = userEvent.setup()
     render(<WordLookupDialog onClose={() => {}} />)
     await user.click(screen.getByRole('button', { name: /define/i }))

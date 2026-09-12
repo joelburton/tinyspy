@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { execFileSync } from 'node:child_process'
 import { test, expect } from '@playwright/test'
@@ -86,9 +86,8 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   await page.getByRole('button', { name: 'Club menu' }).click()
   await page.getByRole('menuitem', { name: editor.username }).click()
   await page.getByRole('menuitem', { name: 'Add word' }).click()
-  // `exact`: the ~ lookup dialog is still open behind this one, and getByLabel
-  // matches a SUBSTRING by default — a loose 'Word' would also find its "Word to
-  // look up" box and trip strict mode.
+  // `exact`: getByLabel matches a SUBSTRING by default, and the caption is
+  // exactly "Word".
   await page.getByLabel('Word', { exact: true }).fill(newWord)
   await page.getByLabel('Band').fill('3')
   await page.getByRole('button', { name: 'Save' }).click()

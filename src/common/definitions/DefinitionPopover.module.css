@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-definitions */
 
 /* The floating definition card for click-to-define. Fixed-position
  * surface anchored below the clicked word. Mirrors the elevation
@@ -9,9 +9,8 @@
   /* The TOOLTIP layer, not a satellite. This is a readout you asked for by
      clicking a word: it blocks nothing, the next click dismisses it, and it can
      never need to cover something that has made the page inert — the same
-     argument that puts tooltips at the top. Which also means its ten mount
-     sites (every GameTurnLog, several InfoCols, WordList, waffle's
-     SolutionReveal) never have to declare a host. It is a tooltip with
+     argument that puts tooltips at the top. Which also means a surface that
+     shows definable words never has to declare a host. It is a tooltip with
      different styling (Joel, 2026-08-25). */
   z-index: var(--z-tooltip);
   background: var(--default-bg-color);

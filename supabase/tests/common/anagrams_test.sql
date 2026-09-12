@@ -1,7 +1,7 @@
--- cs-unmet
+-- cs-audited-definitions
 
 -- ============================================================
--- Test: common.anagrams — the ⌥` anagram finder's search
+-- Test: common.anagrams — the ⌥~ anagram finder's search
 -- ============================================================
 --
 -- The contract under test (see the function's header in sql/common.sql):
@@ -104,18 +104,18 @@ select is(
 );
 
 -- ── Input validation ──
--- A rejection the PLAYER can fix does not throw: it comes back as an envelope
--- on the ok path, with `severity: validation` so the dialog knows to put the
--- message on its own error line rather than in a fault modal.
+-- A not-ok the PLAYER can fix does not throw: it comes back as an envelope on
+-- the ok path, with `severity: form-validation` so the dialog puts the message
+-- under the box rather than in a fault modal.
 select pg_temp.envelope_is(
   common.anagrams('ab1'),
   '{"type": "not-ok", "severity": "form-validation", "message": "2–15 letters, or ?"}'::jsonb,
   'digits are rejected'
 );
 
--- The raise's COLUMN names the field the message belongs under. Pinned here
--- because nothing renders it yet — the form plumbing comes later — so a
--- dropped `column =` on the raise would otherwise go unnoticed.
+-- The raise's COLUMN names the field the message belongs under; the dialog
+-- routes by it, so a dropped `column =` on the raise would move the message to
+-- the form's own line.
 select pg_temp.envelope_is(
   common.anagrams('ab1'),
   '{"field": "letters"}'::jsonb,

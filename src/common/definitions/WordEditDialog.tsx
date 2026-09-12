@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
@@ -19,25 +19,7 @@ import { TextField } from '../fields/TextField'
 import { NumberField } from '../fields/NumberField'
 import { CheckboxField } from '../fields/CheckboxField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
-
-/**
- * The dictionary-curation form — edit an existing word, or add one (the
- * `add` mode is the same form plus the word field). Editors only: the
- * openers (DefinitionView's link, the account menu's "Add word") are gated
- * on `profiles.can_edit_words`, and the RPCs enforce the same permission
- * server-side.
- *
- * Save applies LIVE and journals to `common.words_edits` — the capture-first
- * curation loop (see the table's comment in the common migration). The
- * `note` box is the curator's aside to the upstream wordlist-manager
- * process ("saw this in wordle, way too obscure"); it goes to the journal,
- * never to the app.
- *
- * The edit path sends a PATCH of only the changed fields — that's what the
- * journal's `new` records, so an untouched field never shows up as "edited".
- * Numbers are plain inputs by design (band 1–6, crude/slur 0–2); the RPC
- * range-checks, so a typo is a clean inline error.
- */
+import type { Json } from '@/types/db'
 
 /** The editable row slice, as loaded / as edited. */
 type Fields = {
@@ -128,6 +110,17 @@ type SaveAnswer = { result: 'added' | 'updated' }
 /** What `common.delete_word` puts in `data` — `words_edits.kind` again. */
 type DeleteWordAnswer = { result: 'deleted' }
 
+/**
+ * The dictionary-curation form — edit an existing word, or add one (the `add`
+ * mode is the same form plus the word field). Mounted once at the app root and
+ * opened through `wordEditStore`; editors only, and the RPCs re-check that.
+ *
+ * Save applies live and journals to `common.words_edits`; the `note` box is the
+ * curator's aside to the upstream word-list process and goes only to the
+ * journal. An edit sends a PATCH of only the changed fields, so an untouched
+ * field never shows up in the journal as edited. Numbers are plain inputs; the
+ * RPC range-checks, so a typo is a clean inline error.
+ */
 export function WordEditDialog({ request }: { request: WordEditRequest }) {
   const editing = request.mode === 'edit'
   // The row AS LOADED — the baseline the patch is diffed against, and the form's
@@ -139,7 +132,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
 
   // Edit mode: prefill from a fresh read of the row (the popover's cached
   // definition may be stale, and the form needs every column anyway).
-  useEffect(() => {
+  useEffect(function loadRow() {
     if (!editing) return
     let mounted = true
     void (async () => {
@@ -205,7 +198,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     setBusy(true)
     // The generated Json type wants a Json-shaped object; the payload is one
     // by construction (strings / numbers / booleans / null).
-    const jsonPayload = payload as import('@/types/db').Json
+    const jsonPayload = payload as Json
     const res = await runRpc<SaveAnswer>(
       editing
         ? commonDb.rpc('update_word', {
@@ -277,9 +270,9 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       persistKey="puzpuzpuz:word-edit:rect"
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
-      // Height is the content's — the number below is only the first-paint seed.
-      // Safe alongside `persistKey` because this panel cannot be resized, so a
-      // stored height was never anyone's choice for the fit to fight (F23 → C).
+      // Height is the content's — the number below is only the first-paint seed
+      // (safe beside `persistKey` on a panel that cannot be resized; see
+      // `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 380, height: 500 }}
       resizable={false}

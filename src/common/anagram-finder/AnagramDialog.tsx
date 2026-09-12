@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { cls } from '../utils/cls'
 import { StandardForm } from '../forms/StandardForm'
@@ -36,15 +36,21 @@ type AnagramAnswer = { result: 'searched'; words: Result[] }
  */
 const PATTERN_LENGTH = { min: 2, max: 15 } as const
 
+/** What the form holds, keyed by the name it is SENT AS — `letters` is
+ *  `common.anagrams`' own parameter, so PN001's `column = 'letters'` lands on
+ *  the box rather than on a line below the Find button. */
+type Values = { letters: string }
+
 /**
- * The ⌥` anagram finder — WordLookupDialog's sibling: same FloatingPanel
+ * The ⌥~ anagram finder — WordLookupDialog's sibling: same FloatingPanel
  * chrome, same type-and-Enter shape, but the answer is a LIST, not a
  * definition. Backed by `common.anagrams` (see sql/common.sql for the whole
  * matching story); this component only normalizes input and renders rows.
+ * Opened by the app-level action; `AppActionsHost` owns whether it is open.
  *
- * The pattern syntax (the hint line teaches it, tersely): lowercase letters
- * float anywhere, `?` is a floating wildcard, an UPPERCASE letter is pinned
- * to its exact position — "Acer" finds acer + acre, never race. Case is
+ * The pattern syntax (the line under the box teaches it, tersely): lowercase
+ * letters float anywhere, `?` is a floating wildcard, an UPPERCASE letter is
+ * pinned to its exact position — "Acer" finds acer + acre, never race. Case is
  * therefore MEANINGFUL, so the input is never lowercased.
  *
  * Results are the server's order (difficulty band, then alphabetical) with
@@ -53,11 +59,6 @@ const PATTERN_LENGTH = { min: 2, max: 15 } as const
  * seven rows and scrolls past that (`<SimpleScrollableList>`), so a query
  * matching 1361 words and one matching 14 open the same size.
  */
-/** What the form holds, keyed by the name it is SENT AS — `letters` is
- *  `common.anagrams`' own parameter, so PN001's `column = 'letters'` lands on
- *  the box rather than on a line below the Find button. */
-type Values = { letters: string }
-
 export function AnagramDialog({ onClose }: { onClose: () => void }) {
   // null = nothing searched yet (no result area at all).
   const [results, setResults] = useState<Result[] | null>(null)
@@ -114,9 +115,9 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       persistKey="puzpuzpuz:anagram:rect"
       title="Anagrams"
       onClose={onClose}
-      // Height is the content's — the number below is only the first-paint seed.
-      // Safe alongside `persistKey` because this panel cannot be resized, so a
-      // stored height was never anyone's choice for the fit to fight (F23 → C).
+      // Height is the content's — the number below is only the first-paint seed
+      // (safe beside `persistKey` on a panel that cannot be resized; see
+      // `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 360, height: 440 }}
       resizable={false}

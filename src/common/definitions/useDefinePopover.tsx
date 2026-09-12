@@ -1,24 +1,19 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { useState } from 'react'
 import { DefinitionPopover } from './DefinitionPopover'
 
 /**
- * Click-to-define plumbing, shared by every word game that lets you tap a word
- * to look it up (waffle's answer reveal, spellingbee / boggle word lists,
- * stackdown's found words, scrabble's play log). Each of those independently
- * carried the same three lines — a `{ word, rect }` state, a setter that grabs
- * the clicked element's bounding rect, and a `<DefinitionPopover>` anchored to
- * it — so it lives here once.
+ * Click-to-define for a surface that shows words: call this once per surface,
+ * spread `define` onto each word, and drop `popover` into the render.
  *
  * `define(word, el)` opens the popover for `word`, anchored under `el` (pass the
- * clicked element, usually `e.currentTarget`); `popover` is the element to drop
- * into the render (null when nothing's being defined). The popover itself —
- * the read-through cache → Wiktionary lookup — is the shared `DefinitionPopover`;
- * this hook only owns the open/anchor/close state.
+ * clicked element, usually `e.currentTarget`); `popover` is the element to
+ * render, null when nothing is being defined. The lookup itself is
+ * `<DefinitionPopover>`'s; this hook only owns the open/anchor/close state.
  *
  *   const { define, popover } = useDefinePopover()
- *   <button onClick={(e) => define(word, e.currentTarget)}>{word}</button>
+ *   <span onClick={(e) => define(word, e.currentTarget)}>{word}</span>
  *   {popover}
  */
 export function useDefinePopover() {

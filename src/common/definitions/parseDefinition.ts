@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 /**
  * Turn a raw definition string into renderable parts.
@@ -15,10 +15,8 @@
  *   - **Wiktionary** (`source === 'w'`): clean prose fetched live, no
  *     markup. Returned as a single text part, verbatim.
  *
- *   - **Seeded glosses** (`source` is 's' / 'e' / 'm'): the shared
- *     custom symbology (see the definition-format notes in
- *     docs/games/spellingbee.md — richer than the original Scrabble
- *     glosses). The only markup we act on is the cross-reference — a
+ *   - **Seeded glosses** (`source` is 's' / 'e' / 'm'): the upstream word
+ *     list's compact gloss format. The only markup we act on is the cross-reference — a
  *     target word + part-of-speech in angle or curly brackets:
  *     `<aah=v>`, `{vulture=n}`. Each becomes a `ref` part the FE
  *     renders as a clickable lookup — tap it to chase the reference

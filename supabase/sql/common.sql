@@ -2669,8 +2669,8 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- PN001. The player typed this, so it is theirs to fix — a validation, shown
-  -- on the dialog's own error line. The MESSAGE is what they read, and COLUMN
-  -- says which field it belongs under.
+  -- under the box it names. The MESSAGE is what they read, and COLUMN says
+  -- which field it belongs under.
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
     raise exception '2–15 letters, or ?'
       using errcode = 'PN001', hint = 'form-validation', column = 'letters',

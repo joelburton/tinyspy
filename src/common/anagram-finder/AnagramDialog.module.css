@@ -1,6 +1,6 @@
-/* cs-unmet */
+/* cs-audited-definitions */
 
-/* Body of the ⌥` anagram finder. The FloatingPanel shell provides the
+/* Body of the ⌥~ anagram finder. The FloatingPanel shell provides the
  * surface, the titlebar and the drag; the field, the button, the failure line
  * and the result list are all shared components. What is left here is the
  * column they sit in and how one result row is laid out. */

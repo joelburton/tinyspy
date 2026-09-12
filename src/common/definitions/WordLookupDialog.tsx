@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { useState } from 'react'
 import { StandardForm } from '../forms/StandardForm'
@@ -14,22 +14,22 @@ type Props = {
   onClose: () => void
 }
 
-/**
- * Free-form "look up any word" dialog — the escape hatch for chasing a
- * definition that points elsewhere ("see X") or for any word that
- * isn't on screen to click. Opened by the per-game shortcut key.
- *
- * Shares the whole render + fetch path with the click-to-define
- * popover via `<DefinitionView>`; the only thing it adds is the text
- * box that chooses the first word. A cross-ref click inside the
- * result navigates in place AND syncs the input, so the box always
- * shows what's being defined.
- */
 /** What the form holds. Nothing here reaches an RPC — the definition comes from
  *  an edge function by way of `<DefinitionView>` — so the name is just the
  *  box's. */
 type Values = { query: string }
 
+/**
+ * Free-form "look up any word" dialog — the escape hatch for chasing a
+ * definition that points elsewhere ("see X") or for any word that isn't on
+ * screen to click. Opened by the app-level `~` action; `AppActionsHost` owns
+ * whether it is open.
+ *
+ * Shares the whole render + fetch path with the click-to-define popover via
+ * `<DefinitionView>`; the only thing it adds is the text box that chooses the
+ * first word. A cross-ref click inside the result navigates in place AND syncs
+ * the input, so the box always shows what's being defined.
+ */
 export function WordLookupDialog({ onClose }: Props) {
   /** The word being DEFINED, as against the one being typed. Clicking a related
    *  word in the definition sets both: you see what you are looking at. */
@@ -56,9 +56,9 @@ export function WordLookupDialog({ onClose }: Props) {
       persistKey="puzpuzpuz:word-lookup:rect"
       title="Look up a word"
       onClose={onClose}
-      // Height is the content's — the number below is only the first-paint seed.
-      // Safe alongside `persistKey` because this panel cannot be resized, so a
-      // stored height was never anyone's choice for the fit to fight (F23 → C).
+      // Height is the content's — the number below is only the first-paint seed
+      // (safe beside `persistKey` on a panel that cannot be resized; see
+      // `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 360, height: 280 }}
       resizable={false}

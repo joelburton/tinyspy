@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-definitions */
 
 /* Band / crude / slur on one row — three small numbers, not three rows.
  *
@@ -24,31 +24,10 @@
   margin-top: auto;
 }
 
-/* @@ */ .saveButton:hover {
-  background: var(--button-normal-primary-hover-color);
-}
-
 .saveButton:disabled,
 /* @@ */ .deleteButton:disabled {
   opacity: 0.6;
   /* See AnagramDialog: a refused control is `not-allowed`; only a piece that has
      stopped being a control at all takes `default`. */
   cursor: not-allowed;
-}
-
-/* DESTRUCTIVE, not fault — the shared `button secondary` in the destructive tone.
- * It wore `--chrome-fault-color` (the system-failed red), which is the same hex
- * today and the wrong idea: deleting a word is an irreversible thing you CHOSE to
- * do, not something that broke. The two are a copy, not an alias, precisely so
- * they can part company.
- *
- * An OUTLINE, not a fill: it sits beside Save and must read as the dangerous
- * option, not the loud one.
- *
- * The tone arrives by re-setting the slot tokens the shared `.secondary` reads,
- * because the tone CLASSES are scoped to StandardButton.module.css and a raw
- * <button> can't reach them — the same discipline, just spelled out locally. */
-/* @@ */ .deleteButton {
-/* @@ */   --button-slot-secondary-color: var(--button-destructive-secondary-color);
-/* @@ */   --button-slot-secondary-hover-color: var(--button-destructive-secondary-hover-color);
 }

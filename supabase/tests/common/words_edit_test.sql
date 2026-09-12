@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-audited-definitions
 
 -- ============================================================
 -- Test: dictionary curation — update_word / delete_word / add_word

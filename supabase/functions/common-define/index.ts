@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 /**
  * define — Edge Function behind the click-to-define popover and the
@@ -10,13 +10,13 @@
  *      not game-specific, so no membership check).
  *   2. Look the word up in common.words (as the caller; authenticated
  *      gets SELECT).
- *        - NO ROW → the word isn't a playable word at all → return
- *          { unknown: true }. We never look up or store definitions
- *          for words outside the list (the list is the universe).
- *        - definition present → return it (the seeded custom-format
- *          gloss or a previously-cached Wiktionary entry). No network.
+ *        - NO ROW → the word isn't a playable word at all → `not-a-word`.
+ *          We never look up or store definitions for words outside the
+ *          list (the list is the universe).
+ *        - definition present → `defined` (the seeded gloss or a
+ *          previously-cached Wiktionary entry). No network.
  *        - definition NULL, source 'w' → negative-cache tombstone
- *          ("looked up, Wiktionary had nothing") → return not-found.
+ *          ("looked up, Wiktionary had nothing") → `no-definition`.
  *        - definition NULL, source NULL → never looked up → fall
  *          through to the API.
  *   3. Fetch Wiktionary (freedictionaryapi.com, CC BY-SA). Format a
@@ -27,16 +27,18 @@
  *      the API. A *transient* API failure does NOT tombstone — only a
  *      definitive empty answer does.
  *
- * Response: { word, def: string | null, source: 's'|'e'|'w'|'m'|null,
- * cached: boolean, unknown?: boolean, meta? }. `source` is the one-char
- * provenance code: seeded glosses ('s'/'e'/'m') are the custom
- * symbology (parseDefinition handles it); 'w' is plain Wiktionary
- * prose (rendered verbatim + CC BY-SA attribution). `def === null`
- * means "looked up, no definition"; `unknown` means "not a word in
- * the list." `meta` (present for any IN-LIST word) carries the word's
- * categorization — { difficulty, american, british, canadian,
- * australian, slur, crude, slang, wordle } — for the small tag line the FE
- * shows under the definition.
+ * The three `ok` results, which the FE's `DefinitionResult` mirrors:
+ *
+ *   `defined`        { word, def, source, cached, meta }
+ *   `no-definition`  { word, meta }
+ *   `not-a-word`     { word }
+ *
+ * `source` is the one-char provenance code: seeded glosses ('s'/'e'/'m') are
+ * the word list's compact format (parseDefinition handles it); 'w' is plain
+ * Wiktionary prose (rendered verbatim + CC BY-SA attribution). `meta` carries
+ * an in-list word's categorization — { difficulty, american, british,
+ * canadian, australian, slur, crude, slang, wordle } — for the small tag line
+ * the FE shows under the definition.
  *
  * Secrets (all auto-injected by the Edge Runtime):
  *   - SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
@@ -186,8 +188,7 @@ serve(async (req) => {
       // surface it WITHOUT caching a tombstone.
       if (!res.ok) {
         // Player-reachable in the wait-it-out sense (the external dictionary
-        // API is down or rate-limiting) — carries ERROR_COPY; the status rides
-        // as the detail and in this log line.
+        // API is down or rate-limiting); the status rides as the detail.
         return serviceError(
           'PN311',
           "The dictionary service didn't answer. Please try again later.",
@@ -197,8 +198,7 @@ serve(async (req) => {
       def = formatWiktionary((await res.json()) as WiktResponse)
     } catch (e) {
       // Timeout / network from the edge worker to the dictionary API — the
-      // same wait-it-out answer as a bad status.
-      // The same wait-it-out answer as a bad status, and the same sentence: a
+      // same wait-it-out answer as a bad status, and the same sentence: a
       // player cannot act differently on "returned 503" and "timed out". The
       // codes differ so the log can say which.
       return serviceError(

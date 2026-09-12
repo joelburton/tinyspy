@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { useEffect, useState } from 'react'
 import { runEdgeFn } from '../supabase/dbResult'
@@ -6,7 +6,7 @@ import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /** A word's categorization from `common.words` — band, dialects, slur/crude
  *  levels, slang, wordle-list membership. Present on any in-list word; absent
- *  when `unknown`. Surfaced as the small muted line under a definition. */
+ *  when `not-a-word`. Surfaced as the small muted line under a definition. */
 export type WordMeta = {
   difficulty: number
   american: boolean
@@ -71,7 +71,7 @@ export function useDefinition(word: string | null): State {
     error: null,
   })
 
-  useEffect(() => {
+  useEffect(function lookUp() {
     if (!word) return
     let canceled = false
 

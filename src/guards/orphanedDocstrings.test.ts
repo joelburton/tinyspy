@@ -59,7 +59,6 @@ const KNOWN: string[] = [
   'src/common/account/EditProfileModal.tsx › Values',
   'src/common/club/CreateClubModal.tsx › Values',
   'src/common/club/EditClubModal.tsx › Values',
-  'src/common/anagram-finder/AnagramDialog.tsx › Values',
   'src/common/game-page/GamePage.tsx › isGameId',
   'src/common/scratchpad/useScratchpad.ts › SavedPad',
   // → connections

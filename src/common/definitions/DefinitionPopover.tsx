@@ -1,7 +1,7 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { useEffect, useRef, useState } from 'react'
-  import { createPortal } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { useDismissOnEscape } from '../keyboard/useDismissOnEscape'
 import { DefinitionView } from './DefinitionView'
 import styles from './DefinitionPopover.module.css'
@@ -20,24 +20,12 @@ const POPOVER_WIDTH = 280
 const GAP = 6
 
 /**
- * A small floating card that defines the word a player clicked. Anchors
- * below the clicked element (or above, when there's more room there),
- * closes on any click (inside or outside) or ESC, and lets the player
- * chase Scrabble cross-references in place (a ref click re-points the
- * lookup without closing or moving the card).
+ * The small card that defines the word a player clicked. Anchored below the
+ * clicked element (or above, when there is more room there); closes on any
+ * click, inside or out, and on Escape; a cross-reference inside re-points the
+ * lookup in place without closing or moving the card.
  *
- * Position is fixed (viewport coordinates) rather than absolute,
- * because the click target lives in a scrollable word list — fixed
- * keeps the card put relative to where the word currently is on screen.
- *
- * **PORTALLED TO `<body>`, and `position: fixed` is exactly why.** A CSS
- * `transform` on any ancestor makes THAT element the containing block for a
- * fixed-position descendant, so the card's viewport coordinates would be
- * re-based onto the ancestor's origin. react-rnd positions every floating panel
- * with a transform, so a definable word inside one (the anagram and word-lookup
- * dialogs) put this card out by the panel's own offset — and further out the
- * further you dragged the panel. The portal is the same reason `<TooltipHost>`
- * and `<ToastHost>` are mounted at App level.
+ * Render it through `useDefinePopover`, which owns the open/anchor state.
  */
 export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
   const [word, setWord] = useState(initialWord)
@@ -78,13 +66,19 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
     : { bottom: window.innerHeight - anchorRect.top + GAP }
   const maxHeight = placeBelow ? spaceBelow : spaceAbove
 
+  // Portalled to <body> because the card is `position: fixed` in viewport
+  // coordinates, and a CSS `transform` on any ancestor would re-base those onto
+  // the ancestor's origin. Every floating panel is positioned with a transform,
+  // so a word clicked inside one (the anagram finder, the lookup dialog) would
+  // put the card out by the panel's own offset. Same reason `<TooltipHost>` and
+  // `<ToastHost>` mount at the root.
   return createPortal(
     <div
       ref={cardRef}
       className={styles.card}
       style={{ ...position, left, width: POPOVER_WIDTH, maxHeight }}
       role="dialog"
-      aria-label={`Definition of ${word}`}
+      aria-label="Definition"
       // Click anywhere on the card dismisses it — a big, easy target. The
       // cross-ref links inside stop propagation so they navigate instead.
       onClick={onClose}

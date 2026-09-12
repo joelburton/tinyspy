@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-audited-definitions */
 
 /* Shared inner body for the definition popover + lookup dialog.
  * No surface/border/shadow here — those belong to the host
@@ -41,10 +41,9 @@
   color: var(--chrome-fault-color);
 }
 
-/* A clickable cross-reference rendered inline in the definition.
- * Looks like a link (accent color, underline) but is a real button
- * for keyboard + a11y — which the neutral <button> lets it be without
- * undoing anything. */
+/* A clickable cross-reference rendered inline in the definition. Looks like a
+ * link (accent color, underline) on a real button, which the neutral <button>
+ * lets it be without undoing anything. */
 /* @@ */ .ref {
   appearance: none;
   margin: 0;

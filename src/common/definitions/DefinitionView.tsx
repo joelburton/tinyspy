@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-definitions
 
 import { useDefinition, type WordMeta } from './useDefinition'
 import { useProfile } from '../session/useProfile'
@@ -101,12 +101,12 @@ export function DefinitionView({ word, onNavigate }: Props) {
         <div className={styles.meta}>{metaTags(result.meta).join(' · ')}</div>
       )}
       {/* Curation: editors get the edit-word link on every definition surface
-          at once (this view backs the click-to-define popover, the ~ lookup
-          AND the anagram finder). Snapshot-only profile read — the store is
-          warm because the account menu loads it on every page; cold means
-          the link stays hidden, the safe default. The RPC re-checks the
-          permission server-side regardless. */}
-      {!loading && canEdit && result?.result !== 'not-a-word' && (
+          at once, because every one of them renders this view. Only for a word
+          the list HOLDS — `defined` or `no-definition` — since the dialog edits
+          a row. The RPC re-checks the permission server-side regardless. */}
+      {!loading
+        && canEdit
+        && (result?.result === 'defined' || result?.result === 'no-definition') && (
         <button
           type="button"
           className={styles.editLink}

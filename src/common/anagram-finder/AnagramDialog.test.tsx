@@ -1,7 +1,7 @@
-// cs-unmet
+// cs-audited-definitions
 
 /**
- * Tests for the ⌥` anagram finder dialog. The matching itself is the
+ * Tests for the ⌥~ anagram finder dialog. The matching itself is the
  * server's (pinned in supabase/tests/common/anagrams_test.sql); what's
  * pinned here is the dialog's half of the contract: case is MEANINGFUL and
  * survives to the RPC untouched (pins), junk characters never reach it,
