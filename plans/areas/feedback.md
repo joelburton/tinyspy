@@ -5,8 +5,10 @@ The folders it reads: `feedback` · `terminalCopy` (in `terminal`) · `turnCopy`
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: CLOSED 2026-09-12, blessed — twenty-two files `cs-blessed-feedback`.** The design was
-decided before the opening (`plans/feedback-design.md`, every item DECIDED),
-and that plan is the working record of the build; this file holds the
+decided before the opening (the design plan, `feedback-design.md`, every item
+DECIDED — deleted at the close, its durable content in `docs/ui.md`,
+`docs/code-conventions.md` and `feedback/doc.md`), and that plan was the
+working record of the build; this file holds the
 roster, the findings, the notes and the closing. By Joel's ruling the area
 was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
@@ -53,7 +55,7 @@ Edited by the area, owned elsewhere (stamps do not move):
 and `guards/vocabularies` (allowlist lines), `shared/word-hunt/useWordSubmit.ts`
 (+ test; gains `hideAccepted`), and every game's PlayArea, BoardCol and
 InfoCol that creates a message — all sixteen games converted 2026-09-12, one
-commit each (`plans/feedback-design.md`'s status block has the hashes), plus
+commit each (the 2026-09-12 `git log` has them, one "<game> CONVERTED" each), plus
 scrabble's Controls, codenamesduet's CluePanel, bananagrams' PlayerBoard,
 and waffle's and connections' Board (their `TerminalOutcome` import). Two
 e2e specs changed where they asserted the old behavior:

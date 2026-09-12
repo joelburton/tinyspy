@@ -355,7 +355,7 @@ organized by area.
 | 6c | the z- layers | **DONE 2026-08-25.** [docs/code-conventions.md → The z- layers](../docs/code-conventions.md#the-z--layers) and [docs/ui.md → Floating panels](../docs/ui.md#floating-panels--five-families-one-shell) |
 | 7 | **the areas** | All the remaining reading, run **area by area** — the process is §4, the order is §3. Each area's audit and working notes live in `plans/areas/<area>.md` while it is open. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
-| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plans this sprint leans on (`tile-feedback.md`, `feedback-design.md`; `feedback-system.md` went with the old system 2026-09-12) have folded into `docs/` or a `doc.md`; this doc goes. What `css-philosophy.md` becomes is Joel's call — he wants it kept |
+| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plan this sprint leans on (`tile-feedback.md`; `feedback-system.md` went with the old system and `feedback-design.md` with the `feedback` area's close, both 2026-09-12) has folded into `docs/` or a `doc.md`; this doc goes. What `css-philosophy.md` becomes is Joel's call — he wants it kept |
 
 Steps 8, 9 and 10 were folded into 7 on 2026-08-22 and their numbers are
 retired rather than reused, so a stale "step 9" reads as stale.
@@ -414,7 +414,7 @@ will list the other as a dependency whichever goes first.
 | 21 | `menu` | `menu` | **CLOSED 2026-09-11, blessed.** the one menu, its store, and what a game puts in it. Twenty-two findings, all worked or closed. Two were live bugs a throwaway spec caught before they were written down — an outside click that forgot the open submenu, and a second flyout opened by click recording its parent as row 0 — and the second copy of the popover that let the first one hide is gone: one render path. The stylesheet joined the vocabulary (two type sizes on the ramp, every mark in a row `1em`, one muted ink of the menu's own, the submenu mark a registry glyph); a disabled fade that had never painted was deleted. The closing re-read's catch: three files said the game menu unmounts while paused, and it does not. Handed on: "hint" as a repo-wide vocabulary ruling with no guard; a disabled row cannot say why |
 | 22 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | **CLOSED 2026-09-11, blessed.** the three root hosts and the headless watcher. Thirty-six findings: thirty-four worked, one closed, one withdrawn. The area's question — what earns a mount at the root — got the wide rule: a thing is mounted at the root when its state crosses subtrees, and the store is how a page reaches it; home is App.tsx's docstring. Two live bugs a throwaway spec caught first: a long press ended by `touchcancel` left the click suppression armed, and a scroll left the hovered control unable to show its bubble again. The card's two exits got the spec they never had; `puptoast` and `pupfault` install in prod; the fault modal's canned fault is built by `diagnosticsLine`; the toast stripe is `--toast-stripe-width`. The closing re-read's lesson: prose names a game by its codename, never the brand. Handed on: `@starting-style` (`core-css`), `FaultModal` hand-draws its title (`floating-panels`) |
 |    | **The feedback system** | | |
-| 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | **CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. [feedback-design.md](feedback-design.md) is the design's reasoning; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start" |
+| 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | **CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. The design plan (`feedback-design.md`) was deleted at the close; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start" |
 |    | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | the top strip and the marks in it — furniture every page carries and no page owns |
 | 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
@@ -706,7 +706,7 @@ What a durable file says instead:
   handoff is a `todo.md` item.
 
 The non-sprint plans — `tile-feedback.md`, `dark-mode.md`,
-`css-philosophy.md`, `feedback-design.md` — are the
+`css-philosophy.md` — are the
 exception only until each folds into `docs/` or a `doc.md`; a cite to one of
 them is tolerated today and repointed the day it folds.
 
