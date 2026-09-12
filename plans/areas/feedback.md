@@ -4,11 +4,37 @@ The folders it reads: `feedback` · `terminalCopy` (in `terminal`) · `turnCopy`
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: NOT OPENED.**
+**Status: OPEN, 2026-09-12.** The design was decided before the opening
+(`plans/feedback-design.md`, every item DECIDED), and that plan is the
+working record for this area; this file holds the roster, the notes and the
+closing. By Joel's ruling the area is BUILT first and audited at the closing
+re-read: most of the roster is replaced outright, so a prose pass over it
+would audit files about to be deleted. `F-feedback-n` is for what the build
+turns up that the design did not foresee.
 
 ## The roster
 
-*(agreed with Joel when the area opens — list the files and STOP)*
+Agreed 2026-09-12, eighteen files, all `cs-met-feedback`:
+
+- `src/common/feedback/` — sixteen code files: `genericFeedback.ts`,
+  `genericPills.ts` (+ test), `localPills.ts` (+ test),
+  `useLocalFeedback.ts` (+ test), `useGlobalFeedback.ts` (+ test),
+  `useDismissLocalFeedbackOnKey.ts` (+ test), `GenericFeedbackPill.tsx`
+  (+ test + stylesheet), `FailureLine.tsx` (+ stylesheet; not feedback,
+  decided on contact).
+- `src/common/terminal/terminalCopy.ts` and
+  `src/common/info-sheet/turnCopy.tsx` — the two builders that live
+  elsewhere.
+
+Files this area creates are stamped `cs-met-feedback` at birth and join
+this list.
+
+Edited by the area, owned elsewhere (stamps do not move):
+`common/chat/useChatFeedback.tsx` (+ test), `game-page/GamePage.tsx`,
+`club/ClubPage.tsx`, `game-page/useStandardGameActions.ts`,
+`shared/word-hunt/useWordSubmit.ts`, and every game's PlayArea and BoardCol
+that creates a message. `e2e/chat-feedback.e2e.ts` and nine game specs
+assert on pill text.
 
 ## Findings
 
