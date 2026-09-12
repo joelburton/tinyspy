@@ -89,6 +89,12 @@
 /* @@ */   --field-muted-ink-color:        #a4abb8;
 /* @@ */   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
+  /* ══ MENU ═══════════════════════════════════════════════════════
+     The header menu's quiet ink. One step LOUDER than the page's
+     muted text, which on a dark page means lighter — the direction
+     flips with the ground, the job does not. */
+/* @@ */   --menu-muted-ink-color:         #a4abb8;
+
   /* ══ BUTTON ═════════════════════════════════════════════════════
      THE ONE PLACE THE MODEL VISIBLY BENDS, and worth reading closely.
 

@@ -66,7 +66,7 @@ export type MenuSubmenu = {
  * One row in a menu: an ACTION, or a submenu holding actions.
  *
  * A command is an action (`common/actions`), so a row is a reference to one —
- * its label, glyph, key hint and availability all come from the action, which
+ * its label, glyph, shortcut and availability all come from the action, which
  * is what stops a row from disagreeing with the button beside it. There is no
  * hand-written row shape any more: writing one was how a menu came to say a
  * thing the rest of the app said differently.
@@ -100,8 +100,8 @@ export type MenuRow = {
 }
 
 /**
- * Read one row on its way into the menu — a bound action's words, glyph, key
- * hint and state, or a submenu's own — so `<Menu>` never asks what kind of row
+ * Read one row on its way into the menu — a bound action's words, glyph,
+ * shortcut and state, or a submenu's own — so `<Menu>` never asks what kind of row
  * it has. A hidden action becomes a row with `hidden`, which the menu drops
  * before it counts rows for keyboard navigation; an action still out is
  * `disabled`, so a row cannot advertise a key for a run it would drop.

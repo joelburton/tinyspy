@@ -29,7 +29,7 @@
 
 /* Wrapper button around the caller-supplied logo. The neutral <button> already
  * leaves it looking like whatever the caller provided; this adds the padding
- * and a subtle hover/open background hint that it's interactive. */
+ * and a subtle hover/open background cue that it's interactive. */
 /* @@ */ .trigger {
   padding: 0.25rem;
   margin: 0;
@@ -93,8 +93,8 @@
 }
 
 /* Per-item button. Left-align text; full-width row so the click target is
- * the whole row width. Hover and focus give the same background hint —
- * keyboard and mouse users see the same "this is current" cue.
+ * the whole row width. Hover and focus give the same background cue —
+ * keyboard and mouse users see the same "this is current" signal.
  *
  * A disabled row carries no class of its own: it is a real `<button disabled>`,
  * so the fade and the cursor come from base.css's `button:disabled`, which is
@@ -107,10 +107,10 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   text-align: left;
-  /* Flex so the glyph, the label and the shortcut hint share one line. The gap
-     is the distance from a leading glyph or disc to its label; the wide gutter
-     before the hint is the hint's own (`.itemShortcut`), so nothing here has
-     to be undone by the children. */
+  /* Flex so the glyph, the label and the shortcut share one line. The gap is
+     the distance from a leading glyph or disc to its label; the wide gutter
+     before the shortcut is the shortcut's own (`.itemShortcut`), so nothing
+     here has to be undone by the children. */
   display: flex;
   align-items: baseline;
   gap: var(--spacer-4);
@@ -119,14 +119,14 @@
   transition: background 80ms ease;
 }
 
-/* The shortcut hint (e.g. "⌥C") — pushed to the right edge, de-emphasized
-   (it's an annotation, not the action). `auto` takes whatever the row has
-   left; the padding is the floor between label and hint on a row too narrow
+/* The shortcut (e.g. "⌥C") — pushed to the right edge, de-emphasized (it's an
+   annotation, not the action). `auto` takes whatever the row has left; the
+   padding is the floor between the label and the shortcut on a row too narrow
    for that to be much. */
 /* @@ */ .itemShortcut {
   margin-left: auto;
   padding-left: var(--spacer-1);
-  color: var(--page-text-muted-color);
+  color: var(--menu-muted-ink-color);
   font-size: var(--font-size-2);
   font-weight: 500;
   white-space: nowrap;
@@ -189,7 +189,7 @@
 /* @@ */ .itemChevron {
   margin-left: auto;
   padding-left: 0.5rem;
-  color: var(--page-text-muted-color);
+  color: var(--menu-muted-ink-color);
   font-size: var(--font-size-1);
   line-height: 1;
 }
@@ -204,7 +204,7 @@
 /* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
  * a command: it undoes a navigation step, it doesn't do anything to the game. */
 /* @@ */ .itemBack {
-  color: var(--page-text-muted-color);
+  color: var(--menu-muted-ink-color);
   font-weight: 600;
 }
 
@@ -259,9 +259,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* The glyph is a quiet index, not a second label: it sits at the muted weight
-   * so the words stay the thing you read. */
-  color: var(--field-muted-ink-color);
+  /* The glyph is a quiet index, not a second label: it sits at the menu's
+   * muted ink so the words stay the thing you read. */
+  color: var(--menu-muted-ink-color);
   /* The row is `align-items: baseline` for the label/shortcut; an icon has no
    * baseline worth aligning, so nudge it onto the text's optical line. */
   align-self: center;

@@ -45,9 +45,9 @@ function renderMenu(
 /**
  * A row for these tests. Every menu row is a bound action, so a fixture is one:
  * the `id` is a real registry id — which is where the row's glyph and its
- * shortcut hint come from — and the WORDS come from `describe`, the half a game
+ * shortcut come from — and the WORDS come from `describe`, the half a game
  * varies. Most of these ids are picked for carrying no key of their own, so a
- * hint shows only where a test asks for one.
+ * shortcut shows only where a test asks for one.
  *
  * `onClick` is the fixture's `run`, so a test can either pass a body or assert
  * on `action.run` directly.
@@ -323,7 +323,7 @@ describe('Menu — activation', () => {
     expect(beta).toBeDisabled()
   })
 
-  it('renders a shortcut hint on an item that carries one', async () => {
+  it('renders a shortcut on an item that carries one', async () => {
     const user = userEvent.setup()
     renderMenu(singleSection([{ id: 'act-check-letter', label: 'Check letter' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))

@@ -300,6 +300,23 @@ a/b/c question, in context:
   three lines from `--page-text-muted-color` doing the same job on
   `.itemShortcut`, `.headerLine`, `.itemChevron` and `.itemBack`. One muted
   ink per file.
+  **WORKED 2026-09-11** (Joel: a token of its own; then, on seeing the list,
+  the credit lines are not part of it). The menu's MARKS have one ink now —
+  `--menu-muted-ink-color`, a MENU bucket in both theme files — read by the
+  shortcut, the glyph, the submenu chevron and the drill-down's Back row. A
+  section's credit lines stay on `--page-text-muted-color`: they are words,
+  not marks. The direction is the one Joel picked: the darker of the two
+  inks wins, so the three marks that were on the page's muted text darken to
+  meet the glyph, which does not move. A COPY of the field hex, not a reference, per CHROME's house rule —
+  they agree today and are not the same decision.
+  Values: #555555 daylight, #a4abb8 midnight, which is LIGHTER than the
+  page's muted text there; the direction flips with the ground, the job does
+  not. The glyph is a Lucide icon inheriting `currentColor` from the slot, so
+  the slot's color is what paints it. An inline hex was tried and is not
+  available: `cssTokens.test.ts` fails any color outside a `--token:`
+  definition, and a second guard makes both themes answer the same set of
+  roles — which is why this is a named role rather than a value.
+  **Three marks change color on screen and none of it has been seen.**
 - `.chevron`'s `0.65em`, `.itemDot`'s `--dot-size: 0.7em`, `.itemIconSlot`'s
   `1.05rem` and the icon's `size={15}` — four sizes for marks in one row.
 
@@ -339,6 +356,17 @@ number and says so.
   (`role="menu"`, `menuitem`, `aria-expanded`, `aria-haspopup`) and stays;
   the two comments that justify it in screen-reader terms are the existing
   rationale and are left alone.
+- **"hint" has ONE meaning in this repo and it is priced help** (Joel,
+  2026-09-11), so the key label at the right edge of a row is the SHORTCUT,
+  never the "shortcut hint". Six sites in this folder said otherwise and were
+  changed: the stylesheet (twice), `menuModel.ts` (twice), the test file's
+  header and one test name, and doc.md. Two uses of the ordinary English
+  sense — a "background hint that it's interactive" — became "cue", which is
+  the word the file already used a line later.
+  **Bigger than this area, and NOT swept**: a rough grep outside the priced-
+  help identifiers still matches hundreds of lines across the games and the
+  docs, and no guard holds the word. Deciding whether that is a sweep plus a
+  guard, or a rule that only applies going forward, is Joel's.
 - **`todo.md` is empty** and the icons area's handoff — "a menu row picks its
   glyph by hand, so every game names the same action's glyph twice" — is not
   in it. That handoff is DONE: `menuRow` takes `icon ?? item.spec.icon` from

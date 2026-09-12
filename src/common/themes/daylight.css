@@ -91,6 +91,20 @@
      recurrence means. */
 /* @@ */   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
+  /* ══ MENU ═══════════════════════════════════════════════════════
+     The quiet ink for the header menu's MARKS — the shortcut beside a
+     label, the leading glyph, the submenu chevron and the drill-down's
+     Back row. One step darker than the page's muted text, because a
+     mark is small and thin-stroked where that text is a word. A
+     section's credit lines are words, so they stay on the page's muted
+     text and are not on this.
+
+     A COPY of the field ink rather than a reference: they agree today
+     and are not the same decision (CHROME's house rule below). The
+     menu read the field token directly until it got this name, which
+     is what a borrow looks like when the neighbor moves. */
+/* @@ */   --menu-muted-ink-color:         #555555;
+
   /* ══ BUTTON ═════════════════════════════════════════════════════
      Things you can do, graded by CONSEQUENCE — five families:
 
