@@ -1,23 +1,74 @@
 # invitations
 
-Being added to a game: the watcher that notices, the pure filter and the seen set that decide whether to say anything, and the headless mirror into the toast store.
+Being added to a game by a friend, and how you hear about it: a watcher that
+notices, the small pure pieces that decide whether a game is news to you, and a
+headless component that turns the answer into toasts. [docs/common.md → Joining
+a game](../../../docs/common.md) owns the rule this folder serves.
 
 ## Design
 
-docs/common.md → Joining a game — the invitation toast states the rule this folder exists to serve: a game seats every player at creation, and nobody is dragged into it. This is how that stays true.
+When someone in your club starts a game, they choose who plays, and the game
+seats everyone at that moment. But nobody is pulled onto the game's page. You
+are told, wherever you happen to be in the app, and you go when you choose; the
+game waits for you, paused, until everyone it seated has arrived. This folder
+is the telling: the announcement that "Moth added you to a new spellingbee game",
+with a Join button beside it.
 
-**Seated at creation, never pulled in.** Creating a game writes a `game_players` row for everyone, and that row is the only thing anyone is committed to. Entering is always the player's own click, and the game waits: presence-pause counts every seated row as an expected player, so a fresh game sits paused — "Waiting for Bea…" — until each invited person actually arrives. That is the point rather than a side effect. A game that "started" for someone who was not at their computer is the thing this design refuses.
+The app finds out you were seated by two paths. While you are online, the
+database reports the row that seated you the instant it is written, and the
+invitation appears at once. But a live subscription only reports what happens
+while it is listening, so on every connect and reconnect the hook also asks the
+database directly for the recent, unfinished games you are seated in, to catch
+an invitation sent while your tab was closed or your connection was down. Both
+paths feed one scan, and the scan decides what is actually news.
 
-**The watcher is mounted at the root**, because being added to a game can happen while you are anywhere in the app, and there is no subtree that could observe every club. It is mounted after the claim-handle gate, so an invite can never appear over the login or claim screens.
+Not every game you are seated in is an invitation. Games you created are yours
+already. Games whose invitation you have already been shown are recorded, on
+this device, in a small seen set, so a reload or a reconnect does not nag twice
+about one thing. Showing an invitation is what marks it seen, which means a
+dismissed one and a joined one are equally seen, and the way back to a game
+you ignored is the club page, which still lists it. And games older than an
+hour are not asked for at all. That last bound exists because an abandoned game
+never finishes, so it never stops being "unfinished": without an age cap the
+pool of candidates would be every game you ever walked away from, and all of
+it would arrive at once the first time you signed in from a device whose seen
+set was empty. The seen set and the age cap answer different questions, and
+for a while each hid the other's absence.
 
-**Two trigger paths, and the second is the one that needs explaining.** Realtime catches `game_players` INSERTs for your own rows, so an invite appears instantly while you are online. But a subscription only tells you what happened while you were listening, so the hook also re-scans on subscribe — which fires on first connect *and* on reconnect — to recover invites sent while you were offline or before your tab loaded.
+An invitation is a nudge, not the only route in, and entering the game by any
+route at all counts as answering it: the toast's own Join, the club's game
+card, a shared link, the back button. The invitation is dropped from the list
+on the very render the URL first points at that game, so it cannot flash for
+the game you are already looking at and does not come back when you leave. The
+visible list is then mirrored into the toast store by a component that renders
+nothing of its own, one toast per game, so an invitation lands in the same
+corner as every other announcement and an open chat panel never covers it.
 
-**That re-scan is why both bounds exist, and neither substitutes for the other.** The scan asks for non-terminal games you are seated in, and `is_terminal = false` is not a staleness bound: an abandoned game never becomes terminal — nobody ends it, it just sits there — so without an age cap the candidate pool is every unfinished game you have ever been in, and it grows forever. `INVITE_MAX_AGE_MS` is that cap, and its docstring says why an hour and what the client clock costs. The seen set is the other bound and answers a different question: a game's invite surfaces once and is then marked seen, so a reload or a refetch does not nag you about the same thing twice. Each hid the other's absence for a while. The seen set made the unbounded pool invisible right up until it was empty — a new device, another browser, cleared storage — and then the whole accumulated backlog popped at sign-in.
+## Details
 
-**A dismissed invite and a joined one are equally seen**, and the way back is the club page rather than a re-pop. An invitation is a nudge, not the only route into a game; the game is still listed where you would look for it.
-
-**Entering the invited game by any route is a real dismissal.** The club's active-game card is a plain link, and so is a shared URL or the back button — none of them is the toast's own Join. Suppressing only the game you are currently looking at would hide the invite while you were in it and pop it back the moment you navigated away. So the invite is dropped from the pending list the render the path first resolves to it, using React's adjust-state-during-render rather than an effect: no extra commit, and it cannot lag a frame behind the navigation. The render-time filter on top of that is what prevents a one-frame flash of an invitation to the game you are already in.
-
-**The component renders nothing.** It mirrors the hook's live invite list into the toast store, one toast per invite keyed by game id, and dismisses any whose invite has gone. Announcements belong in one stack whatever produced them, so an invitation arrives where a deletion notice or a heads-up does — and, since that stack outranks chat, an open chat panel never hides one. The two exits carry the split the toast card guarantees: the ✕ marks the invite dismissed, while Join does not, because joining removes it from the list anyway and marking it dismissed would be recording something nobody did.
-
-The filter itself is pure and tested apart from the hook, because the two questions are asked in different places: whether a game is *new to you* is a filter over candidates, and whether it is *recent* rides on the query, so stale rows never leave the database and the arithmetic is the only testable part.
+- **Mounted at the root, after the claim-handle gate.** An invitation can
+  appear on any real page and never over the sign-in or claim screens.
+- **The scan is one inner-join query, and the age bound rides on it,** so stale
+  rows never leave the database. The "new to you" filter is pure and tested
+  apart from the hook, because it is the only part with arithmetic to test.
+- **`INVITE_MAX_AGE_MS` is an hour, judged by the client clock.** Its docstring
+  says why an hour and what a skewed clock would cost.
+- **The seen set lives in `localStorage` and is capped** to its most recent
+  ids (`SEEN_CAP`). An empty set, on a new device or after clearing storage, is
+  the normal case rather than an error; the worst that follows is one
+  invitation shown a second time.
+- **The reconnect rescan also fires when the postgres_changes attach is
+  confirmed,** not only on the join ack, because an insert committed between
+  the two is otherwise lost (docs/realtime-lost-events.md).
+- **The ✕ fires the toast's `onClose`; Join does not.** Joining removes the
+  invitation from the list, which retires the toast through the mirror, and
+  marking it dismissed would record something nobody did.
+- **The prune on entering a game is a render-time state adjust, not an
+  effect.** There is no extra commit, and it cannot lag a frame behind the
+  navigation. The render-time filter beneath it is what prevents a one-frame
+  flash.
+- **A failed name lookup keeps the invitation.** "Someone added you to a new
+  game" is worth more than no invitation. A failed scan drops only this round,
+  since the next insert or reconnect scans again.
+- **Unmounting dismisses its own toasts,** so a sign-out leaves none lingering
+  over the sign-in screen.

@@ -108,6 +108,7 @@ const PAIRS: Record<string, string> = {
   prioritised: 'prioritized', specialise: 'specialize', standardise: 'standardize',
   utilise: 'utilize', emphasise: 'emphasize', analyse: 'analyze', analysed: 'analyzed',
   analyses: 'analyzes', analysing: 'analyzing', paralyse: 'paralyze',
+  synthesise: 'synthesize', synthesised: 'synthesized', synthesising: 'synthesizing',
   // -ce → -se
   licence: 'license', defence: 'defense', offence: 'offense', pretence: 'pretense',
   // doubled l where American keeps one

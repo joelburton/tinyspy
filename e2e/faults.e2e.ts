@@ -52,15 +52,16 @@ test('faults: a raised fault reaches the screen as a modal', async ({ browser })
   await page.evaluate(() => (window as unknown as { pupfault: () => void }).pupfault())
 
   // The canned fault's own text, and the diagnostics line under it: a friend
-  // reading `word|unplayable-board|EXAMPLE|` down a phone line IS the
-  // diagnosis, so it has to be on screen, not only in the console.
-  await expect(page.getByText('word|unplayable-board|EXAMPLE|')).toBeVisible()
-  await expect(page.getByText(/key=unplayable-board/)).toBeVisible()
+  // reading that line down a phone line IS the diagnosis, so it has to be on
+  // screen, not only in the console. The line is `diagnosticsLine`'s, so the
+  // assertion is on two of its fields rather than the whole string.
+  await expect(page.getByText('This board cannot be played. Start a new game.')).toBeVisible()
+  await expect(page.getByText(/dbcode=P0001 .*window\.pupfault/)).toBeVisible()
 
   // Close is the way out (backdrop click deliberately isn't — see-and-
   // acknowledge), and it leaves the page usable behind it.
   await closeButton(page).click()
-  await expect(page.getByText('word|unplayable-board|EXAMPLE|')).toHaveCount(0)
+  await expect(page.getByText('This board cannot be played. Start a new game.')).toHaveCount(0)
   await expect(page.getByText('Your clubs')).toBeVisible()
 
   await ctx.close()

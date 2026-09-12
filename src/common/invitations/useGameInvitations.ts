@@ -65,12 +65,11 @@ export function useGameInvitations(session: Session): {
   // name + inviter, mark them seen, and append. Stable across renders
   // (depends only on selfId) so the subscription effect doesn't churn.
   const load = useCallback(async () => {
-    // One inner-join embed, not two queries. The old shape fetched EVERY
-    // game_players row for me (unordered — nondeterministic truncation at
-    // `max_rows`, so a fresh invite could be silently dropped) and then
-    // filtered those ids to non-terminal games. The `!inner` embed pushes
-    // the `is_terminal = false` filter into the same query, so the row set
-    // is bounded to my *active* games — a handful, never near the cap.
+    // One inner-join embed, not two queries: `!inner` pushes the
+    // `is_terminal = false` filter into this same query, so the row set is my
+    // *active* games — a handful. That matters because the result is unordered
+    // and PostgREST truncates at `max_rows`; a query over EVERY game_players
+    // row I have could drop a fresh invite nondeterministically.
     const rowsRes = await readRows(
       commonDb
         .from('game_players')

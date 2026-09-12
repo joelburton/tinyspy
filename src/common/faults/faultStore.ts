@@ -21,7 +21,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  *
  * Queue semantics (Joel's rulings, 2026-08-13 — docs/ui.md → Faults):
  *   - Each fault is its OWN modal; strictly one visible; dismissing shows the
- *     next. No batching, no dedupe — revisit later if storms annoy.
+ *     next. No batching, no dedupe.
  *   - Capped at QUEUE_CAP. Beyond it, new faults are silently dropped from
  *     the UI — "silently" meaning no modal: whoever routed the fault already
  *     wrote its `[db]` console line, so nothing is lost to diagnosis.

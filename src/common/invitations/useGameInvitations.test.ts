@@ -1,16 +1,14 @@
 // cs-audited-common-hosts
 
 /**
- * Tests for useGameInvitations — specifically the "entering the invited
- * game dismisses the invite for good" behavior.
+ * Tests for useGameInvitations — specifically that entering the invited game
+ * dismisses the invite for good.
  *
- * The regression this guards: the hook's `pending` state was only
- * cleared by the toast's own Join/dismiss. Entering the game any other
- * way (the club's active-game card — a plain <Link> — a shared URL, the
- * back button) merely VIEW-FILTERED the current game out, so the invite
- * stayed in `pending` and re-appeared the moment you navigated away. The
- * fix removes a matching invite from `pending` whenever the current path
- * is that game, making the dismissal durable across later navigations.
+ * Entering the game by any route other than the toast's own Join — the club's
+ * active-game card (a plain <Link>), a shared URL, the back button — has to
+ * remove the invite from `pending`, not merely hide it while the URL is that
+ * game. Hidden-only, it would come back the moment you navigated away. The
+ * hook's docstring says which lines carry that.
  *
  * Mocking strategy mirrors useSession.test.ts: vi.hoisted() spies, a
  * module-level `mockPath` the mocked `usePath` returns (changed + a
@@ -51,7 +49,7 @@ vi.mock('@/gametypes', () => ({
 // like one so the "already looking at it" comparison reads realistically.
 const GID = '11111111-1111-1111-1111-111111111111'
 
-// Per-table db results. `load()` now runs two queries: game_players (with
+// Per-table db results. `load()` runs two queries: game_players (with
 // an `!inner` embed of the game, filtered to non-terminal) → profiles. Each
 // builder is a thenable resolving to its table's rows. The game_players rows
 // carry the embedded `games` object (to-one), matching the query shape.

@@ -13,7 +13,9 @@ throwaway spec before being written down — both reproduced — and the spec wa
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
 F-24, F-6, F-2, F-21, F-20, F-16, F-7, F-4, F-5, F-8, F-22, F-15, the `faults`
 group F-12 · F-13 · F-17 · F-19, the prose group F-9 · F-10 · F-11 · F-18, and
-F-3 · F-14 · F-23, and F-26. **All twenty-six are worked.** What remains is the
+F-3 · F-14 · F-23, and F-26. **All twenty-six are worked, and the closing
+re-read (2026-09-11, one sitting, all twenty-three files) added ten more, F-27 to
+F-36: nine worked, F-33 withdrawn.** What remains is the
 closing re-read in one sitting, and then the blessing, which is Joel's.
 
 ## The roster
@@ -610,6 +612,111 @@ how those places reach it. `faults` carries it as the store's own paragraph
 instead, since there the interesting claim is that nothing authors a fault at
 all.
 
+**Rewritten 2026-09-11, same day.** Joel on the first drafts: bolded-claim
+Designs mixing the high-level view with detail, on unwrapped lines. Each now has
+a narrative Design for a newcomer, a `## Details` list for the specifics, and a
+rewritten lede, hard-wrapped at eighty columns, the `mobile` / `web-storage`
+shape. `tooltips` also shows the opt-in itself — letterboxed's `<button
+data-tooltip=…>` — because "do you just put the attribute on something?" was
+the first question the Design got asked.
+
+### The closing re-read
+
+Ten more, read in one sitting after F-26. As the process predicts, most are the
+area's own recorded faults recurring in prose the area had already passed over:
+one archaeology comment F-9's sweep missed by case, one British spelling the
+guard did not list. One was wrong and is kept as the lesson (F-33).
+
+## F-common-hosts-27 · `toasts-above-everything` · `toastStore.ts` says toasts "live above everything (chat included)" — WORKED
+
+`ToastHost.module.css` and docs/ui.md → Toasts both say a blocking modal
+outranks them. The docstring now says "above chat and every window (only a modal
+that stops the world outranks them)".
+
+## F-common-hosts-28 · `tooltip-contract-omits-touch` · The host's "Interaction contract" paragraph names hover and focus and not the long press — WORKED
+
+The touch path was described only inside the effect. The docstring's contract
+now has one sentence for it — press-and-hold shows the same bubble and the click
+after the hold is swallowed — and points at the touch block for the rest. The
+ragged line wrap in the same paragraph went with it.
+
+## F-common-hosts-29 · `british-synthesize` · A British spelling the guard did not list — WORKED
+
+`TooltipHost.test.tsx` spelled the past tense of "synthesize" the British way.
+`americanSpelling.test.ts` gained the three forms of that verb, and the new row
+at once found a second one, the participle, in `e2e/tooltip-longpress.e2e.ts` —
+the plant found a real hit. Both words fixed. (The guard reads `plans/` too, so
+this entry describes the words rather than spelling them.)
+
+## F-common-hosts-30 · `pupfault-canned-fault-retired-shape` · `window.pupfault()`'s defaults are the shape the error sprint deleted — WORKED
+
+The docstring promises "a realistic fault". The canned text is
+`word|unplayable-board|EXAMPLE|`, the pipe-delimited server error key that no
+longer exists anywhere else in the repo (`grep unplayable-board` finds only this
+file and the e2e that asserts on it), and the canned diagnostics line is
+`word — key=… code=P0001 detail=… — 00:00:00`, which is not `diagnosticsLine`'s
+shape (`stamp | FAULT | call | severity= | outcome= | dbcode= | status= | ms= |
+field= | detail=`). So the one place the modal's look can be checked in prod
+showed a message shape and a line shape no real fault produces.
+
+**Joel took option 1 (2026-09-11): build it the way a real one is built.** The
+text is a sentence in the envelope's voice, and the line comes from
+`diagnosticsLine` itself — `FaultModal.tsx` imports it from `dbLog.ts`, which
+imports only `logStamp` and a type, so no cycle — with a real call label, a
+severity, a dbcode and a status, so the canned fault cannot drift from a real
+one again. `e2e/faults.e2e.ts` now asserts on the new sentence and on two fields
+of the line (`dbcode=P0001` and the `window.pupfault` detail) rather than the
+whole string, since the line carries a timestamp. **That e2e has not been run**
+— it runs on Joel's word only.
+
+## F-common-hosts-31 · `periodic-refetch` · `gameInvites.ts` calls the reconnect rescan "periodic" — WORKED
+
+Nothing is on a timer; the rescan fires on every (re)subscribe. Says so.
+
+## F-common-hosts-32 · `the-old-shape` · Archaeology F-9's sweep missed — WORKED
+
+`useGameInvitations.ts`'s `load` comment opened "The old shape fetched EVERY
+game_players row" — capital T, so the case-sensitive sweep for "the old" passed
+it. Rewritten as the claim about today: the inner join bounds the row set to my
+active games, which matters because PostgREST truncates an unordered result at
+`max_rows`. Two more in `useGameInvitations.test.ts`: the header narrated "the
+regression this guards … The fix removes", now the behavior stated forward; and
+"`load()` now runs two queries" lost its "now".
+
+## F-common-hosts-33 · `spellingbee-in-the-toast-example` · The example toast names the codename — WITHDRAWN
+
+The re-read "corrected" the quoted toast in `GameInvitations.tsx` and
+docs/common.md from "…a new *spellingbee* game" to "FreeBee", reasoning from
+`gameInvites.ts`'s comment that the toast renders the manifest's brand. Joel
+reverted it on sight (2026-09-11): **running text refers to a game by its
+codename; the brand lives in the manifest's `name` and nowhere else.** What a
+string evaluates to at runtime does not change how prose names the game. Both
+files say spellingbee again. `gameInvites.ts`'s own header quoted the toast as
+"a new FreeBee game" and its `gameName` comment said "FreeBee, not spellingbee"
+— the comment this finding argued from; on Joel's word both now use the
+codename, and the comment says "the brand" without spelling one.
+
+## F-common-hosts-34 · `seen-set-said-twice` · Two passages in `gameInvites.ts` restating their neighbor — WORKED
+
+`loadSeenInvites`'s inner comment repeated its own docstring (empty is normal,
+the club page is the way back); it is one line of mechanism now. And
+`INVITE_MAX_AGE_MS` said a device "more than an hour off" would misjudge the
+cutoff and then that "half-hour clock skew" doesn't happen — two different
+skews for one claim; it names one.
+
+## F-common-hosts-35 · `storms-annoy` · A deferred item living in a docstring — WORKED
+
+`faultStore.ts`'s "revisit later if storms annoy" was filed nowhere. The clause
+is gone and `faults/todo.md` → Maybe holds it, with the 2026-08-13 ruling it
+came from.
+
+## F-common-hosts-36 · `count-in-my-own-details` · The re-read's own prose — WORKED
+
+`invitations/doc.md`, written hours earlier, said the seen set is capped "at the
+most recent two hundred ids". A count that rots; it names `SEEN_CAP`. The
+docstring-marker pass over the same sitting found nothing: no `/**` on a member
+in any of the eighteen code files.
+
 ## Notes
 
 - **The ARIA on the hosts is not load-bearing for any test** (`alertdialog`
@@ -648,7 +755,9 @@ all.
 
 ## Predicted test breaks
 
-*(written when the area starts changing things)*
+- **F-30:** `e2e/faults.e2e.ts` asserted the exact old canned text. Its
+  assertions were changed with the defaults; **the spec has not been run**, and
+  e2e runs only on Joel's word.
 
 ## Closing
 

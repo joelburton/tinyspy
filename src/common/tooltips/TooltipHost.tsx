@@ -34,11 +34,13 @@ type Anchor = { el: Element; text: string }
  * fixed` in a body portal keeps an `overflow: hidden` ancestor from clipping
  * it.
  *
- * Interaction contract: shows after a
- * short beat on hover or keyboard focus (`:focus-visible` only — a mouse
- * click's focus doesn't count); hides instantly on leave/blur/scroll/press.
- * Delegated listeners on the document, so it costs one host regardless of how
- * many buttons carry the attribute. The bubble itself is `aria-hidden` — it
+ * Interaction contract: shows after a short beat on hover or keyboard focus
+ * (`:focus-visible` only — a mouse click's focus doesn't count); hides
+ * instantly on leave/blur/scroll/press. On a touch device, where there is no
+ * hover, a press-and-hold shows the same bubble and the click that follows the
+ * hold is swallowed; the touch block below owns that path. Delegated listeners
+ * on the document, so it costs one host regardless of how many buttons carry
+ * the attribute. The bubble itself is `aria-hidden` — it
  * visually duplicates the control's accessible name (or enriches it; the name
  * itself comes from the button's text / aria-label).
  *

@@ -8,9 +8,10 @@ import { useSyncExternalStore, type ReactNode } from 'react'
  * every source funnels into the ONE shared bottom-right stack (`<ToastHost>`).
  *
  * Toasts are for **announcements**, and are deliberately NOT floating panels
- * (docs/ui.md → Toasts): they can't be dragged, they live above everything (chat
- * included), they carry an X and an optional single action, and multiple ones
- * stack. See `Toast.tsx` (the card) + `ToastHost.tsx` (the fixed stack).
+ * (docs/ui.md → Toasts): they can't be dragged, they sit above chat and every
+ * window (only a modal that stops the world outranks them), they carry an X and
+ * an optional single action, and multiple ones stack. See `Toast.tsx` (the
+ * card) + `ToastHost.tsx` (the fixed stack).
  *
  * Lifecycle: a toast persists until the user closes it (X) or acts on it, unless
  * it names an `ms` to self-clear after (`DEFAULT_TOAST_MS` is the usual one). A

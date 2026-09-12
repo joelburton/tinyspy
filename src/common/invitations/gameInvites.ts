@@ -4,7 +4,7 @@ import { readStored, writeStored } from '../web-storage/storage'
 
 /**
  * Game-invitation model — the data + pure logic behind the "Moth added
- * you to a new FreeBee game" toast (see `useGameInvitations`).
+ * you to a new spellingbee game" toast (see `useGameInvitations`).
  *
  * Games seat every player at creation (a `common.game_players` row each),
  * but nobody is dragged into one. Wherever a player is in the app, being
@@ -13,8 +13,8 @@ import { readStored, writeStored } from '../web-storage/storage'
  *
  * The "seen" set (localStorage) is what keeps a single invite from
  * re-popping: once a game's invite has been surfaced, it's marked seen,
- * so a reload (or the periodic refetch that recovers invites missed while
- * offline) won't show it again. Recovery if dismissed is the club page,
+ * so a reload (or the rescan on every reconnect, which recovers invites missed
+ * while offline) won't show it again. Recovery if dismissed is the club page,
  * not a re-nag.
  */
 
@@ -31,9 +31,9 @@ export type InviteCandidate = {
 export type GameInvite = {
   gameId: string
   gametype: string
-  // The manifest's `name`, which is the game's BRAND — "FreeBee", not
-  // "spellingbee" and not the mode. Sibling manifests share one brand, so a
-  // coop and a compete invitation read identically here.
+  // The manifest's `name`, which is the game's brand — not the codename and
+  // not the mode. Sibling manifests share one brand, so a coop and a compete
+  // invitation read identically here.
   gameName: string
   clubHandle: string
   // The game's creator — "<inviterName> added you to a new …".
@@ -58,10 +58,10 @@ export type GameInvite = {
  * from. Past it, the game is still on the club page — an invitation is a nudge,
  * not the only route in.
  *
- * The cutoff is computed against the CLIENT clock, so a device more than an
- * hour off would misjudge it. Deliberately not defended against: doing it
- * server-side means an RPC, and half-hour clock skew doesn't happen on
- * NTP-synced devices.
+ * The cutoff is computed against the CLIENT clock, so a device whose clock is
+ * off by a good part of an hour would misjudge it. Deliberately not defended
+ * against: doing it server-side means an RPC, and clocks that far off don't
+ * happen on NTP-synced devices.
  */
 export const INVITE_MAX_AGE_MS = 60 * 60_000
 
@@ -105,8 +105,7 @@ const SEEN_CAP = 200 // bound growth; keep the most recent
  * invite surfacing a second time.
  */
 export function loadSeenInvites(): Set<string> {
-  // No storage reads as "nothing seen yet" — invites just won't dedup across
-  // reloads. Acceptable; the club page is still the durable entry point.
+  // Unreachable storage reads as "nothing seen yet".
   const raw = readStored('local', SEEN_KEY, null)
   if (!raw) return new Set()
   // A malformed value is its own failure, separate from storage being gone.

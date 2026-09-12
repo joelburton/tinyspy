@@ -116,7 +116,7 @@ describe('TooltipHost', () => {
       act(() => void vi.advanceTimersByTime(500))
       expect(screen.getByText('End the game')).toBeInTheDocument()
 
-      // The browser's synthesised click, after the finger lifts.
+      // The browser's synthesized click, after the finger lifts.
       fireEvent.touchEnd(btn)
       fireEvent.click(btn)
       expect(onClick, 'the held button must not fire').not.toHaveBeenCalled()

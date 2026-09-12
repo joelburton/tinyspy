@@ -2,6 +2,7 @@
 
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import { dismissFaultModal, showFaultModal, useCurrentFault } from './faultStore'
+import { diagnosticsLine } from '../supabase/dbLog'
 import styles from './FaultModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
@@ -61,6 +62,11 @@ export function FaultModal() {
  * shape your own. Real faults are bugs or dead networks, so there's no
  * honest UI path to one on demand; this is how the modal's look gets
  * checked.
+ *
+ * The canned one is built the way a real one is: a sentence in the envelope's
+ * voice, and a line from `diagnosticsLine`, the one builder every `[db]` line
+ * and every modal line comes from — so what this shows cannot drift from what
+ * a real fault shows.
  */
 declare global {
   interface Window {
@@ -73,8 +79,14 @@ declare global {
 // nothing to carry.
 window.pupfault = (text?: string, diagnostics?: string) =>
   showFaultModal({
-    text: text ?? 'word|unplayable-board|EXAMPLE|',
+    text: text ?? 'This board cannot be played. Start a new game.',
     diagnostics:
       diagnostics ??
-      'word — key=unplayable-board code=P0001 detail="a hand-triggered test fault (window.pupfault)" — 00:00:00',
+      diagnosticsLine('FAULT', {
+        call: 'POST /rest/v1/rpc/word',
+        severity: 'fault',
+        dbcode: 'P0001',
+        status: 400,
+        detail: 'a hand-triggered test fault (window.pupfault)',
+      }),
   })

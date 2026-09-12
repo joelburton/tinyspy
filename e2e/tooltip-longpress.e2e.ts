@@ -16,7 +16,7 @@ import { actionButton } from './helpers/actions'
  * The assertion that matters is the SECOND one: lifting after a long press
  * still fires a click, so without swallowing it, holding a button to learn that
  * it says "Restart" would restart the game. A jsdom unit test covers the logic;
- * this covers the real thing — a browser synthesising its own click from a real
+ * this covers the real thing — a browser synthesizing its own click from a real
  * touch sequence, which is the part jsdom can only imitate.
  *
  * Playwright's `tap()` can't hold, so the press is dispatched over CDP.
