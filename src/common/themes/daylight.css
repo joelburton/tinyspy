@@ -93,11 +93,15 @@
 
   /* ══ MENU ═══════════════════════════════════════════════════════
      The quiet ink for the header menu's MARKS — the shortcut beside a
-     label, the leading glyph, the submenu chevron and the drill-down's
-     Back row. One step darker than the page's muted text, because a
-     mark is small and thin-stroked where that text is a word. A
-     section's credit lines are words, so they stay on the page's muted
-     text and are not on this.
+     label, the leading glyph and the drill-down's Back row. One step
+     darker than the page's muted text, because a mark is small and
+     thin-stroked where that text is a word.
+
+     Two things in a menu are deliberately NOT on this. A section's
+     credit lines are words, so they take the page's muted text. The
+     submenu chevron takes the LABEL's ink: it says the row leads
+     somewhere, which is part of what the row does rather than an
+     annotation beside it.
 
      A COPY of the field ink rather than a reference: they agree today
      and are not the same decision (CHROME's house rule below). The

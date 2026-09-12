@@ -107,6 +107,13 @@
   font-size: var(--font-size-1);
   font-weight: 500;
   text-align: left;
+  /* EVERY MARK IN A ROW IS `1em` — the identity disc here, the leading glyph
+     and the submenu chevron at their call sites — so the marks are sized by
+     the label they sit beside and the menu's type moves all of them at once.
+     Set on the ROW rather than on the disc's own class because a disc renders
+     in two places (inside the leading slot when the menu has icons, inline
+     when it has none) and only one of those carries that class. */
+  --dot-size: 1em;
   /* Flex so the glyph, the label and the shortcut share one line. The gap is
      the distance from a leading glyph or disc to its label; the wide gutter
      before the shortcut is the shortcut's own (`.itemShortcut`), so nothing
@@ -189,9 +196,16 @@
 /* @@ */ .itemChevron {
   margin-left: auto;
   padding-left: 0.5rem;
-  color: var(--menu-muted-ink-color);
-  font-size: var(--font-size-1);
-  line-height: 1;
+  /* The LABEL's ink, not the menu's muted mark ink. This mark says the row
+     leads somewhere, which is as much a part of what the row does as its
+     words; muting it filed it with the shortcut annotations instead. */
+  color: var(--page-text-color);
+  /* A drawn mark, not a character: the row is `align-items: baseline` for the
+     label, and an SVG has no baseline worth aligning, so it centers itself on
+     the text's optical line the way `.itemIconSlot` does. */
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
 }
 
 /* The parent row of an OPEN flyout stays lit, so it's unambiguous which row the
@@ -237,25 +251,20 @@
   margin-left: -1px;
 }
 
-/* The identity disc on an item that carries one (the account row). Sized to the
- * label's text rather than a fixed px so it tracks the menu's type. */
-/* @@ */ .itemDot {
-/* @@ */   --dot-size: 0.7em;
-  flex: none;
-}
-
 /* The leading glyph slot — the icon language's legend (`MenuRow.icon`).
  *
- * A FIXED box, rendered for every row as soon as any row in the menu has an
- * icon, so the labels share one text column. Reserving it per-menu rather than
- * always means a menu with no icons is untouched.
+ * A FIXED box on every row, empty or not, so the labels share one text column
+ * and a leading mark has exactly one place it can be. It holds either an
+ * action's glyph or the identity disc — a row names a deed or a person, never
+ * both.
  *
- * `flex: none` so a glyph never stretches the row, and the box is sized to the
- * 15px icon rather than the icon sizing the box — a future glyph with different
- * bearings then can't shift every label beside it. */
+ * `flex: none` so a glyph never stretches the row, and the box is a little
+ * WIDER than the `1em` mark inside it rather than the mark sizing the box — a
+ * future glyph with different bearings then can't shift every label beside it.
+ * In em like the mark, so the column tracks the type too. */
 /* @@ */ .itemIconSlot {
   flex: none;
-  width: 1.05rem;
+  width: 1.15em;
   display: inline-flex;
   align-items: center;
   justify-content: center;

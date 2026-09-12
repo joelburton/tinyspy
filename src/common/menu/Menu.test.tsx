@@ -515,6 +515,17 @@ describe('Menu — submenus (desktop flyout)', () => {
     expect(parent).toHaveAttribute('aria-expanded', 'false')
   })
 
+  // The mark is a REGISTRY glyph, not a text character — the drift the icon
+  // registry exists to stop, and the reason this row's mark changed.
+  it('marks a submenu parent with the registry glyph, not a character', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    const parent = screen.getByRole('menuitem', { name: /Account/ })
+    expect(parent.querySelector('svg.lucide-chevrons-right')).toBeTruthy()
+    expect(parent.textContent).not.toContain('›')
+  })
+
   it('opens a SECOND panel and keeps the parent list on screen', async () => {
     const user = userEvent.setup()
     renderMenu(withSubmenu())
@@ -670,16 +681,15 @@ describe('Menu — submenus (mobile drill-down)', () => {
 
 /**
  * The icon gutter — the icon language's legend (doc.md → Design). What's pinned
- * is the ALIGNMENT rule, because it's the part that silently degrades: the slot
- * is reserved for every row as soon as any row has an icon, so an icon-less
- * label doesn't hang left of the others; and a menu with no icons at all
- * reserves nothing.
+ * is the ALIGNMENT rule, because it's the part that silently degrades: every
+ * row reserves the slot whether or not it has anything to put in it, so no
+ * label hangs left of the others and a leading mark has one place it can be.
  */
 describe('Menu — the icon gutter', () => {
   const slots = () =>
     document.querySelectorAll('[role="menuitem"] > span[aria-hidden="true"]:first-child')
 
-  it('reserves the slot on EVERY row once any row has an icon', async () => {
+  it('reserves the slot on EVERY row, glyph or no glyph', async () => {
     const user = userEvent.setup()
     renderMenu([
       {
@@ -695,11 +705,12 @@ describe('Menu — the icon gutter', () => {
     expect(document.querySelectorAll('[role="menuitem"] svg')).toHaveLength(1)
   })
 
-  it('reserves nothing when no row has an icon', async () => {
+  it('reserves it even when NO row has a glyph', async () => {
     const user = userEvent.setup()
     // Both ids are registry entries with no glyph of their own.
     renderMenu(singleSection([{ id: 'act-pause', label: 'Alpha' }, { id: 'act-log-out', label: 'Beta' }]))
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
-    expect(slots()).toHaveLength(0)
+    expect(slots()).toHaveLength(2)
+    expect(document.querySelectorAll('[role="menuitem"] svg')).toHaveLength(0)
   })
 })

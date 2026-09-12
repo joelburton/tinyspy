@@ -15,7 +15,7 @@ import { cls } from '../utils/cls'
 import { Dot } from '../members/Dot'
 import { menuRow, type MenuHeader, type MenuRow, type MenuSection } from './menuModel'
 import { useIsMobile } from '../mobile/useIsMobile'
-import { IconMenuChevron } from '../icons/icons'
+import { IconMenuChevron, IconSubmenu } from '../icons/icons'
 import styles from './Menu.module.css'
 
 /**
@@ -135,10 +135,6 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // stable across renders; arrow nav skips them via
   // findNextEnabled.
   const flatRows = drawn.flatMap((s) => s.rows)
-
-  // Does any row carry a glyph? If so every row reserves the gutter, so labels
-  // line up in one column; a menu with none reserves nothing (doc.md → Design).
-  const hasIcons = flatRows.some((r) => r.icon !== undefined)
 
   // The open submenu's parent row, as it reads NOW. Gone (an action that went
   // hidden while it was open) reads as closed.
@@ -380,21 +376,18 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
             label: the identity disc (who) and the action's glyph (what). No row
             carries both — an account row names a person, an action names a
             deed — so they take turns rather than stacking, which is what keeps
-            every label in the same column. Reserved for EVERY row as soon as
-            any row has an icon; a menu with none renders the disc inline and
-            gains no indent. Not rendered on the drill-down's Back row: that row
-            names where you're going, not a person or an action. */}
-        {hasIcons ? (
+            every label in the same column. Reserved on EVERY row, empty or not,
+            so a leading mark has exactly one place it can be. Not rendered on
+            the drill-down's Back row: that row names where you're going, not a
+            person or an action. */}
+        {!isBack && (
           <span className={styles.itemIconSlot} aria-hidden>
-            {!isBack &&
-              (item?.dot ? (
-                <Dot color={item.dot} />
-              ) : item?.icon ? (
-                <item.icon size={15} />
-              ) : null)}
+            {item?.dot ? (
+              <Dot color={item.dot} />
+            ) : item?.icon ? (
+              <item.icon size="1em" />
+            ) : null}
           </span>
-        ) : (
-          !isBack && item?.dot && <Dot color={item.dot} className={styles.itemDot} />
         )}
         {/* A plain wrapper: the row is a flex line and `.itemShortcut` pushes
             itself right with `margin-left: auto`, so the label needs no class of
@@ -404,8 +397,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         </span>
         {item?.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}
         {/* The affordance that says "there's more behind this row". Purely
-            decorative — the label and aria-haspopup carry the meaning. */}
-        {parent && <span className={styles.itemChevron} aria-hidden>›</span>}
+            decorative — the label and aria-haspopup carry the meaning. `1em`
+            like every other mark in the row: the marks are sized by the label
+            they sit beside, so changing the menu's type moves all of them. */}
+        {parent && (
+          <span className={styles.itemChevron} aria-hidden>
+            <IconSubmenu size="1em" />
+          </span>
+        )}
       </button>
     )
   }

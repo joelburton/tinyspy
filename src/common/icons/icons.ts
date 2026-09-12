@@ -182,6 +182,12 @@ export {
   // that drifts. Same family as IconBack: a chevron points, and this one points
   // at the list that is about to appear.
   ChevronDown as IconMenuChevron,
+  // "This row opens a submenu", at a menu row's right edge. DOUBLE chevrons
+  // rather than one: a single one is small enough to read as the SHORTCUT,
+  // which sits in that same right-edge slot on every other row — and the back
+  // actions put a literal `<` there. Two marks of the same shape say "more,
+  // this way" in a way no single character does.
+  ChevronsRight as IconSubmenu,
   // open the rules/help — the "?" on the setup dialog and on every Help row.
   // The circled question mark is the near-universal "help / what is this?" idiom.
   CircleQuestionMark as IconHelp,

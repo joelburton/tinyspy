@@ -317,16 +317,68 @@ a/b/c question, in context:
   definition, and a second guard makes both themes answer the same set of
   roles — which is why this is a named role rather than a value.
   **Three marks change color on screen and none of it has been seen.**
-- `.chevron`'s `0.65em`, `.itemDot`'s `--dot-size: 0.7em`, `.itemIconSlot`'s
-  `1.05rem` and the icon's `size={15}` — four sizes for marks in one row.
+- **The marks in a row.** The bullet first written here listed `.chevron`,
+  which is the TRIGGER's down-chevron in the header, and called the four "marks
+  in one row" — wrong on both counts (Joel caught it). The marks actually in a
+  row are: the identity disc and an action's glyph, which TAKE TURNS in the
+  leading slot; the slot itself, a box deliberately wider than the
+  glyph so a future glyph's bearings cannot shift every label; and the submenu
+  mark at the right edge. The trigger's chevron is a separate question — it
+  sits beside the logo and is sized in em so it tracks the header's type.
+  **WORKED 2026-09-11** (Joel, two rulings):
+  - **EVERY MARK IN A ROW IS `1em`** — the disc, the leading glyph and the
+    submenu chevron — so the marks are sized by the label they sit beside and
+    the menu's type moves all of them at once (Joel: "whatever sizing the menu
+    uses for text… if the menu-text changes, we'd want these to follow"). It
+    resolves to 16px today. The glyph had been a hard `size={15}` while the
+    label grew to 16px around it, which is what Joel saw as the glyphs looking
+    smaller — the one mark in the row that did not move. The slot is `1.15em`,
+    still a little wider than the mark, in em now so the label column tracks
+    the type too.
+  - **A disc inside the icon slot was never getting `.itemDot`.** Found while
+    doing the above: `renderRow` draws `<Dot className={styles.itemDot}>` only
+    in the NO-icon branch; inside the slot it draws a bare `<Dot>`, which fell
+    back to the shared default of `0.65em` (~10.4px). So the disc was
+    two-thirds of the glyph in exactly the menus that have icons — every game
+    menu. `--dot-size` now sits on `.item`, which reaches a disc in either
+    place. NOT verified on screen: sizing is CSS, and CSS modules are proxies
+    under vitest, so no spec can see it.
+  - **The slot is now reserved on EVERY row** (Joel, on hearing the above:
+    "should we just make the menu assume it always has an icon slot?"). The
+    `hasIcons` scan, the ternary and the second `<Dot>` branch are gone, and
+    `.itemDot` with them — that branch was WHY the sizing bug could exist, so
+    the fix and the simplification are the same move. The homepage was the one
+    menu without a slot, because its only top-level row is the account row and
+    a disc is not a glyph; its disc now sits in the reserved column like
+    everywhere else. The two gutter specs were rewritten to pin the new rule
+    and planted against a restored conditional: both go red.
+  - **The submenu mark is `IconSubmenu`** (Lucide `ChevronsRight`), new in the
+    icon registry. It was a text `›`, which Joel reads as too small and
+    confusable with a SHORTCUT — the same right-edge slot carries one on other
+    rows, and `act-back-to-club` / `act-back-to-home` put a literal `<` there.
+    Drawn at `1em` and in the LABEL's ink, not the menu's muted mark
+    ink (Joel, on seeing it): the mark says the row leads somewhere, which is
+    part of what the row does rather than an annotation beside it, and it has
+    to be unmistakable in the slot where a shortcut would otherwise sit. So
+    the new token has three readers, not four, and its comment in the theme
+    says why the chevron is not one. `.itemChevron` lost
+    its `font-size` and `line-height` (it is no longer text) and gained the
+    centering `.itemIconSlot` uses, since an SVG has no baseline to align; the
+    guard's line-height row for this file went with it. One spec added,
+    planted against a wrong glyph class: the mark is the registry's, not a
+    character.
 
-## F-menu-13 · `half-marked-groups` · Two selector groups mark their second selector only
+## F-menu-13 · `half-marked-groups` · Two selector groups mark their second selector only — CLOSED, NO CHANGE
+
+**Joel, 2026-09-11: "it's fine. just close this issue. we don't need to move
+or tidy these."** Nothing moved, in this folder or anywhere else. Do not
+raise it again.
 
 `.trigger:hover,` / `.trigger[aria-expanded='true']` and
-`.item:hover:not(:disabled),` / `.item:focus`: the marker sits on the second
-line of each. `corecss.md` records the marking script doing exactly this and
-`floating-panels` marked both lines of its scrim group. Say which is the
-convention; make these two match it.
+`.item:hover:not(:disabled),` / `.item:focus` keep their marker on the brace
+line, which is what eleven other multi-selector rules across the shell do.
+`corecss.md`'s F-corecss-9 says the convention is the FIRST selector; no live
+site follows it, and that mismatch is left alone too.
 
 ## F-menu-14 · `chevron-stroke-archaeology` · A number justified by a glyph that no longer exists
 

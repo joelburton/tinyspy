@@ -2124,10 +2124,9 @@ Two rules keep it honest. **Icons come from the semantic registry**, never
 use; `MenuSubmenu.icon` and the registry's `icon` are typed `AppIcon`, the icon registry's own type, so a menu row
 and a button can be handed the identical value — including a glyph the registry
 defines itself rather than aliasing from lucide. And **the gutter is
-reserved per menu**: once any row has an icon every row gets the slot, so labels
-share one column instead of going ragged — while a menu with no icons at all
-(nothing in it maps to the language) gains no indent for a feature it doesn't
-use. The disc and the glyph SHARE that slot: an account row names a person, an
+reserved on every row**, whether or not that row has anything to put in it, so
+labels share one column instead of going ragged and a leading mark has exactly
+one place it can be. The disc and the glyph SHARE that slot: an account row names a person, an
 action names a deed, and no row is both. Which rows get one: everything with a
 button glyph, plus Print — a printer is instantly scannable in a list of words,
 and if a print button ever appears it has already been taught. Pinned by
