@@ -1,7 +1,7 @@
 // cs-audited-feedback
 
 import { Dot } from '../members/Dot'
-import type { Member } from '../members/member'
+import type { Actor } from '../members/member'
 
 /**
  * "Waiting for ● moth…" — the whose-turn sentence, as a node.
@@ -17,7 +17,7 @@ import type { Member } from '../members/member'
  * cannot be added to a game, so the fallback is unreachable in practice.
  * Never the possessive "moth's turn" — usernames are not apostrophized.
  */
-export function waitingForText(current: Pick<Member, 'username' | 'color'> | undefined) {
+export function waitingForText(current: Actor | undefined) {
   return (
     <>
       Waiting for <Dot color={current?.color} /> {current?.username ?? 'a player'}…

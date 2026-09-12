@@ -3,7 +3,7 @@
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { Member } from '@/common/members/member'
+import type { Actor } from '@/common/members/member'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -113,7 +113,7 @@ export function BoardCol({
 
   // ── Board-scope marks (see `<Board>`) ──
   /** Who decided each tile, for the identity dot — null outside coop. */
-  decidedBy: ReadonlyMap<string, Pick<Member, 'username' | 'color'> | undefined> | null
+  decidedBy: ReadonlyMap<string, Actor | undefined> | null
   /** The game is finished, and how — bands the board in that outcome's gray. */
   gameOver: TerminalOutcome | null
   /** Turn-order coop: a teammate holds the move, so the board dims. */

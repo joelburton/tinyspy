@@ -1,7 +1,7 @@
 // cs-audited-feedback
 
 import type { Outcome } from '../outcomes/outcomes'
-import type { Member } from '../members/member'
+import type { Actor } from '../members/member'
 
 /**
  * How a FINISHED game reads: won, lost, or neither.
@@ -35,7 +35,7 @@ export type TerminalMessage = {
   outcome: TerminalOutcome
   // The person a compete verdict names ("● moth won at Genius"): the pill
   // draws them as the leading mention. Absent when the verdict names nobody.
-  actor?: Pick<Member, 'username' | 'color'>
+  actor?: Actor
 }
 
 /**

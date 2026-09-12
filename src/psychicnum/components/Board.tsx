@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { Member } from '@/common/members/member'
+import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
@@ -42,7 +42,7 @@ type Props = {
    *  A REVEALED secret is deliberately absent from this map (nobody guessed it),
    *  which is what keeps found-vs-peeked readable without toggling the reveal off:
    *  a green tile with a dot was found, a green tile without one was shown. */
-  decidedBy?: ReadonlyMap<string, Pick<Member, 'username' | 'color'> | undefined> | null
+  decidedBy?: ReadonlyMap<string, Actor | undefined> | null
   /** The word currently with the server — its tile takes the in-flight dim. */
   inFlightWord?: string | null
   /** The game is finished, and how it ended — the board takes a band in that

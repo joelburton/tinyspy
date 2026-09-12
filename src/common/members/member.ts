@@ -39,6 +39,17 @@ export type Member = {
 }
 
 /**
+ * A person named at a render site that has no use for their id — the two
+ * identity fields a name-and-disc mention draws.
+ *
+ * Reach for `Member` where a caller holds the id and might need it, and for
+ * `Actor` where the value is only ever shown: `DotActor`'s prop, the person a
+ * feedback message is about, the player a terminal verdict names, the
+ * teammate a waiting line names.
+ */
+export type Actor = Pick<Member, 'username' | 'color'>
+
+/**
  * A game player: a [Member] plus the per-player bits that live on
  * `common.game_players` (as opposed to the profile). Distinct from
  * Member because a chat sender is a Member but never a game player.

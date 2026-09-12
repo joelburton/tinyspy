@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { Outcome } from '../outcomes/outcomes'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { notOkOutcome } from '../supabase/dbResult'
-import type { Member } from '../members/member'
+import type { Actor } from '../members/member'
 import { DotActor } from '../members/ActorMention'
 import type { TerminalMessage } from '../terminal/terminalMessage'
 import { waitingForText } from '../info-sheet/turnText'
@@ -123,9 +123,6 @@ export const KINDS: Record<Kind, KindDefaults> = {
  * an override at a site is a decision made there, in the open.
  */
 export type Overrides = Partial<KindDefaults>
-
-/** The person a message is about — the two identity fields of a `Member`. */
-export type Actor = Pick<Member, 'username' | 'color'>
 
 /** The kind's row, the outcome this constructor chose, then the site's overrides on top. */
 function defaultsFor(kind: Kind, outcome: Outcome | null, overrides: Overrides | undefined): KindDefaults {

@@ -12,9 +12,10 @@ was BUILT first — most of the original roster was replaced outright, so a
 prose pass over it would have audited files about to be deleted — and the
 audit is of what the build left: the twenty-two files below, read in one
 sitting after the old system was deleted. Eleven findings, and two more that
-came out of settling the first of them — thirteen, of which four are WORKED:
-F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`)
-and F-1 (`FailureLine` moved to `forms/`).
+came out of settling the first of them — thirteen, of which five are WORKED:
+F-2 and F-12 (the rank work, `07996523`), F-13 (`peerMilestone`, `457b2c2e`),
+F-1 (`FailureLine` moved to `forms/`, `0f1f8413`) and F-4 (`Actor` moved to
+`members/member.ts`).
 
 ## The roster
 
@@ -241,7 +242,7 @@ Options:
    **Recommended.**
 2. **Leave the registry's** (a console toy) and fix only the test.
 
-## F-feedback-4 · `actor-type-spelled-five-times` · `Actor` is exported from `FeedbackMessage.tsx`, and five other sites spell `Pick<Member, 'username' | 'color'>` by hand
+## F-feedback-4 · `actor-type-spelled-five-times` · `Actor` is exported from `FeedbackMessage.tsx`, and five other sites spell `Pick<Member, 'username' | 'color'>` by hand — WORKED
 
 `terminalMessage.ts` (`TerminalMessage.actor`), `turnText.tsx`
 (`waitingForText`'s parameter), `ActorMention.tsx` (`DotActor`'s `actor`
@@ -264,7 +265,22 @@ Options:
 2. **Leave it.** Five identical picks compile; the name exists for the one
    file that hands the value to the pill.
 
-## F-feedback-5 · `empty-pending-list` · The names guard's allowlist is empty, its second test iterates nothing, and code-conventions still says games are on it
+**DECIDED and built 2026-09-12 — option 1, with no re-export.** `Actor` now
+lives in `members/member.ts` beside `Member`, and thirteen sites import it
+from there: the five that spelled the pick by hand (`ActorMention`,
+`terminalMessage`, `turnText`, psychicnum's `Board` and `BoardCol`), the seven
+game PlayAreas that used to take it off `FeedbackMessage`, and
+`FeedbackMessage` itself, which now imports the name rather than owning it.
+Four of the five hand-written sites dropped their `Member` import entirely,
+which is the tell that the pick was standing in for a name they wanted.
+
+`ActorMention`'s prop comment said "any `Member`-ish value works", which was
+describing the pick; it now says an `Actor` is the two shown fields, so a
+whole `Member` passes. Its stale `Member` import went with it — `tsc` caught
+that one, since nothing but the comment had used it.
+
+No re-export from `FeedbackMessage.tsx`: two import paths for one name is
+what this finding is about. · `empty-pending-list` · The names guard's allowlist is empty, its second test iterates nothing, and code-conventions still says games are on it
 
 `feedbackNames.test.ts` keeps `const pending = new Set<string>([])` with a
 docstring saying the list *"stays so a regression has a named place to be

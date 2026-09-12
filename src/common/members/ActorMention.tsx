@@ -1,7 +1,7 @@
 // cs-blessed-members
 
 import { cls } from '../utils/cls'
-import type { Member } from './member'
+import type { Actor } from './member'
 import { Dot } from './Dot'
 import styles from './ActorMention.module.css'
 
@@ -16,9 +16,9 @@ export type ActorShow = 'auto' | 'both' | 'name' | 'dot' | 'none'
 
 type Props = {
   // The person who acted. `undefined`/`null` → the `fallback` name + a neutral
-  // disc (a departed member, or a row whose player hasn't loaded yet). Only the
-  // identity fields are needed, so any `Member`-ish value works.
-  actor?: Pick<Member, 'username' | 'color'> | null
+  // disc (a departed member, or a row whose player hasn't loaded yet). An
+  // `Actor` is the two shown fields, so a whole `Member` passes too.
+  actor?: Actor | null
   // Name shown when `actor` is missing.
   fallback?: string
   // Merged onto the root — for positioning the mention in its row.
