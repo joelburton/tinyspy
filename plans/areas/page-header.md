@@ -12,7 +12,7 @@ settled the same day: the prose pass and three no-decision fixes WORKED in
 the sitting; of the five put to Joel, two WORKED (the strip ellipsizes; the
 presence hint is a `data-tooltip`) and three CLOSED with no change (the mark
 gap, the badge's sizes, the strip's spacings — each now a stated decision).
-Left: the closing re-read, the `doc.md` Design (F-15), and the blessing.
+Re-read and Design done the same day; left: the blessing.
 
 ## The roster
 
@@ -285,15 +285,42 @@ slot, the message's kind, and an `acknowledgment` that fades.
 
 One home: the docstring. The module's header points at it.
 
-## F-page-header-15 · `doc-md-is-two-sentences` · `page-header/doc.md` was a title and an action-wiring note; its Design is owed
+## F-page-header-15 · `doc-md-is-two-sentences` · `page-header/doc.md` was a title and an action-wiring note; its Design is owed — WORKED
 
 The lede is now an inventory of the folder. The Design — the height contract,
 one mark component with four independent channels, the status slot's two
 states, what earns the header — is the closing step, and `common/page-header`
 is on `DESIGNS_OWED` until then.
 
+## F-page-header-16 · `chat-label-is-logic-nobody-reads` · The chat mark computed a three-way `aria-label` that no person reads — WORKED
+
+Joel's read, 2026-09-12. The mark's label was `open ? 'Close chat' :
+unread ? 'Open chat, N unread' : 'Open chat'`, but the mark passes its
+tooltip separately ("Chat · /"), so the label was only ever the accessible
+name — which nobody here reads (screen readers are out of scope) — and the
+handle eleven e2e locators found it by, three of them with a regex because
+of the count suffix. *"It's ok to keep aria labels, but here we've got actual
+logic that no human will see. If you need to find the button in a test, just
+make it a simple string."* The label is `"Chat"`, with a comment saying it is
+a test handle and nothing more; every locator is `{ name: 'Chat', exact: true
+}`; and `chat.e2e.ts`, which had asserted the unread count THROUGH the label,
+now asserts the badge's own text — what a person sees. The action registry's
+`'Open chat'` (the menu row's words) is untouched. None of the eight specs
+has been run.
+
 ## Notes
 
+- **The full e2e run (2026-09-12, Joel's ask) found five reds, none this
+  area's, all fixed from here.** Four were `club-keyboard` (3) and
+  `home-keyboard` (1), which still asserted a cursor ring on load: the lists
+  area changed that contract on 2026-09-11 (hidden until a movement key asks;
+  the first arrow only reveals) and never updated the two specs it had "left
+  off" at its opening. Each now presses one arrow to reveal before asserting,
+  and the click test asserts NO ring after a click, then the inset ring after
+  an arrow. The fifth, `setgame-flash`, bet that a claim on a planted 15-card
+  board leaves 12; the deal-three rule appends three more when the twelve
+  hold no set, so it now asserts the count the server settled on. All seven
+  green; the suite was 228 + 5 red, and is 233 green.
 - The hover gating (`@media (hover: hover)`) on `PageHeaderButton` is the one
   place in the app that gates `:hover` to pointer devices; whether the whole
   app should is `core-css/todo.md`'s question, listed there already. Not
@@ -306,14 +333,49 @@ is on `DESIGNS_OWED` until then.
 
 - `e2e/presence.e2e.ts` — changed with F-8 (four `getByTitle` → attribute
   locators). Not run; ask before running.
+- Eight specs changed with F-16, every locator for the chat mark now `{ name:
+  'Chat', exact: true }`: `chat`, `chat-feedback`, `panels-touch`,
+  `page-no-scroll`, `panel-viewport`, `panel-escape`, `club-keyboard` (red
+  before, for other reasons). `chat.e2e.ts` also asserts the badge's text
+  instead of the label.
+
+**Run 2026-09-12, on Joel's word: 19 passed, 3 failed — the three
+`club-keyboard` cases that were red before this area opened**, each dying on
+a focus-ring assertion (`ringed()` null at line 50; `-1` at line 172) before
+it reaches the chat mark. Every spec this area changed is green.
 - `e2e/club-keyboard.e2e.ts` reaches the header by "Close chat" and was red
   before this area (3 of 4, focus-ring assertions). Not this area's.
 - F-2 changed the strip's box model; no spec asserts the strip's layout, and
   the presence spec above is the only one that reads its entries.
 
+### The closing re-read, 2026-09-12
+
+Thirteen files and the ui.md section re-read after F-8. Three things, none a
+numbered finding: the shared button module explained its disabled state with
+the pause mark's own story (now the general rule, with pause as the example);
+the lede's third sentence was action wiring, not a lede (moved to Details);
+and the Design was owed (F-15, below).
+
+Joel's read of the re-read (2026-09-12) caught what mine had not: two
+"a component rather than a class, because…" paragraphs — one in
+`PageHeader.tsx`, one in `PageHeaderButton.tsx` — were rationale and history
+in a docstring, the exact thing the prose pass is for, and the pass had
+trimmed around them. Both gone; the reasoning lives in `doc.md`'s Design and
+`docs/ui.md → The page header`. The mousedown sentence the second one led into
+now stands on its own.
+
+F-15: `doc.md` has its Design — furniture with two slots; a height that is a
+contract and a strip that never grows; one kind of mark with four independent
+channels; the status slot's two states and why the header is for news about
+others; a base gap and marks that pad themselves; marks as action surfaces —
+and a Details list for the sharp specifics. `common/page-header` is off
+`DESIGNS_OWED` (verified by planting: renaming the heading fails the guard).
+
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-12)
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (`page-header/todo.md` is empty — its one item closed as F-1)
+- [ ] every file on the roster blessed, or its stamp says why not — the stamp
+      is Joel's to set; every roster file reads `cs-audited-page-header` today

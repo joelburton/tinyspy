@@ -46,9 +46,12 @@ test('home page: arrows move the club cursor, Enter opens', async ({ browser }) 
   const focusedList = () =>
     page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? null)
 
-  // Focus starts on the list, so arrows work without a first Tab, and the ring
-  // starts on the first row.
+  // Focus starts on the list, so arrows work without a first Tab. The ring is
+  // a selection cursor: hidden until a movement key asks, and the first arrow
+  // only REVEALS it, on the resting row (docs/ui.md → Selection lists).
   expect(await focusedList()).toBe('Your clubs')
+  expect(await ringed()).toBe(-1)
+  await page.keyboard.press('ArrowDown')
   expect(await ringed()).toBe(0)
 
   // Down moves it; Up brings it back.

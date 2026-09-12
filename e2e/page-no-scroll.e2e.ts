@@ -86,7 +86,7 @@ test.describe('page never scrolls', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    await page.getByRole('button', { name: 'Open chat', exact: true }).click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).click()
     const header = page.locator('[class*="titlebar"]').filter({ hasText: 'Chat' })
     await expect(header).toBeVisible()
 

@@ -89,7 +89,7 @@ test.describe('escape and the panel stack', () => {
       ),
     )
     await page.reload()
-    await page.getByRole('button', { name: /^Open chat/ }).first().click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).first().click()
     await expect(panels(page)).toHaveCount(1)
     await startGameRow(page, /MothCubes|Boggle/i).click()
     await expect(panels(page)).toHaveCount(2)
@@ -122,7 +122,7 @@ test.describe('escape and the panel stack', () => {
       ),
     )
     await page.reload()
-    await page.getByRole('button', { name: /^Open chat/ }).first().click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).first().click()
     await expect(panels(page)).toHaveCount(1)
     await page.evaluate(() =>
       (window as unknown as { pupfault: (s?: string) => void }).pupfault(),

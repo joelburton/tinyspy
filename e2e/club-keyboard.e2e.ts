@@ -38,14 +38,18 @@ test.describe('club page keyboard nav', () => {
     await page.keyboard.press('Tab')
     expect(await focusedLabel()).toBe('Start a new game')
 
-    // Arrows move the cursor ring (the 2px accent outline) down the start
-    // buttons; ArrowUp past the top clamps (no wrap).
+    // The cursor ring (the 2px accent outline) is hidden until a movement key
+    // asks; the first arrow reveals it on the resting row and the next one
+    // steps (docs/ui.md → Selection lists). ArrowUp past the top clamps (no
+    // wrap).
     const ringed = () =>
       page.evaluate(() => {
         const els = [...document.querySelectorAll('[class*="_row_"]')]
         const hit = els.find((el) => getComputedStyle(el).outlineWidth === '2px')
         return hit?.textContent ?? null
       })
+    expect(await ringed()).toBeNull()
+    await page.keyboard.press('ArrowDown') // reveals, on the first row
     const first = await ringed()
     expect(first).toBeTruthy()
     await page.keyboard.press('ArrowDown')
@@ -71,7 +75,7 @@ test.describe('club page keyboard nav', () => {
     expect(await focusedLabel()).not.toBe('Start a new game')
     expect(await focusedLabel()).not.toBe('Your games')
     // Chat deliberately ignores Escape (closeOnEsc: false) — close via its ✕.
-    await page.getByRole('button', { name: 'Close chat' }).click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).click()
     await expect(chatInput).toBeHidden()
 
     // Tab to the games list; Enter opens the game under the cursor. "Your
@@ -85,6 +89,9 @@ test.describe('club page keyboard nav', () => {
     await page.keyboard.press('Tab') // start list
     await page.keyboard.press('Tab') // games list
     expect(await focusedLabel()).toBe('Your games')
+    // This list's cursor has never been asked for, and Enter is inert while it
+    // is hidden — so one arrow first, to reveal it.
+    await page.keyboard.press('ArrowDown')
     const ringedTitle = await page.evaluate(
       () =>
         [...document.querySelectorAll('[aria-label="Your games"] [class*="_row_"]')]
@@ -122,24 +129,28 @@ test.describe('club page keyboard nav', () => {
         () => document.activeElement?.getAttribute('aria-label') === 'Start a new game',
       )
 
-    // The list container holds focus on load and shows exactly one cursor.
+    // The list container holds focus on load and paints NO ring: the cursor is
+    // hidden until a key asks for it, and nothing else may wear one either.
     expect(await listFocused()).toBe(true)
-    expect(await rings()).toEqual(['-2px'])
+    expect(await rings()).toEqual([])
 
     // CLICKING a game must not move focus onto the button: the container is the
-    // tab stop, and a focused button would blank the cursor while painting a
-    // second, look-alike ring that Enter doesn't act on.
+    // tab stop, and a focused button would paint a stray focus ring that Enter
+    // doesn't act on. A click sets the cursor without revealing it.
     const cancel = page.getByRole('button', { name: /^cancel$/i })
     await page.locator('[aria-label="Start a new game"] [class*="_row_"]').first().click()
     await expect(cancel).toBeVisible({ timeout: 5000 })
     expect(await listFocused()).toBe(true)
-    expect(await rings()).toEqual(['-2px'])
+    expect(await rings()).toEqual([])
 
     // ...and canceling hands focus back, so Up/Down work immediately — no Tab
-    // needed to re-enter the list.
+    // needed to re-enter the list — and the ring the arrow reveals is the
+    // INSET keyboard cursor, exactly one of it.
     await cancel.click()
     await expect(cancel).toBeHidden()
     expect(await listFocused()).toBe(true)
+    expect(await rings()).toEqual([])
+    await page.keyboard.press('ArrowDown')
     expect(await rings()).toEqual(['-2px'])
 
     await ctx.close()
@@ -168,20 +179,23 @@ test.describe('club page keyboard nav', () => {
         ),
       )
 
-    // The ring starts on the first game.
-    expect(await ringed()).toBe(0)
+    // The ring is hidden until a key asks for it.
+    expect(await ringed()).toBe(-1)
 
-    // Click the THIRD game, then cancel its setup dialog: the ring is on the
-    // game we clicked, not back at 0.
+    // Click the THIRD game, then cancel its setup dialog: the click set the
+    // cursor there without revealing it (a mouse user has no use for the ring)...
     const cancel = page.getByRole('button', { name: /^cancel$/i })
     await buttons.nth(2).click()
     await expect(cancel).toBeVisible({ timeout: 5000 })
-    expect(await ringed()).toBe(2)
+    expect(await ringed()).toBe(-1)
     await cancel.click()
     await expect(cancel).toBeHidden()
-    expect(await ringed()).toBe(2)
+    expect(await ringed()).toBe(-1)
 
-    // ...and arrows step from THERE, not from where the ring used to be.
+    // ...so the first arrow reveals it ON the game we clicked, not at 0, and
+    // the next steps from there.
+    await page.keyboard.press('ArrowDown')
+    expect(await ringed()).toBe(2)
     await page.keyboard.press('ArrowDown')
     expect(await ringed()).toBe(3)
 

@@ -61,7 +61,14 @@ test.describe('setgame — the deal flash', () => {
 
     // ── (1) the 15 → 12 claim ──
     await claim(alice, id, findSetOn(await boardOf(alice, id))!)
-    await expect(cards).toHaveCount(12, { timeout: 15000 })
+    // Twelve after tail-compaction — UNLESS the twelve hold no set, in which
+    // case the deal-three rule (`setgame._deal_to_playable`, run after every
+    // claim) appends three more and the board is fifteen again. Either way the
+    // three that moved into the holes are marked, so assert the count the
+    // server settled on rather than betting on the deal.
+    const settled = (await boardOf(alice, id)).length
+    expect([12, 15]).toContain(settled)
+    await expect(cards).toHaveCount(settled, { timeout: 15000 })
     // Polled, not slept on: the mark appears after the hold and clears again
     // shortly after, so a fixed wait is a race with its own window.
     await expect(flashed.first(), 'the cards that moved into the holes are marked')

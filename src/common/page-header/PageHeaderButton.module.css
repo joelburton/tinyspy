@@ -55,9 +55,9 @@
   background: var(--button-quiet-secondary-press-color);
 }
 
-/* Inert rather than absent: a presence-paused game shows the resume glyph so
-   the state is legible, and dims it because YOU cannot clear that pause — the
-   player we are waiting on has to come back. */
+/* Inert rather than absent: a mark whose action is not yours to take right
+   now stays on the strip so the state it shows is still legible, and dims to
+   say so (the pause mark during a presence pause is the case). */
 /* @@ */ .button:disabled {
   cursor: default;
   opacity: var(--chrome-disabled-opacity);

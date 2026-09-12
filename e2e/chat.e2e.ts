@@ -22,28 +22,24 @@ test.describe('chat unread', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
+    // The mark's only text is its count badge, so its text IS the badge.
+    const chatMark = page.getByRole('button', { name: 'Chat', exact: true })
+
     // Fresh club, chat closed → no unread badge.
-    await expect(
-      page.getByRole('button', { name: 'Open chat', exact: true }),
-    ).toBeVisible()
+    await expect(chatMark).toBeVisible()
+    await expect(chatMark).toHaveText('')
 
     // Bob sends while Alice's chat is closed → her bubble badges "1".
     await sendMessage(club, bob, 'hello alice')
-    await expect(
-      page.getByRole('button', { name: /Open chat, 1 unread/ }),
-    ).toBeVisible()
+    await expect(chatMark).toHaveText('1')
 
     // A second message → "2" (count accumulates while closed).
     await sendMessage(club, bob, 'you there?')
-    await expect(
-      page.getByRole('button', { name: /Open chat, 2 unread/ }),
-    ).toBeVisible()
+    await expect(chatMark).toHaveText('2')
 
-    // Alice opens chat → badge clears (the toggle flips to "Close chat").
-    await page.getByRole('button', { name: /unread/ }).click()
-    await expect(
-      page.getByRole('button', { name: 'Close chat' }),
-    ).toBeVisible()
+    // Alice opens chat → the badge clears.
+    await chatMark.click()
+    await expect(chatMark).toHaveText('')
 
     await ctx.close()
   })

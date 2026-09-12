@@ -89,7 +89,7 @@ test.describe('floating panels and the viewport', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
-    await page.getByRole('button', { name: /^Open chat/ }).first().click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).first().click()
     await panel(page).waitFor({ timeout: 8000 })
 
     const bar = (await page.locator('[data-floating-panel] > div').first().boundingBox())!
@@ -124,7 +124,7 @@ test.describe('floating panels and the viewport', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await page.getByRole('button', { name: /^Open chat/ }).first().click()
+    await page.getByRole('button', { name: 'Chat', exact: true }).first().click()
     await panel(page).waitFor({ timeout: 8000 })
 
     // Drag by the titlebar. A user's move goes through the SOFT clamp and is

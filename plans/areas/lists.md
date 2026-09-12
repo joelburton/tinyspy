@@ -46,7 +46,9 @@ Written by this area, and so on the roster too:
 
 Left off, agreed at the opening: the e2e specs that drive these from a page
 (`club-filters`, `club-keyboard`, `home-keyboard`) and `vocabularies.test.ts`,
-which is a guard.
+which is a guard. (Leaving them off had a cost: the hidden-until-asked cursor
+rule this area shipped broke four of their cases, which stayed red until the
+`page-header` area ran the full suite on 2026-09-12 and repaired them.)
 
 **Callers, for evidence (read, not stamped).** `SelectionList`: `HomePage`
 (clubs), `ClubPage` (start list + games list), crosswords' three picker modals.

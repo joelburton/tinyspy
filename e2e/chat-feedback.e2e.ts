@@ -32,7 +32,7 @@ test('chat message pops a global-feedback pill for other members, not the sender
   await expect(beaPage.getByRole('heading', { name: /Club:/ })).toBeVisible({ timeout: 20000 })
 
   // bea opens chat and sends a message.
-  await beaPage.getByRole('button', { name: /Open chat/ }).click()
+  await beaPage.getByRole('button', { name: 'Chat', exact: true }).click()
   const input = beaPage.getByPlaceholder('Type a message and press Enter…')
   await input.fill('hello everyone')
   await input.press('Enter')

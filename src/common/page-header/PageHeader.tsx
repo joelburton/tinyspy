@@ -23,12 +23,6 @@ type Props = {
  * furniture — and the other one is `.heading-with-controls`
  * (common/core-css/patterns/heading.css).
  *
- * **A component rather than a class**, because the two slots are structure:
- * home, club and game were each assembling the same skeleton by hand, which
- * is how the three drifted apart in the first place (docs/ui.md → The page
- * header; docs/code-conventions.md → Patterns: a shared stylesheet with
- * several consumers and no component is a component waiting to be written).
- *
  * **Its height is `--pageHeader-height`, and the strip never grows.** A
  * second file composes from that token to place the mobile `<InfoSheet>`
  * under this rule (base.css says how and why), so a child that overflows is

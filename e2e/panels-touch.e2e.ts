@@ -40,7 +40,7 @@ test.describe('panels on touch', () => {
     await page.goto(`/c/${club.handle}`)
 
     // Open chat by tapping its bubble (touch input, no click).
-    await page.getByRole('button', { name: 'Open chat', exact: true }).tap()
+    await page.getByRole('button', { name: 'Chat', exact: true }).tap()
 
     // The panel's react-rnd root becomes a full-screen sheet — the @media
     // (--phone) override cancels react-rnd's floating position/size. On desktop
@@ -71,7 +71,7 @@ test.describe('panels on touch', () => {
     expect(fontPx).toBeGreaterThanOrEqual(16)
 
     // The bug under guard: tapping the header X (aria-label "Close", distinct
-    // from the bubble's "Close chat" toggle) must actually dismiss the panel.
+    // from the bubble's toggle) must actually dismiss the panel.
     await page.getByRole('button', { name: 'Close', exact: true }).tap()
     await expect(panel).toBeHidden()
 
@@ -110,7 +110,7 @@ test.describe('panels on touch', () => {
     }, VISIBLE)
 
     await page.goto(`/c/${club.handle}`)
-    await page.getByRole('button', { name: 'Open chat', exact: true }).tap()
+    await page.getByRole('button', { name: 'Chat', exact: true }).tap()
 
     const panel = page.locator('[class*="_rnd_"]')
     await expect(panel).toBeVisible()

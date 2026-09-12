@@ -37,9 +37,7 @@ export function ChatButton() {
     <PageHeaderButton
       icon={IconChat}
       iconSize={22}
-      label={
-        open ? 'Close chat' : showBadge ? `Open chat, ${count} unread` : 'Open chat'
-      }
+      label="Chat"
       tooltip={actOpenChat ? nameWithKey('Chat', actOpenChat) : 'Chat'}
       aria-pressed={open}
       onClick={() => setChatOpen(!open)}
@@ -58,4 +56,3 @@ export function ChatButton() {
     />
   )
 }
-
