@@ -207,7 +207,20 @@ BoardCol keeps its own reserved row for the pill (non-swap) and takes the
 slot in place of the three callbacks; a tile click, ⌫ and any key are
 `dismiss`.
 
-**stackdown COMMITTED**, its four e2e specs green.
+**stackdown COMMITTED** (`d72a8c1d`), its four e2e specs green.
+
+**crosswords CONVERTED (2026-09-12).** One
+file: the active-clue bar draws the slot's top over the clue. Two condition
+effects: the verdict, out of the race (conceded). Every not-ok (a
+keystroke's race, a mark, a check, a reveal, the two exports, End /
+Concede) is `notOk`; "Check skips pencil marks" is an `acknowledgment`
+(timed, as it was). `buildOver` → `TerminalMessage` on primitives with the
+compete winner as `actor` in place of `verdictNode`. A keystroke and a cell
+click are `dismiss`. The old "derived, not pushed — a pushed verdict would
+break Restart" reasoning is retired: the verdict's owner effect retracts it
+when `isTerminal` flips (§4.4 row 10).
+
+**crosswords COMMITTED**, its two e2e specs green.
 
 **Next:** the other games, one by one.
 

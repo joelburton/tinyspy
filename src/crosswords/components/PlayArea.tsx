@@ -1,17 +1,17 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import type { Member } from '@/common/members/member'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { GenericFeedbackPill } from '@/common/feedback/GenericFeedbackPill'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useAppAction, useBoundAction, type ActionState } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
-import { useLocalFeedback } from '@/common/feedback/useLocalFeedback'
+import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { FeedbackMessage, type Actor } from '@/common/feedback/FeedbackMessage'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -19,10 +19,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { navigate } from '@/common/routing/router'
 import { clubPath } from '@/common/routing/routes'
 import { writeIpuz } from '../lib/parse/ipuz'
-import { terminalPill, outOfRacePill } from '@/common/feedback/localPills'
-import type { GenericFeedbackMsg } from '@/common/feedback/genericFeedback'
-import { endedCopy, type TerminalCopy } from '@/common/terminal/terminalCopy'
-import { DotActor } from '@/common/members/ActorMention'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { cls } from '@/common/utils/cls'
 import {
@@ -51,7 +48,6 @@ import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExpla
 import { enumerationFor } from '../lib/enumeration'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { readRows, runRpc } from '@/common/supabase/dbResult'
-import { getNotOkFeedback } from '@/common/feedback/genericPills'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
@@ -67,14 +63,10 @@ import { useStickyChoice } from '@/common/web-storage/useStickyChoice'
 const REBUS_KEY = 'puzpuzpuz:crosswords:collapseRebus'
 const REBUS_OPTIONS = ['off', 'on'] as const
 
-/** Timed info pill shown after a Check whose scope contained penciled cells —
- *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
- *  Unpunctuated: the pill is a one-line LABEL, not prose. */
-const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
-  tone: 'noted',
-  text: 'Check skips pencil marks',
-  mode: { kind: 'timed' },
-}
+/** The acknowledgment shown after a Check whose scope contained penciled
+ *  cells — Check skips them (see `handleCheck`), so this flags that they
+ *  weren't tested. Unpunctuated: the pill is a one-line LABEL, not prose. */
+const pencilSkippedMessage = () => FeedbackMessage.acknowledgment('noted', 'Check skips pencil marks')
 
 /** A download-safe filename stem from a puzzle id. Library ids are plain, but
  *  Guardian ids are slugs with slashes ("crosswords/quick/123"); collapse
@@ -112,9 +104,11 @@ export function PlayArea(ctx: GamePageCtx) {
   const ownerId = mode === 'compete' ? myId : null
   const { cells, setCell, setMark } = useCells(gameId, ownerId)
 
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
-    locked: isTerminal,
-  })
+  // The local slot — drawn in the active-clue bar, which doubles as the
+  // below-board slot here: a keystroke's or a cheat's not-ok, the pencil
+  // acknowledgment, and the two standing conditions further down.
+  const localFeedbackSlot = useFeedbackSlot('local')
+  const topFeedbackMsg = useTopFeedbackMessage(localFeedbackSlot)
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team completes the grid — the last correct cell
@@ -244,20 +238,20 @@ export function PlayArea(ctx: GamePageCtx) {
     () => setNoteOpen(true),
   )
 
-  // Write a cell (optimistic) + surface any RPC error. Solved → terminal
-  // flow lands via ctx.isTerminal; the terminal pill effect below shows it.
-  // On a coop letter, also announce the fill so teammates flash it in my
-  // color (a no-op in compete — broadcastFill is disabled there).
+  // Write a cell (optimistic) + surface any not-ok. Solved → terminal flow
+  // lands via ctx.isTerminal; the verdict effect below shows it. On a coop
+  // letter, also announce the fill so teammates flash it in my color (a
+  // no-op in compete — broadcastFill is disabled there).
   const handleSetCell = useCallback(
     async (row: number, col: number, fill: string | null, pencil: boolean) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a keystroke is the next move
       const res = await setCell(row, col, fill, pencil)
       // The two refusals a keystroke can meet are RACES — a teammate finished
       // the grid, or your own concede landed — so they read orange and say the
       // server's own words. Everything else here is a fault, which raises the
-      // modal centrally and leaves its sentence in this pill.
+      // modal centrally and leaves its sentence in this slot.
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'set') {
         if (fill != null) broadcastFill(row, col)
@@ -267,7 +261,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
     },
-    [setCell, showLocalFeedback, clearLocalFeedback, broadcastFill],
+    [setCell, localFeedbackSlot, broadcastFill],
   )
 
   // Cycle a cryptic edge mark (none → break → hyphen → none) on the cursor
@@ -279,7 +273,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const current = side === 'right' ? cur?.markRight : cur?.markBottom
       const res = await setMark(row, col, side, nextMarkState(current ?? undefined))
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'marked') {
         // Nothing to say: the mark is already drawn optimistically and the
@@ -290,7 +284,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
     },
-    [cells, setMark, showLocalFeedback],
+    [cells, setMark, localFeedbackSlot],
   )
 
   // Does the puzzle carry a setter's note? Gates the Show-note / Explain menu
@@ -355,7 +349,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const onCellClick = useCallback(
     (row: number, col: number) => {
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
       setCursor((prev) => {
         if (!prev) return { row, col, dir: 'across' }
         // Clicking the cell you're already on toggles direction.
@@ -365,7 +359,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return { row, col, dir: prev.dir }
       })
     },
-    [clearLocalFeedback],
+    [localFeedbackSlot],
   )
 
   const onClueClick = useCallback(
@@ -497,15 +491,15 @@ type Explained =
   // the stale solution cache can't paint the grid the instant the fills go.
   const onRestarted = useCallback(() => {
     hideSolution()
-    clearLocalFeedback()
-  }, [hideSolution, clearLocalFeedback])
+    localFeedbackSlot.dismiss()
+  }, [hideSolution, localFeedbackSlot])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     mode,
     myConceded,
-    showError: showLocalFeedback,
+    localFeedbackSlot,
     onRestarted,
   })
 
@@ -526,7 +520,7 @@ type Explained =
     if (!state) return
     const res = await runRpc<ExportAnswer>(db.rpc('export_solution', { target_game: gameId }))
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'exported') {
       const ipuz = writeIpuz(state, res.data.solution)
@@ -544,7 +538,7 @@ type Explained =
       reportUnhandled('export_solution', res)
       return
     }
-  }, [gameId, showLocalFeedback])
+  }, [gameId, localFeedbackSlot])
 
   // Print the answer-key PDF (crossplay's `generateSolutionPdf`). Like the
   // .ipuz export it fetches the solution via `export_solution` — the menu gates
@@ -556,7 +550,7 @@ type Explained =
     if (!state) return
     const res = await runRpc<ExportAnswer>(db.rpc('export_solution', { target_game: gameId }))
     if (res.type === 'not-ok') {
-      showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'exported') {
       await printCrosswordsSolutionPdf(
@@ -569,7 +563,7 @@ type Explained =
       reportUnhandled('export_solution', res)
       return
     }
-  }, [gameId, showLocalFeedback])
+  }, [gameId, localFeedbackSlot])
 
   // Resolve a check/reveal scope to the target coordinates the RPCs want.
   const scopeCells = useCallback(
@@ -593,16 +587,16 @@ type Explained =
       const target = scopeCells(scope)
       if (target.length === 0) return
       // Mobile: Check is tapped from inside the full-width info sheet, which
-      // covers the grid AND the active-clue bar where the result pill renders —
-      // close it so the marked cells + the pill are actually visible. No-op on
+      // covers the grid AND the active-clue bar where the slot draws — close
+      // it so the marked cells + the pill are actually visible. No-op on
       // desktop (sheet never open) and when already closed (menu path).
       closeInfoSheet()
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       const res = await runRpc<CheckAnswer>(
         db.rpc('check_cells', { target_game: gameId, p_cells: target }),
       )
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'checked') {
         // The flagged cells arrive by subscription and the grid marks them, so
@@ -614,20 +608,20 @@ type Explained =
         // Check deliberately skips pencil cells (a penciled letter is a guess,
         // not a committed answer — mirror `_check_cells` / crossplay's
         // `applyCheck`). So if the checked scope held any penciled fill, it
-        // went un-flagged; a timed info pill says so, so an unmarked pencil cell
-        // doesn't read as "correct".
+        // went un-flagged; a timed acknowledgment says so, so an unmarked
+        // pencil cell doesn't read as "correct".
         const skippedPencil = target.some((p) => {
           const c = cells.get(cellKey(p.row, p.col))
           return Boolean(c?.pencil && c.fill)
         })
-        if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
+        if (skippedPencil) localFeedbackSlot.show(pencilSkippedMessage())
         return
       } else {
         reportUnhandled('check_cells', res)
         return
       }
     },
-    [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback, closeInfoSheet],
+    [scopeCells, gameId, cells, localFeedbackSlot, closeInfoSheet],
   )
 
   // Reveal-grid's question lives in the registry, so the shared run asks it
@@ -640,14 +634,14 @@ type Explained =
       const target = scopeCells(scope)
       if (target.length === 0) return
       // See handleCheck: close the covering sheet so the revealed cells (and any
-      // error pill) are visible. No-op on desktop / when already closed.
+      // not-ok) are visible. No-op on desktop / when already closed.
       closeInfoSheet()
-      clearLocalFeedback()
+      localFeedbackSlot.dismiss()
       const res = await runRpc<RevealAnswer>(
         db.rpc('reveal_cells', { target_game: gameId, p_cells: target }),
       )
       if (res.type === 'not-ok') {
-        showLocalFeedback({ ...getNotOkFeedback(res), mode: { kind: 'sticky' } })
+        localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'revealed') {
         // Flash the revealed cells on teammates' grids in my color — the
@@ -661,7 +655,7 @@ type Explained =
         return
       }
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet],
+    [scopeCells, gameId, localFeedbackSlot, broadcastFills, closeInfoSheet],
   )
 
   // ─── The commands, bound ───────────────────────────────
@@ -793,7 +787,7 @@ type Explained =
   // ALSO live here, each advertising its own key, because crossplay's menu is
   // where a solver learns them. `buildGameMenu` supplies the framing (Help +
   // chat above, the exits + Back to club below).
-  useEffect(() => {
+  useEffect(function publishGameMenu() {
     if (!game) return
     // The puzzle title + credits, pinned at the top of the menu — crossplay shows
     // this "title / by author / copyright" block in its menu. Empty fields drop out.
@@ -850,30 +844,50 @@ type Explained =
     return () => menu.setGameSections([])
   }, [menu, game, actConcede, actEndGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isPlayable])
 
-  const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
-    ? buildOver(playState, status, mode, myId, players)
-    : null
+  // ─── The two standing conditions of the local slot ───
+  // Each is an effect on a primitive edge that shows on true and retracts in
+  // its cleanup — the slot draws whichever ranks highest. Above the early
+  // returns because effects must be. Restart is covered by the same rule: it
+  // un-terminals the game, `isTerminal` flips, and the verdict's owner takes
+  // it down.
 
-  /**
-   * What the below-board pill slot shows. The terminal verdict wins, then an
-   * active own-move pill, then the "you're out, the rest race on" indicator for
-   * a conceded compete player (so their grayed-out input has an explanation).
-   *
-   * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
-   * wordle / waffle / spellingbee). PUSHING the verdict into stored feedback
-   * from an effect would break Restart: the store is created
-   * `locked: isTerminal`, which makes `clearLocalFeedback()` a deliberate no-op
-   * at terminal — so Restart would clear nothing, the RPC would then
-   * un-terminal the game, and a stale "Game ended" pill would sit on a board
-   * that was playable again with nothing left able to remove it.
-   *
-   * Deriving avoids that by construction: the verdict is a function of
-   * `isTerminal`, so it disappears the instant the restart lands.
-   */
-  const slotPill: GenericFeedbackMsg | null =
-    isTerminal && over
-      ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
-      : (localFeedback ?? (myConceded ? outOfRacePill(true) : null))
+  // The terminal message, memoized on primitives so the verdict effect sees
+  // one object per outcome. `status.winner_user_id` is the compete winner and
+  // `status.winner_username` the handle cached at finish time (a rename is
+  // rare enough that a stale name beats a follow-up query); the roster row is
+  // read for the identity DOT, falling back to the cached name.
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const winnerRow = players.find((p) => p.user_id === winnerId)
+  const winnerName = winnerRow?.username ?? (status?.winner_username as string | undefined)
+  const winnerColor = winnerRow?.color
+  const timedOut = status?.outcome === 'timeout'
+  const over = useMemo(
+    () =>
+      isTerminal
+        ? buildOver({
+            playState,
+            mode,
+            timedOut,
+            selfWon: winnerId === myId,
+            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
+          })
+        : null,
+    [isTerminal, playState, mode, timedOut, winnerId, myId, winnerName, winnerColor],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!over) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, over])
+
+  // Out of the race while the others play on — a conceded compete player, so
+  // their grayed-out input has an explanation.
+  const isLocallyDone = myConceded && !isTerminal
+  useEffect(function showOutOfRace() {
+    if (!isLocallyDone) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, isLocallyDone])
 
   if (loading) {
     return (
@@ -922,17 +936,16 @@ type Explained =
           />
         </div>
 
-        {/* Active-clue bar — doubles as the local-feedback slot. Priority:
-            an active local pill (own move / terminal verdict), else the
-            "you conceded, others race on" indicator for a conceded compete
-            player, else the active clue. Desktop: mid-right column. Mobile:
-            directly under the grid — the ONE clue readout on the main view
-            (the full lists are in the sheet). DOM order differs from the
+        {/* Active-clue bar — doubles as the local-feedback slot: whatever the
+            slot holds on top (a not-ok, the verdict, "you're out", the pencil
+            acknowledgment), else the active clue. Desktop: mid-right column.
+            Mobile: directly under the grid — the ONE clue readout on the main
+            view (the full lists are in the sheet). DOM order differs from the
             desktop visual order; the grid placements position it. */}
         {/* data-active-clue: a stable e2e hook (the class name is hashed). */}
         <div className={styles.activeClue} data-active-clue>
-          {slotPill ? (
-            <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
+          {topFeedbackMsg !== null ? (
+            <FeedbackPill slot={localFeedbackSlot} />
           ) : (
             activeNumber != null && (
               <>
@@ -1084,50 +1097,48 @@ function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
 }
 
 /**
- * Map the terminal play_state to the shared TerminalCopy shape. `tone` +
- * `verdict` drive the permanent pill in the active-clue slot; `message` + `tone`
- * drive the short info-column outcome line.
+ * Map the terminal play_state to the shared `TerminalMessage` shape.
+ * `outcome` + `pillText` are the verdict in the active-clue slot;
+ * `outcome` + `infoColText` the short info-column outcome line.
  *
  * Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
  * period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
  * it's a LABEL, not prose.
  *
- * The compete loser's verdict names WHO beat them — the one case that wants a
- * WIDGET (the winner's identity dot, the way peer feedback names people
- * elsewhere), returned as `verdictNode`; `verdict` carries the plain-text twin.
+ * The compete loser's verdict names WHO beat them: the winner rides as
+ * `actor`, and the pill draws the mention the way every other message names
+ * someone.
  */
-function buildOver(
-  playState: string,
-  status: Record<string, unknown> | null,
-  mode: 'coop' | 'compete',
-  myId: string,
-  players: Member[],
-): TerminalCopy & { verdictNode?: ReactNode } {
-  const winner = status?.winner_user_id as string | undefined
-  // The handle cached in `status` at finish time — a rename is rare enough that a
-  // stale name beats a follow-up query. The roster row drives the identity DOT.
-  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
-  // `submit_timeout` stamps this. Of the two `lost*` states only
-  // `lost_compete` has a second way in (all-conceded, via common.concede);
-  // coop's `lost` is clock-only — coop has no concede.
-  const timedOut = status?.outcome === 'timeout'
+function buildOver({
+  playState,
+  mode,
+  timedOut,
+  selfWon,
+  winner,
+}: {
+  playState: string
+  mode: 'coop' | 'compete'
+  /** `submit_timeout` stamps `status.outcome = 'timeout'`. Of the two `lost*`
+   *  states only `lost_compete` has a second way in (all-conceded, via
+   *  common.concede); coop's `lost` is clock-only — coop has no concede. */
+  timedOut: boolean
+  selfWon: boolean
+  /** The compete winner as name + color — the roster row when we have it,
+   *  else the handle cached in `status` at finish time. */
+  winner: Actor | undefined
+}): TerminalMessage {
   switch (playState) {
     case 'won':
-      return { verdict: 'Won: grid complete', message: 'Solved!', tone: 'won' }
+      return { pillText: 'Won: grid complete', infoColText: 'Solved!', outcome: 'won' }
     case 'won_compete':
-      if (winner === myId) {
-        return { verdict: 'Won: solved it first', message: 'You won!', tone: 'won' }
+      if (selfWon) {
+        return { pillText: 'Won: solved it first', infoColText: 'You won!', outcome: 'won' }
       }
       return {
-        verdict: `${winnerName} solved it first`,
-        verdictNode: (
-          <>
-            <DotActor actor={players.find((p) => p.user_id === winner)} fallback="Someone" show="both" />{' '}
-            solved it first
-          </>
-        ),
-        message: `${winnerName} won`,
-        tone: 'lost',
+        pillText: 'solved it first',
+        infoColText: `${winner?.username ?? 'a player'} won`,
+        outcome: 'lost',
+        actor: winner,
       }
     case 'lost_compete':
       // Both compete collective losses land here, told apart by `outcome`:
@@ -1137,15 +1148,15 @@ function buildOver(
       // last-active-conceder path — the same `Lost: all conceded` verdict
       // spellingbee/wordwheel use, matching the club card's label).
       if (timedOut) {
-        return { verdict: 'Out of time — no winner', message: 'Out of time', tone: 'lost' }
+        return { pillText: 'Out of time — no winner', infoColText: 'Out of time', outcome: 'lost' }
       }
-      return { verdict: 'Lost: all conceded', message: 'All conceded', tone: 'lost' }
+      return { pillText: 'Lost: all conceded', infoColText: 'All conceded', outcome: 'lost' }
     case 'lost':
       // Coop only, and clock-only: the countdown expired before the grid was
       // done (crosswords.concede is compete-gated, so no concede path here).
-      return { verdict: 'Lost: out of time', message: 'Out of time', tone: 'lost' }
+      return { pillText: 'Lost: out of time', infoColText: 'Out of time', outcome: 'lost' }
     case 'ended':
     default:
-      return endedCopy(mode)
+      return gameEndedTerminalMessage(mode)
   }
 }

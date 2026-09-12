@@ -21,6 +21,7 @@ import { KeyList } from '@/common/actions/KeyList'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import type { CrosswordsGame } from '../hooks/useGame'
@@ -108,7 +109,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     currentTurnUserId: null,
     setup: { source: 'library', timer: { kind: 'none' } },
     status: null,
-    globalFeedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedbackSlot: createFeedbackSlot('global'),
     goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),

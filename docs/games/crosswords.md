@@ -413,9 +413,10 @@ sizing).
   scratchpad" for the architecture.
 - **Terminal** — no modal carries the verdict
   ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-  `buildOver`'s terse copy lands as a permanent pill in the active-clue slot
-  ("Won: grid complete" / "Won: solved it first" / a compete loss naming the
-  winner with their identity dot — "● moth solved it first"; a compete race
+  `buildOver`'s terse text lands as the filled verdict in the active-clue slot
+  (the local feedback slot's `<FeedbackPill>` — "Won: grid complete" / "Won: solved
+  it first" / a compete loss naming the winner as the message's `actor` — "● moth
+  solved it first"; a compete race
   that empties out because everyone conceded lands on `lost_compete` —
   `common.concede` names the collective loss — and reads "Lost: out of the
   race"; a countdown expiring reads "Lost: out of time" in coop and "Out of
