@@ -136,6 +136,11 @@ export function TooltipHost() {
       pressStart = null
     }
     const onTouchStart = (e: TouchEvent) => {
+      // The suppression belongs to the press that armed it: by the time a new
+      // touch begins, that press's click has either arrived or never will. A
+      // click the element's removal swallowed would otherwise leave the flag
+      // armed to eat someone else's tap.
+      suppressClick = false
       // A visible bubble means the previous press is being dismissed by this
       // touch; don't immediately open another.
       if (current) {
@@ -168,6 +173,13 @@ export function TooltipHost() {
       }
     }
     const onTouchEnd = () => cancelPress()
+    // A canceled touch — the system taking the gesture for a notification, a
+    // call, the app switcher — synthesizes no click, so the suppression has
+    // nothing to swallow and must not wait for the next tap to find that out.
+    const onTouchCancel = () => {
+      cancelPress()
+      suppressClick = false
+    }
     const onClickCapture = (e: MouseEvent) => {
       if (!suppressClick) return
       suppressClick = false
@@ -182,7 +194,7 @@ export function TooltipHost() {
     document.addEventListener('touchstart', onTouchStart, { passive: true })
     document.addEventListener('touchmove', onTouchMove, { passive: true })
     document.addEventListener('touchend', onTouchEnd)
-    document.addEventListener('touchcancel', onTouchEnd)
+    document.addEventListener('touchcancel', onTouchCancel)
     document.addEventListener('click', onClickCapture, { capture: true })
     document.addEventListener('contextmenu', onContextMenu)
 
@@ -198,7 +210,7 @@ export function TooltipHost() {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
       document.removeEventListener('touchend', onTouchEnd)
-      document.removeEventListener('touchcancel', onTouchEnd)
+      document.removeEventListener('touchcancel', onTouchCancel)
       document.removeEventListener('click', onClickCapture, { capture: true })
       document.removeEventListener('contextmenu', onContextMenu)
       document.removeEventListener('mouseover', onMouseOver)

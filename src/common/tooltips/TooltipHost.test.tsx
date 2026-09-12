@@ -126,6 +126,48 @@ describe('TooltipHost', () => {
       expect(screen.queryByText('End the game')).toBeNull()
     })
 
+    /**
+     * The suppression is armed by the hold and disarmed by swallowing the
+     * click. A press that produces no click — the system taking the gesture,
+     * or the held element leaving the DOM before the lift — would otherwise
+     * leave it armed to eat an unrelated tap, which reads as the app having
+     * dropped a press.
+     */
+    let onOther = vi.fn()
+    beforeEach(() => {
+      onOther = vi.fn()
+    })
+    const pair = () => {
+      render(
+        <>
+          <button data-tooltip="End the game">x</button>
+          <button onClick={onOther}>other</button>
+          <TooltipHost />
+        </>,
+      )
+      return { held: screen.getAllByRole('button')[0]!, other: screen.getByText('other') }
+    }
+
+    it('a canceled press disarms at once — the next tap is not eaten', () => {
+      const { held, other } = pair()
+      fireEvent.touchStart(held, touch())
+      act(() => void vi.advanceTimersByTime(500))
+      fireEvent.touchCancel(held) // a call, a notification, the app switcher
+      fireEvent.click(other)
+      expect(onOther, 'an unrelated tap must survive a canceled press').toHaveBeenCalledTimes(1)
+    })
+
+    it('a lift whose click never arrives is disarmed by the next press', () => {
+      const { held, other } = pair()
+      fireEvent.touchStart(held, touch())
+      act(() => void vi.advanceTimersByTime(500))
+      // Lift, but no click follows — the held element went away under the finger.
+      fireEvent.touchEnd(held)
+      fireEvent.touchStart(other, touch())
+      fireEvent.click(other)
+      expect(onOther).toHaveBeenCalledTimes(1)
+    })
+
     it('the next touch dismisses the bubble', () => {
       setup()
       const btn = screen.getByRole('button')

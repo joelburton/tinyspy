@@ -11,8 +11,8 @@ files, the three doc sections they answer to, and every cross-file claim a
 docstring makes. The two behavior findings (F-2, F-3) were CHECKED with a
 throwaway spec before being written down — both reproduced — and the spec was
 deleted after the run. Worked so far: F-1 (the area's own question), F-25,
-F-24's corner inset, F-6 — and, riding on those two, the halves of F-9 they
-consumed.
+F-24's corner inset, F-6, F-2 — and, riding on two of those, the halves of F-9
+they consumed.
 
 ## The roster
 
@@ -78,16 +78,32 @@ half the list.
 
 ### Behavior
 
-## F-common-hosts-2 · `touchcancel-leaves-click-armed` · A long press ended by `touchcancel` swallows the next tap anywhere — CHECKED
+## F-common-hosts-2 · `touchcancel-leaves-click-armed` · A long press ended by `touchcancel` swallows the next tap anywhere — CHECKED, WORKED
 
 `TooltipHost`'s long-press timer sets `suppressClick = true` so the click the
 browser synthesizes on lift does not fire the held button. A press the system
 takes over (a gesture, an incoming call) ends in `touchcancel` instead, which
-synthesizes no click — and `onTouchEnd`, bound to both events, only cancels
-the pending timer. `suppressClick` stays armed, and `onClickCapture` eats the
+synthesizes no click — and `onTouchEnd`, bound to both events, only cancelled
+the pending timer. `suppressClick` stayed armed, and `onClickCapture` ate the
 next click on ANY element. Reproduced: hold a button past the beat, cancel the
-touch, tap a plain button — its handler is never called. Fix: a canceled
-press disarms the suppression.
+touch, tap a plain button — its handler is never called.
+
+**DECIDED 2026-09-11 (Joel): both disarms, not just the named one.**
+`touchcancel` gets its own listener and clears the flag immediately; and
+`onTouchStart` clears it before anything else, because the suppression belongs
+to the press that armed it. The second line is what covers the route reading
+alone would not find — a held element that leaves the DOM before the lift (a
+toast auto-dismissing under a finger, a tile re-rendering) also produces no
+click, and left the flag armed by a path `touchcancel` never sees. The
+rejected alternatives were each line on its own: the cancel-only fix leaves
+that route open, and the touchstart-only fix leaves the flag armed between a
+canceled press and the next touch, where a click from another input could still
+be eaten.
+
+Two tests ship with it, in the `long-press (touch)` describe, and **both were
+planted**: removing the `onTouchCancel` line reds "a canceled press disarms at
+once" and nothing else; removing the `onTouchStart` line reds "a lift whose
+click never arrives is disarmed by the next press" and nothing else.
 
 ## F-common-hosts-3 · `scroll-strands-current` · After a scroll hides the bubble, the same control cannot show it again — CHECKED
 
