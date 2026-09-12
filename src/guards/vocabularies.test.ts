@@ -440,7 +440,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.5'],
-      'src/common/menu/Menu.module.css': ['0.45'],
     },
     fix:
       'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +

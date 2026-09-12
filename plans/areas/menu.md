@@ -256,8 +256,27 @@ a/b/c question, in context:
   looked at on screen: that takes a run of the app, which is Joel's to okay.
 - The item's `0.95rem` / `0.82rem` type against the ramp; the header's are
   the same two numbers.
-- `opacity: 0.45` for a disabled row — whether buttons/forms settled a
-  disabled treatment this should share.
+- **`opacity: 0.45` for a disabled row, and it never paints.** The app has
+  ONE disabled treatment — `--chrome-disabled-opacity: 0.75` on
+  `button:disabled` in base.css, with the argument written there (raised
+  from 0.5 because the missing hover carries the message and the label has
+  to stay readable). A menu row IS a `<button disabled>`, so that rule
+  applies at (0,1,1) and `.itemDisabled` asks for 0.45 from a bare class at
+  (0,1,0) and loses; its `cursor: not-allowed` is the global's value
+  restated. The whole class is inert — a disabled row has been at 0.75 all
+  along. (Computed, not seen on screen.) The one half of base.css's
+  argument a menu row does NOT satisfy: a row carries no `title`, so there
+  is no tooltip to say why. Arrows skip it, hover skips it, and the fade is
+  the only signal. Sibling for contrast: `ShuffleButton`'s identical 0.45 is
+  written `.shuffle:disabled` at (0,2,0) and does paint.
+  **WORKED 2026-09-11** (Joel: delete the rule and the class). The rule, the
+  class and its `cls()` entry are gone; a disabled row keeps the app's one
+  treatment, which is what it was already showing, so nothing moves on
+  screen. `.item`'s comment now says where the fade comes from. The guard's
+  `opacity` row for this file is deleted, and both directions were planted:
+  a stale row fails, and a re-added `0.45` fails. The menu row's missing
+  `title` is NOT addressed — a disabled row still cannot say why, which is
+  a question about rows carrying a reason, not about how far they fade.
 - `--field-muted-ink-color` on `.itemIconSlot`, a FIELD token on a menu,
   three lines from `--page-text-muted-color` doing the same job on
   `.itemShortcut`, `.headerLine`, `.itemChevron` and `.itemBack`. One muted

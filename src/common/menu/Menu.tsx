@@ -356,7 +356,6 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         }}
         className={cls(
           styles.item,
-          disabled && styles.itemDisabled,
           isBack && styles.itemBack,
           // The parent row of an open flyout stays lit, so it's obvious which
           // row the floating panel belongs to.

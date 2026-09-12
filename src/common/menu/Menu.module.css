@@ -94,7 +94,11 @@
 
 /* Per-item button. Left-align text; full-width row so the click target is
  * the whole row width. Hover and focus give the same background hint —
- * keyboard and mouse users see the same "this is current" cue. */
+ * keyboard and mouse users see the same "this is current" cue.
+ *
+ * A disabled row carries no class of its own: it is a real `<button disabled>`,
+ * so the fade and the cursor come from base.css's `button:disabled`, which is
+ * the app's one disabled treatment. */
 /* @@ */ .item {
   margin: 0;
   padding: 0.5rem 0.85rem;
@@ -144,11 +148,6 @@
 /* @@ */ .item:focus-visible {
   outline: var(--chrome-cursor-ring);
   outline-offset: -2px;
-}
-
-/* @@ */ .itemDisabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }
 
 /* Section divider — the thin rule between one section and the next. Margins
