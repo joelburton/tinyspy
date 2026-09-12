@@ -18,8 +18,10 @@ import type { MenuApi, MenuHeader, MenuItem, MenuSection } from './menuModel'
  * End and a race shows Concede without this asking.
  */
 export function buildGameMenu(opts: {
-  // The shell's own rows, off `ctx.menu`: Help, chat and Back to club.
-  menu: Pick<MenuApi, 'actHelp' | 'actChat' | 'actBackToClub'>
+  // `ctx.menu`, whole. Only its three rows are read — Help, chat and Back to
+  // club; this never calls `setGameSections`. Arranging is here, pushing is
+  // the caller's, and the test pins that cut.
+  menu: MenuApi
   // The game's exits, in the order they should read. Concede goes before End
   // where a race offers both — it is the mode's primary exit, and the first
   // one on the list is the one a player reaches for.

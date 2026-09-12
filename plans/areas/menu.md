@@ -268,6 +268,10 @@ number and says so.
 
 ## Notes
 
+- **`buildGameMenu` takes `MenuApi` whole** (Joel, 2026-09-11), not a `Pick`
+  of its three rows: a slightly noisier test fixture in exchange for a cut
+  that is obvious at the signature — arranging is here, pushing is the
+  caller's — and the test now asserts `setGameSections` is never called.
 - **doc.md was rewritten 2026-09-11** (Joel: make the lede/doc.md first). The
   Design kept what held up — the `?` slot, the store's argument, "a game owns
   its whole menu" — and gained the four decisions it had not said: the

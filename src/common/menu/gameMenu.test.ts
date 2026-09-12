@@ -41,7 +41,9 @@ const actBackToClub = action('act-back-to-club')
 const actEndGame = action('act-end-game')
 const actConcede = action('act-concede')
 
-const menu = { actHelp, actChat, actBackToClub }
+/** The whole `ctx.menu`, push included — so the cut can be asserted: this
+ *  builder arranges rows and never pushes them. */
+const menu = { actHelp, actChat, actBackToClub, setGameSections: vi.fn() }
 
 /** Every row the menu draws, flattened and in order. */
 function idsOf(sections: { items: MenuItem[] }[]): string[] {
@@ -56,6 +58,11 @@ describe('buildGameMenu', () => {
   it('frames a coop menu with Help + chat above and the exit + Back below', () => {
     const sections = buildGameMenu({ menu, exits: [actEndGame] })
     expect(idsOf(sections)).toEqual(['act-help', 'act-open-chat', 'act-end-game', 'act-back-to-club'])
+  })
+
+  it('arranges and hands back — the push is the caller\'s', () => {
+    buildGameMenu({ menu, exits: [actEndGame] })
+    expect(menu.setGameSections).not.toHaveBeenCalled()
   })
 
   it('drops the chat row on a page with no chat panel', () => {
