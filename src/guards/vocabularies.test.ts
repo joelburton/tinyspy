@@ -354,10 +354,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      // ErrorPage is FaultModal's twin as a PAGE; its two sizes are copied to
-      // the digit so the two read as one event. They convert together or not
-      // at all.
-      'src/common/error-page/ErrorPage.module.css': ['1.1rem', '0.78rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],

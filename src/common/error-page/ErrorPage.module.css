@@ -1,7 +1,9 @@
 /* cs-audited-simple-page */
 
-/* The fault modal's three lines, as a PAGE. Deliberately the same values as
-   FaultModal.module.css — if one of them changes, both should. */
+/* The fault modal's three lines, as a PAGE. What the two share is the shape —
+   the red word, the sentence, the small diagnostics line beneath it — not a set
+   of sizes: a page's title is sized by `h1` and the modal's by `h3`, each where
+   its own level is decided. */
 
 /* @@ */ .page {
   display: flex;
@@ -11,20 +13,13 @@
 
 /* Line 1: the shape test. Red, unmissable, no softening.
 
-   An `<h1>` because on a page this IS the page's title (base.css → the heading
-   levels), where the modal's is a `<p>` inside a panel that has its own title.
-   The size is the modal's, not h1's: the word carries the weight, and a 1.5rem
-   "Error" over one sentence reads as shouting.
-
-   That size and the diagnostics size below are NOT on the font-size ramp, and
-   that is the point — they are FaultModal's, to the digit. Matching the modal
-   is the whole design, so converting one side alone would break it. Both files
-   sit on the guard's pending list and convert together at `simple-page`, which
-   is the area that owns this page. */
+   An `<h1>` because on a page this IS the page's title, and it takes h1's size
+   — docs/ui.md → The heading levels names every error screen as one. Only the
+   color, the weight and the killed margin are ours; the margin because `.page`
+   sets the gap between all three lines. */
 /* @@ */ .heading {
   color: var(--chrome-fault-color);
   font-weight: 700;
-  font-size: 1.1rem;
   margin: 0;
 }
 
@@ -39,7 +34,7 @@
    what they read ALOUD to whoever debugs. Same content as the `[db]` line. */
 /* @@ */ .diagnostics {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
   overflow-wrap: anywhere;
 }

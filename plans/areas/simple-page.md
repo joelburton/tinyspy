@@ -5,8 +5,8 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-7 to F-11 worked except F-6's group. F-1 to F-6
-are the prose group; F-7 to F-12 each carry a decision; F-13 is coverage.
+Thirteen findings recorded; every decision finding F-7 to F-12 is worked. F-1
+to F-6 are the prose group, still open; F-13 is coverage.
 
 ## The roster
 
@@ -302,7 +302,9 @@ literals become `--spacer-3` and `--spacer-4`; the `vocabularies` row is gone
 dropped the buttons ~16px further down the claim screen. The file's comment now
 says why it sits tighter. The two-places-draw-this-row merge is still there to
 make, and is `floating-panels`' to make when the class stops being named for
-modals. · `twin-drift` · ErrorPage's two sizes no longer match the modal they mirror
+modals.
+
+### F-simple-page-12 · `twin-drift` · ErrorPage's two sizes no longer match the modal they mirror
 
 `ErrorPage.module.css`: `.heading` at `1.1rem` (an `<h1>` forced under h1's
 `1.5rem`), `.diagnostics` at `0.78rem`. `FaultModal.module.css`: an `<h3>` at
@@ -325,6 +327,17 @@ Options:
 Recommend 2: the CSS comment's own argument for the override is that a
 `1.5rem` "Error" reads as shouting, and it is the one page in the app whose
 title the heading table names.
+
+**Worked 2026-09-13 — option 2 (Joel).** The heading override is gone, so the
+`<h1>` takes h1's `1.5rem` — "Error" goes from 17.6px to 24px on every fault
+page (the boundary's crash page, an unknown gametype, a club or game that
+failed to load). Diagnostics → `--font-size-3`. The `vocabularies` row is gone
+(planted a literal back to confirm the file is watched). The file's header no
+longer claims the modal's values: what the two share is the shape — the red
+word, the sentence, the small line beneath — and each title is sized where its
+own heading level is decided. `ErrorPage.tsx`'s docstring already named only
+those three things, so it needed no change. NOT looked at in a browser: no
+screenshot was taken of the larger heading.
 
 ### F-simple-page-13 · `coverage` · what no test pins
 
