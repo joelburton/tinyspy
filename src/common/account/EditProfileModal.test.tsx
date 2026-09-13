@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-account
 
 /**
  * YOUR COLOR — and where a refusal from `common.update_profile_color` lands.
