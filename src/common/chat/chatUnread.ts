@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useSyncExternalStore } from 'react'
 import { colorVarFor } from '../members/memberColor'
@@ -9,25 +9,24 @@ import { readStored, writeStored } from '../web-storage/storage'
 /**
  * The chat-unread indicator's shared state + logic.
  *
- * `<Chat>` owns the message stream + the open/closed state, so
- * it computes "unread" and publishes it here; `<ChatButton>` (a
- * sibling in the header, not in Chat's tree) reads it to fill
- * its background with the latest unread sender's color + show a red
- * count pill. Same lifted-state shape as `chatOpenStore`.
+ * `<Chat>` owns the message stream + the open/closed state, so it computes
+ * "unread" and publishes it here; `<ChatButton>` (a sibling in the header, not
+ * in Chat's tree) reads it to fill its glyph with the latest unread sender's
+ * color and show a count pill. Same lifted-state shape as `chatOpenStore`.
  *
- * "Unread" = messages not sent by me, with `sent_at` newer than my
- * per-club last-seen bookmark — and **with no bookmark, EVERYTHING
- * counts**, so a member who's never opened this club's chat (or
- * cleared their storage) lights up with the full backlog. Opening the
- * panel advances the bookmark to the newest message (presumed read).
- * The bookmark lives in localStorage so it survives reloads and
- * reflects messages that arrived while the member was away.
+ * "Unread" = messages not sent by me, with `sent_at` newer than my per-club
+ * last-seen bookmark — and **with no bookmark, EVERYTHING counts**, so a
+ * member who's never opened this club's chat (or cleared their storage) lights
+ * up with the full backlog. Opening the panel advances the bookmark to the
+ * newest message (presumed read). The bookmark lives in localStorage so it
+ * survives reloads and reflects messages that arrived while the member was
+ * away.
  */
 
 export type ChatUnread = {
   count: number
-  /** Latest unread sender's profile color (a CSS color string), or
-   *  null when there's nothing unread. */
+  // Latest unread sender's profile color (a CSS color string), or null when
+  // there's nothing unread.
   color: string | null
 }
 
@@ -57,6 +56,7 @@ export function setChatUnread(next: ChatUnread): void {
   for (const listener of listeners) listener()
 }
 
+/** Subscribe to the unread state — `<ChatButton>` is the reader. */
 export function useChatUnread(): ChatUnread {
   return useSyncExternalStore(subscribe, getSnapshot)
 }

@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, renderHook, screen } from '@testing-library/react'

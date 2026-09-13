@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'
@@ -17,61 +17,21 @@ import type { Member } from '../members/member'
 type Props = {
   clubHandle: string
   members: Member[]
-  /** The viewing member — their own messages never count as unread. */
+  // The viewing member — their own messages never count as unread.
   selfId: string
 }
 
 /**
- * The always-on chat panel. Renders as one of two shapes:
+ * The club chat panel. Mounted once per page (ClubPage and GamePage each
+ * render one) and left mounted while closed, because the unread badge and the
+ * `!` force-open detector need the message subscription alive. Closed, it
+ * renders nothing; the header's `<ChatButton>` and the `/` action flip the
+ * shared `chatOpenStore`. Open, it is a `<Companion>` at `--z-chat`, above
+ * every dim, with its rect and its open state persisted across pages.
  *
- *   - **Closed**: nothing. What you click to open chat is the
- *     header's `<ChatButton>`, which is ordinary page content, not
- *     a layer — this component stays mounted to keep the unread
- *     badge and the `!` detector alive.
- *   - **Open**: a floating, draggable, resizable panel at
- *     `--z-index-chatPanel`. Position + size persist across
- *     club↔game navigation and across browser sessions via
- *     `useDraggablePanel`'s localStorage glue.
- *
- * Open/closed state ALSO persists (localStorage key
- * `puzpuzpuz:chat:open`) so the panel feels continuous as the
- * user moves between pages.
- *
- * **Force-open for important messages.** A message that starts
- * with `!` is treated as "everyone needs to see this" — chat
- * auto-opens for every recipient when one arrives. Use cases
- * include "shall we stop this game?", "I have to go in 5
- * minutes." The leading `!` is the trigger character; it's
- * NOT shown in the message list (ChatBody strips it for
- * display and bolds the content).
- *
- * Force-open semantics:
- *   - Subscribes to chat messages here (lifted from ChatBody)
- *     so the detector is alive even while the panel is closed.
- *   - First-load snapshots the current latest-message id
- *     WITHOUT opening — important messages already in the log
- *     when the user joins a session shouldn't auto-pop the
- *     panel on every navigation.
- *   - Any subsequent latest-id change that starts with `!`
- *     calls `setOpen(true)`. Users can close again immediately
- *     if they want; the next new `!` will reopen.
- *
- * Closing: the header X button, or Escape (FloatingPanel's default
- * `closeOnEsc`). There's no backdrop click semantics because there's
- * no backdrop. Escape fires whether or not focus is in the chat input
- * (it's a window-level listener); each open dismissible (chat, a help
- * modal, a popover) closes on its own Escape — we don't arbitrate a
- * single "topmost" dismiss, which is fine for the rare two-open case.
- *
- * Why chat outranks the panel tier: it needs to sit above the four
- * modals (Setup / HowToPlay / Hint / SuspendConfirm, all at
- * `--z-index-panel`) so the "ask the partner what timer to pick" use
- * case works while SetupGameModal is open. Setup's backdrop paints
- * one below its own panel, so chat clears both.
- *
- * Lifecycle: mounted once per page (ClubPage and GamePage each
- * render an instance). localStorage glue makes the open/closed
- * state and the rect continuous across remounts.
+ * A message that starts with `!` opens the panel for every recipient when it
+ * arrives — not for one already in the log at load — and `<ChatBody>` strips
+ * the marker for display. The whole shape: doc.md → Design.
  */
 export function Chat({
   clubHandle,
@@ -84,12 +44,11 @@ export function Chat({
   // owned by the store too — no per-instance mirror needed here.
   const open = useChatOpen()
   // Say chat is HERE for as long as this is mounted, so the `/` action can be
-  // offered on the pages that have a panel and left unbound on the one that
-  // doesn't. See the store.
+  // offered on the pages that have a chat panel and left unbound on the one
+  // that doesn't. See the store.
   useEffect(registerChatMounted, [])
-  // useClubChat lifted from ChatBody so the force-open detector
-  // runs even when the panel is closed. ChatBody now takes
-  // messages + loading as props.
+  // The stream is subscribed HERE rather than in ChatBody, so the force-open
+  // detector and the unread badge below run while the panel is closed.
   const { messages, loading } = useClubChat(clubHandle)
 
   // Force-open detector. Track the latest-seen message id across

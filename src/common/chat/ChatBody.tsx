@@ -1,9 +1,10 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
 import { DotActor } from '../members/ActorMention'
+import { memberById } from '../members/memberList'
 import { linkify } from '../utils/linkify'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import type { ClubMessage } from './useClubChat'
@@ -20,32 +21,20 @@ type SendAnswer = { result: 'sent' }
 type Props = {
   clubHandle: string
   members: Member[]
-  /** Messages + loading lifted from Chat (which subscribes
-   *  via useClubChat at its level so the force-open detector for
-   *  important messages can run even while the panel is closed). */
+  // The stream is `<Chat>`'s, which subscribes at its level so the force-open
+  // detector runs while the panel is closed; this only renders it.
   messages: ClubMessage[]
   loading: boolean
 }
 
 /**
- * The chat conversation itself — message list + input form.
- * Pure rendering plus the send-message form; doesn't subscribe
- * to the message stream itself (its parent Chat does).
+ * The chat conversation itself — the message list and the entry box. It
+ * renders what `<Chat>` hands it and sends through `common.send_message`; it
+ * does not subscribe to the stream. Each sender is looked up in `members`, the
+ * club roster the page already holds.
  *
- * Looks up each message's sender in the `members` prop (loaded
- * once by the parent), keeping render cheap and avoiding the
- * "embed shape varies between fetch and realtime payload" problem
- * that comes from PostgREST joins.
- *
- * Auto-scrolls to the latest message on each update — `block: 'end'`
- * (not `'smooth'`) so the scroll is instant on first mount and on
- * every incoming message, no partial-scroll-then-jump UX.
- *
- * **Important-message convention.** A message whose content
- * starts with `!` is rendered with its leading `!` stripped and
- * the content bolded (font-weight: 700). Chat handles
- * the matching "force open" behavior; here we just deal with
- * display.
+ * A message whose content starts with `!` is shown without the marker and in
+ * bold; the matching force-open is `<Chat>`'s.
  */
 export function ChatBody({ clubHandle, members, messages, loading }: Props) {
   const [input, setInput] = useState('')
@@ -53,10 +42,6 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
   const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  function memberFor(userId: string) {
-    return members.find((m) => m.user_id === userId)
-  }
 
   // Focus the input on mount AND whenever a send finishes (busy flips
   // back to false). Sending disables the input mid-flight, which
@@ -67,9 +52,9 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     if (!busy) inputRef.current?.focus()
   }, [busy])
 
-  // Auto-scroll to the bottom whenever new messages arrive, so a
-  // reader sees them without having to scroll manually. See the
-  // file-level docstring for the `block: 'end'` choice.
+  // Auto-scroll to the bottom whenever new messages arrive, so a reader sees
+  // them without scrolling. An instant scroll, not a smooth one: no
+  // partial-scroll-then-jump on first mount or on an incoming message.
   useEffect(function autoScrollToBottom() {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
@@ -113,10 +98,9 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
           <p className="muted">No messages yet. Say hi.</p>
         )}
         {messages.map((m) => {
-          // Resolve the sender once per message — color comes
-          // from the cached members roster (see Member type
-          // above), no per-message fetch.
-          const sender = memberFor(m.user_id)
+          // The sender comes from the roster the page holds — no per-message
+          // fetch.
+          const sender = memberById(members, m.user_id)
           const important = m.content.startsWith('!')
           // Strip the leading `!` for display; the marker
           // character itself isn't part of the message. Trim

@@ -4,15 +4,6 @@
 
 ## Soon
 
-- **`chatOpenStore.test.ts` should adopt `storage.fake.ts` and drop its guard
-  exemption.** It hand-rolls a Storage fake and spies on `setItem` to simulate
-  a throw, which the shared fake's `failCalls()` does — and its `blockAccess()`
-  covers the other way storage fails, the property access throwing, which a
-  hand-rolled fake installed as a data property cannot model at all.
-  `useStickyChoice.test.ts` was converted this way and is the worked example.
-  `chatOpenStore.ts` and `chatUnread.ts` are already on `readStored` /
-  `writeStored`; only the test reaches for raw storage, and it is the last
-  entry on `rawStorage.test.ts`'s shrinking `ALLOWED` list that could come off.
 - **`ChatBody`'s Tab is the declared step OUT of the panel's ring**, not a
   bespoke key: it consumes Tab and blurs the field, and the game's own ring
   takes over from `<body>` (`keyboardHandoff.ts`).

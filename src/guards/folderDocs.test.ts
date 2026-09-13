@@ -74,7 +74,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  */
 const DESIGNS_OWED: string[] = [
   'common/account', 'common/auth',
-  'common/chat', 'common/club',
+  'common/club',
   'common/error-page',
   'common/game-page', 'common/home', 'common/info-sheet',
   'common/loading',

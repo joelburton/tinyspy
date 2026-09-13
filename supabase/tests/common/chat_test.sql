@@ -1,4 +1,4 @@
--- cs-met-chat
+-- cs-audited-chat
 
 -- ============================================================
 -- Test: common.send_message + common.messages RLS
@@ -13,10 +13,10 @@
 --   - direct INSERT to common.messages is blocked
 --     (no grant on authenticated)
 --
--- Tests the chat plumbing standalone, with no game involved.
--- ClubChatPanel (used by every game's BoardScreen) calls
--- common.send_message and reads common.messages via RLS — this
--- file exercises both directly.
+-- Tests the chat plumbing standalone, with no game involved. The chat panel
+-- (mounted by the club page and every game page) calls common.send_message,
+-- and useClubChat reads common.messages through RLS — this file exercises
+-- both directly.
 --
 -- See `codenamesduet/create_game_test.sql` for the pgTAP primer.
 

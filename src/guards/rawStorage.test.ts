@@ -73,12 +73,9 @@ const RAW_STORAGE = /\b(?:local|session)Storage\b/
 const ALLOWED = new Map<string, string>([
   ['src/common/web-storage/storage.ts', 'the wrapper itself'],
   ['src/common/web-storage/storage.fake.ts', 'installs the test fake onto window, which is by definition a raw touch'],
-  // The one below predates `storage.fake.ts` and installs a hand-rolled fake
-  // onto `window`, which is a thing no wrapper call can do. `storage.test.ts`
-  // and `useStickyChoice.test.ts` are deliberately NOT here: they assert
-  // through the shared fake's handles, which is the pattern this one should
-  // adopt too.
-  ['src/common/chat/chatOpenStore.test.ts', 'installs its own Storage fake on window, and spies on setItem to make a write throw'],
+  // No test file is here: a test asserts through the shared fake's handles
+  // (`storage.test.ts`, `useStickyChoice.test.ts`, `chatOpenStore.test.ts`),
+  // which is what keeps it off this list.
   // This file scans `src/`, and `src/` includes this file. Its fixture holds
   // real violations on purpose — spelling them around the scan (`'local' +
   // 'Storage'`) would make the test stop testing what it claims to.

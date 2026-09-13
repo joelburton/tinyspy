@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'

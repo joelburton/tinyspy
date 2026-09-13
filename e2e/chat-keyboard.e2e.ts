@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createBoggleGame, createCrosswordsGame } from './helpers/fixtures'
@@ -17,7 +17,7 @@ import { signIn } from './helpers/session'
  * "hello" in chat would spell it onto the board too). So handing the keyboard
  * back means having NO field focused — Tab's native "walk to the next control"
  * lands you on a toolbar button where typing reaches neither chat nor the game.
- * See ChatBody's `handleKeyDown`.
+ * See `handOffKeyboardOnTab` (common/keyboard), which the chat entry wears.
  *
  * boggle is the vehicle because it's a pure capture-model game: no input
  * element anywhere on the play surface, so "did the game get the keystroke?"
@@ -34,7 +34,7 @@ test('chat keyboard: "/" takes the keyboard, Tab hands it back', async ({ browse
   await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 20000 })
 
   const chatInput = page.locator('[data-chat-input]')
-  /** True when the chat entry — not merely something in the panel — has focus. */
+  // True when the chat entry — not merely something in the panel — has focus.
   const chatFocused = () =>
     page.evaluate(
       () => document.activeElement?.hasAttribute('data-chat-input') ?? false,
@@ -76,9 +76,10 @@ test('chat keyboard: "/" takes the keyboard, Tab hands it back', async ({ browse
 })
 
 /**
- * The scratchpad is the other panel you type into mid-game, and it wears the
- * same contract via the same helper (`handOffKeyboardOnTab`). crosswords is the
- * vehicle because it's the only game whose manifest enables the scratchpad.
+ * The scratchpad is the other floating panel you type into mid-game, and it
+ * wears the same contract via the same helper (`handOffKeyboardOnTab`).
+ * crosswords is the vehicle because it's the only game whose manifest enables
+ * the scratchpad.
  *
  * Note crosswords normally uses Tab for clue navigation — its own window
  * listener bails on `[data-floating-panel]` first, so the panel's Tab wins

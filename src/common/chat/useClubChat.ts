@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/supabase'
@@ -9,15 +9,14 @@ import { readRows } from '../supabase/dbResult'
 import type { Database } from '@/types/db'
 
 /**
- * A raw chat row keyed by club. Display names are resolved by the
- * consumer (ClubChatPanel) from the member roster it already has.
+ * A raw chat row keyed by club. Display names are resolved by `<ChatBody>`
+ * from the member roster the page already has.
  *
  * Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
- * SELECT *". Adding a new column to common.messages requires
- * explicitly listing it here AND in the select() below. `sent_at`
- * is included as the unread bookmark — the chat-unread badge compares
- * each message's `sent_at` against a per-club last-seen timestamp
- * (see lib/chatUnread).
+ * SELECT *". Adding a new column to common.messages requires explicitly
+ * listing it here AND in the select() below. `sent_at` is the unread
+ * bookmark — `chatUnread` compares each message's `sent_at` against a
+ * per-club last-seen timestamp.
  */
 export type ClubMessage = Pick<
   Database['common']['Tables']['messages']['Row'],
@@ -25,16 +24,10 @@ export type ClubMessage = Pick<
 >
 
 /**
- * How far back a fresh load reaches. Club chat is read as "what's been said
- * recently," not "the complete archive," so we bound the initial fetch by a
- * recency WINDOW rather than a row count — a row limit is an implementation
- * detail that would leak into the UX (drop the 501st message but keep a
- * years-old one). This also keeps the query safely under PostgREST's
- * `max_rows` cap without a paging loop: even a chatty club won't send 10k
- * messages in a week. Live INSERTs still append during the session, so the
- * panel keeps growing past the window as new messages arrive; the window only
- * bounds the backlog a fresh mount pulls in. The composite index
- * `messages (club_handle, sent_at)` already serves the filter.
+ * How far back a fresh load reaches. A recency window rather than a row count,
+ * so what is dropped is old rather than merely numerous, and the query stays
+ * under PostgREST's `max_rows` cap without paging. Live INSERTs still append
+ * past it; the window only bounds the backlog a fresh mount pulls in.
  */
 const CHAT_HISTORY_WINDOW_DAYS = 7
 
@@ -66,11 +59,10 @@ function mergeSnapshot(
 /**
  * Subscribes to a club's chat log.
  *
- * The shape: an initial fetch, append-on-INSERT via Realtime, and
- * a refetch on every SUBSCRIBED event to recover from missed
- * events during a reconnect. Same pattern as the rest of the
- * Realtime hooks in this repo (see useGame for the rationale on
- * the unique channel-name suffix that makes StrictMode safe).
+ * The shape: an initial fetch, append-on-INSERT via Realtime, and a refetch on
+ * every SUBSCRIBED event to recover from missed events during a reconnect —
+ * the same pattern as every board hook in the repo. `channelDedup` says why
+ * the channel name carries a suffix.
  */
 export function useClubChat(clubHandle: string) {
   const [messages, setMessages] = useState<ClubMessage[]>([])

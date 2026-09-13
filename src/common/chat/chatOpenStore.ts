@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useSyncExternalStore } from 'react'
 import { readStored, writeStored } from '../web-storage/storage'
@@ -56,31 +56,20 @@ export function setChatOpen(next: boolean): void {
   for (const listener of listeners) listener()
 }
 
-/** Subscribe to the open/closed state. Re-renders the caller when
- *  the value flips. Use in any component that needs to react to
- *  chat-open changes (the header bubble's aria-label, the panel
- *  body's render gating, etc.). */
+/** Subscribe to the open/closed state. Re-renders the caller when the value
+ *  flips — the header bubble's pressed state, the panel's own render gate. */
 export function useChatOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }
 
-/**
- * IS THERE A CHAT PANEL ON THIS PAGE AT ALL?
- *
- * Chat is club-scoped — `<Chat>` mounts on the club page and the game page, and
- * nowhere else — so on the home page opening it would flip a flag nothing
- * renders. The `/` action reads this and is simply not offered there, which is
- * better than a key that appears to do nothing: an unbound key sends the next
- * person debugging it to the right question.
- */
-// A COUNT, not a flag: a page swap can mount the next page's panel before the
-// last page's has released, and a flag would be cleared by the release that
-// comes second.
+// A COUNT, not a flag: a page swap can mount the next page's chat panel before
+// the last page's has released, and a flag would be cleared by the release
+// that comes second.
 let mountedPanels = 0
 const mountedListeners = new Set<() => void>()
 
 /** Say a chat panel is on screen, and return the release. `<Chat>` calls it
- *  from an effect, so the count follows each panel's own lifetime. */
+ *  from an effect, so the count follows each chat panel's own lifetime. */
 export function registerChatMounted(): () => void {
   mountedPanels += 1
   for (const listener of mountedListeners) listener()
@@ -90,6 +79,12 @@ export function registerChatMounted(): () => void {
   }
 }
 
+/**
+ * IS THERE A CHAT PANEL ON THIS PAGE AT ALL? `<Chat>` mounts on the club page
+ * and the game page and nowhere else, so on the home page opening it would
+ * flip a flag nothing renders. The `/` action reads this and is simply not
+ * offered there — better than a key that appears to do nothing.
+ */
 export function useChatMounted(): boolean {
   return useSyncExternalStore(
     (listener) => {

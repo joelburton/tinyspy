@@ -1,4 +1,4 @@
-// cs-met-chat
+// cs-audited-chat
 
 import { useClubChat } from './useClubChat'
 import { usePeerFeedback } from '../feedback/usePeerFeedback'
@@ -14,26 +14,15 @@ import type { Member } from '../members/member'
 const MAX_PILL_CHARS = 80
 
 /**
- * Bridges club chat → the GLOBAL feedback slot: every NEW chat message shows
- * a "● HANDLE: text" message (the `chat` kind: neutral, fades after 2s or
- * sooner if another header message replaces it) for every club member
- * EXCEPT the sender.
+ * Bridges club chat to the GLOBAL feedback slot: every NEW message from
+ * another member shows as "● HANDLE: text" (the `chat` kind). Call it wherever
+ * the global slot lives — ClubPage and GamePage — with the FULL club roster,
+ * so a sender outside the current game is still named; `selfId` is the viewer,
+ * whose own messages never pop.
  *
- * Reuses the two hooks built for exactly this: `useClubChat` for the message
- * stream, and `usePeerFeedback` for the "fire on each NEW item, never replay
- * the backlog" bootstrap. **`enabled: !loading` is what makes the historical
- * case correct** — the machinery seeds the already-loaded history as "seen" on
- * the first loaded render, so signing in at 9:05 does NOT pop the 9:00/9:01
- * messages (they're only in the chat log); a message that arrives AFTER you're
- * connected pops. It keys off message `id`, so there's no clock/timestamp
- * reasoning, and the seed can't leak because `useClubChat` keeps `loading` true
- * until the real backlog is present (and the pages remount per club/game, so the
- * seen-set is always fresh for the current club — see App's route keying).
- *
- * `members` is the FULL club roster (not just a game's players) so a sender is
- * named even when they aren't in the current game. `selfId` is the viewer —
- * their own messages never pop. Call it wherever the global slot lives:
- * ClubPage and GamePage.
+ * Messages already in the log at load never pop: `usePeerFeedback` seeds them
+ * as seen on the first loaded render, which is why `enabled` waits on the
+ * stream's `loading`.
  */
 export function useChatFeedback({
   clubHandle,

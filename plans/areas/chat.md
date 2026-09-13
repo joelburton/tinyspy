@@ -4,8 +4,10 @@ The folders it reads: `chat`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — roster agreed 2026-09-12, fifteen files `cs-met-chat`. Not
-yet read.**
+**Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
+findings: eight worked in the prose pass (F-1 to F-8), four open and waiting
+on a decision (F-9 to F-12). The `doc.md` Design is written and the row is
+off `DESIGNS_OWED`.**
 
 ## The roster
 
@@ -21,8 +23,9 @@ read too).
 - `supabase/tests/common/chat_test.sql`
 - `e2e/chat.e2e.ts`, `e2e/chat-feedback.e2e.ts`, `e2e/chat-keyboard.e2e.ts`
 
-Plus `doc.md` (a lede, no Design; on `DESIGNS_OWED`) and `todo.md` (three Soon
-items, one Maybe) — no stamp, markdown.
+Plus `doc.md` (lede rewritten and Design written in the prose pass; off
+`DESIGNS_OWED`, the guard planted red first) and `todo.md` (two Soon items
+after F-chat-7 took one, one Maybe) — no stamp, markdown.
 
 **Evidence, not roster — read and judged, findings recorded, fixed in place,
 but never stamped, because a stamp is per file** (the ruling `supabase` and
@@ -41,8 +44,129 @@ audit. Docs: `docs/common.md`'s chat sections and
 
 ## Findings
 
-*(`F-chat-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+Read in one sitting 2026-09-12: the fifteen roster files, the four consumers
+(`ClubPage`, `GamePage`, `AppActionsHost`, `ChatButton` + its stylesheet), the
+chat SQL (`send_message`, the policy, the grants, the table and its index, the
+publication row), `docs/common.md`'s chat lines, `docs/ui.md`'s header and
+z-layer sections, and the siblings the files cite (`Companion`,
+`handOffKeyboardOnTab`, `usePeerFeedback`, `storage.fake`, `memberById`,
+`channelDedup`). The SQL raised nothing: the RPC trims, range-checks and
+inserts under `require_club_member`; the policy is membership; the table has
+no insert grant; the index serves the one query; `messages` is in the
+publication.
+
+### WORKED · F-chat-1 · stale-claims · fourteen sentences about code that no longer looks like that
+
+`Chat`'s docstring named `--z-index-chatPanel` and `--z-index-panel` (the
+ladder is `--z-chat`), a `closeOnEsc` default that does not exist, and said
+"we don't arbitrate a topmost dismiss" when `escapeRank` and the registry do
+exactly that. `chatUnread` said the button fills its *background* and shows a
+*red* pill (the glyph fills; the pill is black, and the button's stylesheet
+says why). `useClubChat` named `ClubChatPanel` and `lib/chatUnread`, and sent
+the reader to `useGame` for the suffix rationale that lives in `channelDedup`.
+`ChatBody` cited a "file-level docstring" it has not got and compared
+`block: 'end'` to `'smooth'`, which is a different option. Its stylesheet
+cited `connections/ChatPanel.module.css` (gone) and "the global form rules"
+(there are none). `chat_test.sql` named `ClubChatPanel` and `BoardScreen`;
+`chat-keyboard.e2e.ts` named `ChatBody`'s `handleKeyDown` (it wears
+`handOffKeyboardOnTab`); `chatOpenStore.test.ts` described a "bottom-right
+toggle" and a try/catch around `localStorage.getItem`; `chatOpenStore`'s hook
+docstring named an `aria-label` the button does not compute; `docs/common.md`
+called the panel a popover. All rewritten to what is there.
+
+### WORKED · F-chat-2 · archaeology · "lifted from", "now takes", "the bug that"
+
+`Chat.tsx`'s comment on its subscription explained where the hook used to
+live; `useClubChat.test.ts` named the race as "the bug that left the badge
+stuck". Both say the present-tense reason.
+
+### WORKED · F-chat-3 · marker-pass · `/**` on props and inside bodies, and a docstring on a `let`
+
+`Chat`'s `selfId`, `ChatBody`'s `messages`, `ChatUnread`'s `color`, and a
+`const` inside the keyboard spec all took `//`. `chatOpenStore`'s "IS THERE A
+CHAT PANEL" docstring sat above `let mountedPanels`, so the thing lit up was a
+counter while `useChatMounted` had nothing; it is on the hook now.
+`useChatUnread` got the one line it lacked.
+
+### WORKED · F-chat-4 · rationale-in-docstring · fifty-two lines on `Chat`, and two more
+
+`Chat`'s docstring was a design essay (the two shapes, the force-open
+semantics as a list, the Escape story, why it outranks the panel tier, the
+lifecycle) — now eleven lines and a pointer at the Design, which carries all of
+it. `useChatFeedback` (22 → 10 lines) lost the "what makes the historical case
+correct" paragraph, which is `usePeerFeedback`'s contract; the window constant
+(11 → 5) kept the `max_rows` fact and lost the argument for a window.
+
+### WORKED · F-chat-5 · dead-test-scaffolding · a channel mock built twice
+
+`useClubChat.test.ts` built a channel object and a `handlers` holder inside
+`vi.hoisted` and then rebuilt both in `beforeEach`; the hoisted pair was never
+reached. The hoisted block is five bare `vi.fn()`s now, and the INSERT-only
+capture comment moved to the copy that runs.
+
+### WORKED · F-chat-6 · hand-rolled-member-lookup · `members.find` beside `memberById`
+
+`ChatBody` wrote its own `memberFor` while `useChatFeedback`, one file over,
+uses `members/memberById`. Same call now.
+
+### WORKED · F-chat-7 · storage-fake · the todo's first Soon item
+
+`chatOpenStore.test.ts` installed a hand-rolled `FakeStorage` as a data
+property on `window` and spied on its prototype to make a write throw — the
+one test file left on `rawStorage`'s `ALLOWED` list. It is on
+`installFakeStorage()` now, asserting through `storage.local`, with both
+failure shapes (`failCalls`, and `blockAccess`, which the old fake could not
+model). The `ALLOWED` row came off after the guard was seen red on it — which
+took renaming one test title, because "localStorage" in a *string* matches the
+guard's pattern and kept the row looking live. The todo item is gone.
+
+### WORKED · F-chat-8 · inert-form-reset · `.inputRow` overrode rules that do not exist
+
+`display: block; margin: 0` with a comment about "the global form rules
+(display: flex column, margin-top: 1rem, gap: 0.75rem)". No stylesheet sets a
+`form` rule — `StandardForm` is a class, and this composer is not one — and a
+`<form>` is block with no margin in standards mode. Both declarations went;
+`flex-shrink: 0` is the one that does something.
+
+### F-chat-9 · vocabulary · `ChatBody.module.css` carries six literals the ramps cover
+
+`gap: 0.4rem` / `0.3rem`, `font-size: 0.9rem` (twice), `line-height: 1.35`,
+`border: 1px`. The `max(16px, 1em)` iOS floor is deliberate and stays
+(`docs/mobile.md` → Decisions #3); the two paddings are outside the spacer
+vocabulary by `core-css/todo.md`. Converting moves the look: the message text
+would go from 0.9rem to `--font-size-2` (0.85rem), the line height from 1.35
+to `--line-height-2` (1.25), the gaps to `--spacer-4` (0.5rem) and
+`--spacer-5` (0.25rem). Same question `definitions` answered "all"; waiting on
+the same answer here.
+
+### F-chat-10 · unread-store-publishes-a-color · chat decides how the strip paints
+
+`computeUnread` returns `{ count, color }` where `color` is a CSS string —
+`colorVarFor(member.color)`, or the muted fallback when the roster has not
+named the sender. That is a presentational decision made in chat's file and
+handed to a blessed `page-header` button that only forwards it. Joel's ruling
+at the opening: the logic may move, the presentational part stays with the
+button. The shape that honors it: the store carries a fact — `count` and the
+latest unread `sender: Member | null` — and `ChatButton` turns a sender into a
+fill, including the muted case. Touches `chatUnread.ts`, its test, `Chat.tsx`
+(the open-branch reset) and two lines of `ChatButton.tsx`.
+
+### F-chat-11 · two-subscriptions-per-page · every page opens the club's chat stream twice
+
+`ClubPage` and `GamePage` each mount `<Chat>` (which calls `useClubChat`) AND
+call `useChatFeedback` (which calls `useClubChat` again). Two Realtime
+channels on the same table filter, two initial fetches, two refetches on every
+reconnect — for one list of messages, on every real page. Nothing is wrong on
+screen; it is a doubled cost and two copies of one stream that can disagree
+for a render. Options are in the presentation below.
+
+### F-chat-12 · getChatOpen-no-caller · a production export only a test calls
+
+`getChatOpen()` — "for code that needs the current value but doesn't want to
+subscribe (e.g. inside a click handler)" — has no such caller; only
+`AppActionsHost.test.tsx` reads it, as a handle on the store. Either the test
+reads through the hook and the export goes, or it stays as the test's handle
+with a docstring that says so. Small; decide with F-chat-11.
 
 ## Notes
 
@@ -56,7 +180,10 @@ one, no prefix means OPEN)*
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+None from the prose pass; `chatOpenStore.test.ts` and `useClubChat.test.ts`
+were rewritten on purpose and pass. F-chat-11 would touch `useChatFeedback`'s
+call sites, whose unit test mocks `useClubChat` directly — the shape of the
+mock is what would change.
 
 ## Closing
 

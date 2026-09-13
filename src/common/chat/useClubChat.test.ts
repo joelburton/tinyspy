@@ -1,33 +1,19 @@
-// cs-met-chat
+// cs-audited-chat
 
 /**
- * Tests for useClubChat. This hook is the pattern parent for every
- * "initial load + Realtime INSERT append + SUBSCRIBED refetch on
- * reconnect" shape in the repo (the per-game useBoard / useClues /
- * connections useGame all repeat it). Pinning the contract here once
- * documents what every sibling hook is expected to do.
+ * Tests for useClubChat. This hook is the pattern parent for every "initial
+ * load + Realtime INSERT append + SUBSCRIBED refetch on reconnect" shape in
+ * the repo — every per-game board hook repeats it — so the contract is pinned
+ * here once.
  *
- * Mocking strategy
- * ----------------
- * Same shape as useSession.test.ts:
- *   - vi.mock replaces `../supabase/supabase` with hand-built spies.
- *   - The supabase.channel() chain (.on().on().subscribe()) is
- *     mocked so tests can capture the INSERT handler and the
- *     SUBSCRIBED-status callback, then fire them manually to
- *     simulate Realtime events.
- *   - commonDb is `supabase.schema('common')`; the schema()→from()
- *     →select()→eq()→order() chain is collapsed to its terminal
- *     mock the same way useSession does for maybeSingle.
+ * Mocking strategy, the same shape as useSession.test.ts: `../supabase/supabase`
+ * is replaced with hand-built spies; the channel chain (.on().on().subscribe())
+ * captures the INSERT handler and the SUBSCRIBED callback so a test can fire
+ * them by hand; the schema()→from()→select()→eq()→gte()→order() chain collapses
+ * to its terminal mock.
  *
- * What's covered:
- *   - Initial load populates messages from the DB query
- *   - SUBSCRIBED status triggers a refetch
- *   - An INSERT event appends a new message to the list
- *   - Cleanup removes the channel on unmount
- *   - Switching clubHandle tears down the old channel and creates a new one
- *
- * Out of scope: the precise Realtime channel name (it includes a
- * crypto-random suffix from channelDedupSuffix — tested separately).
+ * Out of scope: the precise Realtime channel name (it carries a crypto-random
+ * suffix from channelDedupSuffix — tested separately).
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
@@ -42,42 +28,17 @@ const {
   mockOrder,
   mockGte,
   mockSchemaFrom,
-} = vi.hoisted(() => {
-  // Per-test handlers — set by the spied .on()/.subscribe() calls.
-  const handlers: { insert: InsertHandler | null; status: StatusCallback | null } = {
-    insert: null,
-    status: null,
-  }
-  const channelObj = {
-    on: vi.fn(function (
-      this: typeof channelObj,
-      event: string,
-      _filter: unknown,
-      handler: InsertHandler,
-    ) {
-      // Only the INSERT binding is captured — the hook also binds 'system'
-      // (the deaf-window closer), which must not clobber it.
-      if (event === 'postgres_changes') handlers.insert = handler
-      return this
-    }),
-    subscribe: vi.fn(function (this: typeof channelObj, cb: StatusCallback) {
-      handlers.status = cb
-      return this
-    }),
-  }
-  return {
-    mockChannel: vi.fn(() => channelObj),
-    mockRemoveChannel: vi.fn(),
-    mockOrder: vi.fn(),
-    mockGte: vi.fn(),
-    mockSchemaFrom: vi.fn(),
-    // Re-export the handler refs for tests via getters below.
-    handlers,
-  }
-})
+} = vi.hoisted(() => ({
+  // Each gets its behavior in `beforeEach`; the channel object is rebuilt
+  // there so every test captures fresh handlers.
+  mockChannel: vi.fn(),
+  mockRemoveChannel: vi.fn(),
+  mockOrder: vi.fn(),
+  mockGte: vi.fn(),
+  mockSchemaFrom: vi.fn(),
+}))
 
-// Pull the handlers ref out into a shared module-scope so tests
-// can fire INSERT / status events.
+// The handlers the hook registered, so tests can fire INSERT / status events.
 const channelHandlers: {
   insert: InsertHandler | null
   status: StatusCallback | null
@@ -123,7 +84,8 @@ beforeEach(() => {
       _filter: unknown,
       handler: InsertHandler,
     ) {
-      // Same postgres_changes-only capture as the module-level mock above.
+      // Only the INSERT binding is captured — the hook also binds 'system'
+      // (the deaf-window closer), which must not clobber it.
       if (event === 'postgres_changes') channelHandlers.insert = handler
       return this
     }),
@@ -272,7 +234,7 @@ describe('useClubChat', () => {
 
     // A SUBSCRIBED refetch now resolves with a STALE snapshot — its query was
     // taken before m2 committed, so it only has m1. This must NOT clobber the
-    // live-appended m2 (the bug that left the unread badge stuck at 1).
+    // live-appended m2, which would leave the unread badge stuck at 1.
     mockOrder.mockResolvedValueOnce({
       data: [{ id: 'm1', user_id: 'ada', content: 'hi' }],
       error: null,

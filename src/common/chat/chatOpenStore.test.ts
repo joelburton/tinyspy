@@ -1,74 +1,20 @@
-// cs-met-chat
+// cs-audited-chat
 
 /**
- * Tests for chatOpenStore. The store is small but it's the only
- * place chat-open state is shared between the GamePage header's
- * `<ChatButton>` and the bottom-right `<Chat>` toggle —
- * a regression in the notify path would silently desync the two
- * buttons.
+ * Tests for chatOpenStore. The store is small but it is the only place the
+ * chat-open state is shared between the header's `<ChatButton>`, the `/`
+ * action and `<Chat>` itself — a regression in the notify path would silently
+ * desync them.
  *
- * What's covered:
- *   - getChatOpen reflects setChatOpen writes.
- *   - setChatOpen with the same value is a no-op (no notify, no
- *     localStorage round-trip).
- *   - setChatOpen with a different value mirrors to localStorage.
- *   - Subscribers fire on value change and don't fire on
- *     same-value writes.
- *   - Unsubscribe stops further notifications.
- *   - useChatOpen re-renders when the value flips.
- *
- * Out of scope: the module-load-time `readInitial()` from
- * localStorage. To test it cleanly we'd need to re-import the
- * module per test (or use vi.resetModules), which adds machinery
- * that doesn't fit the rest of the suite's shape. The function is
- * a tiny try-catch around localStorage.getItem; manual sanity-
- * check is fine.
+ * Out of scope: the module-load-time `readInitial()` from localStorage. To
+ * test it cleanly we'd need to re-import the module per test (or use
+ * vi.resetModules), which adds machinery that doesn't fit the rest of the
+ * suite's shape.
  */
 
 import { renderHook, act } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-
-// jsdom 29 in this project's setup doesn't ship a real
-// localStorage. The store's `readInitial()` and `setChatOpen()`
-// access `window.localStorage` through try/catch, so production
-// runtime is fine — but to test the persistence path we need to
-// provide a Storage-shape fake the spy can observe. Backed by a
-// plain Map; the prototype tunnel below lets `vi.spyOn(
-// window.localStorage.__proto__, 'setItem')` work the same way
-// it would against the real DOM Storage.
-class FakeStorage {
-  private store = new Map<string, string>()
-  getItem(key: string): string | null {
-    return this.store.has(key) ? (this.store.get(key) as string) : null
-  }
-  setItem(key: string, value: string): void {
-    this.store.set(key, value)
-  }
-  clear(): void {
-    this.store.clear()
-  }
-}
-
-beforeAll(() => {
-  Object.defineProperty(window, 'localStorage', {
-    value: new FakeStorage(),
-    configurable: true,
-  })
-})
-
-beforeEach(() => {
-  // Reset the store to a known starting state. The module is
-  // loaded once across the whole test file (module-level `let
-  // value`), so we explicitly drive it false before each test
-  // rather than relying on test order.
-  setChatOpen(false)
-  window.localStorage.clear()
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
-})
-
+import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'
 import {
   getChatOpen,
   registerChatMounted,
@@ -76,6 +22,24 @@ import {
   useChatMounted,
   useChatOpen,
 } from './chatOpenStore'
+
+let storage: InstalledStorage
+
+beforeAll(() => {
+  storage = installFakeStorage()
+})
+
+beforeEach(() => {
+  // Reset the store to a known starting state. The module is loaded once
+  // across the whole test file (module-level `let value`), so we explicitly
+  // drive it false before each test rather than relying on test order.
+  setChatOpen(false)
+  storage.clear()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('chatOpenStore — direct API', () => {
   it('getChatOpen reflects setChatOpen writes', () => {
@@ -86,30 +50,32 @@ describe('chatOpenStore — direct API', () => {
     expect(getChatOpen()).toBe(false)
   })
 
-  it('mirrors changes to localStorage', () => {
+  it('mirrors changes to storage', () => {
     setChatOpen(true)
-    expect(window.localStorage.getItem('puzpuzpuz:chat:open')).toBe('true')
+    expect(storage.local.getItem('puzpuzpuz:chat:open')).toBe('true')
     setChatOpen(false)
-    expect(window.localStorage.getItem('puzpuzpuz:chat:open')).toBe('false')
+    expect(storage.local.getItem('puzpuzpuz:chat:open')).toBe('false')
   })
 
   it('setChatOpen with the same value is a no-op (skips notify + write)', () => {
     setChatOpen(true)
-    const setItem = vi.spyOn(window.localStorage.__proto__, 'setItem')
+    const setItem = vi.spyOn(storage.local, 'setItem')
     setChatOpen(true)
     expect(setItem).not.toHaveBeenCalled()
   })
 
-  it('swallows localStorage write errors', () => {
-    vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(
-      () => {
-        throw new Error('quota exceeded')
-      },
-    )
-    // The store's value flip and subscriber notify should still
-    // happen even if persistence fails — chat-open desync within
-    // a session is a worse outcome than losing the cross-nav
-    // persistence.
+  // The value flip and the subscriber notify still happen when persistence
+  // fails — a chat-open desync within a session is worse than losing the
+  // cross-page persistence. Both ways storage fails are here, because they
+  // throw in different places (`storage.fake.ts` says why).
+  it('survives the storage CALLS throwing — a full quota', () => {
+    storage.failCalls()
+    expect(() => setChatOpen(true)).not.toThrow()
+    expect(getChatOpen()).toBe(true)
+  })
+
+  it('survives the storage ACCESS throwing — a browser blocking site data', () => {
+    storage.blockAccess()
     expect(() => setChatOpen(true)).not.toThrow()
     expect(getChatOpen()).toBe(true)
   })
@@ -163,7 +129,7 @@ describe('chatOpenStore — useChatOpen hook', () => {
 })
 
 describe('chatOpenStore — is a chat panel mounted', () => {
-  it("follows a panel's lifetime, and re-renders a reader either way", () => {
+  it("follows a chat panel's lifetime, and re-renders a reader either way", () => {
     const { result } = renderHook(() => useChatMounted())
     expect(result.current).toBe(false)
     let release = () => {}
