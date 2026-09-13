@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
 import { Segmented } from '../buttons/Segmented'

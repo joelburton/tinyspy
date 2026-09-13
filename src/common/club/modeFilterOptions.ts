@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import { MODE_LABEL } from '../manifest/gameManifest'
 

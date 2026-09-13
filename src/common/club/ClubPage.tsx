@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import { diagnosticsLine } from '../supabase/dbLog'
 import { readRows, runRpc } from '../supabase/dbResult'

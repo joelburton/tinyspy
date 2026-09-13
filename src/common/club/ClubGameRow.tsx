@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import type { GameManifest } from '../manifest/gameManifest'
 import { cls } from '../utils/cls'

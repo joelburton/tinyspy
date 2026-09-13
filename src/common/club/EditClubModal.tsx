@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import { useState } from 'react'
 import { db as commonDb } from '../supabase/db'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-club-page
 
 import { FilterSelect } from '../lists/FilterSelect'
 import styles from './clubFilters.module.css'
