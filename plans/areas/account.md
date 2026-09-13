@@ -5,9 +5,9 @@ The folders it reads: `account`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fifteen findings. F-8 to F-12 and F-15 are DONE. F-1 to F-6 are the prose
-group; F-7 and F-13 are waiting fixes with no decision in them; F-14 holds the
-last decision for Joel.**
+Fifteen findings. F-8 to F-12, F-14 and F-15 are DONE — **every decision is
+made**. What is left is F-1 to F-6, the prose group, and F-7 and F-13, fixes
+with no decision in them.**
 
 ## The roster
 
@@ -20,6 +20,8 @@ Agreed 2026-09-12 (Joel: "stamp and do the audit").
 - ~~`src/common/account/ColorChoiceList.tsx` + `.module.css`~~ — folded into
   `fields/ColorChoiceField` by F-12 and no longer this folder's
 - `supabase/tests/common/update_profile_color_test.sql`
+- `supabase/tests/common/profiles_theme_test.sql` — written 2026-09-12 by F-14,
+  which split the reserved column's pins out of the file above
 
 Plus `doc.md` (a two-line lede; the Design is owed — `DESIGNS_OWED` has the
 row) and `todo.md` (one Soon, the hook's archaeology; one Someday, the chosen
@@ -407,7 +409,33 @@ is a palette NAME (`'red'`, …), and the list selects by `value === name`, so
 in every test no swatch starts selected — the form under test never has the
 shape the app gives it. `'red'`. No decision.
 
-### F-account-14 · `theme-pins-in-color-test` · three of the eight assertions are the reserved column's
+### F-account-14 · `theme-pins-in-color-test` · three of the eight assertions are the reserved column's — DONE
+
+**Decided and done 2026-09-12**: option 1. `profiles_theme_test.sql` holds the
+column's reservation start to finish — starts null, no direct UPDATE for a
+player, free-form at the schema level — and the RPC's file drops to `plan(5)`
+with a line saying where the `theme` pins went.
+
+Cheaper than the audit assumed: `npm run test:db` is
+`supabase test db --local supabase/tests`, a directory walk, so a new file
+registers nowhere and no total is written down anywhere to recount. Only the
+`plan()` inside the file changed. A table-scoped test file has precedent —
+`clubs_test.sql`, `games_test.sql`, `fk_delete_rules_test.sql`.
+
+Considered and not taken: splitting by what each assertion is about, so that
+"starts null" would join `claim_username_test.sql` — which already pins the
+`username` and `color` a materialized row holds. Correct per assertion, but it
+spends three files to relocate one, and that pin reads well as the opening line
+of the column's own story.
+
+The moved header drops F-3's dated claim ("Nothing reads or writes it yet
+(2026-08-03)") rather than carrying it across. **`docs/common.md`'s `profiles`
+row still carries the same date on the same column** — F-3's, still open.
+
+Plant-verified: expecting `'midnight'` where the column starts null fails two
+of the three. Suite green at 177 files, 2454 assertions.
+
+<details><summary>the finding as audited</summary>
 
 `update_profile_color_test.sql` pins the RPC in five assertions and then, under
 its own heading, the `theme` column's reservation in three: starts null, no
@@ -416,6 +444,8 @@ direct UPDATE for a player, free-form for the test role. The column is
 RPC. A file per unit. Options: (1) `profiles_theme_test.sql` in the same
 folder, the three moved, both plans recounted; (2) rename this file to the
 profile's write-path test and let the header say it covers both; (3) leave.
+
+</details>
 
 ### F-account-15 · `legend-gap` · a group field's caption sits flush against its control — DONE
 
