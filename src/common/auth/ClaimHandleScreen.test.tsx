@@ -78,6 +78,9 @@ describe('ClaimHandleScreen', () => {
       value: realLocation,
     })
     vi.restoreAllMocks()
+    // Same reason as above: a `vi.fn()` keeps its history across specs.
+    mockSignOut.mockReset()
+    mockRpc.mockReset()
   })
 
   it('offers a sign-out escape so a stranded user is never stuck', async () => {
@@ -100,6 +103,34 @@ describe('ClaimHandleScreen', () => {
     expect(mockRpc).not.toHaveBeenCalled()
     // …and it always lands them back at the root (→ LoginScreen).
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
+  })
+
+  it('leaves the same way on PN018 — signed out, then a hard redirect to "/"', async () => {
+    // The RPC found no auth.users row behind the token. The screen cannot
+    // recover that session, so it takes the same exit as the button: nothing
+    // is left to the auth listener.
+    mockRpc.mockResolvedValue({
+      data: {
+        type: 'not-ok',
+        severity: 'fault',
+        dbcode: 'PN018',
+        field: '_',
+        message: 'Your session expired — signing you out.',
+      },
+      error: null,
+    })
+    mockSignOut.mockResolvedValue({ error: null })
+    const assign = stubLocation()
+    const user = userEvent.setup()
+
+    render(<ClaimHandleScreen onClaimed={vi.fn()} email="zoe@test.local" />)
+    const box = screen.getByRole('textbox', { name: /Username/ })
+    await user.clear(box)
+    await user.type(box, 'zoe')
+    await user.click(screen.getByRole('button', { name: 'Accept' }))
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
+    expect(mockSignOut).toHaveBeenCalledTimes(1)
   })
 
   it('redirects even when sign-out throws (a stale/invalid session)', async () => {

@@ -145,7 +145,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
       // behind this JWT is gone (a stale token after a db:reset, a deleted
       // account), so there is no recovering the session. Reading the code here
       // picks a RECOVERY, not a severity — the server already said fault.
-      if (res.dbcode === 'PN018') await supabase.auth.signOut()
+      if (res.dbcode === 'PN018') await signOutAndLeave()
       return
     } else if (res.type === 'ok' && res.data.result === 'claimed') {
       // The name isn't read: `onClaimed` re-probes the profiles row, so the
@@ -160,24 +160,21 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     }
   }
 
-  // The always-available escape off this screen. We deliberately DON'T lean
-  // on the auth listener to flip us back to LoginScreen here: a user usually
-  // reaches this screen on a stale/invalid session (a JWT that outlived its
-  // auth.users row — e.g. a dev db:reset, or a deleted user in prod), and for
-  // those `signOut()`'s SIGNED_OUT event doesn't reliably re-render — leaving
-  // them stranded with no way out but guessing at the URL. So sign out
-  // best-effort, then HARD-redirect to "/": the full reload re-runs useSession
-  // from a clean slate (clearing any leftover stale JWT) and lands on
-  // LoginScreen.
-  async function handleSignOut() {
+  // The one way off this screen, for both of its exits: the "Not you? Sign
+  // out" button, and PN018, when the RPC finds no auth.users row behind the
+  // token. Neither trusts the auth listener to put LoginScreen up: on a stale
+  // session `signOut()`'s SIGNED_OUT event has not reliably re-rendered, and
+  // a stale session is exactly what brings people here. So sign out
+  // best-effort — the revoke can fail on that same stale session — then a HARD
+  // navigation to "/": the full reload re-runs useSession from a clean slate.
+  // The in-app router wouldn't do: this screen is gated on `needsClaim`, not
+  // the path, so it would still render.
+  async function signOutAndLeave() {
     try {
       await supabase.auth.signOut()
     } catch {
       // Leaving regardless — a failed revoke must not block the escape.
     }
-    // HARD navigation (not the in-app router): a full reload is what re-runs
-    // useSession. Client-side routing wouldn't help — the screen is gated on
-    // `needsClaim`, not the path, so it'd still render with the stale session.
     window.location.assign('/')
   }
 
@@ -244,7 +241,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
                     show="label"
                     label="Not you? Sign out"
                     disabled={busy}
-                    onClick={() => void handleSignOut()}
+                    onClick={() => void signOutAndLeave()}
                   />
                   <FormSubmitButton
                     show="label"

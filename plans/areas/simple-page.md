@@ -5,7 +5,7 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-10 worked. F-1 to F-6 are the prose group; F-7 to
+Thirteen findings recorded; F-7 and F-10 worked. F-1 to F-6 are the prose group; F-7 to
 F-12 each carry a decision; F-13 is coverage.
 
 ## The roster
@@ -126,8 +126,8 @@ A prop note takes `//` (docs/code-conventions.md → the props paragraph).
   surfaces"; "the five it replaced had three different ones and one had none at
   all"; "what all five of these already were"; "one shape instead of five".
 - `ClaimHandleScreen.tsx` 238–241: "Sits beside Accept now, styled as a real
-  button." 163–171: `handleSignOut`'s comment narrates the stranding — the
-  REASON for the hard redirect stays if F-7 keeps it; the story goes.
+  button." ~~163–171: `handleSignOut`'s comment narrates the stranding~~ —
+  rewritten by F-7.
 - `ClaimHandleScreen.test.tsx` 44–47: "Before the form held its values by name
   there was nowhere for that to go, and the message sat on a line at the bottom
   beside a color picker"; 84–88: "that's even truer now that Log out lives in a
@@ -171,7 +171,7 @@ sign-outs (F-7), the two ways failures land (a field vs the form's line);
 `error-page` — the modal-vs-page rule and the two entry points; `loading` — a
 word and no box, versus a slot held open.
 
-### F-simple-page-7 · `two-sign-outs` · PN018 signs out without the escape's hard redirect
+### F-simple-page-7 · `two-sign-outs` · PN018 signs out without the escape's hard redirect — DONE
 
 `ClaimHandleScreen.tsx` 148: on PN018, `await supabase.auth.signOut()` and
 return. 172–182, `handleSignOut`: sign out, then `window.location.assign('/')`,
@@ -195,7 +195,13 @@ Options:
    prove it (ask before running), and is the change that can strand someone if
    the comment was right.
 
-Recommend 1.
+Ruled 1 (Joel, 2026-09-13: "do 1"). Done: `signOutAndLeave()` — sign out
+best-effort, then `window.location.assign('/')` — is the one exit, called by
+the button and by the PN018 branch. Its comment keeps the reason for the hard
+redirect and drops the story (the F-4 item for the old `handleSignOut`
+comment goes with it). `ClaimHandleScreen.test.tsx` gains the PN018 spec —
+the FE half of F-13's first bullet — and its second `describe` now resets both
+`vi.fn()`s between specs, which the new spec needed.
 
 ### F-simple-page-8 · `six-digits` · the placeholder names the digit count the docstring says we never name
 
@@ -297,10 +303,10 @@ title the heading table names.
 
 ### F-simple-page-13 · `coverage` · what no test pins
 
-- **PN018**: not in the pgTAP file (whose header claims it), not in the FE
-  test (the sign-out branch), not in the e2e (the gate catches a stale session
-  before the RPC). The FE test is cheap: `mockRpc` answers PN018, expect
-  `signOut` called — and, after F-7, expect the escape's redirect.
+- **PN018**: not in the pgTAP file (whose header claims it), ~~not in the FE
+  test~~ (F-7 added the spec: PN018 → `signOut`, then the redirect), not in
+  the e2e (the gate catches a stale session before the RPC). The pgTAP half
+  remains.
 - **The claim's happy path**: nothing asserts `onClaimed` is called on
   `ok/claimed`; nothing walks the `reportUnhandled` fall-through.
 - **LoginScreen's verify-code path**: nothing types a code. The test file's
