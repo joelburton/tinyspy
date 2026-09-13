@@ -5,7 +5,7 @@ The folders it reads: `home`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-homepage`.
-Nine findings recorded, none worked.
+Nine findings recorded; all nine worked. Not yet re-read, blessed or closed.
 
 ## The roster
 
@@ -75,13 +75,17 @@ mount instead of per load, wording the failed load in the page, sorting solo
 last, badging every row, and an `onCreated` that closes the modal without
 going into the new club.
 
-### F-homepage-2 · `docstring-for-the-caller` · the page's docstring is the folder's Design
+### F-homepage-2 · `docstring-for-the-caller` · the page's docstring is the folder's Design — DONE
 
 `HomePage.tsx` 39–59: "Pure shell content …", the solo-clubs-on-top argument,
 "Clubs RLS does the visibility filtering …". A caller needs: the `/` page,
 takes the session. The rest is `home/doc.md`'s Design (F-3).
 
-### F-homepage-3 · `design` · `home/doc.md` Design owed
+**Worked 2026-09-13**, with F-3 — the material moved to the Design first, and
+what is left is the page, the `session` prop (its id filters the subscription;
+the read sends none because RLS filters it), and a pointer.
+
+### F-homepage-3 · `design` · `home/doc.md` Design owed — DONE
 
 The lede is "The landing page after login: your clubs." The Design, from what
 the code and its comments already argue: one list and the button that adds to
@@ -94,12 +98,20 @@ because the act is "add to this list"; the greeting leads with the disc
 because home is where the disc says *you*. Then the `DESIGNS_OWED` row comes
 off.
 
-### F-homepage-4 · `marker-pass` · a field note on `/**`
+**Worked 2026-09-13.** Written to that shape, opening with what the page IS —
+one list and the button that adds to it, and no lobby — since the club is a
+venue and the list is the set of rooms you can walk into. The `common/home` row
+is off `DESIGNS_OWED`; planted a renamed heading to confirm `folderDocs` now
+requires the section (it does: "0 \"## Design\" sections, want exactly 1").
+
+### F-homepage-4 · `marker-pass` · a field note on `/**` — DONE
 
 `HomePage.tsx` 29–31: `is_solo` inside `ClubListEntry` carries `/**`. A note
 on one member of a declaration takes `//`.
 
-### F-homepage-5 · `archaeology` · a finding ID, a dated ruling, a story, a date in the e2e
+**Worked 2026-09-13.** Now `//`, same words.
+
+### F-homepage-5 · `archaeology` · a finding ID, a dated ruling, a story, a date in the e2e — DONE
 
 - `HomePage.tsx` 249: "Creating a club is a modal, not a page (F36)" — a
   finding ID from the deleted first homepage audit, in durable code.
@@ -111,22 +123,29 @@ on one member of a declaration takes `//`.
   checked at all" — the uniqueness clause; the property is that only a
   browser has a focused element that is also the scroll box.
 
-### F-homepage-6 · `comments-restate-docs` · five comments explain shared things at length
+**Worked 2026-09-13.** All five cut: "(F36)", "(Joel, 2026-08-22)", the
+had-joined-no-clubs clause, "which since 2026-08-24 is", and the uniqueness
+clause — the last rewritten to the property it was pointing at ("the focused
+element IS the scroll box, so only a browser has the default scroll to
+suppress"). The two stray blank lines in the Notes went with them. The e2e was
+not re-run: the change is its header prose, no code.
+
+### F-homepage-6 · `comments-restate-docs` · five comments explain shared things at length — DONE
 
 Each of these explains a mechanism whose own docstring or doc section is the
 copy that stays right, where a comment is one sentence and a pointer:
 
-- 162–165, `PageHeader`: what the strip is and why it is a sibling of the
+- the `PageHeader` block: what the strip is and why it is a sibling of the
   card — page-header's.
-- 175–181, the disc in the greeting: the app-wide "this color is you" rule,
+- the disc in the greeting: the app-wide "this color is you" rule,
   with the ui.md pointer already in it.
-- 196–204, `heading-with-controls` and the `quiet` tone: the pattern's
+- the `heading-with-controls` header, and the `quiet` tone: the pattern's
   meaning and the tone's meaning, both ui.md's. The two local decisions in
   that block — the `+` is a typed character, and creating is the uncommon
   path — are the part that belongs.
-- 227–232, the `empty` prop: where no-rows states go is ui.md → Selection
+- the `empty` prop: where no-rows states go is ui.md → Selection
   lists; the local decision is the blank-while-loading.
-- 103–107, the failed load: the envelope contract, with the docs/envelopes.md
+- the failed-load bail-out: the envelope contract, with the docs/envelopes.md
   pointer already in it.
 
 Options:
@@ -140,7 +159,21 @@ Options:
 Recommend 1: CLAUDE.md's rule is that a comment is not there to teach, and
 every one of these has a home that will be updated when the rule moves.
 
-### F-homepage-7 · `stale-docs` · ui.md describes a `<ul>` and a `.frame` the page does not have
+These were recorded with line numbers, which moved twice while the other
+findings were worked; they are named instead. Note that the Design (F-3) now
+carries the argument several of them were making, which is a second reason the
+long form here is a second home for it.
+
+**Worked 2026-09-13**, option 1: each is now its local decision plus the doc
+that owns the mechanism — 34 comment lines to 12. What was kept as local: the
+header strip being a sibling of the card, name-before-greeting, the `quiet`
+tone for the uncommon path, the `+` as a typed character rather than a glyph,
+the blank while the answer is in flight, and that a failed load needs nothing
+here. What went: what a `PageHeader` is, what "this color is you" means, what
+`.heading-with-controls` is for, where no-rows states go, and the envelope
+contract.
+
+### F-homepage-7 · `stale-docs` · ui.md describes a `<ul>` and a `.frame` the page does not have — DONE
 
 - `docs/ui.md` → the height-bound HomePage bullet: "`.frame` → `.card` → the
   section → the `<ul>`". The chain is `.pageMain-fills` → `.card` →
@@ -149,6 +182,11 @@ every one of these has a home that will be updated when the rule moves.
   focus". Same.
 
 Not roster; fixed in place like the docs sentences at `simple-page`.
+
+**Worked 2026-09-13.** The chain now reads `.pageMain-fills` → `.card` → the
+clubs section → the `SelectionList`, and the focus sentence says "the list
+container". Grepped the docs for sibling claims about this markup: the
+remaining `<ul>` in ui.md is Help's, which is a real one.
 
 ### F-homepage-8 · `vacuous-assertion` · the Space check passes for every URL — DONE
 
@@ -197,8 +235,8 @@ as a property of the token rather than a fact about today's readers.
 - **The e2e finds rows by `[class*="_row_"]`** — sniffing a CSS-module class
   name. It is scoped by the list's `aria-label`, and the comment says why. A
   `data-` handle would be `lists`' to add; left.
-- **Two stray blank lines** — `HomePage.tsx` 158–159 and 259. Whitespace;
-  goes with whichever finding touches the file first.
+- ~~**Two stray blank lines** — `HomePage.tsx` 158–159 and 259.~~ Gone with
+  F-5, the first finding to touch the file.
 - **`+ New club` is not keyboard-reachable**, by design (ui.md says "the
   accepted cost"). The Design (F-3) should say it in the same words.
 
@@ -213,6 +251,6 @@ as a property of the token rather than a fact about today's readers.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

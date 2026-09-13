@@ -5,16 +5,16 @@ import { createClubWithMembers } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The club list's keyboard navigation — which since 2026-08-24 is
- * `<SelectionList>`'s, not this page's (docs/ui.md → Selection lists). The contract:
- * the LIST CONTAINER is the tab stop, Up/Down move a cursor ring through the
- * rows (clamped, no wrap), Home/End jump to the ends, Space does nothing, and
- * Enter opens the row under the ring.
+ * The club list's keyboard navigation, which is `<SelectionList>`'s rather than
+ * this page's (docs/ui.md → Selection lists). The contract: the LIST CONTAINER
+ * is the tab stop, Up/Down move a cursor ring through the rows (clamped, no
+ * wrap), Home/End jump to the ends, Space does nothing, and Enter opens the row
+ * under the ring.
  *
  * A real browser because the whole thing is `document.activeElement` plus a
- * computed outline — neither of which jsdom models. It is also the only place
- * the "Space must not scroll and must not act" rule can be checked at all: in
- * the DOM the focused element IS the scroll box.
+ * computed outline — neither of which jsdom models. The "Space must not scroll
+ * and must not act" rule needs one for a further reason: the focused element IS
+ * the scroll box, so only a browser has the default scroll to suppress.
  */
 test('home page: arrows move the club cursor, Enter opens', async ({ browser }) => {
   // Two rows so there's somewhere to move TO. Claiming a username materializes

@@ -26,9 +26,6 @@ import styles from './HomePage.module.css'
 type ClubListEntry = {
   handle: string
   name: string
-  /** Generated column on `common.clubs` — the `=` handle prefix, decided by
-   *  the database (docs/common.md → Solo clubs). The page never tests the
-   *  prefix itself: knowing what a solo handle looks like is the DB's job. */
   is_solo: boolean
 }
 
@@ -64,8 +61,7 @@ export function HomePage({ session }: Props) {
   // Three states, because an empty list means something different in each and
   // only one of them is a normal moment. `loading` is the moment before the
   // first fetch answers; `failed` is a fetch that errored; `loaded` is an
-  // answer we believe. Rendering an empty list without knowing which of these
-  // we are in is what let this page tell people they had joined no clubs.
+  // answer we believe.
   const [load, setLoad] = useState<'loading' | 'loaded' | 'failed'>('loading')
   // Is the create-club modal up? The dialog itself holds no such flag — it is
   // mounted or it isn't (the pattern ClubPage uses for its two modals).
@@ -100,11 +96,9 @@ export function HomePage({ session }: Props) {
           .order('created_at', { ascending: false }),
       )
       if (!mounted()) return
-      // A FAILED LOAD needs nothing here. The fault modal is already on screen
-      // and the `[db]` line is already written — `readRows` did both before this
-      // resumed (docs/envelopes.md). What is left is the bail-out: record
-      // that the load failed so the muted line under the list can say something
-      // true. No classifying, no wording, no showFaultModal.
+      // Nothing to do here: `readRows` raised the modal and wrote the `[db]`
+      // line (docs/envelopes.md). Record the failure so the muted line under
+      // the list can say something true.
       if (result.type === 'not-ok') {
         setLoad('failed')
         return
@@ -122,10 +116,10 @@ export function HomePage({ session }: Props) {
       // protocol answer, so only the caller can know it's impossible here — and
       // whoever detects a condition writes its words.
       //
-      // Fired on EVERY load, not once per mount (Joel, 2026-08-22). The list
-      // refetches on realtime membership events, so a persistent outage will
-      // re-fire — which is correct here: nothing about this state improves by
-      // being mentioned once.
+      // Fired on EVERY load, not once per mount. The list refetches on
+      // realtime membership events, so a persistent outage will re-fire —
+      // which is correct here: nothing about this state improves by being
+      // mentioned once.
       if (result.data.length === 0) {
         showFaultModal({
           text: "Something's wrong with your account — you should always have at least your own solo club.",
@@ -156,13 +150,10 @@ export function HomePage({ session }: Props) {
 
   const accountSection = useAccountMenuSection()
 
-
   return (
     <div className="pageHeaderAndMainArea">
-      {/* PAGE chrome, not card content — the same strip ClubPage and GamePage
-          carry: square site logo hard against the page's top-left, thin rule
-          beneath, the card below it. A sibling of the card rather than a child,
-          so it aligns to the PAGE and not to the card's 2rem padding. */}
+      {/* A sibling of the card, not a child, so it aligns to the PAGE and not
+          to the card's padding. The strip itself is page-header's. */}
       <PageHeader>
         <PageHeaderMenu
           logo={<PuzpuzpuzLogo />}
@@ -172,13 +163,8 @@ export function HomePage({ session }: Props) {
       </PageHeader>
       <div className={cls('card', 'pageMain', 'pageMain-fills', styles.card)}>
         <PuzpuzpuzWordmark />
-        {/* Greeting leads with the identity DISC in the user's own profile
-            color — the app-wide "this color is you" marker (docs/ui.md →
-            "Player identity = a colored disc"). Home is where that's worth
-            re-stating: it's the last thing you see before entering a club,
-            and inside a game the disc is how you find yourself on the board.
-            Hence the name first and the greeting second: "● joel — welcome!"
-            puts the identity where the eye lands. */}
+        {/* The identity disc (docs/ui.md → Player identity), name first and
+            greeting second so the identity is where the eye lands. */}
         <h1 className={styles.greeting}>
           {username ? (
             <>
@@ -193,12 +179,8 @@ export function HomePage({ session }: Props) {
         </h1>
 
         <section className={styles.clubsSection}>
-          {/* The shared `.heading-with-controls` (common/core-css/patterns/heading.css):
-              the heading, and on the right the control that acts on what's
-              below it — here the action that ADDS to the list. Creating a new club is
-              the uncommon path (most users land here, click into an
-              existing club, go play) — which is the `quiet` tone, and
-              the outline treatment says it isn't the obvious action.
+          {/* The shared `.heading-with-controls` (docs/ui.md). Creating a club
+              is the uncommon path, hence the `quiet` tone.
 
               The `+` is a typed character, not a glyph: `icon` is available and
               deliberately unused, because a plus sign IS the label here. */}
@@ -224,12 +206,9 @@ export function HomePage({ session }: Props) {
             // land.
             autoFocus
             onActivate={(c) => navigate(clubPath(c.handle))}
-            // All three no-rows states go INSIDE the frame, which is drawn
-            // whether or not there is anything in it (docs/ui.md → Selection
-            // lists). The failure line is what the page is left saying behind
-            // the fault modal that carries the real news, and its only job is
-            // to be TRUE — hence a blank rather than a claim while the answer
-            // is still in flight.
+            // No-rows states go inside the frame (docs/ui.md → Selection
+            // lists). A blank rather than a claim while the answer is in
+            // flight: the line's one job is to be true.
             empty={
               load === 'failed'
                 ? "Your clubs couldn't be loaded."
@@ -246,8 +225,8 @@ export function HomePage({ session }: Props) {
           />
         </section>
       </div>
-      {/* Creating a club is a modal, not a page (F36): the clubs list stays
-          behind it, because the act is ADD TO THIS LIST. Mounting opens it and
+      {/* Creating a club is a modal, not a page: the clubs list stays behind
+          it, because the act is ADD TO THIS LIST. Mounting opens it and
           unmounting closes it — the modal holds no open/shut state of its own.
           On success we go into the new club, which is what you made it for. */}
       {creating && (
@@ -256,7 +235,6 @@ export function HomePage({ session }: Props) {
           onCancel={() => setCreating(false)}
         />
       )}
-
     </div>
   )
 }
