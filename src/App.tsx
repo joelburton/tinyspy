@@ -12,7 +12,7 @@ import { HomePage } from './common/home/HomePage'
 import { FontPage } from './common/devtools/FontPage'
 import { PalettePage } from './common/devtools/PalettePage'
 import { EditProfileModal } from './common/account/EditProfileModal'
-import { useEditProfileOpen, setEditProfileOpen } from './common/account/editProfileStore'
+import { useIsEditProfileOpen, setEditProfileOpen } from './common/account/editProfileStore'
 import { WordEditDialog } from './common/definitions/WordEditDialog'
 import { DefinitionHost } from './common/definitions/DefinitionHost'
 import { useWordEdit } from './common/definitions/wordEditStore'
@@ -91,7 +91,7 @@ export default function App() {
   // and react-rnd positions one from its static flow position — mounted inside
   // a page's flex column it lands far from where you expect (docs/ui.md). The
   // flag therefore has to cross subtrees, hence the store rather than useState.
-  const editingProfile = useEditProfileOpen()
+  const editingProfile = useIsEditProfileOpen()
   // The word-edit dialog (editors only — its openers are gated) mounts at the
   // App level like EditProfileModal, and for the same FloatingPanel-offset
   // reason. Keyed by the request so switching words remounts fresh state.

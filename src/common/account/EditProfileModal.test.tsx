@@ -1,4 +1,4 @@
-// cs-audited-account
+// cs-blessed-account
 
 /**
  * YOUR COLOR — and where a refusal from `common.update_profile_color` lands.
@@ -20,7 +20,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 vi.mock('../session/useProfile', () => ({
-  useProfile: () => ({ username: 'joel', color: '#c0392b', can_edit_words: false }),
+  // A palette NAME, not a hex — `common.profiles.color` stores the name and
+  // the picker selects by it, so a hex here means no swatch starts chosen and
+  // the form under test never has the shape the app gives it.
+  useProfile: () => ({ username: 'joel', color: 'red', can_edit_words: false }),
   setProfileColor: vi.fn(),
 }))
 

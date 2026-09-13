@@ -1,4 +1,4 @@
-// cs-audited-account
+// cs-blessed-account
 
 import { useMemo } from 'react'
 import type { AuthError } from '@supabase/supabase-js'
@@ -34,24 +34,12 @@ function reportFailedSignOut(error: AuthError): void {
 }
 
 /**
- * The **account submenu** — the user-focused items, as one collapsed row to
- * drop at the bottom of any page's menu. It binds `act-edit-profile`,
- * `act-add-word` (editors only) and `act-log-out`.
+ * The **account submenu** — your profile dot and username as one collapsed row,
+ * opening `act-edit-profile`, `act-add-word` (editors only) and `act-log-out`.
  *
- * Inside the page's menu rather than a control of its own: a fixed chip would
- * cost the header permanently reserved width, which the mobile game header
- * needs for feedback.
- *
- * **The row is your profile dot + your username**, not "Account" — both halves
- * of "who am I signed in as", so the menu is somewhere you see your own color.
- *
- * It is a SUBMENU rather than a flat section: it's the same row in the same
- * place on every page, and account items are a different mental model from
- * "things you can do to this game" — a separation kept by nesting instead of
- * by a second menu.
- *
- * @returns One `MenuSection` holding one submenu row. Spread it at the END of a
- *          page's `sections` array.
+ * Hands back one `MenuSection` holding that row. Spread it at the END of a
+ * page's `sections`, which is where every page puts it. Why it is a submenu
+ * inside the page's menu, and why the row is your name, are doc.md's Design.
  */
 export function useAccountMenuSection(): MenuSection {
   const profile = useProfile()

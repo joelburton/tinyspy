@@ -68,8 +68,9 @@ export function useProfile(): Profile | null {
 
 /**
  * Reflect a just-saved color across every consumer in the tab. The
- * `common.update_profile_color` RPC has already persisted it; this is the
- * optimistic in-memory update, so every reader repaints immediately.
+ * `common.update_profile_color` RPC has already answered `ok`, so this is not
+ * optimistic — it tells the store what the server already holds, and every
+ * reader repaints at once.
  */
 export function setProfileColor(color: string) {
   if (current) {

@@ -1,4 +1,4 @@
-// cs-audited-account
+// cs-blessed-account
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'

@@ -264,20 +264,22 @@ grant execute on function common.is_club_member(text) to authenticated;
 -- │  deferred-register entry: it has a TRIGGER, not a due date.
 -- │
 -- │  ADDING A COLUMN TO THIS TABLE THAT ISN'T PUBLIC MEANS DOING
--- │  THE VIEW FIRST. All four columns today (user_id, username,
--- │  color, created_at) are public by design — username + color
--- │  ARE the player-identity vocabulary rendered to every club
--- │  member, and user_id has to be resolvable for club creation —
--- │  so a "safe columns only" view would select 4 of 4 and reduce
--- │  exposure by exactly nothing. That's why it isn't built.
+-- │  THE VIEW FIRST. Every column it holds is public by design:
+-- │  username and color ARE the player-identity vocabulary
+-- │  rendered to every club member, user_id has to be resolvable
+-- │  for club creation, and theme and can_edit_words are a UI
+-- │  preference and a curation flag that say nothing about a
+-- │  person. So a "safe columns only" view would select all of
+-- │  them and reduce exposure by exactly nothing. That's why it
+-- │  isn't built.
 -- │
 -- │  The move, when a real-name / settings / email-derived column
 -- │  arrives: revoke SELECT on common.profiles from authenticated,
 -- │  add a `common.profiles_public` view over the genuinely public
--- │  columns, and point the FE's profile reads at it (~11 call
--- │  sites). Security-definer RPCs that need the full row keep
--- │  reading the base table, so they're unaffected.
--- └─ (Reviewed 2026-08-02: still nothing sensitive here.)
+-- │  columns, and point the FE's profile reads at it.
+-- │  Security-definer RPCs that need the full row keep reading the
+-- │  base table, so they're unaffected.
+-- └─
 drop policy if exists profiles_select_authenticated on common.profiles;
 create policy profiles_select_authenticated on common.profiles
   for select to authenticated using (true);

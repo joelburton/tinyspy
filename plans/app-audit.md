@@ -371,6 +371,29 @@ register to the folder's todo. Owed: nothing; `todo.md` holds two Maybes, the
 open-flag encoding and the lock races. Three game companions store rects
 without the `puzpuzpuz:` prefix, noted in the area file for those games.
 
+**`account` is closed** (2026-09-12): eight files `cs-blessed-account`, fifteen
+findings, all worked. What changed the app: a failed sign-out was a
+`console.error`, and `GoTrueClient` returns before clearing the local session on
+one, so you stayed signed in with nothing on screen saying so — it goes through
+`reportDbFault` now with a code of its own (`PN492`, in a third table beside the
+`FE` four, for the auth calls a signed-in player makes that no wrapper speaks
+for), and the hook got its first test file. A `<legend>` is not a flex item, so
+every `group` field's caption had been sitting flush against its control — one
+rule in `field.module.css` fixed the picker in two screens and Edit club's
+checkbox list. The color swatches are quiet buttons now, wearing quiet's washes
+and no transition because a standard button paints its wash instantly, and the
+chosen one takes an ink border rather than the keyboard cursor's blue ring —
+which let both `⚠️` essays defending that resemblance be deleted, `focus-ring.css`
+included. `ColorChoiceList` folded into its wrapper as `ColorChoiceField`, so a
+blessed folder no longer imports its inner from elsewhere. The reserved `theme`
+column got its own pgTAP file. Two null branches that cannot fire kept their
+`??` and lost the comments describing a loading moment that does not exist.
+The prose pass's catch: `supabase/sql/common.sql`'s profiles policy justified
+its standing rule with "all four columns today" when the table has six — the
+conclusion held, the reasoning had not. Owed: nothing; `todo.md` is empty.
+`fields/ColorChoiceField.tsx` still says `cs-blessed-forms` over content it
+gained here, for forms to re-bless when it next opens.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -498,7 +521,7 @@ will list the other as a dependency whichever goes first.
 | 25 | `definitions` | `definitions` · `anagram-finder` | **CLOSED 2026-09-12, blessed.** click-a-word lookup, dictionary curation, and the anagram dialog. Twenty-two findings; the summary is under "Where to start" |
 | 26 | `chat` | `chat` | **CLOSED 2026-09-12, blessed.** the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s. Seventeen findings; the summary is under "Where to start" |
 | 27 | `scratchpad` | `scratchpad` | **CLOSED 2026-09-12, blessed.** a game's notepad: shared in coop, private per player in compete. Sixteen findings; the summary is under "Where to start" |
-| 28 | `account` | `account` | your own menu and profile editing |
+| 28 | `account` | `account` | **CLOSED 2026-09-12, blessed.** your own menu and profile editing. Fifteen findings; the summary is under "Where to start" |
 |    | **The pages** | | |
 | 29 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
 | 30 | `homepage` | `home` | the landing page after login |

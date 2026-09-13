@@ -1,4 +1,4 @@
--- cs-audited-account
+-- cs-blessed-account
 
 -- ============================================================
 -- Test: common.profiles.theme — the reserved column

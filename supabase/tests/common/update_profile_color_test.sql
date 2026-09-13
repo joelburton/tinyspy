@@ -1,4 +1,4 @@
--- cs-audited-account
+-- cs-blessed-account
 
 -- ============================================================
 -- Test: common.update_profile_color(new_color text)
@@ -10,9 +10,8 @@
 -- The reserved `theme` column is pinned next door, in
 -- `profiles_theme_test.sql`: this RPC never touches it.
 --
--- See ../codenamesduet/create_game_test.sql for the pgTAP primer +
--- ../_shared/setup.psql for the persona convention. _shared seeds each
--- persona's color as common.color_for_username(<name>).
+-- The pgTAP + persona conventions are docs/testing.md's. `_shared/setup.psql`
+-- seeds each persona's color as common.color_for_username(<name>).
 
 begin;
 

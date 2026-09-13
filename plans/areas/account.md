@@ -4,10 +4,8 @@ The folders it reads: `account`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fifteen findings. F-8 to F-12, F-14 and F-15 are DONE — **every decision is
-made**. What is left is F-1 to F-6, the prose group, and F-7 and F-13, fixes
-with no decision in them.**
+**Status: CLOSED 2026-09-12 — all fifteen findings worked, the area re-read in
+one sitting, and eight files `cs-blessed-account` on Joel's word.**
 
 ## The roster
 
@@ -23,9 +21,10 @@ Agreed 2026-09-12 (Joel: "stamp and do the audit").
 - `supabase/tests/common/profiles_theme_test.sql` — written 2026-09-12 by F-14,
   which split the reserved column's pins out of the file above
 
-Plus `doc.md` (a two-line lede; the Design is owed — `DESIGNS_OWED` has the
-row) and `todo.md` (one Soon, the hook's archaeology; one Someday, the chosen
-swatch's ring) — no stamp, markdown.
+Plus `doc.md` and `todo.md` — no stamp, markdown. `doc.md` now carries its
+Design (F-6) and is off `DESIGNS_OWED`; `todo.md` is empty, both its items
+having been worked (the hook's archaeology by F-3, the chosen swatch's ring by
+F-9).
 
 **Evidence, not roster — read and judged, findings recorded, fixed in place,
 never stamped:** `supabase/sql/common.sql`'s `update_profile_color` RPC and
@@ -37,21 +36,25 @@ No e2e exercises profile editing; the claim-handle e2e touches the color list
 through the claim screen and is `auth`'s.
 
 Consumers: `App` mounts the modal off the store's flag and reads
-`useEditProfileOpen`; `HomePage`, `ClubPage` and `GamePage` each take the
+`useIsEditProfileOpen`; `HomePage`, `ClubPage` and `GamePage` each take the
 account section and place it last in their menu (`GamePage.test` mocks the
-hook); `fields/ColorField` (blessed, forms) wraps `ColorChoiceList` and is its
-only reader — `ClaimHandleScreen` reaches the list through it;
-`session/useProfile` is the profile store the modal writes back to. Guards
-that name the folder: `orphanedDocstrings` (one KNOWN row for the modal),
-`vocabularies` (two rows for the stylesheet), `folderDocs` (the owed Design).
-Docs: `docs/ui.md` → the account submenu, `<EditProfileModal>`,
-`<ColorChoiceList>`, and the focus-ring section's "not a selected state"
-paragraph; `docs/common.md` → the `profiles` row of the schema table;
-`docs/code-conventions.md` → the predicate-hook holdout sentence.
+hook); `session/useProfile` is the profile store the modal writes back to. At
+the audit the picker was this folder's and `fields/ColorField` wrapped it;
+F-12 folded the two together into `fields/ColorChoiceField`, so the picker and
+its stylesheet are forms' now.
+
+Guards that named the folder at the audit — `orphanedDocstrings` (one KNOWN row
+for the modal), `vocabularies` (two rows for the stylesheet), `folderDocs` (the
+owed Design) — name it in none of those places now; each row went with the
+finding that earned it. Docs: `docs/ui.md` → the account submenu,
+`<EditProfileModal>`, `<ColorChoiceField>`, and the focus-ring section's "not a
+selected state" paragraph; `docs/common.md` → the `profiles` row of the schema
+table; `docs/code-conventions.md` → the predicate-hook sentence, which lost
+this folder's holdout.
 
 ## Findings
 
-### F-account-1 · `orphaned-docstring` · the modal's docstring sits on `Values`
+### F-account-1 · `orphaned-docstring` · the modal's docstring sits on `Values` — DONE
 
 `EditProfileModal.tsx` lines 25–49: the fourteen-line `/** The "Edit profile"
 popup … */` block is followed by `/** What the form holds … */ type Values`,
@@ -61,7 +64,7 @@ area. Fix: the two types and their docstrings move above; the component's
 docstring sits on the function, rewritten for the caller (F-4 says what in it
 is stale); the KNOWN row goes.
 
-### F-account-2 · `marker-pass` · `/**` on props, and a JSDoc tag
+### F-account-2 · `marker-pass` · `/**` on props, and a JSDoc tag — DONE
 
 - `EditProfileModal`'s props block: `onSaved` and `onCancel` carry `/**`; a
   prop note takes `//`.
@@ -71,7 +74,7 @@ is stale); the KNOWN row goes.
   row; spread it at the END of a page's `sections`") is the caller's, and
   belongs in the docstring's own prose.
 
-### F-account-3 · `archaeology` · a finding code, three "used to"s, and a doc that narrates its own history
+### F-account-3 · `archaeology` · a finding code, three "used to"s, and a doc that narrates its own history — DONE
 
 - `EditProfileModal.tsx` line 87–89: "Before this, the height was a fixed
   pixel count nobody derived (F23 → C)." A finding code and a before.
@@ -98,7 +101,7 @@ is stale); the KNOWN row goes.
   "(Reviewed 2026-08-02: still nothing sensitive here.)" Evidence file; fixed
   in place with the rest.
 
-### F-account-4 · `stale-claims` · sentences about code that no longer looks like that
+### F-account-4 · `stale-claims` · sentences about code that no longer looks like that — DONE
 
 - `EditProfileModal`'s docstring: "launched from the user menu" — there is no
   user menu; it opens from the account submenu of whichever page menu is up.
@@ -128,7 +131,7 @@ is stale); the KNOWN row goes.
   profile store — minus the localStorage mirror" — true, and the reason given
   ("was I editing my profile" is not worth restoring) is right; keeps.
 
-### F-account-5 · `rationale-in-docstring` · the hook and the store explain their design where a caller wanted their use
+### F-account-5 · `rationale-in-docstring` · the hook and the store explain their design where a caller wanted their use — DONE
 
 - `useAccountMenuSection`'s docstring is four paragraphs: what it is (keeps),
   why it is inside the page's menu, why the row is the dot + username, why a
@@ -143,7 +146,7 @@ is stale); the KNOWN row goes.
 - `EditProfileModal.tsx` line 72–75, the unhandled arm's comment, is right
   where it is: it defends the `setBusy(false)` on that line.
 
-### F-account-6 · `doc-md` · the lede lists action ids and the Design is owed
+### F-account-6 · `doc-md` · the lede lists action ids and the Design is owed — DONE
 
 `doc.md` is "Your own menu and profile editing — the modal, the color list,
 and the store behind them. The menu's submenu binds `act-edit-profile`,
@@ -157,7 +160,7 @@ screen's too, through `ColorField`; the RPC as the profile's single write path
 and the profile store repainting every reader from the answer; what a chosen
 swatch looks like and why it is not the cursor.
 
-### F-account-7 · `hook-name-predicate` · `useEditProfileOpen` answers yes/no
+### F-account-7 · `hook-name-predicate` · `useEditProfileOpen` answers yes/no — DONE
 
 `docs/code-conventions.md` → A hook that answers yes/no names itself as a
 predicate lists it by name as one of two holdouts, "to convert as each folder
@@ -402,7 +405,7 @@ component, one stylesheet; (3) `members/`, beside `MEMBER_COLORS` and `<Dot>`;
 
 </details>
 
-### F-account-13 · `test-mock-hex` · the test's profile stores a hex where the app stores a name
+### F-account-13 · `test-mock-hex` · the test's profile stores a hex where the app stores a name — DONE
 
 `EditProfileModal.test.tsx` line 23: `color: '#c0392b'`. `common.profiles.color`
 is a palette NAME (`'red'`, …), and the list selects by `value === name`, so
@@ -486,16 +489,53 @@ and is untouched. **Done 2026-09-12**, across all three screens.
 
 ## Predicted test breaks
 
-None at the audit. F-7 renames a hook `App.tsx` imports (`tsc -b` catches it;
-no test mocks it). F-12 moves a file two guards name by path
-(`vocabularies` ×2) and one component imports. F-13 changes what the mocked
-profile holds and no assertion reads the pre-selected swatch. F-14 recounts
-`plan(8)` and adds a file. F-1 deletes a KNOWN row from `orphanedDocstrings`;
-F-8 deletes two rows from `vocabularies`.
+None at the audit, and none happened — the prediction held for every finding
+but one. F-12 was predicted to re-path two `vocabularies` rows; F-8 had already
+deleted them, so the move touched only the import and the docs. The rest
+landed as written: F-7's rename was caught by `tsc -b` alone, F-13 changed
+what the mocked profile holds with no assertion reading the pre-selected
+swatch, F-14 recounted `plan(8)` and added a file, F-1 deleted a KNOWN row
+from `orphanedDocstrings`.
+
+Two guard edits were NOT predicted, both from F-10: `noRawServerMessage` gained
+a structural exemption for `environmentalEnvelope(`, and `docLinks` caught an
+anchor I invented for a heading `ui.md` does not have.
+
+## What the prose group turned up
+
+The prose group (F-1 to F-6, plus F-7 and F-13) was worked as one pass, and two
+things in it were bigger than the audit had them.
+
+**`supabase/sql/common.sql`'s profiles policy was wrong, not just dated.** The
+STANDING RULE above `profiles_select_authenticated` — *adding a column that
+isn't public means building the view first* — justified itself with "All four
+columns today (user_id, username, color, created_at)". The table has **six**:
+`theme` and `can_edit_words` arrived after that sentence was written, and
+nobody revisited the rule when they did. Both are in fact public-safe, so the
+conclusion survives; the reasoning behind it did not. Rewritten to name the
+condition rather than count the columns, which is what would have kept it true.
+`docs/common.md`'s `profiles` row had the same gap — it named `theme` and not
+`can_edit_words` — and now names both.
+
+**F-3's `docs/ui.md` sub-bullets were three paragraphs of history.** The
+account-submenu bullet narrated the `<UserMenu>` it replaced, the first version
+of home's header that sat inside the card, and the attempt that hung the menu
+off the wordmark. Each carried a live argument inside a dead story; the
+arguments are kept in the present tense and the stories are gone.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — grepped for
+      archaeology words, dates, plan citations, census claims, `/**` on props
+      and JSDoc tags across the folder and the moved file; all clean
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not — Joel,
+      2026-09-12: *"bless the files in this area, and bless
+      fields/ColorChoiceField.module.css."* Eight files `cs-blessed-account`.
+      The stylesheet takes **account's** suffix even though it now lives in
+      `fields/`, because the suffix records which area made the judgment rather
+      than which folder holds the file, and account is the area that read it.
+      `fields/ColorChoiceField.tsx` was NOT re-blessed and still says
+      `cs-blessed-forms` over content it gained in F-12 — forms', when forms
+      next opens.

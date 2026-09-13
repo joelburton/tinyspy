@@ -1,4 +1,4 @@
-// cs-audited-account
+// cs-blessed-account
 
 import { useState } from 'react'
 import { db as commonDb } from '../supabase/db'
@@ -16,27 +16,12 @@ import { ColorChoiceField } from '../fields/ColorChoiceField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  /** Save succeeded — the parent closes the dialog. */
+  // Save succeeded — the parent closes the dialog.
   onSaved: () => void
-  /** Cancel / Esc / X — the parent closes the dialog. */
+  // Cancel / Esc / X — the parent closes the dialog.
   onCancel: () => void
 }
 
-/**
- * The "Edit profile" popup, launched from the user menu. A
- * `FloatingPanel` (not a route) so the page underneath — chat, game
- * state, the invitation popups — stays mounted and live behind it.
- *
- * Today the only editable field is the player color: a swatch picker
- * over the 8-entry palette (`MEMBER_COLORS`), each rendered as its
- * actual color circle + name, defaulting to the current color.
- * Username is shown but immutable in v1. Save calls
- * `common.update_profile_color` and optimistically updates the shared
- * profile store (`setProfileColor`) so the menu dot repaints at once.
- *
- * Lifecycle mirrors the other dialogs: App conditionally renders us —
- * mounting opens, unmounting closes; we hold no "is open" state.
- */
 /** What the form holds, keyed by the name it is SENT AS — `new_color` is
  *  `common.update_profile_color`'s own parameter. */
 type Values = { new_color: string }
@@ -46,6 +31,19 @@ type Values = { new_color: string }
  *  whole answer and the only thing a branch can assert about it. */
 type ColorAnswer = { result: 'saved' }
 
+/**
+ * The **"Edit profile" dialog** — a `<NormalModal>`, opened from the account
+ * submenu of whichever page menu is on screen. The page underneath stays
+ * mounted and live behind it.
+ *
+ * It edits one thing: your player color, through `<ColorChoiceField>`, starting
+ * on the color you have. The username is shown and cannot be changed. Saving
+ * calls `common.update_profile_color` and then tells the shared profile store
+ * what the server now holds, so the menu dot and every other reader repaint.
+ *
+ * Mount it to open and unmount it to close — it holds no open/closed state of
+ * its own, and `onSaved` / `onCancel` are how it asks to be unmounted.
+ */
 export function EditProfileModal({ onSaved, onCancel }: Props) {
   const profile = useProfile()
   const [busy, setBusy] = useState(false)
@@ -85,8 +83,7 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
       onClose={onCancel}
       resizable={false}
       // Height is the content's: the number below is only the first-paint
-      // seed, and `fitContent` grows past it. Before this, the height was a
-      // fixed pixel count nobody derived (F23 → C).
+      // seed, and `fitContent` grows past it.
       fitContent
       defaultSize={{ width: 380, height: 460 }}
     >
