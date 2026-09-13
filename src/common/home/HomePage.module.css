@@ -25,8 +25,8 @@
 
 /* The shared `.badge` paints no color, so the caller picks one — one of the
  * app's two flexible colors, which mean nothing and only have to differ from
- * each other. Solo takes the same one Co-op takes; they never share a screen
- * (Solo is the homepage's, the mode badges are the club page's). */
+ * each other. Another badge wearing this same color is not a collision, for
+ * exactly that reason. */
 /* @@ */ .soloBadge {
   color: var(--flex-color-1);
 }

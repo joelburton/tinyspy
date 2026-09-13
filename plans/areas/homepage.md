@@ -165,13 +165,26 @@ that failed, on `http://localhost:5173/c/=e2e…`, and all 28 polls saw the club
 URL — so `toHaveURL`'s retrying does not let a slow navigation slip past the
 assertion. Plant reverted, re-run green.
 
-### F-homepage-9 · `census` · the badge comment names who else reads the token
+### F-homepage-9 · `census` · the badge comment names who else reads the token — DONE
 
 `HomePage.module.css` 26–29: "Solo takes the same one Co-op takes; they never
 share a screen (Solo is the homepage's, the mode badges are the club page's)".
 `ModePill` lives in `game-page`, and whether two readers of a flexible color
 share a screen is a claim that moves with every reader. The rule stands on its
 own: a flexible color means nothing and only has to differ from the other one.
+
+Both claims were TRUE when checked — three readers of the flexible colors
+(this one and `ModePill`'s `.coop`, both `--flex-color-1`; `.compete` takes
+`--flex-color-2`), and every place `ModePill` renders is the club page
+(`ClubGameCard`, `ClubGameRow`, `StartGameRow`, `EditClubModal`), so the
+parenthetical was right too. They are still the kind of claim that goes stale
+with nothing failing.
+
+**Worked 2026-09-13**, option 1: the census sentence is replaced by the rule it
+was standing in for — "Another badge wearing this same color is not a
+collision, for exactly that reason." The sentence was not only a census; it
+answered "isn't this the same teal Co-op wears?", and that reassurance is kept,
+as a property of the token rather than a fact about today's readers.
 
 ## Notes
 
