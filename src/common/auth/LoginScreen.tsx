@@ -169,7 +169,6 @@ export function LoginScreen() {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   autoComplete="one-time-code"
-                  placeholder="123456"
                   value={values.code}
                   onChange={(v) => set('code', v)}
                   disabled={busy}

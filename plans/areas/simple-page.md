@@ -5,8 +5,8 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-7 and F-10 worked. F-1 to F-6 are the prose group; F-7 to
-F-12 each carry a decision; F-13 is coverage.
+Thirteen findings recorded; F-7, F-8 and F-10 worked. F-1 to F-6 are the prose
+group; F-7 to F-12 each carry a decision; F-13 is coverage.
 
 ## The roster
 
@@ -219,6 +219,11 @@ Options:
    and prod's setting has to be confirmed to match.
 
 Recommend 1.
+
+**Worked 2026-09-13 — option 1.** `placeholder="123456"` is gone from the code
+field; `docs/common.md`'s two "6-digit code" sentences now say "a numeric
+sign-in code" and "the sign-in code". The docstring paragraph stays, and is now
+true of the UI it describes.
 
 ### F-simple-page-9 · `sent-line-vanishes` · a wrong code erases "Sent a magic link … to X"
 

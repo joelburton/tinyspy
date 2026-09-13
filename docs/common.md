@@ -650,10 +650,10 @@ Conventions live in [`code-conventions.md`](code-conventions.md); the short vers
 
 Auth is email-based magic links via `supabase.auth.signInWithOtp`. Custom SMTP (Resend) for the actual delivery, because Supabase's free-tier mail is rate-limited.
 
-The sign-in email contains **both** a clickable magic link AND a 6-digit code. Two verification paths land at the same session:
+The sign-in email contains **both** a clickable magic link AND a numeric sign-in code. Two verification paths land at the same session:
 
 - Click the link — Supabase's redirect URL exchanges it for a session and lands back at `window.location.origin`.
-- Enter the 6-digit code in the LoginScreen's "I have a code" form — calls `verifyOtp({type: 'email'})` to exchange the code on the current device.
+- Enter the sign-in code in the LoginScreen's "I have a code" form — calls `verifyOtp({type: 'email'})` to exchange the code on the current device.
 
 The code path is what makes cross-device sign-in work: open the email on your phone, type the code on your laptop. Either path emits `SIGNED_IN`, which `useSession` is subscribed to.
 
