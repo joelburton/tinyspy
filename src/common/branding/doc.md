@@ -5,7 +5,7 @@ and the component that draws a game's logo. Three images and nothing else — no
 state, no hooks, no click. A game's own artwork lives with that game; what is
 here is the app's, plus the one component every game borrows to show its.
 
-## Design
+## Intro to area
 
 A mark in this app is a bare `<img>` and never a control. That is the whole
 rule the folder is built on, and it exists because the same mark has to work in

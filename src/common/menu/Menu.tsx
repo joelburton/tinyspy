@@ -23,7 +23,7 @@ import styles from './Menu.module.css'
  * exception is the mobile drill-down's "‹ Back" row, which is navigable and
  * activatable but isn't a menu item the caller supplied. Back is a row rather
  * than a special case so there is exactly ONE list of rows with focus in it,
- * mobile or desktop — doc.md → Design.
+ * mobile or desktop — doc.md → Intro to area.
  */
 type NavRow =
   | { kind: 'back' }
@@ -74,7 +74,7 @@ type Props = {
  * bound actions (`MenuSection`, next door in `menuModel.ts`) and it draws them.
  *
  * A row may open a submenu (`MenuSubmenu`): a flyout beside the row on
- * desktop, a drill-down that replaces the list on mobile — doc.md → Design.
+ * desktop, a drill-down that replaces the list on mobile — doc.md → Intro to area.
  *
  * **Click outside** closes the menu, on mousedown so the close fires before
  * any click handler underneath.
@@ -94,7 +94,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
   // The open submenu, or null. ONE piece of state serves both presentations —
-  // doc.md → Design.
+  // doc.md → Intro to area.
   const [submenu, setSubmenu] = useState<OpenSubmenu | null>(null)
   // Which presentation: flyout on desktop, drill-down on mobile. Read here
   // rather than in CSS because the two differ in what is RENDERED, not just how

@@ -36,7 +36,7 @@ type Props = {
 /**
  * The shell's `/` landing page: the clubs you belong to, and the button that
  * adds one. Why it is shaped this way — the one-stop tab ring, the three empty
- * states, the zero-rows fault — is `doc.md`'s Design.
+ * states, the zero-rows fault — is `doc.md`'s Intro to area.
  *
  * `session` — its user id scopes the realtime subscription. The clubs read
  * itself sends no id: RLS filters it to the caller's memberships.
@@ -90,7 +90,7 @@ export function HomePage({ session }: Props) {
       setLoad('loaded')
       // ZERO ROWS is a fault, and the page's own to raise: the server answered
       // a well-formed query correctly, and "every account has a solo club" is
-      // the app's invariant, not the query's (doc.md → Design). Fired on every
+      // the app's invariant, not the query's (doc.md → Intro to area). Fired on every
       // load, not once per mount — a refetch that finds the same breakage
       // should say so again.
       if (result.data.length === 0) {

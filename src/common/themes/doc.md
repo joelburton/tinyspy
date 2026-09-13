@@ -5,7 +5,7 @@ answers in full, and the loader that picks one theme's chain and has it in
 place before the first paint. Daylight is what ships; midnight is a spike
 behind `?theme=midnight`.
 
-## Design
+## Intro to area
 
 A theme is almost entirely color. Switching one shows the same pixels in the
 same places, differing only in what color each thing is — the layout, the

@@ -22,7 +22,7 @@ Agreed 2026-09-12 (Joel: "stamp and do the audit").
   which split the reserved column's pins out of the file above
 
 Plus `doc.md` and `todo.md` — no stamp, markdown. `doc.md` now carries its
-Design (F-6) and is off `DESIGNS_OWED`; `todo.md` is empty, both its items
+Design (F-6) and is off `INTROS_OWED`; `todo.md` is empty, both its items
 having been worked (the hook's archaeology by F-3, the chosen swatch's ring by
 F-9).
 
@@ -151,7 +151,7 @@ is stale); the KNOWN row goes.
 `doc.md` is "Your own menu and profile editing — the modal, the color list,
 and the store behind them. The menu's submenu binds `act-edit-profile`,
 `act-add-word` and `act-log-out`." The second sentence is a symbol list, not a
-lede. The Design is owed (`DESIGNS_OWED`). Written in the prose pass from the
+lede. The Design is owed (`INTROS_OWED`). Written in the prose pass from the
 answers: what your account IS here (a username you cannot change, a color you
 can, and an editor flag granted by hand); the one row on every page's menu and
 why it is a submenu labeled with your name; the modal at the root and the
@@ -528,7 +528,7 @@ arguments are kept in the present tense and the stories are gone.
 - [x] the whole area re-read in one sitting after the last group — grepped for
       archaeology words, dates, plan citations, census claims, `/**` on props
       and JSDoc tags across the folder and the moved file; all clean
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not — Joel,
       2026-09-12: *"bless the files in this area, and bless

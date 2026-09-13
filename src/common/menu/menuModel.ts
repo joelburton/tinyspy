@@ -24,7 +24,7 @@ import type { BoundAction } from '../actions/useBoundAction'
 /**
  * A row that OPENS A SUBMENU instead of acting — crosswords' Check and Reveal
  * by scope, and the account row. One level deep only: its items are actions,
- * not further submenus (doc.md → Design says why the cap).
+ * not further submenus (doc.md → Intro to area says why the cap).
  *
  * The only kind of row that is not itself an action: opening is the whole
  * behavior, so there is nothing to run and no key to advertise. Its own words
@@ -51,7 +51,7 @@ export type MenuSubmenu = {
   // on that.
   dot?: string
   // The family's glyph, drawn before the label. The menu is the icon language's
-  // legend (doc.md → Design), so take it from `common/icons/icons.ts`, never
+  // legend (doc.md → Intro to area), so take it from `common/icons/icons.ts`, never
   // `lucide-react`: the registry is the one place that maps an action to its
   // glyph, and `AppIcon` is its type so a row and its button are handed the
   // identical value.

@@ -6,7 +6,7 @@ second call would do real, unwanted work — above all the run of every bound
 action (`useBoundAction`), so a command's button, menu row and key share one
 wait.
 
-## Design
+## Intro to area
 
 A player presses New game. The request goes to the server, the network takes a
 moment, nothing on screen has changed yet — so they press it again. That second

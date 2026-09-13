@@ -6,7 +6,7 @@ that adjust rather than name, and one file per named pattern under `patterns/`.
 If a color is not here, it is a theme's; if a look is not here, it belongs to
 the component that wears it.
 
-## Design
+## Intro to area
 
 Every game and the shell around them are meant to look like one app, and the
 way to get that is to make most visual decisions exactly once. The app

@@ -10,7 +10,7 @@ close the area, and commit") — fifteen findings: F-boot-1 and -4 closed with
 no change, F-boot-3 handed to `game-page`, the other twelve worked (the last
 three came from the whole-area re-read, all prose in the `loadTheme` pair).
 Nine files `cs-blessed-boot`, two of them written by the area; `boot/doc.md`'s
-Design written and the folder off `DESIGNS_OWED`.
+Design written and the folder off `INTROS_OWED`.
 
 ## The roster
 
@@ -31,7 +31,7 @@ instead, we're going to audit it and treat it as this area"), and gave the word
 | `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-blessed-boot` |
 | `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-blessed-boot` |
 | `src/common/boot/reload.fake.ts` | WRITTEN by this area (F-boot-8): a pressable `location.reload()`, shared by both boot tests | `cs-blessed-boot` |
-| `src/common/boot/doc.md` | lede, Design and Details written at the re-read; off `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/common/boot/doc.md` | lede, Design and Details written at the re-read; off `INTROS_OWED` | (no stamp — markdown) |
 | `src/common/boot/todo.md` | empty at the open | (no stamp — markdown) |
 
 **Decided at the opening:**
@@ -247,7 +247,7 @@ the two screens say so. Question 6 falls with it — no page is shared, so
 `ErrorPage`. The ruling is recorded as a comment above `App.tsx`'s
 `if (!gameManifest)` branch, so the next area to read either file does not
 re-find it. It went there rather than `common/game-page/doc.md`: that folder is
-still on `DESIGNS_OWED`, a rationale is Design material, and writing one there
+still on `INTROS_OWED`, a rationale is Design material, and writing one there
 now would both claim a Design `game-page` has not written and fail the guard
 from the other side.
 
@@ -664,7 +664,7 @@ docstring now sits directly on the function like the file's other three.
   `sessionStorage` in its TITLE was renamed, since the regex reads titles too.
 - ~~`src/common/web-storage/storage.fake.ts`~~ DONE with F-boot-7: its
   docstring no longer names this test as the one that "clears it raw".
-- ~~`src/guards/folderDocs.test.ts`~~ DONE at the re-read: `DESIGNS_OWED`
+- ~~`src/guards/folderDocs.test.ts`~~ DONE at the re-read: `INTROS_OWED`
   lost `common/boot` when the Design was written.
 - ~~`src/guards/csStamps.test.ts`~~ DONE: `loadTheme.test.ts` (F-boot-6) and
   `reload.fake.ts` (F-boot-8) both carry `cs-unmet` and the guard passes. The
@@ -675,7 +675,7 @@ docstring now sits directly on the function like the file's other three.
 
 - [x] the whole area re-read in one sitting after the last group — three
       findings, F-boot-13 to -15, all worked
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — `boot/todo.md` is empty and nothing is owed to the folder itself;
       F-boot-1's ruling moved to `doc.md` → Details. The one unruled item in

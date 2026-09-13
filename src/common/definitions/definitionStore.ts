@@ -8,7 +8,7 @@ export type Defining = { word: string; rect: DOMRect }
 /**
  * THE ONE OPEN DEFINITION — a module-level slot, the same shape as
  * `toastStore`: `<DefinableWord>` writes it, `<DefinitionHost>` reads it.
- * Why one slot at the root and not state per surface: doc.md → Design.
+ * Why one slot at the root and not state per surface: doc.md → Intro to area.
  */
 let defining: Defining | null = null
 const listeners = new Set<() => void>()

@@ -20,7 +20,7 @@ the files and audit.") — every file of `src/common/session/`:
 | `src/common/session/useSession.test.ts` | its contract — a case per state, per getUser failure class, and per "same user again" | `cs-blessed-session` |
 | `src/common/session/useProfile.ts` | the `Profile` type, the module-level profile store, `useProfile`, `setProfile`, `setProfileColor` (`useCurrentProfile` deleted by F-session-1) | `cs-blessed-session` |
 | `src/common/session/useProfile.test.ts` | **written by this area** (F-session-11): the store's four cases — one value to every reader, cleared for every reader, a saved color repainting the rest of the row intact, and a color save with nothing to save it into | `cs-blessed-session` |
-| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `DESIGNS_OWED`. rewritten again as each finding landed, and read end to end at the close | (no stamp — markdown) |
+| `src/common/session/doc.md` | lede only at the open ("Who is signed in, and their profile."), no Design. **Lede rewritten and Design written 2026-09-05** (Joel: "write the doc in the area"), before any finding was worked; its row is off `INTROS_OWED`. rewritten again as each finding landed, and read end to end at the close | (no stamp — markdown) |
 | `src/common/session/todo.md` | empty at the close: its one item was F-session-7 and F-session-8, both worked | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
@@ -479,7 +479,7 @@ short of driving a slow probe across an unmount.
   opt-out rule F-session-2 had to widen.
 - ~~`src/common/account/EditProfileModal.test.tsx`~~ — reached by F-session-1:
   the mock's row shape and the dropped `session` prop.
-- `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses its `common/session`
+- `src/guards/folderDocs.test.ts` — `INTROS_OWED` loses its `common/session`
   row when the Design is written, at the close.
 
 ## Closing
@@ -499,7 +499,7 @@ short of driving a slow probe across an unmount.
   - `doc.md` said a wasted render is corrected by "a reload"; since
     F-session-3 it is the next auth event.
   - `doc.md`'s tests bullet knew only `useSession.test.ts`.
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (2026-09-05), and re-read against the code once every finding had landed
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (2026-09-05), and re-read against the code once every finding had landed
 - [x] `todo.md` holds everything still owed — which is nothing; its one item was
   F-session-7 and -8, both worked
 - [x] every file on the roster blessed — four files `cs-blessed-session`

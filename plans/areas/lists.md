@@ -14,7 +14,7 @@ F-lists-18 (segmented-listed-as-a-pattern) and F-lists-19 (ring-shows-unasked),
 the second raised by Joel.
 
 **The whole-area re-read was done 2026-09-11** and the folder's `doc.md` Design
-written the same sitting (its row is off `DESIGNS_OWED`). The re-read found
+written the same sitting (its row is off `INTROS_OWED`). The re-read found
 nine things, F-lists-20 through F-lists-28 under "The re-read" below, all prose;
 Joel: "do them all", and all nine are worked. Blessed and closed on his word
 the same day; the near-miss values stay in the folder's `todo.md`.
@@ -809,7 +809,7 @@ out; the paragraph is reflowed.
 
 - [x] the whole area re-read in one sitting after the last group — 2026-09-11;
       F-lists-20 through F-lists-28 are what it found, all worked
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed (the near-miss values); nothing
       durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not — all

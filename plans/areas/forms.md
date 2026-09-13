@@ -10,7 +10,7 @@ words. Opened the same day: roster agreed (Joel: "do the audit") and stamped
 `cs-audited-forms`. All twelve findings from the audit read are worked, each on
 Joel's word. **The whole-area re-read was done the same day** and both
 folders' `doc.md` written (lede, Design, Details; both rows off
-`DESIGNS_OWED`). The re-read found six things, F-forms-13 through F-forms-18
+`INTROS_OWED`). The re-read found six things, F-forms-13 through F-forms-18
 under "The re-read" below, all prose; Joel: "fix them", and all six are
 worked. F-forms-19, Joel's own, worked the same day. Blessed and closed on
 his words.
@@ -527,7 +527,7 @@ Design.
 
 - [x] the whole area re-read in one sitting after the last group —
       2026-09-11; F-forms-13 through F-forms-18 are what it found, all open
-- [x] both folders' `doc.md` Design written; their rows off `DESIGNS_OWED`
+- [x] both folders' `doc.md` Design written; their rows off `INTROS_OWED`
 - [x] each `todo.md` holds everything still owed (both are the four bare
       headings); nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not — all 46

@@ -4,7 +4,7 @@ Every form field in the app: the shape they all share, the props they all
 take, and a component for each kind of control. A form is one consumer and the
 setup dialog is another, so the fields live here rather than with either.
 
-## Design
+## Intro to area
 
 A field is a caption over a control, with room for three sentences around it:
 what the setting is about, above the control; how to type it, below; and what

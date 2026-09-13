@@ -36,7 +36,7 @@ type Props = {
  * Give it a `title`, a body, and the footer `actions` — every other decision
  * the category makes is made here and is not a prop, because a blocking modal
  * that differed from its siblings would be claiming something about itself
- * that isn't true. doc.md → Design covers which decisions those are.
+ * that isn't true. doc.md → Intro to area covers which decisions those are.
  *
  * Usually you want a MEMBER of the category rather than this directly:
  * `ConfirmationBlockingModal` asks a question, `AcknowledgeBlockingModal`

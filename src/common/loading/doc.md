@@ -2,7 +2,7 @@
 
 The stand-in shown while a page loads.
 
-## Design
+## Intro to area
 
 One component and one word, because there is one idea. A page that is still
 pending has nothing to distinguish it from any other page that is still

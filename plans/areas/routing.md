@@ -322,13 +322,13 @@ uuid-shaped for it, which now says why the fixture is realistic instead.
 - F-routing-8 (a): `router.test.ts` is unaffected; a new `routes.test.ts`
   follows the file-per-unit rule. `useGameInvitations.test.ts` may pin the
   current regex — check before moving it.
-- `src/guards/folderDocs.test.ts`: `common/routing` leaves `DESIGNS_OWED` the
+- `src/guards/folderDocs.test.ts`: `common/routing` leaves `INTROS_OWED` the
   same change that writes the Design (the guard fails from both sides).
 
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not
 

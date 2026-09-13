@@ -25,7 +25,7 @@ Agreed 2026-09-13 (Joel: "1 add" for the e2e).
   host's wiring test lands here after sign-in, and its second test is this
   page's zero-rows fault end to end
 
-Plus `doc.md` (a lede, no Design; on `DESIGNS_OWED`) and `todo.md` (empty).
+Plus `doc.md` (a lede, no Design; on `INTROS_OWED`) and `todo.md` (empty).
 The page had no Vitest file at the opening — F-1, now written.
 
 **Evidence, not roster:** `CreateClubModal` (club's), `SelectionList`,
@@ -37,7 +37,7 @@ Docs that describe it: `docs/ui.md` → the height-bound list (HomePage bullet),
 → Selection lists ("The same idiom on the club-list page"), → Player identity;
 `docs/common.md` → Solo clubs, → Routing; `docs/keyboard-shortcuts.md` → Club
 page and home page; `docs/mobile.md` → The `.card` shell pages. Guards: only
-`folderDocs` (the `DESIGNS_OWED` row); no `vocabularies` pending row names the
+`folderDocs` (the `INTROS_OWED` row); no `vocabularies` pending row names the
 stylesheet.
 
 Baseline at the opening: no unit tests to run; `tsc -b` and eslint clean on
@@ -102,13 +102,13 @@ something different in each; zero rows is a fault the PAGE raises, since the
 server has no opinion about a site invariant, and it fires on every load; solo
 clubs sort first and are marked, not separated; creating a club is a modal
 because the act is "add to this list"; the greeting leads with the disc
-because home is where the disc says *you*. Then the `DESIGNS_OWED` row comes
+because home is where the disc says *you*. Then the `INTROS_OWED` row comes
 off.
 
 **Worked 2026-09-13.** Written to that shape, opening with what the page IS —
 one list and the button that adds to it, and no lobby — since the club is a
 venue and the list is the set of rooms you can walk into. The `common/home` row
-is off `DESIGNS_OWED`; planted a renamed heading to confirm `folderDocs` now
+is off `INTROS_OWED`; planted a renamed heading to confirm `folderDocs` now
 requires the section (it does: "0 \"## Design\" sections, want exactly 1").
 
 ### F-homepage-4 · `marker-pass` · a field note on `/**` — DONE
@@ -418,14 +418,14 @@ database, not the person. Lint clean; the e2e not yet run — asked.
 - F-1 adds `HomePage.test.tsx`; nothing existing breaks. (Confirmed: the
   whole suite, 316 files / 3125 tests, green with it.)
 - F-3: `src/guards/folderDocs.test.ts` — the `common/home` row comes off
-  `DESIGNS_OWED`.
+  `INTROS_OWED`.
 - F-8 changes an e2e assertion — run on Joel's word only.
 
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-13;
       ten findings, all worked)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (nothing is owed; the greeting note was harvested into the Design)
 - [x] every file on the roster blessed, or its stamp says why not (2026-09-13,

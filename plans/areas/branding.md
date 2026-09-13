@@ -8,7 +8,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 `cs-blessed-branding` on Joel's word ("mark all files in this area as blessed
 and then close this area"). Fifteen findings: thirteen worked, two closed with
 no change. `branding/doc.md` carries the Design and the folder is off
-`DESIGNS_OWED`; `branding/todo.md` is empty because nothing is owed here.
+`INTROS_OWED`; `branding/todo.md` is empty because nothing is owed here.
 
 ## The roster
 
@@ -435,7 +435,7 @@ that is where it stays.
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — `branding/todo.md` stays EMPTY. Every finding was worked or closed,
       and the two handoffs went to their own folders: the hand-written

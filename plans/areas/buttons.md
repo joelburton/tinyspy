@@ -64,7 +64,7 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/TrashButton.tsx` | destroy this thing — destructive by default so it looks irreversible before the press | `cs-blessed-buttons` |
 | `src/common/buttons/WordCheckButton.tsx` | check my own work — the accent blue, deliberately not Hint's amber | `cs-blessed-buttons` |
 | `src/common/buttons/ZoomFitButton.tsx` | frame the whole board — icon-only, the shared square box | `cs-blessed-buttons` |
-| `src/common/buttons/doc.md` | the lede + the Design (written by this area; `common/buttons` is off `DESIGNS_OWED`) | (no stamp — markdown) |
+| `src/common/buttons/doc.md` | the lede + the Design (written by this area; `common/buttons` is off `INTROS_OWED`) | (no stamp — markdown) |
 | `src/common/buttons/todo.md` | the Soon items handed in by earlier areas, plus what this area filed; the area's first read once it opens | (no stamp — markdown) |
 
 **Evidence, not roster** (to settle at the opening): `docs/buttons.html` —
@@ -566,7 +566,7 @@ should say what the folder holds — a look, not logic — and name the three
 that stand apart and why.
 
 **Resolution (2026-09-06, Joel: "i'll take your rec. fix it.")** — the Design
-is written and `common/buttons` is off `DESIGNS_OWED`. Patching two sentences
+is written and `common/buttons` is off `INTROS_OWED`. Patching two sentences
 was never worth doing separately: the lede had gone stale twice over (the three
 exceptions, and "a default name, a tone" naming axes this area removed today),
 and it was going to be replaced.
@@ -1134,7 +1134,7 @@ Written as the area changed things, and all of them landed:
 - **`stackdown/PlayArea.test.tsx`** — two selectors. Its Hint passes a
   `tooltip`, so the button's accessible name became the richer sentence.
 - **`folderDocs.test.ts`** — by design: writing the Design failed the guard
-  until `common/buttons` came off `DESIGNS_OWED`, which is how the guard was
+  until `common/buttons` came off `INTROS_OWED`, which is how the guard was
   verified rather than trusted.
 
 Nothing else moved. The ~500 `getByRole('button', { name })` selectors across
@@ -1144,7 +1144,7 @@ preserves every accessible name that `name` used to carry.
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not
 

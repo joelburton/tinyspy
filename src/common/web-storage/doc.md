@@ -4,7 +4,7 @@
 cannot crash the app, plus the hook for a control whose position should survive a
 reload. Nothing outside this folder touches either storage raw.
 
-## Design
+## Intro to area
 
 Browser storage looks like a plain key-value box and behaves like one right up
 until it doesn't. A browser set to block site data throws on `window.localStorage`

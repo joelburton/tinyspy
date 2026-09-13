@@ -5,7 +5,7 @@ relative date, clickable URLs in a run of text, the console timestamp, a
 seedable random-number generator, and a shuffle. Plain functions — no React
 state, no Supabase, and no knowledge of clubs, games or players.
 
-## Design
+## Intro to area
 
 Every codebase grows a folder like this one, and most of them turn into a junk
 drawer, because "small helper that didn't fit anywhere" describes an unlimited

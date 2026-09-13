@@ -103,7 +103,7 @@ function onKeyDown(e: KeyboardEvent) {
  * ONE module-level listener, not one per panel: a key meaning "dismiss this"
  * needs something that knows what "this" is, and a listener per panel answers
  * with all of them at once. The registry is also the app's answer to "which
- * movable thing is on top" (doc.md → Design).
+ * movable thing is on top" (doc.md → Intro to area).
  *
  * It covers the shell's families only. A popover, a dropdown or a sheet is not
  * a floating panel and keeps its own Escape — through `useDismissOnEscape`,

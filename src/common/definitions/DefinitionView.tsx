@@ -41,7 +41,7 @@ type Props = {
  *
  * It owns no word state: the host holds `word` and passes `onNavigate`, so a
  * cross-ref click flows back up and becomes the next `word`. Why one view
- * under two hosts: doc.md → Design.
+ * under two hosts: doc.md → Intro to area.
  */
 export function DefinitionView({ word, onNavigate }: Props) {
   const { result, loading, error } = useDefinition(word)

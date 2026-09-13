@@ -135,9 +135,14 @@ what is mechanical about it.
 The club chat panel, end to end: the panel, its data, and the unread mark.
 It belongs to no page — ClubPage and GamePage both mount it.
 
-## Design
+## Intro to area
 
-...why it is shaped this way...
+...a few narrative paragraphs: what the folder is for, what it shows or does,
+who mounts it, how it stays current, and how its pieces answer that...
+
+## Details
+
+...the sharp specifics a reader consults once they have the shape...
 
 ## <anything else>
 ```
@@ -147,14 +152,19 @@ It belongs to no page — ClubPage and GamePage both mount it.
 - **The lede is unlabeled prose, at most three sentences.** No heading above
   it, so it cannot quietly grow into a section. Write it for someone who has
   never opened the folder.
-- **`## Design` is required**, even when it is four lines. It explains the area
-  at a high level, to someone who does not know it: what problem the folder
-  exists for, and how its pieces answer that. **Narrative and jargon-free** —
+- **`## Intro to area` is required**, even when it is four lines. It is an
+  *introduction* to the area's design, not the design in full: what problem
+  the folder exists for, and how its pieces answer that, at the altitude
+  someone who does not know the area can hold. **Narrative and jargon-free** —
   paragraphs that follow one another, not a stack of bolded claims. It is
-  **not** a tour of the files; the files have docstrings.
+  **not** a tour of the files; the files have docstrings. Two shapes are
+  guarded (`src/guards/folderDocs.test.ts`): no paragraph in it opens with
+  bold, and an intro over 25 lines has a section after it.
 - After that, any sections you like — **and that is where technical depth
-  goes.** A `## Details` section carries the sharp specifics a reader consults
-  once they have the shape (`common/mobile` is the pattern).
+  goes.** `## Details` carries the sharp specifics a reader consults once they
+  have the shape (`common/home` is the pattern for a small folder). A large
+  area — a game — will want more, and named: its schema, its rules, its tests.
+  That structure is designed when the first game area opens.
 
 **The register to aim for.** Describing a whole GAME this way would take a few
 paragraphs, not a chapter: which tables hold its state, whether the frontend
@@ -165,7 +175,7 @@ a docstring.
 
 Two tests for a draft. Read it as if you had never opened the folder: a sentence
 that only lands once you already know the answer is not explaining anything, and
-belongs in `## Details`. And read the lede again once the Design exists — the
+belongs in `## Details`. And read the lede again once the intro exists — the
 lede written when the folder was created describes it from outside, and usually
 wants rewriting the day someone finally explains the folder.
 

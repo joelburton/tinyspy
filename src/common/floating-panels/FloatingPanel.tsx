@@ -41,7 +41,7 @@ export type PanelDensity = 'tight' | 'loose'
  *                      readable mid-question.
  *
  * The family is what decides the scrim, the drag, Escape, the remembered rect
- * and the layer; `FAMILY` below is the table, and doc.md → Design says why one
+ * and the layer; `FAMILY` below is the table, and doc.md → Intro to area says why one
  * word rather than five props.
  */
 export type PanelFamily =
@@ -155,7 +155,7 @@ export type FloatingPanelProps = {
   //
   // Pass one only for a panel that can be summoned from inside something
   // outranking its family — chat and the help guides — and say why at the call
-  // site. doc.md → Design covers why that case exists.
+  // site. doc.md → Intro to area covers why that case exists.
   zIndex?: string
   // Rank for Escape at the FAMILY's layer rather than at the tier this panel
   // paints on — "paints high, ranks low". Chat is the only caller and the only

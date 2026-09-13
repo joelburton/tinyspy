@@ -766,7 +766,7 @@ describe('Menu — submenus (mobile drill-down)', () => {
 })
 
 /**
- * The icon gutter — the icon language's legend (doc.md → Design). What's pinned
+ * The icon gutter — the icon language's legend (doc.md → Intro to area). What's pinned
  * is the ALIGNMENT rule, because it's the part that silently degrades: every
  * row reserves the slot whether or not it has anything to put in it, so no
  * label hangs left of the others and a leading mark has one place it can be.

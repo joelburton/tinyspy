@@ -9,7 +9,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 Audited and closed the same day. Seventeen findings, all worked: F-1 to F-8 in
 the prose pass, F-11, F-9, F-10 and F-12 on Joel's decisions, F-13 to F-16 in
 the closing re-read (the whole roster in one sitting), and F-17 on Joel's word.
-The `doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md`
+The `doc.md` Design is written and the row is off `INTROS_OWED`; `todo.md`
 holds one Maybe. Blessed on Joel's "bless the files. then close.".
 
 ## The roster
@@ -28,7 +28,7 @@ read too).
 
 Plus `doc.md` (lede rewritten and Design written in the prose pass, and the
 wiring — the seam, the one subscription, the two stores — added after; off
-`DESIGNS_OWED`, the guard planted red first) and `todo.md` (one Maybe left;
+`INTROS_OWED`, the guard planted red first) and `todo.md` (one Maybe left;
 F-chat-7, F-chat-10 and F-chat-17 took the three Soon items) — no stamp,
 markdown.
 
@@ -343,7 +343,7 @@ after each.
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-12,
   F-chat-13 to F-chat-17)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed — sixteen `cs-blessed-chat` (2026-09-12,
   Joel: "bless the files. then close.")

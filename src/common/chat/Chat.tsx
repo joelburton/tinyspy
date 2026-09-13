@@ -38,7 +38,7 @@ type Props = {
  *
  * A message that starts with `!` opens the panel for every recipient when it
  * arrives — not for one already in the log at load — and `<ChatBody>` strips
- * the marker for display. The whole shape: doc.md → Design.
+ * the marker for display. The whole shape: doc.md → Intro to area.
  */
 export function Chat({
   clubHandle,

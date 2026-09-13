@@ -57,7 +57,7 @@ type SavedPad = { result: 'saved'; version: number } | null
  * peers agreeing over Broadcast on the same channel: typing claims it, the
  * holder re-asserts it while editing and releases it when idle, and everyone
  * else is read-only until it frees or they take it over. The whole shape:
- * doc.md → Design.
+ * doc.md → Intro to area.
  */
 export function useScratchpad(
   gameId: string,

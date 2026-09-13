@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react'
  * **Is the Edit-profile dialog open?** — written by the account submenu's
  * `act-edit-profile`, read by `App`, which mounts `<EditProfileModal>` on it.
  *
- * The opener and the dialog share no parent (doc.md → Design), so the flag
+ * The opener and the dialog share no parent (doc.md → Intro to area), so the flag
  * lives outside both. Same tiny pub-sub shape as `chatOpenStore` and the
  * profile store, minus the localStorage mirror: "was I editing my profile" is
  * not worth restoring across a navigation.

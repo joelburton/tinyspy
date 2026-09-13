@@ -44,7 +44,7 @@ type Values = { letters: string }
  * whether it is open.
  *
  * Case is MEANINGFUL — an uppercase letter is pinned to its position, `?` is a
- * wildcard — so the input is never lowercased. The syntax: doc.md → Design.
+ * wildcard — so the input is never lowercased. The syntax: doc.md → Intro to area.
  */
 export function AnagramDialog({ onClose }: { onClose: () => void }) {
   // null = nothing searched yet (no result area at all).

@@ -5,7 +5,7 @@ into, the one host that draws whatever the store holds, and the card each
 announcement becomes. [docs/ui.md → Toasts](../../../docs/ui.md) says which
 news belongs here at all.
 
-## Design
+## Intro to area
 
 Most of what the app tells a player is an answer to something they just did,
 and it appears where they did it. Some of it is news from other people, and

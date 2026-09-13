@@ -6,7 +6,7 @@ small framed list you read and scroll (`SimpleScrollableList`), and the dropdown
 that narrows what some other list or readout shows without ever taking the
 keyboard (`FilterSelect`).
 
-## Design
+## Intro to area
 
 From the outside, most of what this app draws is a column of rows. The clubs on
 the homepage, the games in a club, the results in the anagram finder, the

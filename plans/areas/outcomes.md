@@ -265,7 +265,7 @@ about why the type is four, and about the mapping it points at.
 ### RESOLVED · F-outcomes-9 · `design-owed` · The folder's `doc.md` is a pointer, and it owes a Design
 
 `src/common/outcomes/doc.md` is one sentence that forwards to
-`docs/outcomes.md`, and `common/outcomes` is on `DESIGNS_OWED` in
+`docs/outcomes.md`, and `common/outcomes` is on `INTROS_OWED` in
 `src/guards/folderDocs.test.ts`. What only the FOLDER can say — and what no
 file in it says today — is why a vocabulary gets a folder of its own with a
 single type in it, and what the boundary is between the vocabulary and the
@@ -283,7 +283,7 @@ game has none, while "how a turn reads" was never narrower at all.
 
 Nothing in it recites `outcomes.ts` or `docs/outcomes.md`; the lede points at
 the canonical doc and the Design cites the type for the words' own reasoning.
-Row deleted from `DESIGNS_OWED`, and the guard verified from both sides — it
+Row deleted from `INTROS_OWED`, and the guard verified from both sides — it
 fails on a Design while the row stands, and on a row-less folder with no
 Design.
 
@@ -314,12 +314,12 @@ Design.
 prose or a type-level narrowing that already held at every call site, so no
 spec asserted the old shape. The two guards it did touch were verified by
 planting instead: an eighth outcome for the palette rectangle, and the
-`DESIGNS_OWED` row put back with the Design in place.
+`INTROS_OWED` row put back with the Design in place.
 
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — the one open item is the `status.terminal_cause` rename
 - [x] every file on the roster blessed, or its stamp says why not —

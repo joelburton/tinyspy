@@ -233,7 +233,7 @@ cosmetic items.
 
 **`corecss` is paused, one step from closed** (2026-09-05): nineteen audit
 findings worked, the closing re-read's eleven worked, `core-css/doc.md` and
-`themes/doc.md` written and off `DESIGNS_OWED`. Its roster stays
+`themes/doc.md` written and off `INTROS_OWED`. Its roster stays
 `cs-audited-corecss` because the last step is Joel's read, and Joel: *"i can't
 really review these files and bless them until we've complete some areas that
 rely on corecss."* A base rule is best judged from the surfaces that wear it,
@@ -801,9 +801,17 @@ making every single-line change in four folders its own commit is dumb.)
    docstrings written the same day, after it had already made an opening pass.
    See [The docstring marker](#the-docstring-marker--a-pass-every-area-makes).
 2. **Harvest the folder's `doc.md`** (Joel, 2026-09-04). Everything durable and
-   important the area learned has to be somewhere that outlives it — the
-   `doc.md`'s Design, or a docstring or comment in the code, whichever is the
-   better home — and its row comes off `DESIGNS_OWED` in
+   important the area learned has to be somewhere that outlives it — a section
+   of the `doc.md` AFTER the intro (`## Details`, or a named one), or a
+   docstring or comment in the code, whichever is the better home. **The
+   `## Intro to area` is not the harvest's destination.** It is written first
+   and kept short: a few narrative paragraphs introducing the area to someone
+   who does not know it — what it is for, what it shows, who mounts it, how it
+   stays current. The area file's findings are bolded claims, and poured into
+   the intro they make it a list of claims with nothing after it, which is
+   what `homepage` did (Joel, 2026-09-13: *"everything is put in 'Design'
+   … it's a huge smell if there are no other sections"*). The guard now holds
+   both shapes. Its row comes off `INTROS_OWED` in
    `src/guards/folderDocs.test.ts`. Anything still owed goes to `todo.md`. The
    area file is then a record of the reading and nothing more.
 

@@ -244,7 +244,7 @@ the answer to "what would converging the three cost" if that is ever revisited
       written import-free for exactly that reason. The bullet names both now.
       Nothing else had drifted; the folder is small enough that a claim and
       its subject sit on the same screen.
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file.
       `utils`' own `todo.md` stays empty in all four sections — the folder is
       owed nothing. What this area produced for others is the nine `shuffle`

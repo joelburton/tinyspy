@@ -406,7 +406,7 @@ since F-keyboard-5 and -6 change two of those sentences.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
 
@@ -436,7 +436,7 @@ subject underneath it. Every finding, sorted:
 | F-keyboard-17 | `tab-rings-plan-stale` | resolved | the plan's names fixed (`common/keyboard/useTabRing.ts`, `CluePanel.trapTab`), its three false leaks corrected; the plan stands |
 | F-keyboard-18 | `stale-paths` | resolved | every `common/hooks/input/` and `common/components/game/` path repointed |
 | F-keyboard-19 | `common-md-second-copy` | resolved | `docs/common.md` keeps one paragraph on the Tab round trip and links the folder doc and the shortcuts doc |
-| F-keyboard-20 | `doc-md-design` | resolved | `doc.md` has its Design: whose keystroke, where Tab may go, backtick as Escape; not on `DESIGNS_OWED` |
+| F-keyboard-20 | `doc-md-design` | resolved | `doc.md` has its Design: whose keystroke, where Tab may go, backtick as Escape; not on `INTROS_OWED` |
 
 Two rows on the roster went and two came: `useAppShortcuts.tsx` and its test
 are deleted, `editableField.ts` and its test are the folder's new files. The

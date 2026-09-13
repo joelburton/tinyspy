@@ -30,7 +30,7 @@ All in `src/common/actions/`, all written whole by the actions sprint on
 | `KeyList.tsx` + `.module.css` + `.test.tsx` | the generated key list in Help |
 | `nameWithKey.ts` | "Shuffle · ⌥Z" |
 | `boundAction.fixture.ts` | a bound action for a test that does not bind |
-| `doc.md` | Design and Details, written by the sprint; not on `DESIGNS_OWED` |
+| `doc.md` | Design and Details, written by the sprint; not on `INTROS_OWED` |
 | `todo.md` | one Bug, one Soon, three Someday, one Maybe |
 
 Left off, at Joel's word: the two guards (`actionIds`, `registeredChords`) and

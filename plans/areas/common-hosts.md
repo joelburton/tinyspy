@@ -51,7 +51,7 @@ against the dev server; `window.puptoast` by nothing.
 Feedback pill) and docs/ui.md → Button iconography → Conventions (the tooltip
 bubble) are the owning sections; docs/common.md → Joining a game — the
 invitation toast is the invitations' one (F-22 renamed it from "popup"). All four four-line `doc.md` files
-are on `DESIGNS_OWED`.
+are on `INTROS_OWED`.
 
 ## Findings
 
@@ -579,10 +579,10 @@ to ship for a friends-only alpha" is gone, replaced by the actual reason.
 ## F-common-hosts-26 · `four-designs-owed` · All four `doc.md` files are a single line — WORKED
 
 Each was a lede and nothing else. **All four Designs written 2026-09-11, and
-the four rows deleted from `DESIGNS_OWED`** — planted to confirm the guard bites
+the four rows deleted from `INTROS_OWED`** — planted to confirm the guard bites
 both ways: putting `common/toasts` back on the list while its `doc.md` has a
 `## Design` reds `folderDocs.test.ts` with "has a `## Design` but is still on
-DESIGNS_OWED".
+INTROS_OWED".
 
 Each opens by naming the doc that owns its rules and then says how the code
 answers them, rather than touring the files. What each one argues:
@@ -765,7 +765,7 @@ in any of the eighteen code files.
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-11,
       F-27..F-36)
-- [x] the four folders' `doc.md` Designs written; their rows off `DESIGNS_OWED`
+- [x] the four folders' `doc.md` Designs written; their rows off `INTROS_OWED`
       (2026-09-11, and the guard planted both ways); rewritten the same day to
       the narrative shape
 - [x] `todo.md` holds everything still owed; nothing durable left in this file

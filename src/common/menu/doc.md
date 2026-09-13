@@ -2,27 +2,105 @@
 
 The one menu in every page header — the chevron-wrapped logo that opens a list of what you can do here — and what exists so a page can hand it rows without also handing it decisions: the row and section types, the assembler every game's menu goes through, and two module slots, one holding what a game has pushed in and one holding how the `?` key opens it.
 
-## Design
+## Intro to area
 
-docs/ui.md → GamePage menu states the rules: a game owns its whole menu, a row is an action, when rows are read, how focus behaves. This is how the code answers them.
+docs/ui.md → GamePage menu states the rules: a game owns its whole menu, a row
+is an action, when rows are read, how focus behaves. This is how the code
+answers them.
 
-There is a single `<Menu>`, rendered by `PageHeaderMenu` and by nothing else, and everything else here exists so a caller can hand it rows without also handing it decisions. A row is an **action** (`common/actions`), so its words, its glyph, its shortcut and whether it applies right now all arrive with the binding; the only row that is not an action is a submenu, and it earns that by not being one (opening is the whole behavior, so there is nothing to run and no key to advertise). `menuRow` is the one place a row is read on its way in, which is what lets `<Menu>` lay out labels and glyphs without ever asking what kind of row it has. A row grays while its action is still out: `menuRow` reads the binding's `pending` alongside its state, so a row cannot advertise a key for a run it would drop.
+There is a single `<Menu>`, rendered by `PageHeaderMenu`, and everything else
+here exists so a caller can hand it rows without also handing it decisions. A row is an action (`common/actions`), so its words, its
+glyph, its shortcut and whether it applies right now all arrive with the
+binding. The exception is a submenu row, which earns it by not being a command:
+opening is the whole behavior, so there is nothing to run and no key to
+advertise.
 
-**Two module slots sit beside the component, and they are the same shape for the same reason.** One page is mounted at a time and it has one header menu, so there is nothing to arbitrate:
+A game owns its whole menu, framing included: `buildGameMenu` assembles the
+standard shape — Help and chat above, the game's own sections, then the exits
+and Back to club — rather than the shell injecting anything. Two module slots
+sit beside the component: `pageMenuStore` holds how to open the menu, so the
+`?` key can reach it from anywhere, and `gameMenuStore` holds what a game has
+pushed into it. One page is mounted at a time and it has one header menu, so
+there is nothing to arbitrate.
 
-- `pageMenuStore` holds *how to open* the menu, so the `?` key can reach it without three pages each carrying a ref across. A page with no menu registered — the sign-in gate, a loading screen — makes `?` a no-op, deliberately. The game page's menu is not such a page: the header sits outside the pause boundary, so the menu stays mounted through a pause and holds only the account row until the game resumes.
-- `gameMenuStore` holds *what a game has pushed into* it.
+While the menu is open it owns the keyboard, walking exactly one list at a
+time — the rows, or an open submenu's — and every key stops at the menu, so
+arrowing through it never doubles as a move on a board.
 
-The second one is worth its own sentence, because the alternative — state on the game page — is not only slower. Pushing a menu would re-render the whole page, board included, for a change nothing outside the menu can see, and it would make the IDENTITY of a menu row load-bearing, since a game's menu effect lists its rows in its deps: a row rebuilt each render would set state, re-render, rebuild and loop. With the store, a game re-rendering costs the menu nothing and a menu push costs the game nothing, and a stable identity is only an optimization.
+## Details
 
-**A game owns its WHOLE menu**, framing included — `buildGameMenu` assembles the standard shape (Help and chat above, the game's own sections, then the exits and Back to club) rather than the shell injecting anything. That is what lets a menu as long as crosswords' exist without the shell knowing about it, and a section header — the puzzle's title and credits — sit above everything as a header-only section rather than a special case.
+**`menuRow` is the one place a row is read on its way in**, which is what lets
+`<Menu>` lay out labels and glyphs without ever asking what kind of row it
+has. A row grays while its action is still out: `menuRow` reads the binding's
+`pending` alongside its state, so a row cannot advertise a key for a run it
+would drop.
 
-**A submenu is one piece of state with two shapes.** A row that is a `MenuSubmenu` opens as a flyout beside the parent row on desktop and as a drill-down that replaces the list on mobile, where a second panel would have nowhere to go: the popover already runs to the width cap there. The menu holds which row is open and where its parent sat, not the row itself — rows are re-read every render, so holding one would be holding a snapshot of what it said when it opened. Whichever shape is drawn, the keyboard walks exactly ONE list: the open submenu's rows, plus a "‹ Back" row in the drill-down, where the parent list is gone and there would otherwise be no way back. Modeling Back as a row rather than special-casing it around the keyboard code is what keeps that flat-index model intact. One level deep only; the flyout would need cascade positioning to go deeper, and no menu in the app wants it.
+**The two module slots are the same shape for the same reason.** A page with
+no menu registered in `pageMenuStore` — the sign-in gate, a loading screen —
+makes `?` a no-op, deliberately. The game page's menu is not such a page: the
+header sits outside the pause boundary, so the menu stays mounted through a
+pause and holds only the account row until the game resumes. `gameMenuStore`
+is worth its own sentence, because the alternative — state on the game page —
+is not only slower. Pushing a menu would re-render the whole page, board
+included, for a change nothing outside the menu can see, and it would make the
+IDENTITY of a menu row load-bearing, since a game's menu effect lists its rows
+in its deps: a row rebuilt each render would set state, re-render, rebuild and
+loop. With the store, a game re-rendering costs the menu nothing and a menu
+push costs the game nothing, and a stable identity is only an optimization.
 
-**The menu owns the keyboard while it is open**, and answers it on its own element rather than through a global listener: arrows walk the list, Enter and Space activate, → and ← step into and out of a submenu, Escape unwinds one level at a time, and Tab closes the menu and is consumed so no ring hears a press that would otherwise walk off into the browser's chrome. Every key stops there, so arrowing through the menu never doubles as a move on a board that reads `window` keydowns. Closing runs before the row's action, so a modal the row opens takes focus cleanly after the trigger has it back. The game page alone asks for focus to fall to the page instead of the trigger on close; docs/ui.md → GamePage menu → Focus says why.
+**A game owning its WHOLE menu** is what lets a menu as long as crosswords'
+exist without the shell knowing about it, and a section header — the puzzle's
+title and credits — sit above everything as a header-only section rather than
+a special case.
 
-**The icon gutter is the icon language's legend.** Icon-only buttons carry their names in hover tooltips, which touch devices do not have; the menu spells the same actions out in words, so drawing each action's glyph beside its name teaches the pairing once. The slot is reserved on every row, empty or not, so labels share one column and a leading mark has exactly one place it can be. The account row's identity disc takes that same slot — a row names a person or a deed, never both.
+**A submenu is one piece of state with two shapes.** A row that is a
+`MenuSubmenu` opens as a flyout beside the parent row on desktop and as a
+drill-down that replaces the list on mobile, where a second panel would have
+nowhere to go: the popover already runs to the width cap there. The menu holds
+which row is open and where its parent sat, not the row itself — rows are
+re-read every render, so holding one would be holding a snapshot of what it
+said when it opened. Whichever shape is drawn, the keyboard walks exactly ONE
+list: the open submenu's rows, plus a "‹ Back" row in the drill-down, where the
+parent list is gone and there would otherwise be no way back. Modeling Back as
+a row rather than special-casing it around the keyboard code is what keeps
+that flat-index model intact. One level deep only; the flyout would need
+cascade positioning to go deeper, and no menu in the app wants it.
 
-**Every mark in a row is sized by the label it sits beside.** The identity disc, the leading glyph and the submenu mark are all `1em`, and the slot that holds the first two is a little wider, in em as well, so changing the menu's type moves every mark with it and nothing in a row is the one pixel dimension. The marks share one muted ink of their own — the shortcut, the leading glyph and the drill-down's Back row read a menu token, not a field's or the page's, because they agree with those today and are not the same decision. Two things at a row's edges are not marks in that sense. A section's credit lines are words, and stay on the page's muted text. And the submenu mark is drawn in the label's ink: it says the row leads somewhere, which is part of what the row does, and it sits where a shortcut would otherwise be, so it must not read as one — which is also why it is the registry's glyph and not a character. A disabled row adds nothing of its own: it is a real disabled button and wears the app's one disabled treatment.
+**The menu owns the keyboard while it is open**, and answers it on its own
+element rather than through a global listener: arrows walk the list, Enter and
+Space activate, → and ← step into and out of a submenu, Escape unwinds one
+level at a time, and Tab closes the menu and is consumed so no ring hears a
+press that would otherwise walk off into the browser's chrome. Every key stops
+there, so arrowing through the menu never doubles as a move on a board that
+reads `window` keydowns. Closing runs before the row's action, so a modal the
+row opens takes focus cleanly after the trigger has it back. The game page
+alone asks for focus to fall to the page instead of the trigger on close;
+docs/ui.md → GamePage menu → Focus says why.
 
-**Stacking is a rung of its own.** `--z-menu` in `base.css` is the one home, and the stylesheet reads it; the flyout sits one above by deriving from it rather than restating a number. base.css says why the menu sits where it does relative to chat and the pause gate.
+**The icon gutter is the icon language's legend.** Icon-only buttons carry
+their names in hover tooltips, which touch devices do not have; the menu spells
+the same actions out in words, so drawing each action's glyph beside its name
+teaches the pairing once. The slot is reserved on every row, empty or not, so
+labels share one column and a leading mark has exactly one place it can be.
+The account row's identity disc takes that same slot — a row names a person or
+a deed, never both.
+
+**Every mark in a row is sized by the label it sits beside.** The identity
+disc, the leading glyph and the submenu mark are all `1em`, and the slot that
+holds the first two is a little wider, in em as well, so changing the menu's
+type moves every mark with it and nothing in a row is the one pixel dimension.
+The marks share one muted ink of their own — the shortcut, the leading glyph
+and the drill-down's Back row read a menu token, not a field's or the page's,
+because they agree with those today and are not the same decision. Two things
+at a row's edges are not marks in that sense. A section's credit lines are
+words, and stay on the page's muted text. And the submenu mark is drawn in the
+label's ink: it says the row leads somewhere, which is part of what the row
+does, and it sits where a shortcut would otherwise be, so it must not read as
+one — which is also why it is the registry's glyph and not a character. A
+disabled row adds nothing of its own: it is a real disabled button and wears
+the app's one disabled treatment.
+
+**Stacking is a rung of its own.** `--z-menu` in `base.css` is the one home,
+and the stylesheet reads it; the flyout sits one above by deriving from it
+rather than restating a number. base.css says why the menu sits where it does
+relative to chat and the pause gate.

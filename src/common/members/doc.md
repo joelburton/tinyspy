@@ -4,7 +4,7 @@ Who someone is, the color that identifies them, and the two marks that show it â
 a disc on its own, or a disc beside a name. Also the small operations every list
 of people needs: put the viewer first, and answer who a `user_id` belongs to.
 
-## Design
+## Intro to area
 
 Identity in this app is two things, a name and a color, and the color is the
 interesting half. It is not a value the frontend picks: it is a NAME, one of

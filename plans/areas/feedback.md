@@ -409,7 +409,7 @@ parameter). Nothing a person can see changes; ten markers.
 ## F-feedback-11 · `designs-owed` · The folder's `doc.md` has no Design and a lede written before the build; `terminal/` and `info-sheet/` say nothing about their feedback file — WORKED
 
 `feedback/doc.md` is a title and one paragraph that still describes the
-folder from outside. The `DESIGNS_OWED` row is open. The Design to write
+folder from outside. The `INTROS_OWED` row is open. The Design to write
 is the one the plan already tells in prose — a message is a kind, the kind
 decides how it looks and leaves, a slot keeps one message per rank and draws
 the lowest, a condition is an effect that retracts — for a reader who has
@@ -441,7 +441,7 @@ rows already say so.
   games call it; boggle's tally reads `Ended: 12 words, 34 points`, which is
   what its `buildOver` builds.
 - F-11: `feedback/doc.md` has a lede and a Design, and `common/feedback` is
-  off `DESIGNS_OWED` in `src/guards/folderDocs.test.ts` (verified by planting:
+  off `INTROS_OWED` in `src/guards/folderDocs.test.ts` (verified by planting:
   renaming the heading fails the guard). `terminal/doc.md` and
   `info-sheet/doc.md` each gained the sentence saying which file of theirs
   holds a message's words, and why it is theirs and not feedback's — two
@@ -689,7 +689,7 @@ The two specs above; both changed with their games and are green.
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-12;
       F-14 to F-21 above, all WORKED)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (`feedback/todo.md` is empty; the one owed test is in `waffle/todo.md`)
 - [x] every file on the roster blessed (Joel, 2026-09-12): twenty-two files

@@ -6,7 +6,7 @@ form's messages take, and `FailureLine`, which draws the form-wide one. The
 fields themselves are `fields/`; this folder is what every form needs that is
 not a field.
 
-## Design
+## Intro to area
 
 A form, here, is any place a player fills something in and presses a button:
 signing in, claiming a handle, making or editing a club, editing a profile,

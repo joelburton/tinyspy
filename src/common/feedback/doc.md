@@ -9,7 +9,7 @@ through. One shape for every message the app says to a player about their own
 last action, the state they are in, or what someone else just did — and one
 rule for which of them is on screen.
 
-## Design
+## Intro to area
 
 A message is a kind, not a string. Every message is built by a named
 constructor — the server said no, the front end's own verdict on a move, the

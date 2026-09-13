@@ -250,7 +250,7 @@ handler" and now points at `doc.md`, where that answer went.
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed — which is nothing: what this area
       found is either shipped or filed with `common/menu` (the in-flight menu-row
       question; the hard-coded `NEW_GAME_ID`)

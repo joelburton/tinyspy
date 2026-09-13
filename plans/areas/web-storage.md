@@ -282,7 +282,7 @@ an omission.
     which is what its test covers since the conversion.
   - `useStickyChoice`'s lede called itself the "segmented-control counterpart",
     written when ClubPage was its only caller. Crosswords made that narrow.
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` —
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` —
   verified by planting a broken heading, which fails the guard.
 
   **The first draft was written FROM the docstrings and had to be cut by half**

@@ -290,7 +290,7 @@ One home: the docstring. The module's header points at it.
 The lede is now an inventory of the folder. The Design — the height contract,
 one mark component with four independent channels, the status slot's two
 states, what earns the header — is the closing step, and `common/page-header`
-is on `DESIGNS_OWED` until then.
+is on `INTROS_OWED` until then.
 
 ## F-page-header-16 · `chat-label-is-logic-nobody-reads` · The chat mark computed a three-way `aria-label` that no person reads — WORKED
 
@@ -369,12 +369,12 @@ contract and a strip that never grows; one kind of mark with four independent
 channels; the status slot's two states and why the header is for news about
 others; a base gap and marks that pad themselves; marks as action surfaces —
 and a Details list for the sharp specifics. `common/page-header` is off
-`DESIGNS_OWED` (verified by planting: renaming the heading fails the guard).
+`INTROS_OWED` (verified by planting: renaming the heading fails the guard).
 
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-12)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (`page-header/todo.md` is empty — its one item closed as F-1)
 - [x] every file on the roster blessed (Joel, 2026-09-12): thirteen files

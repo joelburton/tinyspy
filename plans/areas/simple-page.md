@@ -24,7 +24,7 @@ Agreed 2026-09-12 (Joel: "1. add 2. add — then stamp and audit").
 
 Plus each folder's `doc.md` and `todo.md` — no stamp, markdown. All three
 `todo.md` files were empty at the opening; all three `doc.md` files hold a lede
-and no Design, and all three folders are on `DESIGNS_OWED`.
+and no Design, and all three folders are on `INTROS_OWED`.
 
 **Evidence, not roster — read and judged, fixed in place, never stamped:**
 `common.claim_username` in `supabase/sql/common.sql` (PN013–PN018 and the
@@ -43,7 +43,7 @@ action; every game's `PlayArea` renders `EnvelopeErrorPage` off its `failure`.
 Guards that name the roster: `noRawServerMessage` (an ALLOWED row for
 `LoginScreen` — GoTrue's text is the design there, and the row stays),
 `vocabularies` (a spacing row for `ClaimHandleScreen.module.css`, a font-size
-row for `ErrorPage.module.css`), `folderDocs` (three `DESIGNS_OWED` rows),
+row for `ErrorPage.module.css`), `folderDocs` (three `INTROS_OWED` rows),
 `callSiteShape` (cites `EnvelopeErrorPage` as the fourth way to present).
 `orphanedDocstrings` names none of these files — see F-1 for why that is not
 evidence. Docs: `docs/common.md` → Username claim flow, → `claim_username`,
@@ -200,7 +200,7 @@ Design).
 
 ### F-simple-page-6 · `designs` · three `doc.md` Designs owed
 
-All three folders are on `DESIGNS_OWED`. Each `doc.md` needs a `## Design`
+All three folders are on `INTROS_OWED`. Each `doc.md` needs a `## Design`
 (`folderDocs` requires one per folder), and each lede re-read once the Design
 exists. Expected shape: `auth` carries the weight — the gate order it sits
 behind, magic link + code as two paths to one session, the claim as the second
@@ -210,7 +210,7 @@ sign-outs (F-7), the two ways failures land (a field vs the form's line);
 word and no box, versus a slot held open.
 
 **Worked 2026-09-13.** All three Designs written to that shape and the three
-`DESIGNS_OWED` rows deleted from `folderDocs`. `auth`'s carries the weight, as
+`INTROS_OWED` rows deleted from `folderDocs`. `auth`'s carries the weight, as
 expected: the gate order, one email with two uses, why there is no password
 flow, the raw-GoTrue-message exception, the permanent handle, the seeded color
 that does not follow the field, the two halves of the claim's refusals, and the
@@ -560,7 +560,7 @@ linted; **not run** — an e2e is run on Joel's word only. Stamped
 - F-11 and F-12: `src/guards/vocabularies.test.ts` — a pending row whose file
   stops carrying the literal fails from the other side; the row goes with the
   finding.
-- F-6: `src/guards/folderDocs.test.ts` — three `DESIGNS_OWED` rows come off as
+- F-6: `src/guards/folderDocs.test.ts` — three `INTROS_OWED` rows come off as
   each Design lands.
 - F-9: `LoginScreen.test.tsx` gains a spec; none of its three break.
 - F-3: `claim_username_test.sql` — comments only; the plan count does not move
@@ -570,7 +570,7 @@ linted; **not run** — an e2e is run on Joel's word only. Stamped
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-13;
       F-14 to F-19 above)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (all
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (all
       three, F-6)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       (`auth/todo.md` one Someday; `loading` and `error-page` empty; the

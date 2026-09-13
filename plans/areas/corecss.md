@@ -8,7 +8,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 bless them until we've complete some areas that rely on corecss").** Roster
 stamped `cs-audited-corecss` and stays so; every file read in one sitting;
 findings below. All nineteen audit findings worked, the closing re-read done
-(eleven more, below), both `doc.md` Designs written and off `DESIGNS_OWED`.
+(eleven more, below), both `doc.md` Designs written and off `INTROS_OWED`.
 The one thing left is the blessing, and it waits until the areas that read
 these stylesheets have closed — a base rule is best judged from the surfaces
 that wear it. Nothing here is owed before then; the next area opens as
@@ -912,7 +912,7 @@ its own `.frame`, the one page not wearing `.pageHeaderAndMainArea`;
 
 - [x] the whole area re-read in one sitting after the last group
       (2026-09-05, eleven findings, all worked)
-- [x] both folders' `doc.md` Design written; both rows off `DESIGNS_OWED`
+- [x] both folders' `doc.md` Design written; both rows off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not — **only
       Joel's word sets `cs-blessed-corecss`**. PAUSED 2026-09-05: the

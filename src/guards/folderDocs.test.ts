@@ -21,11 +21,16 @@ import { describe, expect, it } from 'vitest'
  *     first item to a folder should be one line, not a guess at the structure;
  *   - a `doc.md` exists, opens with its folder's name, and spends one to three
  *     sentences before the first heading;
- *   - it has exactly one `## Design` — once the folder has left
- *     `DESIGNS_OWED`, which is what tracks the half an area writes.
+ *   - it has exactly one `## Intro to area` — once the folder has left
+ *     `INTROS_OWED`, which is what tracks the half an area writes;
+ *   - the intro is an INTRODUCTION: no paragraph in it opens with bold (a
+ *     bolded claim is a Details item), and an intro longer than
+ *     `INTRO_LINES_BEFORE_A_SECTION_IS_OWED` has a section after it, because
+ *     an intro that long has detail in it and the detail has a place to go.
+ *     `INTROS_TO_RESHAPE` lists the folders written before that rule.
  *
  * What is NOT mechanical and is nobody's guard: whether the lede is any good,
- * whether Design explains the design, and whether an item is in the right one
+ * whether the intro explains the area, and whether an item is in the right one
  * of the four sections. Those are read, not tested.
  *
  * `common/devtools` is not a feature folder for any purpose here — `/palette`
@@ -55,11 +60,12 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
 }
 
 /**
- * Folders whose `doc.md` has a lede but no `## Design` yet — the same shrinking
- * allowlist the vocabulary and css-class guards use: a listed folder is silent,
- * an unlisted one fails, and a listed folder that HAS a Design has to leave.
+ * Folders whose `doc.md` has a lede but no `## Intro to area` yet — the same
+ * shrinking allowlist the vocabulary and css-class guards use: a listed folder
+ * is silent, an unlisted one fails, and a listed folder that HAS an intro has
+ * to leave.
  *
- * **It tracks the Design, not the file**, and that distinction is the whole
+ * **It tracks the intro, not the file**, and that distinction is the whole
  * point of the list. Every folder got a `doc.md` the day the format landed,
  * because a one-line lede is enough to navigate a tree by and Joel wanted them
  * for ordering the sprint. If this list tracked the FILE it would have emptied
@@ -68,11 +74,11 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  *
  * So it starts as every folder, which is honest: a lede says what a folder is,
  * and none of them yet says why it is that way. Each area deletes its own line
- * when it writes its Design, and the length of this list is how much of the
+ * when it writes its intro, and the length of this list is how much of the
  * tree is still undescribed — a progress marker that cannot drift, because it
  * is the test.
  */
-const DESIGNS_OWED: string[] = [
+const INTROS_OWED: string[] = [
   'common/club',
   'common/game-page', 'common/info-sheet',
   'common/manifest',
@@ -87,6 +93,23 @@ const DESIGNS_OWED: string[] = [
   'shared/grid-and-drag', 'shared/onscreen-keyboard', 'shared/rank-ladder',
   'shared/word-hunt', 'shared/wordle-style',
 ]
+
+/**
+ * An intro longer than this with nothing after it is carrying detail. The
+ * number is an altitude, not a word count: a few narrative paragraphs fit
+ * under it, and the sharp specifics that push past it belong in `## Details`
+ * or a named section (docs/common-folders.md → "three fixed elements").
+ */
+const INTRO_LINES_BEFORE_A_SECTION_IS_OWED = 25
+
+/**
+ * Folders whose intro was written before the intro rule had a guard — as a
+ * stack of bolded claims, or as one long section with nothing after it. The
+ * same shrinking list as above: a listed folder is silent, and one that has
+ * been reshaped has to leave. Reshaping one is a documentation pass on a
+ * closed area, which is Joel's to schedule.
+ */
+const INTROS_TO_RESHAPE: string[] = []
 
 /** The `##` headings of a markdown file, in order. */
 const headings = (src: string): string[] =>
@@ -104,6 +127,25 @@ function ledeSentences(src: string): number {
   const lede = src.replace(/^# .*$/m, '').split(/^## /m)[0] ?? ''
   const flat = lede.replace(/\b(e\.g|i\.e|etc|vs)\./g, '$1')
   return [...flat.matchAll(/[.!?](?:\s|$)/g)].length
+}
+
+/**
+ * What the intro is made of, for the two shape checks: how many of its
+ * paragraphs open with bold, how many lines it runs, and whether any section
+ * follows it. `null` when the file has no intro.
+ */
+function introShape(src: string): { bolded: number; lines: number; followed: boolean } | null {
+  const at = /^## Intro to area\s*$/m.exec(src)
+  if (!at) return null
+  const rest = src.slice(at.index + at[0].length)
+  const next = /^## /m.exec(rest)
+  const body = (next ? rest.slice(0, next.index) : rest).trim()
+  const paragraphs = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+  return {
+    bolded: paragraphs.filter((p) => p.startsWith('**')).length,
+    lines: body === '' ? 0 : body.split('\n').length,
+    followed: next !== null,
+  }
 }
 
 describe('every feature folder', () => {
@@ -145,8 +187,8 @@ describe('every feature folder', () => {
     expect(
       missing,
       'A feature folder with no doc.md. Being new is not an exemption — write ' +
-        'the H1 and a one-sentence lede, and put the folder on DESIGNS_OWED ' +
-        'until its area writes the Design.\n\n' + missing.join('\n'),
+        'the H1 and a one-sentence lede, and put the folder on INTROS_OWED ' +
+        'until its area writes the intro.\n\n' + missing.join('\n'),
     ).toEqual([])
   })
 
@@ -168,23 +210,43 @@ describe('every feature folder', () => {
         wrong.push(`${key}/doc.md  →  lede is ${sentences} sentences, want 1–3`)
       }
 
-      // The Design is what an area writes; until then the folder says so on
-      // DESIGNS_OWED rather than carrying an empty heading that reads as done.
-      const design = headings(src).filter((h) => h === 'Design').length
-      const owed = DESIGNS_OWED.includes(key)
-      if (!owed && design !== 1) {
-        wrong.push(`${key}/doc.md  →  ${design} "## Design" sections, want exactly 1`)
+      // The intro is what an area writes; until then the folder says so on
+      // INTROS_OWED rather than carrying an empty heading that reads as done.
+      const intros = headings(src).filter((h) => h === 'Intro to area').length
+      const owed = INTROS_OWED.includes(key)
+      if (!owed && intros !== 1) {
+        wrong.push(`${key}/doc.md  →  ${intros} "## Intro to area" sections, want exactly 1`)
       }
-      if (owed && design > 0) {
-        wrong.push(`${key}/doc.md  →  has a "## Design" but is still on DESIGNS_OWED — delete its row`)
+      if (owed && intros > 0) {
+        wrong.push(`${key}/doc.md  →  has a "## Intro to area" but is still on INTROS_OWED — delete its row`)
+      }
+
+      // The intro is an introduction. A paragraph opening with bold is a claim,
+      // which is a Details item; an intro that runs long with nothing after it
+      // is carrying the detail that section exists for.
+      const shape = introShape(src)
+      if (shape === null) continue
+      const faults: string[] = []
+      if (shape.bolded > 0) {
+        faults.push(`${shape.bolded} intro paragraph(s) open with bold — a bolded claim is a Details item, and the intro is narrative`)
+      }
+      if (shape.lines > INTRO_LINES_BEFORE_A_SECTION_IS_OWED && !shape.followed) {
+        faults.push(`the intro is ${shape.lines} lines and nothing follows it — an intro that long has detail in it; move the detail under a section after it`)
+      }
+      const reshape = INTROS_TO_RESHAPE.includes(key)
+      if (!reshape) for (const fault of faults) wrong.push(`${key}/doc.md  →  ${fault}`)
+      if (reshape && faults.length === 0) {
+        wrong.push(`${key}/doc.md  →  is on INTROS_TO_RESHAPE but its intro is in shape — delete its row`)
       }
     }
     expect(
       wrong,
       'A doc.md that has drifted from the three fixed elements: the H1 is the ' +
-        'folder name, the lede is 1–3 unlabeled sentences, and `## Design` is ' +
-        'required exactly once once the folder leaves DESIGNS_OWED. Everything ' +
-        'after that is free.\n\n' + wrong.join('\n'),
+        'folder name, the lede is 1–3 unlabeled sentences, and `## Intro to area` ' +
+        'is required exactly once once the folder leaves INTROS_OWED — and is an ' +
+        'introduction: narrative paragraphs, none opening with bold, with the ' +
+        'detail in a section after it. Everything after that is free.\n\n' +
+        wrong.join('\n'),
     ).toEqual([])
   })
 })

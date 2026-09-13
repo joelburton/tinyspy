@@ -528,7 +528,7 @@ the hook and its CSS twin stay a pair. No decision yet.
 
 ## Predicted test breaks
 
-- `src/guards/folderDocs.test.ts` — `DESIGNS_OWED` loses its `mobile` row when
+- `src/guards/folderDocs.test.ts` — `INTROS_OWED` loses its `mobile` row when
   the Design is written (fails from both sides until the two land together).
 - `src/guards/csStamps.test.ts` — a new file with no stamp fails it. The four
   F-mobile-3 wrote were stamped `cs-met-mobile` as they were written, so it
@@ -559,7 +559,7 @@ the hook and its CSS twin stay a pair. No decision yet.
       - `useIsPhone`'s constant claims to be the copy of `--phone`, but since
         F-mobile-1 the CSS composes that name from two arms, so the two TEXTS
         differ and only the resolved conditions match. It says so now.
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`. Five
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`. Five
       statements, none of them a tour of the files: CSS answers the device
       question and a hook is the exception; a name lives here once and a test
       holds the JS copy to it; the three questions are not three sizes of one;

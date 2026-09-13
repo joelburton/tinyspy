@@ -28,7 +28,7 @@ files that carry the same envelope on the server side of the wire:
 | `src/common/supabase/dbLog.ts` | the `[db]` console line | `cs-blessed-supabase` |
 | `supabase/functions/_shared/envelope.ts` | the Deno envelope builders | `cs-blessed-supabase` |
 | `supabase/functions/_shared/dbResult.ts` | the Deno `runRpc` | `cs-blessed-supabase` |
-| `src/common/supabase/doc.md` | lede at open: the client, the DB handle, and the wrappers. No Design. **Lede rewritten and Design written at the close, 2026-09-05**; its row is off `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/common/supabase/doc.md` | lede at open: the client, the DB handle, and the wrappers. No Design. **Lede rewritten and Design written at the close, 2026-09-05**; its row is off `INTROS_OWED` | (no stamp — markdown) |
 | `src/common/supabase/todo.md` | empty under all four headings at open, and still empty at the close: nothing is owed | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
@@ -309,7 +309,7 @@ not re-asked.
 - [x] the whole area re-read in one sitting after the last group (2026-09-05,
   after F-12). It turned up two ragged wraps left by the F-2 and F-5 edits in
   `dbEnvelope.ts`, fixed in the same pass, and nothing else.
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed — nothing is; nothing durable left
   in this file
 - [x] every file on the roster blessed, or its stamp says why not — all

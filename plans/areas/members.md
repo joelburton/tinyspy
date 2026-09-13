@@ -8,7 +8,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 `buttons` closed: roster agreed and stamped `cs-audited-members`, every file
 read end to end, fifteen findings recorded. All fifteen are worked, closed moot
 or decided; one folder was deleted and one component moved in and renamed; the
-Design is written and `members` is off `DESIGNS_OWED`; two closing re-reads are
+Design is written and `members` is off `INTROS_OWED`; two closing re-reads are
 done and what is still owed is in `members/todo.md`. Joel blessed the roster —
 *"bless the files in the area, then close and commit"* — and the ten files are
 `cs-blessed-members`.
@@ -59,11 +59,11 @@ find-or-create any more, and no roster-mismatch error with it."*
 So the `text` folder is dead code, and three docs still describe the dead path:
 `docs/common-folders.md:314` (*"it renders setup errors today"*),
 `docs/games/connections.md:383` and `:466` (the rich roster-mismatch error).
-`common/text` also sits on `DESIGNS_OWED`, owing a Design for a component
+`common/text` also sits on `INTROS_OWED`, owing a Design for a component
 nothing uses.
 
 **A decision, not a cleanup.** Two honest answers: delete the folder (with its
-`DESIGNS_OWED` row, its `vocabularies.test.ts` pending row, its
+`INTROS_OWED` row, its `vocabularies.test.ts` pending row, its
 `common-folders.md` table row, and the three doc sentences), or keep it as a
 primitive on purpose — in which case its docstring must stop citing a producer
 that no longer exists, and F-members-7, -11, -12 and -13 get worked. Joel's
@@ -81,7 +81,7 @@ envelope's `message` is a `string`, so reviving the component would take a
 change to the envelope shape rather than to the component.
 
 Removed with it: `src/common/text/` entire (four files), the `common/text` row
-in `folderDocs.test.ts`'s `DESIGNS_OWED`, the `RichMessage.module.css` row in
+in `folderDocs.test.ts`'s `INTROS_OWED`, the `RichMessage.module.css` row in
 `vocabularies.test.ts`'s spacing pending list, the `text` row and the two
 `RichMessage` bullets in `docs/common-folders.md` (the folder table, the
 "generic text renderer is NOT feedback" classification rule, the judgment
@@ -565,7 +565,7 @@ in that window:
 
 - [x] the whole area re-read in one sitting after the last group — twice, the
       second covering the move, the renames and the prose that came with them
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not — all ten
       `cs-blessed-members`; the four `text` rows are DELETED and carry no stamp

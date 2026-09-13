@@ -6,7 +6,7 @@ wrappers a call site uses instead of the client's own methods, which hand back
 an envelope whatever the call did. The Deno files that build and read the same
 envelope on the other side of the wire sit in `supabase/functions/_shared/`.
 
-## Design
+## Intro to area
 
 Everything the app knows lives in Postgres, and every change to it is a request
 over the network: an RPC through PostgREST, a table read, or an edge function

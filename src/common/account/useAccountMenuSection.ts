@@ -39,7 +39,7 @@ function reportFailedSignOut(error: AuthError): void {
  *
  * Hands back one `MenuSection` holding that row. Spread it at the END of a
  * page's `sections`, which is where every page puts it. Why it is a submenu
- * inside the page's menu, and why the row is your name, are doc.md's Design.
+ * inside the page's menu, and why the row is your name, are doc.md's Intro to area.
  */
 export function useAccountMenuSection(): MenuSection {
   const profile = useProfile()

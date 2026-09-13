@@ -5,7 +5,7 @@ for a click, `navigate()` for code — one hook, `usePath()`, that tells a
 component where the page is now, and the app's two URL shapes, built and matched
 in one place. What each path SHOWS is decided in `App.tsx`, not here.
 
-## Design
+## Intro to area
 
 The app is a single page. Opening a club or a game changes the URL bar and swaps
 what React renders, and the server is never asked for a new document. Something

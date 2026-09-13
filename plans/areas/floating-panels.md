@@ -30,7 +30,7 @@ All in `src/common/floating-panels/`:
 | `confirmations.ts` · `useAcknowledge.tsx` | the confirm vocabulary — options, answer, the three canonical questions — and the acknowledge hook |
 | `confirmationService.ts` + `.test.ts` · `ConfirmationHost.tsx` + `.test.tsx` | asking from code that is not a component, and the root host that draws it |
 | `modalActions.module.css` | the end-aligned button row |
-| `doc.md` | lede + Design (written 2026-09-11; off `DESIGNS_OWED`) |
+| `doc.md` | lede + Design (written 2026-09-11; off `INTROS_OWED`) |
 | `todo.md` | one Soon, three Someday |
 
 Left off: the instances that ride on the shell (chat, the help companions,
@@ -598,7 +598,7 @@ Deleted: `useConfirmation.tsx` (the hook; the file lives on as `confirmations.ts
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-11,
       F-15 through F-28; F-29 from Joel's read of the diff)
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (lede and
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (lede and
       Design brought up to the folder as it closes, 2026-09-11)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not (Joel,

@@ -7,7 +7,7 @@ slot that shows the players strip until the page's global feedback slot has a
 message to draw instead. It is no one page's, which is why it lives here
 rather than under home, club or game.
 
-## Design
+## Intro to area
 
 The header is furniture, not content. Home, club and game all wear the same
 strip — a menu trigger hard against the page's top-left, a thin rule beneath,

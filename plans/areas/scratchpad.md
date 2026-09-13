@@ -9,7 +9,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 Audited and closed the same day. Sixteen findings, all worked or closed: F-7
 to F-12 and F-15 on Joel's decisions, F-13 closed by F-9's, F-1 to F-6 as the
 prose group, F-14 and F-16 the waiting fixes. The `doc.md` Design is written
-and the row is off `DESIGNS_OWED`; `todo.md` holds two Maybes. The closing
+and the row is off `INTROS_OWED`; `todo.md` holds two Maybes. The closing
 re-read fixed five stale claims in place and moved the two lock races from
 crosswords' register to this folder's `todo.md` on Joel's word. Blessed on
 Joel's "commit, then bless the files and close the area."
@@ -25,7 +25,7 @@ ruling `chat` used).
 - `supabase/tests/common/scratchpad_test.sql`
 - `e2e/scratchpad.e2e.ts`
 
-Plus `doc.md` (a one-line lede; the Design is owed — `DESIGNS_OWED` has the
+Plus `doc.md` (a one-line lede; the Design is owed — `INTROS_OWED` has the
 row) and `todo.md` (one Someday, the monospace choice that waits for the setup
 forms; one Maybe, the open-flag encoding chat and scratchpad store two ways) —
 no stamp, markdown.
@@ -73,7 +73,7 @@ storage carries it across a reload); docs/common.md says `p_owner_id`,
 guards on membership only; the SQL test's two typos are fixed. F-5: the
 store's design paragraph moved to doc.md. F-6: doc.md has a lede that says
 whose pad it is and a Design written from the answers; the row is off
-`DESIGNS_OWED` (the guard seen red with the heading planted wrong).
+`INTROS_OWED` (the guard seen red with the heading planted wrong).
 
 `useScratchpad.ts` lines 40–55: the twelve-line `/** The per-game scratchpad
 body + … */` block is followed by a second `/** What set_scratchpad puts in
@@ -148,7 +148,7 @@ storage does.
 `doc.md` is "The shared notes panel a club can write in while a game runs" —
 and that is not quite it either: the pad is a GAME's, opted into per manifest,
 shared in coop and private per player in compete. The Design is owed
-(`DESIGNS_OWED`). Written in the prose pass from the answers: what a pad is
+(`INTROS_OWED`). Written in the prose pass from the answers: what a pad is
 and who owns one; the two stores and the one seam (`GamePage` mounts the
 companion with five things); the body's newer-wins sync and why a full-text
 flush is enough; the lock — FE-only arbitration between friends, claim while
@@ -477,6 +477,6 @@ catches the rename; nothing else has a test that would notice.
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not

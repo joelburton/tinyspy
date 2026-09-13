@@ -3,7 +3,7 @@
 The ⌥~ dialog: type a rack of letters and see every dictionary word they
 spell, each one click-to-define.
 
-## Design
+## Intro to area
 
 A player holding a rack of letters wants to know what words are in it. This
 dialog answers that anywhere in the app: press ⌥~, type the letters, press

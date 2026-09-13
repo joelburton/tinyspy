@@ -29,7 +29,7 @@ All in `src/common/menu/`:
 | `gameMenu.ts` + `.test.ts` | `buildGameMenu`: the framing every game's menu shares |
 | `gameMenuStore.ts` + `.test.ts` | the sections a game has pushed |
 | `pageMenuStore.ts` | how to open the page's menu, for the `?` key |
-| `doc.md` | lede + Design, present (not on `DESIGNS_OWED`) |
+| `doc.md` | lede + Design, present (not on `INTROS_OWED`) |
 | `todo.md` | one Maybe: a disabled row cannot say why |
 
 Left off: the three things that render or fill it — `PageHeaderMenu`, which

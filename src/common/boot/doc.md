@@ -5,7 +5,7 @@ the start or a render fails, and a reload for a tab whose build a deploy has
 replaced underneath it. Both are wired in from `main.tsx`, which sits at the
 root of `src/` and is the boot order itself.
 
-## Design
+## Intro to area
 
 Everything the app normally uses to say "something went wrong" is React: the
 error page, the fault modal, the boundary around the play surface. All of it

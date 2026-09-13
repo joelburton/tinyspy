@@ -6,7 +6,7 @@ language itself — why Lucide, how the game menu teaches each glyph — is
 [ui.md → Button iconography](../../../docs/ui.md#button-iconography); this folder
 is the mapping.
 
-## Design
+## Intro to area
 
 An icon is a word the app uses without spelling it out, and the same picture has
 to mean the same thing on every surface a player sees. That is hard to hold

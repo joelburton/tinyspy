@@ -4,7 +4,7 @@ The outcome vocabulary — the closed list of words the app uses for how a thing
 turned out, and nothing else. What each word means, and every surface that shows
 one, is [docs/outcomes.md](../../../docs/outcomes.md).
 
-## Design
+## Intro to area
 
 Lots of things in this app have to say how something went: a feedback pill after
 a move, a tile that just turned a color, a bar in the turn log, a finished game's

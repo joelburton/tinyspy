@@ -6,70 +6,70 @@ that does supplied by whoever offers it. What each key DOES is
 [docs/keyboard-shortcuts.md](../../../docs/keyboard-shortcuts.md); this folder
 is what a command IS.
 
-## Design
+## Intro to area
 
 A command is one thing wherever it appears. Its menu row, its button, its key
 and its line in the help list are four views of one idea, and none of them can
 disagree with the others about what it is called, what key fires it, or
 whether it is available right now. This folder exists to make that so.
 
-The thing is an **action**, and it has two halves. The fixed half is what the
-app decides once and every game inherits: what the action is called, its glyph,
+The thing is an action, and it has two halves. The fixed half is what the app
+decides once and every game inherits: what the action is called, its glyph,
 its keys, its tone, and the question it asks before it acts. That lives in the
 registry, a plain table with no functions in it, and it is the reason shuffle
 answers to the same key in every game that offers shuffle — a game does not
 choose. The live half is what only the offering page can know: what the command
 actually does here, whether it applies at this moment, and what it says right
-now. A game supplies that by binding, and the two halves joined are a **bound
-action**, which is all any surface ever sees.
+now. A game supplies that by binding, and the two halves joined are a bound
+action, which is all any surface ever sees.
 
-**Binding is offering.** There is no list of "which keys this game wants" —
+Binding is offering. There is no list of "which keys this game wants" —
 binding an action is what gives a page its key, its menu row and its button, and
 unbinding is what takes them back. Components bind their own: a page binds its
 commands, and a component mounted inside it binds the keys it owns, so what is
 available is simply what is mounted. That is also what makes the help list
 trustworthy, since the list and the dispatcher read the same registrations.
 
-A bound action answers one question, `describe()`, with `active`, `hidden` or
-`disabled` — and optionally with different words, a different glyph, or the
-reason it is the state it is, for this moment. One answer, read by everything: a
-menu row grays, a button disables and a key does nothing for the same stated
-reason, and they cannot disagree. The reason goes into the button's bubble in
-place of the name and key ("Find 2 more valid words" on a Hint that is not yet
-earned); it comes from the binding rather than the placement because the
-conditions that decide the state are the ones that know why.
-`hidden` and `disabled` say different things and the distinction matters: hidden
-is "not here at this moment", which is how a play-only action leaves at
-terminal, while disabled is "here, and not right now", which is Submit with an
-empty entry.
+A bound action answers one question, `describe()`, and everything reads that
+one answer: a menu row grays, a button disables and a key does nothing for the
+same stated reason, and they cannot disagree. Keys go through one listener at
+the app root, and nothing else in the app listens for a game key. That is the
+property the whole design rests on: a key that works is a key some action
+declared, so there is one place to look for a page's keys and no way for one to
+escape the list.
 
-The line that answer sits on is **how an action looks now versus what it is**. A
-toggle has two faces — "Reveal secrets" with the boxed eye, "Hide secrets" with
-the crossed-out one — and both halves move together, because on an icon-only
+## Details
+
+**`describe()` answers `active`, `hidden` or `disabled`** — and optionally with
+different words, a different glyph, or the reason it is the state it is, for
+this moment. The reason goes into the button's bubble in place of the name and
+key ("Find 2 more valid words" on a Hint that is not yet earned); it comes from
+the binding rather than the placement because the conditions that decide the
+state are the ones that know why. `hidden` and `disabled` say different things
+and the distinction matters: hidden is "not here at this moment", which is how
+a play-only action leaves at terminal, while disabled is "here, and not right
+now", which is Submit with an empty entry.
+
+**How an action looks now is separate from what it is.** A toggle has two
+faces — "Reveal secrets" with the boxed eye, "Hide secrets" with the
+crossed-out one — and both halves move together, because on an icon-only
 control the glyph is the label and letting the words move alone would have the
 two saying different things. What never moves is the action's name, its keys,
 its tone and its question: those are what make it the same command in every
 game, and none of them depends on the moment.
 
-Keys go through one listener at the app root, and nothing else in the app
-listens for a game key. That is the property the whole design rests on: a key
-that works is a key some action declared, so there is one place to look for a
-page's keys and no way for one to escape the list.
-
-What the listener does with a keystroke is three passes, because a keystroke can
-mean three kinds of thing. A **watcher** claims nothing and every live one runs:
-that is how any key dismisses the last message and still types its letter. An
-**interceptor** is a surface declaring a MODE — while a past turn is open, the
-next key means "back to the live board", whatever else is bound — and a mode
-outranks any particular key, which is a claim about the moment rather than
-about specificity. Everything else is a **command**, taken in the order the
-bindings mounted: a component mounted with its page sits ahead of the page and
-wins a key they both want, while one mounted later sits behind everything
-already there. That order is a tiebreak and nothing more — two commands that
-can be live at the same moment do not share a chord, and when they do the
-dispatcher says so in the console in development.
-
-## Details
+**A keystroke is three passes**, because a keystroke can mean three kinds of
+thing. A watcher claims nothing and every live one runs: that is how any key
+dismisses the last message and still types its letter. An interceptor is a
+surface declaring a MODE — while a past turn is open, the next key means "back
+to the live board", whatever else is bound — and a mode outranks any
+particular key, which is a claim about the moment rather than about
+specificity. Everything else is a command, taken in the order the bindings
+mounted: a component mounted with its page sits ahead of the page and wins a
+key they both want, while one mounted later sits behind everything already
+there. That order is a tiebreak and nothing more — two commands that can be
+live at the same moment do not share a chord, and when they do the dispatcher
+says so in the console in development.
 
 **A key is an object, not a string.** A `Chord` says which half of the event to
 compare — the character (`e.key`) or the physical key (`e.code`) — and what each

@@ -8,7 +8,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 `cs-blessed-definitions`.** Audited and closed the same day. Twenty-two
 findings, all worked: F-1 to F-14 in the prose pass, F-15 to F-17 on Joel's
 word, F-18 to F-21 from the closing re-read, and F-22 from a question after
-it. Both `doc.md` Designs are written and both rows are off `DESIGNS_OWED`.
+it. Both `doc.md` Designs are written and both rows are off `INTROS_OWED`.
 
 ## The roster
 
@@ -35,7 +35,7 @@ deleted one, and F-definitions-22 deleted one.
 
 Plus the two folders' `doc.md` / `todo.md` (no stamp — markdown). Both
 `doc.md`s have a Design and a rewritten lede (the closing re-read); both rows
-are off `DESIGNS_OWED`.
+are off `INTROS_OWED`.
 
 **Decided at the opening (Joel: 1 yes · 2 in roster · 3 yes):**
 
@@ -374,7 +374,7 @@ which every surface now carries.
 
 - [x] the whole area re-read in one sitting after the last group (2026-09-12;
       F-18 to F-21 above)
-- [x] both folders' `doc.md` Design written; both rows off `DESIGNS_OWED`
+- [x] both folders' `doc.md` Design written; both rows off `INTROS_OWED`
       (the guard went red on exactly the two rows before they came off)
 - [x] `todo.md` holds everything still owed — both are empty; the one Someday
       item was done by F-definitions-15 — and nothing durable is left here

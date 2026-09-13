@@ -5,7 +5,7 @@ notices, the small pure pieces that decide whether a game is news to you, and a
 headless component that turns the answer into toasts. [docs/common.md → Joining
 a game](../../../docs/common.md) owns the rule this folder serves.
 
-## Design
+## Intro to area
 
 When someone in your club starts a game, they choose who plays, and the game
 seats everyone at that moment. But nobody is pulled onto the game's page. You

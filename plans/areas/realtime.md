@@ -32,7 +32,7 @@ Agreed 2026-09-05 (Joel: "i agree. read and audit.") — every file of
 | `src/common/realtime/useClubSetupPresence.tsx` | the `club-setup:<handle>` presence → "X is setting up a game…" toast; the only `.tsx` | `cs-blessed-realtime` |
 | `src/common/realtime/useClubSetupPresence.test.tsx` | its contract — the toast reconcile and where it sits in the stack, announce vs the join ack, the teardown gate (written by F-realtime-2) | `cs-blessed-realtime` |
 | `src/common/realtime/channel.fake.ts` | the folder's fake channel: the server's two moves, the join ack and a presence sync, under the test's hand (written by F-realtime-2) | `cs-blessed-realtime` |
-| `src/common/realtime/doc.md` | rewritten at the close: a two-sentence lede and a Design built on the one question that shapes the folder — is a channel's name private, or is it the room? Off `DESIGNS_OWED` | (no stamp — markdown) |
+| `src/common/realtime/doc.md` | rewritten at the close: a two-sentence lede and a Design built on the one question that shapes the folder — is a channel's name private, or is it the room? Off `INTROS_OWED` | (no stamp — markdown) |
 | `src/common/realtime/todo.md` | empty at the open; carries the two cosmetic items the re-read left under Maybe | (no stamp — markdown) |
 
 **Decided at the opening, and why:**
@@ -641,7 +641,7 @@ the type is twenty lines down in the same file and is where the shape lives.
 - [x] the whole area re-read in one sitting after the last group — done
       2026-09-05; no behavior problem, four prose findings (F-realtime-15
       through -18) and two nits recorded above
-- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` —
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` —
       2026-09-05, planted (the row back on turns the guard red)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — the two cosmetic items from the re-read, under Maybe. Everything else

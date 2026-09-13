@@ -2,7 +2,7 @@
 
 One shell for everything window-like that floats over the page, and what rides on it: the three window families, each a component that names one (`Companion`, `Dialog`, `NormalModal`); the card shell for the two families that stop the world (`BlockingModal`), with its two members, a question and a statement; and the two hooks only the shell reads — where a panel is, and what Escape does. Asking a question lives here too: `askConfirmation` is the one way to ask, and `<ConfirmationHost>` at the app root draws whatever is pending, because the code that asks is usually not a component.
 
-## Design
+## Intro to area
 
 docs/ui.md → Floating panels states the rules: what the five families are, that immovability is the visible signal, what "dim" has to mean, who knows a panel's size, how a floating surface looks. This is how the code answers them.
 

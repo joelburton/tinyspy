@@ -6,7 +6,7 @@ wrong with them is silent by construction, so the same layer that opens a
 channel also writes the console trail you read when a page has quietly stopped
 updating.
 
-## Design
+## Intro to area
 
 The whole game lives in Postgres, so a move is a write, and every other player
 is a browser that has to find out about it. Supabase's answer is a channel: a

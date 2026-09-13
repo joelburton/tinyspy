@@ -5,7 +5,7 @@ head. A fault is a failure nobody planned for, a bug or a request that never
 reached the server, and [docs/ui.md → Faults](../../../docs/ui.md) owns what
 one is and what it renders as.
 
-## Design
+## Intro to area
 
 Almost everything the server says back to a player is an answer: that was not
 a word, the game is over, it is not your turn. Answers are expected, and they

@@ -8,7 +8,7 @@ import type { MenuSection } from './menuModel'
  * through `MenuApi.setGameSections`; the header menu is the one reader.
  *
  * A module slot rather than page state, so a push re-renders the menu and not
- * the page and board with it — doc.md → Design has the argument, and why one
+ * the page and board with it — doc.md → Intro to area has the argument, and why one
  * slot is safe. The page clears it on unmount, so a menu cannot outlive the
  * game that pushed it.
  */

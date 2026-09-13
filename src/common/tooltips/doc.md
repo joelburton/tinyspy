@@ -6,7 +6,7 @@ and a small bubble names it. [docs/ui.md → Button
 iconography](../../../docs/ui.md) says which controls carry one and what it
 says.
 
-## Design
+## Intro to area
 
 Many of the app's controls are a glyph and nothing else, a header full of
 icon-only buttons, and a glyph needs some way to say its name. The browser's

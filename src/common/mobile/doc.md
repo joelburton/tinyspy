@@ -5,7 +5,7 @@ few hooks let JavaScript ask the same questions, and two smaller pieces measure
 the room a browser actually leaves for the page.
 [docs/mobile.md](../../../docs/mobile.md) is canonical.
 
-## Design
+## Intro to area
 
 The app has one set of pages that has to work on a desktop, a tablet and a
 phone, and nearly all of the difference between them is visual — a column

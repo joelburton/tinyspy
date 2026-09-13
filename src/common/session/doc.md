@@ -5,7 +5,7 @@ says. One hook turns Supabase Auth's session into the states `App` gates every
 route on, filling a store with the profile row it read on the way; the other
 hands that profile to anything on the page that asks for it.
 
-## Design
+## Intro to area
 
 Being signed in and having a profile are two different facts, kept by two
 different systems. Supabase Auth owns `auth.users` and the JWT it hands the
