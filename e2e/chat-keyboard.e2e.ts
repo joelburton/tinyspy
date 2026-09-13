@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createBoggleGame, createCrosswordsGame } from './helpers/fixtures'

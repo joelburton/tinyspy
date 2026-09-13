@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { useSyncExternalStore } from 'react'
 import { readStored, writeStored } from '../web-storage/storage'

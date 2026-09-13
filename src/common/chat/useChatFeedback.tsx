@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { usePeerFeedback } from '../feedback/usePeerFeedback'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'

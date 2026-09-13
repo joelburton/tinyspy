@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'

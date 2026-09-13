@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 /**
  * Tests for useClubChat: the initial load and its recency window, the INSERT

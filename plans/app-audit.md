@@ -48,9 +48,9 @@ throwing, which no test had touched, and which the old suite would have passed
 against a wrapper that had lost it. Crosswords' rebus toggle turned out to be
 that hook rewritten by hand, with its write in an effect that fired on mount;
 converting it removed the write and settled that a boolean is a two-position
-choice rather than a case for a second hook. One thing found and left:
-`chatOpenStore.test.ts` is the last hand-rolled storage fake, a line in
-`src/common/chat/todo.md`.
+choice rather than a case for a second hook. One thing found and left,
+`chatOpenStore.test.ts` as the last hand-rolled storage fake, went to
+`src/common/chat/todo.md` and the `chat` area converted it.
 
 **`outcomes` is closed** (2026-09-05): `outcomes.ts` is `cs-blessed-outcomes`,
 and all nine findings are settled — six worked, two filed as work other folders
@@ -329,6 +329,26 @@ comments a finding had written, and eleven "used to"s after a finding had
 fixed one. Grep the class, not the phrase. Owed: a screenshot of wordle's
 turn-log hover, which needs Playwright.
 
+**`chat` is closed** (2026-09-12): sixteen files `cs-blessed-chat`, seventeen
+findings, all worked. The one that changed the app: every real page opened the
+club's chat stream twice — the panel subscribed for its list and the page
+subscribed again for the feedback bridge — and now the panel, which already
+holds the stream, calls `useChatFeedback` itself, so there is one subscription
+per page and on `GamePage` the bridge no longer runs before the game row has
+loaded. The unread store publishes a fact, the sender's color NAME, and the
+blessed `page-header` mark turns it into the paint, muted case and all — the
+decision moved to the mark and took a new `ChatButton.test.tsx` with it. The
+non-subscribing `getChatOpen` read stays as a declared test seam, and
+scratchpad's twin took the same answer in the same pass. `ChatBody`'s six
+literals took the ramps, an inert `.inputRow` reset came out, and the tests
+lost a twice-built channel mock and a hand-rolled storage fake. The closing
+re-read, for the fourth area running, found the area's own faults in prose it
+had written that week: nine stale sentences, most of them left by two
+findings worked the day before, `members.find` beside `memberById` a second
+time, a guard recommending a token that does not exist, and three pre-reorg
+paths in `docs/common.md`. Owed: nothing; `todo.md` holds one Maybe, the
+open-flag encoding chat and scratchpad store two ways.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -454,7 +474,7 @@ will list the other as a dependency whichever goes first.
 |    | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | **CLOSED 2026-09-12, blessed.** the top strip and the marks in it — furniture every page carries and no page owns. Sixteen findings; the summary is under "Where to start" |
 | 25 | `definitions` | `definitions` · `anagram-finder` | **CLOSED 2026-09-12, blessed.** click-a-word lookup, dictionary curation, and the anagram dialog. Twenty-two findings; the summary is under "Where to start" |
-| 26 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
+| 26 | `chat` | `chat` | **CLOSED 2026-09-12, blessed.** the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s. Seventeen findings; the summary is under "Where to start" |
 | 27 | `scratchpad` | `scratchpad` | the shared notes panel |
 | 28 | `account` | `account` | your own menu and profile editing |
 |    | **The pages** | | |

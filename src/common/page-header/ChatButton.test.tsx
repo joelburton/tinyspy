@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 /**
  * The chat mark turns what `chatUnread` publishes — a count and the sender's

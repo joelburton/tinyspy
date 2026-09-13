@@ -1,4 +1,4 @@
--- cs-audited-chat
+-- cs-blessed-chat
 
 -- ============================================================
 -- Test: common.send_message + common.messages RLS

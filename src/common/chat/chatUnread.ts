@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { useSyncExternalStore } from 'react'
 import type { Member } from '../members/member'

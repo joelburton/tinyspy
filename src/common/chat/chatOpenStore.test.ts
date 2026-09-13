@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 /**
  * Tests for chatOpenStore. The store is small but it is the only place the

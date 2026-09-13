@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, renderHook, screen } from '@testing-library/react'

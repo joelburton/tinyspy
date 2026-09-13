@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/supabase'

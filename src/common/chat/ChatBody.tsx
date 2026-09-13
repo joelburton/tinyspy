@@ -1,4 +1,4 @@
-// cs-audited-chat
+// cs-blessed-chat
 
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../supabase/db'

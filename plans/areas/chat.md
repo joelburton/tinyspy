@@ -4,12 +4,13 @@ The folders it reads: `chat`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`.
-Seventeen findings: F-1 to F-8 worked in the prose pass, F-11, F-9, F-10 and
-F-12 on Joel's decisions, and F-13 to F-16 in the closing re-read (2026-09-12,
-the whole roster in one sitting), F-17 on Joel's word. All seventeen worked.
+**Status: CLOSED 2026-09-12, blessed — sixteen files `cs-blessed-chat`
+(the fifteen on the roster and `ChatButton.test.tsx`, which the area wrote).**
+Audited and closed the same day. Seventeen findings, all worked: F-1 to F-8 in
+the prose pass, F-11, F-9, F-10 and F-12 on Joel's decisions, F-13 to F-16 in
+the closing re-read (the whole roster in one sitting), and F-17 on Joel's word.
 The `doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md`
-holds one Maybe. What is left is the blessing, which is Joel's.**
+holds one Maybe. Blessed on Joel's "bless the files. then close.".
 
 ## The roster
 
@@ -344,4 +345,5 @@ after each.
   F-chat-13 to F-chat-17)
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] every file on the roster blessed — sixteen `cs-blessed-chat` (2026-09-12,
+  Joel: "bless the files. then close.")
