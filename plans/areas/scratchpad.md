@@ -5,8 +5,9 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 worked on Joel's decision; the prose ones (F-1 to F-6)
-are next as one group, then the remaining decisions one at a time.**
+Sixteen findings: F-7 and F-9 worked on Joel's decisions, F-13 closed by
+F-9's; the prose ones (F-1 to F-6) are next as one group, then the remaining
+decisions one at a time.**
 
 ## The roster
 
@@ -64,10 +65,8 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
   it is what a caller reads, and it has none.
 - `GameScratchpadCompanion`'s props block: `ownerId` and `isTerminal` carry
   `/**`.
-- `editingDisabled: boolean, // e.g. terminal — read-only` — a boolean
-  positional parameter with its meaning in a trailing comment, fifth of five.
-  Whether the signature takes an options object is F-scratchpad-12's question;
-  the comment is this one's.
+- ~~`editingDisabled: boolean, // e.g. terminal — read-only`~~ — the
+  parameter is gone (F-scratchpad-9, the pad stays editable at terminal).
 
 ### F-scratchpad-3 · `archaeology` · a review date, a finding code, and four "crossplay:" quotes
 
@@ -103,15 +102,12 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
   `p_owner_id`; "exactly like `useCells`" — `useCells` rolls back a refused
   write and this hook does not (its next keystroke re-flushes), so "like" and
   not "exactly like".
-- `supabase/sql/common.sql`, the play-state guard's comment: "is right for
-  the only gametype that enables a scratchpad (crosswords…)" — a who-uses-this
-  tally that rots the day a second manifest opts in. Name the condition: right
-  while every opting-in gametype's live set is just `playing`.
+- ~~`supabase/sql/common.sql`, the play-state guard's comment~~ — the guard
+  is gone (F-scratchpad-9).
 - `scratchpad_test.sql` lines 60 and 108: "A BUG:, not a refusal" and "Also a
-  BUG::" — two typos, and "refusal" is not the repo's word for a not-ok (the
-  RPC's own comment has "A RACE, not a refusal" too).
-- `useScratchpad.ts` line 223: "(keep-logs ethos)" — a rule cited by nickname.
-  The sentence after it is the reason; the parenthesis goes.
+  BUG::" — two typos, and "refusal" is not the repo's word for a not-ok.
+- ~~`useScratchpad.ts`: "(keep-logs ethos)"~~ — the comment was rewritten
+  with F-scratchpad-9's flush change.
 
 ### F-scratchpad-5 · `rationale-in-docstring` · the store explains its design where a caller wanted its use
 
@@ -132,8 +128,8 @@ and who owns one; the two stores and the one seam (`GamePage` mounts the
 companion with five things); the body's newer-wins sync and why a full-text
 flush is enough; the lock — FE-only arbitration between friends, claim while
 typing, release when idle, take over after grace, stale after silence; the
-holder guard; the one loss the system can inflict (F-scratchpad-13's
-subject); the panel as a companion at the companion rung, unlike chat.
+holder guard; that the notes outlive the game; the panel as a companion at
+the companion rung, unlike chat.
 
 ### WORKED · F-scratchpad-7 · `take-over-button` · the case ui.md left for "next time the scratchpad is open"
 
@@ -191,7 +187,33 @@ are read back more than a chat line is.
    Recommended: one text-entry size across the two panels you type into.
 2. `--font-size-1` — body size; the pad reads as a document.
 
-### F-scratchpad-9 · `field-paint` · the textarea wears the page ground while its own button wears the field tokens
+### WORKED · F-scratchpad-9 · `field-paint` · the textarea wears the page ground while its own button wears the field tokens
+
+**WORKED 2026-09-12 — Joel's four decisions**, after asking when the pad is
+read-only (at terminal, or while another player holds the shared lock):
+
+1. **Read-only never mutes the text** — everyone wants to read the notes
+   while someone else types. The `:read-only` rule is gone entirely.
+2. **"Name is editing…" jumps out** — first as caution-orange text, which
+   Joel found too hard to read; then, on his second word, as a `<DotActor>`
+   for the holder (the roster member's name and disc, the claim's username as
+   the fallback) with the sentence in full ink, where the bar's other lines
+   are muted. That is also ui.md's rule: identity rides the disc, never the
+   text. `editingBy` now carries `{ userId, username }` and the companion
+   takes the club `members` to resolve the disc.
+3. **The pad stays editable after the game ends.** The whole slice: the
+   companion's `isTerminal` prop and the hook's `editingDisabled` parameter
+   are gone (GamePage no longer passes the flag); `set_scratchpad`'s
+   play-state guard and its PN305 race arm are deleted, so the RPC guards on
+   membership only; the pgTAP race case became "a write after the game ended
+   saves like any other"; the flush's race branch in the hook is gone. The
+   "Game over — read-only." status text went with it.
+4. **The pad paints like every other field** — the class's border, fill and
+   ink overrides are gone and the element rule in `base.css` paints it. The
+   `1px` row is off the vocabulary guard.
+
+Verified: `tsc -b`, eslint, the folder's vitest + the guards, and the full
+pgTAP suite (176 files) green after `gmake db-sql ENV=local`.
 
 `.textarea` paints `background: var(--page-bg-color)` (the page's off-white)
 with a `--page-surface-border-color` edge, and `.textarea:read-only` paints
@@ -255,7 +277,11 @@ for the whole game.
    while they have a reader.
 2. Leave them.
 
-### F-scratchpad-13 · `lost-flush-unsurfaced` · the one loss the system can inflict is a console line
+### CLOSED · F-scratchpad-13 · `lost-flush-unsurfaced` · the one loss the system can inflict is a console line
+
+**CLOSED 2026-09-12 by F-scratchpad-9's third decision:** a finished game's
+pad stays writable, so the RPC no longer refuses a late flush and there is no
+loss to surface. The race arm, its comment and PN305 are gone.
 
 `flush`'s race arm (PN305, "The game ended before that note saved.") says:
 "A log line is all this layer can do — `flush` has no surface, and the pad it
@@ -322,7 +348,9 @@ not have. No decision — waiting.
 
 ## Predicted test breaks
 
-None at the audit. F-scratchpad-7 changes the button's markup (a `<button>`
+None at the audit; none seen. F-scratchpad-9 changed `useScratchpad`'s
+signature (its test's three calls followed) and replaced one pgTAP case with
+another at the same count. F-scratchpad-7 changed the button's markup (a `<button>`
 with a `Take over` name either way — `useScratchpad.test.ts` never renders
 it); F-scratchpad-10 renames a hook three files import; F-scratchpad-14 adds
 a case to `useScratchpad.test.ts`; F-scratchpad-16 adds a file. `tsc -b`

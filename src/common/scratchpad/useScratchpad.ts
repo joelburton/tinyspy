@@ -30,8 +30,10 @@ export type ScratchpadApi = {
   /** Whether the local user may type right now (private pad, or they hold the
    *  shared lock / it's free). */
   canEdit: boolean
-  /** The name of the OTHER player currently editing the shared pad, or null. */
-  editingBy: string | null
+  /** The OTHER player currently editing the shared pad, or null. The name is
+   *  the one their claim carried, so a caller has it even when its roster
+   *  does not know the id. */
+  editingBy: { userId: string; username: string } | null
   /** Whether the local user can claim the lock from a stale/idle holder. */
   canTakeOver: boolean
   takeOver: () => void
@@ -59,7 +61,6 @@ export function useScratchpad(
   ownerId: string | null,
   myId: string,
   username: string,
-  editingDisabled: boolean, // e.g. terminal — read-only
 ): ScratchpadApi {
   const shared = ownerId === null
   const [body, setBodyState] = useState('')
@@ -220,20 +221,10 @@ export function useScratchpad(
         // arg type is non-null. PostgREST passes null through fine.
         commonDb.rpc('set_scratchpad', { target_game: gameId, p_owner_id: ownerId as string, p_body: text }),
       ).then((res) => {
-        // Don't silently swallow a failed flush (keep-logs ethos): notes typed
-        // in the last debounce window before the game turns terminal ride on
-        // this write, and a dropped one is only visible locally + lost on
-        // reload. No retry — the next keystroke re-flushes the full body.
-        if (res.type === 'not-ok' && res.severity === 'race') {
-          // PN305, and the ONE loss this system can actually inflict: the game
-          // ended between the keystroke and the debounced write. A log line is
-          // all this layer can do — `flush` has no surface, and the pad it
-          // belongs to may already be closed. Whether the player is told at all
-          // is a UX question nobody has answered.
-          console.warn('[scratchpad] flush lost:', res.message)
-        } else if (res.type === 'not-ok') {
+        if (res.type === 'not-ok') {
           // A fault, and `runRpc` has already raised its modal. The line names
-          // which write it was, which the modal cannot.
+          // which write it was, which the modal cannot. No retry — the next
+          // keystroke re-flushes the full body.
           console.error('[scratchpad] flush failed:', res.message)
         } else if (res.type === 'ok' && res.data?.result === 'saved') {
           // Keep the HIGHEST version seen: flushes are debounced and can land
@@ -258,9 +249,9 @@ export function useScratchpad(
   // Derived lock view.
   const foreign =
     shared && holder && holder.userId !== myId && nowTick - holder.at < STALE_MS ? holder : null
-  const editingBy = foreign ? foreign.username : null
-  const canEdit = !editingDisabled && (!shared || editingBy === null)
-  const canTakeOver = !editingDisabled && foreign !== null && nowTick - foreign.at > GRACE_MS
+  const editingBy = foreign ? { userId: foreign.userId, username: foreign.username } : null
+  const canEdit = !shared || editingBy === null
+  const canTakeOver = foreign !== null && nowTick - foreign.at > GRACE_MS
 
   const setBody = useCallback(
     (text: string) => {

@@ -114,18 +114,15 @@ select pg_temp.envelope_is(
   'a body over 10000 chars is rejected');
 reset role;
 
--- ── The RACE: the game ended before the debounced flush landed ───────
--- The one loss this system can actually inflict on a player, and the only
--- not-ok here that is nobody's fault: writes are debounced, so a note typed in
--- the last window arrives after the game is over. It reads as a `race`, which
--- is what stops it wearing a fault's red.
+-- ── A finished game's pad stays writable ─────────────────────────────
+-- The notes outlive the game: players keep jotting after the verdict, and a
+-- write debounced across the finish line lands like any other.
 update common.games set play_state = 'won' where id = :'game_id';
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'typed as it ended'),
-  '{"type": "not-ok", "severity": "race", "dbcode": "PN305",
-    "message": "The game ended before that note saved."}'::jsonb,
-  'a flush landing after the game ended is a race, not a fault');
+  common.set_scratchpad(:'game_id'::uuid, null::uuid, 'typed after it ended'),
+  '{"type": "ok", "data": {"result": "saved"}}'::jsonb,
+  'a write after the game ended saves like any other');
 reset role;
 
 select * from finish();

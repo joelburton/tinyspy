@@ -103,7 +103,7 @@ afterEach(() => {
 describe('useScratchpad — body newer-wins', () => {
   it('applies a newer CDC body and drops one that is not newer', async () => {
     loadRow = { body: 'init', version: 2 }
-    const { result } = renderHook(() => useScratchpad(GAME, ME, ME, 'Me', false))
+    const { result } = renderHook(() => useScratchpad(GAME, ME, ME, 'Me'))
     act(() => subscribeCb?.('SUBSCRIBED'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.body).toBe('init')
@@ -123,7 +123,7 @@ describe('useScratchpad — body newer-wins', () => {
 describe('useScratchpad — C3a holder guard', () => {
   it('ignores incoming CDC bodies while I hold the shared lock', async () => {
     loadRow = { body: '', version: 0 }
-    const { result } = renderHook(() => useScratchpad(GAME, null, ME, 'Me', false))
+    const { result } = renderHook(() => useScratchpad(GAME, null, ME, 'Me'))
     act(() => subscribeCb?.('SUBSCRIBED'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -150,7 +150,7 @@ describe('useScratchpad — takeover lock lifecycle', () => {
 
   it('a foreign claim locks the pad; takeover waits for grace; a silent holder goes stale', async () => {
     loadRow = { body: '', version: 0 }
-    const { result } = renderHook(() => useScratchpad(GAME, null, ME, 'Me', false))
+    const { result } = renderHook(() => useScratchpad(GAME, null, ME, 'Me'))
     await act(async () => {
       subscribeCb?.('SUBSCRIBED')
       await vi.advanceTimersByTimeAsync(0) // flush the load promise
@@ -161,7 +161,7 @@ describe('useScratchpad — takeover lock lifecycle', () => {
     act(() =>
       lockHandler?.({ payload: { type: 'claim', userId: 'bob', username: 'Bob', at: 0 } }),
     )
-    expect(result.current.editingBy).toBe('Bob')
+    expect(result.current.editingBy?.username).toBe('Bob')
     expect(result.current.canEdit).toBe(false)
     expect(result.current.canTakeOver).toBe(false) // within the grace window
 
@@ -171,7 +171,7 @@ describe('useScratchpad — takeover lock lifecycle', () => {
       await vi.advanceTimersByTimeAsync(2000)
     })
     expect(result.current.canTakeOver).toBe(true) // 2000 > GRACE 1500
-    expect(result.current.editingBy).toBe('Bob') // 2000 < STALE 4000
+    expect(result.current.editingBy?.username).toBe('Bob') // 2000 < STALE 4000
 
     // Past STALE_MS with no re-assert, Bob is treated as gone → pad free again.
     await act(async () => {

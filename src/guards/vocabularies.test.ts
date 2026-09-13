@@ -526,7 +526,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],
       'src/shared/rank-ladder/Stats.module.css': ['1px'],
       'src/common/devtools/PalettePage.module.css': ['1px'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1px'],
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],
     },

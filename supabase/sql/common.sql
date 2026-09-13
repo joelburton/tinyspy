@@ -411,9 +411,10 @@ create policy game_scratchpads_select on common.game_scratchpads
 
 -- Replace the pad body for (game, owner). The shared pad (p_owner_id null) is
 -- writable by any player; a private pad only by its owner. Guarded on
--- membership + play state; the FE debounces this full-text flush (the pad is
--- small + one-writer-at-a-time, so no OT/CRDT). Returns the new version so
--- the FE adopts it and its own CDC echo is a no-op.
+-- membership only — the notes outlive the game, so a finished game's pad
+-- stays writable. The FE debounces this full-text flush (the pad is small +
+-- one-writer-at-a-time, so no OT/CRDT). Returns the new version so the FE
+-- adopts it and its own CDC echo is a no-op.
 -- Dropped, not replaced: this returned `bigint` (the version) before it
 -- answered in an envelope, and `create or replace` cannot change a return type.
 drop function if exists common.set_scratchpad(uuid, uuid, text);
@@ -436,20 +437,6 @@ begin
     raise exception 'BUG: a scratchpad write named someone else''s pad'
       using errcode = 'PN304', hint = 'fault', column = '_',
       detail = 'scratchpad writes are owner-only';
-  end if;
-  -- A RACE, not a refusal: writes are debounced, so a note typed in the last
-  -- window before the game ends arrives after it has. Nobody did anything
-  -- wrong, and the player wants to know the note did not land — the one
-  -- keystroke of theirs this system can actually lose.
-  --
-  -- `is distinct from 'playing'` is right for the only gametype that enables a
-  -- scratchpad (crosswords, whose non-terminal set is just `playing`). A game
-  -- with a second live phase — codenamesduet's `sudden_death` — would need the
-  -- `not in (...)` form its own guards use.
-  if (select play_state from common.games where id = target_game) is distinct from 'playing' then
-    raise exception 'The game ended before that note saved.'
-      using errcode = 'PN305', hint = 'race', column = '_',
-      detail = 'play_state is not an active state';
   end if;
   -- The textarea carries `maxLength={10000}`, so this is the cap being
   -- bypassed rather than a player typing too much.

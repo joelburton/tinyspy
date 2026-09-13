@@ -21,7 +21,15 @@
   font-size: 0.85rem;
   color: var(--page-text-muted-color);
 }
+/* "● Name is editing…" — someone else holds the pad, which is worth noticing:
+   full ink where the bar's other lines are muted, and the disc carries who. */
+/* @@ */ .editing {
+  color: var(--page-text-color);
+}
 
+/* The edge, fill and ink are the element rule's (base.css), so the pad reads
+   as a field like every other. Read-only — another player holds the lock —
+   changes nothing here: the notes are for everyone to read. */
 /* @@ */ .textarea {
   flex: 1 1 auto;
   min-height: 0;
@@ -29,13 +37,10 @@
   width: 100%;
   box-sizing: border-box;
   padding: 0.5rem;
-  border: 1px solid var(--page-surface-border-color);
   border-radius: 6px;
   font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--page-text-color);
-  background: var(--page-bg-color);
 }
 
 /* iOS focus-zoom floor (docs/mobile.md → Decisions #3): 0.9rem = 14.4px, under
@@ -47,8 +52,4 @@
 /* @@ */   .textarea {
     font-size: max(16px, 1em);
   }
-}
-/* @@ */ .textarea:read-only {
-  background: var(--default-bg-color);
-  color: var(--page-text-muted-color);
 }

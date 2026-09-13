@@ -618,7 +618,7 @@ function GamePageInner({
           }
           myId={session.user.id}
           username={players.find((p) => p.user_id === session.user.id)?.username ?? 'You'}
-          isTerminal={commonGame.is_terminal}
+          members={clubMembers}
         />
       )}
 
