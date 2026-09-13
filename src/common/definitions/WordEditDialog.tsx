@@ -382,7 +382,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                     show="label"
                     label="Delete"
                     tone="destructive"
-                    className={cls(styles.deleteButton, actionRow.leading)}
+                    className={actionRow.leading}
                     onClick={() => void onDelete(values.note)}
                     disabled={busy}
                   />
@@ -395,7 +395,6 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
                 <FormSubmitButton
                   show="label"
                   label="Save"
-                  className={styles.saveButton}
                   disabled={busy}
                 />
               </div>

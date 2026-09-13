@@ -268,8 +268,6 @@ const VOCABULARIES: Vocabulary[] = [
       // is what remains.
       'src/common/club/CreateClubModal.module.css': ['0.4rem'],
       'src/common/club/StartGameRow.module.css': ['0.4rem'],
-      'src/common/definitions/DefinitionView.module.css': ['0.3rem', '0.15rem', '0.1rem'],
-      'src/common/definitions/WordEditDialog.module.css': ['0.5rem', '0.35rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // traveled with the markup; it did not grow.
@@ -361,7 +359,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
-      'src/common/definitions/DefinitionView.module.css': ['1.05rem', '0.92rem', '0.9rem', '0.72rem', '0.8rem'],
       // ErrorPage is FaultModal's twin as a PAGE; its two sizes are copied to
       // the digit so the two read as one event. They convert together or not
       // at all.
@@ -412,7 +409,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/ClubGameCard.module.css': ['1.2', '1.25'],
       'src/common/club/ClubGameRow.module.css': ['1.2', '1.25'],
       'src/common/club/StartGameRow.module.css': ['1.2', '1.25'],
-      'src/common/definitions/DefinitionView.module.css': ['1.45'],
       'src/common/setup-form/SetupNextPuzzleSection.module.css': ['1.4'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['1'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],
@@ -435,7 +431,6 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(0|1|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['0.45'],
-      'src/common/definitions/WordEditDialog.module.css': ['0.6'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.5'],
@@ -456,7 +451,6 @@ const VOCABULARIES: Vocabulary[] = [
       // wordiply and letterboxed all wrote 0.2em. Unconverted, not
       // unconsidered: it is what makes typed letters read like tiles.
       'src/common/fields/ManualBoardField.module.css': ['0.2em'],
-      'src/common/definitions/DefinitionView.module.css': ['0.01em'],
       'src/common/word-entry/EntryBox.module.css': ['0.05em'],
       'src/common/word-list/WordList.module.css': ['0.02em'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.04em'],

@@ -8,22 +8,21 @@
 /* @@ */ .view {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--spacer-5);
 }
 
 /* The word being defined. Lowercased + emphasized so the eye lands
  * on it; updates in place as the user chases cross-refs. */
 /* @@ */ .headword {
-  font-size: 1.05rem;
+  font-size: var(--font-size-1);
   font-weight: 600;
   color: var(--page-text-color);
-  letter-spacing: 0.01em;
 }
 
 /* @@ */ .definition {
   margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.45;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-1);
   color: var(--page-text-color);
   /* Wiktionary defs are one line per part-of-speech (joined with
    * '\n' in the Edge Function) — honor those breaks. */
@@ -31,13 +30,13 @@
 }
 
 /* @@ */ .status {
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
   color: var(--page-text-muted-color);
   font-style: oblique;
 }
 
 /* @@ */ .error {
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
   color: var(--chrome-fault-color);
 }
 
@@ -58,25 +57,21 @@
 }
 
 /* @@ */ .attribution {
-  margin-top: 0.15rem;
-  font-size: 0.72rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
 }
 
 /* Categorization tags (band · dialects · slur/crude · wordle). */
 /* @@ */ .meta {
-  margin-top: 0.1rem;
-  font-size: 0.72rem;
+  font-size: var(--font-size-3);
   color: var(--page-text-muted-color);
-  letter-spacing: 0.01em;
 }
 
 /* The editors-only "Edit word…" link — quiet chrome, styled like the
  * cross-reference links (it's a navigation, not a call to action). */
 /* @@ */ .editLink {
   align-self: flex-start;
-  margin-top: 0.3rem;
-  font-size: 0.8rem;
+  font-size: var(--font-size-3);
   color: var(--chrome-link-color);
   cursor: pointer;
   text-decoration: underline;

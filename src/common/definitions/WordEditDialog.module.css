@@ -6,7 +6,7 @@
  * it can hold, and one digit is one digit. */
 /* @@ */ .numbers {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
 }
 
 /* Slang + the four dialects, STACKED. They wrapped into a
@@ -15,19 +15,11 @@
 /* @@ */ .checks {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--spacer-5);
 }
 
 /* The one thing the shared `modalActions` row does not do: sit at the BOTTOM of
    this panel however short the form above it is. */
 /* @@ */ .pinBottom {
   margin-top: auto;
-}
-
-.saveButton:disabled,
-/* @@ */ .deleteButton:disabled {
-  opacity: 0.6;
-  /* See AnagramDialog: a refused control is `not-allowed`; only a piece that has
-     stopped being a control at all takes `default`. */
-  cursor: not-allowed;
 }

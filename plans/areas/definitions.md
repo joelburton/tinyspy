@@ -5,7 +5,7 @@ The folders it reads: `definitions` · `anagram-finder`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12; the prose pass, the no-decision fixes and
-F-definitions-15 are in the tree. F-definitions-16 and -17 are still to
+F-definitions-15 and -16 are in the tree. F-definitions-17 is still to
 present.**
 
 ## The roster
@@ -226,24 +226,40 @@ wordiply's `PlayArea.test.tsx` selected the reveal by `tagName === 'BUTTON'`
 and now selects it by `data-word`. `DefinableWord.test.tsx` is new and pins the
 contract the fourteen surfaces inherit.
 
-### F-definitions-16 · bespoke-sizes · both stylesheets carry hand-picked values the token vocabulary covers
+### WORKED · F-definitions-16 · bespoke-sizes · both stylesheets carried hand-picked values the token vocabulary covers
 
-On `guards/vocabularies`' allowlists as pending:
+Converted, all of them (Joel: all, with `.editLink` at `--font-size-3`). The
+popover now reads a few percent smaller throughout — the ramp's answer rather
+than a per-file one:
 
-| file | today | token |
+| rule | was | now |
 |---|---|---|
-| `DefinitionView.module.css` `.headword` | `1.05rem` | `--font-size-1` (1rem) |
-| `.definition` | `0.92rem` / line-height `1.45` | `--font-size-2` (0.85) / `--line-height-1` (1.5) |
+| `.headword` | `1.05rem` | `--font-size-1` |
+| `.definition` | `0.92rem` / `1.45` | `--font-size-2` / `--line-height-1` |
 | `.status`, `.error` | `0.9rem` | `--font-size-2` |
-| `.attribution`, `.meta` | `0.72rem` | `--font-size-3` (0.75) |
-| `.editLink` | `0.8rem` | `--font-size-2` or `-3` |
-| `.view` gap · `.attribution` / `.meta` / `.editLink` margins | `0.3` · `0.15` · `0.1` · `0.3rem` | `--spacer-5` (0.25) / none |
-| `.headword`, `.meta` letter-spacing | `0.01em` | drop |
-| `WordEditDialog.module.css` `.numbers` / `.checks` gap | `0.5` / `0.35rem` | `--spacer-4` / `--spacer-5` |
-| `.saveButton:disabled, .deleteButton:disabled` opacity | `0.6` | `--chrome-disabled-opacity` (0.75) — the global `button:disabled` already sets it and the cursor, so the rule GOES and both classes with it |
+| `.attribution`, `.meta` | `0.72rem` | `--font-size-3` |
+| `.editLink` | `0.8rem` | `--font-size-3` — matching the attribution line above it |
+| `.view` gap | `0.3rem` | `--spacer-5` |
+| `WordEditDialog` `.numbers` / `.checks` gap | `0.5` / `0.35rem` | `--spacer-4` / `--spacer-5` |
 
-Every row is a visible change of a few percent. One decision: convert all, or
-name the ones to keep bespoke.
+Three rows were not conversions:
+
+- **The three `margin-top`s** on `.attribution` / `.meta` / `.editLink` (`0.15`
+  / `0.1` / `0.3rem`) are gone rather than tokenized. `.view` is a flex column
+  with a gap, so each was a hand-tuned nudge on top of the one value that
+  already spaces the stack. The edit link loses its extra separation with them
+  and now sits at the same `--spacer-5` as everything else.
+- **`letter-spacing: 0.01em`** on `.headword` and `.meta` — dropped; it is
+  under a tenth of a pixel at those sizes.
+- **`.saveButton:disabled, .deleteButton:disabled`** is deleted, and both
+  classes with it: the controls are `<StandardButton>`s, and `base.css`'s
+  global `button:disabled` already sets the opacity and the cursor. A disabled
+  Save or Delete now fades to `--chrome-disabled-opacity` (0.75) rather than
+  the local 0.6.
+
+Six rows came off `guards/vocabularies`' pending lists — spacer, font-size,
+line-height, opacity and letter-spacing — and both files are now clean in
+every vocabulary.
 
 ### F-definitions-17 · e2e-screenshot-leftover · `anagram-finder.e2e.ts` writes a screenshot into a dead session's scratchpad
 
