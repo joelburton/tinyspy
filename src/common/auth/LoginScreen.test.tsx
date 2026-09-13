@@ -85,4 +85,22 @@ describe('LoginScreen — after the link is sent', () => {
     expect(screen.getByText('moth@example.com')).toBeInTheDocument()
     expect(screen.queryByText('moth@example.comx')).not.toBeInTheDocument()
   })
+
+  it('still names the address after a wrong code', async () => {
+    signInWithOtp.mockResolvedValue({ error: null })
+    verifyOtp.mockResolvedValue({ error: { message: MESSAGE } })
+    render(<LoginScreen />)
+
+    const user = await typeEmail('moth@example.com')
+    await user.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('moth@example.com')).toBeInTheDocument())
+
+    await user.type(document.querySelector('[name="code"]')!, '999999')
+    await user.click(screen.getByRole('button', { name: /verify/i }))
+
+    // The failure is the code's, not the address's — the one fact the user
+    // wants to check at that moment is the address the mail went to.
+    await waitFor(() => expect(screen.getByText(MESSAGE)).toBeInTheDocument())
+    expect(screen.getByText('moth@example.com')).toBeInTheDocument()
+  })
 })

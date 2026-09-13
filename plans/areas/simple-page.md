@@ -5,8 +5,8 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-7, F-8 and F-10 worked. F-1 to F-6 are the prose
-group; F-7 to F-12 each carry a decision; F-13 is coverage.
+Thirteen findings recorded; F-7, F-8, F-9 and F-10 worked. F-1 to F-6 are the
+prose group; F-7 to F-12 each carry a decision; F-13 is coverage.
 
 ## The roster
 
@@ -243,6 +243,18 @@ Options:
 
 Recommend 1. No unit test walks the verify path today (F-13).
 
+**Worked 2026-09-13 — option 1, plus a clause the write-up above missed.**
+`sentTo` alone could not drive the sentence: `toggleAction` reset `status` to
+`'idle'`, and that reset is what took the sentence away when the user toggled
+back to the send form — where "…or enter the code below" points at a field that
+isn't on screen. The gate is `showSent = sentTo !== '' && action ===
+'verify-code'`, read by both the sentence and the dev Mailpit hint. `'sent'`
+and `'error'` both left the union; failures set `'idle'`, and `status` is now
+`'idle' | 'sending' | 'verifying'` — what `busy` reads and nothing else.
+`LoginScreen.test.tsx` gains "still names the address after a wrong code",
+verified by planting the old gate (red), which also settles F-13's
+verify-code-path item.
+
 ### F-simple-page-10 · `dev-prefill` · the dev-only prefilled email is not a seed account — DONE
 
 `LoginScreen.tsx` 50: `DEV_DEFAULT_EMAIL = import.meta.env.DEV ?
@@ -314,8 +326,8 @@ title the heading table names.
   remains.
 - **The claim's happy path**: nothing asserts `onClaimed` is called on
   `ok/claimed`; nothing walks the `reportUnhandled` fall-through.
-- **LoginScreen's verify-code path**: nothing types a code. The test file's
-  docstring pins "the form whose failures never name a field" for send alone.
+- ~~**LoginScreen's verify-code path**~~: F-9 added "still names the address
+  after a wrong code", which types a code and fails the verify.
 
 ## Notes
 

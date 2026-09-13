@@ -64,9 +64,9 @@ export function LoginScreen() {
   // WHICH FORM this is, not something typed into it, so it stays here: the
   // fields on screen change with it.
   const [action, setAction] = useState<'send-link' | 'verify-code'>('send-link')
-  const [status, setStatus] = useState<
-    'idle' | 'sending' | 'sent' | 'verifying' | 'error'
-  >('idle')
+  // Only what is in flight right now. Whether a mail went out is `sentTo`'s
+  // business, and a failure is the form's line — neither is a status.
+  const [status, setStatus] = useState<'idle' | 'sending' | 'verifying'>('idle')
   const [errors, setErrors] = useState<FormErrors>({})
   // The address the mail actually WENT to, captured when it was sent. The
   // confirmation names it, and reading the live field there would let it follow
@@ -86,11 +86,11 @@ export function LoginScreen() {
       })
       if (rpcError) {
         setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
-        setStatus('error')
+        setStatus('idle')
         return
       }
       setSentTo(email)
-      setStatus('sent')
+      setStatus('idle')
       // Auto-switch to code-entry. If the magic link works first,
       // useSession picks up SIGNED_IN and unmounts this screen; if not,
       // the user can enter the code from the same email right
@@ -108,7 +108,7 @@ export function LoginScreen() {
     })
     if (rpcError) {
       setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
-      setStatus('error')
+      setStatus('idle')
       return
     }
     // On success, useSession's onAuthStateChange picks up SIGNED_IN
@@ -124,12 +124,18 @@ export function LoginScreen() {
     setAction(action === 'send-link' ? 'verify-code' : 'send-link')
   }
 
+  // A mail went out AND the code form is the one on screen. A wrong code does
+  // not un-send that email, so the address stays named while the user retries;
+  // toggling back to the send form takes the sentence away with the code field
+  // the sentence points at.
+  const showSent = sentTo !== '' && action === 'verify-code'
+
   return (
     <div className="pageHeaderAndMainArea">
       <div className={cls('card', 'pageMain')}>
         <PuzpuzpuzWordmark />
 
-        {status === 'sent' ? (
+        {showSent ? (
           <p>
             Sent a magic link and a sign-in code to <strong>{sentTo}</strong>.
             Click the link in the email, or enter the code below.
@@ -210,7 +216,7 @@ export function LoginScreen() {
           )}
         </StandardForm>
 
-        {status === 'sent' && import.meta.env.DEV && (
+        {showSent && import.meta.env.DEV && (
           <p className="muted">
             In local dev, the email lands in Mailpit at{' '}
             <a href="http://localhost:54324" target="_blank" rel="noreferrer">
