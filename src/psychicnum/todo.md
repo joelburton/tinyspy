@@ -40,4 +40,8 @@
 
 ## Someday
 
+- `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is
+  pending, where `src/common/loading`'s `<Loading>` is the word every page
+  shows for that moment. Swap it in, or say why this surface's is different.
+
 ## Maybe

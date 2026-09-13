@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
@@ -93,16 +93,9 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
-  // Pre-filled with the email-derived suggestion as an editable default, and
-  // the color seeded from a deterministic hash of it (so two people rarely
-  // start on the same one).
-  //
-  // The color deliberately does NOT track the username field. Deriving it live
-  // (say `picked ?? defaultColorFor(desired)`) makes the selection hop from
-  // swatch to swatch on every keystroke — you type in one control and watch
-  // another flicker. A default is worth having; one that keeps re-deciding
-  // while you type isn't. `initialValues` is read at mount, which is exactly
-  // that rule expressed once rather than per field.
+  // Read once, at mount: the handle is suggested from the address and the color
+  // is seeded from that suggestion, and the color deliberately does not follow
+  // the field as you type. `doc.md` says why.
   const suggested = suggestedHandleFromEmail(email)
 
   async function onSubmit({ desired, chosen_color }: Values) {
@@ -121,11 +114,11 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
 
     if (res.type === 'not-ok') {
       // ONE entry, under the field the server named. PN017 — the username is
-      // taken — says `desired`, and it is the only thing here a player can act
-      // on. Everything else says `_` and lands on the form's own line; those
-      // have already raised the modal, and the line is what remains after it.
+      // taken — says `desired`, because a player can act on it. Everything
+      // else says `_` and lands on the form's own line; those have already
+      // raised the modal, and the line is what remains after it.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
-      // PN018 is the one outcome with something to DO: the auth.users row
+      // PN018 is an outcome with something to DO: the auth.users row
       // behind this JWT is gone (a stale token after a db:reset, a deleted
       // account), so there is no recovering the session. Reading the code here
       // picks a RECOVERY, not a severity — the server already said fault.
@@ -144,11 +137,11 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     }
   }
 
-  // The one way off this screen, for both of its exits: the "Not you? Sign
-  // out" button, and PN018, when the RPC finds no auth.users row behind the
-  // token. Neither trusts the auth listener to put LoginScreen up: on a stale
-  // session `signOut()`'s SIGNED_OUT event has not reliably re-rendered, and
-  // a stale session is exactly what brings people here. So sign out
+  // Where both exits off this screen go: the "Not you? Sign out" button, and
+  // PN018, when the RPC finds no auth.users row behind the token. Neither
+  // trusts the auth listener to put LoginScreen up: on a stale session
+  // `signOut()`'s SIGNED_OUT event has not reliably re-rendered, and a stale
+  // session is exactly what brings people here. So sign out
   // best-effort — the revoke can fail on that same stale session — then a HARD
   // navigation to "/": the full reload re-runs useSession from a clean slate.
   // The in-app router wouldn't do: this screen is gated on `needsClaim`, not

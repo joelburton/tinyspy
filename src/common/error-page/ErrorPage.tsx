@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import type { ReactNode } from 'react'
 import { Link } from '../routing/Link'
@@ -12,9 +12,8 @@ type Props = {
   message: ReactNode
   // The `k=v` line, read ALOUD to whoever debugs. Required, not optional: a
   // page that says "something went wrong" and nothing else leaves nothing to
-  // diagnose, and every caller either has a classified failure to hand
-  // (`faultDiagnostics`) or can write the line itself, the way the homepage's
-  // no-clubs fault does.
+  // diagnose, and a caller either has an envelope to hand (`EnvelopeErrorPage`
+  // below) or writes the line itself with `diagnosticsLine`.
   diagnostics: string
   // An extra action beside "← Back home" — the error boundary's Reload.
   action?: ReactNode

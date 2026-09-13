@@ -1,7 +1,7 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 /**
- * SIGNING IN — the one form whose failures never name a field.
+ * SIGNING IN — a form whose failures never name a field.
  *
  * It talks to `supabase.auth` rather than to an RPC of ours, and that answers
  * with a message and nothing else. So everything it can say belongs on the

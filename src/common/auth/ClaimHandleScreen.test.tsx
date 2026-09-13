@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -41,9 +41,8 @@ describe('ClaimHandleScreen — a taken username lands on the username box', () 
     mockRpc.mockReset()
   })
 
-  // PN017 is the one thing this RPC refuses that a player can act on, and it
-  // says which input it is about — so the message belongs under that input and
-  // nowhere else.
+  // PN017 is a refusal a player can act on, and it says which input it is
+  // about — so the message belongs under that input and nowhere else.
   it('shows the server message under the field the server named', async () => {
     mockRpc.mockResolvedValue({
       data: {

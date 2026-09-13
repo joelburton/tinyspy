@@ -394,6 +394,32 @@ conclusion held, the reasoning had not. Owed: nothing; `todo.md` is empty.
 `fields/ColorChoiceField.tsx` still says `cs-blessed-forms` over content it
 gained here, for forms to re-bless when it next opens.
 
+**`simple-page` is closed** (2026-09-13): eleven files `cs-blessed-simple-page`,
+nineteen findings, all worked, one of them a handoff. What changed the app: the
+claim screen's two exits — the "Not you? Sign out" button and the PN018 branch —
+run one `signOutAndLeave()`, where PN018 had signed out and trusted an auth
+listener the button's own comment said could not be trusted; the sign-in code's
+placeholder stopped naming a digit count the docs say is a Supabase setting; a
+wrong code no longer erases the sentence saying where the mail went; and the
+error page's "Error" is sized by `h1` like every page's title rather than forced
+under the modal's. Three Designs written: auth carries the weight (one email
+with two uses, no password flow, the raw-GoTrue-message exception, the
+permanent handle, the seeded color, the two halves of the claim's refusals),
+error-page the modal-vs-page rule, loading the word-with-no-box. Both screens'
+docstrings had been stranded above a constant where the orphan guard cannot
+see them, and both essays became hovers with the reasoning in the Design. The
+claim screen's error-mapping block described SQLSTATE codes the code had
+stopped reading; the pgTAP file, `docs/common.md` and two comments in an
+applied migration said the same, and Joel ruled the migration's comments get
+fixed in place. PN018 got its pgTAP assertion, pinned there because the session
+gate turns a stale token away before the e2e can reach the RPC. The closing
+re-read found the area's own sentence — "PN017 is the only one a player can
+act on" — written into six files the day before, and a prop comment naming a
+helper that does not exist. Owed: `auth/todo.md` holds one Someday (the
+`.buttonRow` / `modalActions` merge, floating-panels' to make); `club`'s
+`todo.md` the hand-paired `{ text, diagnostics }`; five games' `todo.md` their
+own "Loading game…" paragraph where `<Loading>` is the word.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -523,7 +549,7 @@ will list the other as a dependency whichever goes first.
 | 27 | `scratchpad` | `scratchpad` | **CLOSED 2026-09-12, blessed.** a game's notepad: shared in coop, private per player in compete. Sixteen findings; the summary is under "Where to start" |
 | 28 | `account` | `account` | **CLOSED 2026-09-12, blessed.** your own menu and profile editing. Fifteen findings; the summary is under "Where to start" |
 |    | **The pages** | | |
-| 29 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |
+| 29 | `simple-page` | `auth` · `loading` · `error-page` | **CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Nineteen findings; the summary is under "Where to start" |
 | 30 | `homepage` | `home` | the landing page after login |
 | 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |

@@ -4,12 +4,12 @@ The screens shown before the app proper: signing in, and claiming a handle.
 
 ## Design
 
-These two screens are the only thing `App` will draw until the session
-resolves, and they come in that order: `useSession` answers signed out, signed
-in but unclaimed, or signed in and claimed, and the first two each get a
-screen. Nothing else of the app is mounted behind them — no page chrome, no
-menu — so whatever a user needs to do from here, including leaving, has to be
-on the screen itself.
+Until the session resolves, `App` draws nothing but a gate: `useSession`
+answers signed out, signed in but unclaimed, or signed in and claimed — or that
+its profile read failed, which is `error-page`'s to draw — and the first two
+each get a screen here, in that order. Nothing else of the app is mounted
+behind them — no page chrome, no menu — so whatever a user needs to do from
+here, including leaving, has to be on the screen itself.
 
 **Signing in is one email with two ways to use it.** `signInWithOtp` mails a
 clickable magic link and a numeric code, and either exchanges for the same
@@ -31,9 +31,9 @@ color.
 A failure here reads differently from the rest of the app. Everywhere else a
 refusal is an envelope that can name the field it is about; `supabase.auth`
 answers with a message and nothing else, so every refusal on the sign-in screen
-lands on the form's own line, and the message is GoTrue's own words. That is
-the one place in the app where a server's raw sentence is shown on purpose —
-`noRawServerMessage` carries the exception by name.
+lands on the form's own line, and the message is GoTrue's own words. That is a
+server's raw sentence shown on purpose, and `noRawServerMessage` carries the
+exception by name.
 
 **Claiming a handle is the second half of signing in.** A new account has an
 `auth.users` row and nothing else, and until `common.claim_username` runs there
@@ -52,9 +52,9 @@ is exactly what the help warns against. The regex is checked here for instant
 feedback and again by the database, which is the referee; a race between two
 people claiming one name can only be settled there.
 
-The claim's refusals split in two. `PN017`, the name is taken, is the only one
-a player can do anything about, and it is the only one the server gives a
-column name — so it lands under the username box. Everything else says `_`,
+The claim's refusals split in two. `PN017`, the name is taken, is a refusal a
+player can do something about, and the server says so by naming its column —
+so it lands under the username box. Everything else says `_`,
 which puts it on the form's line beneath the fault modal that has already
 appeared. One of them carries an action rather than a sentence: `PN018` means
 the `auth.users` row behind the token is gone, and there is nothing to do with

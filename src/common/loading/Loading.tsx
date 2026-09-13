@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import styles from './Loading.module.css'
 

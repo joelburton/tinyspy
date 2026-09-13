@@ -27,8 +27,9 @@ crashed render is the failure most likely to be transient.
 There are two entry points and one of them is the one to reach for.
 `EnvelopeErrorPage` takes a not-ok envelope, which already carries the
 sentence, the severity, the dbcode and which call died, and derives the page's
-two props from it; every hook whose read failed holds one of those. `ErrorPage`
-is for the caller writing its own sentence and its own diagnostics line — the
-homepage's no-clubs fault, the error boundary. Pairing `{ text, diagnostics }`
+two props from it; a hook whose read failed holds one of those. `ErrorPage` is
+for a caller with no envelope, writing its own sentence and its own
+diagnostics line — a boundary that caught a thrown render, a page that found
+nothing to draw. Pairing `{ text, diagnostics }`
 up by hand when an envelope was available is the shape the envelope entry
 exists to retire.

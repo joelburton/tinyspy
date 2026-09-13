@@ -76,5 +76,9 @@
   in `docs/games/scrabble.md` → Deferred: leave it bespoke, give
   `<SelectionList>` a frameless compact form, or redesign the box and redo
   the height arithmetic.
+- `PlayArea.tsx` returns its own `<p className={styles.loading}>Loading
+  game…</p>` while the read is pending, where `src/common/loading`'s
+  `<Loading>` is the word every page shows for that moment. Swap it in, or
+  say why this surface's is different — it is the one with a class of its own.
 
 ## Maybe

@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import { test, expect } from '@playwright/test'
 import {
@@ -10,16 +10,16 @@ import {
 import { signIn } from './helpers/session'
 
 /**
- * The auth gate, end-to-end in a real browser — the one surface a unit test
+ * The auth gate, end-to-end in a real browser — a surface a unit test
  * structurally can't reach. useSession's stale-session handling depends on
  * the real supabase-js boot flow (a JWT read from localStorage, the
  * `onAuthStateChange` sequence, an actual `getUser()` / token-refresh round
- * trip against live GoTrue). The unit test mocks all of that, and a clean
- * mocked 4xx hid the real bug: a stale session whose getUser error didn't
- * carry a 4xx status slipped through and stranded the user on the "pick a
- * username" screen with no way to log in.
+ * trip against live GoTrue). The unit test mocks all of that, and a mocked
+ * `getUser` failure is cleaner than the real one: a stale session's error
+ * need not carry a 4xx status, and only the live flow shows whether such a
+ * session still lands on the login screen rather than the username gate.
  *
- * These tests reproduce that flow for real and pin the contract:
+ * What these pin:
  *   - an invalidated session (the user was deleted under it) → LoginScreen,
  *     never the username gate;
  *   - …including the expired-token / refresh-fails variant;
@@ -52,7 +52,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
   }) => {
     // Same, but the stored access token is already expired, so supabase-js
     // attempts a refresh on boot — which fails because the user is gone. This
-    // is the path whose error lacks a clean 4xx status (the regression).
+    // is the path whose error lacks a clean 4xx status.
     const club = await createSoloClub('expired')
     await deleteUser(club.members[0].userId)
 
@@ -71,9 +71,8 @@ test.describe('auth gate: a stale session never strands you on the username scre
     browser,
   }) => {
     // The legitimate counterpart: a real, existing user who simply hasn't
-    // picked a handle yet SHOULD see the gate — proving the fix didn't make
-    // useSession over-eagerly sign valid users out. And the escape hatch
-    // gets them back to login.
+    // picked a handle yet SHOULD see the gate — useSession must not sign a
+    // valid user out. And the escape hatch gets them back to login.
     const { session } = await createUnclaimedUser('newbie')
 
     const ctx = await browser.newContext()

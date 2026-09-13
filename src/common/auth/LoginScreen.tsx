@@ -1,4 +1,4 @@
-// cs-audited-simple-page
+// cs-blessed-simple-page
 
 import { useRef, useState } from 'react'
 import { StandardForm } from '../forms/StandardForm'
@@ -92,8 +92,8 @@ export function LoginScreen() {
     // and unmounts this screen. No further action needed here.
   }
 
-  /** Swap which form this is. Clearing the code is the form's business now, so
-   *  the toggle takes the setter from inside it. */
+  /** Swap which form this is. The code lives in the form's values, so the
+   *  toggle takes the setter from inside it to clear it. */
   function toggleAction(clearCode: () => void) {
     setErrors({})
     setStatus('idle')

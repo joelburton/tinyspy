@@ -1,7 +1,7 @@
-/* cs-audited-simple-page */
+/* cs-blessed-simple-page */
 
-/* The whole component: a word, on the page. See Loading.tsx for why it takes
-   no card, no border and no surface of its own.
+/* The whole component: a word, on the page. See doc.md for why it takes no
+   card, no border and no surface of its own.
 
    Muted because it is not the content — it is a note that the content is
    coming. */

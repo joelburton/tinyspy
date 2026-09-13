@@ -317,8 +317,8 @@ migration: not worth the churn for games you don't play on a phone. Unit tests t
 The three shell screens ([`HomePage`](../src/common/home/HomePage.tsx),
 [`LoginScreen`](../src/common/auth/LoginScreen.tsx),
 [`ClaimHandleScreen`](../src/common/auth/ClaimHandleScreen.tsx)) all
-render inside the global `.card` (in [`utilities.css`](../src/common/core-css/utilities.css)). Two
-fixes made them phone-safe:
+render inside the global `.card` (in [`utilities.css`](../src/common/core-css/utilities.css)). What
+made them phone-safe:
 
 - **`overflow-wrap: anywhere` on `.card`.** Long *unbreakable* tokens — a long
   username in the "Welcome, …" heading, an email, a solo club's `=handle` — have

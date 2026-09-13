@@ -328,10 +328,10 @@ No trigger materializes a profile; the flow is user-driven:
 
 1. User signs in via magic link → `auth.users` row materializes; `useSession` detects the new session.
 2. `useSession` queries `common.profiles` for the row; missing row → returns `needsClaim: true`.
-3. `App.tsx` gates on `needsClaim` and renders `<ClaimHandleScreen>` instead of HomePage.
+3. `App.tsx` gates on `needsClaim` and renders `<ClaimHandleScreen>` instead of the page the URL names.
 4. User picks a handle that matches the regex `^[a-z][a-z0-9-]{2,14}$` (3–15 chars) and a **player color** (pre-selected from a deterministic FE hash of the username via `defaultColorFor`, but changeable). Submit calls `common.claim_username(desired text, chosen_color text)`.
 5. The RPC atomically inserts the profile row (with the chosen color — it's **required**, validated against the palette; the DB doesn't derive a default), creates the `=<username>` solo club, adds the membership row, and seeds `clubs_gametypes` for the solo club with every **solo-playable** `default_enroll` gametype (`min_players <= 1` — a one-member club is never enrolled in a two-player game; and no psychicnum, the opt-in toy; see `common.default_gametypes_for_club`).
-6. `useSession` re-probes; `needsClaim` flips to false; HomePage mounts.
+6. `useSession` re-probes; `needsClaim` flips to false; the page the URL names mounts.
 
 Reject reasons — each a not-ok envelope ([envelopes.md](envelopes.md)):
 
@@ -344,8 +344,8 @@ Reject reasons — each a not-ok envelope ([envelopes.md](envelopes.md)):
 | handle collision with another profile    | `PN017` | validation |
 | auth.users row vanished (stale-JWT case) | `PN018` | fault      |
 
-PN017 is the only one a player can act on, and the only one that names a column
-(`desired`), so it lands under the username box; the rest say `_` and land on
+PN017 names a column (`desired`) because a player can act on it, so it lands
+under the username box; the rest say `_` and land on
 the form's own line after the modal.
 
 The PN018 case surfaces when a stale JWT from a previous Supabase project sits in localStorage but its `auth.uid()` no longer exists. `ClaimHandleScreen` reads that code, signs out best-effort, and hard-navigates to `/` so the session is rebuilt from scratch.
@@ -401,7 +401,7 @@ All RPCs in `common` are `security definer` and granted only to the `authenticat
 
 Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the result envelope (`docs/envelopes.md`) with `data.username`.
 
-Its outcomes: **PN017 validation** — that username is taken, the one thing here a player can act on and the one the form cannot know, caught from the UNIQUE constraint that referees the race. **PN016 error** — this profile already has a username (a second tab, a double submit). **PN013/PN014/PN015 faults** — not signed in, a username the screen's own regex would have refused, a color outside the palette; the last two are unreachable from the app, so their messages are written for whoever reads the fault. **PN018 fault** — the `auth.users` row behind the JWT is gone (a stale token after a `db:reset`); `<ClaimHandleScreen>` reads that code and signs the user out, the one place a call site branches on a `dbcode`, and it does so to pick a recovery rather than a severity.
+Its outcomes: **PN017 validation** — that username is taken, which a player can act on and the form cannot know, caught from the UNIQUE constraint that referees the race. **PN016 error** — this profile already has a username (a second tab, a double submit). **PN013/PN014/PN015 faults** — not signed in, a username the screen's own regex would have refused, a color outside the palette; the last two are unreachable from the app, so their messages are written for whoever reads the fault. **PN018 fault** — the `auth.users` row behind the JWT is gone (a stale token after a `db:reset`); `<ClaimHandleScreen>` reads that code and signs the user out — a call site branching on a `dbcode` to pick a recovery, not a severity.
 
 ### `common.create_club(club_name text, member_usernames text[]) → text`
 
@@ -657,7 +657,7 @@ Auth is email-based magic links via `supabase.auth.signInWithOtp`. Custom SMTP (
 The sign-in email contains **both** a clickable magic link AND a numeric sign-in code. Two verification paths land at the same session:
 
 - Click the link — Supabase's redirect URL exchanges it for a session and lands back at `window.location.origin`.
-- Enter the sign-in code in the LoginScreen's "I have a code" form — calls `verifyOtp({type: 'email'})` to exchange the code on the current device.
+- Enter the sign-in code in the LoginScreen's "I have a code already" form — calls `verifyOtp({type: 'email'})` to exchange the code on the current device.
 
 The code path is what makes cross-device sign-in work: open the email on your phone, type the code on your laptop. Either path emits `SIGNED_IN`, which `useSession` is subscribed to.
 

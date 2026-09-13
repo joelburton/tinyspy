@@ -1,4 +1,4 @@
--- cs-audited-simple-page
+-- cs-blessed-simple-page
 
 -- ============================================================
 -- Test: common.claim_username(desired text, chosen_color text) RPC
@@ -247,8 +247,8 @@ select pg_temp.as_user('9a999999-9999-9999-9999-999999999999');
 
 -- The profiles.username UNIQUE constraint is the referee — a pre-check
 -- `select` could not close the race — and its 23505 is caught and given words.
--- The one outcome here a player can act on, so it is the one validation, and it
--- names the field the claim form binds to.
+-- A player can act on this outcome, so it is a validation rather than a fault,
+-- and it names the field the claim form binds to.
 select pg_temp.envelope_is(
   common.claim_username('fia', 'blue'),
   '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN017",

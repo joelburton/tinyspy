@@ -37,5 +37,8 @@
   meet it is not obvious now that the app font's digits are tabular and its
   width dial can hold a column. Decide with the setup forms' mono question
   (`src/common/setup-form/todo.md`), not piecemeal.
+- `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is
+  pending, where `src/common/loading`'s `<Loading>` is the word every page
+  shows for that moment. Swap it in, or say why this surface's is different.
 
 ## Maybe

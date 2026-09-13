@@ -31,7 +31,7 @@ import { logStamp } from '../utils/logStamp'
  *     cards for all of those, so a truly blank screen here points at the
  *     shell, not the game.
  *   - **"slot mounted" but no "rendered"** → the game chunk never
- *     committed: stuck on the Suspense fallback ("Loading game…") or the
+ *     committed: stuck on the Suspense fallback ("Loading…") or the
  *     import failed. Both designed exits for that (reloadOnStaleChunk in
  *     main.tsx, the PlayAreaErrorBoundary card) are visible, not blank —
  *     so this pair IS the smoking gun for a new failure mode.

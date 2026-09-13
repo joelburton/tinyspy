@@ -4,9 +4,10 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; all thirteen are worked, the migration comment
-included.
+**Status: CLOSED 2026-09-13.** Audited 2026-09-12, re-read 2026-09-13, every
+roster file `cs-blessed-simple-page` on Joel's word. Nineteen findings, all
+worked (F-18 as a handoff); the three `doc.md` Designs are harvested. The
+summary is in the plan under "Where to start".
 
 ## The roster
 
@@ -403,6 +404,115 @@ screenshot was taken of the larger heading.
 - ~~**LoginScreen's verify-code path**~~: F-9 added "still names the address
   after a wrong code", which types a code and fails the verify.
 
+## The closing re-read — 2026-09-13
+
+Every roster file read end to end in one sitting, plus the three `doc.md`s,
+the docs sections the roster cites, and the guards that name it. What it
+found is, again, mostly the area's own prose from the day before.
+
+### F-simple-page-14 · `the-only` · the uniqueness clause, written this week, in nine places
+
+"PN017 is the only one a player can act on, and the only one that names a
+column" — written on 2026-09-13 into `auth/doc.md`, `docs/common.md` (twice;
+the second as "the one place a call site branches on a `dbcode`"),
+`ClaimHandleScreen.tsx` (three comments, one of them "the one way off this
+screen"), `ClaimHandleScreen.test.tsx` and `claim_username_test.sql`. Same
+shape, other subjects: `LoginScreen.test.tsx` ("the one form whose failures
+never name a field"), `auth/doc.md` again ("the one place in the app where a
+server's raw sentence is shown") and `e2e/auth.e2e.ts` ("the one surface a
+unit test can't reach"). A uniqueness clause is a count; it rots the day a
+second one exists, and the property is what the sentence was for.
+
+**Worked 2026-09-13.** Each says the property: PN017 names a column BECAUSE a
+player can act on it; a server's raw sentence shown on purpose; a form whose
+failures never name a field. `auth/doc.md`'s opening paragraph also lost "the
+only thing `App` will draw", which was wrong as well as a count — the
+probe-failed answer draws `EnvelopeErrorPage`, and the paragraph says so now.
+
+### F-simple-page-15 · `stale-claims` · what the worked findings left standing in siblings
+
+- `docs/common.md` → Username claim flow, steps 3 and 6: "instead of HomePage"
+  and "HomePage mounts" — F-3 fixed this claim on `onClaimed`; the doc kept it.
+- `Loading.module.css`: "See Loading.tsx for why it takes no card" — F-5 moved
+  the why to `doc.md`, and the pointer stayed on the docstring it emptied.
+- `src/guards/callSiteShape.test.ts`: "the modal-vs-page rule in `ErrorPage`"
+  — the same move, the same stale pointer. A guard is not audited; the edit
+  is the mechanical consequence of F-5.
+- `src/common/game-page/PlayAreaMountLog.tsx`: the Suspense fallback's text is
+  given as "Loading game…"; the fallback is `<Loading />`, which says
+  "Loading…". game-page's file, fixed here because it is the same defect.
+- `docs/common.md` → Auth & magic links quotes the toggle as "I have a code";
+  the button says "I have a code already".
+- `docs/mobile.md` → The `.card` shell pages: "Two fixes made them phone-safe"
+  over three bullets.
+
+**Worked 2026-09-13.** All six say what the tree says.
+
+### F-simple-page-16 · `compiles-but-lies` · ErrorPage's prop comment names a helper that does not exist
+
+`ErrorPage.tsx`, the `diagnostics` prop: "every caller either has a classified
+failure to hand (`faultDiagnostics`) or can write the line itself, the way the
+homepage's no-clubs fault does". Nothing named `faultDiagnostics` exists in
+`src/`. The same comment, and `error-page/doc.md`'s Design, name the callers
+(the homepage's fault, the error boundary) — the roster-of-consumers shape.
+
+**Worked 2026-09-13.** The prop comment names the two real routes — an
+envelope to `EnvelopeErrorPage`, or a line written with `diagnosticsLine` —
+and the Design names the condition rather than the callers: a caller with no
+envelope, a boundary that caught a thrown render, a page that found nothing to
+draw.
+
+### F-simple-page-17 · `archaeology` · the e2e header tells the bug's story, and a "now" in LoginScreen
+
+`e2e/auth.e2e.ts` was on the roster and not in F-4's list, and carries the
+class F-4 ruled on: "a clean mocked 4xx hid the real bug", "(the regression)",
+"proving the fix didn't make useSession over-eagerly sign valid users out".
+`LoginScreen.tsx`'s `toggleAction` docstring: "Clearing the code is the form's
+business now".
+
+**Worked 2026-09-13.** The header states the standing fact — a mocked
+`getUser` failure is cleaner than the real one, whose error need not carry a
+4xx, so only the live flow shows where such a session lands — and the spec
+comments say what each pins without naming a fix. `toggleAction` says where
+the code lives and why the setter comes from inside the form.
+
+### F-simple-page-18 · `one-word` · five play surfaces draw their own "Loading game…"
+
+`loading/doc.md`'s Design says one component and one word, and `App`,
+`ClubPage` and `GamePage` render `<Loading>`. Grepping for the text the Design
+argues against finds `<p>Loading game…</p>` returned while the read is pending
+in stackdown, waffle, wordle, scrabble (with a class of its own) and
+psychicnum. Whether each swaps to `<Loading>` is that game's decision with its
+files open.
+
+**Worked 2026-09-13 as a handoff:** a Someday line in each of the five games'
+`todo.md`.
+
+### F-simple-page-19 · `second-copy` · the seeded-color comment restates the Design
+
+`ClaimHandleScreen.tsx` 96–105, on `const suggested`: ten lines on why the
+color does not track the field — the hop from swatch to swatch, "a default is
+worth having; one that keeps re-deciding while you type isn't",
+`initialValues` read at mount. `auth/doc.md`'s Design (F-6) carries the same
+argument in nearly the same words. A comment explains the line in front of the
+reader; a second copy of an explanation that lives in the Design is what the
+comment rule in CLAUDE.md names.
+
+Options:
+
+1. **Trim to the fact and a pointer** — "Read once, at mount: the color is
+   seeded from the suggestion and deliberately does not follow the field as
+   you type; `doc.md` says why." Three lines; the Design keeps the argument.
+2. **Keep it** — it defends the line it sits on, and someone changing
+   `initialValues` sees the reason without opening the Design.
+
+Recommend 1: the Design was written to be the copy that stays right, and two
+copies of an argument drift the way two copies of a sentence did in F-3.
+
+**Worked 2026-09-13 — option 1 (Joel).** Three lines: read once at mount, the
+color does not follow the field, `doc.md` says why. The argument lives in the
+Design alone.
+
 ## Notes
 
 - **`Loading` paints the muted color without `.muted`.** The utility also sets
@@ -440,7 +550,12 @@ screenshot was taken of the larger heading.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-13;
+      F-14 to F-19 above)
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED` (all
+      three, F-6)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (`auth/todo.md` one Someday; `loading` and `error-page` empty; the
+      handoffs are in `club`'s and five games' `todo.md`)
+- [x] every file on the roster blessed, or its stamp says why not — all eleven
+      `cs-blessed-simple-page` (Joel, 2026-09-13)
