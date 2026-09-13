@@ -394,8 +394,9 @@ conclusion held, the reasoning had not. Owed: nothing; `todo.md` is empty.
 `fields/ColorChoiceField.tsx` still says `cs-blessed-forms` over content it
 gained here, for forms to re-bless when it next opens.
 
-**`simple-page` is closed** (2026-09-13): eleven files `cs-blessed-simple-page`,
-nineteen findings, all worked, one of them a handoff. What changed the app: the
+**`simple-page` is closed** (2026-09-13): twelve files `cs-blessed-simple-page`,
+twenty findings, all worked, one of them a handoff and one — a claim-screen e2e
+the roster had missed — worked the day after the close on Joel's word. What changed the app: the
 claim screen's two exits — the "Not you? Sign out" button and the PN018 branch —
 run one `signOutAndLeave()`, where PN018 had signed out and trusted an auth
 listener the button's own comment said could not be trusted; the sign-in code's
@@ -549,8 +550,8 @@ will list the other as a dependency whichever goes first.
 | 27 | `scratchpad` | `scratchpad` | **CLOSED 2026-09-12, blessed.** a game's notepad: shared in coop, private per player in compete. Sixteen findings; the summary is under "Where to start" |
 | 28 | `account` | `account` | **CLOSED 2026-09-12, blessed.** your own menu and profile editing. Fifteen findings; the summary is under "Where to start" |
 |    | **The pages** | | |
-| 29 | `simple-page` | `auth` · `loading` · `error-page` | **CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Nineteen findings; the summary is under "Where to start" |
-| 30 | `homepage` | `home` | the landing page after login |
+| 29 | `simple-page` | `auth` · `loading` · `error-page` | **CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Twenty findings; the summary is under "Where to start" |
+| 30 | `homepage` | `home` | **OPEN 2026-09-13.** the landing page after login |
 | 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
 |    | **The game shell** — needed by games and nothing else | | |

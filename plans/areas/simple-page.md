@@ -513,6 +513,24 @@ copies of an argument drift the way two copies of a sentence did in F-3.
 color does not follow the field, `doc.md` says why. The argument lives in the
 Design alone.
 
+### F-simple-page-20 · `missed-spec` · `e2e/claim-handle.e2e.ts` was never on the roster — worked after the close
+
+Found while listing `homepage`'s files, the day after this area closed: a
+spec on the claim screen, `cs-unmet`, that neither `account`'s handoff nor the
+opening listed. Joel: *"read/fix/bless as simple-page."* What it held: the
+"used to be derived … It's now seeded once" story F-4 removed everywhere else;
+a hand-rolled admin client with the anon and service keys pasted inline, doing
+what `createUnclaimedUser` in the fixtures already does (the header even
+explained why it could not use `createSoloClub`, without noticing the helper
+beside it); `ColorChoiceList`, a component that folded into `ColorChoiceField`
+at `account`; and `% 8`, the palette's size as a literal.
+
+**Worked 2026-09-13.** The header states what the spec pins and points at
+auth's Design; the user comes from `createUnclaimedUser('claim')` and the
+pasted keys are gone; the swatch count is read from the page. Typechecked and
+linted; **not run** — an e2e is run on Joel's word only. Stamped
+`cs-blessed-simple-page` on his word.
+
 ## Notes
 
 - **`Loading` paints the muted color without `.muted`.** The utility also sets
