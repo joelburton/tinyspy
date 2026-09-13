@@ -4,35 +4,51 @@
 /* @@ */ .swatches {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
 }
 
-/* One color option: the actual color circle + its name. The selected
- * one gets an accent ring. */
+/* One color option: the actual color circle + its name.
+ *
+ * A QUIET BUTTON, wearing quiet's own states — the faint wash on hover, the
+ * deeper one while pressing, and no transition, exactly as a standard button
+ * paints them. It is not a `<StandardButton>` and can't be: that component's
+ * glyph slot takes a Lucide svg and this glyph is a `<Dot>`, so it reads the
+ * tokens directly the way `<PageHeaderButton>` does.
+ *
+ * The border is RESERVED at its chosen width and only changes color, so
+ * picking a color never moves the grid a pixel (docs/ui.md → Layout
+ * stability). */
 /* @@ */ .swatch {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--field-edge-color);
+  border: var(--border-width-line-thick) solid var(--field-edge-color);
   border-radius: var(--radius-md);
+  background: transparent;
   color: var(--page-text-color);
   cursor: pointer;
   text-align: left;
 }
 /* @@ */ .swatch:hover:not(:disabled) {
-  border-color: var(--chrome-cursor-color);
+  background: var(--button-quiet-secondary-hover-color);
 }
-/* ⚠️ The same ring the keyboard cursor draws, meaning something else: this
-   marks the color you HAVE CHOSEN, permanently, not where the keyboard is
-   pointing. It deliberately does NOT read `--chrome-cursor-ring`
-   (common/core-css/patterns/focus-ring.css) — borrowing the token would tie a selected
-   state to a decision about keyboard affordances, and the two would then have
-   to move together forever. Whether "selected" should look like "the cursor is
-   here" at all is a real question, and it belongs to the account pass. */
+/* @@ */ .swatch:active:not(:disabled) {
+  background: var(--button-quiet-secondary-press-color);
+}
+
+/* THE COLOR YOU HAVE CHOSEN — the edge in body ink. A dark neutral and never
+   the accent blue, which means "the keyboard is pointing here" and is what the
+   ring below says. */
 /* @@ */ .swatchActive {
-  border-color: var(--chrome-cursor-color);
-  outline: 2px solid var(--chrome-cursor-color);
+  border-color: var(--page-text-color);
+}
+
+/* Where the keyboard is, stated in the app's own ring rather than left to the
+   browser's — whose default is also a dark ring, and would read as the chosen
+   mark above. Inside the border, per focus-ring.css's `-1px` case. */
+/* @@ */ .swatch:focus-visible {
+  outline: var(--chrome-cursor-ring);
   outline-offset: -1px;
 }
 

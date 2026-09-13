@@ -5,9 +5,9 @@ The folders it reads: `account`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fourteen findings. F-1 to F-6 are the prose group; F-7, F-8 (minus the ring)
-and F-13 are waiting fixes with no decision in them; F-9 to F-12 and F-14 each
-hold a decision for Joel.**
+Fifteen findings. F-8, F-9 and F-15 are DONE. F-1 to F-6 are the prose group;
+F-7 and F-13 are waiting fixes with no decision in them; F-10 to F-12 and F-14
+each hold a decision for Joel.**
 
 ## The roster
 
@@ -160,7 +160,11 @@ is next worked on". This folder is being worked on: `useIsEditProfileOpen`,
 one reader (`App.tsx`), and the sentence loses it (down to
 `useInfoSheetOpen`). No decision — waiting to be done.
 
-### F-account-8 · `vocabulary` · the stylesheet has two exempt rows in the guard
+### F-account-8 · `vocabulary` · the stylesheet has two exempt rows in the guard — DONE
+
+**Done 2026-09-12**, folded into F-9's rewrite of the same declarations. Both
+rows are off `vocabularies.test.ts`.
+
 
 `ColorChoiceList.module.css` is in `vocabularies.test.ts` twice: spacing
 `0.5rem` (the grid gap and the swatch's gap → `--spacer-4`) and border `1px`
@@ -171,7 +175,44 @@ Dot's own knobs and the comment says why they are set. The `2px` outline is
 the ring, which is F-9's. Two rows off the guard once converted; no decision
 in the two.
 
-### F-account-9 · `selected-ring` · the chosen swatch wears the keyboard cursor's ring
+### F-account-9 · `selected-ring` · the chosen swatch wears the keyboard cursor's ring — DONE
+
+**Decided and done 2026-09-12** (Joel: the picker *"should act more like the
+rest of our chrome (like for buttons) — it highlights when hovered over (rather
+than a ring), and it should get a black ring to show that it is selected"*, and
+*"they're actually buttons, so treat it just like we do our standard
+buttons"*).
+
+A swatch is a `<button>`, so it wears a quiet button's states: quiet's hover
+wash, quiet's press wash, and no transition — a standard button paints its wash
+instantly. It is NOT a `<StandardButton>` and cannot be: that component's glyph
+slot is typed to a Lucide svg and sized by `.standardButton > svg`, and the
+swatch's glyph is a `<Dot>`, a styled span. So it reads the `--button-quiet-
+secondary-*` tokens directly, the way `<PageHeaderButton>` does — and joins the
+list of deliberately-not-standard kinds that `StandardButton.module.css`'s
+header keeps.
+
+The chosen swatch's border goes to `--page-text-color`, at the width the
+resting border already reserves, so choosing moves nothing. A dark neutral
+rather than the accent blue, which is the call `<ClubGameCard>`'s callout
+already makes for the same reason.
+
+The resting edge stays `--field-edge-color` rather than quiet's own outline
+gray (Joel picked it): the picker is a field, and the light gray is what makes
+the jump to ink read as chosen at all — quiet's gray is about 0.115 lightness
+off body ink and the change would be invisible.
+
+The swatch gained its own `:focus-visible` ring, `--chrome-cursor-ring` at
+`-1px`. Not tidying: with the outline gone the button fell back to the
+browser's default ring, which is also dark and would read as the chosen mark.
+
+Both `⚠️` essays are gone — the seven lines here and the paragraph in
+`core-css/patterns/focus-ring.css` — because no file paints a ring by hand any
+more. `docs/ui.md`'s "not a selected state" paragraph and the
+`<ColorChoiceList>` bullet say what the swatch does now, and `todo.md`'s
+Someday item is off.
+
+<details><summary>the finding as audited</summary>
 
 `todo.md`'s Someday item, and the one design question in the folder.
 `.swatchActive` draws `outline: 2px solid var(--chrome-cursor-color)` with the
@@ -187,6 +228,8 @@ token that means chosen; (2) no ring — the chosen swatch's border thickens or
 takes the swatch's own color, the way a pressed header mark takes a border;
 (3) leave the paint and delete the essay. The `aria-pressed` the button
 already sets is the state hook whichever wins.
+
+</details>
 
 ### F-account-10 · `log-out-failure-unsurfaced` · a failed sign-out is a console line
 
@@ -249,6 +292,23 @@ direct UPDATE for a player, free-form for the test role. The column is
 RPC. A file per unit. Options: (1) `profiles_theme_test.sql` in the same
 folder, the three moved, both plans recounted; (2) rename this file to the
 profile's write-path test and let the header say it covers both; (3) leave.
+
+### F-account-15 · `legend-gap` · a group field's caption sits flush against its control — DONE
+
+Found while looking at the picker (Joel: *"there should be spacing between
+'Player color' and the list of colors"*). `field.module.css`'s `.field` is a
+flex column with `gap: var(--spacer-4)`, which is what puts 0.5rem under every
+caption — but a `group` field's caption is a `<legend>`, and a legend is the
+fieldset's rendered caption rather than a flex item, so the gap never reaches
+it. Measured on the two shapes side by side: legend 0, span 16px.
+
+One rule in `src/common/fields/field.module.css` (blessed, `forms`):
+`legend.label { margin-bottom: var(--spacer-4) }`. Two fields pass `group` with
+a caption — `<ColorField>` (the Edit profile modal and the claim screen, both
+taking the prop's `'Player color'` default) and `<CheckboxListField>` (Edit
+club's "Games played in this club"). `<PlayersField>` also passes `group` but
+has no default label and its one call site passes none, so it draws no legend
+and is untouched. **Done 2026-09-12**, across all three screens.
 
 ## Notes
 

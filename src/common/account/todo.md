@@ -10,9 +10,4 @@
 
 ## Someday
 
-- `ColorChoiceList.swatchActive` draws the cursor ring to mean "the color you
-  CHOSE" — deliberately not converted to the shared ring, since tying a
-  selected state to a keyboard decision marries them forever. Whether
-  "selected" should look like "the cursor is here" is its own question.
-
 ## Maybe

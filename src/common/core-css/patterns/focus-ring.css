@@ -36,9 +36,7 @@
  * `<SelectionList>`'s own `.cursor` (common/lists/) rather than anything here,
  * because only the component that owns the rows can put it on one.
  *
- * ⚠️ A CURSOR IS NOT A SELECTED STATE. `ColorChoiceList.swatchActive` paints a
- * ring that looks exactly like this one, meaning the color you HAVE CHOSEN. It
- * writes the width and the color out rather than reading the token, on purpose
- * — a selected state should not be tied to a decision about keyboard
- * affordances. So the resemblance is not coupling; whether the two should look
- * alike at all is a live question, and it belongs to the account pass. */
+ * A CURSOR IS NOT A SELECTED STATE, and nothing paints one to mean the other.
+ * A control that marks what you have CHOSEN reaches for a dark neutral
+ * instead — `ColorChoiceList`'s swatches, `<ClubGameCard>`'s callout — so blue
+ * is only ever the keyboard. */

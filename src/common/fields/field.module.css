@@ -33,6 +33,16 @@
 }
 
 /*
+ * THE ONE CAPTION THE COLUMN'S GAP DOES NOT REACH. A `<legend>` is the
+ * fieldset's rendered caption rather than a flex item, so `gap` never applies
+ * to it — without this, a `group` field's caption sits flush against its
+ * control while every `<label>` field above it has its 0.5rem.
+ */
+/* @@ */ legend.label {
+  margin-bottom: var(--spacer-4);
+}
+
+/*
  * HELP — what this field is about, under the caption and above the control.
  *
  * A `help` prop, which is what lets a setup form read as a list of fields and
