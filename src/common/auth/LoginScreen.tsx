@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-simple-page
 
 import { useRef, useState } from 'react'
 import { StandardForm } from '../forms/StandardForm'
@@ -47,7 +47,7 @@ import { TextField } from '../fields/TextField'
 // Dev-only convenience: prefill the email so heavy local iteration (esp. on a
 // phone, where typing is a pain) doesn't mean re-entering it every reload. Empty
 // in prod — the friends type their own.
-const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@joelburton.com' : ''
+const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@test.local' : ''
 
 /** What the form holds. Neither is an RPC parameter — these go to
  *  `supabase.auth`, which answers with a message and never names a field — so

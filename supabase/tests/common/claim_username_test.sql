@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-audited-simple-page
 
 -- ============================================================
 -- Test: common.claim_username(desired text, chosen_color text) RPC
