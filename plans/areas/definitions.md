@@ -4,9 +4,8 @@ The folders it reads: `definitions` · `anagram-finder`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12; the prose pass, the no-decision fixes and
-F-definitions-15 and -16 are in the tree. F-definitions-17 is still to
-present.**
+**Status: OPEN — audited 2026-09-12. Every finding is worked, F-1 to F-17;
+what remains is the Closing checklist below.**
 
 ## The roster
 
@@ -261,12 +260,11 @@ Six rows came off `guards/vocabularies`' pending lists — spacer, font-size,
 line-height, opacity and letter-spacing — and both files are now clean in
 every vocabulary.
 
-### F-definitions-17 · e2e-screenshot-leftover · `anagram-finder.e2e.ts` writes a screenshot into a dead session's scratchpad
+### WORKED · F-definitions-17 · e2e-screenshot-leftover · `anagram-finder.e2e.ts` wrote a screenshot into a dead session's scratchpad
 
-Lines 48–50 save `anagram-finder.png` to
-`/private/tmp/claude-501/…/b3c9f78e-…/scratchpad/` on every run — a
-debugging leftover with a path no other session has. Proposed: delete the
-call (a removal, so it is asked, not done).
+The spec saved `anagram-finder.png` into a scratchpad directory belonging to a
+session that had ended, on every run, and nothing asserted on the file. Deleted
+(Joel).
 
 ## Notes
 

@@ -45,9 +45,6 @@ test('open with the chord, pin a letter, scroll a long list', async ({ browser }
   const list = page.locator('ul', { has: page.locator('[data-word="nastier"]') })
   const scrolls = await list.evaluate((el) => el.scrollHeight > el.clientHeight)
   expect(scrolls, 'the result list scrolls inside the panel').toBe(true)
-  await page.screenshot({
-    path: '/private/tmp/claude-501/-Users-joel-src-codenames/b3c9f78e-ea70-41c3-8229-a833b2334401/scratchpad/anagram-finder.png',
-  })
 
   // Focus sits in the dialog's input — a non-game field — so the chord is
   // deliberately ignored there (it would type into a field elsewhere too);
