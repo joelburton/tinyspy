@@ -60,7 +60,6 @@ const KNOWN: string[] = [
   'src/common/club/CreateClubModal.tsx › Values',
   'src/common/club/EditClubModal.tsx › Values',
   'src/common/game-page/GamePage.tsx › isGameId',
-  'src/common/scratchpad/useScratchpad.ts › SavedPad',
   // → connections
   'src/connections/components/BoardCol.tsx › GuessAnswer',
   // → crosswords

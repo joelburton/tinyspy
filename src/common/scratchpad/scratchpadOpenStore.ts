@@ -4,14 +4,18 @@ import { useSyncExternalStore } from 'react'
 import { readStored, writeStored } from '../web-storage/storage'
 
 /**
- * The scratchpad panel's open/closed state — a tiny module-level pub-sub
- * store (mirrors `chatOpenStore`), so the header bubble and the floating
- * panel share one flag without prop-drilling. Persisted to localStorage so
- * the pad feels continuous across navigations within a session.
+ * Shared open/closed state for the scratchpad panel.
  *
- * Like chat, "open" is an app-global toggle (one boolean), not per-game; the
- * per-game memory that matters — where the panel sits — rides the panel's own
- * `persistKey` (namespaced by gameId). See useDraggablePanel.
+ * Its writers sit in different subtrees — the header's `<ScratchpadButton>`,
+ * which also binds `⌥S`, and `<GameScratchpadCompanion>` for its own close —
+ * and the companion reads it to decide whether to render the panel at all.
+ * So the flag lives outside the component tree in a small pub-sub store.
+ * Subscribers use `useIsScratchpadOpen()`; writers call
+ * `setScratchpadOpen(next)`.
+ *
+ * The module holds the value for the life of the tab, so moving between
+ * games keeps it on its own; the localStorage mirror is what carries it
+ * across a reload.
  */
 const KEY = 'puzpuzpuz:scratchpad:open'
 

@@ -23,38 +23,42 @@ type LockEvent =
   | { type: 'claim'; userId: string; at: number }
   | { type: 'release'; userId: string }
 
+/** What a pad's textarea binds to: the text, the setter, and the lock as the
+ *  local player sees it. */
 export type ScratchpadApi = {
   body: string
   setBody: (text: string) => void
   loading: boolean
-  /** Whether the local user may type right now (private pad, or they hold the
-   *  shared lock / it's free). */
+  // Whether the local player may type right now: a private pad, or the shared
+  // lock is theirs or free.
   canEdit: boolean
-  /** The user id of the OTHER player currently editing the shared pad, or
-   *  null. The caller names them from its roster. */
+  // The user id of the OTHER player editing the shared pad, or null. The
+  // caller names them from its roster.
   editingBy: string | null
-  /** Whether the local user can claim the lock from a stale/idle holder. */
+  // Whether the local player may claim the lock from an idle holder.
   canTakeOver: boolean
   takeOver: () => void
 }
 
-/**
- * The per-game scratchpad body + (for the shared coop pad) a Realtime
- * takeover lock. `ownerId` null = the shared pad (locked); a user id = a
- * private compete pad (no lock — you're the only writer).
- *
- * Body sync: DB-backed, applied directly from CDC "newer wins" (per-row
- * `version`), with the local edit echoed optimistically + a debounced
- * full-text flush via `set_scratchpad`. Lock: on a STABLE-name Broadcast
- * channel (shared room), the holder re-asserts a claim while editing and
- * auto-releases when idle / disconnected; others read-only until they take
- * over.
- */
 /** What `common.set_scratchpad` puts in `data`. The version is the point: the
  *  caller keeps the highest one seen, so an out-of-order flush cannot roll the
- *  pad backwards. Nullable because its not-ok arms arrive through a raise. */
+ *  pad backwards. Nullable because the RPC's not-ok arms arrive through a
+ *  raise. */
 type SavedPad = { result: 'saved'; version: number } | null
 
+/**
+ * A game's scratchpad, kept in sync for as long as the hook is mounted. Pass
+ * `ownerId` null for the shared coop pad, or a user id for that player's
+ * private compete pad.
+ *
+ * The body is the table's: every write is a debounced full-text flush through
+ * `set_scratchpad`, and rows arriving over Realtime apply newest-version-wins,
+ * with the local edit shown at once. The shared pad also has a lock, which is
+ * peers agreeing over Broadcast on the same channel: typing claims it, the
+ * holder re-asserts it while editing and releases it when idle, and everyone
+ * else is read-only until it frees or they take it over. The whole shape:
+ * doc.md → Design.
+ */
 export function useScratchpad(
   gameId: string,
   ownerId: string | null,
@@ -84,6 +88,15 @@ export function useScratchpad(
     setBodyState(nextBody)
   }, [])
 
+  // While I hold the shared lock, what I have typed outranks any body that
+  // arrives — an event or a refetch that outruns my own flush would otherwise
+  // revert the textarea under the caret. My next flush carries my text
+  // anyway, and its reply advances the version.
+  const myTextIsAuthoritative = useCallback(
+    () => shared && holderRef.current?.userId === myId,
+    [shared, myId],
+  )
+
   // ── Load + realtime (body CDC + lock Broadcast) on ONE stable channel ──
   useEffect(() => {
     let active = true
@@ -110,7 +123,7 @@ export function useScratchpad(
       // ZERO ROWS is a pad nobody has written in yet: there is no row until the
       // first flush, and an empty pad is exactly what it should show.
       const row = res.data[0]
-      if (row) applyBody(row.body, row.version)
+      if (row && !myTextIsAuthoritative()) applyBody(row.body, row.version)
       setLoading(false)
     }
 
@@ -129,15 +142,7 @@ export function useScratchpad(
           const r = payload.new as { owner_id: string | null; body: string; version: number }
           const rowOwner = r.owner_id ?? null
           if (rowOwner !== ownerId) return // not our pad
-          // While I hold the shared lock, MY local text is authoritative — ignore
-          // incoming CDC bodies (crossplay: "when we DO hold it, we ignore incoming
-          // text"). Without this, a body write that outruns my own flush's RPC
-          // response — my echo, or a racing non-holder's stray flush — lands mid-
-          // keystroke and visibly reverts what I've typed during the flush RTT
-          // (caret jumps to end). My next flush re-propagates my text (version
-          // bumps monotonically), so dropping the event is safe and self-heals.
-          // My own writes still advance versionRef via the flush RPC response.
-          if (shared && holderRef.current?.userId === myId) return
+          if (myTextIsAuthoritative()) return
           applyBody(r.body, r.version)
         },
       )
@@ -183,7 +188,7 @@ export function useScratchpad(
       }
       void releaseChannel(ch)
     }
-  }, [gameId, ownerId, shared, myId, applyBody])
+  }, [gameId, ownerId, shared, myId, applyBody, myTextIsAuthoritative])
 
   // The clock behind the grace and staleness windows. It runs only while a
   // holder is known — with nobody editing there is nothing to age — and a

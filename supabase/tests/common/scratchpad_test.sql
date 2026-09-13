@@ -57,8 +57,8 @@ select pg_temp.envelope_is(
   'a player can write their own private pad');
 
 -- ada cannot write bea's private pad.
--- A BUG:, not a refusal — the FE sends its own id or null and offers no control
--- that produces a third value, so reaching this means we let it through.
+-- A BUG: the FE sends its own id or null and offers no control that produces
+-- a third value, so reaching this means we let it through.
 select pg_temp.envelope_is(
   common.set_scratchpad(:'game_id'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid, 'sneaky'),
   '{"type": "not-ok", "severity": "fault", "dbcode": "PN304",
@@ -105,7 +105,7 @@ reset role;
 
 -- Over-length body is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- Also a BUG:: the textarea carries maxLength={10000}, so over the cap means
+-- Also a BUG: the textarea carries maxLength={10000}, so over the cap means
 -- the cap was bypassed rather than a player typing too much.
 select pg_temp.envelope_is(
   common.set_scratchpad(:'game_id'::uuid, null::uuid, repeat('x', 10001)),

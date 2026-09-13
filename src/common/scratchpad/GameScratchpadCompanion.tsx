@@ -12,7 +12,7 @@ import styles from './GameScratchpadCompanion.module.css'
 
 type Props = {
   gameId: string
-  /** null = the shared coop pad; a user id = that player's private compete pad. */
+  // null = the shared coop pad; a user id = that player's private compete pad.
   ownerId: string | null
   myId: string
   // The club roster, which names the player holding the shared lock.
@@ -20,13 +20,15 @@ type Props = {
 }
 
 /**
- * The per-game scratchpad floating panel — rendered at the GamePage level
- * (outside PauseBoundary, so it survives pause and shows at terminal) for
- * games whose manifest opts in. The header `<ScratchpadButton>` toggles it
- * via the shared open-state store; geometry persists per-game.
+ * The game's scratchpad panel. GamePage mounts it, outside the pause
+ * boundary, for a game whose manifest opts in, and leaves it mounted for the
+ * life of the page: closed it renders nothing, while `useScratchpad` keeps
+ * the body and the lock in sync underneath. The header mark and `⌥S` flip
+ * the shared `scratchpadOpenStore`; the rect is remembered per game.
  *
- * The hook runs even while the panel is closed (background body sync + lock),
- * mirroring how chat keeps syncing when collapsed.
+ * Open, it is a `<Companion>` with two parts: a status line — whose pad this
+ * is, or who is editing it and, once they have gone idle, a way to take
+ * over — and the textarea, read-only while someone else holds the lock.
  */
 export function GameScratchpadCompanion({ gameId, ownerId, myId, members }: Props) {
   const open = useIsScratchpadOpen()

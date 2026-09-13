@@ -4,10 +4,13 @@ The folders it reads: `scratchpad`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 to F-12 and F-15 worked on Joel's decisions, F-13
-closed by F-9's; the prose ones (F-1 to F-6) are next as one group, then the
-remaining decisions one at a time.**
+**Status: OPEN — audited 2026-09-12, eight files `cs-audited-scratchpad`
+(the seven agreed and the store test the area wrote). Sixteen findings, ALL
+WORKED or CLOSED: F-7 to F-12 and F-15 on Joel's decisions, F-13 closed by
+F-9's, F-1 to F-6 as the prose group, F-14 and F-16 the waiting fixes. The
+`doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md` holds
+one Maybe. Left: the closing re-read in one sitting, then the blessing,
+which is Joel's.**
 
 ## The roster
 
@@ -24,6 +27,10 @@ Plus `doc.md` (a one-line lede; the Design is owed — `DESIGNS_OWED` has the
 row) and `todo.md` (one Someday, the monospace choice that waits for the setup
 forms; one Maybe, the open-flag encoding chat and scratchpad store two ways) —
 no stamp, markdown.
+
+**Written by this area:** `src/common/scratchpad/scratchpadOpenStore.test.ts`,
+stamped `cs-audited-scratchpad` — the store had no test file and its twin
+does.
 
 **Evidence, not roster — read and judged, findings recorded, fixed in place,
 never stamped:** `supabase/sql/common.sql`'s scratchpad pieces — the
@@ -48,7 +55,23 @@ scratchpad's Tab-hand-off e2e case lives in `e2e/chat-keyboard.e2e.ts`
 
 ## Findings
 
-### F-scratchpad-1 · `orphaned-docstring` · the hook's docstring sits on `SavedPad`
+### WORKED · F-scratchpad-1 · `orphaned-docstring` · the hook's docstring sits on `SavedPad`
+
+**WORKED 2026-09-12, with F-2 to F-6 as the prose group.** `SavedPad` and its
+docstring sit above the hook; the hook's docstring is its own, rewritten for
+the caller (what it is, what to pass, the shape in a sentence, doc.md for the
+rest); the KNOWN row is gone from the orphan guard. F-2: `ScratchpadApi` has
+a type docstring and `//` on its fields; the companion's props too. F-3: the
+review date, the C3a code and the crossplay quotes are gone from the test's
+docstring, the hook and docs/common.md; code-conventions no longer calls the
+lock "future". F-4: the companion's and the store's docstrings say what is
+there now (the mark AND `⌥S`; the module holds the flag across games and
+storage carries it across a reload); docs/common.md says `p_owner_id`,
+`<Companion>`, "like `useCells`" with the difference named, and that the RPC
+guards on membership only; the SQL test's two typos are fixed. F-5: the
+store's design paragraph moved to doc.md. F-6: doc.md has a lede that says
+whose pad it is and a Design written from the answers; the row is off
+`DESIGNS_OWED` (the guard seen red with the heading planted wrong).
 
 `useScratchpad.ts` lines 40–55: the twelve-line `/** The per-game scratchpad
 body + … */` block is followed by a second `/** What set_scratchpad puts in
@@ -58,7 +81,7 @@ by this area. Fix: `SavedPad` and its docstring move above; the hook's
 docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
 `SavedPad` docstring's "Nullable because its not-ok arms" — "the RPC's".)
 
-### F-scratchpad-2 · `marker-pass` · `/**` on members, a note on a positional parameter
+### WORKED · F-scratchpad-2 · `marker-pass` · `/**` on members, a note on a positional parameter
 
 - `ScratchpadApi`'s four field notes (`canEdit`, `editingBy`, `canTakeOver`)
   are `/**`; a field note takes `//`. The type's own docstring is missing —
@@ -68,7 +91,7 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
 - ~~`editingDisabled: boolean, // e.g. terminal — read-only`~~ — the
   parameter is gone (F-scratchpad-9, the pad stays editable at terminal).
 
-### F-scratchpad-3 · `archaeology` · a review date, a finding code, and four "crossplay:" quotes
+### WORKED · F-scratchpad-3 · `archaeology` · a review date, a finding code, and four "crossplay:" quotes
 
 - `useScratchpad.test.ts`'s docstring: "the 2026-07-05 review flagged it as
   having zero unit tests", "the C3a HOLDER GUARD", and a describe block named
@@ -85,7 +108,7 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
 - `docs/code-conventions.md` line 240: "future scratchpad-takeover-lock" —
   it has shipped; the word "future" is the stale part.
 
-### F-scratchpad-4 · `stale-claims` · sentences about code that no longer looks like that
+### WORKED · F-scratchpad-4 · `stale-claims` · sentences about code that no longer looks like that
 
 - `scratchpadOpenStore.ts`'s docstring: "the header bubble" (the header's
   word is MARK); "Persisted to localStorage so the pad feels continuous across
@@ -109,7 +132,7 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
 - ~~`useScratchpad.ts`: "(keep-logs ethos)"~~ — the comment was rewritten
   with F-scratchpad-9's flush change.
 
-### F-scratchpad-5 · `rationale-in-docstring` · the store explains its design where a caller wanted its use
+### WORKED · F-scratchpad-5 · `rationale-in-docstring` · the store explains its design where a caller wanted its use
 
 `scratchpadOpenStore.ts`'s second paragraph — "Like chat, open is an
 app-global toggle (one boolean), not per-game; the per-game memory that
@@ -118,7 +141,7 @@ design decision, and it is the right one; its home is `doc.md`'s Design, and
 the docstring keeps the one line a caller needs: who reads, who writes, what
 storage does.
 
-### F-scratchpad-6 · `doc-md` · the lede is one line and the Design is owed
+### WORKED · F-scratchpad-6 · `doc-md` · the lede is one line and the Design is owed
 
 `doc.md` is "The shared notes panel a club can write in while a game runs" —
 and that is not quite it either: the pad is a GAME's, opted into per manifest,
@@ -330,7 +353,12 @@ where the player is looking when the game ends under their keystrokes.
 2. Leave it a console line; delete the "nobody has answered" sentence and
    say it is a decision.
 
-### F-scratchpad-14 · `load-path-holder-guard` · the refetch does not have the guard the CDC path has
+### WORKED · F-scratchpad-14 · `load-path-holder-guard` · the refetch does not have the guard the CDC path has
+
+**WORKED 2026-09-12.** One predicate, `myTextIsAuthoritative`, guards both
+the CDC handler and `load()`; the holder-guard test gained a case that
+refetches a clobbering row while I hold, seen red first (`expected 'clobber'
+to be 'hello'`).
 
 The CDC handler drops an incoming body while I hold the shared lock (the
 holder guard). `load()` — run on SUBSCRIBED and on the attach confirmation,
@@ -360,7 +388,11 @@ contract. Fix in place: `memberById`'s player-side twin if one exists, else a
 lookup that says the miss is impossible. Present with the options when the
 area gets there.
 
-### F-scratchpad-16 · `no-store-test` · `scratchpadOpenStore` has no test file
+### WORKED · F-scratchpad-16 · `no-store-test` · `scratchpadOpenStore` has no test file
+
+**WORKED 2026-09-12.** `scratchpadOpenStore.test.ts`, in chat's shape with the
+storage fake, minus the mounted-count block this store does not have; stamped
+`cs-audited-scratchpad` and staged.
 
 `chatOpenStore.test.ts` pins its twin: the set/get, the storage mirror, the
 no-op write, both ways storage can fail, the hook, two subscribers, unmount.
@@ -405,6 +437,6 @@ catches the rename; nothing else has a test that would notice.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

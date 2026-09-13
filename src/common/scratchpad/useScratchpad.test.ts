@@ -1,16 +1,14 @@
 // cs-audited-scratchpad
 
 /**
- * Tests for useScratchpad — the raciest code in the scratchpad feature (the
- * 2026-07-05 review flagged it as having zero unit tests). Four behaviors
- * are pinned:
+ * Tests for useScratchpad — the raciest code in the scratchpad feature. Four
+ * behaviors are pinned:
  *
  *   1. body-merge "newer wins" — CDC bodies apply only when their per-row
  *      `version` beats the local one (an equal/older event is dropped);
- *   2. the C3a HOLDER GUARD — while I hold the shared lock, an incoming CDC
- *      body is ignored so a write that outruns my own flush can't revert my
- *      textarea mid-keystroke (crossplay: "when we DO hold it, we ignore
- *      incoming text");
+ *   2. the HOLDER GUARD — while I hold the shared lock, an incoming body,
+ *      whether a CDC event or a reconnect's refetch, is ignored so a write
+ *      that outruns my own flush can't revert my textarea mid-keystroke;
  *   3. the takeover lock lifecycle — a foreign `claim` makes the pad
  *      read-only (`editingBy` is their id, `canEdit` false), "Take over" unlocks only
  *      after the grace window, and a holder gone silent past STALE_MS is
@@ -123,7 +121,7 @@ describe('useScratchpad — body newer-wins', () => {
   })
 })
 
-describe('useScratchpad — C3a holder guard', () => {
+describe('useScratchpad — holder guard', () => {
   it('ignores incoming CDC bodies while I hold the shared lock', async () => {
     loadRow = { body: '', version: 0 }
     const { result } = renderHook(() => useScratchpad(GAME, null, ME))
@@ -138,6 +136,23 @@ describe('useScratchpad — C3a holder guard', () => {
     // A body write outruns my flush (my own echo, or a racing non-holder).
     // Because I hold the lock, it must NOT clobber my in-flight text.
     act(() => cdc({ owner_id: null, body: 'clobber', version: 99 }))
+    expect(result.current.body).toBe('hello')
+  })
+
+  it('ignores a refetched body while I hold the shared lock', async () => {
+    loadRow = { body: '', version: 0 }
+    const { result } = renderHook(() => useScratchpad(GAME, null, ME))
+    act(() => subscribeCb?.('SUBSCRIBED'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    act(() => result.current.setBody('hello'))
+
+    // A reconnect refetches the row; a stray write already in it must not
+    // land in my textarea any more than the CDC event would.
+    loadRow = { body: 'clobber', version: 99 }
+    await act(async () => {
+      subscribeCb?.('SUBSCRIBED')
+      await new Promise((r) => setTimeout(r, 0))
+    })
     expect(result.current.body).toBe('hello')
   })
 })

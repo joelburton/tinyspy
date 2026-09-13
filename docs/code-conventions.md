@@ -237,7 +237,7 @@ Tested at [`useRealtimeRefetch.test.ts`](../src/common/realtime/useRealtimeRefet
 
 #### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
 
-For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, future scratchpad-takeover-lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
+For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, the scratchpad's takeover lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
 
 Canonical examples:
 - [`common/useCommonGame`](../src/common/game-page/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
