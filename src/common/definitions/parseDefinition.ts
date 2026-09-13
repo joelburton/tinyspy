@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /** A piece of a parsed definition: text shown verbatim, or a word to look up. */
 export type DefPart =

@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /**
  * LOOK UP A WORD — the one converted form with no server of its own.

@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /**
  * common-define — the Edge Function behind the click-to-define popover and the

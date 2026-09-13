@@ -1,4 +1,4 @@
--- cs-audited-definitions
+-- cs-blessed-definitions
 
 -- ============================================================
 -- Test: dictionary curation — update_word / delete_word / add_word

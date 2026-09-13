@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'

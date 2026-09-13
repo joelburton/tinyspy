@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { useDefinition, type WordMeta } from './useDefinition'
 import { useProfile } from '../session/useProfile'

@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { DefinitionPopover } from './DefinitionPopover'
 import { closeDefinition, useDefining } from './definitionStore'

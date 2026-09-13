@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /**
  * Tests for the ⌥~ anagram finder dialog. The matching itself is the

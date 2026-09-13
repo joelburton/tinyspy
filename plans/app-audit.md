@@ -311,6 +311,24 @@ had been red since the lists area hid the cursor until asked without
 updating the two specs it left off, and one setgame spec bet on a deal the
 deal-three rule can overturn; all repaired from here. Owed: nothing.
 
+**`definitions` is closed** (2026-09-12): twenty-five files
+`cs-blessed-definitions`, twenty-two findings, all worked. The one that
+changed the app: click-to-define is one component over a root host —
+`<DefinableWord>` writes a one-slot store and `<DefinitionHost>` in `App.tsx`
+draws the card, so the fourteen surfaces that show a definable word each lost
+a hook call, a popover render and a four-prop bundle, and `useDefinePopover`
+is gone; the native title stays (Joel: a styled bubble would trail popups down
+a hundred-word list), one hover feel everywhere, and wordle's squares got an
+underline that had never painted. Two live bugs: the Edit link showed after a
+failed lookup, and two local hover rules could only ever paint a disabled
+button. Both stylesheets joined the size vocabulary, the popover now a few
+percent smaller. The closing re-read's lesson, for the third area running:
+three of its four findings were the area's own fault classes recurring in
+prose the area wrote that day — thirteen bare "panel"s, three of them in
+comments a finding had written, and eleven "used to"s after a finding had
+fixed one. Grep the class, not the phrase. Owed: a screenshot of wordle's
+turn-log hover, which needs Playwright.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -435,7 +453,7 @@ will list the other as a dependency whichever goes first.
 | 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | **CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. The design plan (`feedback-design.md`) was deleted at the close; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start" |
 |    | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | **CLOSED 2026-09-12, blessed.** the top strip and the marks in it — furniture every page carries and no page owns. Sixteen findings; the summary is under "Where to start" |
-| 25 | `definitions` | `definitions` · `anagram-finder` | click-a-word lookup, dictionary curation, and the anagram dialog |
+| 25 | `definitions` | `definitions` · `anagram-finder` | **CLOSED 2026-09-12, blessed.** click-a-word lookup, dictionary curation, and the anagram dialog. Twenty-two findings; the summary is under "Where to start" |
 | 26 | `chat` | `chat` | the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s |
 | 27 | `scratchpad` | `scratchpad` | the shared notes panel |
 | 28 | `account` | `account` | your own menu and profile editing |

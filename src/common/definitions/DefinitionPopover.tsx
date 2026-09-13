@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'

@@ -4,10 +4,11 @@ The folders it reads: `definitions` · `anagram-finder`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12. Every finding is worked, F-1 to F-22
-(F-18 to F-21 are the closing re-read's; F-22 came from a question after it);
-both `doc.md` Designs are written. What remains is the blessing, which is
-Joel's.**
+**Status: CLOSED 2026-09-12, blessed — twenty-five files
+`cs-blessed-definitions`.** Audited and closed the same day. Twenty-two
+findings, all worked: F-1 to F-14 in the prose pass, F-15 to F-17 on Joel's
+word, F-18 to F-21 from the closing re-read, and F-22 from a question after
+it. Both `doc.md` Designs are written and both rows are off `DESIGNS_OWED`.
 
 ## The roster
 
@@ -377,6 +378,5 @@ which every surface now carries.
       (the guard went red on exactly the two rows before they came off)
 - [x] `todo.md` holds everything still owed — both are empty; the one Someday
       item was done by F-definitions-15 — and nothing durable is left here
-- [ ] every file on the roster blessed, or its stamp says why not — **NOT
-      blessed**: all twenty-five read `cs-audited-definitions`, and the stamp
-      is Joel's to set
+- [x] every file on the roster blessed — twenty-five `cs-blessed-definitions`
+      (Joel, 2026-09-12)

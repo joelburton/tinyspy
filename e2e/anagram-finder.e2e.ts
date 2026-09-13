@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub } from './helpers/fixtures'

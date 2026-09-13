@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /**
  * Tests for the click-to-define word. What's pinned here is the contract every

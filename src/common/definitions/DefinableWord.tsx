@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import type { CSSProperties, ReactNode } from 'react'
 import { cls } from '../utils/cls'

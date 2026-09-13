@@ -1,4 +1,4 @@
--- cs-audited-definitions
+-- cs-blessed-definitions
 
 -- ============================================================
 -- Test: common.anagrams — the ⌥~ anagram finder's search

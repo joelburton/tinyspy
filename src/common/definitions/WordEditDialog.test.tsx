@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 /**
  * Tests for the word-edit dialog's client half. The permission gate and the

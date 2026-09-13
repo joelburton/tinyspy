@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { useEffect, useState } from 'react'
 import { runEdgeFn } from '../supabase/dbResult'

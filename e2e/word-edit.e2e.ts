@@ -1,4 +1,4 @@
-// cs-audited-definitions
+// cs-blessed-definitions
 
 import { execFileSync } from 'node:child_process'
 import { test, expect } from '@playwright/test'
