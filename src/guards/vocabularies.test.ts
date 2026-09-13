@@ -246,7 +246,6 @@ const VOCABULARIES: Vocabulary[] = [
       // express. A heading's spacing is decided at h1–h4 in base.css, the same
       // place its size is — see this vocabulary's `fix` line and font-size's.
       'src/common/core-css/base.css': ['1rem', '1.25rem', '1.15rem'],
-      'src/common/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
       'src/common/buttons/SubmitWithScore.module.css': ['0.5rem'],
       // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it
       // is the mark gap, and the number you see is that plus each mark's own

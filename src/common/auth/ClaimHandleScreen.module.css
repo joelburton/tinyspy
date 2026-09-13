@@ -5,10 +5,12 @@
  * See docs/ui.md → Dialog buttons. */
 /* @@ */ .buttonRow {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--spacer-3);
   justify-content: flex-end;
   align-items: center;
-  margin-top: 0.5rem;
+  /* Tighter above than the shared `modalActions` row's `--spacer-1`: this row
+   * ends a page, not a dialog, and it follows the failure line directly. */
+  margin-top: var(--spacer-4);
 }
 /* @@ */ .buttonRow button {
   min-width: 6rem;

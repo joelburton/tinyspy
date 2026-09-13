@@ -5,8 +5,8 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-7, F-8, F-9 and F-10 worked. F-1 to F-6 are the
-prose group; F-7 to F-12 each carry a decision; F-13 is coverage.
+Thirteen findings recorded; F-7 to F-11 worked except F-6's group. F-1 to F-6
+are the prose group; F-7 to F-12 each carry a decision; F-13 is coverage.
 
 ## The roster
 
@@ -294,7 +294,15 @@ Options:
 
 Recommend 1.
 
-### F-simple-page-12 · `twin-drift` · ErrorPage's two sizes no longer match the modal they mirror
+**Worked 2026-09-13 — option 2 (Joel).** The rule stays local and its two
+literals become `--spacer-3` and `--spacer-4`; the `vocabularies` row is gone
+(planted a literal back to confirm the guard now watches the file). What option
+1 would have changed and 2 does not: the shared row's `margin-top` is
+`--spacer-1` = 1.5rem against this row's 0.5rem, so importing it would have
+dropped the buttons ~16px further down the claim screen. The file's comment now
+says why it sits tighter. The two-places-draw-this-row merge is still there to
+make, and is `floating-panels`' to make when the class stops being named for
+modals. · `twin-drift` · ErrorPage's two sizes no longer match the modal they mirror
 
 `ErrorPage.module.css`: `.heading` at `1.1rem` (an `<h1>` forced under h1's
 `1.5rem`), `.diagnostics` at `0.78rem`. `FaultModal.module.css`: an `<h3>` at
