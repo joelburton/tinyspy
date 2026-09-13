@@ -84,9 +84,11 @@ create schema if not exists common;
 -- ceiling is a MOBILE constraint: a username headlines rosters, chat lines,
 -- the players strip and feedback pills, all of which are tight on a phone
 -- (docs/mobile.md → handle length).
--- The unique constraint enforces collision rejection — the
--- claim RPC surfaces 23505 to the FE as "that username is
--- taken; pick another."
+-- The unique constraint is the referee for collisions — a pre-check
+-- `select` cannot close the race. claim_username catches its
+-- unique_violation and answers PN017, a validation naming the
+-- `desired` column, so the FE lands "That username is taken" under
+-- the username box.
 
 create table common.profiles (
   -- RESTRICT, not cascade: users are never deleted through the app, so
@@ -177,10 +179,10 @@ create table common.profiles (
 -- cannot reach.
 --
 -- name is the human-readable form (as typed by the creator).
--- A second club whose slugified name would collide raises
--- 23505 from the unique constraint inside the handle PK —
--- create_club lets that propagate; the FE renders an inline
--- "that name is taken" error.
+-- A second club whose slugified name would collide trips the
+-- handle PK. create_club catches that and answers PN009, a
+-- validation naming the `club_name` column, whose message carries
+-- the colliding HANDLE — two different names can slugify to one.
 
 create table common.clubs (
   handle text primary key

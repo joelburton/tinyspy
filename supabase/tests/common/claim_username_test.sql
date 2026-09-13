@@ -32,7 +32,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(20);
+select plan(21);
 
 -- The envelope assertions only; setup.psql is skipped for the reason above.
 \ir ../_shared/envelope.psql
@@ -254,6 +254,28 @@ select pg_temp.envelope_is(
   '{"type": "not-ok", "severity": "form-validation", "dbcode": "PN017",
     "field": "desired", "message": "That username is taken"}'::jsonb,
   'claim_username: a taken username is a validation, on the field that caused it'
+);
+
+-- ============================================================
+-- (6) Stale JWT — no auth.users row behind the token
+-- ============================================================
+-- The production case: a token that outlived the row it names, after a
+-- db:reset or a deleted account. `as_user` sets the claim and nothing more,
+-- which is exactly the state such a token is in — so the insert reaches the
+-- profiles→auth.users FK and trips it.
+--
+-- Pinned here because nowhere else can: the session gate turns a stale token
+-- away before the RPC is called, so the e2e never reaches this, and the FE
+-- spec asserts a REACTION to the code (sign out, then redirect) without
+-- proving the server sends it.
+
+select pg_temp.as_user('deadbeef-0000-0000-0000-000000000000');
+
+select pg_temp.envelope_is(
+  common.claim_username('ghost', 'blue'),
+  '{"type": "not-ok", "severity": "fault", "dbcode": "PN018",
+    "message": "Your session expired — signing you out."}'::jsonb,
+  'claim_username: no auth.users row behind the JWT is a fault'
 );
 
 -- ============================================================

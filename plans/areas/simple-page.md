@@ -5,9 +5,8 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; F-1 to F-12 are worked. What remains: F-13's two
-coverage items, and the one line inside an applied migration that is Joel's
-call (F-3's last bullet).
+Thirteen findings recorded; all thirteen are worked, the migration comment
+included.
 
 ## The roster
 
@@ -122,9 +121,15 @@ A prop note takes `//` (docs/code-conventions.md → the props paragraph).
   RPC surfaces 23505 to the FE as 'that username is taken'". An APPLIED
   migration. A comment edit changes no shape and `db push` skips the file
   either way, but the rule is "never edit an applied one" — listed, and Joel's
-  call whether a comment counts.
+  call whether a comment counts. **Ruled 2026-09-13: fix it** — "it won't get
+  re-applied, but at least it'll be clearer for someone reading it here." A
+  SECOND stale comment turned up in the same file when it was opened: line 181
+  said a colliding club name "raises 23505 … create_club lets that propagate",
+  and `create_club` catches it and answers PN009, a validation naming
+  `club_name`. That one is club-page's subject, fixed here because the file was
+  open and it is the same defect.
 
-**Worked 2026-09-13, except the migration.** `ClaimHandleScreen`'s error-mapping
+**Worked 2026-09-13.** `ClaimHandleScreen`'s error-mapping
 block is gone (the envelope branching is commented at the branch, where it
 happens); `onClaimed` says the URL decides what replaces this screen; the e2e
 header names "Let's set you up"; the pgTAP header no longer claims a stale-JWT
@@ -133,8 +138,8 @@ remaining SQLSTATE, at line 249, is accurate — the constraint really does rais
 23505, and the sentence is about it being caught). `ErrorPage.module.css` and
 `ErrorPage.tsx` were fixed with F-12. `docs/common.md`'s reject-reasons table is
 PN013–PN018 with severities, the paragraph under it describes the code read, and
-the "Username collision raises 23505" line names PN017. **The migration comment
-at `20260615000000_common.sql:88` is untouched** — Joel's call.
+the "Username collision raises 23505" line names PN017. The two comments in
+`20260615000000_common.sql` were fixed once Joel ruled on them (above).
 
 ### F-simple-page-4 · `archaeology` · dated quotes, "now", counts and befores in durable prose
 
@@ -380,12 +385,21 @@ screenshot was taken of the larger heading.
 
 ### F-simple-page-13 · `coverage` · what no test pins
 
-- **PN018**: not in the pgTAP file (whose header claims it), ~~not in the FE
-  test~~ (F-7 added the spec: PN018 → `signOut`, then the redirect), not in
-  the e2e (the gate catches a stale session before the RPC). The pgTAP half
-  remains.
-- **The claim's happy path**: nothing asserts `onClaimed` is called on
-  `ok/claimed`; nothing walks the `reportUnhandled` fall-through.
+- ~~**PN018**~~: F-7 added the FE spec (PN018 → `signOut`, then the redirect);
+  the pgTAP half is section (6), `plan(20)` → `plan(21)`. `as_user` sets the
+  JWT claim and nothing more, so a uuid never inserted into `auth.users` is
+  exactly the stale token's state and the profiles FK answers PN018. It is
+  pinned there because nowhere else can pin it: the session gate turns a stale
+  token away before the RPC is called, so the e2e never reaches it.
+- ~~**The claim's happy path**~~: "tells the parent to re-probe when the claim
+  succeeds" asserts `onClaimed` fires once and that neither the field nor the
+  form's line said anything on the way through. Both planted red first (the
+  expected dbcode swapped to PN013 → `got "PN018"`; the `onClaimed()` call
+  removed).
+  **The `reportUnhandled` fall-through is deliberately NOT covered** (Joel,
+  2026-09-13): `claim_username` has one ok shape, so a spec for that arm would
+  assert that an invented mock reaches a branch. If it is ever wanted it
+  belongs in `dbEnvelope`'s own tests, where the scream is the subject.
 - ~~**LoginScreen's verify-code path**~~: F-9 added "still names the address
   after a wrong code", which types a code and fails the verify.
 

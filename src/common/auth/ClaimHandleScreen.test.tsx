@@ -17,7 +17,7 @@ vi.mock('../supabase/supabase', () => ({
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 
 import { ClaimHandleScreen } from './ClaimHandleScreen'
-import { errorUnder } from '../fields/errorUnder'
+import { errorUnder, formError } from '../fields/errorUnder'
 
 // jsdom can't navigate, and `location.assign` is non-configurable (so it can't
 // be spied directly) — but the `location` property itself can be swapped for a
@@ -127,6 +127,32 @@ describe('ClaimHandleScreen', () => {
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
     expect(mockSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('tells the parent to re-probe when the claim succeeds', async () => {
+    // The whole contract between this screen and App: without the callback a
+    // successful claim leaves the user looking at the form they just
+    // submitted, because `needsClaim` is what put the screen up and only a
+    // fresh probe of the profiles row takes it down. Nothing reads the name
+    // the RPC echoes back.
+    mockRpc.mockResolvedValue({
+      data: { type: 'ok', data: { result: 'claimed', username: 'zoe' } },
+      error: null,
+    })
+    const onClaimed = vi.fn()
+    const user = userEvent.setup()
+
+    render(<ClaimHandleScreen onClaimed={onClaimed} email="zoe@test.local" />)
+    const box = screen.getByRole('textbox', { name: /Username/ })
+    await user.clear(box)
+    await user.type(box, 'zoe')
+    await user.click(screen.getByRole('button', { name: 'Accept' }))
+
+    await waitFor(() => expect(onClaimed).toHaveBeenCalledTimes(1))
+    // Silent on the way through — nothing under the field, nothing on the
+    // form's line.
+    expect(errorUnder('desired')).toBeNull()
+    expect(formError()).toBeNull()
   })
 
   it('redirects even when sign-out throws (a stale/invalid session)', async () => {
