@@ -67,14 +67,9 @@ function wireValue(key: keyof Fields, v: Fields[keyof Fields]): unknown {
   return v === '' ? null : v
 }
 
-/**
- * What the form holds: the ten editable columns, plus the word being added and
- * the journal note.
- *
- * The column keys are NOT RPC parameters — they travel inside `fields` (add) or
- * `patch` (update), which is why a validation about one of them names the blob
- * rather than the box. See `formFieldFor`.
- */
+/** What the form holds: the ten editable columns, plus the word being added and
+ *  the journal note. The columns travel inside one jsonb argument, not as RPC
+ *  parameters — `formFieldFor` says what that does to a validation. */
 type Values = Fields & { new_word: string; note: string }
 
 /**
@@ -82,13 +77,9 @@ type Values = Fields & { new_word: string; note: string }
  *
  * `add_word` and `update_word` take the ten columns as one jsonb argument, so a
  * validation about what is inside it can only name that argument — PN028 ("Pick
- * a difficulty") raises `column = 'fields'`, and the guard requires a column to
- * name a real parameter. There is no box called `fields`, so left alone the
- * message would be written into an errors key nothing renders and vanish.
- *
- * It goes on the form's own line instead. That is a genuine limit rather than a
- * workaround: a jsonb parameter is one parameter, and the raise cannot say which
- * of the ten it meant.
+ * a difficulty") raises `column = 'fields'`. There is no box called `fields`,
+ * so the message goes on the form's own line rather than into an errors key
+ * nothing renders.
  */
 function formFieldFor(field: string | null | undefined): string {
   // An envelope's `field` is always PRESENT and null when the raise named no
@@ -233,8 +224,8 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     }
   }
 
-  /** Takes the note because the box belongs to the form — Delete sits inside
-   *  it and hands the current value in. */
+  // Takes the note because the box belongs to the form — Delete sits inside it
+  // and hands the current value in.
   async function onDelete(note: string) {
     if (request.mode !== 'edit') return
     const answer = await askConfirmation({
@@ -271,17 +262,15 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
       title={editing ? `Edit "${request.word.toUpperCase()}"` : 'Add word'}
       onClose={() => setWordEdit(null)}
       // Height is the content's — the number below is only the first-paint seed
-      // (safe beside `persistKey` on a panel that cannot be resized; see
-      // `FloatingPanel`'s `fitContent`).
+      // (safe beside `persistKey` on a floating panel that cannot be resized;
+      // see `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 380, height: 500 }}
       resizable={false}
     >
       {/* NOT RENDERED until the row is in hand. `initialValues` is read once at
           mount, so a form that appeared first and filled in later would either
-          ignore the row or reset under someone already typing. Waiting also
-          retires the eight `disabled={initial === null}` props this dialog used
-          to carry for exactly that reason. */}
+          ignore the row or reset under someone already typing. */}
       {loaded === null ? (
         <p className="muted">Loading…</p>
       ) : (

@@ -6,7 +6,6 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { FailureLine } from '../forms/FailureLine'
 import { DefinitionView } from './DefinitionView'
 import { Dialog } from '../floating-panels/Dialog'
-import styles from './WordLookupDialog.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
 
@@ -31,8 +30,8 @@ type Values = { query: string }
  * the input, so the box always shows what's being defined.
  */
 export function WordLookupDialog({ onClose }: Props) {
-  /** The word being DEFINED, as against the one being typed. Clicking a related
-   *  word in the definition sets both: you see what you are looking at. */
+  // The word being DEFINED, as against the one being typed. Clicking a related
+  // word in the definition sets both: you see what you are looking at.
   const [word, setWord] = useState<string | null>(null)
   // This form's OWN refusals — what it can say about the last press of Define.
   // The lookup's failures are not among them: `<DefinitionView>` fetches and
@@ -42,8 +41,8 @@ export function WordLookupDialog({ onClose }: Props) {
   function onSubmit({ query }: Values) {
     const w = query.trim().toLowerCase()
     if (!w) {
-      // A refusal, said out loud. Submitting an empty box used to do nothing
-      // at all, which reads as a broken button rather than as an answer.
+      // A refusal, said out loud: an empty submit that does nothing at all
+      // reads as a broken button rather than as an answer.
       setErrors({ query: 'Type a word to look up.' })
       return
     }
@@ -57,8 +56,8 @@ export function WordLookupDialog({ onClose }: Props) {
       title="Look up a word"
       onClose={onClose}
       // Height is the content's — the number below is only the first-paint seed
-      // (safe beside `persistKey` on a panel that cannot be resized; see
-      // `FloatingPanel`'s `fitContent`).
+      // (safe beside `persistKey` on a floating panel that cannot be resized;
+      // see `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 360, height: 280 }}
       resizable={false}
@@ -68,24 +67,23 @@ export function WordLookupDialog({ onClose }: Props) {
           <>
             <TextField
               name="query"
-              // No caption: this box IS the panel, and the titlebar says what it
-              // looks up.
+              // No caption: this box IS the dialog, and the titlebar says what
+              // it looks up.
               // Autofocus so the player can type immediately after the
               // shortcut opens the dialog.
               autoFocus
-              className={styles.input}
               value={values.query}
               onChange={(v) => set('query', v)}
               error={errors.query}
               placeholder="a word…"
             />
             <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
-            <FormSubmitButton show="label" label="Define" className={styles.button} />
+            <FormSubmitButton show="label" label="Define" />
 
-            {/* INSIDE the form, which it did not use to be. Following a related
-                word writes back into the box as well as changing what is
-                defined, and the box belongs to the form — so the thing that
-                writes to it has to sit where the setter is. */}
+            {/* INSIDE the form: following a related word writes back into the
+                box as well as changing what is defined, and the box belongs to
+                the form — so the thing that writes to it has to sit where the
+                setter is. */}
             <DefinitionView
               word={word}
               onNavigate={(next) => {

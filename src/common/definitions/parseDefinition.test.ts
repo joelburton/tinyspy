@@ -21,8 +21,8 @@ describe('parseDefinition', () => {
   })
 
   it('shows an inflection-only stub verbatim rather than blank', () => {
-    // The class of entry that used to render empty — the gloss is
-    // nothing but the inflection tag. It must still display in full.
+    // A gloss that is nothing but the inflection tag must still display in
+    // full — stripping the tag would leave a blank.
     expect(parseDefinition('[n SUPPRESSIONS]', 's')).toEqual([
       { kind: 'text', value: '[n SUPPRESSIONS]' },
     ])

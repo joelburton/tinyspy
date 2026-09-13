@@ -51,7 +51,7 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   // ── Edit, via the ~ lookup's DefinitionView ──
   // (Shift+Backquote = `~`; bare Backquote is the app's Escape stand-in.
   // Retry the chord: it races the shortcut listener's effect-time attach.)
-  // The box carries no caption — the panel's titlebar says what it looks up —
+  // The box carries no caption — the dialog's titlebar says what it looks up —
   // so it is reached by its form name.
   const lookupInput = page.locator('input[name="query"]')
   await expect(async () => {

@@ -1,7 +1,7 @@
 // cs-audited-definitions
 
 /**
- * define — Edge Function behind the click-to-define popover and the
+ * common-define — the Edge Function behind the click-to-define popover and the
  * "look up any word" shortcut. Read-through cache over the shared
  * `common.words` master list (the `definition` / `definition_source`
  * columns):
@@ -225,9 +225,7 @@ serve(async (req) => {
     if (cacheErr) console.error('cache_definition failed', cacheErr.message)
 
     // A null `def` here is Wiktionary answering 200 with no entries — the same
-    // answer as the tombstone above, reached the long way. Splitting the two
-    // `ok` results is what made that visible: the old single shape carried
-    // `def: null` for both and left the caller to notice.
+    // answer as the tombstone above, reached the long way.
     return def === null
       ? ok({ result: 'no-definition', word, meta })
       : definitionAnswer(word, def, 'w', false, meta)

@@ -85,8 +85,7 @@ describe('AnagramDialog', () => {
     //
     // `field` is what the real raise sends (PN001 raises `column = 'letters'`),
     // and it is the half that decides WHERE: under the box it is about, ringing
-    // it. Omitting it here — as this fixture used to — made the test pass
-    // whether or not the routing worked.
+    // it. Omitted, the test would pass whether or not the routing worked.
     mockRpc.mockResolvedValue({
       data: {
         type: 'not-ok',
@@ -169,9 +168,9 @@ describe('AnagramDialog — the other arm of the routing', () => {
 })
 
 describe('AnagramDialog — Escape with a definition open', () => {
-  /** Search, then click a result word to open the shared definition popover.
-   *  `<DefinitionHost>` comes along because the popover is the app root's, not
-   *  the dialog's — it is what hears Escape first. */
+  // Search, then click a result word to open the shared definition popover.
+  // `<DefinitionHost>` comes along because the popover is the app root's, not
+  // the dialog's — it is what hears Escape first.
   async function defineAResult(onClose: () => void) {
     mockRpc.mockResolvedValue({
       data: { type: 'ok', data: { result: 'searched', words: [{ word: 'acre', difficulty: 1 }] } },
@@ -189,9 +188,10 @@ describe('AnagramDialog — Escape with a definition open', () => {
   }
 
   it('closes the definition ONLY — the dialog stays open', async () => {
-    // One press, one dismissal. Both the popover and the panel registry hear
-    // Escape globally, and before `useDismissOnEscape` they both acted: the
-    // definition AND the finder closed, losing the letters you had typed.
+    // One press, one dismissal. Both the popover and the floating-panel
+    // registry hear Escape globally; without `useDismissOnEscape` both would
+    // act, and the finder would close with the definition, losing the letters
+    // you had typed.
     const onClose = vi.fn()
     await defineAResult(onClose)
     fireEvent.keyDown(document.body, { key: 'Escape' })

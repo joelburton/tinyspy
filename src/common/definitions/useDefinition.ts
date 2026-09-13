@@ -52,17 +52,9 @@ type Loaded = {
 /**
  * Declarative read-through lookup against the `common-define` Edge Function
  * (which fronts the `common.words` definition columns → Wiktionary). Pass the
- * word to define, or `null` to sit idle; the hook refetches whenever
- * the word changes and cancels the in-flight result if it changes
- * again first (so chasing cross-refs quickly never flashes a stale
- * definition).
- *
- * Both the click-to-define popover and the "look up any word" dialog
- * drive this the same way — they just set `word`.
- *
- * Note `loading` is derived (word set, but the resolved result is for
- * a different word), not stored — the effect only ever calls setState
- * inside its async callback, never synchronously in its body.
+ * word to define, or `null` to sit idle; the hook refetches whenever the word
+ * changes and cancels the in-flight result if it changes again first, so
+ * chasing cross-refs quickly never flashes a stale definition.
  */
 export function useDefinition(word: string | null): State {
   const [loaded, setLoaded] = useState<Loaded>({

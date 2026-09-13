@@ -26,24 +26,22 @@ function metaTags(m: WordMeta): string[] {
 }
 
 type Props = {
-  /** The word to define. `null` renders nothing (idle). */
+  // The word to define. `null` renders nothing (idle).
   word: string | null
-  /** Called when the user clicks a cross-reference inside the
-   *  definition — the host re-points `word` at it, navigating the
-   *  lookup in place ("see X" without retyping). */
+  // Called when the user clicks a cross-reference inside the definition — the
+  // host re-points `word` at it, navigating the lookup in place ("see X"
+  // without retyping).
   onNavigate: (word: string) => void
 }
 
 /**
- * The shared body of both the click-to-define popover and the
- * "look up any word" dialog: given a word, fetch its definition and
- * render it, with Scrabble cross-references as clickable links.
+ * The shared body of both the click-to-define card and the "look up any word"
+ * dialog: given a word, fetch its definition and render it, with the gloss's
+ * cross-references as clickable links.
  *
- * It owns no word state of its own — the host (popover / dialog)
- * holds `word` and passes `onNavigate` so a cross-ref click flows
- * back up and becomes the next `word`. That keeps the two hosts thin
- * (they differ only in *how* the first word is chosen: a clicked list
- * row vs. a typed query) while sharing all the render + fetch logic.
+ * It owns no word state: the host holds `word` and passes `onNavigate`, so a
+ * cross-ref click flows back up and becomes the next `word`. Why one view
+ * under two hosts: doc.md → Design.
  */
 export function DefinitionView({ word, onNavigate }: Props) {
   const { result, loading, error } = useDefinition(word)

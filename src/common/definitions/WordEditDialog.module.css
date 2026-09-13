@@ -19,7 +19,7 @@
 }
 
 /* The one thing the shared `modalActions` row does not do: sit at the BOTTOM of
-   this panel however short the form above it is. */
+   this dialog however short the form above it is. */
 /* @@ */ .pinBottom {
   margin-top: auto;
 }

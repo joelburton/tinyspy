@@ -25,9 +25,9 @@ vi.mock('./wordEditStore', () => ({ setWordEdit: mockSetWordEdit }))
 vi.mock('../supabase/db', () => ({
   db: {
     rpc: mockRpc,
-    // `eq()` IS the terminal: the load awaits the query directly now, since
-    // zero rows is a real answer (another editor deleted the word) rather
-    // than something to ask PostgREST to turn into an error.
+    // `eq()` IS the terminal: the load awaits the query directly, since zero
+    // rows is a real answer (another editor deleted the word) rather than
+    // something to ask PostgREST to turn into an error.
     from: () => ({ select: () => ({ eq: mockWordRows }) }),
   },
 }))
@@ -56,9 +56,9 @@ beforeEach(() => {
   // The RPCs answer with the result envelope, so a refusal arrives HTTP 200.
   //
   // `data` carries the case name. A bare `{ type: 'ok' }` is not an envelope —
-  // every real one has all nine keys — and it made this file throw twice on
-  // every run, as an unhandled rejection that failed no test: the call site
-  // reads `res.data.result` and `data` was not there at all.
+  // every real one has all nine keys — and the call site reads
+  // `res.data.result`, so a stub without `data` throws as an unhandled
+  // rejection that fails no test.
   //
   // `'added'` serves both paths: the branch accepts `added` OR `updated`, so an
   // edit-mode test does not need its own stub to get past it.
@@ -69,12 +69,10 @@ beforeEach(() => {
   mockAsk.mockResolvedValue('confirm')
 })
 
-/**
- * Fields are found by their VISIBLE CAPTION — "Band (1–6)", "Word", "Note" —
- * because the shared field components make the caption the accessible name.
- * What a test looks for and what a reader sees are the same string, so a
- * caption edit that a person would notice fails here too.
- */
+// Fields are found by their VISIBLE CAPTION — "Band (1–6)", "Word", "Note" —
+// because the shared field components make the caption the accessible name.
+// What a test looks for and what a reader sees are the same string, so a
+// caption edit that a person would notice fails here too.
 describe('WordEditDialog', () => {
   it('edit mode: Save sends ONLY the changed fields, with the note', async () => {
     const user = userEvent.setup()
@@ -112,9 +110,9 @@ describe('WordEditDialog', () => {
     expect(args.fields).toMatchObject({ difficulty: 3, american: true, slang: false })
   })
 
-  // The way OUT that wasn't there. Delete and Save were the only two buttons,
-  // so leaving without saving meant the titlebar's X or Escape — neither of
-  // which reads as a choice the way a button beside Save does.
+  // Cancel is the way out that reads as a choice: the titlebar's X and Escape
+  // both leave without saving, but neither sits beside Save the way a button
+  // does.
   it('closes on Cancel without calling any RPC', async () => {
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
@@ -150,14 +148,6 @@ describe('WordEditDialog', () => {
   })
 })
 
-/**
- * The routing, and the one place it cannot be honored.
- *
- * `add_word` takes the ten flags as ONE jsonb argument, so a validation about
- * what is inside it can only name that argument — `column = 'fields'`, and
- * there is no box called `fields`. Left alone the message would be written into
- * an errors key nothing renders, and vanish. It goes on the form's line.
- */
 const MESSAGE = 'The server said this exact thing.'
 
 async function addAndSave() {
@@ -171,6 +161,9 @@ async function addAndSave() {
   await waitFor(() => expect(mockRpc).toHaveBeenCalled())
 }
 
+// The routing, and the one place it cannot be honored: a validation about the
+// jsonb argument names `fields`, which is no box — `formFieldFor` says why it
+// lands on the form's line instead.
 describe('WordEditDialog — where a validation lands', () => {
   it('puts a message naming a real box under THAT box', async () => {
     mockRpc.mockResolvedValue({
@@ -209,7 +202,7 @@ describe('WordEditDialog — where a validation lands', () => {
 })
 
 describe('WordEditDialog — Delete asks first', () => {
-  /** Open in edit mode, wait for the prefill, and press Delete. */
+  // Open in edit mode, wait for the prefill, and press Delete.
   async function pressDelete() {
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)

@@ -24,14 +24,10 @@ type AnagramAnswer = { result: 'searched'; words: Result[] }
 
 /**
  * HOW LONG A PATTERN MAY BE — a mirror of `common.anagrams`, which rejects
- * anything outside `^[A-Za-z?]{2,15}$` with `bad-anagram-input`.
- *
- * Stated as one object because the two ends are enforced differently and would
- * otherwise sit apart as bare numbers: the ceiling caps the field so an
- * unsendable pattern cannot be typed, and the floor answers on submit with a
- * sentence, because "two letters or more" is a thing worth being told rather
- * than silently prevented. Both read from here, so they cannot drift from each
- * other — and if the SQL's range moves, this is the one place the FE says it.
+ * anything outside `^[A-Za-z?]{2,15}$` with `bad-anagram-input`. The ceiling
+ * caps the field so an unsendable pattern cannot be typed; the floor answers
+ * on submit with a sentence. If the SQL's range moves, this is the one place
+ * the FE says it.
  */
 const PATTERN_LENGTH = { min: 2, max: 15 } as const
 
@@ -41,31 +37,22 @@ const PATTERN_LENGTH = { min: 2, max: 15 } as const
 type Values = { letters: string }
 
 /**
- * The ⌥~ anagram finder — WordLookupDialog's sibling: same FloatingPanel
- * chrome, same type-and-Enter shape, but the answer is a LIST, not a
- * definition. Backed by `common.anagrams` (see sql/common.sql for the whole
- * matching story); this component only normalizes input and renders rows.
- * Opened by the app-level action; `AppActionsHost` owns whether it is open.
+ * The ⌥~ anagram finder — WordLookupDialog's sibling, but the answer is a LIST
+ * of dictionary words, not a definition. `common.anagrams` does the matching;
+ * this component only normalizes input and renders rows, each word
+ * click-to-define. Opened by the app-level action; `AppActionsHost` owns
+ * whether it is open.
  *
- * The pattern syntax (the line under the box teaches it, tersely): lowercase
- * letters float anywhere, `?` is a floating wildcard, an UPPERCASE letter is
- * pinned to its exact position — "Acer" finds acer + acre, never race. Case is
- * therefore MEANINGFUL, so the input is never lowercased.
- *
- * Results are the server's order (difficulty band, then alphabetical) with
- * the band number muted beside each word — and each word is click-to-define
- * via the shared popover, like every other word the app shows. The list shows
- * seven rows and scrolls past that (`<SimpleScrollableList>`), so a query
- * matching 1361 words and one matching 14 open the same size.
+ * Case is MEANINGFUL — an uppercase letter is pinned to its position, `?` is a
+ * wildcard — so the input is never lowercased. The syntax: doc.md → Design.
  */
 export function AnagramDialog({ onClose }: { onClose: () => void }) {
   // null = nothing searched yet (no result area at all).
   const [results, setResults] = useState<Result[] | null>(null)
-  // One object, where this dialog used to keep two: what was wrong with the
-  // ENTRY rang the box, and a failure from the RPC went on the line below. Both
-  // are still true — they are `errors.letters` and the form-level key — but
-  // which one a message gets is now the message's own business rather than a
-  // decision at each call site.
+  // One object for both kinds of message: what was wrong with the ENTRY rings
+  // the box (`errors.letters`), a failure from the RPC goes on the line below
+  // (the form-level key), and which one a message gets is the message's own
+  // business rather than a decision at each call site.
   const [errors, setErrors] = useState<FormErrors>({})
   const [searching, setSearching] = useState(false)
 
@@ -102,7 +89,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       return
     } else {
       // The previous answer stays on screen, as it does during a search — an
-      // answer nobody handled is no reason to claim the old one is now wrong.
+      // answer nobody handled is no reason to claim the previous one is wrong.
       reportUnhandled('anagrams', res)
       return
     }
@@ -114,8 +101,8 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
       title="Anagrams"
       onClose={onClose}
       // Height is the content's — the number below is only the first-paint seed
-      // (safe beside `persistKey` on a panel that cannot be resized; see
-      // `FloatingPanel`'s `fitContent`).
+      // (safe beside `persistKey` on a floating panel that cannot be resized;
+      // see `FloatingPanel`'s `fitContent`).
       fitContent
       defaultSize={{ width: 360, height: 440 }}
       resizable={false}

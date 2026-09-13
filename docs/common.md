@@ -752,7 +752,7 @@ The lookup dialog's sibling: a global popup (`AnagramDialog` — same
 FloatingPanel chrome, same type-and-Enter shape, owned by `AppActionsHost`
 the same way) that anagrams a letters pattern into every dictionary word of
 **exactly** that length, band number muted beside each word, in a list that
-scrolls inside the fixed panel. Result words are click-to-define.
+scrolls inside the fixed dialog. Result words are click-to-define.
 
 **The pattern syntax** (one terse hint line in the dialog teaches it):
 lowercase letters float anywhere, `?` is a floating wildcard, an UPPERCASE

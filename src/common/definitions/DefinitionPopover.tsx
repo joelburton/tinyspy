@@ -7,11 +7,11 @@ import { DefinitionView } from './DefinitionView'
 import styles from './DefinitionPopover.module.css'
 
 type Props = {
-  /** The word the user clicked. Seeds the lookup; cross-ref clicks
-   *  navigate from here. */
+  // The word the user clicked. Seeds the lookup; cross-ref clicks navigate
+  // from here.
   initialWord: string
-  /** Bounding rect of the clicked element — the popover anchors just
-   *  below it (clamped to the viewport). */
+  // Bounding rect of the clicked element — the popover anchors just below it
+  // (clamped to the viewport).
   anchorRect: DOMRect
   onClose: () => void
 }
@@ -44,7 +44,7 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
   }, [onClose])
 
   // Escape closes the definition and stops there — it must not also close the
-  // panel this popover was opened from (`useDismissOnEscape`).
+  // floating panel this popover was opened from (`useDismissOnEscape`).
   useDismissOnEscape(true, onClose)
 
   // Clamp the left edge so a word near the right margin doesn't push the card
@@ -70,7 +70,7 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
   // coordinates, and a CSS `transform` on any ancestor would re-base those onto
   // the ancestor's origin. Every floating panel is positioned with a transform,
   // so a word clicked inside one (the anagram finder, the lookup dialog) would
-  // put the card out by the panel's own offset. Same reason `<TooltipHost>` and
+  // put the card out by that floating panel's offset. Same reason `<TooltipHost>` and
   // `<ToastHost>` mount at the root.
   return createPortal(
     <div

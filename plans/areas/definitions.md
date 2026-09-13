@@ -4,18 +4,21 @@ The folders it reads: `definitions` · `anagram-finder`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12. Every finding is worked, F-1 to F-17;
-what remains is the Closing checklist below.**
+**Status: OPEN — audited 2026-09-12. Every finding is worked, F-1 to F-22
+(F-18 to F-21 are the closing re-read's; F-22 came from a question after it);
+both `doc.md` Designs are written. What remains is the blessing, which is
+Joel's.**
 
 ## The roster
 
 Agreed 2026-09-12 at twenty-three files, all `cs-met-definitions` →
-`cs-audited-definitions`. Twenty-six now: F-definitions-15 wrote three and
-deleted one.
+`cs-audited-definitions`. Twenty-five now: F-definitions-15 wrote three and
+deleted one, and F-definitions-22 deleted one.
 
 - `src/common/definitions/DefinitionPopover.tsx` + `.module.css`
 - `src/common/definitions/DefinitionView.tsx` + `.module.css`
-- `src/common/definitions/WordLookupDialog.tsx` + `.module.css` + `.test.tsx`
+- `src/common/definitions/WordLookupDialog.tsx` + `.test.tsx` (its
+  `.module.css` is deleted — F-definitions-22)
 - `src/common/definitions/WordEditDialog.tsx` + `.module.css` + `.test.tsx`
 - `src/common/definitions/DefinableWord.tsx` + `.test.tsx` — written by this
   area (F-definitions-15), with `DefinitionHost.tsx` and `definitionStore.ts`;
@@ -30,8 +33,8 @@ deleted one.
 - `e2e/anagram-finder.e2e.ts`, `e2e/word-edit.e2e.ts`
 
 Plus the two folders' `doc.md` / `todo.md` (no stamp — markdown). Both
-`doc.md`s are a one-line lede with no Design; both folders are on
-`DESIGNS_OWED`.
+`doc.md`s have a Design and a rewritten lede (the closing re-read); both rows
+are off `DESIGNS_OWED`.
 
 **Decided at the opening (Joel: 1 yes · 2 in roster · 3 yes):**
 
@@ -266,6 +269,75 @@ The spec saved `anagram-finder.png` into a scratchpad directory belonging to a
 session that had ended, on every run, and nothing asserted on the file. Deleted
 (Joel).
 
+### The closing re-read, 2026-09-12
+
+Every roster file read again in one sitting, plus the three `docs/common.md`
+sections and the cited siblings (`Menu`'s mousedown close, `toastStore`,
+`useDismissOnEscape`, `.definable`, `EditProfileModal`, the `muted` class, the
+`data-board` convention) — all still true. Four findings, three of them the
+area's own recorded fault classes recurring in prose the audit had not
+re-checked, and one class the area had fixed at a single site. All worked in
+the same sitting.
+
+### WORKED · F-definitions-18 · props-marker · `/**` on props, on a `useState`, on nested helpers, and on the wrong declaration
+
+The marker pass at the close. Props with `/**` in `DefinitionPopover` and
+`DefinitionView`; a `/**` on `WordLookupDialog`'s `word` state and on
+`WordEditDialog`'s inner `onDelete`; in the tests, on `pressDelete`,
+`defineAResult`, and a `describe` call. All `//`. Two docstrings sat on the
+wrong declaration: `parseDefinition.ts` opened with a 26-line file docstring
+about the function while the exported function had none (moved onto it, at
+twelve lines), and `WordEditDialog.test.tsx` had the routing explanation on
+`const MESSAGE` (now a `//` on the `describe` it describes, pointing at
+`formFieldFor`).
+
+### WORKED · F-definitions-19 · archaeology · "used to" at eleven sites
+
+F-definitions-14 fixed one stylesheet comment; the class ran through the
+folder: `WordLookupDialog` (two), `WordEditDialog` (the "retires the eight
+`disabled` props" sentence), `AnagramDialog`, `common-define` (the "old single
+shape" sentence), and five test comments (`parseDefinition.test`,
+`WordEditDialog.test` three, `AnagramDialog.test` two). Each keeps the reason
+in the present tense and drops the history.
+
+### WORKED · F-definitions-20 · rationale-in-docstring · the why-this-shape paragraphs, and one explanation written three times
+
+`definitionStore` argued for one slot against per-surface state;
+`DefinitionView` explained why one view keeps two hosts thin (and still said
+"Scrabble cross-references"); `useDefinition` restated the derived-`loading`
+reason a third time (the `Loaded` type and the comment at the derivation both
+already say it) and listed its callers; `DefinitionHost` explained its `key`
+in the docstring; `AnagramDialog`'s docstring was seventeen lines carrying the
+pattern syntax and a word count, and `PATTERN_LENGTH`'s eleven arguing for
+being one object. `WordEditDialog`'s jsonb-routing explanation was written on
+`Values`, on `formFieldFor` and again in the test. Each docstring is now the
+caller's contract; the shape reasoning is the `doc.md` Designs (the store/host
+shape, one view under two hosts, the pattern syntax), and the routing lives on
+`formFieldFor` alone with the other two pointing.
+
+### WORKED · F-definitions-21 · bare-panel · "panel" alone at thirteen sites
+
+`docs/ui.md` bans the word on its own. Three were the `fitContent` comments
+F-definitions-2 had written ("on a panel that cannot be resized"); the rest
+were `DefinitionPopover` (two), `WordLookupDialog`, `WordEditDialog.module.css`,
+`AnagramDialog.test`, both e2e specs (four), and `docs/common.md`'s anagram
+section. Now "floating panel" where the family is meant and "dialog" where the
+instance is one.
+
+### WORKED · F-definitions-22 · inert-row-rules · `WordLookupDialog.module.css` laid out a row the dialog never renders
+
+Found by a question after the re-read, not by it. The stylesheet's two rules
+said the box "shares a row with its button and has to take the slack"
+(`flex: 1 1 auto; min-width: 0` on the field, `flex: 0 0 auto` on the button).
+The dialog passes no class to its `<StandardForm>`, so the form is the
+standard column and the box and the Define button are stacked; in a column
+both rules are inert, and the file described a layout that does not exist.
+The re-read had checked the comment's wording and not the layout behind it.
+Both rules, the two `className`s and the stylesheet are deleted; the dialog
+renders as before. Field spacing is `StandardForm`'s one gap, and a
+full-width button is `fullWidth` on the button — nothing per-form was ever
+needed here.
+
 ## Notes
 
 - **Read and left:** the `todo.md` Someday item — `useDefinePopover` holds
@@ -277,9 +349,13 @@ session that had ended, on every run, and nothing asserted on the file. Deleted
   covers them and nothing was done.
 - `WordEditDialog`'s "Hint" field is the `words.hint` column — the
   guessing-game clue — and keeps the column's name.
-- Both `doc.md`s are a lede only; the Design is written at the close
-  (the portal reason, the one-view-two-hosts split, the capture-first journal,
-  the pointer-only rule's home).
+- Both `doc.md` Designs written at the close: `definitions` carries the
+  store/host shape, the root mount and the portal in one sentence, the
+  pointer-only rule's home (a pointer to `.definable`, not a restatement), one
+  view under two hosts, and the capture-first journal; `anagram-finder` carries
+  the pattern syntax, the sibling relationship to the lookup dialog, and the
+  unfiltered ruling. Both ledes rewritten. `docs/common.md` keeps the data,
+  the edge function and the RPCs; neither Design restates it.
 
 ## Predicted test breaks
 
@@ -295,7 +371,12 @@ which every surface now carries.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-12;
+      F-18 to F-21 above)
+- [x] both folders' `doc.md` Design written; both rows off `DESIGNS_OWED`
+      (the guard went red on exactly the two rows before they came off)
+- [x] `todo.md` holds everything still owed — both are empty; the one Someday
+      item was done by F-definitions-15 — and nothing durable is left here
+- [ ] every file on the roster blessed, or its stamp says why not — **NOT
+      blessed**: all twenty-five read `cs-audited-definitions`, and the stamp
+      is Joel's to set

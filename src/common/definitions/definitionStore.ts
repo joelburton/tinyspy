@@ -8,13 +8,7 @@ export type Defining = { word: string; rect: DOMRect }
 /**
  * THE ONE OPEN DEFINITION — a module-level slot, the same shape as
  * `toastStore`: `<DefinableWord>` writes it, `<DefinitionHost>` reads it.
- *
- * One slot, not one per surface. A lookup is a single app-wide thing (one card
- * is on screen at a time), and holding it here is what lets the card mount ONCE
- * at the root rather than in every turn log and word list that shows a word.
- * Anchoring doesn't argue for the old per-surface state: the card is
- * `position: fixed` in a body portal, so where it points is a rect in this
- * slot, not a constraint on where it lives.
+ * Why one slot at the root and not state per surface: doc.md → Design.
  */
 let defining: Defining | null = null
 const listeners = new Set<() => void>()

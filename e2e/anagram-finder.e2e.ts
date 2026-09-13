@@ -37,14 +37,14 @@ test('open with the chord, pin a letter, scroll a long list', async ({ browser }
   await expect(page.locator('[data-word="acre"]')).toBeVisible()
   await expect(page.locator('[data-word="race"]')).toHaveCount(0)
 
-  // A wide query returns far more than the panel can show — the LIST must
-  // scroll inside the fixed panel (not grow it).
+  // A wide query returns far more than the dialog can show — the LIST must
+  // scroll inside the fixed dialog (not grow it).
   await input.fill('aeinrst')
   await page.keyboard.press('Enter')
   await expect(page.locator('[data-word="nastier"]')).toBeVisible()
   const list = page.locator('ul', { has: page.locator('[data-word="nastier"]') })
   const scrolls = await list.evaluate((el) => el.scrollHeight > el.clientHeight)
-  expect(scrolls, 'the result list scrolls inside the panel').toBe(true)
+  expect(scrolls, 'the result list scrolls inside the dialog').toBe(true)
 
   // Focus sits in the dialog's input — a non-game field — so the chord is
   // deliberately ignored there (it would type into a field elsewhere too);
