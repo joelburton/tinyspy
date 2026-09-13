@@ -125,13 +125,20 @@ every one of these has a home that will be updated when the rule moves.
 
 Not roster; fixed in place like the docs sentences at `simple-page`.
 
-### F-homepage-8 · `vacuous-assertion` · the Space check passes for every URL
+### F-homepage-8 · `vacuous-assertion` · the Space check passes for every URL — DONE
 
 `e2e/home-keyboard.e2e.ts` 79: `expect(page.url()).toContain('/')` — every
 URL contains a slash, so the assertion that Space did not open the club cannot
 fail. The intent is that the page is still home: `toHaveURL(/\/$/)`, or that
 the URL does not end in the solo handle the Enter check below uses. Changing
 an e2e assertion means running it, which is asked first.
+
+**Worked 2026-09-13**, option 1: `await expect(page).toHaveURL(/\/$/)`, the
+form `e2e/club-keyboard.e2e.ts` already uses for "back at home". Run green
+(1.1s). Planted by pressing `Enter` in place of `Space`: line 79 is the line
+that failed, on `http://localhost:5173/c/=e2e…`, and all 28 polls saw the club
+URL — so `toHaveURL`'s retrying does not let a slow navigation slip past the
+assertion. Plant reverted, re-run green.
 
 ### F-homepage-9 · `census` · the badge comment names who else reads the token
 
