@@ -5,7 +5,7 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 to F-10 worked on Joel's decisions, F-13 closed by
+Sixteen findings: F-7 to F-11 worked on Joel's decisions, F-13 closed by
 F-9's; the prose ones (F-1 to F-6) are next as one group, then the
 remaining decisions one at a time.**
 
@@ -268,7 +268,10 @@ rule was missed, not overruled.
 2. Rename here only; chat's stays on the list.
 3. Leave both.
 
-### F-scratchpad-11 · `persist-key-shape` · the rect key has no name segment
+### WORKED · F-scratchpad-11 · `persist-key-shape` · the rect key has no name segment
+
+**WORKED 2026-09-12 — Joel chose 1.** `puzpuzpuz:scratchpad:rect:<gameId>`;
+the rects stored under the old key are left behind.
 
 `persistKey` is `puzpuzpuz:scratchpad:<gameId>`. The storage convention
 (`web-storage/storage.ts`) is `puzpuzpuz:<area>:<name>` with any scope after:
@@ -359,6 +362,12 @@ not have. No decision — waiting.
   changes timing; the lock's five constants (`FLUSH_MS` … `STALE_MS`) are
   read and left — each carries its meaning on its line, and the e2e relies on
   none of them.
+- **Three game companions store rects with no `puzpuzpuz:` prefix** —
+  `codenamesduet:aiSuggest:rect`, `crosswords:explainRect`,
+  `crosswords:noteRect` — against the storage convention every common panel
+  follows. Seen while working F-scratchpad-11; those games' areas take it
+  (noted in each game's `todo.md` would be the handoff, but a game's area
+  reads its whole folder, so it is left here).
 - **The compete pad has no lock**, and the hook says so in one clause; the
   `shared` guards are where that is enforced. Read and fine.
 - **The `minWidth={240}`** the companion passed was the shell's own default;

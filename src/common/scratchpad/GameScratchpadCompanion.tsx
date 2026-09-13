@@ -56,7 +56,7 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, membe
     <Companion
       title="Scratchpad"
       onClose={() => setScratchpadOpen(false)}
-      persistKey={`puzpuzpuz:scratchpad:${gameId}`}
+      persistKey={`puzpuzpuz:scratchpad:rect:${gameId}`}
       defaultPosition="center"
       defaultSize={{ width: 320, height: 360 }}
       // The floor is what the body needs: the titlebar, the status line and a

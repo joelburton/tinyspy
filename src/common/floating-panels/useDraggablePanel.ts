@@ -14,7 +14,7 @@ export type PanelRect = {
 type PanelOpts = {
   // Where the rect is saved, or `undefined` for a panel that remembers
   // nothing. Keys are unique per panel kind (`puzpuzpuz:chat:rect`,
-  // `puzpuzpuz:scratchpad:<gameId>`); the hook does NOT namespace for you.
+  // `puzpuzpuz:scratchpad:rect:<gameId>`); the hook does NOT namespace for you.
   persistKey: string | undefined
   // Where it opens when nothing is stored. Later mounts read what was saved.
   defaultRect: PanelRect
