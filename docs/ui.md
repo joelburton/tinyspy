@@ -1614,9 +1614,8 @@ programmatically. Both mean "the keyboard is pointing here", so both wear the
 same ring.
 
 **It is not a selected state**, and nothing paints it to mean one. A control
-marking what you have *chosen* reaches for a dark neutral instead —
-`ColorChoiceList`'s chosen swatch, `<ClubGameCard>`'s callout — so blue is only
-ever the keyboard, and a swatch can wear both at once without ambiguity.
+marking what you have *chosen* reaches for a dark neutral instead, so blue is
+only ever the keyboard and a control can wear both at once without ambiguity.
 
 ## The page header
 

@@ -123,6 +123,32 @@ export function isEnvironmental(dbcode: string | null): boolean {
   return Object.values(NO_ANSWER_TO_CODE_AND_TEXT).some((s) => s.code === dbcode)
 }
 
+/**
+ * **A call to SUPABASE'S OWN auth service failed**, and a screen has to say so.
+ *
+ * `/auth/v1/` sits outside the wrapper system on purpose (`isSupabaseInternal`
+ * in `dbFetch.ts`): its failures are usually sign-in conditions the login
+ * screen already words, so no wrapper reads them and no modal is raised. That
+ * leaves the auth calls a SIGNED-IN player makes, where nothing is listening —
+ * and those need a sentence and a code like any other not-ok.
+ *
+ * `PN`, not `FE`: the letter says what a code does to `type`, never who
+ * authored the failure, and the `FE` four are specifically *our server did not
+ * answer*, which is a different thing to go fix.
+ *
+ * **One code per condition rather than per cause.** A logout that never
+ * reached the service and one the service refused leave the player in the same
+ * place — still signed in — so they read the same sentence, and the `[db]`
+ * line's `status=` already separates the two investigations by being blank or
+ * not.
+ */
+export const AUTH_FAILURE_TO_CODE_AND_TEXT = {
+  signOut: {
+    code: 'PN492',
+    text: "We couldn't sign you out, so you're still signed in. Please check your connection and try again.",
+  },
+} as const
+
 
 /**
  * **The bugs the frontend catches, as `PN` codes.**
@@ -273,13 +299,16 @@ export function faultEnvelope(
 }
 
 /**
- * **The envelope for a failure where OUR SERVER did not answer** — one of the
- * four `FE` codes, whichever the caller identified.
+ * **The envelope for a failure the FRONTEND identified** — mostly one of the
+ * four `FE` codes for *our server did not answer*, and also
+ * `AUTH_FAILURE_TO_CODE_AND_TEXT`'s, for the auth service no wrapper speaks
+ * for. Either way the caller hands in a `{ code, text }` from a table above.
  *
- * **This is the only place any of those sentences is chosen**, which is the
- * whole point of it existing. The three wrappers call it to word the envelope
- * a call site reads AND the modal above it; `dbFetch` only names the situation,
- * as an `FE` code in `statusText`, and `situationFor` brings it back here.
+ * **Those tables are the only place any of these sentences is chosen**, which
+ * is the whole point of it existing. The three wrappers call it to word the
+ * envelope a call site reads AND the modal above it; `dbFetch` only names the
+ * situation, as an `FE` code in `statusText`, and `situationFor` brings it
+ * back here.
  *
  * **Not `faultEnvelope`** for this path: it reaches for `error.message`, which
  * here is the browser's `"TypeError: Failed to fetch"` — a string no player

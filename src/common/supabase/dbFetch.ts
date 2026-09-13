@@ -63,8 +63,11 @@ const SLOW_MS = 4000
  *    - `hidden`  a request issued while the tab is backgrounded is the iOS
  *                suspend case, where the connection dies under us.
  *  Duration is NOT here — `ms` is a field of its own (instant reject = a dead
- *  connection, 30s+ = a timeout on a live one: same message, different bug). */
-function getTextualOnlineStatus(): string {
+ *  connection, 30s+ = a timeout on a live one: same message, different bug).
+ *
+ *  Exported for a caller that is its own transport layer — an auth call reaches
+ *  no wrapper, so it builds its own `TransportFacts`. */
+export function getTextualOnlineStatus(): string {
   const online = navigator.onLine
   const hidden = document.visibilityState === 'hidden'
   return `online=${online}${hidden ? ' hidden' : ''}`

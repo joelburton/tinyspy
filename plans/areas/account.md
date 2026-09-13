@@ -5,9 +5,9 @@ The folders it reads: `account`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fifteen findings. F-8, F-9 and F-15 are DONE. F-1 to F-6 are the prose group;
-F-7 and F-13 are waiting fixes with no decision in them; F-10 to F-12 and F-14
-each hold a decision for Joel.**
+Fifteen findings. F-8, F-9, F-10 and F-15 are DONE. F-1 to F-6 are the prose
+group; F-7 and F-13 are waiting fixes with no decision in them; F-11, F-12 and
+F-14 each hold a decision for Joel.**
 
 ## The roster
 
@@ -15,7 +15,8 @@ Agreed 2026-09-12 (Joel: "stamp and do the audit").
 
 - `src/common/account/EditProfileModal.tsx` + `.test.tsx`
 - `src/common/account/editProfileStore.ts`
-- `src/common/account/useAccountMenuSection.ts`
+- `src/common/account/useAccountMenuSection.ts` + `.test.ts` — the test file is
+  the hook's FIRST, written 2026-09-12 with F-10
 - `src/common/account/ColorChoiceList.tsx` + `.module.css`
 - `supabase/tests/common/update_profile_color_test.sql`
 
@@ -231,7 +232,70 @@ already sets is the state hook whichever wins.
 
 </details>
 
-### F-account-10 · `log-out-failure-unsurfaced` · a failed sign-out is a console line
+### F-account-10 · `log-out-failure-unsurfaced` · a failed sign-out is a console line — DONE
+
+**Decided and done 2026-09-12** (Joel: *"an unexpected error happened. that's a
+fault"*). It goes through `reportDbFault` like every other fault in the app —
+build the envelope, hand it the transport facts, and the one path writes the
+`[db]` line and raises the modal from a single builder. The first attempt
+reached past it to `showFaultModal` on the reasoning that the auth client hands
+back no envelope; that was the mistake, since nothing stops a call site from
+BUILDING one.
+
+Re-verifying the finding turned up the fact that settles it, and it is worse
+than a console line. `@supabase/auth-js@2.108.1`, `GoTrueClient._signOut`:
+when the revoke call errors it returns BEFORE `_removeSession()`, so the local
+session is never cleared, no `SIGNED_OUT` event fires, `useSession` never
+re-renders, and you are still signed in looking at the same page. (404/401/403
+and session-missing are swallowed on purpose and DO proceed to clear, returning
+`error: null` — so the error arm really does mean "still signed in.") Today's
+behavior was a silent no-op, not merely an unreported one.
+
+**It gets a code — `PN492`** (Joel: *"errors get dbcodes — consider how we even
+made ones for environmental errors"*). A not-ok always carries one, and the
+`FE` four exist precisely because even a failure with no server in it is worth
+telling apart from the next one. The next free number came from running
+`raiseCodes.test.ts`, which prints it; a remembered number was three behind.
+
+`PN`, not `FE`: the letter says what a code does to `type` and never who
+authored the failure, and the `FE` four are specifically *our server did not
+answer*. So `dbEnvelope.ts` gains a third small table,
+`AUTH_FAILURE_TO_CODE_AND_TEXT`, beside the two it already keeps — for the auth
+calls a SIGNED-IN player makes, which is the half of `/auth/v1/` the login
+screen does not speak for. One code per CONDITION, not per cause: a logout that
+never reached the service and one the service refused leave you in the same
+place, and a blank `status=` on the `[db]` line already separates the two
+investigations.
+
+`environmentalEnvelope` builds it, since the shape is exactly what that
+function is — a `{ code, text }` off a table for the player, the opaque string
+in `detail`. Its docstring widened by a sentence to name the second table.
+`dbFetch` exports `getTextualOnlineStatus` for the transport half of the
+detail: an auth call reaches no wrapper, so the call site is its own transport
+layer and builds its own `TransportFacts`. `reportDbFault` then joins the two
+details the way it does for every other fault.
+
+**A failed logout writes two `[db]` lines, and that is right** (Joel: *"it's
+fine that it logs twice; each has different information"*). `dbFetch` narrates
+the transport for `/auth/v1/` because no wrapper will, and this call site
+narrates the meaning — the call, the code, and the sentence.
+
+`useAccountMenuSection.test.ts` is the hook's first test file, six cases over
+the Log out action: silent on success, the fault on failure, the code + call +
+status on the line, both halves of the detail, the same code with a blank
+`status=` when nothing answered, and GoTrue's own words never reaching the
+player. Plant-verified three ways — swallowing the failure fails five of the
+six, dropping the device facts fails the detail one alone, and a wrong code
+with the raw string as the sentence fails five.
+
+One guard change, and a structural one rather than an allowlist entry:
+`noRawServerMessage.test.ts` now exempts a line near `environmentalEnvelope(`,
+alongside `failureText(`. The player's sentence comes from the `{ code, text }`
+that function takes FIRST, so `detail` is the only slot a raw string can reach
+— the exemption cannot hide a message on its way to a player. Plant-verified:
+an ordinary `.message` read in the same file still fails the guard.
+
+<details><summary>the finding as audited</summary>
 
 `useAccountMenuSection.ts` line 51–55: `supabase.auth.signOut().then(({ error })
 => { if (error) console.error('sign out failed', error) })`. The player picks
@@ -242,6 +306,8 @@ and this is the one call in the folder that is not an RPC. The other four
 that already know they are failing. Options when presented: (1) the fault
 modal, through the same reporter the RPC wrappers use, with a sentence of its
 own; (2) leave the line, and say in the comment that it is a decision.
+
+</details>
 
 ### F-account-11 · `unreachable-null-branches` · three defaults that cannot fire
 
@@ -316,7 +382,9 @@ and is untouched. **Done 2026-09-12**, across all three screens.
   on a dead token; the claim screen signs out on PN018 and on "sign in
   again"; the account menu signs out on "Log out". Each calls the auth client
   directly. Read and left: a helper would be a generic layer with one
-  behavior, and the one that surfaces its failure (F-10) is this folder's.
+  behavior, and the one that surfaces its failure (F-10) is this folder's —
+  the others are best-effort on paths that already know they are failing, and
+  the claim screen's hard-redirects regardless.
 - **`react-rnd` is still the panel engine** (`FloatingPanel.tsx` imports it),
   so the "positions from its static flow position" claims in the store, in
   `App.tsx` and in ui.md hold. Checked because the floating-panels doc.md never

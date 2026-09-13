@@ -1,12 +1,37 @@
 // cs-audited-account
 
 import { useMemo } from 'react'
+import type { AuthError } from '@supabase/supabase-js'
 import { useProfile } from '../session/useProfile'
 import { supabase } from '../supabase/supabase'
+import { getTextualOnlineStatus } from '../supabase/dbFetch'
+import {
+  AUTH_FAILURE_TO_CODE_AND_TEXT,
+  environmentalEnvelope,
+  reportDbFault,
+} from '../supabase/dbEnvelope'
 import { setEditProfileOpen } from './editProfileStore'
 import { setWordEdit } from '../definitions/wordEditStore'
 import { useBoundAction } from '../actions/useBoundAction'
 import type { MenuSection } from '../menu/menuModel'
+
+/**
+ * **Report a sign-out that did not happen**, as a fault.
+ *
+ * `GoTrueClient._signOut` returns before it clears the local session, so a
+ * failed revoke leaves you signed in with no `SIGNED_OUT` event coming — the
+ * screen does not change on its own, and nothing else would say so.
+ *
+ * It builds the envelope and the transport facts itself because an auth call
+ * reaches no wrapper: `/auth/v1/` is outside that system (docs/envelopes.md →
+ * the `FE` codes), so the call site is the transport layer too.
+ */
+function reportFailedSignOut(error: AuthError): void {
+  reportDbFault(
+    { call: 'POST /auth/v1/logout', status: error.status, detail: getTextualOnlineStatus() },
+    environmentalEnvelope(AUTH_FAILURE_TO_CODE_AND_TEXT.signOut, `${error.name}: ${error.message}`),
+  )
+}
 
 /**
  * The **account submenu** — the user-focused items, as one collapsed row to
@@ -50,7 +75,7 @@ export function useAccountMenuSection(): MenuSection {
     describe: () => 'active',
     run: () => {
       supabase.auth.signOut().then(({ error }) => {
-        if (error) console.error('sign out failed', error)
+        if (error) reportFailedSignOut(error)
       })
     },
   })

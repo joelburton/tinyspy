@@ -88,6 +88,12 @@ describe('no raw server message reaches a UI sink', () => {
         const near = lines.slice(Math.max(0, i - 3), i + 2).join('\n')
         if (/console\.(log|warn|error|debug)/.test(near)) return
         if (/failure(Text|Message)\(/.test(near)) return
+        // `environmentalEnvelope(situation, detail)` is the same kind of
+        // exemption, and a structural one: the player's sentence comes from the
+        // `{ code, text }` it takes FIRST, off a table in `dbEnvelope.ts`, so
+        // the only slot a raw string can reach is `detail` — the muted
+        // diagnostics, which is where that function's docstring says it belongs.
+        if (/environmentalEnvelope\(/.test(near)) return
         offenders.push(`${file}:${i + 1}  ${line.trim()}`)
       })
     }
