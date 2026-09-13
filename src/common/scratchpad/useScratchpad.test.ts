@@ -2,7 +2,7 @@
 
 /**
  * Tests for useScratchpad — the raciest code in the scratchpad feature (the
- * 2026-07-05 review flagged it as having zero unit tests). Three behaviors
+ * 2026-07-05 review flagged it as having zero unit tests). Four behaviors
  * are pinned:
  *
  *   1. body-merge "newer wins" — CDC bodies apply only when their per-row
@@ -14,7 +14,10 @@
  *   3. the takeover lock lifecycle — a foreign `claim` makes the pad
  *      read-only (`editingBy` set, `canEdit` false), "Take over" unlocks only
  *      after the grace window, and a holder gone silent past STALE_MS is
- *      treated as gone.
+ *      treated as gone;
+ *   4. the timers exist only while they have a reader — none with nobody
+ *      holding the lock, and none again once a holder goes stale or I go
+ *      idle.
  *
  * The supabase client is mocked at the module boundary. The channel mock
  * captures the CDC handler, the lock-broadcast handler, and the subscribe
@@ -179,5 +182,35 @@ describe('useScratchpad — takeover lock lifecycle', () => {
     })
     expect(result.current.editingBy).toBeNull()
     expect(result.current.canEdit).toBe(true)
+  })
+
+  it('runs no timer while nobody holds the lock', async () => {
+    loadRow = { body: '', version: 0 }
+    const { result } = renderHook(() => useScratchpad(GAME, null, ME, 'Me'))
+    await act(async () => {
+      subscribeCb?.('SUBSCRIBED')
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(vi.getTimerCount()).toBe(0)
+
+    // A foreign claim starts the clock; the holder going stale stops it.
+    act(() =>
+      lockHandler?.({ payload: { type: 'claim', userId: 'bob', username: 'Bob', at: 0 } }),
+    )
+    expect(vi.getTimerCount()).toBe(1)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
+    expect(result.current.editingBy).toBeNull()
+    expect(vi.getTimerCount()).toBe(0)
+
+    // My own claim starts the clock and the heartbeat; going idle releases
+    // the lock, and both stop.
+    act(() => result.current.setBody('hello'))
+    expect(vi.getTimerCount()).toBe(3) // the clock, the heartbeat, the flush
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

@@ -5,7 +5,7 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 to F-11 worked on Joel's decisions, F-13 closed by
+Sixteen findings: F-7 to F-12 worked on Joel's decisions, F-13 closed by
 F-9's; the prose ones (F-1 to F-6) are next as one group, then the
 remaining decisions one at a time.**
 
@@ -283,7 +283,17 @@ rewrites.
 1. Rename the key. Recommended; the orphaned values are nothing.
 2. Leave it.
 
-### F-scratchpad-12 · `always-on-timers` · two one-second intervals for the life of every coop game page
+### WORKED · F-scratchpad-12 · `always-on-timers` · two one-second intervals for the life of every coop game page
+
+**WORKED 2026-09-12 — Joel left the pick to me; option 1.** The clock runs
+only while a holder is known and clears the holder when its claim goes stale,
+which ends the interval; the heartbeat runs only while I hold and ends itself
+on release. Both effects have names. The clock is NOT seeded when a holder
+appears — that was a synchronous `setState` in an effect, which the lint rule
+refuses, and it is not needed: a fresh claim is newer than any clock the hook
+has, so it reads as live and not takeable until the first tick. A fourth
+test counts timers: none with nobody holding, none after staleness, none
+after I go idle.
 
 On the shared pad the hook runs while the panel is closed (it must: the body
 and the lock keep syncing). With it run two `setInterval`s at 1000ms: the

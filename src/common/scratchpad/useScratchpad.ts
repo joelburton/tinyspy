@@ -187,32 +187,49 @@ export function useScratchpad(
     }
   }, [gameId, ownerId, shared, myId, applyBody])
 
-  // Staleness/grace re-render tick (only meaningful for the shared pad).
-  useEffect(() => {
-    if (!shared) return
-    const t = setInterval(() => setNowTick(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [shared])
+  // The clock behind the grace and staleness windows. It runs only while a
+  // holder is known — with nobody editing there is nothing to age — and a
+  // holder whose claim has gone stale is cleared here, which is what ends the
+  // interval and keeps the state saying what the screen says. It is not
+  // seeded when a holder appears: a fresh claim is newer than any clock this
+  // has, so it reads as live and not yet takeable until the first tick.
+  const hasHolder = holder !== null
+  useEffect(
+    function ageTheHolder() {
+      if (!hasHolder) return
+      const t = setInterval(() => {
+        const now = Date.now()
+        setNowTick(now)
+        const h = holderRef.current
+        if (h && now - h.at > STALE_MS) setHolder(null)
+      }, 1000)
+      return () => clearInterval(t)
+    },
+    [hasHolder],
+  )
 
-  // Heartbeat: re-assert the lock while recently editing; auto-release when idle.
-  useEffect(() => {
-    if (!shared) return
-    const t = setInterval(() => {
-      const ch = channelRef.current
-      if (!ch) return
-      const iHold = holderRef.current?.userId === myId
+  // Heartbeat, only while I hold the lock: re-assert it while recently
+  // editing; release it when idle, which is what ends the interval.
+  const iHold = shared && holder?.userId === myId
+  useEffect(
+    function heartbeatWhileHolding() {
       if (!iHold) return
-      if (Date.now() - lastEditRef.current < HOLD_WINDOW_MS) {
-        const at = Date.now()
-        setHolder({ userId: myId, username, at })
-        ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, username, at } })
-      } else {
-        setHolder(null)
-        ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'release', userId: myId } })
-      }
-    }, HEARTBEAT_MS)
-    return () => clearInterval(t)
-  }, [shared, myId, username])
+      const t = setInterval(() => {
+        const ch = channelRef.current
+        if (!ch) return
+        if (Date.now() - lastEditRef.current < HOLD_WINDOW_MS) {
+          const at = Date.now()
+          setHolder({ userId: myId, username, at })
+          ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, username, at } })
+        } else {
+          setHolder(null)
+          ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'release', userId: myId } })
+        }
+      }, HEARTBEAT_MS)
+      return () => clearInterval(t)
+    },
+    [iHold, myId, username],
+  )
 
   const flush = useCallback(
     (text: string) => {
