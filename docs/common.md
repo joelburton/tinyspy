@@ -97,7 +97,7 @@ A per-game **scratchpad** — a free-text notepad for working out answers — th
 - **`useScratchpad`** (`common/scratchpad/`) — the body syncs via CDC "newer wins" (per-row `version`) with an optimistic local echo + a debounced full-text flush, like `useCells` but for one text blob and with no rollback (the next keystroke re-flushes). The shared coop pad also carries a **Realtime-Broadcast takeover lock**: the current editor re-asserts a claim while typing and auto-releases when idle; others are read-only until they take over. While you hold the lock, incoming bodies — an event or a reconnect's refetch — are ignored so a write racing your flush can't revert your keystrokes.
 - **`GameScratchpadCompanion`** (`common/scratchpad/`) / **`ScratchpadButton`** (`common/page-header/`) — the panel is a `<Companion>` (rect persisted per game), and `scratchpadOpenStore` (`common/scratchpad/`) is the open flag both share, the twin of `chatOpenStore`. `<GamePage>` gates the whole thing purely off the manifest `scratchpad` field (`{ enabled; perPlayerInCompete? }`).
 
-Trust model: the lock is FE-only arbitration (friends, not adversaries) — `set_scratchpad` itself has no lock check. Two self-healing lock races (simultaneous claims; a late joiner with no lock snapshot) are documented in [`deferred.md`](deferred.md) → crosswords.
+Trust model: the lock is FE-only arbitration (friends, not adversaries) — `set_scratchpad` itself has no lock check. Two self-healing lock races (simultaneous claims; a late joiner with no lock snapshot) are recorded in `common/scratchpad/todo.md`.
 
 ## Schema: `common.*`
 

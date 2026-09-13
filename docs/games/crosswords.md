@@ -650,12 +650,6 @@ This is the **canonical deferred register** for crosswords — distilled from th
   not a flat list) anyway, so do the bound **with** that import, not before.
   Minimum safe change if the import lands first: a `LIMIT` in the RPC + a
   truncation note in the UI.
-- **Scratchpad lock races C3b / C3c** (review 2026-07-05) — simultaneous first
-  keystrokes from two clients can each adopt the *other's* claim (both read-only for
-  ~`STALE_MS`, and the loser's in-flight flush still lands); a late joiner sees no
-  lock state for ≤1s (Broadcast has no snapshot-on-join). Both self-heal within
-  seconds and can't corrupt the DB (crossplay's server arbitrated both). Low
-  priority at friend scale.
 
 ### Deliberate leaves / standing flags
 Recorded decisions, not bugs — surfaced in the reviews and left as-is for a possible

@@ -13,8 +13,9 @@ player writes in it; in compete each player is solving alone, and a shared pad
 would leak progress between opponents, so each gets a private one that nobody
 else can read. Both are rows in one table keyed by game and owner, where a null
 owner is the shared pad, and the select policy is what keeps a private pad
-private. Writes go through the `set_scratchpad` RPC, which checks only that the
-caller is a player: the notes are the players', not the game's, so a finished
+private. Writes go through the `set_scratchpad` RPC, which checks that the
+caller is a player naming their own pad or the shared one, and nothing about
+the game's state: the notes are the players', not the game's, so a finished
 game's pad stays writable and a note typed as the verdict lands saves like any
 other. The table, the policy and the RPC are
 [docs/common.md](../../../docs/common.md)'s.

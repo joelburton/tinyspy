@@ -26,7 +26,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 /**
  * A MARK IN THE PAGE HEADER — the menu-adjacent controls that strip carries: the
- * chat and scratchpad bubbles, the pause button, the mobile page switch. An ink
+ * chat and scratchpad marks, the pause button, the mobile page switch. An ink
  * glyph, no border, no fill, a soft background on hover.
  *
  * Named for where it lives, because that is the whole of its scope: this look is

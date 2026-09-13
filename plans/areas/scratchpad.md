@@ -9,8 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 WORKED or CLOSED: F-7 to F-12 and F-15 on Joel's decisions, F-13 closed by
 F-9's, F-1 to F-6 as the prose group, F-14 and F-16 the waiting fixes. The
 `doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md` holds
-one Maybe. Left: the closing re-read in one sitting, then the blessing,
-which is Joel's.**
+one Maybe. The closing re-read is DONE (five stale claims fixed in place; the two lock
+races moved from crosswords' register to this folder's `todo.md` on Joel's
+word). Left: the blessing, which is Joel's.**
 
 ## The roster
 
@@ -401,6 +402,44 @@ no-op write, both ways storage can fail, the hook, two subscribers, unmount.
 shape with the storage fake, minus the mounted-count block this store does
 not have. No decision — waiting.
 
+## The closing re-read
+
+Done 2026-09-12 in one sitting: the eight stamped files, the mount in
+`GamePage`, the mark and its test, the SQL evidence, `docs/common.md`'s section
+and every other doc line that names the scratchpad, and a grep of each worked
+finding's fault class across `src`, `supabase`, `e2e` and `docs`. Every name
+the findings retired is gone (`useScratchpadOpen`, `editingDisabled`, PN305,
+the read-only status text, `.notepad`, `.takeOver`, the crossplay quotes, the
+review codes), and this file's counts held: eight stamped, one vocabulary row
+left for the stylesheet, no orphan row, no owed Design. Found and fixed in
+place:
+
+- `docs/supabase.md`'s divergence register said the scratchpad body has
+  "optimistic echo + rollback" — the claim F-4 fixed in `common.md`, standing
+  in a second doc. The row now says `useCells` rolls back and the scratchpad
+  re-flushes.
+- `docs/common-folders.md`'s folder row said "the shared notes panel", the
+  lede F-6 rewrote. It says a game's notepad, shared in coop and private in
+  compete.
+- `ScratchpadButton.tsx` (blessed, page-header) called the mark "this bubble"
+  — chat's word, for a speech-bubble glyph this mark does not have — and
+  `PageHeaderButton.tsx` said "chat and scratchpad bubbles". Both say mark;
+  the mark's own "its bubble", which meant the hover, says tooltip.
+- `doc.md`'s Design said the RPC "checks only that the caller is a player". It
+  also refuses a write naming another player's pad and an over-cap body, so
+  the sentence now says what it does NOT check: the game's state.
+- `useScratchpad.test.ts`'s RPC mock answered `data: 1`, a shape
+  `set_scratchpad` never sends, so a flush that fired in a test took the
+  unhandled arm. It answers `{ result: 'saved', version: 1 }`.
+
+The two self-healing lock races (simultaneous first claims; a late joiner
+with no lock snapshot) were recorded in `docs/games/crosswords.md`'s deferred
+register under a review code and date, with `docs/common.md` and
+`docs/deferred.md` pointing there. Joel, 2026-09-12: "this is a question for
+the scratchpad, not crosswords." They are a Maybe in this folder's `todo.md`,
+without the code, the date or the crossplay clause; `common.md` points at the
+todo and the two register mentions are gone.
+
 ## Notes
 
 - **Where the Tab hand-off e2e case lives.** `e2e/chat-keyboard.e2e.ts`
@@ -436,7 +475,7 @@ catches the rename; nothing else has a test that would notice.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

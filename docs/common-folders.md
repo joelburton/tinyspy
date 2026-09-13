@@ -264,7 +264,7 @@ area is audited. No sweep.
 | `realtime` | channels, reconnect, refetch, presence |
 | `reveal` | showing the answer after the end |
 | `routing` | the path router, the app's two URL shapes, and `<Link>` |
-| `scratchpad` | the shared notes panel |
+| `scratchpad` | a game's notepad: shared in coop, private per player in compete |
 | `session` | who is signed in, and their profile |
 | `setup-form` | the start-a-game dialog, its sections, and its data |
 | `single-flight` | one run of an async action at a time — a second click while the first is in flight is dropped |

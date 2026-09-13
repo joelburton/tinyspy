@@ -510,7 +510,7 @@ All of these are commented at the site; this table is the index.
 | Two data hooks instead of one | bananagrams (`useGame`/`useProgress`) | RLS boundary: owner-only board vs club-readable progress |
 | Broadcast-coupled hand-rolled channel | connections `useGame` | shared-selection Broadcast needs the stable room; CDC rides along |
 | Ephemeral broadcast on a second stable channel | scrabble `useSharedMove` | staged-move preview is never stored; a missed broadcast just means no preview |
-| Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo + rollback |
+| Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo. `useCells` rolls a refused write back; the scratchpad has no rollback, its next keystroke re-flushes the whole text |
 | Append-on-INSERT instead of refetch | `useClubChat` | chat volume; requires merge-on-refetch (see the rule) |
 | Find-or-create instead of create | connections `startGameInClub` | one game per puzzle per mode per club |
 | Shared `useGame` factory across two games | `makeFoundWordsGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |

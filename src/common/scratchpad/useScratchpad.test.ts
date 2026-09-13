@@ -86,7 +86,7 @@ function buildMocks() {
     }
     return chain
   })
-  mockRpc.mockResolvedValue({ data: 1, error: null })
+  mockRpc.mockResolvedValue({ data: { result: 'saved', version: 1 }, error: null })
   mockRemoveChannel.mockResolvedValue(undefined)
 }
 
