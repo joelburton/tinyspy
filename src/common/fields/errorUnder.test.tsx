@@ -18,7 +18,7 @@ import { errorUnder } from './errorUnder'
 import { TextField } from './TextField'
 import { CheckboxListField } from './CheckboxListField'
 import { ReadOnlyField } from './ReadOnlyField'
-import { ColorField } from './ColorField'
+import { ColorChoiceField } from './ColorChoiceField'
 
 const MESSAGE = 'That will not do.'
 
@@ -43,7 +43,7 @@ describe('errorUnder — the three shapes of field', () => {
   })
 
   it('finds one under a field with no control at all, which uses data-field', () => {
-    render(<ColorField name="new_color" value={null} onChange={() => {}} error={MESSAGE} />)
+    render(<ColorChoiceField name="new_color" value={null} onChange={() => {}} error={MESSAGE} />)
     expect(errorUnder('new_color')).toBe(MESSAGE)
   })
 })

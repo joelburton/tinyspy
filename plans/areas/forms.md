@@ -37,7 +37,7 @@ his words.
 | `fieldContract.tsx` | the assertions every field's spec runs |
 | `errorUnder.ts` · `errorUnder.test.tsx` | the test lookups that prove a message reached its field |
 | `groupTiles.ts` | the dash-inserter a board field and a summary share |
-| `TextField` · `NumberField` · `DateField` · `SelectField` · `CheckboxField` · `CheckboxListField` · `RadioRow` · `ReadOnlyField` · `ColorField` | the general fields — each `.tsx` + `.test.tsx`, each but `ColorField` with a `.module.css` |
+| `TextField` · `NumberField` · `DateField` · `SelectField` · `CheckboxField` · `CheckboxListField` · `RadioRow` · `ReadOnlyField` · `ColorChoiceField` | the general fields — each `.tsx` + `.test.tsx`, each with a `.module.css` |
 | `PlayersField` · `ManualBoardField` · `DictBandField` | the three only a setup form renders; `DictBandField` has no module |
 | `doc.md` | lede only; Design owed |
 | `todo.md` | empty |
@@ -52,7 +52,7 @@ and every guard (`fieldTests` reads this directory; guards are not audited).
 forms. `ManualBoardField`: five games' setup forms. `NumberField`: bananagrams'
 setup form and `WordEditDialog`. `DateField`: `SetupNextPuzzleSection` alone.
 `CheckboxListField`: `EditClubModal` alone. `PlayersField`: `PlayersSection`
-alone. `ColorField`: `ClaimHandleScreen`, `EditProfileModal`. `ReadOnlyField`:
+alone. `ColorChoiceField`: `ClaimHandleScreen`, `EditProfileModal`. `ReadOnlyField`:
 `EditProfileModal`, crosswords' `PuzzleSourceField`. No radio is written
 outside `RadioRow`.
 

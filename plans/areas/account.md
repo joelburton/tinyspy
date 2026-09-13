@@ -5,9 +5,9 @@ The folders it reads: `account`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fifteen findings. F-8 to F-11 and F-15 are DONE. F-1 to F-6 are the prose
-group; F-7 and F-13 are waiting fixes with no decision in them; F-12 and F-14
-each hold a decision for Joel.**
+Fifteen findings. F-8 to F-12 and F-15 are DONE. F-1 to F-6 are the prose
+group; F-7 and F-13 are waiting fixes with no decision in them; F-14 holds the
+last decision for Joel.**
 
 ## The roster
 
@@ -17,7 +17,8 @@ Agreed 2026-09-12 (Joel: "stamp and do the audit").
 - `src/common/account/editProfileStore.ts`
 - `src/common/account/useAccountMenuSection.ts` + `.test.ts` — the test file is
   the hook's FIRST, written 2026-09-12 with F-10
-- `src/common/account/ColorChoiceList.tsx` + `.module.css`
+- ~~`src/common/account/ColorChoiceList.tsx` + `.module.css`~~ — folded into
+  `fields/ColorChoiceField` by F-12 and no longer this folder's
 - `supabase/tests/common/update_profile_color_test.sql`
 
 Plus `doc.md` (a two-line lede; the Design is owed — `DESIGNS_OWED` has the
@@ -358,7 +359,34 @@ here and the branch exists for the type; (3) leave. Session's file, if (1).
 
 </details>
 
-### F-account-12 · `color-list-home` · `ColorChoiceList` lives in `account` and its only reader is `fields/ColorField`
+### F-account-12 · `color-list-home` · `ColorChoiceList` lives in `account` and its only reader is `fields/ColorField` — DONE
+
+**Decided and done 2026-09-12**: folded in, and the merged component is
+**`ColorChoiceField`** (Joel's name). `ColorChoiceList.tsx` is deleted, its
+stylesheet moved to `fields/`, and `ColorField.tsx` + `.test.tsx` renamed
+around it. The swatch grid is now drawn inside the field, which is what every
+other field in the folder does — `PlayersField` is the closest shape, a
+`<fieldset>` of member rows each with a `<Dot>`, and it draws its rows itself.
+`ColorField`'s "THE WRAPPER IS THE COMPONENT, not just the list" stops being a
+note about an arrangement and is simply true.
+
+Two recounts from the audit, both making the move cheaper than it read: **no
+guard names the file** (F-8 deleted the two `vocabularies` rows this morning,
+so the predicted re-pathing does not exist), and **`ui.md` mentions it in four
+places, not three** (1403, 1405, 1414, 1761 — all re-pointed, and 1405 rewritten
+to describe a field rather than a list).
+
+The stylesheet keeps its `cs-audited-account` stamp in a `cs-blessed-forms`
+folder. Left for Joel: the file was audited here and is not blessed, and the
+merged `ColorChoiceField.tsx` still says `cs-blessed-forms` over content it
+gained today.
+
+The rename also exposed a claim in `field.module.css` that the legend fix
+(F-15) had already made wrong — "`<ColorField>` is the one that needs it",
+about the `<fieldset>` reset, when three `group` fields need it. It says "what
+a `group` field needs" now.
+
+<details><summary>the finding as audited</summary>
 
 `fields/ColorField.tsx` (blessed, forms): "THE WRAPPER IS THE COMPONENT, not
 just the list." Nothing renders `ColorChoiceList` but that wrapper; the claim
@@ -369,6 +397,8 @@ its wrapper — one file move, the stylesheet with it, the guard rows re-pathed;
 (2) fold it INTO `ColorField.tsx` — the wrapper draws the swatches, one
 component, one stylesheet; (3) `members/`, beside `MEMBER_COLORS` and `<Dot>`;
 (4) leave. `ui.md` names `<ColorChoiceList>` in three places either way.
+
+</details>
 
 ### F-account-13 · `test-mock-hex` · the test's profile stores a hex where the app stores a name
 

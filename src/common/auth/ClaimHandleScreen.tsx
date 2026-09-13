@@ -14,7 +14,7 @@ import styles from './ClaimHandleScreen.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { TextField } from '../fields/TextField'
-import { ColorField } from '../fields/ColorField'
+import { ColorChoiceField } from '../fields/ColorChoiceField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /** What `common.claim_username` puts in `data`. `result` sits beside the
@@ -225,7 +225,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
                   error={localValid ? errors.desired : RULES}
                 />
 
-                <ColorField
+                <ColorChoiceField
                   name="chosen_color"
                   value={values.chosen_color}
                   onChange={(v) => set('chosen_color', v)}

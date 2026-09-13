@@ -12,7 +12,7 @@ import actionRow from '../floating-panels/modalActions.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
 import { ReadOnlyField } from '../fields/ReadOnlyField'
-import { ColorField } from '../fields/ColorField'
+import { ColorChoiceField } from '../fields/ColorChoiceField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
@@ -111,7 +111,7 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
                 error={errors.username}
               />
 
-              <ColorField
+              <ColorChoiceField
                 name="new_color"
                 value={values.new_color}
                 onChange={(v) => set('new_color', v)}
