@@ -14,6 +14,7 @@ import { PalettePage } from './common/devtools/PalettePage'
 import { EditProfileModal } from './common/account/EditProfileModal'
 import { useEditProfileOpen, setEditProfileOpen } from './common/account/editProfileStore'
 import { WordEditDialog } from './common/definitions/WordEditDialog'
+import { DefinitionHost } from './common/definitions/DefinitionHost'
 import { useWordEdit } from './common/definitions/wordEditStore'
 import { GameInvitations } from './common/invitations/GameInvitations'
 import { ToastHost } from './common/toasts/ToastHost'
@@ -66,9 +67,9 @@ import { gametypes } from './gametypes'
  * from its static flow position and lands wrong inside a page's column.
  * GameInvitations + ToastHost, mounted after the gates so invites pop on every
  * real page and never on the login or claim screens. FaultModal, the one
- * fault-modal host. TooltipHost, the delegated hover-bubble renderer. Each is
- * a singleton whose state crosses subtrees, which is why none of them lives in
- * a page.
+ * fault-modal host. TooltipHost, the delegated hover-bubble renderer.
+ * DefinitionHost, the card every `<DefinableWord>` opens. Each is a singleton
+ * whose state crosses subtrees, which is why none of them lives in a page.
  */
 
 export default function App() {
@@ -243,6 +244,10 @@ export default function App() {
       {/* The styled-tooltip renderer for every `data-tooltip` element
           (buttons' hover bubbles) — one delegated host, viewport-clamped. */}
       <TooltipHost />
+
+      {/* The definition card for whichever `<DefinableWord>` was clicked —
+          one lookup is open at a time, so one host renders it. */}
+      <DefinitionHost />
     </>
   )
 }

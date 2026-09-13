@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import styles from './SolutionReveal.module.css'
 
 /**
@@ -17,16 +17,12 @@ import styles from './SolutionReveal.module.css'
  * for a solved word, `null` for one still hidden.
  */
 export function SolutionReveal({ words }: { words: (string | null)[] }) {
-  const { define, popover } = useDefinePopover()
-
   return (
     <div className={styles.reveal}>
       <div className={styles.wordCols}>
-        <WordGroup heading="Across" words={words.slice(0, 3)} onDefine={define} />
-        <WordGroup heading="Down" words={words.slice(3, 6)} onDefine={define} />
+        <WordGroup heading="Across" words={words.slice(0, 3)} />
+        <WordGroup heading="Down" words={words.slice(3, 6)} />
       </div>
-
-      {popover}
     </div>
   )
 }
@@ -34,27 +30,17 @@ export function SolutionReveal({ words }: { words: (string | null)[] }) {
 function WordGroup({
   heading,
   words,
-  onDefine,
 }: {
   heading: string
   /** A solved word's letters, or `null` for one still hidden (an em dash). */
   words: (string | null)[]
-  onDefine: (word: string, el: HTMLElement) => void
 }) {
   return (
     <div className={styles.group}>
       <div className={styles.heading}>{heading}</div>
       {words.map((w, i) =>
         w ? (
-          <button
-            key={i}
-            type="button"
-            className={styles.word}
-            title="Click for definition"
-            onClick={(e) => onDefine(w, e.currentTarget)}
-          >
-            {w.toUpperCase()}
-          </button>
+          <DefinableWord key={i} word={w} className={styles.word} />
         ) : (
           // Not yet solved — an em dash placeholder holds the slot (so the panel
           // keeps its height as words come in).

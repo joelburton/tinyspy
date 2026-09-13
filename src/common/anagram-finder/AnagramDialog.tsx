@@ -1,12 +1,11 @@
 // cs-audited-definitions
 
-import { cls } from '../utils/cls'
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { runRpc } from '../supabase/dbResult'
-import { useDefinePopover } from '../definitions/useDefinePopover'
+import { DefinableWord } from '../definitions/DefinableWord'
 import { Dialog } from '../floating-panels/Dialog'
 import styles from './AnagramDialog.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
@@ -69,7 +68,6 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
   // decision at each call site.
   const [errors, setErrors] = useState<FormErrors>({})
   const [searching, setSearching] = useState(false)
-  const { define: openDefine, popover } = useDefinePopover()
 
   async function onSubmit({ letters }: Values) {
     const trimmed = letters.trim()
@@ -178,19 +176,11 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
                   the words start on one line down the list and the number
                   reads as a column rather than as part of the word. */}
               <span className={styles.resultBand}>{r.difficulty}</span>
-              <span
-                className={cls('definable', styles.resultWord)}
-                onClick={(e) => openDefine(r.word, e.currentTarget)}
-                title="Click to define"
-                data-word={r.word}
-              >
-                {r.word.toUpperCase()}
-              </span>
+              <DefinableWord word={r.word} className={styles.resultWord} />
             </li>
           ))}
         </SimpleScrollableList>
       )}
-      {popover}
     </Dialog>
   )
 }

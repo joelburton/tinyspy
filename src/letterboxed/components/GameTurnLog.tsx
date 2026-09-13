@@ -1,9 +1,8 @@
 // cs-unmet
 
-import type { MouseEvent } from 'react'
 import type { GamePlayer } from '@/common/members/member'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import {
   TurnLog,
   TurnLogBar,
@@ -79,21 +78,7 @@ export function GameTurnLog({
   // it every render and hit React's update-depth limit.)
   const boardIsShown = who.boardIsShown
 
-  // Click-to-define (a common feature — common/definitions/useDefinePopover).
-  // Every word in the log is a real dictionary word, whether it was played,
-  // taken back, or handed over by a spoiler; words are stored lowercase, which
-  // the lookup wants.
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: 'definable',
-    title: 'Click to define',
-    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
-  })
-
   return (
-    <>
     <TurnLog
       heading="Moves"
       headerAction={who.picker}
@@ -113,7 +98,7 @@ export function GameTurnLog({
             <td className={turnLog.meta}>#{i + 1}</td>
           )}
           <td className={turnLog.main}>
-            <Move event={e} defineProps={defineProps} />
+            <Move event={e} />
           </td>
           <td className={turnLog.other}>
             <span className={turnLog.meta}>
@@ -124,8 +109,6 @@ export function GameTurnLog({
         </tr>
       ))}
     </TurnLog>
-    {popover}
-    </>
   )
 }
 
@@ -160,16 +143,8 @@ function barFor(e: EventRow): TurnOutcome {
  * letters (`hintPrefix`, the same vocabulary the pills used), the spoiler's
  * whole word.
  */
-function Move({
-  event,
-  defineProps,
-}: {
-  event: EventRow
-  defineProps: (word: string) => Record<string, unknown>
-}) {
-  const word = event.word ? (
-    <span {...defineProps(event.word)}>{event.word.toUpperCase()}</span>
-  ) : null
+function Move({ event }: { event: EventRow }) {
+  const word = event.word ? <DefinableWord word={event.word} /> : null
 
   switch (event.kind) {
     case 'played':

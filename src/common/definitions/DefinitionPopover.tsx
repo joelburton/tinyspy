@@ -25,7 +25,7 @@ const GAP = 6
  * click, inside or out, and on Escape; a cross-reference inside re-points the
  * lookup in place without closing or moving the card.
  *
- * Render it through `useDefinePopover`, which owns the open/anchor state.
+ * Rendered by `<DefinitionHost>`, which owns the open/anchor state.
  */
 export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
   const [word, setWord] = useState(initialWord)

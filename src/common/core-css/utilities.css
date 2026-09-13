@@ -75,24 +75,22 @@
 }
 
 /* A click-to-define word — the shared affordance for "this word opens its
-   definition" (via the DefinitionPopover), a cross-game concept worth naming
-   once. A subtle underline on hover. Compose onto the word span, e.g.
-   `cls('definable', styles.word)`.
+   definition", a cross-game concept worth naming once. A subtle underline on
+   hover. Not applied by hand: `<DefinableWord>` wears it, and is how every
+   surface shows a definable word.
 
    POINTER-ONLY, and that is deliberate everywhere: a definable word carries no
    `tabIndex` and no `role="button"`, so it is not a tab stop and has no focus
    state to style. Two reasons. First, these words aren't reachable by keyboard
    anyway — a play surface declares an empty tab ring, so Tab is caught and
-   moves nothing. Second, the words
-   come in bulk: a WordList can hold a hundred found words, and making each a tab
-   stop would bury every real control behind a hundred presses while ringing the
-   text in accent blue. Looking up a definition is a convenience on a word you're
-   already pointing at, not a control the game requires.
+   moves nothing. Second, the words come in bulk: a WordList can hold a hundred
+   found words, and making each a tab stop would bury every real control behind
+   a hundred presses while ringing the text in accent blue. Looking up a
+   definition is a convenience on a word you're already pointing at, not a
+   control the game requires.
 
-   So: no `:focus-visible` rule here or in any game's local copy — there's
-   nothing to focus. If a definable word ever DOES need keyboard reach, give it a
-   real <button> (waffle's SolutionReveal and wordiply's longest-word reveal are
-   both standalone buttons already) rather than re-adding tabIndex to a span. */
+   So: no `:focus-visible` rule here or anywhere else — there is nothing to
+   focus. */
 /* @@ */ .definable {
   cursor: pointer;
   border-radius: var(--radius-sm);

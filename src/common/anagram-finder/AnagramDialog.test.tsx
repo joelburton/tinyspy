@@ -15,6 +15,7 @@ const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 
 import { AnagramDialog } from './AnagramDialog'
+import { DefinitionHost } from '../definitions/DefinitionHost'
 import { errorUnder } from '../fields/errorUnder'
 
 beforeEach(() => {
@@ -168,14 +169,21 @@ describe('AnagramDialog — the other arm of the routing', () => {
 })
 
 describe('AnagramDialog — Escape with a definition open', () => {
-  /** Search, then click a result word to open the shared definition popover. */
+  /** Search, then click a result word to open the shared definition popover.
+   *  `<DefinitionHost>` comes along because the popover is the app root's, not
+   *  the dialog's — it is what hears Escape first. */
   async function defineAResult(onClose: () => void) {
     mockRpc.mockResolvedValue({
       data: { type: 'ok', data: { result: 'searched', words: [{ word: 'acre', difficulty: 1 }] } },
       error: null,
     })
     const user = userEvent.setup()
-    render(<AnagramDialog onClose={onClose} />)
+    render(
+      <>
+        <AnagramDialog onClose={onClose} />
+        <DefinitionHost />
+      </>,
+    )
     await user.type(screen.getByRole('textbox'), 'acer{Enter}')
     await user.click(await waitFor(() => screen.getByText('ACRE')))
   }

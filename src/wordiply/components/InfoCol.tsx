@@ -11,7 +11,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
 import { GameTurnLog } from './GameTurnLog'
@@ -127,9 +127,6 @@ export function InfoCol({
    *  guesses the board + the readouts above are built from. */
   allGuesses: GuessRow[]
 }) {
-  // Click-to-define for the terminal "best possible word" reveal — the same
-  // shared popover the word lists / waffle's answer reveal use.
-  const { define, popover } = useDefinePopover()
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -232,16 +229,7 @@ export function InfoCol({
           <span className={styles.revealLabel}>
             Best possible word: <span className={styles.revealLen}>{maxWordLength}</span>
           </span>
-          {/* Click-to-define — a bare button styled as the word (like waffle's
-              answer reveal + the shared word lists). */}
-          <button
-            type="button"
-            className={styles.revealWord}
-            title="Click to define"
-            onClick={(e) => define(longestWord, e.currentTarget)}
-          >
-            {longestWord.toUpperCase()}
-          </button>
+          <DefinableWord word={longestWord} className={styles.revealWord} />
         </div>
       )}
 
@@ -261,8 +249,6 @@ export function InfoCol({
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
       />
-
-      {popover}
     </div>
   )
 }

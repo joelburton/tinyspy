@@ -1,10 +1,9 @@
 // cs-unmet
 
-import type { MouseEvent } from 'react'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
@@ -81,17 +80,8 @@ export function GameTurnLog({
     <TurnLogActor actor={memberById(players, userId)} />
   )
 
-  // Click-to-define (a common feature — see common/definitions/useDefinePopover). The
-  // guessed / revealed word is a real dictionary word, so it's definable; a HINT
-  // row's `word` is a clue sentence, so it is NOT wired up.
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: 'definable',
-    title: 'Click to define',
-    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word.toLowerCase(), e.currentTarget),
-  })
+  // A guessed / revealed word is a real dictionary word, so it is definable; a
+  // HINT row's `word` is a clue sentence, so it is not.
 
   // The "#N" cell, shared by both row kinds. It's a LIVE handle (opens that turn
   // on the board viewer) only when the rows on show ARE the board's sequence —
@@ -106,7 +96,6 @@ export function GameTurnLog({
     )
 
   return (
-    <>
     <TurnLog
       heading="Turns"
       headerAction={who.picker}
@@ -141,7 +130,7 @@ export function GameTurnLog({
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `who` sits snug at the right. */}
             <td className={cls(turnLog.other, turnLog.primary)}>
-              <span {...defineProps(g.word)}>{g.word.toUpperCase()}</span>
+              <DefinableWord word={g.word} />
             </td>
             <td className={turnLog.main}>{isReveal ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
@@ -149,7 +138,5 @@ export function GameTurnLog({
         )
       })}
     </TurnLog>
-    {popover}
-    </>
   )
 }

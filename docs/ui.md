@@ -770,7 +770,7 @@ uses. The rest of the grammar:
 | `outcomes-*` | how a move or a game went — the seven families, one per outcome ([outcomes.md](outcomes.md) has what each word means) |
 | `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
 | `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
-| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / caret / link / definable / floating-control |
+| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / caret / link / floating-control |
 | `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |

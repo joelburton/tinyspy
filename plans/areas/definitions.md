@@ -4,19 +4,24 @@ The folders it reads: `definitions` · `anagram-finder`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12; the prose pass and the no-decision fixes
-are in the tree, the decision findings are being presented one at a time.**
+**Status: OPEN — audited 2026-09-12; the prose pass, the no-decision fixes and
+F-definitions-15 are in the tree. F-definitions-16 and -17 are still to
+present.**
 
 ## The roster
 
-Agreed 2026-09-12, twenty-three files, all `cs-met-definitions` →
-`cs-audited-definitions`:
+Agreed 2026-09-12 at twenty-three files, all `cs-met-definitions` →
+`cs-audited-definitions`. Twenty-six now: F-definitions-15 wrote three and
+deleted one.
 
 - `src/common/definitions/DefinitionPopover.tsx` + `.module.css`
 - `src/common/definitions/DefinitionView.tsx` + `.module.css`
 - `src/common/definitions/WordLookupDialog.tsx` + `.module.css` + `.test.tsx`
 - `src/common/definitions/WordEditDialog.tsx` + `.module.css` + `.test.tsx`
-- `src/common/definitions/useDefinePopover.tsx`
+- `src/common/definitions/DefinableWord.tsx` + `.test.tsx` — written by this
+  area (F-definitions-15), with `DefinitionHost.tsx` and `definitionStore.ts`;
+  they replace `useDefinePopover.tsx`, which is deleted
+- `src/common/definitions/DefinitionHost.tsx`, `definitionStore.ts`
 - `src/common/definitions/useDefinition.ts`
 - `src/common/definitions/parseDefinition.ts` + `.test.ts`
 - `src/common/definitions/wordEditStore.ts`
@@ -42,11 +47,12 @@ Plus the two folders' `doc.md` / `todo.md` (no stamp — markdown). Both
 - **`common.words` and `common.words_edits`** in the baseline migration are
   evidence.
 
-Consumers read but untouched: `App.tsx` (mounts `WordEditDialog`),
+Consumers: `App.tsx` (mounts `WordEditDialog`, and now `DefinitionHost`),
 `actions/AppActionsHost` (mounts the two dialogs), `account/useAccountMenuSection`
-(the "Add word" opener), `word-list/WordList` (`wordActivation`), wordle's two
-`defineProps`, and the game `InfoCol` / `GameTurnLog` / `SolutionReveal` files
-that spread `define`. Evidence: `core-css/utilities.css → .definable`,
+(the "Add word" opener), and the fourteen surfaces that show a definable word —
+`word-list/WordList` and the games' `InfoCol` / `GameTurnLog` /
+`SolutionReveal` files, all rewritten onto `<DefinableWord>` by
+F-definitions-15. Evidence: `core-css/utilities.css → .definable`,
 `keyboard/useDismissOnEscape`, `floating-panels/FloatingPanel` (`fitContent`),
 `buttons/StandardButton.module.css` (the tones), `session/useProfile`,
 `guards/orphanedDocstrings`, `guards/vocabularies`, `docs/common.md`'s three
@@ -160,42 +166,65 @@ still asserts that nothing is looked up, so it is titled that.
 it went. Kept the one sentence that explains the rule (placement only, because
 the class lands on the FIELD).
 
-### F-definitions-15 · definable-props · the click-to-define bundle at fourteen surfaces, and the native `title`
+### WORKED · F-definitions-15 · definable-props · the click-to-define bundle at fourteen surfaces, and the native `title`
 
-The `todo.md` Soon item, made concrete. Every surface that shows definable
-words spreads four things — `className` with `definable`, `title: 'Click to
-define'`, `data-word`, `onClick → define(word, e.currentTarget)` — and two
-have already written a helper (`WordList.wordActivation`, wordle's
-`defineProps`). Three drifts:
+Every surface that showed a definable word spread the same four things —
+`className` with `definable`, `title`, `data-word`, `onClick` — and nine had
+written a local helper for it under three names. Three drifts: `data-word` on
+only two of the fourteen; waffle's title read `Click for definition` where the
+other thirteen read `Click to define`; and two games guarded the click with
+`stopPropagation` against a row click target that no longer exists.
 
-- **The native `title`, thirteen times**, where the app's rule is
-  `data-tooltip` + `TooltipHost` (`docs/ui.md → Styled tooltips, not the
-  native title`). The bubble is 400ms; a hundred-word list would grow a
-  bubble on every hover.
-- **`data-word` missing on eleven surfaces** (wordle, wordiply, letterboxed,
-  strands, psychicnum, scrabble), so those words cannot be selected the way
-  the e2e convention selects a word.
-- **Four-part bundle written fourteen times.**
+**Decided (Joel, one question at a time):** keep the NATIVE title at all
+fourteen, one text — the styled bubble opens fast enough that reading down a
+hundred-word list would trail popups, where the native one waits for the word
+you settle on. One hover feel everywhere, faked under wordle's squares. Every
+game with a history viewer treats a word click the same way, and what the
+majority does is right.
 
-Options, with the real code:
+**Shape: a component over an app-level host**, not the props helper the
+`todo.md` proposed. The blocker the todo named — `useDefinePopover` held its
+state per surface, so a per-word component would need `define` threaded to each
+one — is answered by moving the state instead: a one-slot module store
+(`definitionStore`) and one `<DefinitionHost>` mounted in `App.tsx` beside
+`ToastHost` / `TooltipHost` / `ConfirmationHost`. `<DefinableWord>` then needs
+nothing wired: the fourteen surfaces each lost a hook call and a `{popover}`
+render as well as the bundle, and `useDefinePopover` is deleted. This is the
+`todo.md` Someday item, done here because `data-word` everywhere was its stated
+precondition and this work does that anyway.
 
-1. **`definableProps(word, define)` in `definitions/`, with `data-tooltip`**
-   — the todo's shape, and the tooltip rule honored:
-   ```ts
-   <span className={styles.word} {...definableProps(entry.word, define)}>
-   ```
-   returning `{ className: 'definable', 'data-tooltip': 'Click to define',
-   'data-word': word, onClick }`. Every hovered word gets the bubble.
-2. **The same helper, with NO tooltip at all** — the hover underline
-   (`.definable:hover`) is already the cue, and a cue on a hundred words is
-   noise. Drops the third cue rather than restyling it.
-3. **The helper, keeping the native `title`** — one opt-out, fourteen times,
-   made one. Leaves the rule broken but in one place.
-4. **Leave it** — the todo line stands; each game converts as its area opens.
+What the conversion turned up:
 
-Recommendation: **2**. Whichever, `data-word` goes on every surface. Options 1–3
-touch thirteen files outside the area (the memory: a problem in another area is
-fixed now); the helper's own test lives here.
+- **Scrabble had the same vestigial `stopPropagation` as stackdown**, with the
+  same comment about "the row's turn viewer". The audit had found only
+  stackdown's and said so; both rows lost their click target when the whole-row
+  hit area became the shared `#N` handle. Both guards are gone, so a word click
+  now exits the history viewer in all seven games that have one.
+- **Waffle's `SolutionReveal` and wordiply's longest-word reveal stopped being
+  `<button>`s.** `.definable`'s docstring had named them as the sanctioned
+  escape hatch for a word needing keyboard reach — but both play surfaces
+  declare an empty tab ring (`useTabRing([])`), so neither was ever reachable by
+  Tab. Both stylesheets also hand-rolled `.definable`'s two declarations. Waffle's
+  extra hover background wash went too: one feel everywhere.
+- **Strands' local `.definable`** was the global plus a 2px underline offset.
+  Deleted rather than promoted — the global is the feel.
+- **Wordle's hover cue is an underline now**, drawn as a transparent
+  `border-bottom` on the five-square group that colors on hover: the shared
+  `text-decoration` paints beneath the squares' own backgrounds, so it never
+  showed. The border is always present, so hovering still never reflows the log.
+  `--chrome-definable-ring-color` had no other reader and is gone from both
+  themes.
+- **Wordle's answer line** was a `<strong>`, whose bold now comes from
+  `.answerReveal` rather than the tag.
+- **Lowercasing happens once.** Three surfaces lowercased the word by hand for
+  the lookup; the component does it for both the lookup and `data-word`.
+
+Two tests needed repair, both for the same real reason — the popover is the
+root's now, not the surface's. `AnagramDialog.test.tsx` renders
+`<DefinitionHost>` alongside the dialog (it is what hears Escape first), and
+wordiply's `PlayArea.test.tsx` selected the reveal by `tagName === 'BUTTON'`
+and now selects it by `data-word`. `DefinableWord.test.tsx` is new and pins the
+contract the fourteen surfaces inherit.
 
 ### F-definitions-16 · bespoke-sizes · both stylesheets carry hand-picked values the token vocabulary covers
 
@@ -241,9 +270,14 @@ call (a removal, so it is asked, not done).
 ## Predicted test breaks
 
 None from the prose pass: `word-edit.e2e.ts` clicks the Edit link on a
-`defined` result, which F-definitions-7 still shows. F-definitions-15 would
-touch every game spec that selects a definable word by `data-word` only if a
-surface LOSES the attribute, which none does.
+`defined` result, which F-definitions-7 still shows.
+
+F-definitions-15 was predicted to break nothing and broke two unit tests, both
+because the popover moved to the root: a test that renders one surface alone no
+longer has a popover in its tree. The prediction had only asked whether a
+surface LOSES `data-word` (none does) — the wrong question once the mount
+moved. Repaired in the same pass; the e2e specs select words by `data-word`,
+which every surface now carries.
 
 ## Closing
 

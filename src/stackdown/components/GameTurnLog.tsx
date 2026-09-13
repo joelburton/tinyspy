@@ -1,13 +1,12 @@
 // cs-unmet
 
-import { type MouseEvent } from 'react'
 import type { Member } from '@/common/members/member'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -73,100 +72,75 @@ export function GameTurnLog({
   })
   const shown = who.filter(submissions)
 
-  // Click-to-define plumbing (a common feature — see common/definitions/useDefinePopover).
-  const { define: openDefine, popover } = useDefinePopover()
-
-  // Click / keyboard activation for a clickable word chip (mirrors
-  // spellingbee's WordList — same "Click to define" affordance). stopPropagation
-  // so defining a word doesn't ALSO open that row's turn viewer.
-  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineActivation = (word: string) => ({
-    onClick: (e: MouseEvent<HTMLSpanElement>) => {
-      e.stopPropagation()
-      openDefine(word, e.currentTarget)
-    },
-    title: 'Click to define',
-  })
-
   return (
-    <>
-      <TurnLog
-        heading="Turns"
-        headerAction={who.picker}
-        empty={shown.length === 0}
-        emptyText={who.emptyText}
-        scrollKey={shown.length}
-      >
-        {shown.map((s, i) => {
-          const isRequest = s.kind === 'hint' || s.kind === 'reveal'
-          const outcome: TurnOutcome = isRequest
-            ? 'near' // amber bar — a logged cheat request
-            : s.valid
-              ? 'won'
-              : 'lost'
-          return (
-            // Every submission is its own one-row "turn"; the divider draws the
-            // between-rows line (:first-child suppresses it on the first row). The
-            // "#N" handle opens that turn on the board viewer (words / misses /
-            // cheats all viewable), keyed by log POSITION — stackdown's seq is
-            // per-user (see lib/history).
-            <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
-              <TurnLogBar outcome={outcome} />
-              {/* The "#N" handle opens that turn on the board viewer — live only
-                  when the rows on show ARE the board's sequence. The viewer
-                  indexes by log POSITION, so a filtered list's row 3 isn't the
-                  board's turn 3; there it degrades to a plain number. */}
-              {who.boardIsShown ? (
-                <TurnLogNumber
-                  n={i + 1}
-                  viewing={viewingIndex === i}
-                  onSelect={() => onSelectTurn(i)}
-                />
+    <TurnLog
+      heading="Turns"
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown.length}
+    >
+      {shown.map((s, i) => {
+        const isRequest = s.kind === 'hint' || s.kind === 'reveal'
+        const outcome: TurnOutcome = isRequest
+          ? 'near' // amber bar — a logged cheat request
+          : s.valid
+            ? 'won'
+            : 'lost'
+        return (
+          // Every submission is its own one-row "turn"; the divider draws the
+          // between-rows line (:first-child suppresses it on the first row). The
+          // "#N" handle opens that turn on the board viewer (words / misses /
+          // cheats all viewable), keyed by log POSITION — stackdown's seq is
+          // per-user (see lib/history).
+          <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
+            <TurnLogBar outcome={outcome} />
+            {/* The "#N" handle opens that turn on the board viewer — live only
+                when the rows on show ARE the board's sequence. The viewer
+                indexes by log POSITION, so a filtered list's row 3 isn't the
+                board's turn 3; there it degrades to a plain number. */}
+            {who.boardIsShown ? (
+              <TurnLogNumber
+                n={i + 1}
+                viewing={viewingIndex === i}
+                onSelect={() => onSelectTurn(i)}
+              />
+            ) : (
+              <td className={turnLog.meta}>#{i + 1}</td>
+            )}
+            <td className={turnLog.main}>
+              {isRequest ? (
+                // A logged cheat request, now carrying the text it revealed
+                // (stored on the row by reveal_next_hint / reveal_next_word):
+                // "Hint: <clue>" or "Spoiler: <WORD>". Normal weight/color —
+                // it's information, not an error. (Falls back to the bare label
+                // if a legacy row has no stored text.)
+                <span className={styles.request}>
+                  {s.kind === 'hint'
+                    ? s.word
+                      ? `Hint: ${s.word}`
+                      : 'Requested hint'
+                    : s.word
+                      ? `Spoiler: ${s.word.toUpperCase()}`
+                      : 'Requested word'}
+                </span>
+              ) : s.valid && s.word ? (
+                <DefinableWord word={s.word} className={turnLog.primary} />
               ) : (
-                <td className={turnLog.meta}>#{i + 1}</td>
+                // An invalid attempt — struck through + tagged (the red bar
+                // already carries the "rejected" signal).
+                <>
+                  <span className={cls(turnLog.primary, styles.invalidWord)}>
+                    {s.word?.toUpperCase()}
+                  </span>{' '}
+                  <span className={styles.tag}>not a word</span>
+                </>
               )}
-              <td className={turnLog.main}>
-                {isRequest ? (
-                  // A logged cheat request, now carrying the text it revealed
-                  // (stored on the row by reveal_next_hint / reveal_next_word):
-                  // "Hint: <clue>" or "Spoiler: <WORD>". Normal weight/color —
-                  // it's information, not an error. (Falls back to the bare label
-                  // if a legacy row has no stored text.)
-                  <span className={styles.request}>
-                    {s.kind === 'hint'
-                      ? s.word
-                        ? `Hint: ${s.word}`
-                        : 'Requested hint'
-                      : s.word
-                        ? `Spoiler: ${s.word.toUpperCase()}`
-                        : 'Requested word'}
-                  </span>
-                ) : s.valid && s.word ? (
-                  <span
-                    className={cls(turnLog.primary, 'definable')}
-                    {...defineActivation(s.word)}
-                  >
-                    {s.word.toUpperCase()}
-                  </span>
-                ) : (
-                  // An invalid attempt — struck through + tagged (the red bar
-                  // already carries the "rejected" signal).
-                  <>
-                    <span className={cls(turnLog.primary, styles.invalidWord)}>
-                      {s.word?.toUpperCase()}
-                    </span>{' '}
-                    <span className={styles.tag}>not a word</span>
-                  </>
-                )}
-              </td>
-              <TurnLogActor actor={memberById(players, s.user_id)} />
-            </tr>
-          )
-        })}
-      </TurnLog>
-
-      {popover}
-    </>
+            </td>
+            <TurnLogActor actor={memberById(players, s.user_id)} />
+          </tr>
+        )
+      })}
+    </TurnLog>
   )
 }

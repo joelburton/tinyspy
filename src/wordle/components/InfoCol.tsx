@@ -8,7 +8,7 @@ import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { Member } from '@/common/members/member'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
@@ -135,10 +135,6 @@ export function InfoCol({
   /** Open a turn on the board viewer (click its `#N`). */
   onSelectTurn: (index: number) => void
 }) {
-  // Click-to-define on the revealed answer (the shared DefinitionPopover — same
-  // lookup waffle's SolutionReveal and stackdown's turn log use).
-  const { define, popover } = useDefinePopover()
-
   // Both exits, error-toned (red), placed together and each hiding itself in the
   // mode that isn't its own: compete CONCEDES (drop out of the race →
   // wordle.concede), coop ENDS (a mutual "we're done" → end_game). Shared by the
@@ -240,18 +236,8 @@ export function InfoCol({
         {over && solution && (
           <div className={shared.terminalExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
-              The answer was{' '}
-              {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
-                  See common/core-css/utilities.css → `.definable`. */}
-              <strong
-                className={cls('definable', styles.answerReveal)}
-                title="Click to define"
-                onClick={(e) => define(solution, e.currentTarget)}
-              >
-                {solution.toUpperCase()}
-              </strong>
+              The answer was <DefinableWord word={solution} className={styles.answerReveal} />
             </p>
-            {popover}
           </div>
         )}
 

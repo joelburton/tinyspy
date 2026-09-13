@@ -1,11 +1,10 @@
 // cs-unmet
 
-import type { MouseEvent } from 'react'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import type { Member } from '@/common/members/member'
@@ -89,21 +88,7 @@ export function GameTurnLog({
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
   const boardIsShown = who.boardIsShown
 
-  // Click-to-define (a common feature — see common/definitions/useDefinePopover). Every
-  // wordle guess is a legal dictionary word, so the whole guess is definable — the
-  // affordance rides the WORD (the five-square group), not the individual cells, so
-  // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: cls(styles.squares, styles.definable),
-    title: 'Click to define',
-    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
-  })
-
   return (
-    <>
     <TurnLog
       heading="Guesses"
       headerAction={who.picker}
@@ -120,19 +105,20 @@ export function GameTurnLog({
             <td className={turnLog.meta}>#{i + 1}</td>
           )}
           <td className={turnLog.main}>
-            <span {...defineProps(g.guess)}>
+            {/* The whole guess is one definable word — every wordle guess is a
+                legal dictionary word, so the affordance rides the five-square
+                group rather than the cells, and one click looks it up. */}
+            <DefinableWord word={g.guess} className={cls(styles.squares, styles.definable)}>
               {[...g.guess].map((ch, c) => (
                 <span key={c} className={cls(styles.sq, styles[tileColor(g.colors[c])])}>
                   {ch.toUpperCase()}
                 </span>
               ))}
-            </span>
+            </DefinableWord>
           </td>
           <TurnLogActor actor={memberById(players, g.user_id)} />
         </tr>
       ))}
     </TurnLog>
-    {popover}
-    </>
   )
 }

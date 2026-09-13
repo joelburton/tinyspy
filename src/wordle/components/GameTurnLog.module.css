@@ -11,19 +11,18 @@
   gap: 0.15rem;
 }
 
-/* The guess is click-to-define (common/definitions/useDefinePopover) — the affordance
- * rides the whole five-square WORD group, not the individual cells. This is the
- * one deliberate departure from the global `.definable`: colored blocks can't
- * take an underline, so the hover cue is a tone-colored ring instead. The
- * `outline` draws outside the box, so it never reflows the log. (Hover only —
- * like every definable word, this isn't focusable; see common/core-css/utilities.css.) */
+/* The guess is one definable word, so it wears the same hover underline as every
+ * other — but drawn here rather than by `.definable`'s `text-decoration`, which
+ * paints beneath the squares' own backgrounds and so never shows. A border on the
+ * group, transparent until hover, puts the line below the squares; it is always
+ * present, so hovering never reflows the log.
+ * See common/core-css/utilities.css → `.definable`. */
 /* @@ */ .definable {
-  cursor: pointer;
-  border-radius: 4px;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 2px;
 }
 /* @@ */ .definable:hover {
-  outline: 2px solid var(--chrome-definable-ring-color);
-  outline-offset: 2px;
+  border-bottom-color: currentColor;
 }
 
 /* @@ */ .sq {

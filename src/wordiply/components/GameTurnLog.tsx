@@ -1,10 +1,9 @@
 // cs-unmet
 
-import type { MouseEvent } from 'react'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogBar } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
@@ -69,47 +68,34 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   })
   const shown = who.filter(guesses)
 
-  // Click-to-define (a common feature — see common/definitions/useDefinePopover).
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: 'definable',
-    title: 'Click to define',
-    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word.toLowerCase(), e.currentTarget),
-  })
-
   return (
-    <>
-      <TurnLog
-        heading="Guesses"
-        headerAction={who.picker}
-        empty={shown.length === 0}
-        emptyText={who.emptyText}
-        scrollKey={shown}
-      >
-        {shown.map((g) => (
-          <tr key={g.id} className={turnLog.turnLogDivider}>
-            <TurnLogBar
-              outcome={g.valid ? 'won' : g.reason === 'not_a_word' ? 'near' : 'lost'}
-            />
-            <td className={turnLog.main}>
-              {g.valid ? (
-                <span {...defineProps(g.word)}>{g.word.toUpperCase()}</span>
-              ) : (
-                // Not definable: the word was just rejected as not-a-word (or
-                // as breaking the rules), so a lookup would dead-end.
-                <span className={styles.rejected}>{g.word.toUpperCase()}</span>
-              )}
-            </td>
-            <td className={cls(turnLog.meta, styles.outcome)}>
-              {g.valid ? g.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
-            </td>
-            <TurnLogActor actor={memberById(players, g.user_id)} />
-          </tr>
-        ))}
-      </TurnLog>
-      {popover}
-    </>
+    <TurnLog
+      heading="Guesses"
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown}
+    >
+      {shown.map((g) => (
+        <tr key={g.id} className={turnLog.turnLogDivider}>
+          <TurnLogBar
+            outcome={g.valid ? 'won' : g.reason === 'not_a_word' ? 'near' : 'lost'}
+          />
+          <td className={turnLog.main}>
+            {g.valid ? (
+              <DefinableWord word={g.word} />
+            ) : (
+              // Not definable: the word was just rejected as not-a-word (or
+              // as breaking the rules), so a lookup would dead-end.
+              <span className={styles.rejected}>{g.word.toUpperCase()}</span>
+            )}
+          </td>
+          <td className={cls(turnLog.meta, styles.outcome)}>
+            {g.valid ? g.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
+          </td>
+          <TurnLogActor actor={memberById(players, g.user_id)} />
+        </tr>
+      ))}
+    </TurnLog>
   )
 }

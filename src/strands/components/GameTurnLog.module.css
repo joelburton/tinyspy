@@ -47,14 +47,3 @@
 /* @@ */ .markSpangram {
   color: var(--strands-spangram-text);
 }
-
-/* Click-to-define, on dictionary words only. Pointer-only and NOT focusable —
- * the shared rule for every definable word (common/core-css/utilities.css → .definable). */
-/* @@ */ .definable {
-  cursor: pointer;
-}
-
-/* @@ */ .definable:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}

@@ -12,8 +12,10 @@
   margin: 0;
 }
 
-/* The revealed word itself — letter-spaced so the five letters read as the word,
- * like the board tiles (only the word, not the "The answer was" lead-in). */
+/* The revealed word itself — bold because it is what the sentence is for, and
+ * letter-spaced so the five letters read as the word, like the board tiles
+ * (only the word, not the "The answer was" lead-in). */
 /* @@ */ .answerReveal {
+  font-weight: 700;
   letter-spacing: 0.08em;
 }

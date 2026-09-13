@@ -1,10 +1,9 @@
 // cs-unmet
 
-import type { MouseEvent } from 'react'
 import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { memberById } from '@/common/members/memberList'
 import {
   IconBestFind,
@@ -161,78 +160,68 @@ export function GameTurnLog({
   // Click-to-define. Only words the DICTIONARY accepted are looked up: a theme
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
   // offering the affordance there would promise a definition that can't exist.
-  const { define, popover } = useDefinePopover()
   const definable = (e: EventRow) => e.result === 'hint_word' || e.result === 'duplicate'
+  const wordClass = (e: EventRow) =>
+    cls(
+      styles.word,
+      e.result === 'spangram' && styles.spangram,
+      e.result === 'theme' && styles.theme,
+    )
 
   return (
-    <>
-      <TurnLog
-        heading="Turns"
-        headerAction={who.picker}
-        empty={shown.length === 0}
-        emptyText={who.emptyText}
-        scrollKey={shown}
-      >
-        {shown.map((row, i) => (
-          <tr key={row.id} className={turnLog.turnLogDivider}>
-            <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
-            {boardIsShown ? (
-              <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
-            ) : (
-              <td className={turnLog.meta}>#{i + 1}</td>
-            )}
-            <td className={turnLog.main}>
-              {/* Fixed-width slot, so every word starts at the same x no
-                  matter which glyph precedes it. */}
-              <span
-                className={cls(
-                  styles.mark,
-                  row.result === 'spangram' && styles.markSpangram,
-                  row.result === 'theme' && styles.markTheme,
-                )}
-                aria-hidden
-              >
-                {(() => {
-                  const Mark = row.kind === 'hint' ? IconHint : MARK[row.result]
-                  return <Mark size={14} />
-                })()}
-              </span>
-              {row.kind === 'hint' ? (
-                /* No word — that's the point of a hint, and the row says so in
-                   the same slot the word would occupy rather than leaving a gap.
-                   Muted, because unlike every other row here there is no player
-                   input to report; `#N` still replays the ring on the board. */
-                <span className={turnLog.meta}>Hint used</span>
-              ) : (
-                <>
-                  <span
-                    className={cls(
-                      styles.word,
-                      row.result === 'spangram' && styles.spangram,
-                      row.result === 'theme' && styles.theme,
-                      definable(row) && styles.definable,
-                    )}
-                    {...(definable(row)
-                      ? {
-                        title: 'Click to define',
-                        onClick: (e: MouseEvent<HTMLSpanElement>) =>
-                          define(row.word.toLowerCase(), e.currentTarget),
-                      }
-                      : {})}
-                  >
-                    {row.word.toUpperCase()}
-                  </span>
-                  {BODY[row.result] && (
-                    <span className={turnLog.meta}> — {BODY[row.result]}</span>
-                  )}
-                </>
+    <TurnLog
+      heading="Turns"
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown}
+    >
+      {shown.map((row, i) => (
+        <tr key={row.id} className={turnLog.turnLogDivider}>
+          <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
+          {boardIsShown ? (
+            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+          ) : (
+            <td className={turnLog.meta}>#{i + 1}</td>
+          )}
+          <td className={turnLog.main}>
+            {/* Fixed-width slot, so every word starts at the same x no
+                matter which glyph precedes it. */}
+            <span
+              className={cls(
+                styles.mark,
+                row.result === 'spangram' && styles.markSpangram,
+                row.result === 'theme' && styles.markTheme,
               )}
-            </td>
-            <TurnLogActor actor={memberById(players, row.user_id)} />
-          </tr>
-        ))}
-      </TurnLog>
-      {popover}
-    </>
+              aria-hidden
+            >
+              {(() => {
+                const Mark = row.kind === 'hint' ? IconHint : MARK[row.result]
+                return <Mark size={14} />
+              })()}
+            </span>
+            {row.kind === 'hint' ? (
+              /* No word — that's the point of a hint, and the row says so in
+                 the same slot the word would occupy rather than leaving a gap.
+                 Muted, because unlike every other row here there is no player
+                 input to report; `#N` still replays the ring on the board. */
+              <span className={turnLog.meta}>Hint used</span>
+            ) : (
+              <>
+                {definable(row) ? (
+                  <DefinableWord word={row.word} className={wordClass(row)} />
+                ) : (
+                  <span className={wordClass(row)}>{row.word.toUpperCase()}</span>
+                )}
+                {BODY[row.result] && (
+                  <span className={turnLog.meta}> — {BODY[row.result]}</span>
+                )}
+              </>
+            )}
+          </td>
+          <TurnLogActor actor={memberById(players, row.user_id)} />
+        </tr>
+      ))}
+    </TurnLog>
   )
 }

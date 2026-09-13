@@ -1,6 +1,5 @@
 // cs-unmet
 
-import type React from 'react'
 import { cls } from '@/common/utils/cls'
 import type { GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -10,7 +9,7 @@ import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { BOARD_SIZE } from '../lib/board'
@@ -123,16 +122,6 @@ export function InfoCol({
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
-  // Click-to-define, the shared popover the word lists and turn logs use.
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: 'definable',
-    title: 'Click to define',
-    onClick: (e: React.MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
-  })
-
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -232,7 +221,7 @@ export function InfoCol({
               {solution.map((w, i) => (
                 <span key={w}>
                   {i > 0 && ' → '}
-                  <span {...defineProps(w)}>{w.toUpperCase()}</span>
+                  <DefinableWord word={w} />
                 </span>
               ))}
             </div>
@@ -253,7 +242,6 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {popover}
       <GameTurnLog
         events={events}
         players={players}

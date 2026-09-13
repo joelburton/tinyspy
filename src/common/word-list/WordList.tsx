@@ -1,10 +1,7 @@
 // cs-unmet
 
-import {
-  useMemo,
-  type MouseEvent as ReactMouseEvent,
-} from 'react'
-import { useDefinePopover } from '../definitions/useDefinePopover'
+import { useMemo } from 'react'
+import { DefinableWord } from '../definitions/DefinableWord'
 import { useRecentlyFound } from './useRecentlyFound'
 import { useWordListFilter } from './useWordListFilter'
 import { colorVarFor } from '../members/memberColor'
@@ -155,31 +152,6 @@ export function WordList({
   )
   const recentlyFound = useRecentlyFound(foundWordsOnly)
 
-  // Click-to-define: clicking any word row opens a definition popover anchored to
-  // that row. The open/anchor/close plumbing is the shared useDefinePopover hook.
-  const { define: openDefine, popover } = useDefinePopover()
-
-  /** Pointer activation for a clickable word. Spread onto the word <span> itself
-   *  (not the row) so only the word text — not the leading dot or the empty rest
-   *  of the cell — opens the definition.
-   *
-   *  Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-   *  common/core-css/utilities.css → `.definable`. This list is the worst case for the
-   *  alternative — a found-words grid can hold a hundred words, so making each
-   *  one a tab stop buried every real control behind a hundred presses. */
-  function wordActivation(word: string) {
-    return {
-      onClick: (e: ReactMouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
-      title: 'Click to define',
-      // The e2e handle (the repo's `[data-board]` / `[data-cell]` convention).
-      // Specs used to find a listed word by `getByRole('button', {name})`, which
-      // quietly depended on these spans faking button semantics; the word is the
-      // stable thing to select on, so name it. Lowercase = as stored, not as
-      // displayed.
-      'data-word': word,
-    }
-  }
-
   return (
     <div className={styles.wrapper}>
       {/* Heading + the KIND/WHO selects on one line — the same header-row chrome
@@ -223,7 +195,7 @@ export function WordList({
                     className={cls(styles.row, styles.unfound, entry.isPangram && styles.pangram)}
                   >
                     <Dot hollow className={cls(styles.dot, styles.dotUnfound)} />
-                    <span className={styles.word} {...wordActivation(entry.word)}>{entry.word.toUpperCase()}</span>
+                    <DefinableWord word={entry.word} className={styles.word} />
                     {/* The bonus '•' marks a missed word too, not just a found one:
                         the reveal now covers both lists, so without it a missed bonus
                         word is indistinguishable from a missed required one. */}
@@ -244,13 +216,11 @@ export function WordList({
                   {/* Word is plain black; only the dot carries finder color. The
                       recent-flash underline is set to the finder color inline (CSS
                       can't know it) — see `.recent .word`. */}
-                  <span
+                  <DefinableWord
+                    word={entry.word}
                     className={styles.word}
                     style={isRecent ? { textDecorationColor: colorVarFor(colorName) } : undefined}
-                    {...wordActivation(entry.word)}
-                  >
-                    {entry.word.toUpperCase()}
-                  </span>
+                  />
                   {/* Bonus words get a trailing bullet. Emitted as real text (not a
                       ::after) so it sits naturally inline. */}
                   {entry.isBonus && <span className={styles.bonusDot}>{' •'}</span>}
@@ -260,7 +230,6 @@ export function WordList({
           )}
         </ul>
       </div>
-      {popover}
     </div>
   )
 }

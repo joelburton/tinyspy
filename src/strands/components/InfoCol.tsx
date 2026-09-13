@@ -1,6 +1,5 @@
 // cs-unmet
 
-import type React from 'react'
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -15,7 +14,7 @@ import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import type { StrandsSetup } from '../lib/setup'
 import type { EventRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -110,16 +109,6 @@ export function InfoCol({
   viewingIndex,
   onSelectTurn,
 }: Props) {
-  // Click-to-define, the shared popover the turn log and word lists use.
-  const { define, popover } = useDefinePopover()
-  // Pointer-only, deliberately: NOT focusable, no role="button". See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: 'definable',
-    title: 'Click to define',
-    onClick: (e: React.MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
-  })
-
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -223,11 +212,8 @@ export function InfoCol({
           <p className={cls(shared.terminalExtra, styles.solutionWords)}>
             <span className="muted">Words:</span>{' '}
             {solutionWords.map((w) => (
-              <span key={w} {...defineProps(w)}>
-                {w.toUpperCase()}
-              </span>
+              <DefinableWord key={w} word={w} />
             ))}
-            {popover}
           </p>
         )}
 

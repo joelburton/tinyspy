@@ -446,7 +446,7 @@ src/psychicnum/
                           actor with their identity dot, and turnLog.turnLogDivider
                           for the between-turns line. A hint row collapses the
                           word+result columns into a colspan "Hint: <clue>". The
-                          guessed/revealed WORD is click-to-define (useDefinePopover)
+                          guessed/revealed WORD is click-to-define (DefinableWord)
                           — a real dictionary word; the hint's clue sentence is NOT.
                           Header carries the shared "whose turns?" picker
                           (useTurnLogPlayerPicker — Team/All + each player); when a

@@ -441,7 +441,6 @@
 /* @@ */   --chrome-caret-color:          #64b5f6;
 /* @@ */   --chrome-link-color:           #64b5f6;
 /* @@ */   --chrome-link-hover-color:     #90caf9;
-/* @@ */   --chrome-definable-ring-color: #64b5f6;
 /* @@ */   --chrome-floatingControl-fill-color: color-mix(in oklab, var(--default-bg-color) 65%, transparent);
 
   /* ══ SHADOW ═════════════════════════════════════════════════════

@@ -108,20 +108,16 @@
   color: var(--page-text-color);
 }
 
+/* The best-possible word, revealed at terminal. Click-to-define, so the pointer
+ * and the hover underline are `<DefinableWord>`'s; this is the word's own type,
+ * aligned left under its label. */
 /* @@ */ .revealWord {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: var(--page-text-color);
   overflow-wrap: anywhere;
-  /* A click-to-define button styled as the bare word (button reset), aligned
-   * left under the label; the hover underline is the clickability affordance,
-   * matching waffle's answer reveal + the shared word lists. */
   text-align: left;
-  cursor: pointer;
-}
-/* @@ */ .revealWord:hover {
-  text-decoration: underline;
 }
 
 /* @@ */ .revealLen {

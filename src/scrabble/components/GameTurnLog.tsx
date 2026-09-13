@@ -1,12 +1,10 @@
 // cs-unmet
 
-import { type MouseEvent } from 'react'
 import type { Member } from '@/common/members/member'
-import { cls } from '@/common/utils/cls'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
-import { useDefinePopover } from '@/common/definitions/useDefinePopover'
+import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -87,27 +85,10 @@ export function GameTurnLog({
     (p) => who.showsEveryone || who.picked === (p.user_id ?? aiId(p.seat)),
   )
 
-  // Click-to-define plumbing (a common feature — see common/definitions/useDefinePopover).
-  // Words display uppercase in the log; the lookup wants them lowercase.
-  const { define, popover } = useDefinePopover()
-  const openDefine = (word: string, el: HTMLElement) => define(word.toLowerCase(), el)
-  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
-  // common/core-css/utilities.css → `.definable` for why every definable word is like this.
-  const defineProps = (word: string) => ({
-    className: cls(styles.word, 'definable'),
-    title: 'Click to define',
-    // stopPropagation so defining a word doesn't ALSO open the row's turn viewer.
-    onClick: (e: MouseEvent<HTMLSpanElement>) => {
-      e.stopPropagation()
-      openDefine(word, e.currentTarget)
-    },
-  })
-
   const outcomeFor = (kind: PlayRow['kind']): TurnOutcome =>
     kind === 'word' ? 'won' : kind === 'forfeit' ? 'lost' : 'neutral'
 
   return (
-    <>
     <TurnLog
       heading="Turns"
       headerAction={who.picker}
@@ -132,7 +113,7 @@ export function GameTurnLog({
                 {(p.words ?? []).map((w, i) => (
                   <span key={`${w}-${i}`}>
                     {i > 0 ? ' ' : ''}
-                    <span {...defineProps(w)}>{w.toUpperCase()}</span>
+                    <DefinableWord word={w} className={styles.word} />
                   </span>
                 ))}
               </>
@@ -152,7 +133,5 @@ export function GameTurnLog({
         </tr>
       ))}
     </TurnLog>
-      {popover}
-    </>
   )
 }

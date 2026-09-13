@@ -251,13 +251,9 @@ describe('wordiply PlayArea — terminal reveal', () => {
     await user.click(screen.getByRole('button', { name: 'Reveal best word' }))
     // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
-    // …and it's click-to-define: a bare BUTTON carrying the shared affordance.
-    // The turn log's accepted words are definable too (as spans), so narrow to
-    // the button — that's what distinguishes the reveal from a log row.
-    const defineBtn = screen
-      .getAllByTitle('Click to define')
-      .find((el) => el.tagName === 'BUTTON')
-    expect(defineBtn).toHaveTextContent('HANGARS')
+    // …and it's click-to-define, selected by `data-word` — the handle every
+    // definable word carries.
+    expect(document.querySelector('[data-word="hangars"]')).toHaveTextContent('HANGARS')
     // Local state: no peer's board opened.
     expect(db.rpc as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
   })

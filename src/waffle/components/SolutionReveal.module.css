@@ -26,6 +26,8 @@
   color: var(--page-text-muted-color);
 }
 
+/* A solved word. The click-to-define look — the pointer and the hover underline
+ * — is `<DefinableWord>`'s; what's here is the word's own type. */
 /* @@ */ .word {
   font-family: monospace;
   font-weight: 600;
@@ -33,13 +35,7 @@
   text-align: left;
   padding: 0.15rem 0.25rem;
   border-radius: 4px;
-  cursor: pointer;
   color: var(--page-text-color);
-}
-
-/* @@ */ .word:hover {
-  background: var(--page-surface-hover-color);
-  text-decoration: underline;
 }
 
 /* An unsolved word: an em dash placeholder aligned with the word slots (same
