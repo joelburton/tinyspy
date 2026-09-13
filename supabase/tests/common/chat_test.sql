@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-chat
 
 -- ============================================================
 -- Test: common.send_message + common.messages RLS

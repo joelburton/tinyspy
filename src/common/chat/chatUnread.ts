@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { useSyncExternalStore } from 'react'
 import { colorVarFor } from '../members/memberColor'

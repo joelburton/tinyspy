@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 /**
  * Tests for useClubChat. This hook is the pattern parent for every

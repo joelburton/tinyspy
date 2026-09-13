@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'

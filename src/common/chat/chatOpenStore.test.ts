@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 /**
  * Tests for chatOpenStore. The store is small but it's the only

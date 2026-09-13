@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { useClubChat } from './useClubChat'
 import { usePeerFeedback } from '../feedback/usePeerFeedback'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/supabase'

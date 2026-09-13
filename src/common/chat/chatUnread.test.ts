@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { describe, it, expect } from 'vitest'
 import { computeUnread } from './chatUnread'

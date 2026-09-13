@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-chat
 
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, sendMessage } from './helpers/fixtures'
