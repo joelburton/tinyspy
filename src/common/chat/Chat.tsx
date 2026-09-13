@@ -11,7 +11,9 @@ import {
 } from './chatUnread'
 import { Companion } from '../floating-panels/Companion'
 import { ChatBody } from './ChatBody'
+import { useChatFeedback } from './useChatFeedback'
 
+import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { Member } from '../members/member'
 
 type Props = {
@@ -19,15 +21,23 @@ type Props = {
   members: Member[]
   // The viewing member — their own messages never count as unread.
   selfId: string
+  // The page's global slot, where a new message from another member pops as a
+  // pill whether the panel is open or closed.
+  globalFeedbackSlot: FeedbackSlot
 }
 
 /**
  * The club chat panel. Mounted once per page (ClubPage and GamePage each
- * render one) and left mounted while closed, because the unread badge and the
- * `!` force-open detector need the message subscription alive. Closed, it
- * renders nothing; the header's `<ChatButton>` and the `/` action flip the
- * shared `chatOpenStore`. Open, it is a `<Companion>` at `--z-chat`, above
- * every dim, with its rect and its open state persisted across pages.
+ * render one) and left mounted while closed, because the unread badge, the
+ * feedback pill and the `!` force-open detector need the message subscription
+ * alive. Closed, it renders nothing; the header's `<ChatButton>` and the `/`
+ * action flip the shared `chatOpenStore`. Open, it is a `<Companion>` at
+ * `--z-chat`, above every dim, with its rect and its open state persisted
+ * across pages.
+ *
+ * It holds the club's ONE chat subscription: the three readers that live off
+ * the stream — the badge, the global feedback pill (`useChatFeedback`) and the
+ * detector — all read the copy fetched here.
  *
  * A message that starts with `!` opens the panel for every recipient when it
  * arrives — not for one already in the log at load — and `<ChatBody>` strips
@@ -37,6 +47,7 @@ export function Chat({
   clubHandle,
   members,
   selfId,
+  globalFeedbackSlot,
 }: Props) {
   // Open/closed state lives in the shared chatOpenStore so the
   // GamePage header's `<ChatButton>` can flip the same flag from
@@ -50,6 +61,9 @@ export function Chat({
   // The stream is subscribed HERE rather than in ChatBody, so the force-open
   // detector and the unread badge below run while the panel is closed.
   const { messages, loading } = useClubChat(clubHandle)
+
+  // A new message from another member also pops in the page's global slot.
+  useChatFeedback({ messages, loading, members, selfId, globalFeedbackSlot })
 
   // Force-open detector. Track the latest-seen message id across
   // renders; on first-load (right after the initial fetch

@@ -5,9 +5,9 @@ The folders it reads: `chat`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
-findings: eight worked in the prose pass (F-1 to F-8), four open and waiting
-on a decision (F-9 to F-12). The `doc.md` Design is written and the row is
-off `DESIGNS_OWED`.**
+findings: nine worked (F-1 to F-8 in the prose pass, F-11 after Joel's
+decision), three open and waiting on a decision (F-9, F-10, F-12). The
+`doc.md` Design is written and the row is off `DESIGNS_OWED`.**
 
 ## The roster
 
@@ -151,14 +151,32 @@ latest unread `sender: Member | null` — and `ChatButton` turns a sender into a
 fill, including the muted case. Touches `chatUnread.ts`, its test, `Chat.tsx`
 (the open-branch reset) and two lines of `ChatButton.tsx`.
 
-### F-chat-11 · two-subscriptions-per-page · every page opens the club's chat stream twice
+### WORKED · F-chat-11 · two-subscriptions-per-page · every page opened the club's chat stream twice
 
-`ClubPage` and `GamePage` each mount `<Chat>` (which calls `useClubChat`) AND
-call `useChatFeedback` (which calls `useClubChat` again). Two Realtime
+`ClubPage` and `GamePage` each mounted `<Chat>` (which calls `useClubChat`) AND
+called `useChatFeedback` (which called `useClubChat` again). Two Realtime
 channels on the same table filter, two initial fetches, two refetches on every
-reconnect — for one list of messages, on every real page. Nothing is wrong on
-screen; it is a doubled cost and two copies of one stream that can disagree
-for a render. Options are in the presentation below.
+reconnect — for one list of messages, on every real page. Nothing was wrong on
+screen (`channelDedupSuffix` keeps the two channels from colliding, and both
+copies converge); it was a doubled cost and two copies of one stream that could
+disagree for a render.
+
+Three shapes were put to Joel: leave it and say so in the docstring; have the
+panel do the bridging, since it already holds the stream; or share one
+subscription per club inside the hook with a ref-counted module cache. **Joel
+chose the second.** `useChatFeedback` now takes `{ messages, loading }` instead
+of a `clubHandle`, and `<Chat>` — which already held the stream for the badge
+and the `!` detector — calls it, taking a `globalFeedbackSlot` prop. Both pages
+dropped their `useChatFeedback` line and pass the slot to `<Chat>`.
+
+What moved with it: on `GamePage` the bridge went from above the early returns
+(where it ran with a `''` club handle during the pre-load phase) to the loaded
+tree, fed `commonGame.club_handle` — so nothing pops while the game row loads or
+on the error page, neither of which renders a header slot. The unit test lost
+its `vi.mock('./useClubChat')` and drives the stream as rerender props;
+`GamePage.test.tsx`'s now-dead `useChatFeedback` mock came out (it mocks `Chat`
+already). The third shape was declined as generality for callers that don't
+exist.
 
 ### F-chat-12 · getChatOpen-no-caller · a production export only a test calls
 
@@ -166,7 +184,7 @@ for a render. Options are in the presentation below.
 subscribe (e.g. inside a click handler)" — has no such caller; only
 `AppActionsHost.test.tsx` reads it, as a handle on the store. Either the test
 reads through the hook and the export goes, or it stays as the test's handle
-with a docstring that says so. Small; decide with F-chat-11.
+with a docstring that says so. Small, and still open.
 
 ## Notes
 
@@ -181,9 +199,9 @@ with a docstring that says so. Small; decide with F-chat-11.
 ## Predicted test breaks
 
 None from the prose pass; `chatOpenStore.test.ts` and `useClubChat.test.ts`
-were rewritten on purpose and pass. F-chat-11 would touch `useChatFeedback`'s
-call sites, whose unit test mocks `useClubChat` directly — the shape of the
-mock is what would change.
+were rewritten on purpose and pass. F-chat-11 broke nothing either:
+`useChatFeedback.test.tsx` was rewritten to drive the stream as props (it now
+mocks nothing), and the whole unit suite is green.
 
 ## Closing
 

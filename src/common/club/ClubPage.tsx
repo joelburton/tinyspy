@@ -44,7 +44,6 @@ import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuSection } from '../menu/menuModel'
-import { useChatFeedback } from '../chat/useChatFeedback'
 import type { Database } from '@/types/db'
 import styles from './ClubPage.module.css'
 
@@ -409,11 +408,6 @@ export function ClubPage({ handle, session }: Props) {
       globalFeedbackSlot.show(FeedbackMessage.acknowledgment('noted', 'Rename club: coming soon'))
     },
   })
-
-  // Club chat → the global slot: a NEW message from any OTHER member shows
-  // "● HANDLE: text" here. `members` is the full club roster, so every sender
-  // is named. Historic messages never pop (see useChatFeedback).
-  useChatFeedback({ clubHandle: handle, members, selfId, globalFeedbackSlot })
 
   /**
    * Delete a game from this club. Same RPC for current vs
@@ -1112,11 +1106,14 @@ export function ClubPage({ handle, session }: Props) {
 
       {/* The chat-bubble toggle lives in the header (<ChatButton>
           above); Chat renders the panel itself, and nothing
-          at all while closed. */}
+          at all while closed. It holds the club's chat subscription, so it
+          also pops a new message from another member in the global slot —
+          `members` is the full roster, so every sender is named. */}
       <Chat
         clubHandle={club.handle}
         members={members}
         selfId={selfId}
+        globalFeedbackSlot={globalFeedbackSlot}
       />
 
       {/* The club Help modal — opened from the menu's "Help" item (or `?`,

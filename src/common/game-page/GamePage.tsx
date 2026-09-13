@@ -23,7 +23,6 @@ import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { useCommonGame } from './useCommonGame'
 import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
-import { useChatFeedback } from '../chat/useChatFeedback'
 import { navigate } from '../routing/router'
 import { clubPath, gamePath } from '../routing/routes'
 import { ChatButton } from '../page-header/ChatButton'
@@ -448,16 +447,6 @@ function GamePageInner({
   // until the game row (and its club_handle) loads; `useClubRoster` no-ops on ''.
   const { members: clubMembers } = useClubRoster(clubHandle)
 
-  // Club chat → the global slot, same as ClubPage: a NEW message from any
-  // OTHER member shows "● HANDLE: text" in the header. Runs even during the
-  // pre-load '' phase (useClubChat no-ops, so no historic replay).
-  useChatFeedback({
-    clubHandle,
-    members: clubMembers,
-    selfId: session.user.id,
-    globalFeedbackSlot,
-  })
-
   // `GamePage` proved the row existed before mounting this, so these are about
   // what happens AFTER: `useCommonGame` refetches on every realtime event, so a
   // game someone deletes mid-session arrives here as zero rows, and an outage
@@ -607,11 +596,13 @@ function GamePageInner({
 
           The closed-state toggle is the header's <ChatButton> (above);
           Chat renders the panel itself, and nothing at all while
-          closed. */}
+          closed. It holds the club's chat subscription, so it also pops a new
+          message from another member in the header's global slot. */}
       <Chat
         clubHandle={commonGame.club_handle}
         members={clubMembers}
         selfId={session.user.id}
+        globalFeedbackSlot={globalFeedbackSlot}
       />
 
       {/* Per-game scratchpad — opt-in via the manifest. Outside PauseBoundary

@@ -53,7 +53,6 @@ vi.mock('../supabase/db', () => ({
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => undefined }))
 vi.mock('../club/useClubRoster', () => ({ useClubRoster: () => ({ members: [] }) }))
-vi.mock('../chat/useChatFeedback', () => ({ useChatFeedback: () => undefined }))
 vi.mock('../account/useAccountMenuSection', () => ({
   useAccountMenuSection: () => ({ items: [] }),
 }))

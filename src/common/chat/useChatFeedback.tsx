@@ -1,10 +1,10 @@
 // cs-audited-chat
 
-import { useClubChat } from './useClubChat'
 import { usePeerFeedback } from '../feedback/usePeerFeedback'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import { memberById } from '../members/memberList'
+import type { ClubMessage } from './useClubChat'
 import type { Member } from '../members/member'
 
 /** Longest chat text shown in the pill before it's clipped. The global slot
@@ -15,28 +15,30 @@ const MAX_PILL_CHARS = 80
 
 /**
  * Bridges club chat to the GLOBAL feedback slot: every NEW message from
- * another member shows as "● HANDLE: text" (the `chat` kind). Call it wherever
- * the global slot lives — ClubPage and GamePage — with the FULL club roster,
- * so a sender outside the current game is still named; `selfId` is the viewer,
- * whose own messages never pop.
+ * another member shows as "● HANDLE: text" (the `chat` kind). Takes the stream
+ * rather than opening one, so `<Chat>` — which already holds it for the unread
+ * badge and the `!` detector — is the only caller. `members` is the FULL club
+ * roster, so a sender outside the current game is still named; `selfId` is the
+ * viewer, whose own messages never pop.
  *
  * Messages already in the log at load never pop: `usePeerFeedback` seeds them
  * as seen on the first loaded render, which is why `enabled` waits on the
  * stream's `loading`.
  */
 export function useChatFeedback({
-  clubHandle,
+  messages,
+  loading,
   members,
   selfId,
   globalFeedbackSlot,
 }: {
-  clubHandle: string
+  // The club's chat log and its load flag, as `useClubChat` returns them.
+  messages: ClubMessage[]
+  loading: boolean
   members: Member[]
   selfId: string
   globalFeedbackSlot: FeedbackSlot
 }): void {
-  const { messages, loading } = useClubChat(clubHandle)
-
   usePeerFeedback({
     // Gate until the history has loaded so the seed captures the real backlog
     // (not an empty set that would replay everything on arrival).
