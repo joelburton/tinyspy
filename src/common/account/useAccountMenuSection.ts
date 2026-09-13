@@ -87,8 +87,11 @@ export function useAccountMenuSection(): MenuSection {
           // A stable id even though the label is the (loadable) username, so
           // React keying doesn't churn when the profile lands.
           id: 'account',
-          // Before the profile store has resolved, "Account" is the honest
-          // placeholder — better than a flash of empty label.
+          // The gates make a missing profile unreachable here: `useSession`
+          // seeds the store before `loading` clears, and a page with a menu
+          // renders only past that. So the `??` — and the undefined `dot`
+          // below — belong to `Profile | null`, which is the signed-out state
+          // its readers on the login screen see, rather than to a moment.
           label: username ?? 'Account',
           // Your color, as the identity disc — see `MenuSubmenu.dot`. It is
           // why this row is a submenu and not an action: what it shows is WHO

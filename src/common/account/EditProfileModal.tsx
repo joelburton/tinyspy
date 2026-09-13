@@ -90,10 +90,11 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
       fitContent
       defaultSize={{ width: 380, height: 460 }}
     >
-      {/* NOT RENDERED until the profile is in hand, which is what the dialog
-          used to spell as `picked ?? profile?.color ?? null` plus a Save
-          disabled on the null. `initialValues` is read once at mount, so the
-          swatch that starts selected is the color you actually have. */}
+      {/* The profile is in hand by the time this mounts — it opens from a menu
+          row that exists only past the session gate — so the branch belongs to
+          `Profile | null` rather than to a loading moment. `initialValues` is
+          read once at mount, which is why the form waits for it: the swatch
+          that starts selected has to be the color you actually have. */}
       {profile === null ? (
         <p className="muted">Loading…</p>
       ) : (

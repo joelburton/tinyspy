@@ -5,9 +5,9 @@ The folders it reads: `account`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-account`.
-Fifteen findings. F-8, F-9, F-10 and F-15 are DONE. F-1 to F-6 are the prose
-group; F-7 and F-13 are waiting fixes with no decision in them; F-11, F-12 and
-F-14 each hold a decision for Joel.**
+Fifteen findings. F-8 to F-11 and F-15 are DONE. F-1 to F-6 are the prose
+group; F-7 and F-13 are waiting fixes with no decision in them; F-12 and F-14
+each hold a decision for Joel.**
 
 ## The roster
 
@@ -72,8 +72,9 @@ is stale); the KNOWN row goes.
 
 - `EditProfileModal.tsx` line 87–89: "Before this, the height was a fixed
   pixel count nobody derived (F23 → C)." A finding code and a before.
-- `EditProfileModal.tsx` line 93–96: "which is what the dialog used to spell as
-  `picked ?? profile?.color ?? null` plus a Save disabled on the null."
+- ~~`EditProfileModal.tsx` line 93–96: "which is what the dialog used to spell as
+  `picked ?? profile?.color ?? null` plus a Save disabled on the null."~~ Done
+  with F-11, which rewrote that same comment.
 - `editProfileStore.ts`'s docstring: "the thing that OPENS it is now a menu
   item on three different pages … since the fixed top-right UserMenu it used to
   live in was costing the game header 2rem of reserved width." The UserMenu is
@@ -309,7 +310,32 @@ own; (2) leave the line, and say in the comment that it is a decision.
 
 </details>
 
-### F-account-11 · `unreachable-null-branches` · three defaults that cannot fire
+### F-account-11 · `unreachable-null-branches` · three defaults that cannot fire — DONE
+
+**Decided and done 2026-09-12**: option 2, the branches stay and the comments
+tell the truth. `Profile | null` forces them, so the honest sentence is that
+the null is the signed-out state the login screen's readers see and the gates
+put it out of reach here — not that a loading moment is being covered. A
+`useProfileOrThrow` would coin a shape the repo has nowhere else, in a blessed
+folder, and trade a harmless wrong string for a throw on a path we only believe
+is unreachable.
+
+Re-verified before presenting: `useSession.ts:154` is `setProfile(row)` then
+`setLoading(false)`, its own comment saying why, and `App.tsx:100` returns
+`<Loading />` while loading. A null row means unclaimed, which routes to the
+claim screen rather than to a page with a menu.
+
+The comment says "the gates make this unreachable" rather than "impossible",
+deliberately. `resolveSignedOut` calls `setProfile(null)` beside
+`setSession(null)`; the menu unmounts instead of rendering nameless because
+React commits the store notification with the state update — an argument from
+batching, not from a gate, and not one a comment should lean on.
+
+The modal's comment also carried F-3's archaeology ("which is what the dialog
+used to spell as `picked ?? profile?.color ?? null`"), rewritten out in the
+same pass since it was the same comment.
+
+<details><summary>the finding as audited</summary>
 
 - `useAccountMenuSection.ts` line 67: `label: username ?? 'Account'`, with a
   comment that "before the profile store has resolved, 'Account' is the
@@ -329,6 +355,8 @@ Options: (1) narrow once — the hook and the modal read the profile through a
 `useProfileOrThrow`-shaped seam session would own, and the branches go; (2)
 keep the branches, rewrite the three comments to say the null is impossible
 here and the branch exists for the type; (3) leave. Session's file, if (1).
+
+</details>
 
 ### F-account-12 · `color-list-home` · `ColorChoiceList` lives in `account` and its only reader is `fields/ColorField`
 
