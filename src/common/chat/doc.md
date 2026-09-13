@@ -1,9 +1,9 @@
 # chat
 
 The club's chat, end to end: the floating panel you talk in, the stream of
-messages behind it, the unread badge on the header mark, and the pill that
-announces a new message. It belongs to no page; the club page and every game
-page mount it.
+messages behind it, the count behind the unread badge on the header mark, and
+the pill that announces a new message. It belongs to no page; the club page
+and every game page mount it.
 
 ## Design
 
@@ -44,26 +44,26 @@ that wants any of them mounts the panel, which every page that has chat at all
 does anyway.
 
 Open — from the speech-bubble mark in the header or by pressing `/`, and closed
-again from its own titlebar — the panel is a `<Companion>`: the shared
-floating-panel shell owns the drag, the remembered rect, the layer and the
-Escape ranking, and the `<ChatBody>` inside it is the transcript and the
-composer, turning a `user_id` into a handle through the roster it was given and
-sending through the RPC. Because the panel can open itself, it sits above every
+again from the mark, its own titlebar or Escape — the panel is a
+`<Companion>`: the shared floating-panel shell owns the drag, the remembered
+rect, the layer and the Escape ranking, and the `<ChatBody>` inside it is the
+transcript and the composer, turning a `user_id` into a handle through the
+roster it was given and sending through the RPC. Because the panel can open itself, it sits above every
 dim on the page at a layer of its own, so a `!` message never appears under a
 setup dialog. Its open state and its rect are remembered across pages, so
 moving from the club to a game does not close the conversation.
 
 Nothing holds both the panel and the header mark — `<ChatButton>` is in the
-page header, `<Chat>` is at the bottom of the page, and neither is the other's
-parent — so two small module-level stores stand between them instead of props.
-`chatOpenStore` holds the open flag, persisted, and also records that a panel is
-mounted at all, which is how the `/` shortcut knows whether this page has a chat
-to bind. `chatUnread` holds the badge's count, and with it the palette-color name of the
-latest unread sender — a fact, not a paint: resolving a sender needs the roster,
-which only this side has, while what the mark then looks like is the mark's own
-decision. `<ChatButton>` subscribes to both stores, drawing the badge and
-flipping the flag; `<Chat>` reads the flag and writes the count. Neither knows
-the other exists.
+page header, `<Chat>` is at the bottom of the page's tree, and neither is the
+other's parent — so two small module-level stores stand between them instead
+of props. `chatOpenStore` holds the open flag, persisted, and also records that
+a panel is mounted at all, which is how the `/` shortcut knows whether this
+page has a chat to bind. `chatUnread` holds the badge's count, and with it the
+palette-color name of the latest unread sender — a fact, not a paint: resolving
+a sender needs the roster, which only this side has, while what the mark then
+looks like is the mark's own decision. `<ChatButton>` subscribes to both
+stores, drawing the badge and flipping the flag; `<Chat>` reads the flag,
+writes it on a `!`, and writes the count. Neither knows the other exists.
 
 The keyboard goes both ways. `/` takes it to chat from anywhere on the page,
 even mid-clue, and Tab in the entry box hands it back to the game by blurring,
@@ -82,6 +82,6 @@ page ──mounts──> <Chat> ──> useClubChat ──> common.messages
                    └─ <Companion> ──> <ChatBody>   (only while open)
 ```
 
-`<ChatButton>` in the header, and the `/` action, read and flip those two
-stores — which is the whole of how the page's chrome and the panel reach each
-other.
+`<ChatButton>` in the header reads both stores and flips the flag; the `/`
+action asks `chatOpenStore` whether a panel is mounted and flips the same flag.
+That is the whole of how the page's chrome and the panel reach each other.

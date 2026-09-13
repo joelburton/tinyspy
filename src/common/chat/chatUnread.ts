@@ -2,14 +2,15 @@
 
 import { useSyncExternalStore } from 'react'
 import type { Member } from '../members/member'
+import { memberById } from '../members/memberList'
 import type { ClubMessage } from './useClubChat'
 import { readStored, writeStored } from '../web-storage/storage'
 
 /**
  * The chat-unread indicator's shared state + logic.
  *
- * `<Chat>` owns the message stream + the open/closed state, so it computes
- * "unread" and publishes it here; `<ChatButton>` (a sibling in the header, not
+ * `<Chat>` holds the message stream and reads the open/closed state, so it
+ * computes "unread" and publishes it here; `<ChatButton>` (a sibling in the header, not
  * in Chat's tree) reads it and decides what the mark looks like. What is
  * published is two facts — how many, and which palette color the latest unread
  * sender wears — because resolving a `user_id` needs the club roster, which
@@ -99,7 +100,7 @@ export function computeUnread(
   )
   if (unread.length === 0) return NONE
   const latest = unread[unread.length - 1]
-  const member = members.find((mm) => mm.user_id === latest.user_id)
+  const member = memberById(members, latest.user_id)
   // A sender the roster does not name publishes as null, which is an ordinary
   // page load and not only a genuinely unresolvable member: the roster arrives
   // a beat after the messages do.

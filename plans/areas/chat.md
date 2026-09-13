@@ -4,11 +4,12 @@ The folders it reads: `chat`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
-findings: all twelve worked — F-1 to F-8 in the prose pass, then F-11, F-9,
-F-10 and F-12 on Joel's decisions. The `doc.md` Design is written and the row
-is off `DESIGNS_OWED`. What is left is the closing: the whole-area re-read, and
-the blessing, which is Joel's.**
+**Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`.
+Seventeen findings: F-1 to F-8 worked in the prose pass, F-11, F-9, F-10 and
+F-12 on Joel's decisions, and F-13 to F-16 in the closing re-read (2026-09-12,
+the whole roster in one sitting), F-17 on Joel's word. All seventeen worked.
+The `doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md`
+holds one Maybe. What is left is the blessing, which is Joel's.**
 
 ## The roster
 
@@ -26,13 +27,17 @@ read too).
 
 Plus `doc.md` (lede rewritten and Design written in the prose pass, and the
 wiring — the seam, the one subscription, the two stores — added after; off
-`DESIGNS_OWED`, the guard planted red first) and `todo.md` (one Soon item left,
-F-chat-7 and F-chat-10 having taken the other two; one Maybe) — no stamp,
+`DESIGNS_OWED`, the guard planted red first) and `todo.md` (one Maybe left;
+F-chat-7, F-chat-10 and F-chat-17 took the three Soon items) — no stamp,
 markdown.
 
 **Written by this area, in another folder:**
 `src/common/page-header/ChatButton.test.tsx`, stamped `cs-audited-chat` — the
 mark had no test file, and F-chat-10 moved a decision into it that wants one.
+
+**Edited by this area, outside the roster, stamps untouched:**
+`src/guards/vocabularies.test.ts` (F-chat-15, two words) and `docs/common.md`'s
+scratchpad bullet (F-chat-16, three paths).
 
 **Evidence, not roster — read and judged, findings recorded, fixed in place,
 but never stamped, because a stamp is per file** (the ruling `supabase` and
@@ -237,6 +242,84 @@ position — "Non-subscribing read", no production caller, read only by
 pass**, so the two panels do not drift further apart than their storage
 encodings already have them (`chat/todo.md`'s Maybe item).
 
+### WORKED · F-chat-13 · stale-claims, again · nine sentences the worked findings left behind
+
+The re-read greped each worked finding's class across the whole roster, and
+F-chat-1's class was the one that recurred — most of it written by F-chat-11
+and F-chat-10 themselves, the day before:
+
+- `useClubChat`'s empty-handle guard explained itself by "the GamePage feedback
+  bridge runs this before the game row has loaded" — the caller F-chat-11
+  removed. `<Chat>` mounts in GamePage's loaded tree with the real handle, so
+  nothing passes `''` now. The guard stayed (it is cheap, and `useClubRoster`
+  keeps the same one); the comment names the condition, not a caller.
+- `useChatFeedback.test.tsx`'s `setup` said "the way every page mounts it";
+  `<Chat>` is the only mounter since F-chat-11.
+- `e2e/chat.e2e.ts` said the unread count "surfaces in the bubble's accessible
+  name, so we assert on that" — the name is a fixed "Chat" (F-chat-1 took the
+  computed one out of the store's docstring) and the test asserts on the mark's
+  text, as its own inline comment said one line down. One sentence now.
+- `chatOpenStore` counted "three things" that flip it and missed the fourth,
+  `<Chat>`'s own `!` force-open; and said localStorage "is how the open state
+  persists across club ↔ game navigation (each page mounts a fresh tree but
+  the store re-initializes from localStorage at module load)". Navigation is
+  `navigate()` in one tab, the module loads once, so the value survives on its
+  own; the mirror carries it across a RELOAD. Both rewritten.
+- `chatUnread` said `<Chat>` "owns the message stream + the open/closed state";
+  it reads the flag, the store owns it.
+- `useClubChat` said its shape is "the same pattern as every board hook in the
+  repo", and its test called the hook "the pattern parent ... every per-game
+  board hook repeats it — so the contract is pinned here once". Fourteen game
+  hooks take the shape from `useRealtimeRefetch`, which has its own spec, and
+  five other specs pin a SUBSCRIBED refetch. Chat is wired by hand because it
+  appends each INSERT rather than refetching on it, which the factory does not
+  do; both docstrings say that instead. `ClubMessage`'s "resolved by
+  `<ChatBody>`" became the three readers.
+- `Chat`'s docstring listed its three readers twice (F-chat-11 added the second
+  paragraph beside the first), and two inline comments carried a third and
+  fourth copy of "why null rather than unmounted" plus "the GamePage header's"
+  button (both pages have one) and a "no per-instance mirror needed here" that
+  was archaeology. One statement in the docstring; the comments point at it.
+- `ChatBody.module.css`'s header restated `FloatingPanel.module.css`'s own
+  explanation of how `.body` gets a definite height. A pointer now.
+
+### WORKED · F-chat-14 · hand-rolled-member-lookup, again · `computeUnread` had F-chat-6's `members.find`
+
+F-chat-6 converted `ChatBody`'s `memberFor`; `chatUnread.ts`, one file over,
+still wrote `members.find((mm) => mm.user_id === latest.user_id)`. It is
+`memberById(members, latest.user_id)` now — the memory this sprint keeps about
+re-reads ("a fixed finding still stood in the file next door"), in its exact
+form.
+
+### WORKED · F-chat-15 · a guard recommends a token that does not exist
+
+`src/guards/vocabularies.test.ts`'s z-index spec — its docstring and its
+failure message — told the offender to pass `var(--z-index-chatPanel)`, the
+name F-chat-1 found in `Chat`'s docstring and replaced. The ladder is `--z-chat`
+(`base.css`). Two words changed in a file outside the roster and outside this
+area; its stamp is `guards`'s to give.
+
+### WORKED · F-chat-16 · `docs/common.md`'s scratchpad bullet named three folders that do not exist
+
+The grep for `chatOpenStore` across the docs landed on "`scratchpadOpenStore`
+(`lib/scratchpad/`) mirrors `chatOpenStore`" — and the bullet around it had
+`hooks/scratchpad/` and `components/floating-panels/` too, from before the
+common reorg. All three are `common/scratchpad/` now (the button is
+`common/page-header/`). Fixed in place; the paragraph is the scratchpad area's,
+and it will read it again.
+
+### WORKED · F-chat-17 · `todo.md`'s Soon item is a statement, not owed work
+
+The one Soon item — "`ChatBody`'s Tab is the declared step OUT of the panel's
+ring, not a bespoke key ... anything touching `ChatBody`'s key handling answers
+to `e2e/chat-keyboard.e2e.ts`" — asks for nothing. It is a rule, and the rule
+already lives in three places: `doc.md`'s Design ("The keyboard goes both
+ways"), `docs/keyboard-shortcuts.md`'s panel row, and the e2e that pins it. The
+closing checklist says `todo.md` holds what is still owed; a rule in it reads
+as a task nobody can finish. Deleting a line is Joel's word: the shapes were (1)
+delete it, leaving the Maybe item as the file's only entry; (2) keep it. **Joel
+chose (1)** — the item is gone, and `todo.md` holds the one Maybe.
+
 ## Notes
 
 - **The unread badge, decided at the opening (Joel):** the logic may move,
@@ -257,7 +340,8 @@ after each.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] the whole area re-read in one sitting after the last group (2026-09-12,
+  F-chat-13 to F-chat-17)
+- [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

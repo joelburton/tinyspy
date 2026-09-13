@@ -1,10 +1,10 @@
 // cs-audited-chat
 
 /**
- * Tests for useClubChat. This hook is the pattern parent for every "initial
- * load + Realtime INSERT append + SUBSCRIBED refetch on reconnect" shape in
- * the repo — every per-game board hook repeats it — so the contract is pinned
- * here once.
+ * Tests for useClubChat: the initial load and its recency window, the INSERT
+ * append, the SUBSCRIBED refetch, and the merge that keeps a live-appended row
+ * through a stale refetch. The board hooks take this shape from
+ * `useRealtimeRefetch`, which has its own spec; chat wires it by hand.
  *
  * Mocking strategy, the same shape as useSession.test.ts: `../supabase/supabase`
  * is replaced with hand-built spies; the channel chain (.on().on().subscribe())

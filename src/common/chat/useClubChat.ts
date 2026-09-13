@@ -9,8 +9,9 @@ import { readRows } from '../supabase/dbResult'
 import type { Database } from '@/types/db'
 
 /**
- * A raw chat row keyed by club. Display names are resolved by `<ChatBody>`
- * from the member roster the page already has.
+ * A raw chat row keyed by club. The sender is a `user_id`; whoever shows it —
+ * the transcript, the pill, the badge — resolves it from the club roster the
+ * page already has.
  *
  * Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
  * SELECT *". Adding a new column to common.messages requires explicitly
@@ -60,9 +61,11 @@ function mergeSnapshot(
  * Subscribes to a club's chat log.
  *
  * The shape: an initial fetch, append-on-INSERT via Realtime, and a refetch on
- * every SUBSCRIBED event to recover from missed events during a reconnect —
- * the same pattern as every board hook in the repo. `channelDedup` says why
- * the channel name carries a suffix.
+ * every SUBSCRIBED event to recover from missed events during a reconnect. The
+ * board hooks get that shape from `useRealtimeRefetch`; this one is wired by
+ * hand because it appends each INSERT instead of refetching on it, which the
+ * factory does not do. `channelDedup` says why the channel name carries a
+ * suffix.
  */
 export function useClubChat(clubHandle: string) {
   const [messages, setMessages] = useState<ClubMessage[]>([])
@@ -72,10 +75,9 @@ export function useClubChat(clubHandle: string) {
   // events append directly via setMessages; the SUBSCRIBED refetch
   // closes any reconnect gap. Re-runs only on clubHandle change.
   useEffect(function subscribeToClubMessages() {
-    // No club yet — e.g. the GamePage feedback bridge runs this before the game
-    // row (and its `club_handle`) has loaded. Skip the fetch + subscribe and
-    // LEAVE `loading` true, so a consumer gating on `!loading` (useChatFeedback)
-    // doesn't seed an empty backlog and then replay the real one when it arrives.
+    // No club, nothing to subscribe to. `loading` stays true rather than
+    // clearing on nothing, so a reader gating on `!loading` (useChatFeedback)
+    // never seeds an empty backlog.
     if (!clubHandle) return
 
     let mounted = true

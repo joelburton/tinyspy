@@ -28,16 +28,13 @@ type Props = {
 
 /**
  * The club chat panel. Mounted once per page (ClubPage and GamePage each
- * render one) and left mounted while closed, because the unread badge, the
- * feedback pill and the `!` force-open detector need the message subscription
- * alive. Closed, it renders nothing; the header's `<ChatButton>` and the `/`
- * action flip the shared `chatOpenStore`. Open, it is a `<Companion>` at
- * `--z-chat`, above every dim, with its rect and its open state persisted
- * across pages.
- *
- * It holds the club's ONE chat subscription: the three readers that live off
- * the stream — the badge, the global feedback pill (`useChatFeedback`) and the
- * detector — all read the copy fetched here.
+ * render one) and left mounted while closed, because it holds the club's ONE
+ * chat subscription and three things read that stream while the panel is
+ * shut: the unread badge, the global feedback pill (`useChatFeedback`) and the
+ * `!` force-open detector. Closed, it renders nothing; the header's
+ * `<ChatButton>` and the `/` action flip the shared `chatOpenStore`. Open, it
+ * is a `<Companion>` at `--z-chat`, above every dim, with its rect and its
+ * open state persisted across pages.
  *
  * A message that starts with `!` opens the panel for every recipient when it
  * arrives — not for one already in the log at load — and `<ChatBody>` strips
@@ -49,10 +46,8 @@ export function Chat({
   selfId,
   globalFeedbackSlot,
 }: Props) {
-  // Open/closed state lives in the shared chatOpenStore so the
-  // GamePage header's `<ChatButton>` can flip the same flag from
-  // outside this component tree. localStorage persistence is
-  // owned by the store too — no per-instance mirror needed here.
+  // Open/closed state is the shared chatOpenStore's, so the header's
+  // `<ChatButton>` can flip the same flag from outside this tree.
   const open = useChatOpen()
   // Say chat is HERE for as long as this is mounted, so the `/` action can be
   // offered on the pages that have a chat panel and left unbound on the one
@@ -115,12 +110,8 @@ export function Chat({
     )
   }, [messages, open, loading, selfId, members, clubHandle])
 
-  // Closed shape — nothing. The affordance that opens chat is the
-  // header's `<ChatButton>`, on both pages that mount this; it flips
-  // the same shared flag from outside this component tree. The
-  // effects above still run while closed, which is the point of
-  // rendering null rather than not mounting: the unread badge and
-  // the `!` force-open detector need the subscription alive.
+  // Closed shape — nothing, with the effects above still running: that is
+  // why this renders null rather than being unmounted (see the docstring).
   if (!open) return null
 
   // Open shape — the floating panel.

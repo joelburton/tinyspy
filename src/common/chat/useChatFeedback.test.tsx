@@ -41,7 +41,7 @@ function textOf(feedbackMsg: FeedbackMessage): string {
   return text
 }
 
-/** Mounted mid-load, the way every page mounts it: no messages yet. */
+/** Mounted mid-load, the way `<Chat>` mounts it: no messages yet. */
 function setup(members: Member[] = MEMBERS) {
   const globalFeedbackSlot = createFeedbackSlot('global')
   const shown = vi.spyOn(globalFeedbackSlot, 'show')

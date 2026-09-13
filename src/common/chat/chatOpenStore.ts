@@ -6,18 +6,17 @@ import { readStored, writeStored } from '../web-storage/storage'
 /**
  * Shared open/closed state for the Chat panel.
  *
- * Three things flip it — the header's `<ChatButton>` (on the club page and the
- * game page), the `act-open-chat` key bound at the app root, and the panel's
- * own close — and `<Chat>` reads it to decide whether to render the panel at
- * all (it renders nothing while closed). They sit in different subtrees, so
- * the state lives outside the component tree in a small pub-sub store.
- * Subscribers use `useChatOpen()` (which wraps `useSyncExternalStore`);
- * writers call `setChatOpen(next)`.
+ * Its writers sit in different subtrees — the header's `<ChatButton>`, the
+ * `act-open-chat` key bound at the app root, and `<Chat>` itself, for its own
+ * close and for the `!` force-open — and `<Chat>` reads it to decide whether
+ * to render the panel at all (it renders nothing while closed). So the state
+ * lives outside the component tree in a small pub-sub store. Subscribers use
+ * `useChatOpen()` (which wraps `useSyncExternalStore`); writers call
+ * `setChatOpen(next)`.
  *
- * localStorage is still mirrored on write — that's how the open
- * state persists across club ↔ game navigation (each page mounts
- * a fresh tree but the store re-initializes from localStorage at
- * module load).
+ * The module holds the value for the life of the tab, so club ↔ game
+ * navigation keeps it on its own; the localStorage mirror is what carries it
+ * across a reload.
  */
 
 const KEY = 'puzpuzpuz:chat:open'

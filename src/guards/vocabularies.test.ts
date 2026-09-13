@@ -658,7 +658,7 @@ describe('a converted surface writes vocabulary values, not literals', () => {
  * `<FloatingPanel>` takes its tier as a prop, so the order could be restated
  * in TypeScript — and a second copy of a stacking order is exactly the copy
  * that drifts, because nothing makes the two disagree loudly. The prop is
- * typed `string` so a call site passes `var(--z-index-chatPanel)`; this is
+ * typed `string` so a call site passes `var(--z-chat)`; this is
  * what stops someone typing the number back in.
  *
  * A COMPUTED z-index stays legal — stackdown stacks its tile pile with
@@ -679,7 +679,7 @@ describe('the z-index ladder has one home', () => {
     expect(
       offenders,
       'A z-index literal in TypeScript. The ladder lives in base.css; pass ' +
-        'the token instead — zIndex="var(--z-index-chatPanel)".\n' +
+        'the token instead — zIndex="var(--z-chat)".\n' +
         offenders.join('\n'),
     ).toEqual([])
   })
