@@ -616,11 +616,12 @@ This is the **canonical deferred register** for crosswords — distilled from th
   `6px`, `base.css:85`). It also sizes itself with `--iconButton-size`, so it is
   literally the standard button's icon-only box wearing a field's paint.
 
-  Moved here from the forms audit on 2026-08-25. What made it a finding:
-  `GameScratchpadCompanion`'s `.takeOver` — written by a different hand, sharing
-  no code — reached the SAME four decisions, which says the shared button was
-  not reachable rather than that either author wanted something else. That half
-  is the small-buttons item in `src/common/buttons/todo.md`.
+  Moved here from the forms audit on 2026-08-25. What made it a finding: the
+  scratchpad's "Take over" control — written by a different hand, sharing no
+  code — had reached the SAME four decisions, which says the shared button was
+  not reachable rather than that either author wanted something else. That
+  control is now `<StandardButton small>` in the quiet tone, so this is the
+  one hand-rolled small button left.
 
   The two vocabularies sit close in light mode, which is why this survived: they
   are separate names because they answer different questions and are free to

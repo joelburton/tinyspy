@@ -377,7 +377,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
       'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.85rem', '0.8rem', '0.9rem', 'max(16px,', '1em)'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.85rem', '0.9rem', 'max(16px,', '1em)'],
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
       'src/common/core-css/patterns/badge.css': ['0.7rem'],
       'src/common/buttons/Segmented.module.css': ['0.8rem'],

@@ -1,6 +1,7 @@
 // cs-audited-scratchpad
 
 import { Companion } from '../floating-panels/Companion'
+import { StandardButton } from '../buttons/StandardButton'
 import { setScratchpadOpen, useScratchpadOpen } from './scratchpadOpenStore'
 import { useScratchpad } from './useScratchpad'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
@@ -54,9 +55,14 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, isTer
         <div className={styles.lockBar}>
           <span>{status}</span>
           {sp.canTakeOver && (
-            <button type="button" className={styles.takeOver} onClick={sp.takeOver}>
-              Take over
-            </button>
+            <StandardButton
+              small
+              show="label"
+              weight="secondary"
+              tone="quiet"
+              label="Take over"
+              onClick={sp.takeOver}
+            />
           )}
         </div>
         <textarea

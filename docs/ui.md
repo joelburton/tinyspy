@@ -2064,12 +2064,6 @@ small size by hand, in sizes that don't agree with each other or with the font
 ramp; that is [the buttons folder's to settle](../src/common/buttons/todo.md),
 and each surface then applies the rule at its own pass.
 
-**One case is genuinely unsettled**: `GameScratchpadCompanion`'s "take over" — a small
-inline text button, currently a white fill with a gray border, which could
-reasonably be `button secondary` in the quiet tone (transparent, `#535353`
-border and label). It's a close call either way and not worth deciding in
-isolation; settle it next time the scratchpad is open.
-
 ## Button iconography
 
 Recurring action buttons share an **icon language** so a player learns a glyph

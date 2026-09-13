@@ -5,8 +5,8 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings, none worked yet. The prose ones (F-1 to F-6) go first, as one
-group; the rest are decisions, one at a time.**
+Sixteen findings: F-7 worked on Joel's decision; the prose ones (F-1 to F-6)
+are next as one group, then the remaining decisions one at a time.**
 
 ## The roster
 
@@ -135,7 +135,18 @@ typing, release when idle, take over after grace, stale after silence; the
 holder guard; the one loss the system can inflict (F-scratchpad-13's
 subject); the panel as a companion at the companion rung, unlike chat.
 
-### F-scratchpad-7 · `take-over-button` · the case ui.md left for "next time the scratchpad is open"
+### WORKED · F-scratchpad-7 · `take-over-button` · the case ui.md left for "next time the scratchpad is open"
+
+**WORKED 2026-09-12 — Joel chose 1, the quiet tone**, after asking when the
+button even appears (only on the shared pad, only while another player holds
+the lock, and only when their last assert is 1.5–4 s old — so in practice only
+after a holder vanishes mid-edit, for a window of ~2.5 s before staleness
+frees the pad anyway; waiting always works, the button only saves the wait).
+He looked at it behind a temporary always-show flag, said it looked fine, and
+the flag came out. `.takeOver` and its hover are deleted, the `0.8rem` row is
+off the vocabulary guard, ui.md's "genuinely unsettled" paragraph is gone, and
+crosswords.md's note now says its own control is the one hand-rolled small
+button left.
 
 `docs/ui.md` → the small-size paragraph: "One case is genuinely unsettled:
 `GameScratchpadCompanion`'s 'take over' — a small inline text button,
