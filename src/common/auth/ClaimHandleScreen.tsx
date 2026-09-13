@@ -23,38 +23,13 @@ import { reportUnhandled } from '../supabase/dbEnvelope'
 type ClaimAnswer = { result: 'claimed'; username: string }
 
 type Props = {
-  /** Re-probe the profile table after the claim_username RPC
-   *  succeeds, so the parent App.tsx flips needsClaim → false and
-   *  renders HomePage instead of this screen. */
+  // Re-probe the profiles table, the claim having succeeded: `App` flips
+  // `needsClaim` to false and this screen gives way to whatever the URL names.
   onClaimed: () => void
-  /** Signed-in user's email address. Used to derive the pre-filled
-   *  default username from the local-part — better than a blank field
-   *  or a hardcoded "joel" that's confusing for everyone else. */
+  // The signed-in user's address. Its local-part seeds the suggested handle
+  // and, through that, the pre-selected color.
   email: string | null | undefined
 }
-
-/**
- * First-run setup gate. Rendered by App.tsx when `useSession` reports
- * `needsClaim` (= signed in but no profiles row).
- *
- * Two fields: a username (the user's permanent handle — shown in chat,
- * on every game roster, and as the literal handle of their solo club
- * `=<username>`; immutable post-claim) and a player color. The color is
- * pre-selected from a deterministic hash of the SUGGESTED handle
- * (`defaultColorFor`, seeded once on mount — it doesn't follow the field as
- * they type), and they can change it here or later from the profile dialog.
- *
- * The username regex is enforced both in the FE (instant feedback) and
- * on the server (CHECK + the RPC's P0001 raise), kept in sync with the
- * SQL CHECK in 20260615000000_common.sql.
- *
- * Error mapping (the RPC's SQLSTATE codes → display):
- *   - P0001 "username must be 3–15 chars …" → show as-is
- *   - 23505 unique_violation                → "that username is taken"
- *   - 23503 foreign_key_violation           → "session expired,
- *                                              sign in again" + signOut
- *   - anything else                         → raw message
- */
 
 // Mirror of the SQL CHECK regex on common.profiles.username.
 // Update both together; tests in supabase/tests/common/
@@ -99,6 +74,15 @@ const RULES =
  */
 type Values = { desired: string; chosen_color: string }
 
+/**
+ * The second half of signing in: pick a username and a color, which
+ * `common.claim_username` turns into a profile and a solo club.
+ *
+ * `App` puts this up when `useSession` reports `needsClaim` — signed in, no
+ * profiles row — and takes it down when `onClaimed` says the probe found one.
+ * The username is permanent, which is why this screen exists at all rather
+ * than a name being derived silently; `doc.md` has the rules and the rest.
+ */
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // This page is nothing but this form, so the form IS the page's tab ring:
   // Tab cycles the handle field, the color swatches and the buttons, and never
@@ -232,10 +216,10 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
 
                 <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
 
-                {/* Always-available escape (a user can land here on a stale
-                    session and not want — or be able — to claim anything; the
-                    rest of the app's chrome isn't mounted behind the needsClaim
-                    gate). Sits beside Accept now, styled as a real button. */}
+                {/* Always-available escape: a user can land here on a stale
+                    session and not want — or be able — to claim anything, and
+                    the rest of the app's chrome isn't mounted behind the
+                    needsClaim gate. */}
                 <div className={styles.buttonRow}>
                   <CancelButton
                     show="label"

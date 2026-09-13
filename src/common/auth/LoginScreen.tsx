@@ -11,39 +11,6 @@ import { cls } from '../utils/cls'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { TextField } from '../fields/TextField'
 
-/**
- * Magic-link sign-in flow with two verification paths.
- *
- * On submit, calls `signInWithOtp` to mail the user an email that
- * contains BOTH a clickable magic link AND a numeric code. The user can
- * verify either way:
- *
- * (We deliberately don't name the code's digit count in the UI — the
- * length is a Supabase setting, `auth.email.otp_length`, and the local
- * config.toml has differed from the deployed project before. Length-
- * agnostic copy stays correct whatever that setting is; the input has no
- * maxLength so any length pastes/types fine.)
- *
- *   1. Click the magic link — the browser hits Supabase's redirect URL,
- *      which exchanges the link's hash token for a session and lands the
- *      user back at `window.location.origin` (so a sign-in started on
- *      `/g/codenamesduet/<id>` returns to that same path).
- *
- *   2. Enter the code in the "I have a code" form here — calls
- *      `verifyOtp({type: 'email'})` to exchange the code for a session
- *      on the current device. This is the only way to sign in when the
- *      email was opened on one device (commonly a phone) but the user
- *      wants to use the app on another (laptop, desktop browser).
- *
- * Either path triggers `onAuthStateChange`'s SIGNED_IN event, which
- * `useSession` is subscribed to — the screen unmounts on success without
- * any further action here. Toggling back to "Send a magic link instead"
- * also doubles as a resend (the email value stays in state).
- *
- * No password flow at all. The dev-only Mailpit hint catches the email
- * in the local stack so you don't need real email delivery while
- * iterating.
- */
 // Dev-only convenience: prefill the email so heavy local iteration (esp. on a
 // phone, where typing is a pain) doesn't mean re-entering it every reload. Empty
 // in prod — the friends type their own.
@@ -54,6 +21,16 @@ const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@test.local' : ''
  *  its refusals land on the form's own line. */
 type Values = { email: string; code: string }
 
+/**
+ * Signing in. Takes no props, and unmounts itself: both paths it offers end in
+ * a SIGNED_IN event, and `useSession` — which put this screen up — takes it
+ * down.
+ *
+ * The two paths are one email. `signInWithOtp` mails a clickable magic link
+ * and a code; the form here toggles between asking for the address and
+ * verifying a code typed from that email on this device. `doc.md` says why
+ * both exist.
+ */
 export function LoginScreen() {
   // This page is nothing but this form, so the form IS the page's tab ring:
   // Tab cycles the fields showing right now, Submit and the toggle link, and
@@ -80,12 +57,12 @@ export function LoginScreen() {
 
     if (action === 'send-link') {
       setStatus('sending')
-      const { error: rpcError } = await supabase.auth.signInWithOtp({
+      const { error: authError } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: window.location.origin },
       })
-      if (rpcError) {
-        setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
+      if (authError) {
+        setErrors({ [FORM_ERROR_KEYNAME]: authError.message })
         setStatus('idle')
         return
       }
@@ -101,13 +78,13 @@ export function LoginScreen() {
 
     // verify-code path
     setStatus('verifying')
-    const { error: rpcError } = await supabase.auth.verifyOtp({
+    const { error: authError } = await supabase.auth.verifyOtp({
       email,
       token: code.trim(),
       type: 'email',
     })
-    if (rpcError) {
-      setErrors({ [FORM_ERROR_KEYNAME]: rpcError.message })
+    if (authError) {
+      setErrors({ [FORM_ERROR_KEYNAME]: authError.message })
       setStatus('idle')
       return
     }

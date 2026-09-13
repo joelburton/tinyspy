@@ -42,9 +42,8 @@ describe('ClaimHandleScreen — a taken username lands on the username box', () 
   })
 
   // PN017 is the one thing this RPC refuses that a player can act on, and it
-  // says which input it is about. Before the form held its values by name there
-  // was nowhere for that to go, and the message sat on a line at the bottom
-  // beside a color picker it had nothing to do with.
+  // says which input it is about — so the message belongs under that input and
+  // nowhere else.
   it('shows the server message under the field the server named', async () => {
     mockRpc.mockResolvedValue({
       data: {
@@ -84,15 +83,12 @@ describe('ClaimHandleScreen', () => {
   })
 
   it('offers a sign-out escape so a stranded user is never stuck', async () => {
-    // The regression: a user landing here on a stale session (e.g. the DB
-    // was reset under them) had no way off this screen — the app chrome
-    // isn't mounted behind the needsClaim gate — and that's even truer now
-    // that Log out lives in a page menu, since no page renders here at all.
-    // There must always be a path back to LoginScreen.
+    // A user landing here on a stale session — the DB reset under them — has
+    // no other way off: no page renders behind the needsClaim gate, so the
+    // menu that holds Log out everywhere else isn't mounted.
     mockSignOut.mockResolvedValue({ error: null })
-    // The escape ends in a HARD redirect to "/". This is the actual fix:
-    // signing out alone left users with a stale session stuck here, because
-    // the auth listener didn't re-render.
+    // The escape ends in a HARD redirect to "/". Signing out alone leaves a
+    // stale session stuck here, because the auth listener doesn't re-render.
     const assign = stubLocation()
 
     render(<ClaimHandleScreen onClaimed={() => {}} email={null} />)

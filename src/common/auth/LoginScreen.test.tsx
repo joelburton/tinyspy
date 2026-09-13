@@ -8,9 +8,9 @@
  * form's own line, and this is the surface that pins that arm on purpose
  * rather than for want of a better place.
  *
- * The other thing worth holding: the "sent to" line names the address the link
- * ACTUALLY went to. It read the live field once, so editing the box after
- * sending re-labeled the sentence with an address nothing had been sent to.
+ * The other thing worth holding: the "sent to" line names the address the mail
+ * ACTUALLY went to — not whatever is in the box now, and not only while the
+ * last thing that happened was a success.
  */
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

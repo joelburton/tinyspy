@@ -324,7 +324,7 @@ Coop gametype variants (those declaring `mode: 'coop'`) with `min === 1` render 
 
 ### Username claim flow
 
-There is no `handle_new_user` trigger anymore. The flow is now user-driven:
+No trigger materializes a profile; the flow is user-driven:
 
 1. User signs in via magic link → `auth.users` row materializes; `useSession` detects the new session.
 2. `useSession` queries `common.profiles` for the row; missing row → returns `needsClaim: true`.
@@ -333,18 +333,22 @@ There is no `handle_new_user` trigger anymore. The flow is now user-driven:
 5. The RPC atomically inserts the profile row (with the chosen color — it's **required**, validated against the palette; the DB doesn't derive a default), creates the `=<username>` solo club, adds the membership row, and seeds `clubs_gametypes` for the solo club with every **solo-playable** `default_enroll` gametype (`min_players <= 1` — a one-member club is never enrolled in a two-player game; and no psychicnum, the opt-in toy; see `common.default_gametypes_for_club`).
 6. `useSession` re-probes; `needsClaim` flips to false; HomePage mounts.
 
-Reject reasons:
+Reject reasons — each a not-ok envelope ([envelopes.md](envelopes.md)):
 
-| condition                                | SQLSTATE |
-|------------------------------------------|----------|
-| not authenticated                        | `42501`  |
-| handle fails the regex                   | `P0001`  |
-| profile already claimed (this user)      | `P0001`  |
-| color not in the 8-entry palette         | `P0001`  |
-| handle collision with another profile    | `23505`  |
-| auth.users row vanished (stale-JWT case) | `23503`  |
+| condition                                | code    | severity   |
+|------------------------------------------|---------|------------|
+| not authenticated                        | `PN013` | fault      |
+| handle fails the regex                   | `PN014` | fault      |
+| color not in the 8-entry palette         | `PN015` | fault      |
+| profile already claimed (this user)      | `PN016` | error      |
+| handle collision with another profile    | `PN017` | validation |
+| auth.users row vanished (stale-JWT case) | `PN018` | fault      |
 
-The 23503 case surfaces when a stale JWT from a previous Supabase project sits in localStorage but its `auth.uid()` no longer exists. `ClaimHandleScreen` catches that error and calls `supabase.auth.signOut()` to reset back to LoginScreen.
+PN017 is the only one a player can act on, and the only one that names a column
+(`desired`), so it lands under the username box; the rest say `_` and land on
+the form's own line after the modal.
+
+The PN018 case surfaces when a stale JWT from a previous Supabase project sits in localStorage but its `auth.uid()` no longer exists. `ClaimHandleScreen` reads that code, signs out best-effort, and hard-navigates to `/` so the session is rebuilt from scratch.
 
 #### Provisioning a player ahead of their first sign-in
 
@@ -657,7 +661,7 @@ The sign-in email contains **both** a clickable magic link AND a numeric sign-in
 
 The code path is what makes cross-device sign-in work: open the email on your phone, type the code on your laptop. Either path emits `SIGNED_IN`, which `useSession` is subscribed to.
 
-On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username themselves. The `common.claim_username` RPC materializes their profile + solo club (see [Username claim flow](#username-claim-flow) above). Username collision raises 23505, surfaced as an inline "that username is taken" error — the user retries with a different name.
+On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username themselves. The `common.claim_username` RPC materializes their profile + solo club (see [Username claim flow](#username-claim-flow) above). Username collision raises **PN017**, which names the `desired` column, so it lands as an inline "That username is taken" under the field — the user retries with a different name.
 
 [`useSession`](../src/common/session/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, probeFailed, loading, refresh}`. The first time it sees a given user it verifies the token with `getUser()` and reads `common.profiles`, which settles the resolved states: signed out, signed in but unclaimed, signed in and claimed, and — when that read fails — unknown, which `App` renders as an error page rather than guessing. The stale-JWT case is what the `getUser()` check is for: a signature-valid token whose `auth.uid()` is gone from `auth.users` signs out. If a stale session reaches the claim screen anyway, `common.claim_username` raises **PN018** and `<ClaimHandleScreen>` signs the user out on it.
 

@@ -5,8 +5,9 @@ The folders it reads: `auth` · `loading` · `error-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12.** Roster stamped `cs-audited-simple-page`.
-Thirteen findings recorded; every decision finding F-7 to F-12 is worked. F-1
-to F-6 are the prose group, still open; F-13 is coverage.
+Thirteen findings recorded; F-1 to F-12 are worked. What remains: F-13's two
+coverage items, and the one line inside an applied migration that is Joel's
+call (F-3's last bullet).
 
 ## The roster
 
@@ -66,12 +67,19 @@ has nothing on it. `ClaimHandleScreen.tsx` 36–62: the `/** First-run setup gat
 for two `/**` blocks stacked, so a docstring stranded above a `//` comment is
 invisible to it — neither file is a KNOWN row, and both are orphans.
 
+**Worked 2026-09-13.** Both essays are gone from above their constants and each
+component carries a hover of its own; what they explained is now the folder's
+Design (F-6).
+
 ### F-simple-page-2 · `marker-pass` · `/**` on props
 
 - `ClaimHandleScreen`'s props block: `onClaimed` and `email` carry `/**`.
 - `ErrorPage`'s props block: `message`, `diagnostics` and `action` carry `/**`.
 
 A prop note takes `//` (docs/code-conventions.md → the props paragraph).
+
+**Worked 2026-09-13.** Five props converted. `ClaimAnswer`, `Values` and
+`RULES` keep `/**` — they are declarations a reader hovers, not props.
 
 ### F-simple-page-3 · `stale-claims` · sentences about code that no longer looks like that
 
@@ -116,6 +124,18 @@ A prop note takes `//` (docs/code-conventions.md → the props paragraph).
   either way, but the rule is "never edit an applied one" — listed, and Joel's
   call whether a comment counts.
 
+**Worked 2026-09-13, except the migration.** `ClaimHandleScreen`'s error-mapping
+block is gone (the envelope branching is commented at the branch, where it
+happens); `onClaimed` says the URL decides what replaces this screen; the e2e
+header names "Let's set you up"; the pgTAP header no longer claims a stale-JWT
+assertion, and its three section comments say PN013 / PN014 / PN016 (the one
+remaining SQLSTATE, at line 249, is accurate — the constraint really does raise
+23505, and the sentence is about it being caught). `ErrorPage.module.css` and
+`ErrorPage.tsx` were fixed with F-12. `docs/common.md`'s reject-reasons table is
+PN013–PN018 with severities, the paragraph under it describes the code read, and
+the "Username collision raises 23505" line names PN017. **The migration comment
+at `20260615000000_common.sql:88` is untouched** — Joel's call.
+
 ### F-simple-page-4 · `archaeology` · dated quotes, "now", counts and befores in durable prose
 
 - `Loading.tsx` docstring: "there was never more than one idea here: the app,
@@ -137,6 +157,12 @@ A prop note takes `//` (docs/code-conventions.md → the props paragraph).
 - `claim_username_test.sql` 65–66: "(the trigger is gone — only the explicit
   RPC creates the profile now)"; `docs/common.md` 325: "There is no
   `handle_new_user` trigger anymore. The flow is now user-driven".
+
+**Worked 2026-09-13.** Every dated quote, count and "now" listed above is gone
+from the durable prose; both "no trigger anymore" sentences say what is true
+rather than what changed. The arguments they carried — the no-box decision, the
+modal-vs-page rule, why the form holds its values by name — are in the Designs
+now, which is the place they keep being true.
 
 ### F-simple-page-5 · `docstrings-for-the-caller` · essays where a hover belongs, and two words
 
@@ -160,6 +186,12 @@ A prop note takes `//` (docs/code-conventions.md → the props paragraph).
 - `LoginScreen.tsx` 83 and 104: `rpcError` — `supabase.auth` is not an RPC.
   `authError`.
 
+**Worked 2026-09-13.** Four docstrings are now hovers: what the thing is, what
+it takes, what it does on success, and a pointer to the Design. `rpcError` →
+`authError` at both sites. The banned word left with the paragraph it sat in
+(F-8 took the paragraph's subject; the digit-count reasoning is in auth's
+Design).
+
 ### F-simple-page-6 · `designs` · three `doc.md` Designs owed
 
 All three folders are on `DESIGNS_OWED`. Each `doc.md` needs a `## Design`
@@ -170,6 +202,13 @@ half of signing in, the handle rules said once, the seeded color, the two
 sign-outs (F-7), the two ways failures land (a field vs the form's line);
 `error-page` — the modal-vs-page rule and the two entry points; `loading` — a
 word and no box, versus a slot held open.
+
+**Worked 2026-09-13.** All three Designs written to that shape and the three
+`DESIGNS_OWED` rows deleted from `folderDocs`. `auth`'s carries the weight, as
+expected: the gate order, one email with two uses, why there is no password
+flow, the raw-GoTrue-message exception, the permanent handle, the seeded color
+that does not follow the field, the two halves of the claim's refusals, and the
+one exit both of them take.
 
 ### F-simple-page-7 · `two-sign-outs` · PN018 signs out without the escape's hard redirect — DONE
 

@@ -27,7 +27,7 @@ import { signIn } from './helpers/session'
  *     can always sign out of it.
  *
  * LoginScreen is identified by its "PuzPuzPuz" wordmark image, ClaimHandleScreen by
- * "Pick a username".
+ * its "Let's set you up" heading.
  */
 test.describe('auth gate: a stale session never strands you on the username screen', () => {
   test('an invalidated session lands on the login screen', async ({ browser }) => {

@@ -16,9 +16,8 @@
 --
 -- This file pins the end-to-end contract: regex validation,
 -- happy-path materialization, double-claim rejection, username
--- collision rejection, stale-JWT rejection. The personas-side
--- assertions live in clubs_test.sql; here we exercise the RPC
--- in isolation.
+-- collision rejection. The personas-side assertions live in
+-- clubs_test.sql; here we exercise the RPC in isolation.
 --
 -- We deliberately do NOT \ir ../_shared/setup.psql here — that
 -- file does its own profile-and-solo-club materialization for
@@ -62,8 +61,7 @@ values
    'authenticated', 'authenticated', 'fia@test.local',
    now(), now(), now());
 
--- Sanity: no profile rows for fia yet (the trigger is gone — only
--- the explicit RPC creates the profile now).
+-- Sanity: no profile rows for fia yet — nothing but this RPC creates one.
 select is(
   (select count(*)::int from common.profiles
     where user_id = 'f1a66666-6666-6666-6666-666666666666'),
@@ -81,7 +79,7 @@ select is(
 -- ============================================================
 -- (1) Unauthenticated callers are rejected
 -- ============================================================
--- No JWT claim → auth.uid() returns NULL → RPC raises 42501.
+-- No JWT claim → auth.uid() returns NULL → PN013.
 
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
@@ -93,7 +91,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (2) Regex validation — bad inputs raise P0001
+-- (2) Regex validation — bad inputs are PN014
 -- ============================================================
 
 select pg_temp.as_user('f1a66666-6666-6666-6666-666666666666');
@@ -219,9 +217,9 @@ select is(
 -- (4) Double-claim rejection — the same user can't claim twice
 -- ============================================================
 -- The user_id PK on common.profiles would reject the second
--- INSERT with 23505, but the RPC catches it earlier with a
--- clean P0001 so the FE can distinguish "you already claimed"
--- from "someone else has that username."
+-- INSERT with the same unique_violation a name collision raises, so
+-- the RPC checks first and answers PN016 — which is how the FE tells
+-- "you already claimed" from "someone else has that username."
 
 select pg_temp.envelope_is(
   common.claim_username('fianewname', 'blue'),
