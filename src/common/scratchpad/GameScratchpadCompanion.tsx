@@ -1,4 +1,4 @@
-// cs-audited-scratchpad
+// cs-blessed-scratchpad
 
 import { Companion } from '../floating-panels/Companion'
 import { StandardButton } from '../buttons/StandardButton'

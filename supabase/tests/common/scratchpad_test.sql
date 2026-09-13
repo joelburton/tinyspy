@@ -1,4 +1,4 @@
--- cs-audited-scratchpad
+-- cs-blessed-scratchpad
 
 begin;
 set search_path = common, public, extensions;

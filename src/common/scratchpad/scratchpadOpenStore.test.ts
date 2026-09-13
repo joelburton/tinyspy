@@ -1,4 +1,4 @@
-// cs-audited-scratchpad
+// cs-blessed-scratchpad
 
 /**
  * Tests for scratchpadOpenStore. The store is small but it is the only place

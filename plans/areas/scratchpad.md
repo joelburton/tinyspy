@@ -4,14 +4,15 @@ The folders it reads: `scratchpad`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-12, eight files `cs-audited-scratchpad`
-(the seven agreed and the store test the area wrote). Sixteen findings, ALL
-WORKED or CLOSED: F-7 to F-12 and F-15 on Joel's decisions, F-13 closed by
-F-9's, F-1 to F-6 as the prose group, F-14 and F-16 the waiting fixes. The
-`doc.md` Design is written and the row is off `DESIGNS_OWED`; `todo.md` holds
-one Maybe. The closing re-read is DONE (five stale claims fixed in place; the two lock
-races moved from crosswords' register to this folder's `todo.md` on Joel's
-word). Left: the blessing, which is Joel's.**
+**Status: CLOSED 2026-09-12, blessed — eight files `cs-blessed-scratchpad`
+(the seven agreed and `scratchpadOpenStore.test.ts`, which the area wrote).**
+Audited and closed the same day. Sixteen findings, all worked or closed: F-7
+to F-12 and F-15 on Joel's decisions, F-13 closed by F-9's, F-1 to F-6 as the
+prose group, F-14 and F-16 the waiting fixes. The `doc.md` Design is written
+and the row is off `DESIGNS_OWED`; `todo.md` holds two Maybes. The closing
+re-read fixed five stale claims in place and moved the two lock races from
+crosswords' register to this folder's `todo.md` on Joel's word. Blessed on
+Joel's "commit, then bless the files and close the area."
 
 ## The roster
 
@@ -478,4 +479,4 @@ catches the rename; nothing else has a test that would notice.
 - [x] the whole area re-read in one sitting after the last group
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] every file on the roster blessed, or its stamp says why not

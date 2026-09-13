@@ -349,6 +349,28 @@ time, a guard recommending a token that does not exist, and three pre-reorg
 paths in `docs/common.md`. Owed: nothing; `todo.md` holds one Maybe, the
 open-flag encoding chat and scratchpad store two ways.
 
+**`scratchpad` is closed** (2026-09-12): eight files `cs-blessed-scratchpad`,
+sixteen findings — fifteen worked, one closed by another's decision. What
+changed the app: the pad stays writable after the game ends, a whole vertical
+slice — the companion's terminal flag, the hook's parameter, the RPC's
+play-state guard and its race arm, the pgTAP case, the read-only status text —
+gone on the ruling that the notes are the players', not the game's. The two
+one-second intervals that ran for the life of every coop game page run only
+while a holder exists; the reconnect refetch gained the holder guard the CDC
+path already had; "Take over" is a standard small quiet button, and ui.md's
+last "unsettled" case went with it. The editor is named by a `<DotActor>` from
+the club roster, so the lock claim carries a user id and nothing else, and
+`GamePage`'s `?? 'You'` went with the username. The textarea paints as a field
+like every other — no wrapper, no read-only mute, the monospace face decided.
+`useIsScratchpadOpen` and `useIsChatOpen` in one pass, the rect key in the
+storage convention's shape, and the store test its twin had. The closing
+re-read found five stale claims in prose outside the folder — a rollback the
+body never had in supabase.md's register, "bubble" for the mark in two blessed
+page-header docstrings — and moved the two lock races from crosswords'
+register to the folder's todo. Owed: nothing; `todo.md` holds two Maybes, the
+open-flag encoding and the lock races. Three game companions store rects
+without the `puzpuzpuz:` prefix, noted in the area file for those games.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -475,7 +497,7 @@ will list the other as a dependency whichever goes first.
 | 24 | `page-header` | `page-header` | **CLOSED 2026-09-12, blessed.** the top strip and the marks in it — furniture every page carries and no page owns. Sixteen findings; the summary is under "Where to start" |
 | 25 | `definitions` | `definitions` · `anagram-finder` | **CLOSED 2026-09-12, blessed.** click-a-word lookup, dictionary curation, and the anagram dialog. Twenty-two findings; the summary is under "Where to start" |
 | 26 | `chat` | `chat` | **CLOSED 2026-09-12, blessed.** the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s. Seventeen findings; the summary is under "Where to start" |
-| 27 | `scratchpad` | `scratchpad` | the shared notes panel |
+| 27 | `scratchpad` | `scratchpad` | **CLOSED 2026-09-12, blessed.** a game's notepad: shared in coop, private per player in compete. Sixteen findings; the summary is under "Where to start" |
 | 28 | `account` | `account` | your own menu and profile editing |
 |    | **The pages** | | |
 | 29 | `simple-page` | `auth` · `loading` · `error-page` | the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one |

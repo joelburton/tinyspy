@@ -1,4 +1,4 @@
-// cs-audited-scratchpad
+// cs-blessed-scratchpad
 
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createCrosswordsGame } from './helpers/fixtures'
