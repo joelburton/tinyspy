@@ -250,7 +250,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/account/ColorChoiceList.module.css': ['0.5rem'],
       'src/common/auth/ClaimHandleScreen.module.css': ['0.75rem', '0.5rem'],
       'src/common/buttons/SubmitWithScore.module.css': ['0.5rem'],
-      'src/common/chat/ChatBody.module.css': ['0.4rem', '0.3rem'],
       // 0.375rem is BESPOKE by decision (Joel, 2026-08-24), not unconverted: it
       // is the mark gap, and the number you see is that plus each mark's own
       // padding, so equal-looking gaps would need unequal numbers — see the
@@ -348,7 +347,7 @@ const VOCABULARIES: Vocabulary[] = [
       // list carry the same pair.
       'src/common/core-css/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],
       'src/common/buttons/ShuffleButton.module.css': ['32px'],
-      'src/common/chat/ChatBody.module.css': ['0.9rem', 'max(16px,', '1em)'],
+      'src/common/chat/ChatBody.module.css': ['max(16px,', '1em)'],
       // The chat unread count is BESPOKE by decision (Joel, 2026-09-12), not
       // unconverted: the app's smallest type, on a chip that is its own size —
       // the same 0.7rem the badge pattern wears, below the ramp's last step.
@@ -400,8 +399,6 @@ const VOCABULARIES: Vocabulary[] = [
     allowed: /^(normal|inherit|initial|unset|revert)$/,
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['1'],
-      // The textarea's leading, moved up from CreateClubModal with <TextField>.
-      'src/common/chat/ChatBody.module.css': ['1.35'],
       // The chat unread count's leading IS its box height, so the digits center
       // in the chip. BESPOKE by decision (Joel, 2026-09-12): the chip is its own
       // size, and no ratio expresses "as tall as the box".
@@ -519,7 +516,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/account/ColorChoiceList.module.css': ['1px'],
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
-      'src/common/chat/ChatBody.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/info-sheet/infoPanel.module.css': ['2px'],

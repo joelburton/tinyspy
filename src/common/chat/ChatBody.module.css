@@ -15,7 +15,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--spacer-4);
 }
 
 /* @@ */ .messages {
@@ -24,20 +24,20 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.9rem;
+  gap: var(--spacer-5);
+  font-size: var(--font-size-2);
   /* Light border + radius so the user reads the region as
      "this is the scrollable conversation," especially when
      there are 0–1 messages and the input would otherwise float
      awkwardly mid-panel. */
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   padding: 0.5rem 0.6rem;
 }
 
 /* @@ */ .message {
   word-break: break-word;
-  line-height: 1.35;
+  line-height: var(--line-height-2);
 }
 
 /* "Important" message content — set when the original message
@@ -57,16 +57,16 @@
 
 /* @@ */ .inputRow input {
   width: 100%;
-  font-size: 0.9rem;
+  font-size: var(--font-size-2);
 }
 
 /* iOS focus-zoom trap (docs/mobile.md → Decisions #3): an <input> whose font is
    under 16px makes mobile Safari zoom the page IN when the field is focused —
    and it does NOT zoom back out on blur, so the whole chat sheet ends up wider
    than the screen until you pinch it down. Pin the FIELD to the 16px floor on
-   touch devices; desktop keeps the compact 0.9rem (it never focus-zooms). The
-   literal `16px` is deliberate — 16px is a fixed iOS constraint, not a design
-   token that should scale with the root font-size. */
+   touch devices; desktop keeps the compact `--font-size-2` (it never
+   focus-zooms). The literal `16px` is deliberate — 16px is a fixed iOS
+   constraint, not a design token that should scale with the root font-size. */
 @media (--touch) {
 /* @@ */   .inputRow input {
     font-size: max(16px, 1em);

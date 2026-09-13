@@ -5,8 +5,8 @@ The folders it reads: `chat`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
-findings: nine worked (F-1 to F-8 in the prose pass, F-11 after Joel's
-decision), three open and waiting on a decision (F-9, F-10, F-12). The
+findings: ten worked (F-1 to F-8 in the prose pass, then F-11 and F-9 after
+Joel's decisions), two open and waiting on a decision (F-10, F-12). The
 `doc.md` Design is written and the row is off `DESIGNS_OWED`.**
 
 ## The roster
@@ -128,16 +128,28 @@ guard's pattern and kept the row looking live. The todo item is gone.
 `<form>` is block with no margin in standards mode. Both declarations went;
 `flex-shrink: 0` is the one that does something.
 
-### F-chat-9 · vocabulary · `ChatBody.module.css` carries six literals the ramps cover
+### WORKED · F-chat-9 · vocabulary · `ChatBody.module.css` carried six literals the ramps cover
 
 `gap: 0.4rem` / `0.3rem`, `font-size: 0.9rem` (twice), `line-height: 1.35`,
 `border: 1px`. The `max(16px, 1em)` iOS floor is deliberate and stays
 (`docs/mobile.md` → Decisions #3); the two paddings are outside the spacer
-vocabulary by `core-css/todo.md`. Converting moves the look: the message text
-would go from 0.9rem to `--font-size-2` (0.85rem), the line height from 1.35
-to `--line-height-2` (1.25), the gaps to `--spacer-4` (0.5rem) and
-`--spacer-5` (0.25rem). Same question `definitions` answered "all"; waiting on
-the same answer here.
+vocabulary by `core-css/todo.md`.
+
+Converting moves the look, so the three shapes put to Joel were: all six; all
+six but the message taking `--line-height-1` (1.5) instead of `-2`, since a
+message is prose; or five, holding `0.9rem` as the evidence `base.css` asks for
+before a new font-size member is added. **Joel chose all six** ("we can always
+tweak once I see it"). So the message text is `--font-size-2` (0.85rem) at
+`--line-height-2` (1.25), the entry field matches it as it did before, the gaps
+are `--spacer-4` and `--spacer-5`, and the border is `--border-width-line`. The
+airier `--line-height-1` was argued against: with the gap between messages at
+`--spacer-5` (4px), leading of ~20px inside a message would exceed the space
+between two, blurring where one ends.
+
+`vocabularies.test.ts` lost three pending rows (spacers, line-height,
+border-width); the font-size row shrank to the `max(16px,` / `1em)` pair, which
+three other files carry for the same reason. The spacers arm was seen red on a
+planted `0.4rem` before the row came out.
 
 ### F-chat-10 · unread-store-publishes-a-color · chat decides how the strip paints
 
