@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-scratchpad
 
 import { Companion } from '../floating-panels/Companion'
 import { setScratchpadOpen, useScratchpadOpen } from './scratchpadOpenStore'

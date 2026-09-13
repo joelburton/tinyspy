@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-audited-scratchpad
 
 begin;
 set search_path = common, public, extensions;

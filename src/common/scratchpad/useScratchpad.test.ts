@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-scratchpad
 
 /**
  * Tests for useScratchpad — the raciest code in the scratchpad feature (the
