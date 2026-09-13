@@ -16,9 +16,10 @@ Agreed 2026-09-13 (Joel: "1 add" for the e2e).
 - `e2e/home-keyboard.e2e.ts` — the club list's keys in a real browser; its
   header says the behavior is `SelectionList`'s and the page's half is the
   one-stop tab ring
+- `src/common/home/HomePage.test.tsx` — created by F-1, so it joins the roster
 
 Plus `doc.md` (a lede, no Design; on `DESIGNS_OWED`) and `todo.md` (empty).
-**There is no Vitest file for the page** — F-1.
+The page had no Vitest file at the opening — F-1, now written.
 
 **Evidence, not roster:** `CreateClubModal` (club's), `SelectionList`,
 `useProfile`, `useRealtimeRefetch`, `readRows`, `PageHeader` +
@@ -37,7 +38,7 @@ the e2e. The e2e itself is not run without Joel's word.
 
 ## Findings
 
-### F-homepage-1 · `no-unit-test` · the page has no test file
+### F-homepage-1 · `no-unit-test` · the page has no test file — DONE
 
 Joel, at the opening: *"we should definitely have a unit test for the
 homepage!"* Nothing pins: the three load states (a blank line while the read
@@ -49,6 +50,30 @@ the greeting with and without a profile; the Solo badge on a solo row only;
 and `onCreated` navigating into the new club. The mocks needed are the ones
 `ClubPage`'s and `ClaimHandleScreen`'s tests already build — the `db` handle,
 `useProfile`, and `useRealtimeRefetch` reduced to "call `load` once".
+
+**Worked 2026-09-13.** `src/common/home/HomePage.test.tsx`, thirteen tests, all
+of the above pinned. Two corrections to the paragraph over this one: there is
+no `ClubPage.test.tsx` (club's tests are its two modals), and no test in the
+repo had ever reduced `useRealtimeRefetch` — the `useProfile` idiom came from
+`account/EditProfileModal.test.tsx`.
+
+The decision inside it was how the load gets driven, and it went to the stub:
+`useRealtimeRefetch` is mocked to run the page's `load` once and hand the
+config back, because the hook's own test already covers the channel, the
+SUBSCRIBED refetch and the mounted guard. `readRows` is mocked rather than the
+query — with the real one, a failed read reports its own fault and the test
+could not tell whose fault the queue was holding. That mock is what lets the
+"failed load raises NOTHING here" claim in the code's comment be a test.
+
+Beyond the F-1 list it also pins the query itself — `is_solo` DESC then
+`created_at` DESC — since the display order is a decision the page makes in
+SQL and re-derives nowhere.
+
+Planted six defects, each caught by the test that should: collapsing the
+in-flight blank into the loaded sentence, firing the zero-rows fault once per
+mount instead of per load, wording the failed load in the page, sorting solo
+last, badging every row, and an `onCreated` that closes the modal without
+going into the new club.
 
 ### F-homepage-2 · `docstring-for-the-caller` · the page's docstring is the folder's Design
 
@@ -166,7 +191,8 @@ own: a flexible color means nothing and only has to differ from the other one.
 
 ## Predicted test breaks
 
-- F-1 adds `HomePage.test.tsx`; nothing existing breaks.
+- F-1 adds `HomePage.test.tsx`; nothing existing breaks. (Confirmed: the
+  whole suite, 316 files / 3125 tests, green with it.)
 - F-3: `src/guards/folderDocs.test.ts` — the `common/home` row comes off
   `DESIGNS_OWED`.
 - F-8 changes an e2e assertion — run on Joel's word only.
