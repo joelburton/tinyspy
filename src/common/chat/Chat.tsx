@@ -100,14 +100,14 @@ export function Chat({
   // Unread badge. While the panel is OPEN, everything in the log is
   // presumed read — advance the per-club bookmark to the newest
   // message and clear the badge. While CLOSED, publish the count +
-  // latest-sender color for the messages past the bookmark (no
-  // bookmark ⇒ the whole backlog). `<ChatButton>` reads the result.
+  // the latest sender's color name for the messages past the bookmark
+  // (no bookmark ⇒ the whole backlog). `<ChatButton>` draws the result.
   useEffect(function trackUnread() {
     if (loading) return
     const newest = messages.length > 0 ? messages[messages.length - 1] : null
     if (open) {
       if (newest) setChatLastSeen(clubHandle, newest.sent_at)
-      setChatUnread({ count: 0, color: null })
+      setChatUnread({ count: 0, senderColor: null })
       return
     }
     setChatUnread(

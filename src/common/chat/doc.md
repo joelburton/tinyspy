@@ -58,9 +58,12 @@ page header, `<Chat>` is at the bottom of the page, and neither is the other's
 parent — so two small module-level stores stand between them instead of props.
 `chatOpenStore` holds the open flag, persisted, and also records that a panel is
 mounted at all, which is how the `/` shortcut knows whether this page has a chat
-to bind. `chatUnread` holds the badge's count. `<ChatButton>` subscribes to
-both, drawing the badge and flipping the flag; `<Chat>` reads the flag and
-writes the count. Neither knows the other exists.
+to bind. `chatUnread` holds the badge's count, and with it the palette-color name of the
+latest unread sender — a fact, not a paint: resolving a sender needs the roster,
+which only this side has, while what the mark then looks like is the mark's own
+decision. `<ChatButton>` subscribes to both stores, drawing the badge and
+flipping the flag; `<Chat>` reads the flag and writes the count. Neither knows
+the other exists.
 
 The keyboard goes both ways. `/` takes it to chat from anywhere on the page,
 even mid-clue, and Tab in the entry box hands it back to the game by blurring,

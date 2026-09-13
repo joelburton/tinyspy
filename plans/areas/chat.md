@@ -5,8 +5,8 @@ The folders it reads: `chat`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
-findings: ten worked (F-1 to F-8 in the prose pass, then F-11 and F-9 after
-Joel's decisions), two open and waiting on a decision (F-10, F-12). The
+findings: eleven worked (F-1 to F-8 in the prose pass, then F-11, F-9 and F-10
+after Joel's decisions), one open and waiting on a decision (F-12). The
 `doc.md` Design is written and the row is off `DESIGNS_OWED`.**
 
 ## The roster
@@ -23,9 +23,15 @@ read too).
 - `supabase/tests/common/chat_test.sql`
 - `e2e/chat.e2e.ts`, `e2e/chat-feedback.e2e.ts`, `e2e/chat-keyboard.e2e.ts`
 
-Plus `doc.md` (lede rewritten and Design written in the prose pass; off
-`DESIGNS_OWED`, the guard planted red first) and `todo.md` (two Soon items
-after F-chat-7 took one, one Maybe) — no stamp, markdown.
+Plus `doc.md` (lede rewritten and Design written in the prose pass, and the
+wiring — the seam, the one subscription, the two stores — added after; off
+`DESIGNS_OWED`, the guard planted red first) and `todo.md` (one Soon item left,
+F-chat-7 and F-chat-10 having taken the other two; one Maybe) — no stamp,
+markdown.
+
+**Written by this area, in another folder:**
+`src/common/page-header/ChatButton.test.tsx`, stamped `cs-audited-chat` — the
+mark had no test file, and F-chat-10 moved a decision into it that wants one.
 
 **Evidence, not roster — read and judged, findings recorded, fixed in place,
 but never stamped, because a stamp is per file** (the ruling `supabase` and
@@ -37,7 +43,8 @@ in this sense.
 
 Consumers: `club/ClubPage` and `game-page/GamePage` (mount `<Chat>`),
 `actions/AppActionsHost` + its test (the `/` action), `page-header/ChatButton`
-(blessed; reads `chatOpenStore` and `chatUnread`). The three guards that name
+(blessed; reads `chatOpenStore` and `chatUnread`, and after F-chat-10 decides
+the unread fill). The three guards that name
 the folder (`rawStorage`, `folderDocs`, `vocabularies`) are not part of the
 audit. Docs: `docs/common.md`'s chat sections and
 `docs/keyboard-shortcuts.md` → Global.
@@ -151,17 +158,34 @@ border-width); the font-size row shrank to the `max(16px,` / `1em)` pair, which
 three other files carry for the same reason. The spacers arm was seen red on a
 planted `0.4rem` before the row came out.
 
-### F-chat-10 · unread-store-publishes-a-color · chat decides how the strip paints
+### WORKED · F-chat-10 · unread-store-publishes-a-color · chat decided how the strip paints
 
-`computeUnread` returns `{ count, color }` where `color` is a CSS string —
-`colorVarFor(member.color)`, or the muted fallback when the roster has not
-named the sender. That is a presentational decision made in chat's file and
-handed to a blessed `page-header` button that only forwards it. Joel's ruling
-at the opening: the logic may move, the presentational part stays with the
-button. The shape that honors it: the store carries a fact — `count` and the
-latest unread `sender: Member | null` — and `ChatButton` turns a sender into a
-fill, including the muted case. Touches `chatUnread.ts`, its test, `Chat.tsx`
-(the open-branch reset) and two lines of `ChatButton.tsx`.
+`computeUnread` returned `{ count, color }` where `color` was a CSS string —
+`colorVarFor(member.color)`, or the muted fallback when the roster had not
+named the sender. That was a presentational decision made in chat's file and
+handed to a blessed `page-header` button that only forwarded it, against Joel's
+ruling at the opening: the logic may move, the presentational part stays with
+the button.
+
+Two shapes honored the ruling — publish the `Member`, or publish the member's
+color NAME — plus the do-nothing option. **Joel chose the color name.** So
+`ChatUnread` is `{ count, senderColor: string | null }`, `computeUnread` returns
+`member?.color ?? null`, and `ChatButton` turns that into the fill, muted case
+and all. The `Member` shape was argued against on the store's idempotence: it
+compares by value, and `members` is a fresh array per roster fetch, so object
+identity would republish on every refetch — while comparing `sender?.user_id`
+instead would leave a mid-session color change stale until the count next moved.
+Two primitives keep that check honest.
+
+`null` now means both "nothing unread" and "sender not in the roster", which the
+type says out loud; the button treats the second as muted, and that reasoning
+moved to it with the decision. The muted-fallback assertion left
+`chatUnread.test.ts` for a new `page-header/ChatButton.test.tsx` — the mark had
+no test file, its `ScratchpadButton` sibling does, and the arm was seen red on a
+planted `colorVarFor(senderColor)`. The durable halves: `chat/doc.md` says the
+store publishes a fact, `page-header/doc.md` says the mark decides the paint, and
+`chat/todo.md`'s "whether the unread badge's logic is chat's or the strip's" item
+is gone — settled.
 
 ### WORKED · F-chat-11 · two-subscriptions-per-page · every page opened the club's chat stream twice
 

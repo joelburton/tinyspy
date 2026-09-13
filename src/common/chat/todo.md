@@ -9,9 +9,6 @@
   takes over from `<body>` (`keyboardHandoff.ts`).
   `e2e/chat-keyboard.e2e.ts` pins the round trip (`/` takes the keyboard, Tab
   hands it back); anything touching `ChatBody`'s key handling answers to it.
-- **Whether the unread badge's logic is chat's or the strip's.** `ChatButton`
-  lives in `page-header` (a mark in the strip belongs to the strip), while
-  `chatUnread.ts` is here.
 
 ## Someday
 

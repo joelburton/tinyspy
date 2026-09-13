@@ -1,7 +1,6 @@
 // cs-audited-chat
 
 import { useSyncExternalStore } from 'react'
-import { colorVarFor } from '../members/memberColor'
 import type { Member } from '../members/member'
 import type { ClubMessage } from './useClubChat'
 import { readStored, writeStored } from '../web-storage/storage'
@@ -11,8 +10,10 @@ import { readStored, writeStored } from '../web-storage/storage'
  *
  * `<Chat>` owns the message stream + the open/closed state, so it computes
  * "unread" and publishes it here; `<ChatButton>` (a sibling in the header, not
- * in Chat's tree) reads it to fill its glyph with the latest unread sender's
- * color and show a count pill. Same lifted-state shape as `chatOpenStore`.
+ * in Chat's tree) reads it and decides what the mark looks like. What is
+ * published is two facts — how many, and which palette color the latest unread
+ * sender wears — because resolving a `user_id` needs the club roster, which
+ * only this side has. Same lifted-state shape as `chatOpenStore`.
  *
  * "Unread" = messages not sent by me, with `sent_at` newer than my per-club
  * last-seen bookmark — and **with no bookmark, EVERYTHING counts**, so a
@@ -25,12 +26,14 @@ import { readStored, writeStored } from '../web-storage/storage'
 
 export type ChatUnread = {
   count: number
-  // Latest unread sender's profile color (a CSS color string), or null when
-  // there's nothing unread.
-  color: string | null
+  // The latest unread sender's profile-color NAME ('blue'), as the member row
+  // carries it — not a CSS value. Null when there is nothing unread, and also
+  // when the sender is not in the roster we were given; `<ChatButton>` decides
+  // what each of those looks like.
+  senderColor: string | null
 }
 
-const NONE: ChatUnread = { count: 0, color: null }
+const NONE: ChatUnread = { count: 0, senderColor: null }
 
 // ─── the pub-sub store (publish from Chat, read by ChatButton) ──
 let value: ChatUnread = NONE
@@ -51,7 +54,7 @@ function getSnapshot(): ChatUnread {
  *  is a no-op (keeps the snapshot reference stable for
  *  useSyncExternalStore). */
 export function setChatUnread(next: ChatUnread): void {
-  if (next.count === value.count && next.color === value.color) return
+  if (next.count === value.count && next.senderColor === value.senderColor) return
   value = next
   for (const listener of listeners) listener()
 }
@@ -97,15 +100,8 @@ export function computeUnread(
   if (unread.length === 0) return NONE
   const latest = unread[unread.length - 1]
   const member = members.find((mm) => mm.user_id === latest.user_id)
-  return {
-    count: unread.length,
-    // Muted rather than `colorVarFor`'s body-text fallback, which is the other
-    // answer in the app to "no member here." Deliberate, and the two are not
-    // the same question: this fill claims to name a SENDER, so with nobody to
-    // name it should stop claiming — while a `<Dot>` still stands for a person
-    // who is there. The roster arrives a beat after the messages do, so this is
-    // what the bubble looks like on an ordinary page load, not only when a
-    // sender is genuinely unresolvable.
-    color: member ? colorVarFor(member.color) : 'var(--page-text-muted-color)',
-  }
+  // A sender the roster does not name publishes as null, which is an ordinary
+  // page load and not only a genuinely unresolvable member: the roster arrives
+  // a beat after the messages do.
+  return { count: unread.length, senderColor: member?.color ?? null }
 }

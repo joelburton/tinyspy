@@ -2,7 +2,6 @@
 
 import { describe, it, expect } from 'vitest'
 import { computeUnread } from './chatUnread'
-import { colorVarFor } from '../members/memberColor'
 import type { ClubMessage } from './useClubChat'
 import type { Member } from '../members/member'
 
@@ -19,7 +18,7 @@ describe('computeUnread', () => {
   it('no messages → nothing unread', () => {
     expect(computeUnread([], null, 'alice', members)).toEqual({
       count: 0,
-      color: null,
+      senderColor: null,
     })
   })
 
@@ -30,7 +29,7 @@ describe('computeUnread', () => {
     ]
     expect(computeUnread(messages, null, 'alice', members)).toEqual({
       count: 2,
-      color: colorVarFor('blue'), // bob = latest unread sender
+      senderColor: 'blue', // bob = latest unread sender
     })
   })
 
@@ -53,21 +52,18 @@ describe('computeUnread', () => {
     ).toBe(2)
   })
 
-  it('color is the LATEST unread sender (own messages do not shift it)', () => {
+  it('the color is the LATEST unread sender (own messages do not shift it)', () => {
     const messages = [
       msg('bob', '2026-01-01T00:00:01Z'),
       msg('alice', '2026-01-01T00:00:02Z'), // mine — excluded
       msg('bob', '2026-01-01T00:00:03Z'),
     ]
-    expect(computeUnread(messages, null, 'alice', members).color).toBe(
-      colorVarFor('blue'),
-    )
+    expect(computeUnread(messages, null, 'alice', members).senderColor).toBe('blue')
   })
 
-  it('falls back to muted when the sender is no longer in the roster', () => {
+  it('publishes no color when the sender is not in the roster', () => {
+    // What the MARK does with that is `ChatButton.test.tsx`'s: it goes muted.
     const messages = [msg('ghost', '2026-01-01T00:00:01Z')]
-    expect(computeUnread(messages, null, 'alice', members).color).toBe(
-      'var(--page-text-muted-color)',
-    )
+    expect(computeUnread(messages, null, 'alice', members).senderColor).toBeNull()
   })
 })

@@ -5,6 +5,7 @@ import { setChatOpen, useChatOpen } from '../chat/chatOpenStore'
 import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnread'
+import { colorVarFor } from '../members/memberColor'
 import { useAppAction } from '../actions/useBoundAction'
 import { nameWithKey } from '../actions/nameWithKey'
 import styles from './ChatButton.module.css'
@@ -30,8 +31,13 @@ import styles from './ChatButton.module.css'
  */
 export function ChatButton() {
   const open = useChatOpen()
-  const { count, color } = useChatUnread()
+  const { count, senderColor } = useChatUnread()
   const showBadge = !open && count > 0
+  // Muted rather than `colorVarFor`'s body-text fallback, which is the other
+  // answer in the app to "no member here." The two are not the same question:
+  // this fill claims to name a SENDER, so with nobody to name it should stop
+  // claiming — while a `<Dot>` still stands for a person who is there.
+  const fill = senderColor ? colorVarFor(senderColor) : 'var(--page-text-muted-color)'
   const actOpenChat = useAppAction('act-open-chat')
   return (
     <PageHeaderButton
@@ -45,7 +51,7 @@ export function ChatButton() {
       // The GLYPH fills with the latest unread sender's color (see the module);
       // the button's own background is left to hover and press. No unread, no
       // property, and the bubble stays hollow.
-      style={showBadge && color ? ({ '--chat-unread-color': color } as CSSProperties) : undefined}
+      style={showBadge ? ({ '--chat-unread-color': fill } as CSSProperties) : undefined}
       badge={
         showBadge && (
           <span className={styles.unreadPill} aria-hidden>

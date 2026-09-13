@@ -72,6 +72,13 @@ where the key does not.
   for flex items, so the players strip is a block container with inline-level
   entries and a margin between them; a flex row clipped a long roster mid-name
   with no sign.
+- **The chat mark decides its own fill.** `chat/chatUnread.ts` publishes two
+  facts — how many are unread, and the latest sender's palette-color *name* —
+  because resolving a sender needs the club roster, which only chat has. Turning
+  that into a paint is the mark's: a named sender fills the glyph with their
+  color, and a sender the roster cannot name goes muted rather than taking
+  `colorVarFor`'s body-ink fallback, because this fill claims to name someone
+  and with nobody to name it should stop claiming.
 - **The unread count is black, never a player hue**, so it cannot read as a
   sender; it is a lozenge (`--radius-round`) that widens for two digits, at the
   app's smallest type, and its sizes are its own by decision.
