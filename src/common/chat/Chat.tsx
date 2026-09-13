@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useClubChat } from './useClubChat'
-import { registerChatMounted, setChatOpen, useChatOpen } from './chatOpenStore'
+import { registerChatMounted, setChatOpen, useIsChatOpen } from './chatOpenStore'
 import {
   computeUnread,
   getChatLastSeen,
@@ -48,7 +48,7 @@ export function Chat({
 }: Props) {
   // Open/closed state is the shared chatOpenStore's, so the header's
   // `<ChatButton>` can flip the same flag from outside this tree.
-  const open = useChatOpen()
+  const open = useIsChatOpen()
   // Say chat is HERE for as long as this is mounted, so the `/` action can be
   // offered on the pages that have a chat panel and left unbound on the one
   // that doesn't. See the store.

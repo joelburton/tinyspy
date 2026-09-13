@@ -1,7 +1,7 @@
 // cs-blessed-page-header
 
 import type { CSSProperties } from 'react'
-import { setChatOpen, useChatOpen } from '../chat/chatOpenStore'
+import { setChatOpen, useIsChatOpen } from '../chat/chatOpenStore'
 import { PageHeaderButton } from './PageHeaderButton'
 import { IconChat } from '../icons/icons'
 import { useChatUnread } from '../chat/chatUnread'
@@ -30,7 +30,7 @@ import styles from './ChatButton.module.css'
  * bubble reads the chord off the action so it can't drift from the binding.
  */
 export function ChatButton() {
-  const open = useChatOpen()
+  const open = useIsChatOpen()
   const { count, senderColor } = useChatUnread()
   const showBadge = !open && count > 0
   // Muted rather than `colorVarFor`'s body-text fallback, which is the other

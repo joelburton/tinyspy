@@ -2,7 +2,7 @@
 
 import { Companion } from '../floating-panels/Companion'
 import { StandardButton } from '../buttons/StandardButton'
-import { setScratchpadOpen, useScratchpadOpen } from './scratchpadOpenStore'
+import { setScratchpadOpen, useIsScratchpadOpen } from './scratchpadOpenStore'
 import { useScratchpad } from './useScratchpad'
 import { handOffKeyboardOnTab } from '../keyboard/keyboardHandoff'
 import { DotActor } from '../members/ActorMention'
@@ -31,7 +31,7 @@ type Props = {
  * mirroring how chat keeps syncing when collapsed.
  */
 export function GameScratchpadCompanion({ gameId, ownerId, myId, username, members }: Props) {
-  const open = useScratchpadOpen()
+  const open = useIsScratchpadOpen()
   const sp = useScratchpad(gameId, ownerId, myId, username)
 
   if (!open) return null

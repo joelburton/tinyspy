@@ -742,10 +742,10 @@ something back — `usePhone()` reads as "give me a phone" rather than "am I on 
 phone". It also flattens the difference between a hook that ANSWERS something
 and one that DOES something, which are otherwise spelled identically.
 
-Several folders still spell it the other way — `useChatOpen`,
-`useScratchpadOpen`, `useInfoSheetOpen`, `useEditProfileOpen`. They convert as
-each folder is next worked on rather than in one sweep, so both spellings are in
-the tree meanwhile. A new hook takes the rule.
+Two folders still spell it the other way — `useInfoSheetOpen`,
+`useEditProfileOpen`. They convert as each folder is next worked on rather than
+in one sweep, so both spellings are in the tree meanwhile. A new hook takes the
+rule.
 
 #### Other casing rules
 

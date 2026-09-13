@@ -20,7 +20,7 @@ import {
   registerChatMounted,
   setChatOpen,
   useChatMounted,
-  useChatOpen,
+  useIsChatOpen,
 } from './chatOpenStore'
 
 let storage: InstalledStorage
@@ -81,15 +81,15 @@ describe('chatOpenStore — direct API', () => {
   })
 })
 
-describe('chatOpenStore — useChatOpen hook', () => {
+describe('chatOpenStore — useIsChatOpen hook', () => {
   it('returns the current value on mount', () => {
     setChatOpen(true)
-    const { result } = renderHook(() => useChatOpen())
+    const { result } = renderHook(() => useIsChatOpen())
     expect(result.current).toBe(true)
   })
 
   it('re-renders when setChatOpen flips the value', () => {
-    const { result } = renderHook(() => useChatOpen())
+    const { result } = renderHook(() => useIsChatOpen())
     expect(result.current).toBe(false)
     act(() => setChatOpen(true))
     expect(result.current).toBe(true)
@@ -101,7 +101,7 @@ describe('chatOpenStore — useChatOpen hook', () => {
     let renderCount = 0
     renderHook(() => {
       renderCount += 1
-      return useChatOpen()
+      return useIsChatOpen()
     })
     const baseline = renderCount
     act(() => setChatOpen(false)) // already false
@@ -109,8 +109,8 @@ describe('chatOpenStore — useChatOpen hook', () => {
   })
 
   it('two hooks see each other`s updates (shared store)', () => {
-    const { result: a } = renderHook(() => useChatOpen())
-    const { result: b } = renderHook(() => useChatOpen())
+    const { result: a } = renderHook(() => useIsChatOpen())
+    const { result: b } = renderHook(() => useIsChatOpen())
     expect(a.current).toBe(false)
     expect(b.current).toBe(false)
 
@@ -120,7 +120,7 @@ describe('chatOpenStore — useChatOpen hook', () => {
   })
 
   it('unsubscribes on unmount so a later write does not crash', () => {
-    const { unmount } = renderHook(() => useChatOpen())
+    const { unmount } = renderHook(() => useIsChatOpen())
     unmount()
     // No throw + no leaked subscriber that would touch a
     // disposed React tree.

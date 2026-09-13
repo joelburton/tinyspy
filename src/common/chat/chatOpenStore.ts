@@ -11,7 +11,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * close and for the `!` force-open — and `<Chat>` reads it to decide whether
  * to render the panel at all (it renders nothing while closed). So the state
  * lives outside the component tree in a small pub-sub store. Subscribers use
- * `useChatOpen()` (which wraps `useSyncExternalStore`); writers call
+ * `useIsChatOpen()` (which wraps `useSyncExternalStore`); writers call
  * `setChatOpen(next)`.
  *
  * The module holds the value for the life of the tab, so club ↔ game
@@ -42,7 +42,7 @@ function getSnapshot(): boolean {
 
 /** The current value without subscribing. This is a seam for TESTS, which need
  *  the flag where there is no component to render — a store's own test, or one
- *  whose subject is a keystroke. In the app, read it with `useChatOpen()`. */
+ *  whose subject is a keystroke. In the app, read it with `useIsChatOpen()`. */
 export function getChatOpen(): boolean {
   return value
 }
@@ -58,7 +58,7 @@ export function setChatOpen(next: boolean): void {
 
 /** Subscribe to the open/closed state. Re-renders the caller when the value
  *  flips — the header bubble's pressed state, the panel's own render gate. */
-export function useChatOpen(): boolean {
+export function useIsChatOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }
 

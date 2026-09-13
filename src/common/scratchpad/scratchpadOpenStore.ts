@@ -37,7 +37,7 @@ export function setScratchpadOpen(next: boolean): void {
 
 /** The current value without subscribing. This is a seam for TESTS, which need
  *  the flag where there is no component to render. In the app, read it with
- *  `useScratchpadOpen()` — same split as `chatOpenStore`. */
+ *  `useIsScratchpadOpen()` — same split as `chatOpenStore`. */
 export function getScratchpadOpen(): boolean {
   return open
 }
@@ -49,7 +49,7 @@ function subscribe(listener: () => void): () => void {
   }
 }
 
-export function useScratchpadOpen(): boolean {
+export function useIsScratchpadOpen(): boolean {
   return useSyncExternalStore(
     subscribe,
     () => open,

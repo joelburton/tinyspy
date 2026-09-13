@@ -5,8 +5,8 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7, F-8 and F-9 worked on Joel's decisions, F-13 closed
-by F-9's; the prose ones (F-1 to F-6) are next as one group, then the
+Sixteen findings: F-7 to F-10 worked on Joel's decisions, F-13 closed by
+F-9's; the prose ones (F-1 to F-6) are next as one group, then the
 remaining decisions one at a time.**
 
 ## The roster
@@ -247,7 +247,12 @@ field edge.
    ground) plus the muted ink.
 3. Leave it.
 
-### F-scratchpad-10 · `hook-name-predicate` · `useScratchpadOpen` answers yes/no
+### WORKED · F-scratchpad-10 · `hook-name-predicate` · `useScratchpadOpen` answers yes/no
+
+**WORKED 2026-09-12 — Joel chose 1.** `useIsScratchpadOpen` here and
+`useIsChatOpen` in chat, in one pass: the two stores, the companion, the chat
+panel, both header marks and chat's store test. The code-conventions holdout
+list is down to the info sheet's and the profile's.
 
 `docs/code-conventions.md` → A hook that answers yes/no names itself as a
 predicate: `useIsScratchpadOpen`; and "Several folders still spell it the
