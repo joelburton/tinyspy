@@ -4,8 +4,12 @@ The folders it reads: `home`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-homepage`.
-Nine findings recorded; all nine worked. Not yet re-read, blessed or closed.
+**Status: CLOSED 2026-09-13 — audited, re-read and blessed the same day.**
+Five files `cs-blessed-homepage`, on Joel's words: "mark files in this area as
+blessed. then close the area and commit." Nineteen findings: nine from the
+reading and ten from the closing re-read, all worked. `doc.md` harvested,
+`todo.md` empty. One thing not done at the close: `e2e/faults.e2e.ts` was not
+re-run after F-19 cut an assertion from it.
 
 ## The roster
 
@@ -17,6 +21,9 @@ Agreed 2026-09-13 (Joel: "1 add" for the e2e).
   header says the behavior is `SelectionList`'s and the page's half is the
   one-stop tab ring
 - `src/common/home/HomePage.test.tsx` — created by F-1, so it joins the roster
+- `e2e/faults.e2e.ts` — added at the re-read (Joel: "1" on F-16); the fault
+  host's wiring test lands here after sign-in, and its second test is this
+  page's zero-rows fault end to end
 
 Plus `doc.md` (a lede, no Design; on `DESIGNS_OWED`) and `todo.md` (empty).
 The page had no Vitest file at the opening — F-1, now written.
@@ -224,11 +231,177 @@ collision, for exactly that reason." The sentence was not only a census; it
 answered "isn't this the same teal Co-op wears?", and that reassurance is kept,
 as a property of the token rather than a fact about today's readers.
 
+## The closing re-read (2026-09-13)
+
+One sitting over the four roster files, `doc.md`, and every doc sentence about
+the page, with the sibling greps for each of the nine. What it found was the
+usual: the reading's own work, either not landed or landed next door.
+
+### F-homepage-10 · `edit-not-landed` · F-2's docstring cut never reached the file — DONE
+
+The commit for the prose group says "F-2 then leaves the docstring the page,
+the session prop and a pointer", and F-2's Worked paragraph above says the
+same; the diff touched every other comment in the file and not this one.
+`HomePage.tsx` still opened on the twenty-line "Pure shell content …" docstring
+the finding was about.
+
+**Worked 2026-09-13.** Cut to the shape F-2 agreed: the page, the `session`
+prop (its id scopes the subscription; the read sends none because RLS filters
+it), and a pointer at `doc.md`'s Design.
+
+### F-homepage-11 · `record-disagrees-with-code` · F-4's note was deleted, not moved to `//` — DONE
+
+F-4 says "Now `//`, same words" and the commit says "F-4 puts the is_solo note
+on //". The diff removed the `/**` note and added nothing. The note is a local
+decision — the page reads a generated column rather than testing the `=`
+prefix itself — which is exactly what a `//` field note is for.
+
+**Worked 2026-09-13.** Restored on `//`, same words, so the code matches what
+was agreed and recorded. Joel then cut it again in his own pass over the file
+the same day, along with more of the load, ring and heading comments — so the
+note is gone by his hand, and the deletion stands.
+
+### F-homepage-12 · `comments-restate-docs` · three more comments the Design now duplicates — DONE
+
+F-3 wrote the Design FROM the page's comments, and F-6 trimmed five of them.
+Three it did not list were left carrying the Design's paragraphs word for
+word: the zero-rows block (fifteen lines: the invariant, the "whoever detects a
+condition" rule, the every-load argument), the keyboard-ring block (the way
+back, the open `<Menu>` — which is `Menu`'s own contract), and the modal block
+(add-to-this-list, the no-open/shut-state line, "what you made it for"). Plus
+F-9's kind one file over from where F-9 looked: the `creating` state's
+"(the pattern ClubPage uses for its two modals)" — a census of who else does
+this.
+
+**Worked 2026-09-13**, under F-6's ruling: each is its local decision and a
+pointer at `doc.md → Design`. Kept: the page raises the fault and fires it on
+every load; the ring is exactly one stop and the rest is out by omission; a
+modal so the list stays behind it, and success goes into the club. The
+`ClubPage` parenthetical is gone.
+
+### F-homepage-13 · `stale-claim` · "the muted line under the list" — DONE
+
+The failed-load comment said the failure is recorded "so the muted line under
+the list can say something true". The line is the frame's own no-rows line,
+inside the list container, not under it — F-7's kind of claim, one comment
+over from where F-7 looked.
+
+**Worked 2026-09-13.** "the no-rows line in the frame".
+
+### F-homepage-14 · `stale-claim` · the stylesheet says the wordmark "takes no className of its own" — DONE
+
+`HomePage.module.css`, the `.card > *:not(.clubsSection)` comment. The
+wordmark's `<img>` wears `styles.wordmark`; what is true is that the component
+accepts no `className` prop, which is why the page reaches it by child selector.
+
+**Worked 2026-09-13.** Reworded to the prop.
+
+### F-homepage-15 · `stale-docs` · four more sentences about the page, in the docs F-7 fixed — DONE
+
+- `docs/ui.md` → Selection lists, the same paragraph F-7 corrected: "The rows
+  stay ordinary links, so clicking is unchanged." A row is a plain `<div>`
+  (`SelectionList`'s own docstring says so — "not an anchor").
+- `docs/ui.md` → Player identity: the greeting is "the one place the disc says
+  *you*" — a census with no condition on it.
+- `docs/mobile.md` → The `.card` shell pages: 'a long username in the
+  "Welcome, …" heading' — the heading is "● name — welcome!"; and 'The home
+  "SOLO" pill is pinned to `white-space: nowrap`' — the `nowrap` is the shared
+  `.badge`'s, the label is "Solo", and it is not a pill.
+
+**Worked 2026-09-13**, in place: "Clicking a row is unchanged."; "where the
+disc says *you*"; the heading quoted as it renders; the badge sentence
+attributed to `.badge`.
+
+### F-homepage-16 · `roster-miss` · `e2e/faults.e2e.ts` drives this page and is `cs-unmet` — OPEN, Joel's call
+
+Found the way `simple-page`'s F-20 said to look: grepping `e2e/` for the
+page's heading text. Both tests in it sign in and land on `/`; the second —
+"an empty club list faults instead of claiming you joined none" — is THIS
+page's zero-rows fault end to end: it removes the member's memberships and
+asserts the fault text and the `rows=0` detail line, the same claim F-1's unit
+test pins. Its header says "This is about faults, not about the homepage", but
+no area has audited it: the stamp is `cs-unmet`, and it carries a "It used to
+select `button.primary`" story and a "There is no `key=` in it any more"
+clause, both archaeology.
+
+Options:
+
+1. **Add it to the roster** — stamp it `cs-audited-homepage`, audit it here
+   (the two archaeology comments, the header's claim about what it is about),
+   and it joins the four.
+2. **Leave it as evidence** — it is the faults host's e2e by its own account,
+   and its audit is `common-hosts`' to reopen.
+
+Recommend 1: `common-hosts` closed without it, so option 2 leaves it unmet
+with no area coming; and the test it holds is this page's behavior.
+
+**Worked 2026-09-13**, option 1 (Joel: "1"). Stamped `cs-audited-homepage`,
+staged, and read; what the read found is F-17 to F-19.
+
+### F-homepage-17 · `stale-claim` · the helper's docstring describes a × the fault modal does not have — DONE
+
+`closeButton`'s docstring: "not the panel's `×`, which carries the same
+accessible name, so a role query matches both. `.primary` is the shared global
+button class". A fault modal is a `BlockingModal`, which is a card, and a card
+draws no × — its own prop comment says "the fault's Close is the only exit it
+has". And `.primary` is a CSS-module class now, not a global one. The header
+below had its own rotted count: "the two tokens it paints with" — the
+stylesheet uses four, and the count was never the point; that they are the
+theme's, loaded at boot, is.
+
+**Worked 2026-09-13.** The docstring says what the handle IS — the Close
+button by role and accessible name, which `StandardButton` guarantees where a
+class name is hashed — and the header says the tokens are the theme's, loaded
+at boot rather than in a game's lazy chunk.
+
+### F-homepage-18 · `archaeology` · three stories, and a header that disowns half the file — DONE
+
+- The `//` comment stacked under the helper's docstring: "It used to select
+  `button.primary` — a global class that stopped existing when …".
+- The header: "This is about faults, not about the homepage; the homepage is
+  only where we happen to hit one" — true of the first test and not the
+  second, which is the homepage's own fault; and "A shell page has twice been
+  caught missing a stylesheet" — the incident, where the standing fact is the
+  sentence after it.
+- The second test: "There is no `key=` in it any more: a fault carries an
+  envelope's fields now".
+
+**Worked 2026-09-13.** The stacked comment is gone (its one standing sentence
+folded into the docstring); the header says which test is about what; the
+"twice been caught" clause is cut; "any more … now" is cut and the sentence
+says what a fault carries.
+
+### F-homepage-19 · `assertion-pinned-to-history` · the test asserts a sentence the app no longer has is absent — OPEN
+
+The second test's last lines: a comment telling the story of the sentence the
+no-rows line replaced — "You haven't joined a club yet." — and then
+`expect(page.getByText("You haven't joined a club yet.")).toHaveCount(0)`.
+That string appears nowhere in `src/` or `e2e/` outside this assertion, so it
+can only fail if someone types that exact sentence back in; the standing claim
+— behind the modal, the page's own line says what is true — is the assertion
+above it, on "No clubs found for your account."
+
+Options:
+
+1. **Cut the story and the absence assertion**, keeping the positive one; the
+   comment says the line states a fact about the database, not the person.
+2. **Cut the story only**, keeping the absence assertion as a tripwire.
+
+Recommend 1: F-8 is the same family — an assertion that cannot fail is not
+pinning anything — and the sentence it guards against is the story. Either
+option changes the e2e file; option 1 changes its code, so it gets a run first,
+on Joel's word.
+
+**Worked 2026-09-13**, option 1 (Joel: "do the first"). The story and the
+absence assertion are gone; the comment says the line states a fact about the
+database, not the person. Lint clean; the e2e not yet run — asked.
+
 ## Notes
 
-- **The greeting swaps text when the profile lands** — "Welcome!" becomes
+- ~~**The greeting swaps text when the profile lands** — "Welcome!" becomes
   "● joel — welcome!". One line either way, the disc is `0.7em` inside the
-  h1's line box, so nothing below moves. Not a reflow finding.
+  h1's line box, so nothing below moves. Not a reflow finding.~~ Harvested
+  into `doc.md`'s greeting paragraph at the re-read.
 - **The zero-rows fault writes its own `call` line** (`'GET /rest/v1/clubs'`,
   `status: 200`) rather than getting one from `readRows`, because `readRows`
   answered ok. Consistent with "whoever detects a condition writes its words".
@@ -250,7 +423,10 @@ as a property of the token rather than a fact about today's readers.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group (2026-09-13;
+      ten findings, all worked)
 - [x] the folder's `doc.md` Design written; its row off `DESIGNS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (nothing is owed; the greeting note was harvested into the Design)
+- [x] every file on the roster blessed, or its stamp says why not (2026-09-13,
+      Joel: "mark files in this area as blessed")

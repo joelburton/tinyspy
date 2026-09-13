@@ -421,6 +421,31 @@ helper that does not exist. Owed: `auth/todo.md` holds one Someday (the
 `todo.md` the hand-paired `{ text, diagnostics }`; five games' `todo.md` their
 own "Loading game…" paragraph where `<Loading>` is the word.
 
+**`homepage` is closed** (2026-09-13): five files `cs-blessed-homepage`,
+nineteen findings, all worked — nine from the reading and ten from the closing
+re-read. What changed the app: the page got the unit test it never had
+(thirteen tests, the three empty states, the zero-rows fault on every load and
+NOT on a failed read, the display order asked of the database, the modal and
+where success goes); the keyboard e2e's Space check got an assertion that can
+fail, where `toContain('/')` had matched every URL; and `e2e/faults.e2e.ts`,
+`cs-unmet` with no area coming for it, joined the roster because its second
+test is this page's zero-rows fault end to end — found by grepping `e2e/` for
+the page's heading text, which is now the way every opening looks. A Design
+written for `home`: one list and the button that adds to it, no lobby; the
+one-stop tab ring and its accepted cost; why an empty list means three things;
+why zero rows is the page's fault to raise and a failed read is not; solo clubs
+marked, not separated; the modal because the act is add-to-this-list; the disc
+leading the greeting. The docstring shrank to the page and its one prop, and
+eight comments to their local decision plus a pointer, five in the reading and
+three at the re-read — because the Design was written FROM the comments and
+then left in them. The closing re-read's own lesson: a commit message is not
+evidence that an edit landed — F-2's docstring cut was described in the commit
+and recorded as worked, and the diff had never touched it; F-4 was recorded as
+a move and had landed as a deletion. Stale claims fixed in place in `ui.md`
+and `mobile.md`: a `<ul>` and a `.frame` the page does not have, rows that
+"stay ordinary links", a "Welcome, …" heading, a "SOLO pill". Nothing owed:
+`home/todo.md` is empty.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -551,7 +576,7 @@ will list the other as a dependency whichever goes first.
 | 28 | `account` | `account` | **CLOSED 2026-09-12, blessed.** your own menu and profile editing. Fifteen findings; the summary is under "Where to start" |
 |    | **The pages** | | |
 | 29 | `simple-page` | `auth` · `loading` · `error-page` | **CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Twenty findings; the summary is under "Where to start" |
-| 30 | `homepage` | `home` | **OPEN 2026-09-13.** the landing page after login |
+| 30 | `homepage` | `home` | **CLOSED 2026-09-13, blessed.** the landing page after login: one list and the button that adds to it. Nineteen findings, all worked; the summary is under "Where to start". The roster took `e2e/faults.e2e.ts`, which no area had audited: grep `e2e/` by the page's heading text at every opening |
 | 31 | `club-page` | `club` | the club page; its `todo.md` carries what step 6 left |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
 |    | **The game shell** — needed by games and nothing else | | |

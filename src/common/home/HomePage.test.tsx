@@ -1,4 +1,4 @@
-// cs-audited-homepage
+// cs-blessed-homepage
 
 /**
  * WHAT THE PAGE SAYS WHILE IT DOESN'T KNOW YET, and what it says once it does.

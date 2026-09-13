@@ -1379,7 +1379,7 @@ after a click on blank page simply puts the cursor back. Native Tab only led
 away — onto the header menu, then out into the browser's URL bar.
 The accepted cost is that `+ New club` isn't keyboard-reachable from this page;
 an open `<Menu>` is unaffected, since it `stopPropagation()`s its own keys and
-Tab still closes it. The rows stay ordinary links, so clicking is unchanged.
+Tab still closes it. Clicking a row is unchanged.
 The solo club sorts first, and the cursor indexes one flattened display-ordered
 array — the rows render from that same array, so ring and row can't disagree.
 Clicking a row selects it too, for symmetry with ClubPage — though since every
@@ -1411,7 +1411,7 @@ Same principle, applied to components.
 
 ## Player identity = a colored disc
 
-A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PageHeaderPlayersStrip>` presence dots, the `<ChatButton>` unread fill, the `<ColorChoiceField>` swatches, the per-finder markers in the spellingbee / boggle `<WordList>`, and the HomePage greeting ("● joel — welcome!"), which is the one place the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
+A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PageHeaderPlayersStrip>` presence dots, the `<ChatButton>` unread fill, the `<ColorChoiceField>` swatches, the per-finder markers in the spellingbee / boggle `<WordList>`, and the HomePage greeting ("● joel — welcome!"), where the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
 **The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **edge ring** (`--member-NAME-edge-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in `core-css/fixed.css`). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. A feedback message about a person carries the member as its `actor`, and the pill draws the name-and-disc mention (`<DotActor>`) before the text.
 

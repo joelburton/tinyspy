@@ -55,7 +55,10 @@ goes straight into the new club, which is what you made it for.
 marker means "this is you" everywhere in the app, and home is where re-stating
 it earns its place: it is the last thing you see before entering a club, and
 inside a game the disc is how you find yourself on the board. So the name comes
-first and the greeting second.
+first and the greeting second. The name arrives with the profile, which can land
+after first paint, so the heading may swap from "Welcome!" to the disc and name;
+both are one line, and the disc is sized inside the h1's line box, so nothing
+below it moves.
 
 The clubs read is filtered by RLS to the caller's memberships, so the page
 sends no user id with it; solo clubs have only their owner as a member and

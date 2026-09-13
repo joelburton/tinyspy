@@ -1,4 +1,4 @@
-/* cs-audited-homepage */
+/* cs-blessed-homepage */
 
 /* The greeting — "● joel — welcome!". Flex so the identity disc sits on the
  * text's center line rather than its baseline; a disc hung off the baseline
@@ -38,8 +38,8 @@
  *
  * Everything above the clubs section is fixed furniture and must NOT absorb the
  * squeeze — the wordmark especially, which is a `width: 100%` <img> and would
- * simply get shorter (it takes no className of its own, hence the child
- * selector rather than a class on the component).
+ * simply get shorter (the component accepts no `className`, hence the child
+ * selector rather than a class on it).
  *
  * The pattern can't say this for us: "everything except the scroller" has to
  * name the scroller, and only the page knows which of its children that is. */

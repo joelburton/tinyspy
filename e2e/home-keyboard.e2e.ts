@@ -1,4 +1,4 @@
-// cs-audited-homepage
+// cs-blessed-homepage
 
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'

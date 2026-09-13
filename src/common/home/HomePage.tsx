@@ -1,4 +1,4 @@
-// cs-audited-homepage
+// cs-blessed-homepage
 
 import { useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -34,25 +34,12 @@ type Props = {
 }
 
 /**
- * The shell's `/` landing page.
+ * The shell's `/` landing page: the clubs you belong to, and the button that
+ * adds one. Why it is shaped this way — the one-stop tab ring, the three empty
+ * states, the zero-rows fault — is `doc.md`'s Design.
  *
- * Pure shell content: who you are, the clubs you belong to
- * (including your own solo space), and the button that creates a
- * new one — a modal over this page, so the list stays behind it.
- *
- * Solo clubs (handle = `=<username>`) are listed alongside
- * regular clubs, marked by a "Solo" BADGE on the row (the
- * shared `.badge` — a one-word label saying what KIND of thing
- * this is), and always sorted to the top. The user's solo club is
- * the default landing spot for play-alone, and being a regular
- * row in the clubs list makes it discoverable without learning
- * a separate UI shape.
- *
- * Clubs RLS does the visibility filtering: the
- * `.from('clubs').select` below returns only the clubs the
- * caller is a member of. Solo clubs have only their owner as a
- * member, so the same query naturally surfaces each user's own
- * solo space without an `eq('created_by', …)` filter.
+ * `session` — its user id scopes the realtime subscription. The clubs read
+ * itself sends no id: RLS filters it to the caller's memberships.
  */
 export function HomePage({ session }: Props) {
   const profile = useProfile()
@@ -63,15 +50,11 @@ export function HomePage({ session }: Props) {
   // first fetch answers; `failed` is a fetch that errored; `loaded` is an
   // answer we believe.
   const [load, setLoad] = useState<'loading' | 'loaded' | 'failed'>('loading')
-  // Is the create-club modal up? The dialog itself holds no such flag — it is
-  // mounted or it isn't (the pattern ClubPage uses for its two modals).
+  // Is the create-club modal up?
   const [creating, setCreating] = useState(false)
 
   // Load every club the caller is a member of (incl. their solo club), IN
   // DISPLAY ORDER: solo clubs first, then newest-first within each group.
-  // Postgres sorts false before true, so `is_solo` descending puts solo on
-  // top. The page renders what it is handed — there is one array and one
-  // order, and neither is re-derived here.
   //
   // Subscribed to MY clubs_members rows so the list stays live: when a
   // friend accepts an invite and I add them — or when I'm added to /
@@ -97,29 +80,19 @@ export function HomePage({ session }: Props) {
       )
       if (!mounted()) return
       // Nothing to do here: `readRows` raised the modal and wrote the `[db]`
-      // line (docs/envelopes.md). Record the failure so the muted line under
-      // the list can say something true.
+      // line (docs/envelopes.md). Record the failure so the no-rows line in
+      // the frame can say something true.
       if (result.type === 'not-ok') {
         setLoad('failed')
         return
       }
       setClubs(result.data)
       setLoad('loaded')
-      // ZERO ROWS is a fault, and it's ours to raise, because it is a site
-      // invariant the server has no opinion about: `common.claim_username`
-      // materializes a solo club atomically with the profile, so a signed-in
-      // user always has at least that one. An empty list means the solo club is
-      // gone from the database — the account is broken, and the app has one way
-      // to say broken (docs/ui.md → Faults: a blocking modal, not a pill).
-      //
-      // This is the general rule, not a special case: zero rows is a legitimate
-      // protocol answer, so only the caller can know it's impossible here — and
-      // whoever detects a condition writes its words.
-      //
-      // Fired on EVERY load, not once per mount. The list refetches on
-      // realtime membership events, so a persistent outage will re-fire —
-      // which is correct here: nothing about this state improves by being
-      // mentioned once.
+      // ZERO ROWS is a fault, and the page's own to raise: the server answered
+      // a well-formed query correctly, and "every account has a solo club" is
+      // the app's invariant, not the query's (doc.md → Design). Fired on every
+      // load, not once per mount — a refetch that finds the same breakage
+      // should say so again.
       if (result.data.length === 0) {
         showFaultModal({
           text: "Something's wrong with your account — you should always have at least your own solo club.",
@@ -136,15 +109,9 @@ export function HomePage({ session }: Props) {
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────
   // The cursor, the ring, Enter, and focus-on-arrival all live in
-  // <SelectionList> — docs/ui.md → Selection lists.
-  //
-  // What stays here is the page's half: this page's TAB RING is exactly one
-  // stop, the clubs list. Everything else — the header
-  // menu, "+ New club" — is unreachable by Tab because it simply isn't in the
-  // ring, not because anything was marked unfocusable. The ring is also the way
-  // BACK: click any blank part of the page and the list blurs, and without it
-  // there would be no key left that could return the keyboard. An open <Menu>
-  // is unaffected — it stopPropagation()s its own keys, so Tab still closes it.
+  // <SelectionList> — docs/ui.md → Selection lists. The page's half is its TAB
+  // RING: exactly one stop, the clubs list, so the header menu and "+ New club"
+  // are out of it by omission, not because anything was marked unfocusable.
   const clubsRef = useRef<HTMLDivElement>(null)
   useTabRing([clubsRef])
 
@@ -180,10 +147,7 @@ export function HomePage({ session }: Props) {
 
         <section className={styles.clubsSection}>
           {/* The shared `.heading-with-controls` (docs/ui.md). Creating a club
-              is the uncommon path, hence the `quiet` tone.
-
-              The `+` is a typed character, not a glyph: `icon` is available and
-              deliberately unused, because a plus sign IS the label here. */}
+              is the uncommon path, hence the `quiet` tone. */}
           <header className="heading-with-controls">
             <h3>Your clubs</h3>
             <StandardButton
@@ -200,10 +164,7 @@ export function HomePage({ session }: Props) {
             items={clubs}
             rowKey={(c) => c.handle}
             label="Your clubs"
-            // Arrows work on arrival, without a first Tab — which is just as
-            // well, since Tab only cycles this page's ring (useTabRing). An
-            // empty list never takes focus, so this stays inert until the clubs
-            // land.
+            // Arrows work on arrival, without a first Tab
             autoFocus
             onActivate={(c) => navigate(clubPath(c.handle))}
             // No-rows states go inside the frame (docs/ui.md → Selection
@@ -225,10 +186,7 @@ export function HomePage({ session }: Props) {
           />
         </section>
       </div>
-      {/* Creating a club is a modal, not a page: the clubs list stays behind
-          it, because the act is ADD TO THIS LIST. Mounting opens it and
-          unmounting closes it — the modal holds no open/shut state of its own.
-          On success we go into the new club, which is what you made it for. */}
+      {/* A modal. On success we go into the new club. */}
       {creating && (
         <CreateClubModal
           onCreated={(handle) => navigate(clubPath(handle))}

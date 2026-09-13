@@ -1,31 +1,25 @@
-// cs-unmet
+// cs-blessed-homepage
 
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, removeAllClubMemberships } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The modal's Close BUTTON — not the panel's `×`, which carries the same
- * accessible name, so a role query matches both. `.primary` is the shared
- * global button class (patterns/button.css); the panel's × has none.
+ * The fault modal's Close button, by role and accessible name — the handle
+ * `<StandardButton>` guarantees, where a class name is hashed at build time.
  */
-// By ROLE + NAME, not by class. It used to select `button.primary` — a global
-// class that stopped existing when the button became a component and its
-// treatment moved into a CSS module (hashed at build time). The accessible name
-// is the stable handle, and it is what `<StandardButton name>` guarantees.
 const closeButton = (page: Page) => page.getByRole('button', { name: 'Close', exact: true })
 
 /**
  * The fault MODAL, in a real browser — that a fault raised anywhere in the app
  * actually reaches the screen.
  *
- * This is about faults, not about the homepage; the homepage is only where we
- * happen to hit one. Everything about the
- * wiring reads as fine — `<FaultModal>` is mounted in App.tsx outside the
- * route switch, and the two tokens it paints with live in the eagerly-loaded
- * theme rather than a lazy chunk — but "reads as fine" is precisely what a
- * silent CSS or mounting failure also looks like. A shell page has twice been
- * caught missing a stylesheet the game pages load, and an undefined custom
+ * The first test is about the host and lands on the homepage only because it
+ * is the page after sign-in; the second is the homepage's own fault. Everything
+ * about the wiring reads as fine — `<FaultModal>` is mounted in App.tsx outside
+ * the route switch, and the tokens it paints with are the theme's, loaded at
+ * boot rather than in a game's lazy chunk — but "reads as fine" is precisely
+ * what a silent CSS or mounting failure also looks like: an undefined custom
  * property invalidates its whole declaration without a word.
  *
  * So the check is a browser, and only a browser can make it.
@@ -89,21 +83,19 @@ test('faults: an empty club list faults instead of claiming you joined none', as
   await expect(page.getByText(/you should always have at least your own solo club/)).toBeVisible(
     { timeout: 15000 },
   )
-  // The diagnostics line, which is what says WHICH fault this is. There is no
-  // `key=` in it any more: a fault carries an envelope's fields now, and this
-  // one is authored by the frontend (`HomePage`), so it has no dbcode to show —
-  // `detail` is the field that names the condition. Asserting on it rather than
-  // on `severity=fault` keeps this test pinned to THIS fault instead of to any.
+  // The diagnostics line, which is what says WHICH fault this is. A fault
+  // carries an envelope's fields, and this one is authored by the frontend
+  // (`HomePage`), so it has no dbcode to show — `detail` is the field that
+  // names the condition. Asserting on it rather than on `severity=fault` keeps
+  // this test pinned to THIS fault instead of to any.
   await expect(
     page.getByText(/detail="rows=0; every profile has a solo club"/),
   ).toBeVisible()
 
-  // And behind the modal, the page says something TRUE. The sentence this
-  // replaced — "You haven't joined a club yet." — was the finding: it stated a
-  // fact about the person when the fact was about the database.
+  // And behind the modal, the page's own line says what is TRUE — a fact about
+  // the database, not about the person.
   await closeButton(page).click()
   await expect(page.getByText('No clubs found for your account.')).toBeVisible()
-  await expect(page.getByText("You haven't joined a club yet.")).toHaveCount(0)
 
   await ctx.close()
 })

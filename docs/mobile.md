@@ -321,7 +321,7 @@ render inside the global `.card` (in [`utilities.css`](../src/common/core-css/ut
 made them phone-safe:
 
 - **`overflow-wrap: anywhere` on `.card`.** Long *unbreakable* tokens — a long
-  username in the "Welcome, …" heading, an email, a solo club's `=handle` — have
+  username in the "● name — welcome!" heading, an email, a solo club's `=handle` — have
   no break opportunity, so they set the card's max-content width and push it past
   a narrow viewport. Allowing a break inside such tokens keeps the card within
   the screen. It only bites words that genuinely can't fit the line, so normal
@@ -330,8 +330,8 @@ made them phone-safe:
   mobile-only patch.
 - **Trimmed card padding on mobile** (`2rem` → `1.5rem`/`1.25rem` below the
   breakpoint) so a narrow screen isn't eaten by padding.
-- The home "SOLO" pill is pinned to `white-space: nowrap` so the new card-level
-  wrap can't split its label into "SOL / O".
+- The shared `.badge` (home's "Solo") is `white-space: nowrap`, so the
+  card-level wrap can't split its label into "Sol / o".
 
 ### Breakpoint system + phone-only page padding
 
