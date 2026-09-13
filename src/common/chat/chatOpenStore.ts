@@ -41,8 +41,9 @@ function getSnapshot(): boolean {
   return value
 }
 
-/** Read-only accessor for code that needs the current value but
- *  doesn't want to subscribe (e.g. inside a click handler). */
+/** The current value without subscribing. This is a seam for TESTS, which need
+ *  the flag where there is no component to render — a store's own test, or one
+ *  whose subject is a keystroke. In the app, read it with `useChatOpen()`. */
 export function getChatOpen(): boolean {
   return value
 }

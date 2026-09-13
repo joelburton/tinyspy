@@ -35,7 +35,9 @@ export function setScratchpadOpen(next: boolean): void {
   emit()
 }
 
-/** Non-subscribing read. */
+/** The current value without subscribing. This is a seam for TESTS, which need
+ *  the flag where there is no component to render. In the app, read it with
+ *  `useScratchpadOpen()` — same split as `chatOpenStore`. */
 export function getScratchpadOpen(): boolean {
   return open
 }

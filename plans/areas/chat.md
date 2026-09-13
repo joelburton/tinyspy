@@ -5,9 +5,10 @@ The folders it reads: `chat`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, fifteen files `cs-audited-chat`. Twelve
-findings: eleven worked (F-1 to F-8 in the prose pass, then F-11, F-9 and F-10
-after Joel's decisions), one open and waiting on a decision (F-12). The
-`doc.md` Design is written and the row is off `DESIGNS_OWED`.**
+findings: all twelve worked — F-1 to F-8 in the prose pass, then F-11, F-9,
+F-10 and F-12 on Joel's decisions. The `doc.md` Design is written and the row
+is off `DESIGNS_OWED`. What is left is the closing: the whole-area re-read, and
+the blessing, which is Joel's.**
 
 ## The roster
 
@@ -214,13 +215,27 @@ its `vi.mock('./useClubChat')` and drives the stream as rerender props;
 already). The third shape was declined as generality for callers that don't
 exist.
 
-### F-chat-12 · getChatOpen-no-caller · a production export only a test calls
+### WORKED · F-chat-12 · getChatOpen-no-caller · a production export only tests call
 
-`getChatOpen()` — "for code that needs the current value but doesn't want to
-subscribe (e.g. inside a click handler)" — has no such caller; only
-`AppActionsHost.test.tsx` reads it, as a handle on the store. Either the test
-reads through the hook and the export goes, or it stays as the test's handle
-with a docstring that says so. Small, and still open.
+`getChatOpen()` claimed to be "for code that needs the current value but doesn't
+want to subscribe (e.g. inside a click handler)" and had no such caller — the
+one click handler that reads the flag, `ChatButton`, already holds `open` from
+the hook for its `aria-pressed`. Its real readers are `chatOpenStore.test.ts`
+and `AppActionsHost.test.tsx`, where it is the only way to see what `/` did,
+since the host renders nothing for chat.
+
+The two shapes: delete it and have both tests observe through `useChatOpen()` in
+a `renderHook`, or keep it and let the docstring say it is a test seam. **Joel
+chose the second** — a store with no component in it is exactly what a test
+needs a plain reader for, the same call the repo already made for `aria-label`
+as a test handle. The docstring names the CONDITION rather than the callers, so
+it cannot rot as tests come and go.
+
+`scratchpad/scratchpadOpenStore.ts`'s `getScratchpadOpen` sat in the identical
+position — "Non-subscribing read", no production caller, read only by
+`ScratchpadButton.test.tsx` — and **Joel took the same answer for it in the same
+pass**, so the two panels do not drift further apart than their storage
+encodings already have them (`chat/todo.md`'s Maybe item).
 
 ## Notes
 
@@ -228,16 +243,17 @@ with a docstring that says so. Small, and still open.
   but the presentational part — the badge, the glyph fill, the colors — stays
   with `ChatButton`. Today's split is already that shape, with one leak: what
   `chatUnread` publishes is a CSS color string, so chat decides how the strip
-  paints. To take up when the audit reads `chatUnread.ts`: the store should
-  carry a fact (the count and the latest unread sender), and the button should
-  turn a sender into a fill. `ChatButton` stays evidence either way.
+  paints. Taken up as F-chat-10, which is where the shape and the outcome are.
+  `ChatButton` stayed evidence, and gained the test file it lacked.
 
 ## Predicted test breaks
 
-None from the prose pass; `chatOpenStore.test.ts` and `useClubChat.test.ts`
-were rewritten on purpose and pass. F-chat-11 broke nothing either:
-`useChatFeedback.test.tsx` was rewritten to drive the stream as props (it now
-mocks nothing), and the whole unit suite is green.
+None, at any point. `chatOpenStore.test.ts` and `useClubChat.test.ts` were
+rewritten on purpose in the prose pass; F-chat-11 rewrote
+`useChatFeedback.test.tsx` to drive the stream as props (it now mocks nothing);
+F-chat-10 moved one assertion out of `chatUnread.test.ts` into the new
+`ChatButton.test.tsx` and renamed the field in the rest. The suite is green
+after each.
 
 ## Closing
 
