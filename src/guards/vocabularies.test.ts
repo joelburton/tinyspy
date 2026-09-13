@@ -171,7 +171,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
       'src/common/turn-log/TurnLog.module.css': ['3px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '4px'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['6px'],
     },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
@@ -312,7 +311,6 @@ const VOCABULARIES: Vocabulary[] = [
       // a tuned surface and out of this vocabulary's scope, so the row cannot
       // stay; the two literals are connections's to keep or convert.
       'src/common/devtools/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.4rem', '0.5rem'],
       // DECIDED and staying: the trigger's logo-to-chevron gap and the credit
       // line's leading are both "these two are one thing", which the ramp's
       // smallest step (0.25rem) is too big to say. Both carry the reason in
@@ -377,7 +375,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
       'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['0.85rem', '0.9rem', 'max(16px,', '1em)'],
+      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['max(16px,', '1em)'],
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
       'src/common/core-css/patterns/badge.css': ['0.7rem'],
       'src/common/buttons/Segmented.module.css': ['0.8rem'],
@@ -413,7 +411,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/game-page/PlayArea.module.css': ['1.1'],
       'src/shared/rank-ladder/Stats.module.css': ['1.2'],
       'src/common/devtools/PalettePage.module.css': ['1.35'],
-      'src/common/scratchpad/GameScratchpadCompanion.module.css': ['1.5'],
       'src/common/core-css/patterns/badge.css': ['1.4'],
     },
     fix:

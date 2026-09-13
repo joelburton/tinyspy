@@ -59,36 +59,35 @@ export function GameScratchpadCompanion({ gameId, ownerId, myId, username, membe
       persistKey={`puzpuzpuz:scratchpad:${gameId}`}
       defaultPosition="center"
       defaultSize={{ width: 320, height: 360 }}
-      minWidth={240}
+      // The floor is what the body needs: the titlebar, the status line and a
+      // few lines of notes.
       minHeight={200}
     >
-      <div className={styles.notepad}>
-        <div className={styles.lockBar}>
-          <span>{status}</span>
-          {sp.canTakeOver && (
-            <StandardButton
-              small
-              show="label"
-              weight="secondary"
-              tone="quiet"
-              label="Take over"
-              onClick={sp.takeOver}
-            />
-          )}
-        </div>
-        <textarea
-          className={styles.textarea}
-          value={sp.body}
-          onChange={(e) => sp.setBody(e.target.value)}
-          // Tab hands the keyboard back to the game rather than walking out of
-          // the panel — same contract as the chat box. Shift+Tab stays native.
-          onKeyDown={handOffKeyboardOnTab}
-          readOnly={!sp.canEdit}
-          maxLength={10000}
-          placeholder={shared ? 'Shared notes…' : 'Your private notes…'}
-          aria-label="Scratchpad"
-        />
+      <div className={styles.lockBar}>
+        <span>{status}</span>
+        {sp.canTakeOver && (
+          <StandardButton
+            small
+            show="label"
+            weight="secondary"
+            tone="quiet"
+            label="Take over"
+            onClick={sp.takeOver}
+          />
+        )}
       </div>
+      <textarea
+        className={styles.textarea}
+        value={sp.body}
+        onChange={(e) => sp.setBody(e.target.value)}
+        // Tab hands the keyboard back to the game rather than walking out of
+        // the panel — same contract as the chat box. Shift+Tab stays native.
+        onKeyDown={handOffKeyboardOnTab}
+        readOnly={!sp.canEdit}
+        maxLength={10000}
+        placeholder={shared ? 'Shared notes…' : 'Your private notes…'}
+        aria-label="Scratchpad"
+      />
     </Companion>
   )
 }

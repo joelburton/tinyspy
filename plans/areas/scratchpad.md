@@ -5,9 +5,9 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 and F-9 worked on Joel's decisions, F-13 closed by
-F-9's; the prose ones (F-1 to F-6) are next as one group, then the remaining
-decisions one at a time.**
+Sixteen findings: F-7, F-8 and F-9 worked on Joel's decisions, F-13 closed
+by F-9's; the prose ones (F-1 to F-6) are next as one group, then the
+remaining decisions one at a time.**
 
 ## The roster
 
@@ -168,7 +168,22 @@ Either of 1–2 deletes the ui.md paragraph, drops the `0.8rem` row from the
 vocabulary guard, and re-words crosswords.md's line 620 (its own control is
 then the only hand-rolled one).
 
-### F-scratchpad-8 · `vocabulary` · the stylesheet has five exempt rows in the guard
+### WORKED · F-scratchpad-8 · `vocabulary` · the stylesheet has five exempt rows in the guard
+
+**WORKED 2026-09-12.** Joel: the wrapper is mine to decide but it must add no
+padding — the pad ends up with chat's visual padding; the textarea takes
+`--font-size-2`; and the monospace face is DECIDED, a notepad is monospace.
+The wrapper went: the shell's content column already pads, stacks, gaps and
+fills a panel's parts (its stylesheet names this textarea as a case for
+`.contentFills`), so the status bar and the textarea are the panel's two
+parts and the margins are chat's by construction. `6px` went rather than
+converted — the element rule already gives a field `--radius-md`; the rest
+took `--spacer-4`, `--font-size-2`, `--line-height-1`. Four guard rows off;
+`max(16px, 1em)` stays. The touch comment now names `base.css`, where the
+floor lives (it said `theme.css`). The redundant `minWidth={240}` went and
+`minHeight={200}` got the floating-panels rule's sentence. `todo.md`'s
+Someday item is deleted and `setup-form/todo.md` no longer lists the
+scratchpad among the unexamined mono faces.
 
 `GameScratchpadCompanion.module.css` is in `vocabularies.test.ts` five times:
 radius `6px` (→ `--radius-md`, twice), spacing `0.4rem` / `0.5rem` (the
@@ -341,10 +356,9 @@ not have. No decision — waiting.
   none of them.
 - **The compete pad has no lock**, and the hook says so in one clause; the
   `shared` guards are where that is enforced. Read and fine.
-- **The `minWidth={240}`** the companion passes is the shell's own default;
-  `minHeight={200}` is a number nothing explains. Folded into F-scratchpad-8's
-  edit as a tidy: the first goes, the second gets the floating-panels rule's
-  sentence — the floor is what the body needs — or goes too.
+- **The `minWidth={240}`** the companion passed was the shell's own default;
+  `minHeight={200}` was a number nothing explained. Done with F-scratchpad-8:
+  the first went, the second carries the floating-panels rule's sentence.
 
 ## Predicted test breaks
 
