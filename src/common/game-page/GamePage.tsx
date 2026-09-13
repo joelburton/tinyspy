@@ -617,7 +617,6 @@ function GamePageInner({
               : null
           }
           myId={session.user.id}
-          username={players.find((p) => p.user_id === session.user.id)?.username ?? 'You'}
           members={clubMembers}
         />
       )}

@@ -5,8 +5,8 @@ The folders it reads: `scratchpad`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-12, seven files `cs-audited-scratchpad`.
-Sixteen findings: F-7 to F-12 worked on Joel's decisions, F-13 closed by
-F-9's; the prose ones (F-1 to F-6) are next as one group, then the
+Sixteen findings: F-7 to F-12 and F-15 worked on Joel's decisions, F-13
+closed by F-9's; the prose ones (F-1 to F-6) are next as one group, then the
 remaining decisions one at a time.**
 
 ## The roster
@@ -340,7 +340,15 @@ row at a higher version, lands in my textarea the same way the CDC event
 would have. The same one-line guard, for the same reason; the test that pins
 the CDC guard gains a sibling. No decision in it — waiting to be done.
 
-### F-scratchpad-15 · `username-default` · `GamePage` hands the pad `?? 'You'` as the name it broadcasts
+### WORKED · F-scratchpad-15 · `username-default` · `GamePage` hands the pad `?? 'You'` as the name it broadcasts
+
+**WORKED 2026-09-12 — Joel took the recommendation (1)** after asking who is
+shown when the claim has no name: every screen names the holder from the
+club roster it already holds, by user id. So the claim carries the id and
+nothing else; `username` left the hook's signature, the holder type, both
+payloads and the companion's props, and the GamePage line went with it.
+`editingBy` is now the holder's user id. A roster miss — a member who left
+the club mid-game — is the actor mark's own "someone".
 
 `username={players.find((p) => p.user_id === session.user.id)?.username ?? 'You'}`
 in `GamePage.tsx`. The name is what PEERS see in "… is editing" when I hold

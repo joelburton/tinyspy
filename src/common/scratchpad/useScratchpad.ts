@@ -17,10 +17,10 @@ const GRACE_MS = 1500 // can't steal the lock within this of the holder's last a
 const STALE_MS = 4000 // a holder silent this long is treated as gone
 
 /** Who currently holds the shared-pad edit lock (from Broadcast). */
-type Holder = { userId: string; username: string; at: number }
+type Holder = { userId: string; at: number }
 
 type LockEvent =
-  | { type: 'claim'; userId: string; username: string; at: number }
+  | { type: 'claim'; userId: string; at: number }
   | { type: 'release'; userId: string }
 
 export type ScratchpadApi = {
@@ -30,10 +30,9 @@ export type ScratchpadApi = {
   /** Whether the local user may type right now (private pad, or they hold the
    *  shared lock / it's free). */
   canEdit: boolean
-  /** The OTHER player currently editing the shared pad, or null. The name is
-   *  the one their claim carried, so a caller has it even when its roster
-   *  does not know the id. */
-  editingBy: { userId: string; username: string } | null
+  /** The user id of the OTHER player currently editing the shared pad, or
+   *  null. The caller names them from its roster. */
+  editingBy: string | null
   /** Whether the local user can claim the lock from a stale/idle holder. */
   canTakeOver: boolean
   takeOver: () => void
@@ -60,7 +59,6 @@ export function useScratchpad(
   gameId: string,
   ownerId: string | null,
   myId: string,
-  username: string,
 ): ScratchpadApi {
   const shared = ownerId === null
   const [body, setBodyState] = useState('')
@@ -148,7 +146,7 @@ export function useScratchpad(
           const ev = payload as LockEvent
           if (ev.userId === myId) return // ignore our own echo
           if (ev.type === 'claim') {
-            setHolder({ userId: ev.userId, username: ev.username, at: ev.at })
+            setHolder({ userId: ev.userId, at: ev.at })
           } else {
             setHolder((h) => (h && h.userId === ev.userId ? null : h))
           }
@@ -219,8 +217,8 @@ export function useScratchpad(
         if (!ch) return
         if (Date.now() - lastEditRef.current < HOLD_WINDOW_MS) {
           const at = Date.now()
-          setHolder({ userId: myId, username, at })
-          ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, username, at } })
+          setHolder({ userId: myId, at })
+          ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, at } })
         } else {
           setHolder(null)
           ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'release', userId: myId } })
@@ -228,7 +226,7 @@ export function useScratchpad(
       }, HEARTBEAT_MS)
       return () => clearInterval(t)
     },
-    [iHold, myId, username],
+    [iHold, myId],
   )
 
   const flush = useCallback(
@@ -259,14 +257,14 @@ export function useScratchpad(
   const claim = useCallback(() => {
     const ch = channelRef.current
     const at = Date.now()
-    setHolder({ userId: myId, username, at })
-    ch?.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, username, at } })
-  }, [myId, username])
+    setHolder({ userId: myId, at })
+    ch?.send({ type: 'broadcast', event: 'lock', payload: { type: 'claim', userId: myId, at } })
+  }, [myId])
 
   // Derived lock view.
   const foreign =
     shared && holder && holder.userId !== myId && nowTick - holder.at < STALE_MS ? holder : null
-  const editingBy = foreign ? { userId: foreign.userId, username: foreign.username } : null
+  const editingBy = foreign ? foreign.userId : null
   const canEdit = !shared || editingBy === null
   const canTakeOver = foreign !== null && nowTick - foreign.at > GRACE_MS
 

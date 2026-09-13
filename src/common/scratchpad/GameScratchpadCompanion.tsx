@@ -15,9 +15,7 @@ type Props = {
   /** null = the shared coop pad; a user id = that player's private compete pad. */
   ownerId: string | null
   myId: string
-  username: string
-  // The club roster, so the player holding the shared lock draws as their
-  // name and disc.
+  // The club roster, which names the player holding the shared lock.
   members: Member[]
 }
 
@@ -30,20 +28,18 @@ type Props = {
  * The hook runs even while the panel is closed (background body sync + lock),
  * mirroring how chat keeps syncing when collapsed.
  */
-export function GameScratchpadCompanion({ gameId, ownerId, myId, username, members }: Props) {
+export function GameScratchpadCompanion({ gameId, ownerId, myId, members }: Props) {
   const open = useIsScratchpadOpen()
-  const sp = useScratchpad(gameId, ownerId, myId, username)
+  const sp = useScratchpad(gameId, ownerId, myId)
 
   if (!open) return null
 
   const shared = ownerId === null
   const status = sp.editingBy ? (
     <span className={styles.editing}>
-      <DotActor
-        actor={memberById(members, sp.editingBy.userId)}
-        fallback={sp.editingBy.username}
-        show="both"
-      />{' '}
+      {/* A miss is a member who left the club mid-game: the mark's own
+          "someone". */}
+      <DotActor actor={memberById(members, sp.editingBy)} show="both" />{' '}
       is editing…
     </span>
   ) : shared ? (
