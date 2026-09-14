@@ -66,6 +66,7 @@
 /* @@ */ .selected {
   box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
   transform: translateY(-2px);
+  border: solid 2px black;
 }
 
 /* A selected card keeps its ring under the pointer; only the fill moves. */
