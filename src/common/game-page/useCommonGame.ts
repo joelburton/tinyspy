@@ -150,7 +150,6 @@ type SetAnswer = { result: 'set' } | null
  *   - `commonGame` — the common.games row, or null while loading
  *   - `players` — common.game_players ⨯ profiles
  *   - `paused` — union of presence-pause + manual-pause
- *   - `missing` — players whose presence isn't tracked
  *   - `manuallyPausedBy` — the member who clicked Pause (null
  *     if the pause is presence-only)
  *   - `sendManualPause` / `sendManualUnpause` — broadcast senders
@@ -175,7 +174,6 @@ export function useCommonGame(
    *  members (present ones filled, absent ones a hollow ring). */
   activePlayers: GamePlayer[]
   paused: boolean
-  missing: Member[]
   /** User ids currently on the game's realtime channel. Paired with
    *  `activePlayers` to tell present (filled dot) from absent (hollow
    *  gray ring) in the pause overlay — same present/away split the
@@ -677,10 +675,9 @@ export function useCommonGame(
   // not-yet-joined players stay counted — that presence-pause IS
   // deliberate; only a real concede removes someone.
   const activePlayers = players.filter((p) => !p.conceded)
-  const { paused: presencePaused, missing } = computePause(
-    presentUserIds,
-    activePlayers,
-  )
+  // `computePause` also answers WHO is absent; the overlay derives that
+  // itself from `activePlayers` + `presentUserIds`, so only the flag is taken.
+  const { paused: presencePaused } = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
     ? players.find((m) => m.user_id === manuallyPausedById) ??
       // The pauser can be a club member spectating (on the game page without
@@ -720,7 +717,6 @@ export function useCommonGame(
     players,
     activePlayers,
     paused,
-    missing,
     presentUserIds,
     manuallyPausedBy,
     sendManualPause,

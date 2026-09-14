@@ -6,7 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-game-page`,
 eighteen files. Eleven findings recorded: a prose group (F-1 to F-6) and a
-decision group (F-7 to F-11). None worked. The folder's `todo.md` carries seven
+decision group (F-7 to F-11). F-7 worked; the rest open, and the prose group is
+still owed. The folder's `todo.md` carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
 decision this area makes with its files open.
 
@@ -195,15 +196,33 @@ info-sheet recipe", "Tap feedback", "The z- layers", "Below-board structure").
 
 ### The decision group — each waits for Joel
 
-### F-game-page-7 · `missing-unread` · `useCommonGame` returns `missing`, and nothing reads it
+### F-game-page-7 · `missing-unread` · `useCommonGame` returned `missing`, and nothing read it — WORKED (option 1)
 
-`computePause` answers `{ paused, missing }`; the hook returns both. `GamePage`
-destructures neither `missing` nor anything that would use it — `PauseBoundary`
+`computePause` answers `{ paused, missing }`; the hook returned both. `GamePage`
+destructured neither `missing` nor anything that would use it — `PauseBoundary`
 takes `expected` + `presentUserIds` and works out the absent set itself. The
-only reader is the hook's test.
+only readers were the hook's test and a `GamePage.test.tsx` fixture line.
 
-Options: (1) drop `missing` from the return and the docstring; (2) hand it to
-`PauseBoundary` and have the overlay stop recomputing it; (3) leave it.
+Options were: (1) drop `missing` from the return and the docstring; (2) hand it
+to `PauseBoundary` and have the overlay stop recomputing it; (3) leave it.
+
+**Joel took 1** (2026-09-14). Option 2 was oversold in the audit: `PauseOverlay`
+consumes no missing *list* — it derives a boolean and then renders the WHOLE
+roster, splitting present from absent per row, which is a deliberate design
+("lists the WHOLE expected team, not just the missing"). Passing `missing` down
+would have replaced one `.some()` and added a third presence prop.
+
+Gone: the return field, the return-type member, the `Returns:` docstring bullet,
+the three test assertions and the fixture line. `computePause` still answers
+`missing` — `paused` is derived from it. The destructure carries a comment
+saying why only the flag is taken. The concede test's dropped assertion was the
+only thing proving cara leaves the watched roster, so it was replaced with the
+`activePlayers` assertion that says it directly.
+
+**Knock-on for `pause-suspend`, not worked:** `computePause`'s `missing` now has
+no production reader either — `pause.test.ts` alone. Unlike the hook's, it is a
+byproduct the function needs internally, so it is not obviously dead. That is
+`pause-suspend`'s call when its area opens.
 
 ### F-game-page-8 · `dim-game-over-kept` · `.dimGameOver` has no user and says it is "the alternative, kept"
 
@@ -289,7 +308,8 @@ ownership is `feedback`'s; the page is the one not wearing
 ## Predicted test breaks
 
 - F-1 to F-6: prose only; F-1 moves a row out of `INTROS_OWED`.
-- F-7 option 1: `useCommonGame.test.ts` asserts `missing` in three cases.
+- F-7 option 1 (worked): three `useCommonGame.test.ts` assertions, plus one the
+  prediction missed — `GamePage.test.tsx`'s hook fixture sets `missing: []`.
 - F-8 option 1: none — no test names the class.
 - F-9 option 1: `bananagrams-block.e2e.ts` clicks the card's Back-to-club (not
   run — ASK first); `bananagrams` PlayArea tests may mount the block.

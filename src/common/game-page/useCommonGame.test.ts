@@ -318,7 +318,6 @@ describe('useCommonGame — paused unification', () => {
     act(() => firePresenceSync())
 
     expect(result.current.paused).toBe(false)
-    expect(result.current.missing).toEqual([])
   })
 
   it('paused is true (presence) when a peer is missing', async () => {
@@ -332,7 +331,6 @@ describe('useCommonGame — paused unification', () => {
     act(() => firePresenceSync())
 
     expect(result.current.paused).toBe(true)
-    expect(result.current.missing.map((m) => m.user_id)).toEqual(['bea'])
     expect(result.current.manuallyPausedBy).toBeNull()
   })
 
@@ -351,7 +349,9 @@ describe('useCommonGame — paused unification', () => {
     act(() => firePresenceSync())
 
     expect(result.current.paused).toBe(false)
-    expect(result.current.missing).toEqual([])
+    // The roster the pause watches is where cara's absence stops mattering:
+    // she is off it, so nobody is waiting on her.
+    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {

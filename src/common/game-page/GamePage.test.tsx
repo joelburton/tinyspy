@@ -127,7 +127,6 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
     players,
     activePlayers: players,
     paused,
-    missing: [],
     presentUserIds: new Set(players.map((p) => p.user_id)),
     manuallyPausedBy: null,
     sendManualPause: vi.fn(),
