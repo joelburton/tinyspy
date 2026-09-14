@@ -2,7 +2,8 @@
 
 import { useCallback, useState, type RefObject } from 'react'
 import { navigate } from '../routing/router'
-import { gametypes } from '@/gametypes'
+import { manifestFor } from '@/gametypes'
+import { showFaultModal } from '../faults/faultStore'
 import type { GameManifest } from '../manifest/gameManifest'
 
 /**
@@ -34,23 +35,30 @@ export function useSetupDialog(startListRef: RefObject<HTMLDivElement | null>) {
   // re-opening the dialog.
   const [requestConsumed, setRequestConsumed] = useState(false)
 
+  // What `?new=` asked for. `ClubPageLoader` has already ended the route in an
+  // error page if the value named no game OR named one this club does not play,
+  // so by the time this hook runs the intent is startable or absent.
+  const requested = requestedGametype ? (manifestFor(requestedGametype) ?? null) : null
+
   // A press wins; otherwise the `?new=` intent until it is consumed. DERIVED at
   // render rather than pushed into state by an effect (the repo bans
   // setState-in-effect); both setters run in the dialog's own handlers.
-  //
-  // An unknown gametype resolves to null and the dialog simply does not open —
-  // the same forward-compat posture the start list takes, since `?new=` can
-  // name a game this bundle does not have.
-  const manifest =
-    pressed ??
-    (requestConsumed
-      ? null
-      : (gametypes.find((g) => g.gametype === requestedGametype) ?? null))
+  const manifest = pressed ?? (requestConsumed ? null : requested)
 
-  // Open it on a gametype, from a start row's press. Unknown gametype: no-op.
+  // Open it on a gametype, from a start row's press.
   const open = useCallback((gametype: string) => {
-    const game = gametypes.find((g) => g.gametype === gametype)
-    if (!game) return
+    const game = manifestFor(gametype)
+    if (!game) {
+      // Unreachable: the start list calls this with the gametype off a manifest
+      // it is already holding (`onActivate={(g) => …(g.gametype)}`). It screams
+      // rather than returning quietly, because quiet here is a press that does
+      // nothing and says nothing.
+      showFaultModal({
+        text: "Something went wrong opening that game's setup.",
+        diagnostics: `BUG: no manifest for gametype ${gametype} at setup open`,
+      })
+      return
+    }
     setPressed(game)
   }, [])
 

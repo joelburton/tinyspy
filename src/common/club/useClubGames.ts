@@ -6,7 +6,8 @@ import { readRows } from '../supabase/dbResult'
 import { supabase } from '../supabase/supabase'
 import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
-import { gametypes } from '@/gametypes'
+import { manifestFor } from '@/gametypes'
+import { reportUnknownGametypes } from '../manifest/unknownGametype'
 import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
@@ -79,9 +80,10 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       const myGen = ++generation
       // One read into common.games: everything a label needs is on the
       // row, so each row's label is the matching manifest's pure
-      // `labelFor`. A gametype this FE's registry doesn't have is
-      // silently skipped — the same forward-compat posture the start
-      // list takes.
+      // `labelFor`. A gametype this bundle's registry doesn't have is skipped
+      // and then REPORTED — see `reportUnknownGametypes`; it means this tab
+      // predates a deploy, and the list it draws is quietly short until the
+      // player reloads.
       const res = await readRows(
         commonDb
           .from('games')
@@ -119,10 +121,16 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       const rows = res.data
       let currentId: string | null = null
       const listed: ListedGame[] = []
+      // Collected across the whole load, not reported per row: one fault for
+      // one stale bundle, however many of its games the club has.
+      const unknownGametypes: string[] = []
       for (const r of rows) {
         if (r.is_current_view) currentId = r.id
-        const manifest = gametypes.find((g) => g.gametype === r.gametype)
-        if (!manifest) continue
+        const manifest = manifestFor(r.gametype)
+        if (!manifest) {
+          unknownGametypes.push(r.gametype)
+          continue
+        }
         const listRow: CommonGameListRow = {
           id: r.id,
           gametype: r.gametype,
@@ -142,6 +150,7 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       }
       setCurrentGameId(currentId)
       setGames(listed)
+      reportUnknownGametypes(unknownGametypes)
     }
 
     loadGames()

@@ -7,7 +7,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
 six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
 group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-9, F-10,
-F-11, F-14.
+F-11, F-12, F-14.
 
 ## The roster
 
@@ -22,6 +22,8 @@ The folder:
 - `manifestRpcs.ts` + `.test.ts` — `makeRpcDispatcher`, the thunk behind
   every manifest's `submitTimeout` and `endGame`
 - `statusLabel.ts` — the status-line vocabulary every `labelFor` speaks
+- `unknownGametype.ts` — created by F-12: the fault a stale bundle raises when
+  a `common.games` row names a game it has no manifest for
 - `doc.md` (a lede, on `INTROS_OWED`) and `todo.md` (one Soon item: the
   `manifestFor(gametype)` question)
 
@@ -156,8 +158,9 @@ twice (the `?new=` arrival coalesces to null; the start row opens only on a
 hit), `useClubGames.ts` (an unknown gametype never becomes a `ListedGame`),
 `useGameInvitations.ts` twice (a `.some` filter, then a `.find(...)!`). Plus
 `EditClubModal.tsx`, which iterates the list rather than resolving one.
-Rewrite by what each site IS ([[reference_area_file_line_numbers_rot]]).
-F-12 is the decision the item asks for.
+The item itself is GONE with F-12, which answered it, so the rotted anchors
+went with it ([[reference_area_file_line_numbers_rot]]). What is left of this
+finding is nothing.
 
 ### F-manifest-6 · `archaeology`
 
@@ -280,33 +283,50 @@ needs the rule is the one reading the list that renders.
 `docs/game-status-labels.md`'s table, so reordering the registry rewrites that
 doc. The sort's comment is scoped to its own list for that reason.
 
-### F-manifest-12 · `manifest-for`
+### F-manifest-12 · `manifest-for` · WORKED 2026-09-14 — option 1, and the misses turned out to be the finding
 
-The todo's question, with the files open. Every reader resolves a gametype
-string by hand and answers a miss differently (F-5 lists them). The shape of
-the answer is the point.
+`manifestFor(gametype)` now lives beside the list in `src/gametypes.ts`, and the
+six sites call it. A `Map` (option 2) was declined as a data structure for a
+thirty-entry array scanned on a click, and leaving it (option 3) stopped being
+defensible once the misses were looked at.
 
-Options:
+**Because the lookup was never the interesting part.** Asked whether a missing
+gametype is sometimes a bug, the six sites turned out to be three sources with
+three different answers, and the code got one of them right:
 
-1. Export `manifestFor(gametype): GameManifest | undefined` from
-   `gameManifest.ts`… — no: the registry is `gametypes.ts`, and a helper that
-   reads the list lives beside the list:
+| source | a miss means | was | is |
+|---|---|---|---|
+| the URL — `App.tsx` | the player typed a game that does not exist | `<ErrorPage>` | unchanged |
+| the URL — `?new=` | the same thing, OR a real game this club does not play | `?? null`, silent | two `<ErrorPage>`s, from `ClubPageLoader` |
+| a manifest — `useSetupDialog.open` | impossible | `if (!game) return` | a fault |
+| a `common.games` row — `useClubGames`, `useGameInvitations` | this bundle is behind the server | skipped, silent | skipped AND reported |
 
-   ```ts
-   // src/gametypes.ts
-   export function manifestFor(gametype: string): GameManifest | undefined {
-     return gametypes.find((g) => g.gametype === gametype)
-   }
-   ```
+Joel's rulings, 2026-09-14, each one changing the design:
 
-   Each caller keeps its own answer to a miss, which is right — the URL's
-   miss is a 404 and the invitation's is a filter — but stops re-spelling the
-   lookup.
-2. A `Map` built once, `MANIFESTS.get(gametype)`, for the same callers. Same
-   shape as 1 at the call site; a data structure for a sixteen-entry list is
-   the overbuild the trust model warns against.
-3. Leave it. Five `find`s against a sixteen-entry array, each two lines, is
-   not a duplication that has cost anything.
+- **A wrong URL earns the error page even in `?new=`.** "the URL you entered
+  isn't correct." The silent `?? null` was swallowing it.
+- **There is no such thing as a games row with no game behind it.** Removing a
+  game deletes its rows, "otherwise, they're useless junk" — so the
+  "forward-compat posture" the comments claimed was only ever about a bundle
+  that is BEHIND, never about orphaned data. That is a stale client, and the
+  player is missing games until they reload, which is what
+  `reportUnknownGametypes` now says. One fault per load, not per row: the fault
+  store queues a modal per call and does not dedupe.
+- **The check belongs in `ClubPageLoader`, not `ClubPage`.** It was first
+  written as an early return inside the page, after every hook. The loader is
+  the component whose whole job is which page a route ends in.
+- **And `?new=` was bypassing enrollment.** The dialog it opens is otherwise
+  reachable only from a start row, and the start list draws only the gametypes
+  the club is enrolled in — so a URL could open setup for a game the club does
+  not play. The check is therefore AFTER the load, not before it: the enrolled
+  set comes from `data.gametypes`, so it cannot short-circuit the RPC. Two
+  refusals, two sentences — "There's no game type called X" for a registry miss,
+  "<Club> doesn't play <BRAND>" for a game it never enrolled in. A doubly-wrong
+  URL reports the club, which is answered first.
+
+`useGameInvitations`'s `.some` filter and its `.find(...)!` — an assertion sound
+only because of a statement twelve lines above it — collapsed into one pass that
+pairs each candidate with its manifest.
 
 ### F-manifest-13 · `status-line-vocabulary-home`
 
@@ -354,6 +374,13 @@ extracting it today adds a file to a closed area for two call sites.
 - **`docs/game-status-labels.md` is generated** between its markers by
   `gameStatusLabels.test.ts` and guarded the rest of the time; the prose above
   the markers is hand-written (F-13).
+- **Club enrollment is not checked on the server either, and stays that way**
+  (Joel, 2026-09-14): `common.create_game` verifies the caller is a club member
+  and every listed player is one, not that the club is enrolled in the gametype
+  being started. F-12 closed the URL hole that let `?new=` reach the setup
+  dialog for an unenrolled game; a hand-built request still would not be
+  refused. Same ruling as F-10, and the same reason — the lock is a UX decision
+  rather than a defense, and these are friends.
 - **The compete minimum is unchecked on the server for stackdown and wordle**
   — the docstring's claim holds. `docs/features.md` → Player counts is where
   that is listed, and it is not this area's.
@@ -368,7 +395,12 @@ extracting it today adds a file to a closed area for two call sites.
   move (the sixteen brands are distinct, so a `name` tie is always a family).
 - F-14 option 1: none — `src/common/club` (46 tests) passes; no test pinned the
   dialog's list order.
-- F-12 option 1: none — the callers' behavior is unchanged.
+- F-12: the prediction ("none — the callers' behavior is unchanged") was wrong
+  in the right direction. Four behaviors changed, and the three registry mocks
+  each had to learn `manifestFor` — a mock that supplies the list without the
+  lookup lets the two disagree. Net +5 cases: the loader's two error pages and
+  its pass-through, the press fault, the one-call-per-load report, and the
+  unknown-gametype invite.
 
 ## Closing
 

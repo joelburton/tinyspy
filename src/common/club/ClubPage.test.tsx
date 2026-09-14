@@ -79,7 +79,11 @@ vi.mock('../toasts/toastStore', async (importOriginal) => ({
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => {} }))
 vi.mock('../chat/Chat', () => ({ Chat: () => null }))
-vi.mock('@/gametypes', () => ({ gametypes: [WORDLE, DUEL, SYRUP] }))
+vi.mock('@/gametypes', () => ({
+  gametypes: [WORDLE, DUEL, SYRUP],
+  manifestFor: (gametype: string) =>
+    [WORDLE, DUEL, SYRUP].find((g) => g.gametype === gametype),
+}))
 
 import { ClubPage } from './ClubPage'
 import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'

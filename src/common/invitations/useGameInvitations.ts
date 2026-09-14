@@ -9,7 +9,8 @@ import { navigate, usePath } from '../routing/router'
 import { gamePath, matchGameRoute } from '../routing/routes'
 import { channelDedupSuffix } from '../realtime/channelDedup'
 import { onPostgresAttached } from '../realtime/postgresAttached'
-import { gametypes } from '@/gametypes'
+import { manifestFor } from '@/gametypes'
+import { reportUnknownGametypes } from '../manifest/unknownGametype'
 import {
   inviteCutoffIso,
   loadSeenInvites,
@@ -91,14 +92,23 @@ export function useGameInvitations(session: Session): {
     // `games` is a single game object.
     const candidates = rowsRes.data.map((r) => r.games) as InviteCandidate[]
 
-    const fresh = newInviteCandidates(candidates, {
-      selfId,
-      seen: loadSeenInvites(),
-    }).filter((c) => gametypes.some((g) => g.gametype === c.gametype))
+    // Each candidate paired with its manifest in ONE pass. A candidate whose
+    // gametype this bundle has no manifest for cannot be named in an invite —
+    // and is reported rather than dropped quietly, because it means this tab
+    // predates a deploy and the player is missing invitations until they
+    // reload (`reportUnknownGametypes`).
+    const unknownGametypes: string[] = []
+    const fresh: { candidate: InviteCandidate; gameName: string }[] = []
+    for (const c of newInviteCandidates(candidates, { selfId, seen: loadSeenInvites() })) {
+      const manifest = manifestFor(c.gametype)
+      if (!manifest) unknownGametypes.push(c.gametype)
+      else fresh.push({ candidate: c, gameName: manifest.name })
+    }
+    reportUnknownGametypes(unknownGametypes)
     if (fresh.length === 0) return
 
     // Resolve inviter usernames (the game's creator).
-    const creatorIds = [...new Set(fresh.map((c) => c.created_by))]
+    const creatorIds = [...new Set(fresh.map((f) => f.candidate.created_by))]
     const profsRes = await readRows(
       commonDb.from('profiles').select('user_id, username').in('user_id', creatorIds),
     )
@@ -111,10 +121,10 @@ export function useGameInvitations(session: Session): {
       profsRes.type === 'ok' ? profsRes.data.map((p) => [p.user_id, p.username]) : [],
     )
 
-    const built: GameInvite[] = fresh.map((c) => ({
+    const built: GameInvite[] = fresh.map(({ candidate: c, gameName }) => ({
       gameId: c.id,
       gametype: c.gametype,
-      gameName: gametypes.find((g) => g.gametype === c.gametype)!.name,
+      gameName,
       clubHandle: c.club_handle,
       inviterName: nameById.get(c.created_by) ?? 'Someone',
     }))

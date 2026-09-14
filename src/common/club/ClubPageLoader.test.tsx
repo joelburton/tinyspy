@@ -1,12 +1,18 @@
 // cs-blessed-club-page
 
 /**
- * THREE ANSWERS, THREE PAGES.
+ * EVERY ANSWER IS A WHOLE PAGE.
  *
  * `get_club_page` can say the club, say no, or say something this frontend
  * cannot read, and each of those is a whole page rather than a state inside
  * one. That is the split's whole point: past here, `<ClubPage>` holds a club
  * that is definitely there.
+ *
+ * `?new=<gametype>` names the game whose setup dialog to open, and it must pass
+ * the same two tests a start row does — the registry HAS the game, and this
+ * club PLAYS it. Both are checked after the load, because the second needs the
+ * club's enrolled list, and each failing half is its own page with its own
+ * sentence.
  *
  * The not-ok arm carries two things worth pinning separately. The sentence is
  * the SERVER'S — including "no club with that name" and "you are not a member",
@@ -28,6 +34,22 @@ import type { ClubPageData } from './ClubPage'
 const { mockRunRpc } = vi.hoisted(() => ({ mockRunRpc: vi.fn() }))
 
 vi.mock('../supabase/db', () => ({ db: { rpc: (name: string) => name } }))
+
+// The registry AND its lookup, from one list: `manifestFor` reads the registry,
+// so a mock supplying only the list would let the two disagree.
+// Two games in the registry and only ONE in the club's enrolled set (see
+// `loaded()`), which is what lets a test tell the two refusals apart.
+vi.mock('@/gametypes', () => ({
+  gametypes: [
+    { gametype: 'wordle_coop', name: 'WordNerd' },
+    { gametype: 'syrup_coop', name: 'SyrupSwap' },
+  ],
+  manifestFor: (gametype: string) =>
+    [
+      { gametype: 'wordle_coop', name: 'WordNerd' },
+      { gametype: 'syrup_coop', name: 'SyrupSwap' },
+    ].find((g) => g.gametype === gametype),
+}))
 
 vi.mock('../supabase/dbResult', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../supabase/dbResult')>()),
@@ -80,6 +102,40 @@ function draw() {
 beforeEach(() => {
   mockRunRpc.mockReset()
   clearFaultsForTest()
+  window.history.replaceState(null, '', '/c/trio')
+})
+
+describe('ClubPageLoader — a ?new= this club cannot honor', () => {
+  it('draws an error page for a gametype the registry does not have', async () => {
+    window.history.replaceState(null, '', '/c/trio?new=gametype_from_the_future')
+    mockRunRpc.mockResolvedValue(loaded())
+    draw()
+    expect(await screen.findByText(/no game type called/i)).toBeInTheDocument()
+    expect(screen.getByText('gametype_from_the_future')).toBeInTheDocument()
+    expect(screen.queryByTestId('club-page')).not.toBeInTheDocument()
+  })
+
+  it('draws a DIFFERENT error page for a real game this club does not play', async () => {
+    // The hole this check closes: `?new=` opens the setup dialog without a
+    // start row, and the start list is what otherwise enforces enrollment.
+    // A real game the club never enrolled in is not a wrong link — it is a
+    // game this club does not play, and says so.
+    window.history.replaceState(null, '', '/c/trio?new=syrup_coop')
+    mockRunRpc.mockResolvedValue(loaded())
+    draw()
+    expect(await screen.findByText(/doesn't play/i)).toHaveTextContent(
+      "Trio doesn't play SyrupSwap",
+    )
+    expect(screen.queryByText(/no game type called/i)).toBeNull()
+    expect(screen.queryByTestId('club-page')).not.toBeInTheDocument()
+  })
+
+  it('loads the club as usual when ?new= names a game it plays', async () => {
+    window.history.replaceState(null, '', '/c/trio?new=wordle_coop')
+    mockRunRpc.mockResolvedValue(loaded())
+    draw()
+    expect(await screen.findByTestId('club-page')).toHaveTextContent('Trio · ada,bea')
+  })
 })
 
 describe('ClubPageLoader', () => {

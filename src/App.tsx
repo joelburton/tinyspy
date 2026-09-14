@@ -31,7 +31,7 @@ import { AppActionsHost } from './common/actions/AppActionsHost'
 import { ConfirmationHost } from './common/floating-panels/ConfirmationHost'
 import { usePath } from './common/routing/router'
 import { matchClubRoute, matchGameRoute } from './common/routing/routes'
-import { gametypes } from './gametypes'
+import { manifestFor } from './gametypes'
 
 
 /**
@@ -130,7 +130,7 @@ export default function App() {
   // should echo what the URL actually said.
   const gamePage = (urlGametype: string, gameId: string) => {
     const gametype = urlGametype.toLowerCase()
-    const gameManifest = gametypes.find((g) => g.gametype === gametype)
+    const gameManifest = manifestFor(gametype)
 
     // A gametype the registry has never heard of is a different thing from a
     // game that isn't there, and the two wear different screens on purpose: an

@@ -98,3 +98,18 @@ export const gametypes: GameManifest[] = [
   setgameCoopGame,
   setgameCompeteGame,
 ]
+
+/**
+ * The manifest for a gametype string, or `undefined` if this bundle's registry
+ * has no such game.
+ *
+ * Beside the list because it reads the list. Every caller answers a miss its
+ * own way, and should: a gametype string arrives from three places and a miss
+ * means something different in each — the URL (the player typed a game that
+ * does not exist), a `common.games` row (this bundle is behind the server, and
+ * `reportUnknownGametypes` says so), or another manifest (impossible, so it
+ * faults). A helper that picked one answer would be wrong at the other two.
+ */
+export function manifestFor(gametype: string): GameManifest | undefined {
+  return gametypes.find((g) => g.gametype === gametype)
+}

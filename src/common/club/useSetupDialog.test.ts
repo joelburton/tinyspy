@@ -6,9 +6,14 @@
  * A start row's press and a `?new=<gametype>` arrival open the same dialog, and
  * the hook's whole job is that everything downstream sees one answer rather
  * than asking which way it was opened. So the tests are about the collapse: a
- * press beats a pending intent, closing consumes the intent so a re-render
- * cannot re-open it, and an intent naming a gametype this bundle does not have
- * is simply not an opening.
+ * press beats a pending intent, and closing consumes the intent so a re-render
+ * cannot re-open it.
+ *
+ * The two MISSES are the other half, and they are not the same miss. A `?new=`
+ * this club cannot honor — no such game, or a game it does not play — is a
+ * wrong URL, and `ClubPageLoader` has already turned it into an error page
+ * before this hook mounts. A PRESS naming no game cannot happen at all — the
+ * start list presses with a manifest's own gametype — so it faults.
  *
  * `navigate` is mocked because closing drops `?new=` from the URL, and jsdom
  * would otherwise be asked to perform a real navigation.
@@ -18,17 +23,27 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RefObject } from 'react'
 
-const { mockNavigate, WORDLE, SYRUP } = vi.hoisted(() => {
+const { mockNavigate, mockShowFault, REGISTRY, WORDLE, SYRUP } = vi.hoisted(() => {
   const manifest = (gametype: string) => ({ gametype, name: gametype })
+  const WORDLE = manifest('wordle_coop')
+  const SYRUP = manifest('syrup_coop')
   return {
     mockNavigate: vi.fn(),
-    WORDLE: manifest('wordle_coop'),
-    SYRUP: manifest('syrup_coop'),
+    mockShowFault: vi.fn(),
+    REGISTRY: [WORDLE, SYRUP],
+    WORDLE,
+    SYRUP,
   }
 })
 
 vi.mock('../routing/router', () => ({ navigate: mockNavigate }))
-vi.mock('@/gametypes', () => ({ gametypes: [WORDLE, SYRUP] }))
+vi.mock('../faults/faultStore', () => ({ showFaultModal: mockShowFault }))
+// The registry AND its lookup, from one list: `manifestFor` reads the registry,
+// so a mock supplying only the list would let the two disagree.
+vi.mock('@/gametypes', () => ({
+  gametypes: REGISTRY,
+  manifestFor: (gametype: string) => REGISTRY.find((g) => g.gametype === gametype),
+}))
 
 import { useSetupDialog } from './useSetupDialog'
 
@@ -45,6 +60,7 @@ function at(url: string) {
 
 beforeEach(() => {
   mockNavigate.mockReset()
+  mockShowFault.mockReset()
   at('/c/trio')
 })
 
@@ -60,10 +76,15 @@ describe('useSetupDialog', () => {
     expect(result.current.manifest).toBe(SYRUP)
   })
 
-  it('ignores a press on a gametype this bundle does not have', () => {
+  it('faults on a press for a gametype this bundle does not have', () => {
+    // Unreachable in the app — the start list presses with a manifest's own
+    // gametype. Pinned because the alternative to a fault is a press that does
+    // nothing and explains nothing.
     const { result } = renderHook(() => useSetupDialog(listRef().ref))
     act(() => result.current.open('gametype_from_the_future'))
     expect(result.current.manifest).toBeNull()
+    expect(mockShowFault).toHaveBeenCalledTimes(1)
+    expect(mockShowFault.mock.calls[0]![0]!.diagnostics).toContain('gametype_from_the_future')
   })
 
   it('opens from ?new= with no press at all', () => {
@@ -72,10 +93,15 @@ describe('useSetupDialog', () => {
     expect(result.current.manifest).toBe(WORDLE)
   })
 
-  it('stays closed for a ?new= naming a gametype this bundle does not have', () => {
+  it('opens nothing for a ?new= naming a gametype this bundle does not have', () => {
+    // Unreachable in the app: `ClubPageLoader` turns that URL into an error page
+    // and this hook never mounts. Pinned anyway, because the hook must not be
+    // the thing that decides — and a wrong URL is not a bug, so nothing faults
+    // here the way a bad press does.
     at('/c/trio?new=gametype_from_the_future')
     const { result } = renderHook(() => useSetupDialog(listRef().ref))
     expect(result.current.manifest).toBeNull()
+    expect(mockShowFault).not.toHaveBeenCalled()
   })
 
   it('a press wins over a pending intent', () => {

@@ -24,20 +24,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Envelope } from '../supabase/envelope'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
 
-const { mockReadRows, realtime, WORDLE, SYRUP } = vi.hoisted(() => {
+const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoisted(() => {
   const manifest = (gametype: string, name: string) => ({
     gametype,
     name,
     mode: 'coop' as const,
     labelFor: (row: { play_state: string }) => `label:${row.play_state}`,
   })
+  const WORDLE = manifest('wordle_coop', 'WordNerd')
+  const SYRUP = manifest('syrup_coop', 'SyrupSwap')
   return {
     mockReadRows: vi.fn(),
+    mockReportUnknown: vi.fn(),
     // The `postgres_changes` handler the hook registers, so a test can fire the
     // event that actually drives a refetch.
     realtime: { onChange: null as (() => void) | null },
-    WORDLE: manifest('wordle_coop', 'WordNerd'),
-    SYRUP: manifest('syrup_coop', 'SyrupSwap'),
+    REGISTRY: [WORDLE, SYRUP],
+    SYRUP,
   }
 })
 
@@ -65,7 +68,15 @@ vi.mock('../supabase/dbResult', async (importOriginal) => ({
 }))
 
 vi.mock('../realtime/postgresAttached', () => ({ onPostgresAttached: () => {} }))
-vi.mock('@/gametypes', () => ({ gametypes: [WORDLE, SYRUP] }))
+// The registry AND its lookup, from one list: `manifestFor` reads the registry,
+// so a mock supplying only the list would let the two disagree.
+vi.mock('@/gametypes', () => ({
+  gametypes: REGISTRY,
+  manifestFor: (gametype: string) => REGISTRY.find((g) => g.gametype === gametype),
+}))
+vi.mock('../manifest/unknownGametype', () => ({
+  reportUnknownGametypes: mockReportUnknown,
+}))
 
 import { useClubGames } from './useClubGames'
 
@@ -126,6 +137,7 @@ async function load(rows: Envelope<unknown>) {
 
 beforeEach(() => {
   mockReadRows.mockReset()
+  mockReportUnknown.mockReset()
   realtime.onChange = null
 })
 
@@ -167,7 +179,7 @@ describe('useClubGames — what an answer becomes', () => {
     expect(result.current.currentGameId).toBeNull()
   })
 
-  it('drops a gametype this bundle does not have', async () => {
+  it('drops a gametype this bundle does not have, and reports it', async () => {
     const { result } = await load(
       ok([
         game({ id: 'g1', gametype: 'wordle_coop', title: 'Alpha' }),
@@ -176,6 +188,27 @@ describe('useClubGames — what an answer becomes', () => {
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
     expect(result.current.games[0]!.title).toBe('Alpha')
+    // Dropping it silently would leave the player a short list and no reason.
+    expect(mockReportUnknown).toHaveBeenCalledWith(['gametype_from_the_future'])
+  })
+
+  it('reports every unknown gametype of a load in ONE call', async () => {
+    // The fault store queues a modal per call and does not dedupe, so a club
+    // with several games of a new gametype must not stack several modals.
+    await load(
+      ok([
+        game({ id: 'g1', gametype: 'gametype_from_the_future', title: 'Alpha' }),
+        game({ id: 'g2', gametype: 'gametype_from_the_future', title: 'Beta' }),
+        game({ id: 'g3', gametype: 'another_future_gametype', title: 'Gamma' }),
+      ]),
+    )
+    await waitFor(() => expect(mockReportUnknown).toHaveBeenCalled())
+    expect(mockReportUnknown).toHaveBeenCalledTimes(1)
+    expect(mockReportUnknown.mock.calls[0]![0]).toEqual([
+      'gametype_from_the_future',
+      'gametype_from_the_future',
+      'another_future_gametype',
+    ])
   })
 
   it('still reads the current pointer off a row it dropped', async () => {
