@@ -6,8 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
 six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
-group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-9, F-10,
-F-11, F-12, F-14.
+group (F-9 to F-13), and F-14, which working F-11 turned up. The decision group
+is done: F-9 to F-14 all worked. The prose group (F-1 to F-8) is not started.
 
 ## The roster
 
@@ -328,19 +328,39 @@ Joel's rulings, 2026-09-14, each one changing the design:
 only because of a statement twelve lines above it — collapsed into one pass that
 pairs each candidate with its manifest.
 
-### F-manifest-13 · `status-line-vocabulary-home`
+### F-manifest-13 · `status-line-vocabulary-home` · WORKED 2026-09-14 — option 2: the code is the home
 
-`statusLabel.ts`'s header carries the rules of the status line — the
-`OUTCOME (why) · other · facts` shape, the two devices, the four leading
-words, the two conventions — and `docs/game-status-labels.md` carries them
-too, with the generated table under them. Two homes for one vocabulary.
+Option 2, on Joel's reason: "whichever one seems to actually reflect what the
+code does is the right one."
 
-Options:
+**It was three homes, not two.** `docs/common.md` carried the grammar as well —
+the four words, the parens, the `·`, the only-what-everyone-sees rule — found
+while working the finding.
 
-1. The doc is the home; the file's header says what the helpers are and
-   points at it.
-2. The file is the home (it is what a `labelFor` author has open); the doc
-   keeps the table and points at the file.
+`statusLabel.ts`'s header is now the home, and it GREW: the doc's version was
+the superset, so four rules moved into the code rather than out of it — that a
+game gets no flavor word of its own, that a winner is `Won by alice` with no
+parentheses, that there is no second separator, and that every `labelFor` is an
+exhaustive `switch` whose `default` returns the raw `play_state` so an
+unhandled state renders visibly wrong. `dictLabel`'s docstring took the one
+rule that is about it alone: the band is read off `setup`, not `status`,
+because `common.reset_game` assigns the status blob wholesale.
+
+The two pointers now point: `docs/game-status-labels.md` keeps the generated
+table and the titles table and says the rules are in the code; `docs/common.md`
+keeps only the half that is a constraint on what the SERVER writes, which is why
+it is named in a doc about the schema.
+
+Not carried across, deliberately: "per-game flavor words (`solving…`,
+`stacking…`, `racing…`) were retired for it" — archaeology, which CLAUDE.md
+says a comment is not for. And wordle's band-`0` note stayed out of `dictLabel`,
+which never sees it: `wordle/manifest.ts`'s `answerSourceLabel` intercepts `0`
+and already documents it better.
+
+Two rots fixed in passing: the doc claimed `report:labels` runs "all 26
+manifests'" `labelFor` (it runs every registered one — thirty), and both docs
+linked the file as `common/lib/game/statusLabel.ts`, a path from before the
+folder moved.
 
 ### F-manifest-14 · `two-lists-two-orders` · WORKED 2026-09-14 — option 1: coop first in both lists
 

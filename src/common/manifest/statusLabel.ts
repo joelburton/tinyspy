@@ -2,26 +2,36 @@
 
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status
- * line**, the second line of a game card (see docs/game-status-labels.md).
+ * line**, the second line of a game row. This file is where the rules live;
+ * `docs/game-status-labels.md` carries every game's actual output, generated
+ * by running the real `labelFor`s.
  *
  * These helpers decide the shape once, so no game has to invent its own word
  * for "in progress" or its own phrasing of "alice won":
  *
  *     OUTCOME (why) · other · facts
  *
- * with exactly two devices — **parentheses for a reason**, and **`·` between
- * facts** — and one of four leading words: `Playing`, `Won`, `Lost`, `Ended`.
- * The lead is what survives truncation on a narrow card, so it carries the
- * thing you scan for.
+ * **The lead is one of four words** — `Playing`, `Won`, `Lost`, `Ended`. It is
+ * what survives truncation on a narrow row, so it carries the thing you scan
+ * for, and a game does not get a flavor word of its own.
  *
- * Two conventions worth stating, because they're easy to get subtly wrong:
+ * **Exactly two devices, and no third.** Parentheses carry a reason; `·`
+ * separates facts. Nothing else separates anything — there is no second
+ * separator to reach for.
+ *
+ * Four conventions, each easy to get subtly wrong:
  *
  *   - A **reason belongs on a loss or an end, not on a win.** `Won by alice
  *     (out of time)` fights itself; how a win arrived rarely matters.
+ *   - **A winner is `Won by alice`**, no parentheses — "by alice" reads as
+ *     English, and parentheses are for the why.
  *   - **A status line may only say what every player already sees.** It's
  *     rendered from `common.games.status`, which is readable by the whole
  *     club, so a compete game's private per-player progress must NOT appear
  *     here — that's why several compete labels are a bare `Playing`.
+ *   - **Every `labelFor` is an exhaustive `switch` whose `default` returns the
+ *     raw `play_state`.** A state nobody wrote an arm for then renders visibly
+ *     wrong, rather than quietly claiming the game is live.
  */
 
 import { DIFFICULTY_LABELS } from '../setup-form/difficulty'
@@ -57,8 +67,12 @@ export function wonBy(username: string | null | undefined): string {
  *
  * Only for the games whose FEEL changes a lot between bands (waffle, wordle,
  * stackdown) — for spellingbee or boggle the band barely shows, and a constant
- * word on every row would just eat the card's width. Quoted because a bare
+ * word on every row would just eat the row's width. Quoted because a bare
  * `dict Familiar` reads like a typo; the band names aren't self-evident.
+ *
+ * Read off `setup` rather than `status`, unlike everything else a status line
+ * says: `common.reset_game` assigns the status blob wholesale, so a key written
+ * at create time would not survive a restart.
  */
 export function dictLabel(band: number | null | undefined): string | null {
   if (band == null) return null
