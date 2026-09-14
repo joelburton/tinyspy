@@ -1,10 +1,12 @@
 // cs-audited-game-page
 
 /**
- * Tests for the three actions the game shell binds for every game — the pause
- * overlay's End game, New game from setup, and Back to club — read through the
- * binding stack the way the dispatcher and the key list read them: what each
- * says about itself as the game's state moves, and what its run does.
+ * Tests for the actions the game shell binds itself rather than leaving to a
+ * game — the pause overlay's End game, New game from setup, and Back to club —
+ * read through the binding stack the way the dispatcher and the key list read
+ * them: what each says about itself as the game's state moves, and what its run
+ * does. (Help is bound here too; it opens a modal and has no states to move
+ * through, so it is not a subject of this file.)
  *
  * Mocked at the hook layer. `useCommonGame` is the one input that matters here
  * (paused, the club handle, the roster, whether the game is over), and the

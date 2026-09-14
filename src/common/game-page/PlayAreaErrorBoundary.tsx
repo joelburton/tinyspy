@@ -6,7 +6,7 @@ import { diagnosticsLine } from '../supabase/dbLog'
 import { StandardButton } from '../buttons/StandardButton'
 
 /**
- * Error boundary around the play surface — the only boundary in the app.
+ * Error boundary around the play surface.
  *
  * Without one, any error thrown during a PlayArea render unmounts React's
  * whole tree to a blank page with the explanation buried in the console. The
@@ -23,10 +23,10 @@ import { StandardButton } from '../buttons/StandardButton'
  * instead of a blank page. A class component because error boundaries have no
  * hook equivalent (React 19 still requires `getDerivedStateFromError`).
  *
- * Mounted in App.tsx around the PlayArea Suspense, INSIDE the GamePage
- * render-prop — so the GamePage chrome (header, chat, back-to-club) survives
- * a broken play surface, and the gameId key remounts the boundary (clearing a
- * caught error) on navigation to another game.
+ * It sits INSIDE the game shell, so the chrome (header, chat, back-to-club)
+ * survives a broken play surface and there is still a way out of the page. The
+ * shell is keyed by gameId, so navigating to another game remounts the boundary
+ * and clears a caught error.
  */
 export class PlayAreaErrorBoundary extends Component<
   { children: ReactNode },

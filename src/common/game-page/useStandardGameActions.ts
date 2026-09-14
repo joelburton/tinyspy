@@ -8,8 +8,8 @@ import { runRpc } from '../supabase/dbResult'
 import { useBoundAction, type ActionState, type BoundAction } from '../actions/useBoundAction'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-/** The three exits every game offers some combination of, as bound actions —
- *  hand each straight to a menu list or an `<ActionButton>`. */
+/** End, Concede and Restart as bound actions — hand each straight to a menu
+ *  list or an `<ActionButton>`. */
 export type StandardGameActions = {
   actEndGame: BoundAction
   actConcede: BoundAction
@@ -39,7 +39,7 @@ type ConcedeResult = { result: 'conceded' }
 type ReplayResult = { result: 'replayed' }
 
 /**
- * End, Concede and Restart, bound for this game — the three exits whose only
+ * End, Concede and Restart, bound for this game — the actions whose only
  * per-game part is which `db` they call and where a failure is shown.
  *
  * Every game calls this and places what it wants: coop shows End, a race shows
@@ -55,11 +55,9 @@ type ReplayResult = { result: 'replayed' }
  *   - `onRestarted` runs a game's post-replay cleanup (wordle/waffle re-hide the
  *      answer + leave the history view; the others pass nothing).
  *
- * **New game is NOT here.** It diverges too far to share cleanly — wordle creates
- * via a direct `create_game` RPC (no edge fn), spellingbee/wordwheel strip the
- * one-off custom letters, waffle reads its args through a click-time ref, and the
- * edge-fn name + gametype vary — so its shared shell (~4 lines) is smaller than
- * the per-game `createGame` it would need. Each game binds `act-new-game` itself.
+ * **New game is NOT here.** Creating the next game diverges per game — which
+ * call makes it, and what setup it carries over — by more than the handful of
+ * shared lines a binding here would save. Each game binds `act-new-game` itself.
  *
  * Nothing here asks a confirmation: each action's question lives in the registry
  * and the shared run asks it, mid-game only.
@@ -78,37 +76,29 @@ export function useStandardGameActions({
   db: GameRpcClient
   gameId: string
   isTerminal: boolean
-  /** Which exit this game's mode offers: coop ends, a race concedes. */
+  // Which exit this game's mode offers: coop ends, a race concedes.
   mode: 'coop' | 'compete'
-  /** Compete: I've conceded (so I can't concede again). Always false in coop. */
+  // Compete: I've conceded (so I can't concede again). Always false in coop.
   myConceded: boolean
-  /**
-   * Compete: I have SOLVED it and am waiting for the others — so Concede goes
-   * gray. Conceding there would silently forfeit a win already banked: the
-   * winner query excludes conceded players, so "I'm done waiting" would throw
-   * away the result. A solved player leaves via Back to club instead.
-   *
-   * Optional because not every race HAS this state: in a game where finishing
-   * ends it for everyone (psychicnum), or where there is nothing to solve
-   * (spellingbee, boggle), nobody can sit on a banked win.
-   */
+  // Compete: I have SOLVED it and am waiting for the others — so Concede goes
+  // gray. Conceding there would silently forfeit a win already banked: the
+  // winner query excludes conceded players, so "I'm done waiting" would throw
+  // away the result. A solved player leaves via Back to club instead. Optional
+  // because not every race HAS this state — where finishing ends the game for
+  // everyone, or where there is nothing to solve, nobody can sit on a banked win.
   selfSolved?: boolean
-  /**
-   * Compete: this game can ALSO stop the whole table, so Concede's question
-   * offers that as its second answer.
-   *
-   * They're different acts — conceding is a loss on your record and it takes
-   * every player doing it to close a game the group has simply lost interest
-   * in; ending is the group agreeing there's no result — and the difference is
-   * subtle enough that the question explains it rather than the board drawing
-   * two red buttons and hoping. Opt-in per game: every schema defines
-   * `end_game`, but most races have no use for a whole-table stop yet.
-   */
+  // Compete: this game can ALSO stop the whole table, so Concede's question
+  // offers that as its second answer. They're different acts — conceding is a
+  // loss on your record and it takes every player doing it to close a game the
+  // group has simply lost interest in; ending is the group agreeing there's no
+  // result — and the difference is subtle enough that the question explains it
+  // rather than the board drawing two red buttons and hoping. Opt-in per game:
+  // every schema defines `end_game`, but a race has to want a whole-table stop.
   offersEndForAll?: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.
   localFeedbackSlot: FeedbackSlot
-  /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
+  // Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.).
   onRestarted?: () => void
 }): StandardGameActions {
   // Stop the whole table. The body of coop's End, and — where a race offers it —
@@ -133,7 +123,7 @@ export function useStandardGameActions({
   // The exception is a racer who has ALREADY conceded. Choosing to end is
   // freely open to them — ending is the group agreeing there is no result, and
   // a conceder is still in the conversation (Joel, 2026-09-04) — but their
-  // Concede is spent, and with it the question that used to carry both. So the
+  // Concede is spent, and with it the question that carried both. So the
   // table stop comes back out on its own. The two are still never live at once,
   // which is what lets them share `⌥⌫`.
   //

@@ -55,8 +55,6 @@ const KNOWN: string[] = [
   'src/boggle/manifest.ts › competeLabel',
   // → codenamesduet
   'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
-  // → common — club-page / hooks / common-hosts / shared-game-chrome
-  'src/common/game-page/GamePage.tsx › isGameId',
   // → connections
   'src/connections/components/BoardCol.tsx › GuessAnswer',
   // → crosswords

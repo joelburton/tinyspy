@@ -8,29 +8,23 @@ import styles from './GameHelpCompanion.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
-  /** The game's user-facing brand — the title reads "How to play {brand}". */
+  // The game's user-facing brand — the title reads "How to play {brand}".
   brand: string
   onClose: () => void
-  /** Panel size; defaults to a middle size that fits most rules copy. Games
-   *  whose rules run longer/shorter pass their own to avoid scroll/whitespace. */
+  // Panel size; defaults to a middle size that fits most rules. A game whose
+  // rules run longer or shorter passes its own, to avoid scroll or whitespace.
   size?: { width: number; height: number }
   minSize?: { width: number; height: number }
-  /** The game's rules copy. */
+  // The game's rules, as written.
   children: ReactNode
 }
 
 /**
- * The shared help / rules modal frame every game's `Help.tsx` renders into —
- * the `FloatingPanel` + the uniform "How to play {brand}" title + the
- * right-aligned "Got it" close button. A game's `Help` is now just its rules
- * copy wrapped in this; the chrome (draggable panel, title bar, close) is
- * identical everywhere.
- *
- * Before this, each game hand-rolled the FloatingPanel + Got-it row (with a
- * copy-pasted inline `style`), and **boggle had drifted to a bare `<div>` with
- * no FloatingPanel at all** — rendering visibly differently from every other
- * game. Centralizing the frame kills that drift by construction. ui.md documents
- * Help as part of the uniform frame; this makes it so.
+ * The shared help frame every game's `Help.tsx` renders its rules into — the
+ * `FloatingPanel`, the uniform "How to play {brand}" title, the key list and the
+ * right-aligned "Got it". A game's `Help` is its rules and nothing else; the
+ * chrome is identical everywhere because it is this file (docs/ui.md documents
+ * Help as part of the uniform frame).
  */
 export function GameHelpCompanion({
   brand,

@@ -5,12 +5,11 @@ import { BackToClubButton } from '../buttons/BackToClubButton'
 import styles from './DeviceBlockNotice.module.css'
 
 type Props = {
-  /** The headline — names the constraint ("Bananagrams needs a desktop"). */
+  // The headline — names the constraint ("Bananagrams needs a desktop").
   title: string
-  /** The explanation of *why* this device can't play, and what to do instead. */
+  // The explanation of *why* this device can't play, and what to do instead.
   children: ReactNode
-  /** Exit affordance — the only thing to do from here is leave. Wired to
-   *  `ctx.goToClub` so the player lands back in the club they came from. */
+  // Exit: leaving for the club page is the only thing to do from here.
   onBackToClub: () => void
 }
 
@@ -21,12 +20,11 @@ type Props = {
  * limp through overflow and page-scroll, the game's PlayArea renders THIS in
  * place of its board when the device can't support it.
  *
- * Purely presentational — it takes no view of *which* device or *why*. The
- * decision (which axis to gate on — `useIsCoarsePointer` for a drag-only game,
- * `useIsPhone` for a keyboard-required one — and the copy) stays in the game's
- * PlayArea, so each game states its own constraint. Today only bananagrams uses
- * it (blocked on all touch); scrabble + crossplay are keyboard-required but
- * deliberately left un-gated (see docs/mobile.md).
+ * Purely presentational — it takes no view of *which* device or *why*. Both the
+ * axis to gate on (`useIsCoarsePointer` for a drag-only game, `useIsPhone` for a
+ * keyboard-required one) and the words are the game's own, decided in its
+ * PlayArea, so each game states its own constraint. Which games gate, and on
+ * what, is docs/mobile.md → "Where each game plays".
  *
  * It renders inside `<GamePage>`'s chrome, so the header menu (and its own
  * Back-to-club) stay reachable too; the in-card button is the obvious exit.

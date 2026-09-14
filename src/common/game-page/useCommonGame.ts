@@ -18,54 +18,46 @@ import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /**
- * Subset of common.games we surface to game pages. Mirrors the
- * row shape; the manifests can read setup-derived chrome (timer,
- * future Boggle "5x5" badges) without dipping into per-gametype
- * row state.
+ * The subset of common.games a game page sees. Mirrors the row shape, so the
+ * shell and the manifests can read setup-derived chrome without dipping into
+ * per-gametype row state.
  */
 export type CommonGame = {
   id: string
-  /** The owning club's handle. Lets the GamePage header render
-   *  Back-to-club as a real `<Link>` (with browser-visible href
-   *  on hover, middle-click-to-open-in-new-tab, etc.) without a
-   *  deferred fetch. Since clubs are now keyed by handle (no
-   *  separate uuid), this IS the column on common.games. */
+  // The owning club's handle — the column on common.games, not a key to look a
+  // club up by, so every club-shaped URL on the page is buildable off the row
+  // with no deferred fetch.
   club_handle: string
   gametype: string
   title: string
   setup: { timer?: TimerMode } & Record<string, unknown>
-  /** True when this game is the club's current view (the one
-   *  whose URL members auto-route into). At most one per club —
-   *  guarded by a partial unique index. Orthogonal to play_state:
-   *  a current-view game can be terminal (a club still reviewing
-   *  the end-state); a non-current game can be non-terminal (a
-   *  suspended game waiting to be resumed). See docs/states.md. */
+  // True when this game is the club's current view (the one whose URL members
+  // auto-route into). At most one per club — guarded by a partial unique index.
+  // Orthogonal to play_state: a current-view game can be terminal (a club still
+  // reviewing the end-state); a non-current game can be non-terminal (a
+  // suspended game waiting to be resumed). See docs/states.md.
   is_current_view: boolean
-  /** Gametype-specific play state. `'playing'` is the standard
-   *  non-terminal value; some gametypes have additional non-
-   *  terminal states. Gate on `is_terminal` below — it's the
-   *  materialized "any terminal play_state" boolean. */
+  // Gametype-specific play state. `'playing'` is the standard non-terminal
+  // value; some gametypes have additional non-terminal states. Gate on
+  // `is_terminal` below — it's the materialized "any terminal play_state".
   play_state: string
-  /** Materialized "is any terminal play_state" — `common.end_game`
-   *  flips this to true alongside writing the terminal play_state.
-   *  Lets consumers gate on a uniform boolean without needing to
-   *  know each gametype's vocabulary. */
+  // Materialized "is any terminal play_state" — `common.end_game` flips this to
+  // true alongside writing the terminal play_state, so consumers can gate on a
+  // uniform boolean without knowing each gametype's vocabulary.
   is_terminal: boolean
-  /** Free-form per-gametype outcome detail. Each gametype writes
-   *  its own shape; the matching manifest's `labelFor` reads
-   *  it back to render the club-page listing row. Kept current
-   *  by every state-transitioning RPC via common.update_state /
-   *  common.end_game — not just a terminal-time snapshot. */
+  // Free-form per-gametype outcome detail. Each gametype writes its own shape;
+  // the matching manifest's `labelFor` reads it back to render the club-page
+  // listing row. Kept current by every state-transitioning RPC via
+  // common.update_state / common.end_game — not just a terminal-time snapshot.
   status: Record<string, unknown> | null
   started_at: string
   ended_at: string | null
-  /** Whose turn it is, for the opt-in turn-by-turn coop mode
-   *  (setup coop_style='turns'). NULL for free-for-all games (the
-   *  default) — i.e. every game that doesn't opt in. Rotated
-   *  server-side by common._advance_turn; the FE reads it only to
-   *  gate input + render the waiting line. Compare to
-   *  session.user.id (see the hook's `isMyTurn` below). Scrabble
-   *  compete does NOT use this — it keeps its own seat pointer. */
+  // Whose turn it is, for the opt-in turn-by-turn coop mode (setup
+  // coop_style='turns'). NULL for free-for-all games (the default) — i.e. every
+  // game that doesn't opt in. Rotated server-side by common._advance_turn; the
+  // FE reads it only to gate input + render the waiting line. Compare to
+  // session.user.id (see the hook's `isMyTurn` below). Scrabble compete does NOT
+  // use this — it keeps its own seat pointer.
   current_turn_user_id: string | null
 }
 
@@ -73,7 +65,7 @@ export type CommonGame = {
 /**
  * Broadcast event shape for the manual-pause feature. Pauser's
  * user_id rides along so peers can render "Bea paused the game"
- * overlay copy; the receiver looks up the member by id (no need
+ * overlay line; the receiver looks up the member by id (no need
  * to ship usernames over the wire).
  *
  * Any-player-resume: there's no privileged "original pauser"
@@ -112,90 +104,67 @@ type UnsetAnswer = { result: 'cleared' } | null
 type SetAnswer = { result: 'set' } | null
 
 /**
- * The one common-side realtime entry point for a game page —
- * owns the **shared room** for this game across all peers.
+ * Everything a game page needs that isn't the game: the common.games row and
+ * its roster, the shared room every peer meets on, presence, pause, suspend and
+ * the clock. Call it once per page, at the top; a game's own `useGame` hook
+ * handles the per-gametype rows on a channel of its own.
  *
- * What "shared room" means: presence + manual-pause Broadcast
- * need every connected player on the SAME Realtime channel name
- * (presence rosters are per-channel-name; broadcasts only reach
- * channel-name peers). This hook opens a stable-name channel
- * (`game:${gameId}`) for that purpose. The stability is
- * non-negotiable, not a convenience: this channel is the FE-side
- * meeting place for the **one-current-view-per-club** invariant
- * the DB-side partial unique index enforces. If peers ended up on
- * differently-named channels (a UUID suffix per tab), presence
- * sets wouldn't merge, the unset_current_view cleanup wouldn't
- * know whether it was the last viewer leaving, and the invariant
- * would surface as either stuck pointers (nobody clears) or
- * thrash (everyone clears).
+ * The room is a Realtime channel named `game:${gameId}` — stable, because
+ * presence and broadcast only reach peers sharing a channel NAME, and because
+ * the last peer to leave it is who clears the club's current-view pointer.
+ * doc.md argues why that name can never take a per-tab suffix.
  *
- * Per-gametype `useGame` hooks open their own UUID-suffixed
- * channels for postgres-changes on their game-specific tables —
- * those don't need to coordinate across peers, so a per-tab
- * channel is fine and avoids supabase-js's "attach-all-.on()-
- * before-.subscribe()" rule (no other hook needs to attach
- * handlers to *this* channel after it subscribes).
- *
- * What this hook owns:
- *   - common.games row + common.game_players + their profiles
- *     (members list)
- *   - Postgres-changes on common.games for this gameId
- *   - Presence-tracking (`presentUserIds` derivation)
- *   - Manual-pause Broadcast (send + receive + idempotent apply)
- *   - useGameTimer running against `commonGame.setup.timer`
- *     (anchored to common.games.started_at)
- *   - Paused-union state: presence-missing OR manually paused
- *
- * Returns:
- *   - `commonGame` — the common.games row, or null while loading
- *   - `players` — common.game_players ⨯ profiles
- *   - `paused` — union of presence-pause + manual-pause
- *   - `manuallyPausedBy` — the member who clicked Pause (null
- *     if the pause is presence-only)
- *   - `sendManualPause` / `sendManualUnpause` — broadcast senders
- *   - `timer` — `{ displaySeconds, expired }` from useGameTimer
- *   - `loading` — false once initial fetch completes
- *
- * The per-gametype `useGame` hooks stay focused on selection
- * broadcasts + per-gametype row data on their own separate
- * channel — they don't repeat the presence / pause / timer /
- * members machinery that lives here.
+ * Every field of the returned object is documented on the return type below.
+ * Nothing here half-runs: the hook joins the channel and asserts
+ * `set_current_view` as soon as it is called, so the caller must already know
+ * the game exists.
  */
 export function useCommonGame(
   gameId: string,
   session: Session,
 ): {
+  // The common.games row, or null while loading — and also when the read failed
+  // or the game is gone, which `failure` below tells apart.
   commonGame: CommonGame | null
+  // common.game_players ⨯ their profiles: everyone in the game.
   players: GamePlayer[]
-  /** The presence-pause roster: `players` minus anyone who conceded.
-   *  This is the exact set the pause machinery watches — conceded
-   *  players are excluded because they've willfully quit, so their
-   *  absence must not wedge the game. The pause overlay lists these
-   *  members (present ones filled, absent ones a hollow ring). */
+  // The presence-pause roster: `players` minus anyone who conceded. This is the
+  // exact set the pause machinery watches — conceded players are excluded
+  // because they've willfully quit, so their absence must not wedge the game.
+  // The pause overlay lists these members (present ones filled, absent ones a
+  // hollow ring).
   activePlayers: GamePlayer[]
+  // The union of the two pauses: somebody in `activePlayers` is off the
+  // channel, or somebody clicked Pause. Forced false once the game has ended.
   paused: boolean
-  /** User ids currently on the game's realtime channel. Paired with
-   *  `activePlayers` to tell present (filled dot) from absent (hollow
-   *  gray ring) in the pause overlay — same present/away split the
-   *  club-page `PageHeaderPlayersStrip` draws. */
+  // User ids currently on the game's realtime channel. Paired with
+  // `activePlayers` to tell present (filled dot) from absent (hollow gray ring)
+  // in the pause overlay — same present/away split the club-page
+  // `PageHeaderPlayersStrip` draws.
   presentUserIds: Set<string>
+  // Who clicked Pause, null when the pause is presence-only. A club member
+  // watching without having joined resolves to a nameless stand-in rather than
+  // nothing, so their click still takes effect.
   manuallyPausedBy: Member | null
+  // Broadcast the manual pause / its release to every peer, this tab included.
   sendManualPause: () => void
   sendManualUnpause: () => void
+  // Shelve the game and leave: broadcasts to every peer, then navigates self to
+  // the club page. Called with a confirm for a game with peers to surprise,
+  // without one for a solo game, and by the pause overlay's Return to club.
   sendSuspend: () => void
+  // The game clock — seconds to show, and whether a countdown has run out.
   timer: { displaySeconds: number; expired: boolean }
-  /** True when the caller may act right now under turn-order. Always
-   *  true for free-for-all games (the pointer is null) and for solo,
-   *  so games that don't opt in are unaffected — they can gate on
-   *  this unconditionally. Turn games AND-it into their existing
-   *  input gate (canGuess/readOnly/etc.). Pre-load (commonGame null)
-   *  it's true, matching the pre-load "nothing to gate yet" posture. */
+  // True when the caller may act right now under turn-order. Always true for
+  // free-for-all games (the pointer is null) and for solo, so games that don't
+  // opt in are unaffected — they can gate on this unconditionally. Turn games
+  // AND-it into their existing input gate (canGuess/readOnly/etc.). Pre-load
+  // (commonGame null) it's true, matching the "nothing to gate yet" posture.
   isMyTurn: boolean
+  // False once the initial fetch has settled, however it settled.
   loading: boolean
-  /** Set when a read FAILED, which is not the same as the game being absent.
-   *  GamePage renders this instead of "There's no game here." — the SHELL had
-   *  the same confident-wrong-answer bug the sixteen play surfaces had, and it
-   *  runs first, so it short-circuited all of them. */
+  // Set when a read FAILED, which is not the same as the game being absent.
+  // GamePage renders this instead of "There's no game here."
   failure: NotOkEnvelope | null
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
@@ -283,10 +252,8 @@ export function useCommonGame(
       // is on user_id, easy enough to read directly with explicit
       // column control.
       //
-      // No need to embed clubs(handle) anymore — common.games.
-      // club_handle IS the club's handle (post-uuid-PK-drop), so
-      // GamePage can build the Back-to-club href from the row
-      // directly.
+      // No embed of clubs(handle) either: common.games.club_handle IS the
+      // club's handle, so the club-page URL comes off this row directly.
       const [gameRes, playersRes] = await Promise.all([
         // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,
         // so this is 0 or 1 of them.
@@ -561,15 +528,13 @@ export function useCommonGame(
         ids.size === 0 || (ids.size === 1 && ids.has(session.user.id))
       rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
       if (iAmLastOrUnknown) {
-        // Fragile, same shape as set_current_view above: errors
-        // logged, not surfaced. The RPC is idempotent (its
-        // `is_current_view = true` guard absorbs no-ops), and a
-        // game deleted out from under us comes back `ok`. A
-        // persistent failure leaves the club's pointer stuck on
-        // a stale game — recoverable by the next set_current_view
-        // (its vacate-others step clears stragglers), but the gap
-        // until then is silent. Same friends-alpha tradeoff as
-        // above; revisit alongside that one.
+        // Same shape as set_current_view above, and unasked-for in the same
+        // way: nobody clicked it, so nothing is owed an answer beyond the
+        // modal `runRpc` raises. The RPC is idempotent (its `is_current_view =
+        // true` guard absorbs no-ops), and a game deleted out from under us
+        // comes back `ok`, so a transient failure leaves nothing behind. A
+        // persistent one leaves the club's pointer stuck on a stale game until
+        // the next set_current_view clears it as a straggler.
         void runRpc<UnsetAnswer>(
           commonDb.rpc('unset_current_view', { target_game: gameId }),
         ).then((res) => {
@@ -638,16 +603,12 @@ export function useCommonGame(
     channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
   }, [applyManualPause, channel])
 
-  // Suspend-now broadcaster. Called by GamePage when the local
-  // user accepts the suspend-confirm modal. Fires the broadcast
-  // first so peers start navigating, then navigates self.
+  // Suspend-now broadcaster. Fires the broadcast first so peers start
+  // navigating, then navigates self.
   //
-  // The self-navigate is REQUIRED, not belt-and-braces: realtime-js
-  // defaults to `broadcast: { self: false }` and we don't override
-  // it, so the handler above never runs on the sender's own channel.
-  // (An earlier comment here claimed Realtime echoes to the sender
-  // and that this call was merely timing-independent — wrong, though
-  // harmlessly so, since the code did the right thing anyway.)
+  // The self-navigate is REQUIRED, not belt-and-braces: realtime-js defaults to
+  // `broadcast: { self: false }` and we don't override it, so the handler above
+  // never runs on the sender's own channel.
   const sendSuspend = useCallback(() => {
     if (!channel) return
     const event: SuspendEvent = { type: 'suspend' }

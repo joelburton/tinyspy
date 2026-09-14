@@ -7,7 +7,8 @@
  * disabled at terminal) and what each does with the answer its RPC gives back.
  *
  * The confirmation is mocked: whether a question was asked is
- * `useBoundAction`'s subject, and every action here has one.
+ * `useBoundAction`'s subject. Which of these carries one is not uniform —
+ * Restart at terminal goes straight through, and the case below says so.
  */
 
 import { act, renderHook } from '@testing-library/react'
@@ -29,7 +30,7 @@ type Overrides = {
   myConceded?: boolean
   offersEndForAll?: boolean
   confirmed?: boolean
-  /** What the question is answered with, for the two-ending case. */
+  // What the question is answered with, for the two-ending case.
   answer?: 'confirm' | 'alternative' | null
 }
 

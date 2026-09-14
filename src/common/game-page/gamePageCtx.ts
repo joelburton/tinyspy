@@ -47,7 +47,7 @@ export type GamePageCtx = {
   players: GamePlayer[]
   // Gametype-specific play_state string from
   // `common.games.play_state`. Pair with `isTerminal` for the
-  // gate; use the string itself for specific banner copy. See
+  // gate; use the string itself for specific banner text. See
   // docs/states.md.
   playState: string
   // Materialized "any terminal play_state" from
@@ -103,10 +103,10 @@ export type GamePageCtx = {
   // subscription — updates in place as RPCs land.
   //
   // **Load-bearing across the roster, not a spare channel.** The settled
-  // convention is `status.leaderboard` — a per-player array each compete
-  // game's RPCs rewrite on every accepted move, which that game's PlayArea
-  // reads for its OpponentStrip. Most of the compete games do this. Anything
-  // changing how this field is fetched or delivered affects them all.
+  // convention is `status.leaderboard` — a per-player array a compete game's
+  // RPCs rewrite on every accepted move, which that game's PlayArea reads for
+  // its OpponentStrip. Anything changing how this field is fetched or
+  // delivered affects every game that follows it.
   status: Record<string, unknown> | null
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls

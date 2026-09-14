@@ -1,23 +1,28 @@
 /* cs-audited-game-page */
 
 /* Shared PlayArea scaffold — the two-column play surface every game converges
- * on. Validated on psychicnum, adopted by connections. CSS-only (no behavior),
- * imported directly by a game's PlayArea/board components the same way
- * setupForm.module.css is (`import shared from '.../PlayArea.module.css'`), and
- * composed with a thin per-game module via `cls()`. See docs/ui.md →
- * "PlayArea layout".
+ * on. CSS-only (no behavior), imported directly by a game's PlayArea/board
+ * components the same way setupForm.module.css is (`import shared from
+ * '.../PlayArea.module.css'`), and composed with a thin per-game module via
+ * `cls()`. See docs/ui.md → "PlayArea layout".
  *
- * Three things live here:
- *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .actionSlot /
- *      .floatingShuffle);
- *   2. the three info-column READOUT kinds (.infoState / .infoHelp /
- *      .infoActions) + the terminal swap (.terminalActions / .outcome*);
- *   3. the shared TILE chrome (.tile / .tileWord + hover + .selected).
+ * Five concerns live here, and only the first is the file's namesake:
+ *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .mobileFill /
+ *      .responsiveInfoCol / .hugRectWidth / .floatingShuffle);
+ *   2. the info-column READOUTS (.actionSlot / .infoState / .infoHelp /
+ *      .infoActions) + the terminal swap (.terminalActions / .outcome_* /
+ *      .terminalExtra);
+ *   3. the below-board feedback slot (.localFeedback /
+ *      .moveAreaOrLocalFeedback);
+ *   4. the shared TILE chrome (.tile / .tileFace / .tileWord + states);
+ *   5. the board-wide state MARKS (.dimInFlight … .yourTurnFlash + keyframes),
+ *      which are plans/tile-feedback.md's subject.
+ * Splitting them is the folder's todo.md.
  *
- * What stays PER-GAME (see each game's module): the board GRID (psychicnum
- * grows tiles to fill; connections fixes their height so bands can collapse in
- * — same purpose, different behavior), any result/semantic tile fills, the
- * board "tray" frame, and the game-specific readout copy. */
+ * What stays PER-GAME (see each game's module): the board GRID (one game grows
+ * tiles to fill, another fixes their height so bands can collapse in — same
+ * purpose, different behavior), any result/semantic tile fills, the board
+ * "tray" frame, and the words of the game-specific readouts. */
 
 /* ─── Shell ──────────────────────────────────────────────────────────────
  * Layout fills to the viewport bottom (docs/ui.md → "Page-height fits the
@@ -181,8 +186,8 @@
  * styles.grid)`), which keeps its per-game fill behavior — psychicnum/
  * connections/codenamesduet flex-fill height (`flex: 1`), wordle derives a
  * square height from `aspect-ratio`. That behavior lives in flex/grid-rows,
- * NOT this width arithmetic, which was byte-identical across all four before
- * this extraction. Each game supplies --cols / --max-tile-width / --grid-gap.
+ * NOT this width arithmetic, which is identical wherever it is needed. Each
+ * game supplies --cols / --max-tile-width / --grid-gap.
  * See docs/ui.md → "Board sizing". (Square boards compute --side instead — see
  * each square game's board module; they are NOT identical enough to share.) */
 /* @@ */ .hugRectWidth {
@@ -307,8 +312,8 @@
   flex-direction: column;
   justify-content: flex-start;
   /* Breathing room between the readout sections — state / opponent strip /
-   * action row / help / setup. A touch more than the old 0.5rem so the sections
-   * read as distinct blocks rather than a dense stack. */
+   * action row / help / setup — enough that they read as distinct blocks
+   * rather than a dense stack. */
   gap: 1rem;
   flex-shrink: 0;
 }

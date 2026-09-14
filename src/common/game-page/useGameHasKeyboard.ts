@@ -6,14 +6,14 @@ import { isEditableField } from '../keyboard/editableField'
 /**
  * True while the *game* owns the keyboard — i.e. no text field is focused.
  *
- * The capture-input games read keystrokes off the window (the entry actions
- * `useCaptureKeys` binds) and show a simulated
- * caret in their entry box. That caret must be honest: it should blink only
- * when typing actually lands in the game. The moment the chat box (or a
- * dialog field) takes focus, keys go *there*, and a caret still blinking on
- * the board reads as two cursors. Gating the caret on this hook ties its
- * blink to the exact condition under which the action dispatcher fires an
- * entry key — **caret visible ⟺ keystrokes go to the game.**
+ * This is the condition under which a bare keystroke reaches the board at all,
+ * which is why the simulated caret an entry box draws blinks only while it is
+ * true: **caret visible ⟺ keystrokes go to the game.** A caret on the board
+ * while a real one sits in the chat box reads as two cursors.
+ *
+ * That invariant is why a control which takes focus away has to give it back —
+ * `FilterSelect` and bananagrams' board both work at that, and cite this hook
+ * for the reason, without calling it.
  *
  * Tracked by focus, not by "is chat open": chat can sit open beside the board
  * while you click back to type, and there the game owns the keyboard.

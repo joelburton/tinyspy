@@ -50,95 +50,24 @@ import styles from './GamePage.module.css'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  /** The game's id. Drives every common-side data read
-   *  (common.games, common.game_players) and the channel name. */
+  // The game's id. Drives every common-side data read (common.games,
+  // common.game_players) and the channel name.
   gameId: string
-  /** Authenticated session, threaded into useCommonGame for
-   *  presence tracking and re-exposed via ctx to PlayArea. */
+  // Authenticated session, threaded into useCommonGame for presence tracking
+  // and re-exposed via ctx to PlayArea.
   session: Session
-  /**
-   * The game's manifest, resolved by the ROUTER and handed down.
-   *
-   * Not the gametype string: App already looks the manifest up to decide
-   * whether the URL names a real game at all, and a second lookup here could
-   * only fail in a way the first one already ruled out (it did have one, and
-   * the dead branch rendered "Unknown game type." where nobody could reach it).
-   *
-   * Used for the submitTimeout dispatcher when the timer expires, the right SVG
-   * for `<GameLogo>`, and the per-game `help` component for the menu.
-   */
+  // The game's manifest, not the gametype string: the router has already
+  // looked it up to decide whether the URL names a real game at all, so a
+  // second lookup here could only fail in a way the first one ruled out. Every
+  // per-game thing the shell draws or dispatches comes off it.
   manifest: GameManifest
-  /** Render-prop child. Receives `GamePageCtx` and returns the
-   *  per-gametype play surface JSX. Called only when the game is
-   *  loaded AND not paused — PauseBoundary conditional-renders
-   *  the overlay otherwise (children unmount cleanly). */
+  // Render-prop child. Receives `GamePageCtx` and returns the per-gametype play
+  // surface JSX. Called only when the game is loaded AND not paused —
+  // PauseBoundary conditional-renders the overlay otherwise (children unmount
+  // cleanly).
   children: (ctx: GamePageCtx) => ReactNode
 }
 
-/**
- * The common game shell — owns the cross-cutting render of every
- * game page. Mounted at the route level by `App.tsx` for any
- * `/g/<gametype>/<gameId>` URL; the per-gametype PlayArea sits
- * inside as a render-prop child.
- *
- * Tree shape:
- *
- *     GamePage
- *     ├── Header  (Menu(logo) + chat-bubble + status-slot | pause + timer)
- *     ├── PauseBoundary
- *     │     ├── if !paused → children({players, timer, globalFeedbackSlot, menu, ...})
- *     │     └── if  paused → <PauseOverlay/>
- *     ├── Help modal  (when menu's Help item is active)
- *     └── Chat  (z-index 10000, above everything else)
- *
- * Header layout is layout-static per docs/ui.md → Layout
- * stability — the four chrome elements + the timer slot don't
- * reflow as state changes. The middle `<PageHeaderStatusSlot>` swaps
- * between `<PageHeaderPlayersStrip>` (default) and `<FeedbackPill>` (while
- * the global slot holds a message — a PlayArea's `ctx.globalFeedbackSlot.show()`,
- * or the chat producer's) at fixed slot height so neighbors don't move.
- *
- * The logo is a menu trigger (see docs/ui.md → "GamePage menu"):
- * click opens a dropdown. Each game owns its WHOLE menu — the
- * PlayArea pushes every section via `ctx.menu.setGameSections([...])`
- * (usually via the `buildGameMenu` helper, which frames Help +
- * End/Concede + Back-to-club around the game's own items). The whole
- * menu disappears during pause because PlayArea unmounts and its
- * `setGameSections([])` cleanup clears it. The sections live in
- * `gameMenuStore` rather than in this component's state, so a game pushing its
- * menu re-renders the menu and not the board.
- *
- * Help is a per-game contract on the manifest. Every game declares
- * `help: ComponentType<{ onClose: () => void }>`; the menu's Help
- * item flips local state that mounts the component; `onClose`
- * unmounts it. Lazy-loaded with the game's chunk, wrapped in a
- * Suspense boundary here so a slow chunk fetch doesn't crash.
- *
- * Header stays visible during pause; the overlay only covers
- * the play surface. A header message that's showing when pause
- * fires stays readable — its owner retracts it if it shouldn't.
- * The menu stays openable during pause for the same reason.
- *
- * PlayArea unmounts on pause and remounts on resume — selections,
- * form state, and any per-gametype channels start fresh. State
- * that should *survive* a pause must live above the boundary
- * (useCommonGame, the feedback + menu state here) or in the DB.
- *
- * Chat is rendered OUTSIDE PauseBoundary so it stays
- * available mid-pause ("waiting for Bea, anyone want to chat?").
- *
- * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
- * to false once `common.games.ended_at` is populated, so a game
- * that ends mid-pause (stale-tab edge case) cleanly transitions
- * to "PlayArea mounted, showing its terminal state."
- *
- * Back-to-club asymmetry (per docs/states.md → "Leaving the
- * game page"): the "Back to club" menu item navigates directly
- * for terminal games and opens the suspend-confirm modal for
- * non-terminal games; on confirm, `sendSuspend` broadcasts → every
- * peer navigates back to the club page; last-leaver clears
- * is_current_view.
- */
 /** Could this string BE a game id? Not "does the game exist" — that is a
  *  question for the server, and one worth asking only about ids that could
  *  have an answer. Postgres rejects anything else as `22P02`, once per query,
@@ -225,6 +154,20 @@ export function GamePage(props: Props) {
   return <GamePageInner {...props} />
 }
 
+/**
+ * The shell every game page wears: the header, the pause boundary with the play
+ * surface inside it, and the panels that outlive a pause — chat, the scratchpad,
+ * help, the suspend confirm.
+ *
+ * Mounted only once `GamePage` above has proved the game exists, so it may read
+ * as though the row is there. The hole in the middle is `children`, called with
+ * a `GamePageCtx` while the game is loaded and unpaused; `PauseBoundary`
+ * unmounts it to show the overlay, which is why anything that must survive a
+ * pause lives out here or in the DB.
+ *
+ * doc.md holds the rest: the tree, what the shell owns, the three ways out, and
+ * why the menu's sections live in a store.
+ */
 function GamePageInner({
   gameId,
   session,
@@ -281,14 +224,13 @@ function GamePageInner({
   useEffect(() => () => setGameMenuSections([]), [])
 
   // Fire the timeout-loss when the countdown hits 0 — on the expired
-  // TRANSITION (false → true), not the level. A true EDGE (prevExpiredRef)
-  // rather than the old one-way "already submitted" latch, because
-  // replay-board un-terminals a timed-out game while `expired` is still
-  // momentarily true (the tick-merge rewinds a beat later): a level trigger
-  // would instantly re-end the fresh game from any tab that hadn't fired
-  // yet, and the old latch would ALSO have blocked a genuine second timeout
-  // after the replay. Edge-triggering handles both: the stale-true carries
-  // no edge, and once the clock rewinds the trigger is re-armed. The RPC is
+  // TRANSITION (false → true), not the level. Replay-board un-terminals a
+  // timed-out game while `expired` is still momentarily true (the tick-merge
+  // rewinds a beat later), and neither simpler trigger survives that: a level
+  // one re-ends the fresh game from any tab that hasn't fired yet, and a
+  // one-way "already submitted" latch blocks the replayed game's own genuine
+  // timeout. An edge (prevExpiredRef) handles both — the stale-true carries no
+  // edge, and once the clock rewinds the trigger is re-armed. The RPC is
   // server-side idempotent for the multi-peer race case.
   const prevExpiredRef = useRef(false)
   useEffect(function fireTimeoutOnExpiry() {
@@ -474,19 +416,12 @@ function GamePageInner({
   const timerStopped = paused || gameOver
   const HelpComponent = manifest.help
 
-  // The whole menu is owned by the current PlayArea (via setGameSections /
-  // buildGameMenu); Help + Back-to-club are the menuApi actions above.
-  // The account submenu is appended by the SHELL, not by `buildGameMenu` — so
-  // every game gets it, and a game can't forget it. It goes last: it's the
-  // least game-y thing in the menu.
-
   return (
     <div className={styles.frame}>
       {/* ── The header, which on MOBILE is split across the two pages ──
           One `<header>` whose contents swap, not two headers: the switch button
           then can't move between pages (it's pinned to the right edge in both),
-          which is the muscle-memory win that motivated consolidating the old
-          "Game info" menu item and the sheet's ✕ into one control.
+          so one control both opens and closes the info page from one spot.
 
           The split exists because a phone header can't hold everything at once.
           What each page keeps is chosen by what you need WHILE looking at it:
@@ -499,9 +434,9 @@ function GamePageInner({
           Joel's call, against my argument for keeping a countdown visible while
           playing: this roster isn't race-style, and seeing chat matters more.
 
-          Desktop is UNCHANGED — `infoOpen` is always false there (useInfoSheet
-          resets it above the breakpoint) so this renders exactly the old header,
-          and the switch button is `display: none`. */}
+          Desktop never splits — `infoOpen` is always false there (useInfoSheet
+          resets it above the breakpoint), so every branch below falls the same
+          way and the whole header renders at once. */}
       <PageHeader
         right={
           <>
@@ -528,17 +463,19 @@ function GamePageInner({
               </>
             )}
             {/* Mobile only: on desktop the info column is always on screen, so
-                the switch would be a control with no destination. This used to
-                be a `display: none` in the button's own stylesheet; it is a
-                render decision, and `isMobile` is already in hand here. */}
+                the switch would be a control with no destination. A render
+                decision rather than a `display: none` in the button's own
+                stylesheet, since `isMobile` is already in hand here. */}
             {isMobile && <InfoSwitchButton open={infoOpen} />}
           </>
         }
       >
+        {/* The sections are the current PlayArea's, out of `gameMenuStore`. The
+            account submenu is the shell's and is passed in here, so every game
+            gets it and no game can forget it. */}
         <GameHeaderMenu logo={<GameLogo manifest={manifest} />} accountSection={accountSection} />
-        {/* The menu is the one thing on BOTH pages — it's how you leave the
-            game, and stranding it on one page is what the old full-height
-            sheet did (it covered the header outright). */}
+        {/* The menu rides BOTH pages — it's how you leave the game, so
+            stranding it on one of them would strand the way out. */}
         {!infoOpen && (
           <>
             <div className={styles.panelToggles}>

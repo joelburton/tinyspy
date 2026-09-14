@@ -195,7 +195,7 @@ beforeEach(() => {
   // An ENVELOPE, because `unset_current_view` returns one now and `runRpc`
   // treats an unreadable body as a fault — a bare `{ error: null }` would put
   // a fault modal up on the happy path and nothing here would notice.
-  // `set_current_view` is unconverted and only reads `.error`, so one default
+  // Both view-state RPCs read their envelope through `runRpc`, so one default
   // serves both.
   mockRpc.mockResolvedValue({ data: { type: 'ok' }, error: null })
   mockNavigate.mockClear()

@@ -6,8 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-game-page`,
 eighteen files. Eleven findings recorded: a prose group (F-1 to F-6) and a
-decision group (F-7 to F-11). F-7 worked; the rest open, and the prose group is
-still owed. The folder's `todo.md` carries seven
+decision group (F-7 to F-11). **The prose group and F-7 are worked**; F-8 to
+F-11 are open. The folder's `todo.md` carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
 decision this area makes with its files open.
 
@@ -40,10 +40,11 @@ but is bananagrams'; `presence` and `suspend-dialog` are `pause-suspend`'s.
 mount logs and the Suspense — the render-prop child); `pause-suspend/
 PauseBoundary.tsx` + `PauseOverlay.tsx` (take `actEndGame`); every game's
 `PlayArea.tsx` (reads `GamePageCtx`); `bananagrams/components/PlayArea.tsx`
-(the one `DeviceBlockNotice` caller); `word-entry/EntryBox.tsx`,
-`lists/FilterSelect.tsx`, `bananagrams/hooks/usePlayerBoard.ts` (read
-`useGameHasKeyboard`); `menu/gameMenuStore.ts`; `core-css/base.css` (the `--z-`
-ladder, `--game-chrome-height`, the `--tile-*` tokens).
+(the one `DeviceBlockNotice` caller); `word-entry/EntryBox.tsx` (the one caller
+of `useGameHasKeyboard`, with `lists/FilterSelect.tsx` and
+`bananagrams/hooks/usePlayerBoard.ts` citing it in prose but not calling it);
+`menu/gameMenuStore.ts`; `core-css/base.css` (the `--z-` ladder,
+`--game-chrome-height`, the `--tile-*` tokens).
 
 Docs that describe it: `docs/ui.md` → GamePage header, GamePage menu, Layout
 stability, Page-height fits the viewport, Interactive tile states, Tile
@@ -55,7 +56,43 @@ and eslint clean.
 
 ## Findings
 
-### The prose group
+### The prose group — WORKED in one pass, 2026-09-14
+
+F-1 to F-6 are done; each block below is the reading that found them, kept.
+What the pass turned up that the audit had not:
+
+- **Two of the audit's own claims were wrong, and the same mistake made both:
+  counting mentions as callers.** `useGameHasKeyboard` has exactly ONE caller,
+  `word-entry/EntryBox`. F-5 says "`FilterSelect` and bananagrams' board read it
+  too" and F-10 says its readers are those three — neither calls it; both cite
+  it in a docstring, because each is a control that takes focus away and has to
+  give it back, which is the invariant this hook states. **F-10 is still open,
+  but rewrite its evidence before deciding it** — the roster line above is
+  corrected, and the hook's docstring now names the citation for what it is.
+- **`GamePage`'s "the menu is the one thing on BOTH pages" was false** — the
+  info switch rides both too, as the comment four lines up says. Rewritten.
+  Not in F-5's twelve; found by reading the two comments together.
+- **A five-line comment about menu ownership sat before `return (`, attached to
+  nothing** — F-2's defect in miniature. The half that describes code moved onto
+  `<GameHeaderMenu>`; the rest is doc.md's.
+- **`unset_current_view`'s comment opened "errors logged, not surfaced" and its
+  own body then said `runRpc` has already put a modal up.** The lede was the
+  stale half. Rewritten — and `docs/deferred.md`'s matching item ("Acceptable
+  for friends-alpha; revisit when there's a generic toast/error-surface layer",
+  citing `// Fragile:` comments that no longer exist) is **deleted**: the
+  user-visible surface it asks for is the fault modal, which ships.
+- **"the three exits" counted Restart as one.** You do not leave. Both places
+  now name the three actions instead of counting exits.
+- **Three uses of the banned word "copy"** for a message's words, in
+  `useCommonGame`, `gamePageCtx` and `GameHelpCompanion`. Fixed in passing.
+- Two guard lists shrank: `folderDocs.test.ts`'s `INTROS_OWED` loses
+  `common/game-page` (F-1), and `orphanedDocstrings.test.ts`'s `KNOWN` loses
+  `GamePage.tsx › isGameId` (F-2) — that guard failed until the entry went,
+  which is it working.
+
+Kept deliberately: `.boardCol`'s debug tint and its "do NOT remove until Joel
+asks"; `PlayAreaErrorBoundary`'s reload-path gap, which is `todo.md`'s F-11.7
+and a decision, not prose.
 
 ### F-game-page-1 · `intro-owed` · `doc.md` is a lede, and the folder is on `INTROS_OWED`
 
@@ -252,16 +289,21 @@ Options: (1) the block's exit is `actBackToClub` — `DeviceBlockNotice` takes a
 loosen its note to "navigates without suspending"; (3) leave it — a phone
 opening bananagrams is rare enough.
 
-### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus, and its readers are not this folder's
+### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus, and its one reader is not this folder's
 
-It answers "is a text field focused" off `focusin`/`focusout` and
-`isEditableField` from `common/keyboard/`. Its readers are `word-entry/
-EntryBox`, `lists/FilterSelect` and bananagrams' board hook — none of them the
-page. `common/keyboard/` already holds `editableField.ts` and
-`useCaptureKeys.ts`, the two things it is written against.
+**The evidence first recorded here was wrong** (corrected 2026-09-14 during the
+prose pass): it named three readers, and two of them only mention the hook in a
+docstring. The hook answers "is a text field focused" off `focusin`/`focusout`
+and `isEditableField` from `common/keyboard/`. Its ONE caller is
+`word-entry/EntryBox`, for the simulated caret. `lists/FilterSelect` and
+bananagrams' `usePlayerBoard` cite it as the reason they hand focus back, which
+makes it a rule they obey, not a hook they call. `common/keyboard/` already
+holds `editableField.ts` and `useCaptureKeys.ts`, the two things it is written
+against.
 
-Options: (1) move it to `common/keyboard/` (the import sites move with it);
-(2) leave it here with a docstring that names all three readers' question.
+Options: (1) move it to `common/keyboard/` (one import site moves with it, and
+the two citations' path references need updating); (2) leave it here — the
+docstring now names the caller and the two citers correctly either way.
 
 ### F-game-page-11 · `from-todo` · The seven items `todo.md` handed this area, each a decision
 
@@ -307,7 +349,9 @@ ownership is `feedback`'s; the page is the one not wearing
 
 ## Predicted test breaks
 
-- F-1 to F-6: prose only; F-1 moves a row out of `INTROS_OWED`.
+- F-1 to F-6 (worked): prose only, and green — plus one break the prediction
+  missed, `orphanedDocstrings.test.ts` failing until `GamePage.tsx › isGameId`
+  left its `KNOWN` list. F-1 moved a row out of `INTROS_OWED` as predicted.
 - F-7 option 1 (worked): three `useCommonGame.test.ts` assertions, plus one the
   prediction missed — `GamePage.test.tsx`'s hook fixture sets `missing: []`.
 - F-8 option 1: none — no test names the class.
