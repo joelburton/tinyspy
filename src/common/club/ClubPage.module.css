@@ -10,7 +10,7 @@
  *
  * There is no `.card` on this page. The only card-style chrome is
  * the gamesList frame (a border + radius around the scroll region)
- * and the per-game ClubGameCard items inside it.
+ * and the per-game CurrentGameCard items inside it.
  */
 
 /* The wrapper's layout is the shared `.pageHeaderAndMainArea`
@@ -171,7 +171,7 @@
    * repeats it and costs vertical space. Desktop keeps them (they label the
    * two side-by-side columns). Hiding the whole ROW takes each column's
    * filter with it; the .mobileFilters row below the tabs is where the
-   * filter lives here instead. The "Join the active game" h3 is NOT in a
+   * filter lives here instead. The "Join the current game" h3 is NOT in a
    * .headingRow, so it stays — it's a live call to action, not a column
    * label. */
 /* @@ */   .headingRow {

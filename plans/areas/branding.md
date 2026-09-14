@@ -52,7 +52,7 @@ against the tree. Shape findings first, prose after. No prefix means OPEN.
 return null` branch. All four callers already have the manifest in hand:
 `GamePage` takes it as a prop (its docstring argues exactly this — "a second
 lookup here could only fail in a way the first one already ruled out");
-`ClubGameCard` and `ClubGameRow` each run the same `find` a few lines above
+`CurrentGameCard` and `ClubGameRow` each run the same `find` a few lines above
 the `<GameLogo>` they render; `StartGameRow`'s prop IS a `GameManifest`. So
 the component does a lookup nobody needs and carries a null branch nothing
 can reach.
@@ -70,7 +70,7 @@ typecheck. `GameLogo` now takes `manifest: GameManifest`, and the `find` and
 the unreachable `if (!manifest) return null` are gone. `GamePage` passes the
 prop it already had (it was unwrapping it to `manifest.gametype` on line 238
 and having the logo resolve it back); `StartGameRow` passes its `game`.
-`ClubGameCard` and `ClubGameRow` hold `GameManifest | undefined` from their
+`CurrentGameCard` and `ClubGameRow` hold `GameManifest | undefined` from their
 own `find`, so they were first written as `{manifest && <GameLogo …>}`. Joel
 asked whether there would ever not be a manifest: no — `ClubPage.tsx:748–749`
 drops an unknown gametype (`if (!manifest) continue`) before a row exists, so
@@ -96,7 +96,7 @@ statusLabel`: the game's own fields plus the gametype it belongs to, with
 Seven sites in `ClubPage.tsx` (the type, the `listed.push`, the two "Your
 games" filter reads, and three props/nav), and both row components lose their
 `@/gametypes` import, their `find` and their branch — `ClubGameRow` loses
-`gametype` entirely, `ClubGameCard` reads `manifest.gametype` for `gamePath`.
+`gametype` entirely, `CurrentGameCard` reads `manifest.gametype` for `gamePath`.
 The fully-flattened alternative (`logoUrl` / `mode` / `aiOpponent` copied on
 too, `<GameLogo>` back to loose `src`/`alt` props so "the logo's alt is the
 game's name" stops being one decision) was weighed and left.
@@ -139,7 +139,7 @@ menu IS built: `<PageHeaderMenu>` wraps the logo in `<Menu>`'s trigger
 `<button>`, adds the chevron, and the game menu carries Back to club
 (`menu/gameMenu.ts`). There is no `<Link>` and no intercept on the logo. It
 also says the logo is "the leftmost element of the GamePage header" — it is
-also the first thing in three club-list rows (`ClubGameCard`, `ClubGameRow`,
+also the first thing in three club-list rows (`CurrentGameCard`, `ClubGameRow`,
 `StartGameRow`), which is what its stylesheet's `flex-shrink: 0` is for; that
 stylesheet in turn names "the StartGameButtons cards", a component that does
 not exist (the rows above do).

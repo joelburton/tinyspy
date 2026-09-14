@@ -256,14 +256,16 @@ const VOCABULARIES: Vocabulary[] = [
       // button's own text so the glyph, the label and the space between them stay
       // one proportion at every size. A ramp step in rem could not do that.
       'src/common/buttons/StandardButton.module.css': ['0.4em'],
-      'src/common/club/ClubGameCard.module.css': ['0.6rem', '0.4rem', '0.5rem'],
-      'src/common/club/ClubGameRow.module.css': ['0.4rem', '0.5rem'],
+      // The three game entries' shared face became <GameEntry>, and its
+      // literals came with it — one row where there were three. The debt
+      // merged; it did not grow.
+      'src/common/club/GameEntry.module.css': ['0.4rem', '0.5rem'],
+      'src/common/club/CurrentGameCard.module.css': ['0.6rem'],
       'src/common/club/ClubPage.module.css': ['1rem', '1.25rem'],
       // Two of its three literals left with `.buttonRow`, which is the shared
       // `modalActions` row now that this is a modal (F36). The label/hint gap
       // is what remains.
       'src/common/club/CreateClubModal.module.css': ['0.4rem'],
-      'src/common/club/StartGameRow.module.css': ['0.4rem'],
       // The gap under a checkbox row and under a date override — both moved
       // out of files already on this list, at the same values. The debt
       // traveled with the markup; it did not grow.
@@ -349,11 +351,12 @@ const VOCABULARIES: Vocabulary[] = [
       // the same 0.7rem the badge pattern wears, below the ramp's last step.
       'src/common/page-header/ChatButton.module.css': ['0.7rem'],
       'src/common/club/clubFilters.module.css': ['max(16px,', '1em)', '0.9rem'],
-      'src/common/club/ClubGameCard.module.css': ['1.25rem', '0.85rem'],
+      // The three game entries' shared face became <GameEntry>, and its
+      // literals came with it — one row where there were three. The debt
+      // merged; it did not grow.
+      'src/common/club/GameEntry.module.css': ['1rem', '1.25rem', '0.85rem'],
       'src/common/club/ClubGameDeleteButton.module.css': ['0.85rem'],
-      'src/common/club/ClubGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
-      'src/common/club/StartGameRow.module.css': ['1rem', '0.85rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
@@ -395,9 +398,10 @@ const VOCABULARIES: Vocabulary[] = [
       // in the chip. BESPOKE by decision (Joel, 2026-09-12): the chip is its own
       // size, and no ratio expresses "as tall as the box".
       'src/common/page-header/ChatButton.module.css': ['1.1rem'],
-      'src/common/club/ClubGameCard.module.css': ['1.2', '1.25'],
-      'src/common/club/ClubGameRow.module.css': ['1.2', '1.25'],
-      'src/common/club/StartGameRow.module.css': ['1.2', '1.25'],
+      // The three game entries' shared face became <GameEntry>, and its
+      // literals came with it — one row where there were three. The debt
+      // merged; it did not grow.
+      'src/common/club/GameEntry.module.css': ['1.2', '1.25'],
       'src/common/setup-form/SetupNextPuzzleSection.module.css': ['1.4'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['1'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],

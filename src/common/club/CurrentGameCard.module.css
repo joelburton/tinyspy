@@ -1,0 +1,37 @@
+/* cs-audited-club-page */
+
+/* The club's CURRENT game, called out above the start list — the one game entry
+ * on ClubPage that belongs to no list, and so the one that has to draw its own
+ * box.
+ *
+ * The border is what makes it prominent, and it is a dark NEUTRAL rather than
+ * the accent blue: since the keyboard list-nav arrived, blue means "the cursor
+ * is here / Enter acts on this", and this callout is in neither list. Borrowing
+ * that color would be a lie about what the box does.
+ *
+ * The face inside is <GameEntry>'s, the same one both lists draw, asked for a
+ * step larger. What this file owns is the box around it and the flag on it.
+ */
+
+/* @@ */ .standalone {
+  position: relative;
+  border: var(--border-width-line-thick) solid var(--page-text-color);
+  border-radius: var(--radius-md);
+  /* Even on all four sides, at the list rows' horizontal inset — so its logo and
+   * text start on the same vertical line as every row below it, and the box is
+   * no taller than its contents need. The border and the larger title are what
+   * make it prominent; padding was just making it bulky. */
+  padding: 0.9rem;
+  /* Clips the corner flag's outer corners to the box's own rounding. */
+  overflow: hidden;
+}
+
+/* The Link fills the box, so the whole surface clicks. Strips link styling: the
+ * box itself is the affordance. */
+/* @@ */ .link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+}

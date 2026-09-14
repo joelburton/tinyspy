@@ -1,31 +1,26 @@
 // cs-audited-club-page
 
 import type { GameManifest } from '../manifest/gameManifest'
-import { cls } from '../utils/cls'
 import { friendlyDate } from '../utils/friendlyDate'
-import { GameLogo } from '../branding/GameLogo'
-import { ModeBadge } from './ModeBadge'
+import { GameEntry, type ClubGameState } from './GameEntry'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
-import styles from './ClubGameRow.module.css'
-
-export type ClubGameState = 'active' | 'suspended' | 'completed'
 
 type Props = {
   /** The gametype's manifest — drives the logo and the mode badge. ClubPage has
    *  it in hand for every row it builds. */
   manifest: GameManifest
-  /** Algorithmic per-game title from `common.games.title`. Optional because the
-   *  lookup map may not have populated by first render. */
-  title?: string
+  // The algorithmic per-game title, from `common.games.title` — `not null`
+  // there, and resolved by ClubPage before it builds the row.
+  title: string
   /** Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
    *  Produced by the manifest's `labelFor`. */
   statusLabel: string
   /** `common.games.last_active_at`, ISO — the last status/progress write (or end
    *  time), a "last played" proxy. Rendered via friendlyDate. */
   lastActiveAt: string
-  /** Where in the lifecycle this game sits. Drives exactly one thing: the corner
-   *  flag (orange = the club's current game, yellow = shelved but still open,
-   *  none = finished). */
+  // Where in the lifecycle this game sits. Drives exactly one thing: the corner
+  // flag <GameEntry> draws (orange = the club's current game, yellow = shelved
+  // but still open, none = finished).
   state: ClubGameState
   /** Whether this row's club is a solo club. Forwarded to <ModeBadge> so the
    *  "Co-op" badge is suppressed there. */
@@ -66,32 +61,14 @@ export function ClubGameRow({
 
   return (
     <>
-      {state !== 'completed' && (
-        // Corner-flag triangle: orange for THE current game, yellow for one
-        // that's shelved but still open. A literal triangle rather than a
-        // colored circle, which would collide with the member-color dot
-        // vocabulary — "flag in the corner" is its own register, with no room
-        // to read it as "the yellow player is in this game". aria-hidden
-        // because the status label already says the same thing in words.
-        <span
-          className={cls(
-            styles.openFlag,
-            state === 'active' ? styles.openFlagActive : styles.openFlagSuspended,
-          )}
-          aria-hidden="true"
-        />
-      )}
-      <GameLogo manifest={manifest} />
-      <div className={styles.content}>
-        <div className={styles.titleRow}>
-          {title && <span className={styles.gameTitle}>{title}</span>}
-          <ModeBadge mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-        </div>
-        <div className={styles.meta}>
-          <span>{statusLabel}</span>
-          <span className={styles.startedAt}>{dateLabel}</span>
-        </div>
-      </div>
+      <GameEntry
+        manifest={manifest}
+        title={title}
+        meta={statusLabel}
+        date={dateLabel}
+        soloClub={soloClub}
+        state={state}
+      />
       {onDelete && <ClubGameDeleteButton onDelete={onDelete} />}
     </>
   )

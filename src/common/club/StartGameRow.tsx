@@ -2,9 +2,7 @@
 
 import type { GameManifest } from '../manifest/gameManifest'
 import { playerCountShort } from '../manifest/gameManifest'
-import { GameLogo } from '../branding/GameLogo'
-import { ModeBadge } from './ModeBadge'
-import styles from './StartGameRow.module.css'
+import { GameEntry } from './GameEntry'
 
 type Props = {
   /** The gametype this row offers. */
@@ -16,11 +14,11 @@ type Props = {
 }
 
 /**
- * One startable gametype's row in ClubPage's "Start a new game" list — the
- * CONTENTS of a `<SelectionList>` row, not the row itself:
+ * One startable gametype's row in ClubPage's "Start a new game" list.
  *
- *   [logo]  <gametype name> <mode badge>
- *           <short description> · <player count>
+ * A `<GameEntry>` whose second line is the gametype's description and player
+ * count, and which has no date — nothing has been played yet. What is left
+ * here is deciding those words; the shape is the shared one.
  *
  * The list owns the box, the hover, the cursor ring and the click; it also owns
  * whether this row is choosable at all — a gametype the club's member count
@@ -35,23 +33,18 @@ type Props = {
  */
 export function StartGameRow({ game, soloClub }: Props) {
   return (
-    <>
-      <GameLogo manifest={game} />
-      <span className={styles.content}>
-        <span className={styles.titleRow}>
-          <span className={styles.gametypeName}>{game.name}</span>
-          <ModeBadge mode={game.mode} soloClub={soloClub} aiOpponent={game.aiOpponent} />
-        </span>
-        <span className={styles.meta}>
+    <GameEntry
+      manifest={game}
+      title={game.name}
+      // One node, not a text run: `.meta` is a flex row and would space the
+      // pieces apart. No `date` — nothing has been played yet.
+      meta={
+        <>
           {game.shortDescription}
-          {!soloClub && (
-            <>
-              {' · '}
-              {playerCountShort(game.numberOfPlayers)}
-            </>
-          )}
-        </span>
-      </span>
-    </>
+          {!soloClub && ` · ${playerCountShort(game.numberOfPlayers)}`}
+        </>
+      }
+      soloClub={soloClub}
+    />
   )
 }

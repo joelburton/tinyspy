@@ -377,7 +377,7 @@ modifier should say what it modifies (`.saveButton`, not `.button`).
 Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 1. **If two games have a very similar requirement, extract it into `common/`.** Default lean: **extract early.** Even when only two games use it and only one of them is non-trivial, name the shared shape now. Three reasons:
-   - The named seam is a forcing function for future design work. A reader (or Joel himself) is more likely to invest in making `ClubGameCard` look nicer than in making "the section of ClubPage that renders games."
+   - The named seam is a forcing function for future design work. A reader (or Joel himself) is more likely to invest in making `CurrentGameCard` look nicer than in making "the section of ClubPage that renders games."
    - It amortizes the "what is this thing called" cognitive load before the component grows fancier.
    - By the time three call sites exist, the abstraction is usually compromised because the second call site informed the shape without anyone noticing. Earlier extraction means the shape is set when the cases are still simple.
 
@@ -401,7 +401,7 @@ When porting a new game, the per-game `useGame` hook's shape depends on whether 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
 Concrete examples in the tree today:
-- Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmationBlockingModal>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
+- Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<CurrentGameCard>`, `<StartGameButtons>`, `<SuspendConfirmationBlockingModal>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `TerminalActionRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 

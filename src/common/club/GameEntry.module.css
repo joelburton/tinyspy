@@ -1,0 +1,114 @@
+/* cs-audited-club-page */
+
+/* The face every game entry on ClubPage wears — the current-game card, a
+ * "Your games" row, a "Start a new game" row. See GameEntry.tsx for what the
+ * three share and where each one's own chrome picks up.
+ *
+ * Nothing here paints a surface or draws an edge: a list row's box belongs to
+ * <SelectionList> and the card's to CurrentGameCard. This is arrangement, plus
+ * the corner flag, which pins itself to whichever of those contains it.
+ */
+
+/* The stack to the right of the logo. `flex: 1` so it absorbs the width;
+ * `min-width: 0` so a long title breaks inside the stack instead of pushing the
+ * row wider. */
+/* @@ */ .content {
+  display: flex;
+  flex-direction: column;
+  /* No gap — the two lines' own line-heights are the whole leading. A gap on
+   * top of them separated a title from its OWN second line more than the
+   * hairline separates one entry from the next. */
+  flex: 1;
+  min-width: 0;
+}
+
+/* Title and badge on one line, and it stays one line: the badge is two words at
+ * most and belongs beside the name it labels, so a title long enough to fill
+ * the row breaks within itself rather than dropping the badge below it. */
+/* @@ */ .titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* The prominent first line. `word-break` because a generated game title can run
+ * long with no spaces to break at. */
+/* @@ */ .title {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: var(--page-text-color);
+  word-break: break-word;
+}
+
+/* A step up for the current game, not a headline. At 1.5rem the algorithmic
+ * titles that run long — connections' three words, scrabble's opening three —
+ * wrapped and shoved the card's own height around. */
+/* @@ */ .titleCurrentGame {
+  font-size: 1.25rem;
+}
+
+/* The badge holds its width; only the title gives way. Without this the flex
+ * row would take the shrink out of both, and "Compete" would squash before a
+ * long title had finished breaking. */
+/* @@ */ .badgeSlot {
+  flex-shrink: 0;
+}
+
+/* The subtle second line, so the first stays each entry's visual anchor. Its
+ * two ends are `meta` content on the left and the date on the right; with no
+ * date it is just the left. */
+/* @@ */ .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  color: var(--page-text-muted-color);
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+/* Right-justified even when the left side is short or the line wraps. */
+/* @@ */ .date {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ─── The corner flag ────────────────────────────────────────
+ *
+ * "This game is still open." Orange for the club's CURRENT game, yellow for
+ * one that is shelved but still open, absent when it is done. Geometry here;
+ * only the fill differs between the two.
+ *
+ * A 24px box pinned to the top-right with a clip-path filling the upper-right
+ * triangle. It positions against WHATEVER CONTAINS THE ENTRY — a SelectionList
+ * row, or the current-game card's box — which is why this component can draw
+ * it without owning a box of its own: each caller already supplies the
+ * positioning context, and the flag wants that true corner, not one inset by
+ * padding.
+ *
+ * A caller's delete affordance sits after the entry in source order, so on
+ * hover it simply covers this corner; no z-index needed. */
+/* @@ */ .openFlag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  pointer-events: none;
+}
+
+/* "This is THE one to join right now" — deliberately more forceful than the
+ * suspended yellow, so a glance reads "current game" before "the other still-
+ * open ones". */
+/* @@ */ .openFlagCurrent {
+  background: var(--gamelist-current-color);
+}
+
+/* "Still open for play, we'll come back to this." The semantic in-flight-not-
+ * done token. */
+/* @@ */ .openFlagSuspended {
+  background: var(--gamelist-suspended-color);
+}

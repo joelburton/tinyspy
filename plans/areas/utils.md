@@ -189,7 +189,7 @@ single-letter helpers" rule does not strictly apply; a quibble, and cheap:
 ### F-utils-8 · `friendly-date-docstring` · Two lines in `friendlyDate`'s docstring describe surfaces that do not exist
 
 - "for the club-page game list and other glance-at surfaces" — the callers
-  are `ClubGameCard` and `ClubGameRow`, both the club page's list. There is no
+  are `CurrentGameCard` and `ClubGameRow`, both the club page's list. There is no
   other surface.
 - "If a future surface needs ticking, layer a 1Hz interval + setState on top"
   — advice for work nobody has asked for; the "Doesn't tick" contract above it

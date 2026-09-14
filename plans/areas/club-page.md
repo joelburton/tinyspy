@@ -5,10 +5,10 @@ The folders it reads: `club`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
-26 files. Seventeen findings recorded; **F-9 and F-10 worked 2026-09-13**,
-F-9 taking F-11's club-page half and F-15's four not-ok arms with it. The
-prose group (F-1 to F-8) is fork-free and waits on "do the prose"; F-12 to
-F-17 each still hold a decision.
+26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10 and
+F-12 worked 2026-09-13**, F-9 taking F-11's club-page half and F-15's four
+not-ok arms with it. The prose group (F-1 to F-8) is fork-free and waits on
+"do the prose"; F-13 to F-17 each still hold a decision.
 
 ## The roster
 
@@ -18,13 +18,21 @@ for `SetupGameModal`, "3. yes" to `CreateClubModal` staying here).
 The folder, 22 files:
 
 - `ClubPage.tsx` (1162 lines) + `ClubPage.module.css`
-- `ClubGameCard.tsx` + `.module.css` — the current-game callout
-- `ClubGameRow.tsx` + `.module.css` — a "Your games" row's contents
-- `StartGameRow.tsx` + `.module.css` — a "Start a new game" row's contents
+- `CurrentGameCard.tsx` + `.module.css` — the current-game callout (was
+  `ClubGameCard`; renamed 2026-09-13, F-12)
+- `ClubGameRow.tsx` — a "Your games" row's contents (its stylesheet went with
+  F-12)
+- `StartGameRow.tsx` — a "Start a new game" row's contents (its stylesheet went
+  with F-12)
 - `ClubGameDeleteButton.tsx` + `.module.css`
 - `ClubHelpCompanion.tsx` + `.module.css`
 - `GametypeFilter.tsx`, `ModeFilter.tsx`, `modeFilterOptions.ts`,
   `clubFilters.module.css`
+- `GameEntry.tsx` + `.module.css` — the face all three game entries wear, the
+  corner flag included (added 2026-09-13, F-12; `StartGameRow.module.css` and
+  `ClubGameRow.module.css` went with it)
+- `ModeBadge.tsx` + `.module.css` + `ModeBadge.test.tsx` — was `game-page`'s
+  `ModePill` (moved 2026-09-13, F-10); still `cs-unmet`
 - `CreateClubModal.tsx` + `.module.css` + `CreateClubModal.test.tsx`
 - `EditClubModal.tsx` + `EditClubModal.test.tsx`
 - `useClubRoster.ts` — used by `GamePage`, not by this page
@@ -136,6 +144,14 @@ F-9 removed two of these — the "v1" framing on the step-1 comment, and
 `handleDelete`'s "the header slot is for other people's news", which the same
 file already disproved and which F-9 made load-bearing to state correctly.
 
+F-12 removed a third, the hard way. `title?` was "Optional because the lookup
+map may not have populated by first render" — no lookup map exists,
+`common.games.title` is `not null`, and `ListedGame.title` is a `string`. The
+new `<GameEntry>` copied the claim forward in a REWORDING ("the row can render
+before ClubPage has it"), which is worse than the original: the old wording
+named a falsifiable thing, which is how this entry caught it. Joel caught the
+new one on sight. `title` is now required in all three.
+
 - `ClubPage.tsx` 276–277: "docs/code-conventions.md (TBD) for the
   evolution-strategy story" — no such section exists.
 - `ClubPage.tsx` 975: "right column is the 'Other games' list" — it is "Your
@@ -147,10 +163,6 @@ file already disproved and which F-9 made load-bearing to state correctly.
 - `ClubPage.tsx` 881–886: the `players` / `members` naming note cites a
   naming.md rule; naming.md's rule is about game context, and this is a
   comment about a prop name that could just say "the roster".
-- `ClubGameCard.tsx` 18–19 and `ClubGameRow.tsx` 17–18: `title?` is "Optional
-  because the lookup map may not have populated by first render". There is no
-  lookup map; `ClubPage` sets it from the row, and `common.games.title` is
-  `not null`. The prop should be required.
 - `ClubPage.module.css` 11–13: "The only card-style chrome is the gamesList
   frame … and the per-game ClubGameCard items inside it" — no `.gamesList`
   class remains (the frame is `SelectionList`'s), and `ClubGameCard` is the
@@ -316,28 +328,67 @@ and the two SQL sites that write `like '=%'` (`common.sql`, the setgame
 migration). `StartGameRow` and `ModeFilter`'s prop notes still say "handle
 starts with '='" — prose, so they belong to the F-3/F-5 pass.
 
-### F-club-page-12 · `two-line-row-thrice` · the name-over-meta row is written in three stylesheets
+### F-club-page-12 · `two-line-row-thrice` · WORKED 2026-09-13 — `<GameEntry>`
 
-`StartGameRow.module.css`, `ClubGameRow.module.css` and
-`ClubGameCard.module.css` each declare `.content`, `.titleRow`, `.meta` and a
-title class with the same values (flex column, `min-width: 0`; a wrapping
-title row with `0.4rem` gap; a muted `0.85rem` meta line, `line-height: 1.25`).
-Both row docstrings say the duplication is "known and left for the club-page
-area". `todo.md` Soon: "the pattern should name the SLOTS; each component
-keeps its own name for what goes in one".
+The three game entries — the current-game callout, a "Your games" row, a
+"Start a new game" row — each wrote their own `.content`, `.titleRow`, title
+and `.meta`, and the card and the row repeated the JSX between them verbatim.
 
-Options:
+**What re-reading the files changed.** The audit said "three stylesheets with
+the same values"; the truth was two twins and a cousin. `ClubGameRow` and
+`ClubGameCard` were identical in four of five rules, differing only in the
+title's font-size. `StartGameRow` differed in two more: its title row did not
+wrap, and its second line was one muted sentence rather than a two-ended
+status/date row.
 
-1. **One `gameEntry.module.css`** in this folder with the three slot classes,
-   composed by all three; the card keeps its larger title size as its own
-   rule.
-2. **A shared `<GameEntryContents>` component** taking logo, title, badge,
-   status and date, rendered by all three; the card wraps it in its box.
-3. **Leave**, and close the todo item with the reason.
+Joel closed both gaps rather than working around them: *"for all of these, we
+shouldn't be wrapping the title row, anyway… we could make a component and
+pass an empty date field for the StartGameRow. We should keep the size
+difference for the active game."* So the wrap goes everywhere, the start row
+passes no `date`, and the callout keeps its larger title.
 
-Recommend 2: the three files also repeat the markup (logo, title row with the
-badge, meta with status and date), and a component names the slots better than
-three classes do.
+**Built:** `GameEntry.tsx` + `GameEntry.module.css`. It returns a FRAGMENT and
+owns no box — a list row's belongs to `<SelectionList>`, the callout's to
+`ClubGameCard` — because anything pinned to a corner needs a positioning
+context it has no part of. `StartGameRow.module.css` is gone entirely;
+`ClubGameRow.module.css` is now the corner flag and nothing else;
+`ClubGameCard.module.css` is its box, its `<Link>` and its flag.
+
+Two things that would have broken quietly, both caught before the build:
+
+- `.meta` is a flex row, so `StartGameRow`'s bare text run (description, `·`,
+  count) would have become three anonymous flex items spread by the gap. The
+  prop takes ONE node.
+- Dropping `flex-wrap` left nothing holding the badge's width, so a long title
+  would have squashed "Compete". `.badgeSlot` is `flex-shrink: 0`.
+
+`vocabularies.test.ts`: the three pending rows merged into one for the new
+file. The debt merged; it did not grow.
+
+**Then the flag moved in too** (Joel: *"move the flag in"*). My reason for
+leaving it out was wrong and said so in the docstring — that a corner-pinned
+thing "needs a positioning context this has no part of." It does not: the flag
+is `position: absolute` and resolves against whichever caller's box contains
+it, which is what it always did. So `ClubGameRow.module.css` is gone as well,
+and `CurrentGameCard.module.css` is a box and a link.
+
+**Three names went with it**, each for what the thing IS rather than where it
+sits (Joel: *"name it for what it *IS*"*):
+
+- `.titleCallout` → `.titleCurrentGame`. "Callout" was jargon I introduced.
+- `ClubGameState`'s `'active'` → `'current'`, and the type moved to
+  `GameEntry`, which now draws the flag. `docs/states.md` keeps view-state and
+  play-state apart and warns that "active" reads as both; its rule is scoped to
+  `play_state` values, so this was not a violation, only the same confusion.
+- `ClubGameCard` → **`CurrentGameCard`**. It renders the club's current game
+  and nothing else. The filename propagated to four docs and five other area
+  files — a rename is mechanical, and nothing should point at a file that is
+  not there.
+
+`docs/ui.md`'s club-page paragraph described a `variant` prop that does not
+exist and a `CurrentGameCard` that drew both registers; it now describes the
+three entries sharing one face. That took one of F-7's eight `StartGameButtons`
+sites with it, in the mode-badge "Where it shows" line.
 
 ### F-club-page-13 · `filters-twice` · both filters are in the tree twice
 

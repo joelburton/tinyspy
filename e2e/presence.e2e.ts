@@ -82,12 +82,12 @@ test.describe('club presence', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    const activeCard = page.getByText('Join the active game')
+    const currentCard = page.getByText('Join the current game')
     // First it shows as the current game…
-    await expect(activeCard).toBeVisible()
+    await expect(currentCard).toBeVisible()
     // …then the club page's presence heal sees nobody viewing it and
     // clears the pointer, so the card disappears.
-    await expect(activeCard).toBeHidden({ timeout: 20_000 })
+    await expect(currentCard).toBeHidden({ timeout: 20_000 })
 
     await ctx.close()
   })

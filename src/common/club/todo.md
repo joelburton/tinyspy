@@ -32,10 +32,6 @@
   the other one; it reads `is_solo` off `get_club_page`'s payload now. The two
   SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can
   take the column too.
-- **The two-line row** — a name line over a muted meta line — is written in
-  THREE files: `StartGameRow`, `ClubGameRow` and the standalone `ClubGameCard`.
-  The pattern should name the SLOTS; each component keeps its own name for
-  what goes in one.
 - **The viewport-fit chain has no vocabulary.** `min-height: 0` does TWO jobs
   in the app: the chain (the **bound** — `max-height` on a centered card or
   `height` on a full-bleed page; the **relay** — a flex column carrying it

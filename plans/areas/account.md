@@ -202,7 +202,7 @@ header keeps.
 
 The chosen swatch's border goes to `--page-text-color`, at the width the
 resting border already reserves, so choosing moves nothing. A dark neutral
-rather than the accent blue, which is the call `<ClubGameCard>`'s callout
+rather than the accent blue, which is the call `<CurrentGameCard>`'s callout
 already makes for the same reason.
 
 The resting edge stays `--field-edge-color` rather than quiet's own outline

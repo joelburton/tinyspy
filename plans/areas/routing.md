@@ -24,7 +24,7 @@ Agreed 2026-09-05 — every file of `src/common/routing/`, nothing outside it
 | `todo.md` | empty under all four headings at open | (no stamp — markdown) |
 
 No stylesheet, no SQL. Nine files outside the folder import it (`App.tsx`,
-`ClubGameCard`, `ClubPage`, `ErrorPage`, `GamePage`, `useCommonGame`,
+`CurrentGameCard`, `ClubPage`, `ErrorPage`, `GamePage`, `useCommonGame`,
 `HomePage`, `useGameInvitations`, crosswords' `PlayArea`); they were read as
 EVIDENCE for the claims below and keep their stamps.
 
@@ -212,7 +212,7 @@ cheap and explicit."* Today that means:
   uuid-shaped (`[0-9a-f-]+`). Same URL, two rules for what an id is.
 - **Ten template literals** building `/c/${handle}` or
   `/g/${gametype}/${gameId}` across `ClubPage`, `GamePage`, `useCommonGame`,
-  `HomePage`, `ClubGameCard`, `useGameInvitations` and crosswords' `PlayArea`
+  `HomePage`, `CurrentGameCard`, `useGameInvitations` and crosswords' `PlayArea`
   (two of them append `?new=…`).
 
 Nothing is broken by it — the invitation matcher only decides whether the

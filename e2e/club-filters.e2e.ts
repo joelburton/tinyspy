@@ -58,7 +58,7 @@ test.describe('club page list filters', () => {
     // ClubPage's abandoned-pointer heal clears it a beat later and it joins the
     // list. Wait that out before counting anything — otherwise the list length
     // changes under the assertions.
-    await expect(page.getByText('Join the active game')).toHaveCount(0, { timeout: 20000 })
+    await expect(page.getByText('Join the current game')).toHaveCount(0, { timeout: 20000 })
 
     const headings = page.locator('[class*="_headingRow_"]')
     const modeButton = (name: string) =>
@@ -143,7 +143,7 @@ test.describe('club page list filters', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
-    await expect(page.getByText('Join the active game')).toHaveCount(0, { timeout: 20000 })
+    await expect(page.getByText('Join the current game')).toHaveCount(0, { timeout: 20000 })
 
     const headings = page.locator('[class*="_headingRow_"]')
     const modeButton = (name: string) => headings.getByRole('button', { name, exact: true })

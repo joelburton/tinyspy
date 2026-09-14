@@ -221,7 +221,7 @@ own: a flexible color means nothing and only has to differ from the other one.
 Both claims were TRUE when checked — three readers of the flexible colors
 (this one and `ModePill`'s `.coop`, both `--flex-color-1`; `.compete` takes
 `--flex-color-2`), and every place `ModePill` renders is the club page
-(`ClubGameCard`, `ClubGameRow`, `StartGameRow`, `EditClubModal`), so the
+(`CurrentGameCard`, `ClubGameRow`, `StartGameRow`, `EditClubModal`), so the
 parenthetical was right too. They are still the kind of claim that goes stale
 with nothing failing.
 

@@ -4,10 +4,9 @@ import type { GameManifest } from '../manifest/gameManifest'
 import { Link } from '../routing/Link'
 import { gamePath } from '../routing/routes'
 import { friendlyDate } from '../utils/friendlyDate'
-import { GameLogo } from '../branding/GameLogo'
-import { ModeBadge } from './ModeBadge'
+import { GameEntry } from './GameEntry'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
-import styles from './ClubGameCard.module.css'
+import styles from './CurrentGameCard.module.css'
 
 type Props = {
   /** The id of this game (drives the routing target). */
@@ -15,9 +14,9 @@ type Props = {
   /** The gametype's manifest — drives the routing target, the logo and the
    *  mode badge. ClubPage has it in hand for every row it builds. */
   manifest: GameManifest
-  /** Algorithmic per-game title from `common.games.title`. Optional because the
-   *  lookup map may not have populated by first render. */
-  title?: string
+  // The algorithmic per-game title, from `common.games.title` — `not null`
+  // there, and resolved by ClubPage before it builds the card.
+  title: string
   /** Gametype-rendered status string, produced by the manifest's `labelFor`. */
   statusLabel: string
   /** `common.games.last_active_at`, ISO. Rendered via friendlyDate. */
@@ -44,7 +43,7 @@ type Props = {
  * Whether the two should share an inner shape is a club-page question, and that
  * area has not opened (docs/ui.md → Selection lists).
  */
-export function ClubGameCard({
+export function CurrentGameCard({
   gameId,
   manifest,
   title,
@@ -58,19 +57,15 @@ export function ClubGameCard({
   return (
     <div className={styles.standalone}>
       <Link to={gamePath(manifest.gametype, gameId)} className={styles.link}>
-        {/* Orange corner flag: "this is THE current game — join now." */}
-        <span className={styles.openFlagActive} aria-hidden="true" />
-        <GameLogo manifest={manifest} />
-        <div className={styles.content}>
-          <div className={styles.titleRow}>
-            {title && <span className={styles.gameTitle}>{title}</span>}
-            <ModeBadge mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
-          </div>
-          <div className={styles.meta}>
-            <span>{statusLabel}</span>
-            <span className={styles.startedAt}>{dateLabel}</span>
-          </div>
-        </div>
+        <GameEntry
+          manifest={manifest}
+          title={title}
+          isCurrentGameCard
+          state="current"
+          meta={statusLabel}
+          date={dateLabel}
+          soloClub={soloClub}
+        />
       </Link>
       {onDelete && <ClubGameDeleteButton onDelete={onDelete} />}
     </div>

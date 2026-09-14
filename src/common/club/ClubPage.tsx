@@ -23,7 +23,7 @@ import { Loading } from '../loading/Loading'
 import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import { ChatButton } from '../page-header/ChatButton'
 import { Chat } from '../chat/Chat'
-import { ClubGameCard } from './ClubGameCard'
+import { CurrentGameCard } from './CurrentGameCard'
 import { ClubGameRow } from './ClubGameRow'
 import { ClubHelpCompanion } from './ClubHelpCompanion'
 import { EditClubModal } from './EditClubModal'
@@ -168,7 +168,10 @@ export function ClubPage({ handle, session }: Props) {
   // "No games yet." is a lie when the read is what came back empty, and this is
   // a page the player is being told to reload.
   const [gamesFailed, setGamesFailed] = useState(false)
-  const [activeGameId, setActiveGameId] = useState<string | null>(null)
+  // The club's current game — the `is_current_view = true` row's id, or null
+  // when nobody is in one. Drives the card above the start list, the orange
+  // corner flag on its row, and the abandoned-pointer heal.
+  const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   /**
    * Why the page can't render, when it can't — the envelope `get_club_page`
@@ -186,7 +189,7 @@ export function ClubPage({ handle, session }: Props) {
   // that drives it is display:none there (see ClubPage.module.css's mobile
   // breakpoint). Below the breakpoint only one column renders at a time so the
   // page still fits the viewport; the tabs pick which. 'new' = the left column
-  // (active game + start-a-new-game); 'completed' = the right column ("Your
+  // (current game + start-a-new-game); 'completed' = the right column ("Your
   // games" — the club's completed + shelved games). It also picks which
   // filter the mobile filter row shows, since only one list is on screen.
   const [mobileTab, setMobileTab] = useState<'new' | 'completed'>('new')
@@ -244,19 +247,19 @@ export function ClubPage({ handle, session }: Props) {
   // it gets its flag cleared.
   const healedRef = useRef<string | null>(null)
   useEffect(function healAbandonedCurrentGame() {
-    if (!activeGameId) {
+    if (!currentGameId) {
       healedRef.current = null
       return
     }
     // Someone present is viewing it — game pages announce their
     // gameId on this same channel — so it's genuinely current.
-    if (presence.some((e) => e.gameId === activeGameId)) {
+    if (presence.some((e) => e.gameId === currentGameId)) {
       healedRef.current = null
       return
     }
     // Don't re-fire while a prior unset propagates back through the
     // realtime refetch.
-    if (healedRef.current === activeGameId) return
+    if (healedRef.current === currentGameId) return
     // Grace period: a just-arriving viewer's presence may not have
     // synced yet (or we just mounted with an empty roster). If a
     // viewer appears within the window, `presence` changes, this
@@ -264,13 +267,13 @@ export function ClubPage({ handle, session }: Props) {
     // cleanup cancels this timer — so we only unset a genuinely
     // unattended game.
     const timer = setTimeout(() => {
-      healedRef.current = activeGameId
+      healedRef.current = currentGameId
       void runRpc<UnsetAnswer>(
-        commonDb.rpc('unset_current_view', { target_game: activeGameId }),
+        commonDb.rpc('unset_current_view', { target_game: currentGameId }),
       ).then((res) => {
         // No manual refetch on any of these — the is_current_view UPDATE flows
         // back through the club-games postgres-changes subscription, which
-        // re-runs loadGames and clears activeGameId.
+        // re-runs loadGames and clears currentGameId.
         if (res.type === 'not-ok' && res.severity === 'fault') {
           // Logged, not surfaced: nobody asked for this heal, so there is
           // nobody to tell, and `runRpc` has already put the modal up. The line
@@ -298,7 +301,7 @@ export function ClubPage({ handle, session }: Props) {
       })
     }, 2500)
     return () => clearTimeout(timer)
-  }, [activeGameId, presence])
+  }, [currentGameId, presence])
   // The set of gametypes this club is allowed to play, read from
   // common.clubs_gametypes. Seeded at club-creation (every gametype
   // for friend clubs; the solo-playable subset for solo clubs) and
@@ -725,7 +728,7 @@ export function ClubPage({ handle, session }: Props) {
           statusLabel: manifest.labelFor(listRow),
         })
       }
-      setActiveGameId(currentId)
+      setCurrentGameId(currentId)
       setAllGames(listed)
     }
 
@@ -788,17 +791,17 @@ export function ClubPage({ handle, session }: Props) {
 
   // The current game — the one whose id matches the is_current_view=true row
   // from common.games. It gets its own prominent callout above the start list.
-  const activeGame = activeGameId
-    ? allGames.find((g) => g.gameId === activeGameId) ?? null
+  const currentGame = currentGameId
+    ? allGames.find((g) => g.gameId === currentGameId) ?? null
     : null
 
   /** How a game reads in the list: the club's current game, a shelved one, or
    *  a finished one. Only the corner flag varies (orange / yellow / none) —
-   *  see ClubGameCard. Terminal vs non-terminal is a rendering distinction,
+   *  see GameEntry, which draws it. Terminal vs non-terminal is a rendering distinction,
    *  not a schema one (docs/states.md → "no special 'suspended' category in
    *  the schema or the listing"). */
   const gameState = (g: ListedGame) =>
-    g.gameId === activeGameId ? 'active' : g.isTerminal ? 'completed' : 'suspended'
+    g.gameId === currentGameId ? 'current' : g.isTerminal ? 'completed' : 'suspended'
 
   // "Your games" lists EVERY game the club has, the current one included. It
   // was excluded back when it lived only in the callout, which made the club's
@@ -964,28 +967,28 @@ export function ClubPage({ handle, session }: Props) {
 
         {/* Two-column body that takes the rest of the viewport height
             (per docs/ui.md → "Page-height fits the viewport"). Left
-            column holds the active game card + start-game buttons;
+            column holds the current-game card + start-game buttons;
             right column is the "Other games" list as a fixed-size
             frame with internal overflow-y: auto. The `data-tab` attr
             drives the mobile single-column view (see the CSS); it's
             inert on desktop where both columns are always shown. */}
         <div className={styles.columns} data-tab={mobileTab}>
           <section className={styles.left}>
-            {activeGame && (
+            {currentGame && (
               <div>
-                <h3>Join the active game</h3>
+                <h3>Join the current game</h3>
                 {/* The prominent callout — UNCHANGED by the current game also
                     being listed on the right, where it appears as an ordinary
                     row flying its orange flag. Not a list of one: this is its
                     own component with its own box (docs/ui.md → Selection lists). */}
-                <ClubGameCard
-                  gameId={activeGame.gameId}
-                  manifest={activeGame.manifest}
-                  title={activeGame.title}
-                  statusLabel={activeGame.statusLabel}
-                  lastActiveAt={activeGame.lastActiveAt}
+                <CurrentGameCard
+                  gameId={currentGame.gameId}
+                  manifest={currentGame.manifest}
+                  title={currentGame.title}
+                  statusLabel={currentGame.statusLabel}
+                  lastActiveAt={currentGame.lastActiveAt}
                   soloClub={soloClub}
-                  onDelete={() => handleDelete(activeGame.gameId, true)}
+                  onDelete={() => handleDelete(currentGame.gameId, true)}
                 />
               </div>
             )}
@@ -1084,12 +1087,12 @@ export function ClubPage({ handle, session }: Props) {
                   statusLabel={g.statusLabel}
                   lastActiveAt={g.lastActiveAt}
                   // The current game is a row like any other here — only its
-                  // orange flag (from state='active') sets it apart.
+                  // orange flag (from state='current') sets it apart.
                   state={gameState(g)}
                   soloClub={soloClub}
                   // Deleting the CURRENT game has to move its viewers out
                   // first, so the flag that drives that is per-row.
-                  onDelete={() => handleDelete(g.gameId, g.gameId === activeGameId)}
+                  onDelete={() => handleDelete(g.gameId, g.gameId === currentGameId)}
                 />
               )}
             />
