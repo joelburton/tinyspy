@@ -6,8 +6,8 @@ import { readRows } from '../supabase/dbResult'
 import type { Member } from '../members/member'
 
 /**
- * The FULL club membership (id + username + color), resolved the same two-step
- * way ClubPage does inline: `clubs_members` → `profiles`.
+ * The FULL club membership (id + username + color), read in the two steps
+ * `docs/supabase.md` prescribes for a roster: `clubs_members` → `profiles`.
  *
  * Exists because the GAME page only knows the current game's *players*, but chat
  * is club-wide — so naming a chat sender (in the chat window AND the global-

@@ -1,6 +1,5 @@
 // cs-audited-club-page
 
-import { diagnosticsLine } from '../supabase/dbLog'
 import { readRows, runRpc } from '../supabase/dbResult'
 import { showToast, DEFAULT_TOAST_MS } from '../toasts/toastStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,7 +20,7 @@ import { MODE_LABEL, playerCountFits, playerCountLabel } from '../manifest/gameM
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import { Loading } from '../loading/Loading'
-import { ErrorPage } from '../error-page/ErrorPage'
+import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import { ChatButton } from '../page-header/ChatButton'
 import { Chat } from '../chat/Chat'
 import { ClubGameCard } from './ClubGameCard'
@@ -45,17 +44,35 @@ import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuSection } from '../menu/menuModel'
 import type { Database } from '@/types/db'
+import type { Member } from '../members/member'
+import type { NotOkEnvelope } from '../supabase/envelope'
+import {
+  environmentalEnvelope, OUR_BUG_TO_CODE_AND_TEXT, reportUnhandled,
+} from '../supabase/dbEnvelope'
 import styles from './ClubPage.module.css'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
-// SELECT *". Adding a new column to common.clubs requires
-// explicitly listing it here AND in the select() below.
+// SELECT *". The club half of `get_club_page`'s payload; a new column
+// reaches the page only by being listed both here and in that RPC.
 type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
-  'handle' | 'name'
+  'handle' | 'name' | 'is_solo'
 >
-import type { Member } from '../members/member'
-import { reportUnhandled } from '../supabase/dbEnvelope'
+
+/** What `common.get_club_page` answers with: everything this page needs to
+ *  render, in one read. The three pieces were four serial queries until the
+ *  RPC replaced them — see that function's own comment for why. */
+type ClubPageData = {
+  // The RPC's one answer. A call site's ok branch asserts this rather than
+  // `type` alone, so an answer added later cannot sail into it.
+  result: 'loaded'
+  club: ClubRow
+  members: Member[]
+  // The club's enrolled set, each with the setup its friends last played —
+  // one shape, because a second read for the defaults is what the RPC
+  // exists to avoid.
+  gametypes: { gametype: string; default_setup: unknown }[]
+}
 
 /**
  * Display shape for one game in the club's games list: the fields of a
@@ -100,17 +117,32 @@ type Props = {
 }
 
 /**
+ * The page with no club and no failure — which a load cannot produce, since it
+ * ends by setting one or the other. It exists because the render arm needs an
+ * envelope to narrow `club` against, and a page that says "unknown error" with
+ * nothing under it leaves nothing to diagnose. If it is ever on screen, the
+ * `else` in the loader has already screamed the answer it could not read.
+ */
+const LOADED_WITH_NEITHER = environmentalEnvelope(
+  OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer,
+  'get_club_page: neither a club nor a failure',
+)
+
+/**
  * Club detail page — accessed via `/c/<handle>`.
  *
  * Shows: club name, member roster, games (active / suspended /
  * completed), per-gametype "Start" buttons, and chat.
  *
- * RLS gates everything: a non-member's `clubs.select` returns zero
- * rows, so visiting `/c/some-other-club` shows a "not found" rather
- * than a forbidden-style error. Same protection covers
- * `clubs_members`, `common.games` (gates on is_club_member(club_handle)),
- * each game's tables (via the gametype's own RLS), and `messages`
- * (covered transitively by useClubChat).
+ * Everything this page needs to render arrives in ONE call,
+ * `common.get_club_page` — the club, the roster, and the enrolled
+ * gametypes with their saved setups. Being a definer function, it can
+ * tell "no such club" from "a club that isn't yours", which RLS cannot:
+ * RLS hides a club you are outside, so a direct read gets zero rows for
+ * both. Everything else here is still RLS-gated on membership —
+ * `common.games` (on is_club_member(club_handle)), each game's tables
+ * (via the gametype's own RLS), and `messages` (transitively, through
+ * useClubChat).
  *
  * Realtime: subscribed to common.games changes for this club. When
  * another tab (different member, or yourself in another
@@ -123,21 +155,29 @@ type Props = {
  */
 export function ClubPage({ handle, session }: Props) {
   const selfId = session.user.id
-  // Solo club = handle prefixed with '=' (one player). Suppresses the
-  // "Co-op" mode pill on this page's cards/buttons — see ModePill.
-  const soloClub = handle.startsWith('=')
   const [club, setClub] = useState<ClubRow | null>(null)
+  // One-player club. Suppresses the "Co-op" mode pill on this page's cards and
+  // buttons — see ModePill. `is_solo` is a generated column over the handle's
+  // '=' prefix, so the convention is stated in the database and read here.
+  // Null only while loading, and every reader below sits past the early
+  // returns.
+  const soloClub = club?.is_solo ?? false
   const [members, setMembers] = useState<Member[]>([])
   const [allGames, setAllGames] = useState<ListedGame[]>([])
+  // Whether the last games read failed. Only the list's empty state reads it:
+  // "No games yet." is a lie when the read is what came back empty, and this is
+  // a page the player is being told to reload.
+  const [gamesFailed, setGamesFailed] = useState(false)
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   /**
-   * Why the page can't render, when it can't: the sentence, and the diagnostics
-   * line built at the moment the load failed — so it names the query that failed
-   * rather than the page, and carries the fault's own timestamp instead of the
-   * render's.
+   * Why the page can't render, when it can't — the envelope `get_club_page`
+   * answered with, kept whole so `<EnvelopeErrorPage>` can derive both the
+   * sentence and the diagnostics line from it. That is also the promise behind
+   * this page's `presentFaults: false`: a modal over a page that failed to load
+   * would say the same sentence twice (error-page/doc.md).
    */
-  const [fault, setFault] = useState<{ text: string; diagnostics: string } | null>(null)
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   // Whether the club Help modal is mounted — toggled by the menu's "Help" item
   // (the club-page counterpart to each game's Help modal on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
@@ -347,9 +387,16 @@ export function ClubPage({ handle, session }: Props) {
   // dialog, the component is mounted iff this is true.
   const [editing, setEditing] = useState(false)
   // The page's GLOBAL feedback slot — the header's status slot draws its top
-  // message in place of the members strip. Two things show into it: the chat
-  // producer below, and the "coming soon" acknowledgment on the placeholder
-  // menu item. Nothing is handed down: this page has no render-prop child.
+  // message in place of the members strip. Nothing is handed down: this page
+  // has no render-prop child.
+  //
+  // `feedback/doc.md` splits the two slots by WHO a message is about, and gives
+  // the header to other people's news. This page has no second slot, so it uses
+  // this one for its own news too: the chat producer below, the "coming soon"
+  // acknowledgment on the placeholder menu item, and a failed games read. That
+  // last one is why hiding the members strip is acceptable here — a page whose
+  // list has gone stale with nothing to refresh it is a page to reload, and the
+  // roster and chat pills are not what the player needs to see while it is.
   const globalFeedbackSlot = useFeedbackSlot('global')
 
   // ─── Keyboard navigation ────────────────────────────────
@@ -428,9 +475,9 @@ export function ClubPage({ handle, session }: Props) {
    * → deleting) and the auto-revert timeout; this function is
    * called only when the user has already confirmed.
    *
-   * Both answers are toasts — the club page has no local feedback
-   * area, and the header slot is for other people's news
-   * (docs/ui.md → Toasts).
+   * Both answers are toasts. The page's one feedback slot is the header's,
+   * and a message parked there hides the members strip — which a failed games
+   * read earns and a delete's own answer does not (docs/ui.md → Toasts).
    */
   async function handleDelete(gameId: string, isCurrent: boolean) {
     if (!club) return
@@ -542,114 +589,52 @@ export function ClubPage({ handle, session }: Props) {
     setPendingSetup(game)
   }
 
-  // Step 1: look up the club + roster. These don't change during
-  // v1 (membership is fixed at creation), so we only fetch once.
+  // Step 1: the club, its roster, and the gametypes it plays. None of these
+  // change while the page is open — membership is fixed at creation — so this
+  // runs once and nothing resubscribes it.
   useEffect(function loadClubAndRoster() {
     let mounted = true
 
-    // `readRows` has already logged each of these and put the modal up; this line
-    // is what the page shows behind it, naming the read that failed.
-    const diag = (table: string) =>
-      diagnosticsLine('FAULT', {
-        call: `GET /rest/v1/${table}`, severity: 'fault', detail: `handle=${handle}`,
-      })
-
     async function load() {
-      // EVERY failure below is the same shape: `readRows` has already logged it
-      // and put the fault modal up, so all that is left is to stop loading and
-      // leave a page behind the modal that says something true. A page that
-      // failed to load has nothing to render, so its own error state IS the
-      // right surface for that (docs/ui.md → Faults) — not a second modal.
-      const clubRes = await readRows(
-        commonDb.from('clubs').select('handle, name').eq('handle', handle),
+      // ONE call where there were four serial reads (clubs → clubs_members →
+      // profiles → clubs_gametypes). `presentFaults: false` because every
+      // not-ok below — the RPC's own refusals and a transport failure alike —
+      // becomes the page itself, and a modal on top of it would say the same
+      // sentence twice. See `common.get_club_page`.
+      const res = await runRpc<ClubPageData>(
+        commonDb.rpc('get_club_page', { target_handle: handle }),
+        { presentFaults: false },
       )
       if (!mounted) return
-      if (clubRes.type === 'not-ok') {
-        setFault({ text: 'Could not load this club.', diagnostics: diag('clubs') })
-        setLoading(false)
-        return
-      }
-      // ZERO ROWS is the caller's to interpret, and here it isn't a failure at
-      // all: `handle` is the PK, and RLS hides clubs you don't belong to, so no
-      // row means one of two things a member can't tell apart — and the sentence
-      // says both.
-      const clubData = clubRes.data[0]
-      if (!clubData) {
-        // Not a failure of anything — RLS answers "not yours" and "no such club"
-        // the same way, with zero rows — so the line says OK and states the fact.
-        setFault({
-          text: 'Club not found, or you are not a member.',
-          diagnostics: diagnosticsLine('OK', {
-            call: 'GET /rest/v1/clubs', status: 200, detail: `rows=0 handle=${handle}`,
-          }),
-        })
-        setLoading(false)
-        return
-      }
-      setClub(clubData)
 
-      const membersRes = await readRows(
-        commonDb.from('clubs_members').select('user_id').eq('club_handle', clubData.handle),
-      )
-      if (!mounted) return
-      if (membersRes.type === 'not-ok') {
-        setFault({ text: 'Could not load this club’s members.', diagnostics: diag('clubs_members') })
+      if (res.type === 'not-ok') {
+        // Includes the two answers RLS could never tell apart from a direct
+        // read: no such club, and a club that isn't yours.
+        setFailure(res)
         setLoading(false)
         return
-      }
-      const userIds = membersRes.data.map((m) => m.user_id)
-
-      if (userIds.length > 0) {
-        const profilesRes = await readRows(
-          commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+      } else if (res.type === 'ok' && res.data.result === 'loaded') {
+        // Read off `res.data` rather than destructured: `club`, `members` and
+        // `gametypes` are the right names for the payload AND all three are
+        // taken here — two by this page's state, one by the imported registry.
+        setClub(res.data.club)
+        setMembers(res.data.members)
+        setAllowedGametypes(new Set(res.data.gametypes.map((k) => k.gametype)))
+        setSavedDefaults(
+          new Map(
+            res.data.gametypes
+              .filter((k) => k.default_setup !== null)
+              .map((k) => [k.gametype, k.default_setup]),
+          ),
         )
-        if (!mounted) return
-        // Bails now, where it used to drop the error and render a memberless
-        // club. Every member is a presence light, a player-count bound and a
-        // name in the chat, so a club page without them is wrong rather than
-        // reduced.
-        if (profilesRes.type === 'not-ok') {
-          setFault({ text: 'Could not load this club’s members.', diagnostics: diag('profiles') })
-          setLoading(false)
-          return
-        }
-        setMembers(profilesRes.data as Member[])
+        setLoading(false)
+        return
       } else {
-        setMembers([])
-      }
-
-      // Fetch the m2m rows for this club — drives which Start
-      // buttons render AND seeds the SetupGameModal with the
-      // friends' last-played setup per gametype. The intersection
-      // with the FE registry (computed at render time) naturally
-      // hides gametypes the DB knows about but this FE bundle
-      // doesn't.
-      const kindsRes = await readRows(
-        commonDb
-          .from('clubs_gametypes')
-          .select('gametype, default_setup')
-          .eq('club_handle', clubData.handle),
-      )
-      if (!mounted) return
-      // Also bails now. Without these rows the page draws no Start buttons at
-      // all, which reads as "this club plays nothing" — a wrong answer wearing
-      // the look of a real one.
-      if (kindsRes.type === 'not-ok') {
-        setFault({ text: 'Could not load this club’s games.', diagnostics: diag('clubs_gametypes') })
+        reportUnhandled('get_club_page', res)
+        // The page behind the scream's modal is `LOADED_WITH_NEITHER`'s.
         setLoading(false)
         return
       }
-      const rows = kindsRes.data
-      setAllowedGametypes(new Set(rows.map((k) => k.gametype)))
-      setSavedDefaults(
-        new Map(
-          rows
-            .filter((k) => k.default_setup !== null)
-            .map((k) => [k.gametype, k.default_setup as unknown]),
-        ),
-      )
-
-      setLoading(false)
     }
 
     load()
@@ -698,14 +683,23 @@ export function ClubPage({ handle, session }: Props) {
           .limit(200),
       )
       if (!mounted || myGen !== generation) return
-      // A failure here leaves the page ALONE — no error state, no cleared list.
-      // Unlike the four loads above, this one re-runs on every realtime event,
-      // so a failure is a refresh that didn't land rather than a page that
-      // can't render: the list already on screen is the best answer we have,
-      // and the next event will try again. Writing `[]` would replace it with
-      // "this club has no games", which is a worse answer than a stale one.
-      // `readRows` has already logged it and put the modal up.
-      if (res.type === 'not-ok') return
+      // A failure here leaves the LIST alone — no error page, no cleared list.
+      // Unlike the club load above, this runs against a page that is already on
+      // screen and whose other half is fine, so a modal over it is the right
+      // escalation and replacing it would not be (error-page/doc.md).
+      //
+      // What it must not be is silent. Nothing retries this read: it re-runs
+      // only when another common.games row changes, and the commonest failure
+      // is the refetch that follows your OWN delete — where that DELETE was the
+      // event, so no second one is coming and the game sits in the list looking
+      // undeleted. So the modal is escalated by a message that outlives
+      // dismissing it, and the honest instruction is to reload.
+      if (res.type === 'not-ok') {
+        setGamesFailed(true)
+        globalFeedbackSlot.show(FeedbackMessage.notOk(res))
+        return
+      }
+      setGamesFailed(false)
 
       const rows = res.data
       let currentId: string | null = null
@@ -774,23 +768,22 @@ export function ClubPage({ handle, session }: Props) {
       mounted = false
       supabase.removeChannel(channel)
     }
-  }, [club])
+    // `globalFeedbackSlot` is created once and keeps its identity across
+    // renders (`useFeedbackSlot`), so listing it re-subscribes nothing.
+  }, [club, globalFeedbackSlot])
 
   if (loading) return <Loading />
   // The club did not load, so there is no page to put a modal over — the
-  // fault IS the route. The sentence is for the player and the condition is
-  // for whoever reads it back; the handle is the one thing neither of them
-  // can know.
-  if (fault || !club) {
-    return (
-      <ErrorPage
-        message={fault?.text ?? 'Unknown error.'}
-        diagnostics={
-          fault?.diagnostics
-          ?? diagnosticsLine('FAULT', { call: 'GET /rest/v1/clubs', severity: 'fault', detail: `handle=${handle}; no failure recorded` })
-        }
-      />
-    )
+  // failure IS the route. Both halves come off the envelope: the server wrote
+  // the sentence (including "no club with that name" and "not a member", which
+  // it can tell apart and a direct read could not), and the diagnostics line
+  // is derived from the same answer.
+  //
+  // `!club` with no failure is the loader's `else` branch and nothing else —
+  // an answer neither `ok` nor `not-ok`, which has already screamed. The arm
+  // is also the type narrowing everything below depends on.
+  if (failure || !club) {
+    return <EnvelopeErrorPage envelope={failure ?? LOADED_WITH_NEITHER} />
   }
 
   // The current game — the one whose id matches the is_current_view=true row
@@ -1083,7 +1076,7 @@ export function ClubPage({ handle, session }: Props) {
               fills
               density="packed"
               onActivate={(g) => navigate(gamePath(g.manifest.gametype, g.gameId))}
-              empty="No games yet."
+              empty={gamesFailed ? 'Could not load this club’s games.' : 'No games yet.'}
               renderRow={(g) => (
                 <ClubGameRow
                   manifest={g.manifest}

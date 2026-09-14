@@ -124,20 +124,20 @@ export type Database = {
         Returns: number[]
       }
       check_board: { Args: { target_game: string }; Returns: Json }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: Json
       }
-      dump: { Args: { target_game: string; tile: string }; Returns: undefined }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      dump: { Args: { target_game: string; tile: string }; Returns: Json }
+      end_game: { Args: { target_game: string }; Returns: Json }
       peel: { Args: { target_game: string }; Returns: Json }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       save_player_board: {
         Args: { board: string; target_game: string }
-        Returns: undefined
+        Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -241,7 +241,7 @@ export type Database = {
         Returns: undefined
       }
       _refresh_status: { Args: { target_game: string }; Returns: undefined }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -252,9 +252,9 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {
           is_bonus: boolean
@@ -441,24 +441,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      _end_turn: { Args: { target_game: string }; Returns: undefined }
+      _end_turn: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
-      pass_turn: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      pass_turn: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_clue: {
         Args: { clue_count: number; clue_word: string; target_game: string }
-        Returns: undefined
+        Returns: Json
       }
       submit_guess: {
         Args: { target_game: string; target_position: number }
-        Returns: string
+        Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -954,6 +954,8 @@ export type Database = {
         Args: { first_user_id: string; target_game: string }
         Returns: undefined
       }
+      _raise_game_deleted: { Args: { p_schema: string }; Returns: undefined }
+      _raise_game_over: { Args: never; Returns: undefined }
       _require_turn: {
         Args: { caller: string; target_game: string }
         Returns: undefined
@@ -981,7 +983,7 @@ export type Database = {
         Returns: Json
       }
       color_for_username: { Args: { username: string }; Returns: string }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }
         Returns: Json
@@ -1017,6 +1019,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_club_page: { Args: { target_handle: string }; Returns: Json }
       is_club_member: { Args: { target_club: string }; Returns: boolean }
       ok_envelope: {
         Args: { data?: Json; message?: string; meta?: Json; outcome?: string }
@@ -1241,7 +1244,7 @@ export type Database = {
     }
     Functions: {
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -1251,10 +1254,10 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       next_puzzle_for_club: { Args: { seen_by: string[] }; Returns: Json }
       puzzle_for_date: { Args: { target_date: string }; Returns: Json }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: {
           matched_category_rank?: number
@@ -1264,7 +1267,7 @@ export type Database = {
         }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -1467,9 +1470,9 @@ export type Database = {
       _solution_for: { Args: { g_id: string }; Returns: Json }
       check_cells: {
         Args: { p_cells: Json; target_game: string }
-        Returns: undefined
+        Returns: Json
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board?: Json
@@ -1480,35 +1483,21 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       export_solution: { Args: { target_game: string }; Returns: Json }
-      library_for_club: {
-        Args: { target_club: string }
-        Returns: {
-          author: string
-          height: number
-          id: string
-          status: string
-          title: string
-          width: number
-        }[]
-      }
+      library_for_club: { Args: { target_club: string }; Returns: Json }
       next_nyt_date_for_club: {
         Args: { dow: number; seen_by: string[] }
-        Returns: string
+        Returns: Json
       }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       reveal_cells: {
         Args: { p_cells: Json; target_game: string }
-        Returns: undefined
+        Returns: Json
       }
       reveal_solved_word: {
         Args: { p_cells: Json; target_game: string }
-        Returns: {
-          answer: string
-          note: string
-          solved: boolean
-        }[]
+        Returns: Json
       }
       set_cell: {
         Args: {
@@ -1518,10 +1507,7 @@ export type Database = {
           p_row: number
           target_game: string
         }
-        Returns: {
-          solved: boolean
-          version: number
-        }[]
+        Returns: Json
       }
       set_mark: {
         Args: {
@@ -1531,11 +1517,9 @@ export type Database = {
           p_side: string
           target_game: string
         }
-        Returns: {
-          version: number
-        }[]
+        Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -1822,8 +1806,8 @@ export type Database = {
           word: string
         }[]
       }
-      clear_chain: { Args: { target_game: string }; Returns: undefined }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      clear_chain: { Args: { target_game: string }; Returns: Json }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -1834,10 +1818,10 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       log_help: {
         Args: { kind: string; target_game: string; word_shown: string }
-        Returns: undefined
+        Returns: Json
       }
       pick_seed: {
         Args: { max_band: number }
@@ -1848,7 +1832,7 @@ export type Database = {
           word_b: string
         }[]
       }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       seed_for: {
         Args: { board_letters: string }
         Returns: {
@@ -1858,12 +1842,12 @@ export type Database = {
           word_b: string
         }[]
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: { submitted: string; target_game: string }
         Returns: Json
       }
-      undo_word: { Args: { target_game: string }; Returns: undefined }
+      undo_word: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -2013,6 +1997,7 @@ export type Database = {
       }
     }
     Functions: {
+      _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _secrets_for: { Args: { g_id: string }; Returns: string[] }
       _unfound_secret: {
         Args: {
@@ -2021,7 +2006,7 @@ export type Database = {
         }
         Returns: string
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -2031,15 +2016,15 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
-      request_hint: { Args: { target_game: string }; Returns: string }
-      request_reveal: { Args: { target_game: string }; Returns: string }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
+      request_hint: { Args: { target_game: string }; Returns: Json }
+      request_reveal: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -2332,6 +2317,7 @@ export type Database = {
         Args: { g_id: string; going_out_seat: number; outcome: string }
         Returns: undefined
       }
+      _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _new_bag: { Args: never; Returns: string[] }
       _rack_count_for: {
         Args: { g_id: string; p_seat: number }
@@ -2370,7 +2356,7 @@ export type Database = {
         }
         Returns: Json
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -2380,7 +2366,7 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       exchange_tiles: {
         Args: {
           base_version: number
@@ -2405,8 +2391,8 @@ export type Database = {
         }
         Returns: Json
       }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -2587,7 +2573,7 @@ export type Database = {
       }
       _is_set: { Args: { a: number; b: number; c: number }; Returns: boolean }
       _third: { Args: { a: number; b: number }; Returns: number }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -2597,17 +2583,17 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       record_hint: {
         Args: { cards: number[]; target_game: string }
         Returns: Json
       }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_set: {
         Args: { cards: number[]; target_game: string }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -2777,7 +2763,7 @@ export type Database = {
           word: string
         }[]
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -2788,9 +2774,9 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {
           is_bonus: boolean
@@ -3004,7 +2990,7 @@ export type Database = {
       }
       _solution_for: { Args: { g_id: string }; Returns: string[] }
       _word: { Args: { ids: number[]; tiles: Json }; Returns: string }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -3014,11 +3000,11 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       reveal_next_hint: { Args: { target_game: string }; Returns: Json }
       reveal_next_word: { Args: { target_game: string }; Returns: Json }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: { target_game: string; tile_ids: number[] }
         Returns: Json
@@ -3358,7 +3344,7 @@ export type Database = {
         Returns: boolean
       }
       _solution_for: { Args: { g_id: string }; Returns: Json }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -3368,27 +3354,13 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      next_puzzle_for_club: {
-        Args: { seen_by: string[] }
-        Returns: {
-          id: string
-          label: string
-          puzzle_date: string
-        }[]
-      }
-      puzzle_for_date: {
-        Args: { target_date: string }
-        Returns: {
-          id: string
-          label: string
-          puzzle_date: string
-        }[]
-      }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      next_puzzle_for_club: { Args: { seen_by: string[] }; Returns: Json }
+      puzzle_for_date: { Args: { target_date: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       spend_hint: { Args: { target_game: string }; Returns: Json }
       submit_path: { Args: { path: Json; target_game: string }; Returns: Json }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -3643,7 +3615,7 @@ export type Database = {
         Args: { board: string; solution: string }
         Returns: string
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -3654,13 +3626,13 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -3820,7 +3792,7 @@ export type Database = {
           base: string
         }[]
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -3831,7 +3803,7 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
       matching_words: {
         Args: { base: string; legal_band: number }
         Returns: {
@@ -3839,12 +3811,12 @@ export type Database = {
           word: string
         }[]
       }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { fe_legal?: boolean; target_game: string; word: string }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       try_base: {
         Args: {
           base: string
@@ -4017,7 +3989,7 @@ export type Database = {
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _sync_title: { Args: { g_id: string }; Returns: undefined }
       _target_for: { Args: { g_id: string }; Returns: string }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           mode: string
@@ -4027,13 +3999,13 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json
       }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -4209,7 +4181,7 @@ export type Database = {
           word: string
         }[]
       }
-      concede: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: Json }
       create_game: {
         Args: {
           board: Json
@@ -4220,9 +4192,9 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      replay_board: { Args: { target_game: string }; Returns: undefined }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: Json }
+      submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {
           is_bonus: boolean

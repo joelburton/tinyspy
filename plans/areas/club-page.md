@@ -5,9 +5,10 @@ The folders it reads: `club`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
-26 files. Seventeen findings recorded, none worked. The prose group (F-1 to
-F-8) is fork-free and waits on "do the prose"; F-9 to F-17 each hold a
-decision.
+26 files. Seventeen findings recorded; **F-9 worked 2026-09-13** and took
+F-11's club-page half and F-15's four not-ok arms with it. The prose group
+(F-1 to F-8) is fork-free and waits on "do the prose"; F-10 and F-12 to F-17
+each still hold a decision.
 
 ## The roster
 
@@ -74,11 +75,11 @@ current-game callout), what could be started (the start list, gated by the
 club's enrolled gametypes and its member count), and everything the club has
 played (the "Your games" list); `App` renders it at `/c/<handle>`; the games
 list is one read of `common.games` plus a Realtime subscription that refetches
-on every change; the roster and the enrolled set are read once, because
-membership is fixed at creation. Details: the two filters and why they persist
+on every change; the club, the roster and the enrolled set are one
+`get_club_page` call, made once, because membership is fixed at creation. Details: the two filters and why they persist
 differently; the mobile fold and why the filters render twice; the abandoned-
 pointer heal; deleting the current game (broadcast first, then the RPC); the
-zero-rows "not found or not a member" answer; the `?new=` intent. Then the row
+`?new=` intent. Then the row
 comes off `INTROS_OWED`.
 
 ### F-club-page-2 · `docstring-for-the-caller` · the page's docstring describes a page that is gone
@@ -87,10 +88,13 @@ comes off `INTROS_OWED`.
 suspended / completed), per-gametype 'Start' buttons, and chat." There are no
 three sections (`docs/states.md`: no suspended category in the listing; the
 flag on the row is the whole signal) and no Start buttons (a `SelectionList` of
-`StartGameRow`s). The RLS paragraph and the Realtime paragraph are intro and
+`StartGameRow`s). The load paragraph and the Realtime paragraph are intro and
 Details material. A caller needs: the `/c/<handle>` page, takes the handle and
-the session. Also: `Member` and `reportUnhandled` are imported at 57–58, after
-a type declaration.
+the session.
+
+F-9 took two of this entry's three claims with it: the RLS paragraph (replaced
+by one about `get_club_page` — still too long for a docstring) and the
+mid-file imports, now above the types.
 
 ### F-club-page-3 · `marker-pass` · every Props block in the folder puts `/**` on its members
 
@@ -98,15 +102,15 @@ A prop note is `//` (the marker rule: a note on one member of a declaration).
 `ClubPage.tsx` (`session`), `ClubGameCard`, `ClubGameRow`, `StartGameRow`,
 `ClubGameDeleteButton`, `ModeFilter`, `GametypeFilter`, `CreateClubModal`,
 `EditClubModal` — nine Props blocks. Also `ListedGame`'s three member notes
-(73–80), and the `fault` state at 134–139, which is a local `useState` and
-takes `//`. `closeSetup` and `gameState` are function-valued consts inside the
+(73–80), and the `failure` state (`fault` until F-9 renamed it), which is a
+local `useState` and takes `//`. `closeSetup` and `gameState` are function-valued consts inside the
 component body and take `//` as well.
 
 ### F-club-page-4 · `archaeology` · the folder narrates how it used to work, in twenty places
 
 `ClubPage.tsx`: "canceling a setup used to cost a Tab press" (321), "Two
 distinct phases that both got called 'start' before the rename" (535–537),
-"Bails now, where it used to drop the error" (607), "the labelFor refactor
+"the labelFor refactor
 moved all the listing data here" (679–681), "We DON'T auto-navigate anyone …
 anymore … no more being yanked off the club page" (745–751), "It was excluded
 back when it lived only in the callout" (810–814), "Hoisted from
@@ -126,17 +130,20 @@ a non-player's messages used to render as `?`". `ClubGameCard.tsx` 36 and
 `club-keyboard` 86 "The row has no href to read any more". Each keeps its
 standing fact and loses the story.
 
-### F-club-page-5 · `stale-claims` · fourteen sentences in the folder describe something that is not there
+### F-club-page-5 · `stale-claims` · sentences in the folder describe something that is not there
 
-- `ClubPage.tsx` 545–546: "These don't change during v1 (membership is fixed
-  at creation)". Membership IS fixed — `create_club` and `claim_username` are
-  the two writers of `clubs_members` — but "v1" frames it as provisional.
+F-9 removed two of these — the "v1" framing on the step-1 comment, and
+`handleDelete`'s "the header slot is for other people's news", which the same
+file already disproved and which F-9 made load-bearing to state correctly.
+
 - `ClubPage.tsx` 276–277: "docs/code-conventions.md (TBD) for the
   evolution-strategy story" — no such section exists.
 - `ClubPage.tsx` 975: "right column is the 'Other games' list" — it is "Your
   games".
 - `ClubPage.tsx` 863–865: "Rename club … fires a 'coming soon' toast" — it
-  shows an acknowledgment in the global feedback slot (408).
+  shows an acknowledgment in the global feedback slot. (Joel, on that slot's
+  own comment claiming it takes only other people's news: *"those were already
+  lies anyway — rename-club puts a message into the global feedback."*)
 - `ClubPage.tsx` 881–886: the `players` / `members` naming note cites a
   naming.md rule; naming.md's rule is about game context, and this is a
   comment about a prop name that could just say "the roster".
@@ -178,8 +185,9 @@ standing fact and loses the story.
 - The mobile tab bar (909–923): the `aria-pressed`-not-tabs argument is
   `Segmented`'s own docstring's and `docs/mobile.md`'s. Local: which column
   each tab shows.
-- The delete toast (489–502): `docs/ui.md` → Toasts and `docs/envelopes.md`.
-  Local: no `ms`, because the toast is the only lasting record here.
+- The delete toast: `docs/ui.md` → Toasts and `docs/envelopes.md`. Local: no
+  `ms`, because the toast is the only lasting record here. (F-9 rewrote the
+  sentence above it, which gave the wrong reason for the toast.)
 - The menu sections (859–866): the menu shape is `docs/ui.md` → ClubPage
   header's. Local: the four rows and the account section last.
 - The heal (197–204, 231–246): the pointer-can-stick story is the current-view
@@ -217,35 +225,61 @@ in nine places", found at eight (the `GameLogo.module.css` mention is gone).
 
 ### F-club-page-8 · `tidy` · two things the eye trips on
 
-A stray blank line at `ClubPage.tsx` 372–373, and the mid-file imports (F-2).
+A stray blank line at `ClubPage.tsx` 372–373. The mid-file imports went with
+F-9.
 
 ### The decision group — each waits for Joel
 
-### F-club-page-9 · `duplicate-roster-load` · the page loads the roster the way `useClubRoster` does, and the hook has a bug the page does not
+### F-club-page-9 · `duplicate-roster-load` · WORKED 2026-09-13 — one RPC, not one loader
 
-`ClubPage.tsx` 591–619 reads `clubs_members` then `profiles`, in sequence,
-bailing to the fault page on either failure. `useClubRoster.ts` reads the same
-two, for `GamePage`, and its docstring says so: "resolved the same two-step
-way ClubPage does inline". The hook is where `todo.md`'s one Bug lives: a
-first-load failure leaves `members` at `[]` for the life of the page, with no
-retry and no fault of the hook's own. The page's copy does not have that bug
-because it treats a failed roster as a page that cannot render.
+The finding as recorded: `ClubPage` read `clubs_members` then `profiles`
+inline, `useClubRoster` read the same two for `GamePage`, and only the hook
+carried `todo.md`'s Bug. The options were one loader, fix the hook alone, or
+leave both.
 
-Options:
+**What the conversation turned it into.** Asking what a failed load should DO
+moved the question off "where does the loading code live": the page's four
+step-1 reads were serial only because each failure bailed, so the chain cost
+four round trips on every successful load to save three on a miscopied URL.
+Joel's rulings — a bad handle is 404-style, a failed members read is fatal,
+"no members" is a fault, "no gametypes" is not an error — do not fit four
+direct reads, because RLS answers "no such club" and "not yours" identically
+with zero rows and four parallel failures would raise four modals (faults do
+not coalesce).
 
-1. **One loader.** `ClubPage` calls `useClubRoster`, and the hook grows what
-   the page needs: a `failed` answer on first load (so the page can render its
-   fault), while a refetch failure still leaves the last roster alone. The
-   page's inline steps go. The Bug closes with it.
-2. **Fix the hook's bug alone** — a `failed` flag the game page reads — and
-   leave the page's inline load, since its sequencing (club → roster →
-   enrolled set, one `loading` flag) is its own.
-3. **Leave both**; record the duplication.
+**Built instead:** `common.get_club_page(target_handle)` — a `stable security
+definer` read returning club (with `is_solo`), the roster alphabetical by
+username, and the enrolled gametypes with their `default_setup`. Refusals
+`PN493` signed out · `PN494` no such club · `PN495` not a member, the last
+worded exactly as `require_club_member`'s `PN012`. The call site passes
+`presentFaults: false` and renders every not-ok as `<EnvelopeErrorPage>`,
+which `callSiteShape.test.ts` names as the fourth legitimate opt-out: a modal
+over a page that failed to load says the same sentence twice.
 
-Recommend 1: the two loaders already diverge on the one thing that matters
-(what a failure means), and the hook's docstring is a pointer at the
-duplication. The sequencing survives — the hook takes the club handle the page
-already has.
+**Step 2 (the games list) stays a PostgREST read** with its Realtime refetch,
+and its silent `return` became a fault modal plus a message in the GLOBAL
+feedback slot. That bends `feedback/doc.md`'s split — the header is for other
+people's news — deliberately: nothing retries this read, so a stale list is a
+page to reload, and the roster and chat pills it hides are not what the player
+needs meanwhile. Joel: *"there's nothing useful about showing the user list or
+chat message pills or such — the user should be reloading the page."* The
+exception is commented at the slot, NOT added to `feedback/doc.md` (Joel:
+*"this is something only someone reading the clubpage code would want to
+know"*). The list's `empty` node now says the read failed rather than "No
+games yet."
+
+**The two loaders were left alone**, which is what the finding originally
+asked about: `ClubPage` has no inline roster read any more, so there is
+nothing left to duplicate, and `useClubRoster` stays untouched for `GamePage`.
+**The Bug is NOT fixed** — the hook still returns silently on a first-load
+failure, and the surface it needs is the game page's, which is another area.
+
+Carried with it: F-11's club-page half (`soloClub` reads `is_solo`;
+`SetupGameModal`'s `modeSuffix` and the two SQL sites remain) and F-15's four
+not-ok arms (the fifth, hand-built "Unknown error." fallback is gone too —
+what is left is the loader's `else`, which screams).
+
+Tests: `supabase/tests/common/get_club_page_test.sql`, 13 assertions.
 
 ### F-club-page-10 · `pill-vocabulary` · "pill" means the feedback pill, and this folder says it for two other things
 
@@ -269,21 +303,17 @@ Options:
 Recommend 1: the todo already ruled it a name, not a conversion, and a folder
 that says "badge" while importing `ModePill` reads as two words for one thing.
 
-### F-club-page-11 · `solo-prefix-in-fe` · the page tests `handle.startsWith('=')` when the database has the answer
+### F-club-page-11 · `solo-prefix-in-fe` · CLUB-PAGE HALF DONE 2026-09-13 (with F-9)
 
-`ClubPage.tsx` 128: `const soloClub = handle.startsWith('=')`. `is_solo` is a
-generated column on `common.clubs`, and the home page reads it instead of
-the prefix. Joel: "we should get '=' stuff out of FE when we get to them." The
-page already selects from `clubs`; adding `is_solo` to the select is the whole
-change. `SetupGameModal`'s `modeSuffix` is setup-form's.
+`ClubPage`'s `soloClub` was `handle.startsWith('=')`; `is_solo` is a generated
+column on `common.clubs`, and the home page already read it instead. Joel: "we
+should get '=' stuff out of FE when we get to them." `get_club_page` returns
+`is_solo`, so the page reads the column now.
 
-Options:
-
-1. **Select `is_solo` and drop the prefix test.** `StartGameRow` and
-   `ModeFilter`'s prop notes stop saying "handle starts with '='".
-2. **Leave**, and let setup-form's area take both sites together.
-
-Recommend 1: it is a three-line change in the file that is open.
+**Still open, elsewhere**: `SetupGameModal`'s `modeSuffix` (setup-form's area),
+and the two SQL sites that write `like '=%'` (`common.sql`, the setgame
+migration). `StartGameRow` and `ModeFilter`'s prop notes still say "handle
+starts with '='" — prose, so they belong to the F-3/F-5 pass.
 
 ### F-club-page-12 · `two-line-row-thrice` · the name-over-meta row is written in three stylesheets
 
@@ -343,22 +373,21 @@ Options:
 
 Recommend 1: the two columns are peers here, and a sheet would demote one.
 
-### F-club-page-15 · `error-page-pair` · the page builds its own `{ text, diagnostics }` for `<ErrorPage>`
+### F-club-page-15 · `error-page-pair` — RESOLVED 2026-09-13 by F-9
 
-`todo.md` Someday: `EnvelopeErrorPage` derives both from the envelope the hook
-already has. Here five failure arms build the pair (563–641, 784–793); four
-have a not-ok envelope in hand, and the fifth — zero rows, "Club not found, or
-you are not a member." — has no envelope at all, only an OK line the page
-writes itself.
+`todo.md` Someday: `EnvelopeErrorPage` derives both halves from the envelope
+the caller already has. Five arms built the pair by hand, and the reason to
+keep them was the fifth — zero rows, "Club not found, or you are not a
+member." — which had no envelope at all, only an OK line the page wrote
+itself, because a successful read returning nothing is not a failure.
 
-Options:
+`get_club_page` gives that case a real envelope (`PN494`/`PN495`), so all five
+arms collapsed into `<EnvelopeErrorPage envelope={failure} />`. The recommend
+was option 1, keep the pair; the RPC removed the thing that forced it.
 
-1. **Keep the pair**, because one arm has no envelope and the four that do
-   share one `diag()` helper already; close the item with that reason.
-2. **`EnvelopeErrorPage` for the four not-ok arms**, the pair for the fifth —
-   two error components on one page.
-
-Recommend 1.
+The one hand-built envelope left is `LOADED_WITH_NEITHER`, a module constant
+for the loader's `else` — a wire type neither `ok` nor `not-ok`, which has
+already screamed. It is a page with no sentence of its own to write.
 
 ### F-club-page-16 · `no-unit-test` · the page has no test file
 

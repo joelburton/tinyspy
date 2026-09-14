@@ -422,6 +422,22 @@ The caller is auto-added if not in `member_usernames` — a UI that lets the cre
 
 Replaces a club's `clubs_gametypes` set with exactly the passed list — the write side of the "Edit club" dialog. Any club member may call it (friends, not an admin hierarchy). Returns the result envelope (`docs/envelopes.md`), and authors no failure of its own: not authenticated / not a member (`42501`) and an unknown gametype in the list (`23503`, FK) both arrive as raw faults. Deletes by difference rather than truncate-and-refill, so an unchanged row keeps its `default_setup`; an empty (or NULL) list clears every enrollment. Applies **no** solo-club `min_players` filter — that only shapes the default enrollment at creation; a member may list a two-player game in a solo club, it just won't be startable.
 
+### `common.get_club_page(target_handle text)`
+
+Everything `ClubPage` renders, in one read: `result: 'loaded'`, the club (`handle`, `name`, `is_solo`), the full roster **alphabetical by username**, and the club's enrolled gametypes each with its `default_setup`. A `stable security definer` read — unusual here, since reads otherwise go through PostgREST and RLS — for three reasons it is the only way to get: one envelope instead of four (faults do not coalesce, so four parallel reads failing together would mean four modals), the server writing the sentences, and the distinction below.
+
+| reject reason | code |
+|---|---|
+| not signed in | `PN493` |
+| no club with that handle | `PN494` |
+| the club exists, the caller isn't in it | `PN495` |
+
+**`PN494` and `PN495` are the point.** RLS hides a club you are outside, so a direct read of `common.clubs` answers "no such club" and "not yours" identically with zero rows — the page used to say both in one sentence because it could not tell. A definer function sees the club row and the membership row separately. The checks run auth → existence → membership, which is also why `require_club_member` is not used here: it answers "not a member" for a club that does not exist.
+
+The caller passes `presentFaults: false` and renders every not-ok as `<EnvelopeErrorPage>` — a modal over a page that failed to load would say the same sentence twice (`error-page/doc.md`).
+
+The games list is **not** part of this: it has its own Realtime subscription and refetches on every `common.games` change for the club, so it stays a direct read.
+
 ### `common.send_message(target_club text, content text)`
 
 Posts to a club's chat. `target_club` is the club's handle (PK). Reject reasons: not authenticated, not a member, empty/whitespace-only, over 1000 chars.

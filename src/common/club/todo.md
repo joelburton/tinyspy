@@ -32,12 +32,13 @@
   docs rows are the ones that matter — a reader looking for the component
   finds nothing. `GameLogo.module.css` names it too; that one belongs to the
   logo's own comment rewrite.
-- **The `=` solo-handle convention is still tested in the FE** — `soloClub`
-  in `ClubPage.tsx` and `modeSuffix` in `SetupGameModal.tsx`.
-  `common.clubs.is_solo` (a generated column) carries it, and the homepage
-  reads that instead. Joel: *"fine for now, but we should get '=' stuff out
-  of FE when we get to them."* The two SQL sites (`common.sql`, the setgame
-  migration) write `like '=%'` and can take the column too.
+- **The `=` solo-handle convention is still tested in the FE** — `modeSuffix`
+  in `SetupGameModal.tsx`. `common.clubs.is_solo` (a generated column) carries
+  it, and the homepage reads that instead. Joel: *"fine for now, but we should
+  get '=' stuff out of FE when we get to them."* `ClubPage`'s `soloClub` was
+  the other one; it reads `is_solo` off `get_club_page`'s payload now. The two
+  SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can
+  take the column too.
 - **The two-line row** — a name line over a muted meta line — is written in
   THREE files: `StartGameRow`, `ClubGameRow` and the standalone `ClubGameCard`.
   The pattern should name the SLOTS; each component keeps its own name for

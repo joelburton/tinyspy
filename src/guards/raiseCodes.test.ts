@@ -264,6 +264,9 @@ describe('the raise codes', () => {
       'Your session expired — signing you out.',
       'Your profile is no longer on the server. Please refresh.',
       'You are not a member of this club',
+      // A URL that points at no club — a miscopied or stale link, not
+      // something the frontend could have prevented.
+      'No club with that name',
       'You are not in this game',
       'That game no longer exists',
       'No guesses left',

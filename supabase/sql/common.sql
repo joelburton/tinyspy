@@ -2258,6 +2258,163 @@ revoke execute on function common.set_club_gametypes(text, text[]) from public;
 grant execute on function common.set_club_gametypes(text, text[]) to authenticated;
 
 -- ============================================================
+-- common.get_club_page RPC — everything ClubPage needs to render
+-- ============================================================
+--
+-- One call in place of the four serial reads ClubPage used to make
+-- (clubs → clubs_members → profiles → clubs_gametypes). The reads
+-- were serial because each failure bailed to the page's error
+-- state, so a chain that short-circuits cost four round trips on
+-- every successful load to save three on a miscopied URL.
+--
+-- It is a READ RPC, which is unusual here — writes go through RPCs
+-- and reads go through PostgREST + RLS (docs/supabase.md). Three
+-- things are only reachable this way:
+--
+--   - ONE envelope, so one fault. Four parallel reads would fail
+--     together on an outage, and faults do not coalesce (each is
+--     its own modal, faultStore.ts), so the player would dismiss
+--     four boxes to reach the page behind them.
+--   - "No such club" and "not a member" become DIFFERENT answers.
+--     RLS collapses them: it hides a club you are not in, so both
+--     arrive at a direct read as zero rows, and the page had to
+--     say both in one sentence. A definer function sees the club
+--     row and the membership row separately.
+--   - The sentences are the server's. The page renders the
+--     envelope with <EnvelopeErrorPage> instead of pairing up its
+--     own text and diagnostics line per failure.
+--
+-- The caller passes `presentFaults: false` and renders every
+-- not-ok as the page itself: a modal over a page that failed to
+-- load would say the same sentence twice (error-page/doc.md — a
+-- modal when the page behind it survives, a page when it does
+-- not).
+--
+-- Outcomes:
+--   - ok           the payload below
+--   - not-ok/fault PN493 signed out · PN494 no such club ·
+--                  PN495 not a member
+--
+-- The payload, and why each piece is in it:
+--
+--   club       handle, name, and `is_solo` — the generated column,
+--              so the FE stops re-deriving the '=' prefix itself.
+--   members    the full roster, ALPHABETICAL by username. The
+--              two-step join lives in SQL here; the FE's two-step
+--              rule (docs/supabase.md) is about PostgREST embeds,
+--              and a written-out join keeps the same column
+--              control it was protecting.
+--   gametypes  the enrolled set AND each one's `default_setup`,
+--              which seeds SetupGameModal with what the friends
+--              played last time. One shape, because a second read
+--              for the defaults is the thing this call exists to
+--              avoid.
+--
+-- Ordered inside the function rather than left to the planner:
+-- the members list is rendered in array order by the header's
+-- players strip, so "unordered" meant a roster whose order could
+-- change between loads.
+--
+-- Checks run auth → existence → membership, and that order is the
+-- point: `require_club_member` is not used here precisely because
+-- it answers "not a member" for a club that does not exist, which
+-- is the distinction this function was written to draw.
+
+drop function if exists common.get_club_page(text);
+create or replace function common.get_club_page(target_handle text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  v_club    record;
+  v_members jsonb;
+  v_kinds   jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+begin
+  caller_id := auth.uid();
+  if caller_id is null then
+    -- PN493. App only renders ClubPage with a session, but one can expire
+    -- between mount and this call, so it is reachable — and what the player
+    -- needs is the instruction to refresh, not a page about the club.
+    raise exception 'Signed out; try refresh'
+      using errcode = 'PN493', hint = 'fault', column = '_',
+      detail = 'auth.uid() is null';
+  end if;
+
+  select handle, name, is_solo into v_club
+  from common.clubs where handle = target_handle;
+
+  -- PN494. A miscopied or stale URL: the handle is the PK, so there is
+  -- nothing to look up under a different spelling.
+  if v_club.handle is null then
+    raise exception 'No club with that name'
+      using errcode = 'PN494', hint = 'fault', column = '_',
+      detail = format('no common.clubs row for handle=%s', target_handle);
+  end if;
+
+  -- PN495. The club exists and is somebody's, just not yours. Saying so is
+  -- safe here in a way it would not be on a public venue: clubs invite by
+  -- name among friends (CLAUDE.md → Audience), and the alternative is the
+  -- one sentence that has to cover both cases and therefore explains neither.
+  if not exists (
+    select 1 from common.clubs_members
+    where club_handle = target_handle and user_id = caller_id
+  ) then
+    -- Word for word `require_club_member`'s PN012: the same fact, and one
+    -- sentence for it wherever it is said.
+    raise exception 'You are not a member of this club'
+      using errcode = 'PN495', hint = 'fault', column = '_',
+      detail = 'caller is not in common.clubs_members for this club';
+  end if;
+
+  -- `coalesce(..., '[]')` on both: `jsonb_agg` over no rows is NULL, and the
+  -- FE reads these as arrays. Neither is reachable today — a club always
+  -- seats its creator, and one with no enrolled gametypes just draws an empty
+  -- start list — but an empty array says that without the caller checking.
+  select coalesce(jsonb_agg(m order by m.username), '[]'::jsonb) into v_members
+  from (
+    select p.user_id, p.username, p.color
+    from common.clubs_members cm
+    join common.profiles p on p.user_id = cm.user_id
+    where cm.club_handle = target_handle
+  ) m;
+
+  select coalesce(jsonb_agg(k order by k.gametype), '[]'::jsonb) into v_kinds
+  from (
+    select cg.gametype, cg.default_setup
+    from common.clubs_gametypes cg
+    where cg.club_handle = target_handle
+  ) k;
+
+  -- `result` is the one answer this RPC has, and it is here for the same
+  -- reason `create_club` says 'created': a call site's ok branch asserts
+  -- something POSITIVE about the payload, so an answer added later cannot sail
+  -- into it on the strength of `type` alone (docs/envelopes.md → The shape).
+  return common.ok_envelope(data => jsonb_build_object(
+    'result', 'loaded',
+    'club', jsonb_build_object(
+      'handle', v_club.handle, 'name', v_club.name, 'is_solo', v_club.is_solo),
+    'members', v_members,
+    'gametypes', v_kinds));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+end;
+$$;
+
+revoke execute on function common.get_club_page(text) from public;
+grant execute on function common.get_club_page(text) to authenticated;
+
+-- ============================================================
 -- common.send_message RPC
 -- ============================================================
 --

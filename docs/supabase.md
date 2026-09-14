@@ -177,7 +177,10 @@ Roster-shaped reads (`game_players` → `profiles`, `clubs_members` →
 `profiles`) are written as two explicit queries with an `.in()` on the
 collected ids, not as embedded selects. The embed would save a round-trip;
 the two-step form keeps column control obvious and reads the same in every
-call site. `useCommonGame` documents the choice inline.
+call site. `useCommonGame` documents the choice inline. The rule is about
+PostgREST embeds, not about SQL: `common.get_club_page` writes the same
+roster as a join in its own body, which keeps the column control the rule
+was protecting.
 
 ### Query bounds — and the `max_rows` trap
 
