@@ -171,17 +171,6 @@ multi-kilobyte word list every time a teammate finds a word. Games with
 small headers (psychicnum, wordle, …) just refetch everything — simpler,
 and the volumes don't justify the split.
 
-### Two-step joins over PostgREST embeds
-
-Roster-shaped reads (`game_players` → `profiles`, `clubs_members` →
-`profiles`) are written as two explicit queries with an `.in()` on the
-collected ids, not as embedded selects. The embed would save a round-trip;
-the two-step form keeps column control obvious and reads the same in every
-call site. `useCommonGame` documents the choice inline. The rule is about
-PostgREST embeds, not about SQL: `common.get_club_page` writes the same
-roster as a join in its own body, which keeps the column control the rule
-was protecting.
-
 ### Query bounds — and the `max_rows` trap
 
 Most queries are naturally bounded: one row by PK, or child rows of a

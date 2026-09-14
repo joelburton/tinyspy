@@ -2299,11 +2299,8 @@ grant execute on function common.set_club_gametypes(text, text[]) to authenticat
 --
 --   club       handle, name, and `is_solo` — the generated column,
 --              so the FE stops re-deriving the '=' prefix itself.
---   members    the full roster, ALPHABETICAL by username. The
---              two-step join lives in SQL here; the FE's two-step
---              rule (docs/supabase.md) is about PostgREST embeds,
---              and a written-out join keeps the same column
---              control it was protecting.
+--   members    the full roster, ALPHABETICAL by username, joined to
+--              profiles here rather than in a second read.
 --   gametypes  the enrolled set AND each one's `default_setup`,
 --              which seeds SetupGameModal with what the friends
 --              played last time. One shape, because a second read
