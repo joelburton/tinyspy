@@ -208,7 +208,7 @@ export function SetupGameModal({
 
   // The chosen mode (Co-op / Compete), shown in BOTH the dialog title and the
   // Start button so it's clear which sibling you're launching. Dropped entirely
-  // in a solo club, matching ModePill's suppression there — mode is noise with
+  // in a solo club, matching ModeBadge's suppression there — mode is noise with
   // one player (solo clubs register a single variant per game, so there's no
   // ambiguity to resolve).
   const modeSuffix = clubHandle.startsWith('=')

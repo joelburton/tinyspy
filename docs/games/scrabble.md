@@ -1022,7 +1022,7 @@ no *strategic* exchange — the AI only swaps when it has no legal play at all.
 
 **Surfacing.** Solo clubs get the compete Start button (`scrabble_compete`'s
 `min_players` is 1 — you race the AI alone), badged **"AI Compete"** by
-`ModePill`. Each opponent's committed move (human OR AI) is announced in the
+`ModeBadge`. Each opponent's committed move (human OR AI) is announced in the
 global header as a `peer` message ("● AI 1 played COATS (+18)"); an AI seat's score shows in
 a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).

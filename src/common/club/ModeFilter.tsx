@@ -22,7 +22,7 @@ type Props = {
  * bar: exactly one is pressed at a time, and pressed-ness is the whole state.
  *
  * **A solo club gets no filter at all.** Mode is noise with one player — the
- * same call `<ModePill>` makes when it suppresses the "Co-op" badge there — so
+ * same call `<ModeBadge>` makes when it suppresses the "Co-op" badge there — so
  * offering to filter by it would be offering to sort a distinction the page
  * isn't drawing. A lone always-selected "All" was the first shape of that, and
  * it just left a button that did nothing; the heading row is happier with the

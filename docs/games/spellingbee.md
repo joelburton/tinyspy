@@ -340,7 +340,7 @@ src/spellingbee/
                           (compete seeds target_rank=5), and labelFor's vocabulary
                           (coop: "X/Y pts · Z/W words"; compete: "race to Amazing" /
                           "winner at Amazing" / "time up · no winner at Amazing" —
-                          mode itself shown by the card's <ModePill>, not prefixed).
+                          mode itself shown by the card's <ModeBadge>, not prefixed).
                           submitTimeout shared.
   db.ts                   export const db = supabase.schema('spellingbee')
   theme.css               --spellingbee-hex / --spellingbee-accent / feedback colors. Loaded

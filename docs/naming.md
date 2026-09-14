@@ -235,8 +235,9 @@ surface tightens it, never the reverse.
 Two things the split needs to be usable:
 
 - **The boundary is the SURFACE, not the folder.** A folder is not an owner:
-  `<ModePill>` renders only on club surfaces and is locked wherever its file
-  sits, and `<PageHeader>` is locked while GamePage carries it.
+  `<PageHeader>` is locked while GamePage carries it, wherever its file sits.
+  (`<ModeBadge>` used to be the other example — locked to club surfaces while
+  living in `game-page/` — until the file moved to the folder that renders it.)
 - **The line runs INSIDE boardCol.** A board's contents are tuned; the
   furniture around them is justified — the board frame, the history ring, the
   game-over frame, `dimNotYourTurn`, the below-board feedback slot, the

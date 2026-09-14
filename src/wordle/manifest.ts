@@ -56,7 +56,7 @@ const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
 /** One-line label for the ClubPage games list — pure + synchronous.
- *  The coop/compete mode is shown by the card's <ModePill>, so it's no
+ *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 /**
  * wordle's club-page status line. The answer-source band rides on every row —

@@ -21,7 +21,7 @@ connections exports two manifest entries from one folder, mirroring psychicnum's
 | `name`               | `WordKnit` (the `BRAND`)   | `WordKnit` (the `BRAND`)       |
 | `numberOfPlayers`    | `[1, 6]`                | `[2, 6]`                    |
 
-The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModePill>` (read from `mode`), not baked into the name string. See [ui.md → Mode badges](../ui.md#mode-badges).
+The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModeBadge>` (read from `mode`), not baked into the name string. See [ui.md → Mode badges](../ui.md#mode-badges).
 
 Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`) — the FE-level analog of `connections.games.mode`, denormalized for RLS branching. The DB inserts **two rows in `common.gametypes`** but a **single set of connections tables**; one `connections.create_game(target_club, setup, players, mode)` RPC routes both manifests' Start clicks.
 

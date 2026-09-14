@@ -156,8 +156,8 @@ const LOADED_WITH_NEITHER = environmentalEnvelope(
 export function ClubPage({ handle, session }: Props) {
   const selfId = session.user.id
   const [club, setClub] = useState<ClubRow | null>(null)
-  // One-player club. Suppresses the "Co-op" mode pill on this page's cards and
-  // buttons — see ModePill. `is_solo` is a generated column over the handle's
+  // One-player club. Suppresses the "Co-op" mode badge on this page's cards
+  // and rows — see ModeBadge. `is_solo` is a generated column over the handle's
   // '=' prefix, so the convention is stated in the database and read here.
   // Null only while loading, and every reader below sits past the early
   // returns.

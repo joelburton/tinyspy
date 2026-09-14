@@ -24,7 +24,7 @@
   min-width: 0;
 }
 
-/* Title + mode pill on one line. */
+/* Title + mode badge on one line. */
 /* @@ */ .titleRow {
   display: flex;
   align-items: center;

@@ -20,7 +20,7 @@
   min-width: 0;
 }
 
-/* Name + mode pill on one line above the meta. */
+/* Name + mode badge on one line above the meta. */
 /* @@ */ .titleRow {
   display: flex;
   flex-direction: row;

@@ -3,14 +3,14 @@
 import type { GameManifest } from '../manifest/gameManifest'
 import { playerCountShort } from '../manifest/gameManifest'
 import { GameLogo } from '../branding/GameLogo'
-import { ModePill } from '../game-page/ModePill'
+import { ModeBadge } from './ModeBadge'
 import styles from './StartGameRow.module.css'
 
 type Props = {
   /** The gametype this row offers. */
   game: GameManifest
   /** Whether this is a solo club (handle starts with '='). Suppresses the
-   *  "Co-op" pill and the player count — both are noise when there's only one
+   *  "Co-op" badge and the player count — both are noise when there's only one
    *  member and every game there is played by them. */
   soloClub: boolean
 }
@@ -19,7 +19,7 @@ type Props = {
  * One startable gametype's row in ClubPage's "Start a new game" list — the
  * CONTENTS of a `<SelectionList>` row, not the row itself:
  *
- *   [logo]  <gametype name> <mode pill>
+ *   [logo]  <gametype name> <mode badge>
  *           <short description> · <player count>
  *
  * The list owns the box, the hover, the cursor ring and the click; it also owns
@@ -40,7 +40,7 @@ export function StartGameRow({ game, soloClub }: Props) {
       <span className={styles.content}>
         <span className={styles.titleRow}>
           <span className={styles.gametypeName}>{game.name}</span>
-          <ModePill mode={game.mode} soloClub={soloClub} aiOpponent={game.aiOpponent} />
+          <ModeBadge mode={game.mode} soloClub={soloClub} aiOpponent={game.aiOpponent} />
         </span>
         <span className={styles.meta}>
           {game.shortDescription}

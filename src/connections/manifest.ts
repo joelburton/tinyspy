@@ -221,7 +221,7 @@ export const connectionsCompeteGame: GameManifest = {
   // per-player matched_count anywhere in the club view either.
   // Terminal copy carries the winner's name (frozen onto status
   // at submit_guess time) so post-game review reads as
-  // "ada won the race." Mode itself is shown by the card's <ModePill>.
+  // "ada won the race." Mode itself is shown by the card's <ModeBadge>.
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
     switch (row.play_state) {

@@ -2,7 +2,7 @@
 
 /* The delete affordance in a game entry's top-right corner. Two visual states,
  * driven by `deleteButtonActive`: the quiet × until you go looking for it, and
- * a loud destructive pill once you have pressed it — loud on purpose, so a
+ * a loud destructive labeled button once you have pressed it — loud on purpose, so a
  * misclicked × is obvious. The 4-second auto-revert lives in the component and
  * keeps the loud state from sticking around.
  *
@@ -37,7 +37,7 @@
   opacity: 1;
 }
 
-/* Confirming or deleting: a destructive pill, always visible regardless of
+/* Confirming or deleting: a destructive labeled button, always visible regardless of
  * hover.
  *
  * The plain destructive treatment every other irreversible control wears — the
@@ -48,7 +48,7 @@
   opacity: 1;
   /* Nothing here has to escape the icon-only square: `<StandardButton>` applies
      that class only when no label is drawn, so drawing the label is itself what
-     makes this a pill. */
+     lets this one grow to fit its words. */
   /* The SECONDARY value, not the primary: this is an outline — border and label
      on a transparent ground — and `-secondary-color` is the one taken down far
      enough to read as small text on white. Using the primary here was the fill

@@ -20,7 +20,7 @@ type Props = {
  *     hovered or
  *     holds focus, so it doesn't compete with the entry's content until you go
  *     looking for it.
- *   - **confirming** — expands into a "Confirm delete?" pill, always
+ *   - **confirming** — expands into a labeled "Confirm delete?" button, always
  *     visible, auto-reverting after 4 seconds. A misclicked × can simply be
  *     ignored; there is no Cancel to find.
  *   - **deleting** — "Deleting…" while the caller does its work.
@@ -28,7 +28,7 @@ type Props = {
  * **A DESTRUCTIVE button in every state**: the same tone at
  * rest, on hover and while confirming, so the affordance that says "this
  * deletes something" is there BEFORE the click rather than after it. Only the
- * SHAPE changes, from a square trash can to a labeled pill.
+ * SHAPE changes, from a square trash can to a labeled button.
  *
  * **It stops the click from propagating**, which is load-bearing now that a
  * game row is a `<SelectionList>` row: the row's own click activates it, so
@@ -81,7 +81,7 @@ export function ClubGameDeleteButton({ onDelete }: Props) {
     // WHAT IT SHOWS IS THE SHAPE CHANGE. At rest it is a trash can in a fixed
     // square; once you press it the same button draws its words beside the same
     // glyph, so the thing that expands is visibly the thing you clicked rather
-    // than a pill that replaced it.
+    // than a different control that replaced it.
     //
     // `small` brings the whole small button with it: tighter padding, smaller
     // type, a glyph that follows them both, and the 1.6rem icon-only box. One

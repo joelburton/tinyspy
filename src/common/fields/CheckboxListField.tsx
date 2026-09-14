@@ -8,7 +8,7 @@ import type { AllFieldProps } from './fieldProps'
 import styles from './CheckboxListField.module.css'
 
 /** One option in the list. `label` is a node because a caller routinely puts
- *  something beside the words — EditClubModal draws a `<ModePill>` after the
+ *  something beside the words — EditClubModal draws a `<ModeBadge>` after the
  *  gametype's name. */
 export type CheckboxListOption = {
   // What lands in the value set when this option is ticked.

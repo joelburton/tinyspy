@@ -5,10 +5,10 @@ The folders it reads: `club`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
-26 files. Seventeen findings recorded; **F-9 worked 2026-09-13** and took
-F-11's club-page half and F-15's four not-ok arms with it. The prose group
-(F-1 to F-8) is fork-free and waits on "do the prose"; F-10 and F-12 to F-17
-each still hold a decision.
+26 files. Seventeen findings recorded; **F-9 and F-10 worked 2026-09-13**,
+F-9 taking F-11's club-page half and F-15's four not-ok arms with it. The
+prose group (F-1 to F-8) is fork-free and waits on "do the prose"; F-12 to
+F-17 each still hold a decision.
 
 ## The roster
 
@@ -281,27 +281,28 @@ what is left is the loader's `else`, which screams).
 
 Tests: `supabase/tests/common/get_club_page_test.sql`, 13 assertions.
 
-### F-club-page-10 · `pill-vocabulary` · "pill" means the feedback pill, and this folder says it for two other things
+### F-club-page-10 · `pill-vocabulary` · WORKED 2026-09-13 — option 1
 
-`todo.md` Soon: `<ModePill>` is a BADGE and should be renamed; "pill" is the
-feedback pill and nothing else; every render site is a club surface. This
-folder's prose says "mode pill" in `ClubGameCard`, `ClubGameRow`,
-`StartGameRow`, `ModeFilter` and `ClubPage` (126–127), and "pill" for the
-delete button's expanded shape in `ClubGameDeleteButton.tsx` (23, 31) and its
-stylesheet (5, 40). The expanded delete button is a labeled button, not a
-badge and not a pill.
+The rule is `todo.md`'s and general: **"pill" means the FEEDBACK pill and
+nothing else** — the fully-round-ended lozenge is a badge. This folder spent
+the word on two other things.
 
-Options:
+`ModePill` → **`ModeBadge`**, and the file moved from `game-page/` to `club/`.
+Every real import was already a club file (the mentions elsewhere — four
+manifests, `CheckboxListField`, `SetupGameModal` — are prose), so the move
+removed four `../game-page/` imports and introduced none. Its module already
+read the shared `.badge`, so this was a name, as `todo.md` said.
 
-1. **Rename `ModePill` → `ModeBadge` here**, file and all, and say "badge" and
-   "labeled button" in this folder's prose. `game-page`'s file moves because
-   the area that owns every render site is open; `CheckboxListField`,
-   `SetupGameModal` and four manifests import it and get the one-line rename.
-2. **Prose only** — this folder says "badge"; the component keeps its name
-   until `game-page` opens.
+The delete button's expanded shape is a **labeled button**, not a pill:
+`ClubGameDeleteButton.tsx` and its stylesheet say so now. The two remaining
+uses of "pill" in `ClubPage.tsx` are the feedback pill and are correct.
 
-Recommend 1: the todo already ruled it a name, not a conversion, and a folder
-that says "badge" while importing `ModePill` reads as two words for one thing.
+Docs followed: `docs/ui.md` (three sites, and the parenthetical saying the
+name was owed a fix is gone), `docs/naming.md`, four game docs, one e2e
+comment. `docs/naming.md`'s "a folder is not an owner" bullet used `ModePill`
+as its example of a component locked away from its file; that instance is
+resolved, so `<PageHeader>` carries the point and the old example is named as
+history.
 
 ### F-club-page-11 · `solo-prefix-in-fe` · CLUB-PAGE HALF DONE 2026-09-13 (with F-9)
 

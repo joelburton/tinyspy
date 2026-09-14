@@ -4,14 +4,14 @@ import type { GameManifest } from '../manifest/gameManifest'
 import { cls } from '../utils/cls'
 import { friendlyDate } from '../utils/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
-import { ModePill } from '../game-page/ModePill'
+import { ModeBadge } from './ModeBadge'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 import styles from './ClubGameRow.module.css'
 
 export type ClubGameState = 'active' | 'suspended' | 'completed'
 
 type Props = {
-  /** The gametype's manifest — drives the logo and the mode pill. ClubPage has
+  /** The gametype's manifest — drives the logo and the mode badge. ClubPage has
    *  it in hand for every row it builds. */
   manifest: GameManifest
   /** Algorithmic per-game title from `common.games.title`. Optional because the
@@ -27,8 +27,8 @@ type Props = {
    *  flag (orange = the club's current game, yellow = shelved but still open,
    *  none = finished). */
   state: ClubGameState
-  /** Whether this row's club is a solo club. Forwarded to <ModePill> so the
-   *  "Co-op" pill is suppressed there. */
+  /** Whether this row's club is a solo club. Forwarded to <ModeBadge> so the
+   *  "Co-op" badge is suppressed there. */
   soloClub: boolean
   /** Omit and the row is read-only — no delete affordance renders. */
   onDelete?: () => Promise<void> | void
@@ -39,7 +39,7 @@ type Props = {
  * `<SelectionList>` row, not the row itself. The list owns the box, the hover,
  * the cursor ring and the click; this owns what is inside it:
  *
- *   [logo]  <title> <mode pill>
+ *   [logo]  <title> <mode badge>
  *           <status> ······················ <last played>
  *
  * with a corner flag when the game is still open and a hover-revealed delete ×.
@@ -85,7 +85,7 @@ export function ClubGameRow({
       <div className={styles.content}>
         <div className={styles.titleRow}>
           {title && <span className={styles.gameTitle}>{title}</span>}
-          <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
+          <ModeBadge mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
         </div>
         <div className={styles.meta}>
           <span>{statusLabel}</span>

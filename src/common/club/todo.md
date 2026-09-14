@@ -13,13 +13,6 @@
 
 ## Soon
 
-- **`<ModePill>` is a BADGE and should be renamed.** Its module already reads
-  the shared `.badge` and holds nothing but the two colors, so this is a name,
-  not a conversion. The rule it carries is general: **"pill" means the
-  FEEDBACK pill and nothing else** — the fully-round-ended lozenge is a badge.
-  (`ModePill.tsx` sits in `game-page` today; all its render sites are club
-  surfaces, and a folder is not an owner.) The doc half is done — docs/ui.md
-  now says "Mode badges" — so what is left is the component and its file.
 - **`<StartGameButtons>` no longer exists and is still named in nine places.**
   The row of per-gametype Start buttons became a `<SelectionList>` of
   `<StartGameRow>`s, and the predicate it used to evaluate for the paint moved

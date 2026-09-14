@@ -173,7 +173,7 @@ test.describe('club page list filters', () => {
   })
 
   /**
-   * A solo club draws no coop/compete distinction anywhere (`<ModePill>`
+   * A solo club draws no coop/compete distinction anywhere (`<ModeBadge>`
    * suppresses the badge there), so it gets NO mode filter — offering to sort
    * by a distinction the page isn't showing is worse than the empty space.
    * The start list still shows everything.

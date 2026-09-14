@@ -5,7 +5,7 @@ import { Link } from '../routing/Link'
 import { gamePath } from '../routing/routes'
 import { friendlyDate } from '../utils/friendlyDate'
 import { GameLogo } from '../branding/GameLogo'
-import { ModePill } from '../game-page/ModePill'
+import { ModeBadge } from './ModeBadge'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 import styles from './ClubGameCard.module.css'
 
@@ -13,7 +13,7 @@ type Props = {
   /** The id of this game (drives the routing target). */
   gameId: string
   /** The gametype's manifest — drives the routing target, the logo and the
-   *  mode pill. ClubPage has it in hand for every row it builds. */
+   *  mode badge. ClubPage has it in hand for every row it builds. */
   manifest: GameManifest
   /** Algorithmic per-game title from `common.games.title`. Optional because the
    *  lookup map may not have populated by first render. */
@@ -25,7 +25,7 @@ type Props = {
   /** Called when the user confirms the delete affordance. ClubPage owns the
    *  mechanics. Omit and the callout is read-only. */
   onDelete?: () => Promise<void> | void
-  /** Whether this club is a solo club. Forwarded to <ModePill>. */
+  /** Whether this club is a solo club. Forwarded to <ModeBadge>. */
   soloClub: boolean
 }
 
@@ -64,7 +64,7 @@ export function ClubGameCard({
         <div className={styles.content}>
           <div className={styles.titleRow}>
             {title && <span className={styles.gameTitle}>{title}</span>}
-            <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
+            <ModeBadge mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
           </div>
           <div className={styles.meta}>
             <span>{statusLabel}</span>

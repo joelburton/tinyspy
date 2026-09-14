@@ -6,7 +6,7 @@ import { runRpc } from '../supabase/dbResult'
 import { gametypes } from '@/gametypes'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { FailureLine } from '../forms/FailureLine'
-import { ModePill } from '../game-page/ModePill'
+import { ModeBadge } from './ModeBadge'
 import actionRow from '../floating-panels/modalActions.module.css'
 import { FormSubmitButton } from '../buttons/FormSubmitButton'
 import { CancelButton } from '../buttons/CancelButton'
@@ -134,7 +134,7 @@ export function EditClubModal({
                 value: g.gametype,
                 label: (
                   <>
-                    {g.name} <ModePill mode={g.mode} />
+                    {g.name} <ModeBadge mode={g.mode} />
                   </>
                 ),
                 description: g.shortDescription,

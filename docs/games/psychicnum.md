@@ -20,7 +20,7 @@ psychicnum is a coop/compete sibling pair — the full pattern (two `common.game
 | `mode`            | `'coop'`             | `'compete'`             |
 | `numberOfPlayers` | `[1, 6]`             | `[2, 6]`                |
 
-Both siblings share the same display `name` — the brand, `PsychicNum`, read from the manifest's one `BRAND` const — over one `src/psychicnum/` folder and one schema; the coop/compete distinction shows at presentation time via the `<ModePill>` (see [ui.md → Mode badges](../ui.md#mode-badges)). A timer that runs out is NOT what makes a game "compete" — compete needs an opposing PLAYER, which is why the compete manifest's `[2, 6]` floor hides it in solo clubs (coop can still carry a countdown timer there).
+Both siblings share the same display `name` — the brand, `PsychicNum`, read from the manifest's one `BRAND` const — over one `src/psychicnum/` folder and one schema; the coop/compete distinction shows at presentation time via the `<ModeBadge>` (see [ui.md → Mode badges](../ui.md#mode-badges)). A timer that runs out is NOT what makes a game "compete" — compete needs an opposing PLAYER, which is why the compete manifest's `[2, 6]` floor hides it in solo clubs (coop can still carry a countdown timer there).
 
 ## The rules
 
