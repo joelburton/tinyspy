@@ -302,16 +302,20 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // it: not the header marks, not the filters, not a row's delete affordance.
   useTabRing([startListRef, gamesListRef])
 
-  // The startable games in DISPLAY order — alphabetical by brand. Registry
-  // order means nothing to a player scanning for a game, and the stable sort
-  // keeps a coop/compete sibling pair coop-first within the brand tie. Here
-  // rather than in the row, so the keyboard cursor indexes the order the list
-  // renders in.
+  // The startable games in DISPLAY order — alphabetical by brand, and coop
+  // before compete inside the tie a sibling pair makes (both export the same
+  // `name`). Both halves are spelled out here, so the order this list renders
+  // in is this sort's alone and not the registry's. Here rather than in the
+  // row, so the keyboard cursor indexes the order the list renders in.
   const startableGames = useMemo(
     () =>
       gametypes
         .filter((g) => allowedGametypes.has(g.gametype))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort(
+          (a, b) =>
+            a.name.localeCompare(b.name) ||
+            (a.mode === b.mode ? 0 : a.mode === 'coop' ? -1 : 1),
+        ),
     [allowedGametypes],
   )
 

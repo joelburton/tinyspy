@@ -5,8 +5,9 @@ The folders it reads: `manifest`, and `src/gametypes.ts`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
-six files. Thirteen findings recorded: a prose group (F-1 to F-8) and a
-decision group (F-9 to F-13). None worked.
+six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
+group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-11,
+F-14.
 
 ## The roster
 
@@ -65,8 +66,8 @@ what a manifest is for, who reads it (the shell, never naming a game), the
 registry as the one list, and the status line as the one thing the folder
 produces — and a `## Details` for the arguments (the pure-and-synchronous
 `labelFor` and why the listing is one query; `TimerMode`'s home; the three
-RPC members answering in one shape; what the registry's order carries, per
-F-11). Then the folder comes off `INTROS_OWED` in
+RPC members answering in one shape; what the registry's order does and does
+not carry, per F-11). Then the folder comes off `INTROS_OWED` in
 `src/guards/folderDocs.test.ts`.
 
 ### F-manifest-2 · `stale-claims`
@@ -134,8 +135,9 @@ caller).
   removal steps, the variants paragraph — which `docs/common.md` (adding and
   removing a game, the sibling pattern, the removability invariant) and
   `docs/supabase.md` (schema exposure, and that `db reset` does not re-read
-  `[api]`) both carry. What is this file's own: it is the list, the order is
-  load-bearing (F-11), and `eslint.config.js` regexes its import specifiers.
+  `[api]`) both carry. What is this file's own: it is the list, its order sets
+  the row order of the generated `docs/game-status-labels.md` and nothing a
+  player sees (F-11), and `eslint.config.js` regexes its import specifiers.
 - `numberOfPlayers`'s note restates `docs/features.md` → Player counts (coop
   at 1, compete at 2, six the house max, the four named exceptions) and
   `docs/code-conventions.md` → Per-game player counts (must agree, no sync,
@@ -212,24 +214,41 @@ Options:
 2. Add the server check — a fault naming `player_user_ids`, F-9's and
    F-19's shape — so the two layers agree and the note has one sentence.
 
-### F-manifest-11 · `registry-order-is-load-bearing`
+### F-manifest-11 · `registry-order-is-load-bearing` · WORKED 2026-09-14 — option 2: the start list's sort spells out both halves
 
 `gametypes.ts` lists each sibling pair coop-first and says nothing about it.
-Two things depend on that order: `ClubPage`'s stable sort by brand keeps
-"a coop/compete sibling pair coop-first within the brand tie" from it, and
-`coop-setup.e2e.ts` opens the coop dialog by taking the FIRST matching start
-row. A pair listed compete-first would pass every test and change which
-dialog a friend gets.
+`ClubPage`'s `startableGames` sorted by brand alone, and a sibling pair ties
+there (both manifests export the same `name: BRAND`), so which of the two a
+friend saw first — and which dialog `startGameRow`'s first match opened — came
+from the registry's line order through a stable sort. The sort's own comment
+asserted the opposite in the same sentence: "Registry order means nothing to a
+player scanning for a game, and the stable sort keeps a coop/compete sibling
+pair coop-first within the brand tie."
 
-Options:
+The sort now names the tiebreak, so the rendered order is its own:
 
-1. State it in the registry's docstring — the order within a pair is coop
-   then compete, and who relies on it.
-2. Make the sort not depend on it: `ClubPage` orders by brand, then coop
-   before compete, explicitly; the registry's order then means nothing, which
-   is what the sort's comment already says it should.
-3. Both — the sort is explicit AND the registry keeps the convention, so a
-   reader of either learns it.
+```ts
+.sort(
+  (a, b) =>
+    a.name.localeCompare(b.name) ||
+    (a.mode === b.mode ? 0 : a.mode === 'coop' ? -1 : 1),
+)
+```
+
+**Nothing moved on screen.** The sixteen brands are distinct, so a `name` tie
+only ever happens inside a family, and the registry already listed those
+coop-first. `ClubPage.test.tsx` passes unchanged.
+
+`coop-setup.e2e.ts` had reasoned from the registry to justify its first-match
+selector; it now points at the sort. The registry's docstring was left alone
+(option 1 and 3 declined): a convention stated in one file and depended on in
+another is the arrangement that let the contradiction stand, and the reader who
+needs the rule is the one reading the list that renders.
+
+**Registry order is still load-bearing elsewhere, just not here.**
+`gameStatusLabels.test.ts` walks `gametypes` in order to generate
+`docs/game-status-labels.md`'s table, so reordering the registry rewrites that
+doc. The sort's comment is scoped to its own list for that reason.
 
 ### F-manifest-12 · `manifest-for`
 
@@ -273,6 +292,28 @@ Options:
 2. The file is the home (it is what a `labelFor` author has open); the doc
    keeps the table and points at the file.
 
+### F-manifest-14 · `two-lists-two-orders` · WORKED 2026-09-14 — option 1: coop first in both lists
+
+The club page renders the registry twice, and the two disagreed about a sibling
+pair. `ClubPage`'s start list puts **coop first** (F-11). `EditClubModal`'s
+enrollment list sorted `a.name.localeCompare(b.name) || a.mode.localeCompare(b.mode)`
+— and `'compete' < 'coop'`, so it put **compete first**. Its comment said only
+"so a coop/compete sibling pair sits together", which was true and hid the
+choice. A friend opened Edit club from the page whose list they were just
+reading, and each brand's two rows swapped.
+
+The dialog now takes the same explicit tiebreak, and its comment names the
+`localeCompare` trap it walked into. Coop first everywhere: coop is the house
+default, and moving the dialog is cheaper than moving the list a friend starts
+games from (option 2 would also have flipped which dialog `startGameRow`'s
+first match opens in `coop-setup.e2e.ts`). Option 3 — leave them, since the two
+lists answer different questions — was declined: they are one click apart and
+show the same brands.
+
+**The tiebreak is now spelled out twice in `common/club/`.** A shared
+`byBrandThenMode` comparator is where that goes if a third caller appears;
+extracting it today adds a file to a closed area for two call sites.
+
 ## Notes
 
 - **`TimerMode` lives here on purpose**, and the header says why: every setup
@@ -293,7 +334,10 @@ Options:
 - F-9 option 1: `GamePage.test.tsx` if it mounts a manifest without
   `endGame`; every game manifest already supplies one.
 - F-10 option 2: a new pgTAP case in `tests/common/games_test.sql`.
-- F-11 option 2: `ClubPage.test.tsx`'s start-list order, if pinned.
+- F-11 option 2: none — `ClubPage.test.tsx` passes; the rendered order did not
+  move (the sixteen brands are distinct, so a `name` tie is always a family).
+- F-14 option 1: none — `src/common/club` (46 tests) passes; no test pinned the
+  dialog's list order.
 - F-12 option 1: none — the callers' behavior is unchanged.
 
 ## Closing

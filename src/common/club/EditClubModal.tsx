@@ -64,10 +64,15 @@ export function EditClubModal({
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
-  // One row per registered gametype. Sort by display name, then by
-  // mode, so a coop/compete sibling pair sits together.
+  // One row per registered gametype, in the same order the club page's start
+  // list uses: alphabetical by brand, and coop before compete inside the tie a
+  // sibling pair makes (both export the same `name`). Spelled out rather than
+  // left to `mode.localeCompare`, which sorts compete first and swapped each
+  // pair against the list this dialog opens from.
   const sorted = [...gametypes].sort(
-    (a, b) => a.name.localeCompare(b.name) || a.mode.localeCompare(b.mode),
+    (a, b) =>
+      a.name.localeCompare(b.name) ||
+      (a.mode === b.mode ? 0 : a.mode === 'coop' ? -1 : 1),
   )
 
   async function onSubmit({ gametypes }: Values) {
