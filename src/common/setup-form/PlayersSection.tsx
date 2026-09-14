@@ -59,8 +59,11 @@ export function PlayersSection({
   if (members.length <= 1) return null
 
   const [minPlayers, maxPlayers] = numberOfPlayers
-  // The count complaint, which is also what keeps Start disabled. The server
-  // re-checks in create_game — this is the answer before the round trip.
+  // The count complaint — the WORDS, and only those. It does not gate Start:
+  // `SetupGameModal` counts the same bounds again for that, because this
+  // section returns null in a solo club and the gate has to hold with no picker
+  // on screen. The server re-checks in create_game; this is the answer before
+  // the round trip.
   const countComplaint =
     value.size < minPlayers
       ? `Pick at least ${minPlayers} player${minPlayers === 1 ? '' : 's'}.`

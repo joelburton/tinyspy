@@ -9,8 +9,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
-**Worked so far: F-8, F-9, F-10, F-11** — all decision findings, taken one at a
-time. The prose group is untouched; F-9 and F-11 each left it one sentence
+**Worked so far: F-8 through F-12** — all decision findings, taken one at a
+time. The prose group is untouched; F-9, F-11 and F-12 each left it a sentence
 lighter (see their records).
 
 ## The roster
@@ -377,23 +377,33 @@ Filed in `floating-panels/todo.md`.
 **Not run.** The e2e is edited and unverified; `tsc -b`, eslint and the unit
 suites are clean. Same standing as F-club-page-17's four.
 
-### F-setup-form-12 · `players-section-count-twice` · the player-count check is written in two places
+### F-setup-form-12 · `players-section-count-twice` · WORKED 2026-09-14 — option 1: both readings are real, and both now say so
 
-`PlayersSection` computes `countComplaint` from `numberOfPlayers` and draws
-it; `SetupGameModal` computes `countOk` from the same bounds to gate Start.
-Two readings of one rule, one file apart, and the modal's test covers the
-gate while the section's covers the words. They agree today. Options:
+`PlayersSection` computes `countComplaint` from `numberOfPlayers` and draws it;
+`SetupGameModal` computes `countOk` from the same bounds and gates Start on it.
+Two expressions, one rule, one file apart, each with its own test.
 
-1. **Leave it** — the modal must gate Start with or without a picker on
-   screen (a solo club draws none), so both readings are real; record why.
-2. **Have `manifest.setupForm.validate` carry it**: the modal already merges
-   `validate`'s errors into the gate and into `errors.player_user_ids`, so a
-   shared `playerCountErrors(players.size, numberOfPlayers)` called from the
-   modal and passed down would make the section a renderer only.
+**The duplication is load-bearing.** `PlayersSection` opens with
+`if (members.length <= 1) return null` — a solo club has nothing to pick, and a
+picker with one locked row is worse than none — so in a solo club there is no
+section, and the modal is the only thing counting. The gate has to survive the
+message's absence.
 
-Recommend 1, with the sentence in the section's docstring: it counts because
-it is the one drawing the message, and the modal counts because the section
-may not be there.
+The silent-disable that implies (Start off in a solo club with nothing on screen
+saying why) is not reachable: it needs a solo club enrolled in a gametype with
+`min_players > 1`, and `common.gametypes.min_players` is exactly what decides
+enrollment.
+
+**What was actually wrong was a sentence.** `countComplaint`'s comment read
+"the count complaint, which is also what keeps Start disabled" — asserting the
+sharing that does not exist. It draws the words and gates nothing. Both sites
+now name the other: the section says it is the WORDS and why the modal counts
+again, the modal says it is the GATE and why it does not wait for the section.
+
+Option 2 (one `playerCountError(size, bounds)` called from both) was declined:
+the two uses answer different questions — what to say, and whether to allow —
+the bounds come from one manifest value so they cannot drift apart silently,
+and its real payoff was the case the server already prevents.
 
 ### F-setup-form-13 · `coop-style-reseed-effect` · the first-player seed is an effect that calls up
 

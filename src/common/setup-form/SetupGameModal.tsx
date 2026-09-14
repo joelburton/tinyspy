@@ -247,6 +247,10 @@ export function SetupGameModal({
         {({ values, set }) => {
           const players = values.player_user_ids as Set<string>
           const [minPlayers, maxPlayers] = manifest.numberOfPlayers
+          // The GATE. `<PlayersSection>` reads the same bounds to draw the
+          // complaint, and this counts anyway rather than waiting for it: the
+          // section returns null in a solo club, so the button's rule has to
+          // hold with no picker mounted.
           const countOk = players.size >= minPlayers && players.size <= maxPlayers
           // Cross-field setup guard (optional per manifest). Couples the collected
           // values to the live headcount — e.g. bananagrams's "the bag must hold
