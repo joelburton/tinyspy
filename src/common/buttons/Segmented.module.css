@@ -12,9 +12,20 @@
    `overflow: hidden` is what rounds the ends: the first and last segments are
    square and get clipped to the frame's radius, so the corners stay clean
    however many segments there are. */
+/* A segmented group HUGS its options by default; the callers that want it to
+   span say so (ClubPage's mobile tab bar).
+
+   `width`, not `align-self: flex-start`, and the difference is the whole bug it
+   fixed: a flex item's `align-self` is CROSS-AXIS, so the same declaration means
+   "don't stretch to full width" inside a flex column and "sit at the top" inside
+   a flex row. This group sits in both — a field's column in crosswords, a
+   `heading-with-controls` row on the club page — and in the row it was pinning
+   itself to the top of a line whose height comes from the heading's margins,
+   roughly a heading's margin above where the words sit. A definite width beats
+   `stretch` in the column and says nothing at all in the row. */
 /* @@ */ .segmented {
   display: inline-flex;
-  align-self: flex-start;
+  width: fit-content;
   border: var(--border-width-line) solid var(--field-edge-color);
   border-radius: var(--radius-md);
   overflow: hidden;

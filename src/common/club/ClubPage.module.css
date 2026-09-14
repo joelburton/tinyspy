@@ -137,12 +137,14 @@
  * uses. */
 
 @media (--mobile) {
-  /* The bar spans the same centered well the club name and the columns do —
-   * <Segmented> is inline-flex by default, since most of them hug. */
+  /* The bar spans the same centered well the club name and the columns do, so
+   * it overrides <Segmented>'s hug — `width`, matching the axis the hug is
+   * stated on (see Segmented.module.css; `align-self: stretch` cannot win
+   * against a definite width). */
 /* @@ */   .tabs {
     display: flex;
     flex-shrink: 0;
-    align-self: stretch;
+    width: 100%;
   }
 
   /* Two segments splitting the bar evenly; the rest of their look is the
