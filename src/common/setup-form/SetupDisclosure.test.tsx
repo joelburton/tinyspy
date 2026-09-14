@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * THE SETUP RECAP SHOWN WHILE PLAYING (see SetupDisclosure.tsx) — the

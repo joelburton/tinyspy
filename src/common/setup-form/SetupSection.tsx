@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { useState, type ReactNode } from 'react'
 import styles from './SetupSection.module.css'
@@ -12,9 +12,9 @@ import styles from './SetupSection.module.css'
  *
  * Distinct from the info-column `<SetupDisclosure>` (the "Setup options" recap
  * shown WHILE playing): this one wraps a single editable field in the setup
- * dialog, and its summary carries that field's live value. Used by the shared
- * `<SetupTimerSection>` and by per-game setup forms (e.g. spellingbee's Dictionaries +
- * Custom letters).
+ * dialog, and its summary carries that field's live value. Every shared
+ * section here wraps itself in one, and a game's own form uses it directly for
+ * its own fields (spellingbee's Dictionaries + Custom letters).
  */
 export function SetupSection({
   label,

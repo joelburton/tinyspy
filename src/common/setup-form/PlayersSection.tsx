@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { Dot } from '../members/Dot'
 import { PlayersField } from '../fields/PlayersField'

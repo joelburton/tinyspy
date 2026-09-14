@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { SetupSection } from './SetupSection'
@@ -168,7 +168,7 @@ export function SetupNextPuzzleSection({
   return (
     <SetupSection label={summary} help={help} defaultOpen={nothingToPlay}>
       {/* The e2e's handle for this line: it has four states, and a text-shape
-          locator silently matches none of two of them. See `puzzle-pickers`. */}
+          locator would silently miss two of them. See `puzzle-pickers`. */}
       <p className={styles.next} data-testid="next-puzzle">{line}</p>
       <DateField
         // Named for the SETTING, not the control: the field's question is

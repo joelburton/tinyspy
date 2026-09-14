@@ -1,8 +1,8 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * WHAT START WILL PLAY (see SetupNextPuzzleSection.tsx) — connections' and
- * strands' puzzle line, and the only setup field that goes and asks.
+ * strands' puzzle line, and the shared setup field that goes and asks.
  *
  * Two three-state values run it, and both exist because collapsing them lost a
  * real distinction: "we have not asked yet" has to look different from "we
@@ -86,7 +86,7 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
         load={load}
         loadByDate={loadByDate}
         onPick={onPick}
-      errors={{}}
+        errors={{}}
       />,
     )
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1))
@@ -98,7 +98,7 @@ describe('SetupNextPuzzleSection — what it says Start will play', () => {
         load={load}
         loadByDate={loadByDate}
         onPick={onPick}
-      errors={{}}
+        errors={{}}
       />,
     )
     await waitFor(() => expect(load).toHaveBeenCalledTimes(2))

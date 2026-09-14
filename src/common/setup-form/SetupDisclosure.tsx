@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import type { ReactNode } from 'react'
 import styles from './SetupDisclosure.module.css'

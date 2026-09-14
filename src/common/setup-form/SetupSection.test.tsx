@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * A COLLAPSIBLE SETTING (see SetupSection.tsx) — and the one rule in it that is

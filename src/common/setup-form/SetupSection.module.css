@@ -1,4 +1,4 @@
-/* cs-audited-setup-form */
+/* cs-blessed-setup-form */
 
 /* A collapsible setup-dialog field: a bordered box whose <summary> is the
  * clickable header showing the field's current value, and whose body holds the
@@ -37,10 +37,10 @@
      own, so without a gap here two caption/help/control stacks read as one
      run-on block.
 
-     0.75rem is the middle step of three, and the three are the point: 0.4rem
-     inside a field (caption to help to control), 0.75rem between fields in a
-     section, 1rem between sections. A field holds together more tightly than a
-     section does, and a section more tightly than the form. */
+     0.75rem is the form's own step — the gap `<StandardForm>` puts between
+     sections is the same one, on purpose (its stylesheet says why). Only a
+     field's own stack is tighter: caption to help to control is `<Field>`'s
+     `--spacer-4`. A field holds together; fields and sections are a list. */
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import type { ComponentType } from 'react'
 import type { FormErrors } from '../forms/formState'
@@ -99,10 +99,9 @@ export type SetupBodyProps = {
   //
   // A body needs this because some of them CALL SERVERS of their own, before
   // Start: connections and strands load a puzzle, crosswords loads a library.
-  // Without a setter such a body could display a failure line but never write
-  // one, so a failed load had to be shown as an empty result — the puzzle
-  // picker saying "the archive is spent" about a read that never landed
-  // (Joel, 2026-08-29).
+  // Without a setter such a body can display a failure line but never write
+  // one, and a failed load has to pass as an empty result — the puzzle picker
+  // saying "the archive is spent" about a read that never landed.
   //
   // **A fault gets written here like anything else.** Its modal is an
   // escalation, not a replacement: press OK and this line is the only thing
@@ -130,9 +129,9 @@ export type GameSetupForm = {
   // honeycomb and the team racks up the score together."
   //
   // **On the manifest rather than in the form, because of WHERE it goes.**
-  // `<SetupGameModal>` draws the player picker and then the game's form, so an
-  // intro written inside the form lands under the picker — below the thing it
-  // is meant to introduce. From here the modal can put it first.
+  // Every game's body opens with the players picker, so an intro written inside
+  // the body lands under the picker — below the thing it is meant to introduce.
+  // From here the modal can put it above the body.
   //
   // **A plain string, not a function of mode**, because a manifest is already
   // per-mode: `spellingbeeCoopGame` and `spellingbeeCompeteGame` are separate

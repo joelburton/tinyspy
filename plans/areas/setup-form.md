@@ -4,14 +4,19 @@ The folders it reads: `setup-form`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-setup-form`,
-25 files. Thirteen findings recorded: a prose group (F-1 to F-7) and a decision
+**Status: CLOSED 2026-09-14, blessed** (Joel: *"bless all the files and close
+the area. then commit."*). Roster stamped `cs-blessed-setup-form`, 26 files —
+the 25 audited at the opening plus the stylesheet F-10 created. Thirteen findings recorded: a prose group (F-1 to F-7) and a decision
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
 **All thirteen findings are worked** — the decision group (F-8 to F-13) one at
 a time, then the prose group (F-1 to F-7) in one pass, 2026-09-14. The folder
-is off `INTROS_OWED`. **Not blessed and not closed** — both are Joel's.
+is off `INTROS_OWED`.
+
+**The closing re-read is done (2026-09-14): seven more, F-14 to F-20, all
+worked.** The `doc.md` is harvested and `todo.md`
+holds what is still owed.
 
 ## The roster
 
@@ -387,6 +392,101 @@ knows only "split `player_user_ids` off, the rest is setup" and does not know
 the coop keys exist. Pinned meanwhile by two unit tests and the `coop-setup`
 e2e.
 
+### The closing re-read — F-14 to F-20, 2026-09-14
+
+The whole roster read in one sitting, then one grep per worked finding over
+every roster file and the docs that name them. Five of the seven are the
+area's own findings recurring next door, three of them in prose the day's
+fixes wrote.
+
+### F-setup-form-14 · `modal-draws-the-picker` · WORKED — the body draws it, and four places said otherwise
+
+Every game's form opens with `<PlayersSection>`; the modal renders no picker.
+`doc.md`'s intro listed "the players picker" among what the modal supplies;
+`setupForm.ts`'s `intro` note said "`<SetupGameModal>` draws the player picker
+and then the game's form" as the reason the intro is on the manifest;
+`coop-setup.e2e.ts` said "the dialog's player picker"; and `docs/common.md`'s
+turn-order section said a `SetupBodyProps.players` field carries the checked
+subset down — no such prop exists (each form filters `members` by
+`player_user_ids`), and it placed `SetupCoopStyleSection` in
+`components/fields/`. All four now say what happens. The intro's reason still
+holds — an intro inside the body lands under the picker the body opens with —
+and is now stated that way.
+
+### F-setup-form-15 · `archaeology-again` · WORKED — five sites, three written by this area
+
+`SetupDisclosure.module.css`'s header told where the rules "sat" (F-10 wrote
+it the same day); `setupForm.ts`'s `setError` note carried a dated story
+("(Joel, 2026-08-29)"); `SetupGameModal.test.tsx` said "an ordinary
+`<StandardForm>` now", "the dialog became a form", and described an `ok`
+without `result` as "what a game whose SQL has not been converted yet sends"
+(the error sprint finished 2026-09-01); `puzzle-pickers.e2e.ts` said
+connections and strands "lost their pickers" and scoped to "the Puzzle
+fieldset" (a `<details>`). Each keeps its standing fact.
+
+### F-setup-form-16 · `stale-claims-again` · WORKED — seven
+
+- `SetupCoopStyleSection`'s docstring: "two labeled radio rows" — the second
+  is a `<SelectField>`, as its own comment inside says.
+- `SetupSection`'s docstring named two users of five; now names the condition
+  (every shared section wraps itself in one).
+- `SetupSection.module.css`'s spacing argument: "0.4rem inside a field …
+  1rem between sections". Measured: `<Field>`'s gap is `--spacer-4` (0.5rem)
+  and `<StandardForm>`'s is `--spacer-3` (0.75rem) — the same step as inside a
+  section, which the blessed `StandardForm.module.css` says is on purpose. The
+  three-step argument contradicted a blessed rule; it now says the form's step
+  is shared and only a field's own stack is tighter.
+- `setupRows.ts`'s `BOARD_KEY`: "see 'The board-identity exception' above" —
+  F-5 moved that to `docs/pdf.md`; the pointer follows.
+- `SetupTimerSection`: "an hour is plenty for any cooperative-puzzle gametype"
+  — scrabble compete carries the timer too.
+- `SetupNextPuzzleSection`'s test-id comment (F-11's) had lost its sense:
+  "matches none of two of them".
+- `coop-setup.e2e.ts`'s title claimed "Co-op section is first" and nothing in
+  the test asserts an order; retitled to what it checks.
+
+### F-setup-form-17 · `counts-again` · WORKED — three, two written by this area
+
+"Memoizing in the nine forms" (F-13), "a dozen games apply each" (F-10), and
+`setupRows.ts`'s "the rows every game shares" (coop pacing and the center
+letters are not every game's). Each names the condition instead.
+
+### F-setup-form-18 · `docstring-restates-doc` · WORKED — the modal's docstring, F-5's shape one file over
+
+`SetupGameModal`'s docstring had a "Setup-value flow" paragraph that was
+`doc.md` → Details' seeding bullet and the component's own seeding comment a
+third time, and a "Lifecycle model" paragraph that was the `onCancel` prop note
+again. Both gone; it keeps what a caller needs — what it is, who mounts it, the
+two `<NormalModal>` choices, and the cancel-during-pending decision — and
+points at `doc.md` for the seeding.
+
+### F-setup-form-19 · `players-fault-names-no-field` · WORKED 2026-09-14 — option 1, the raise names `player_user_ids`
+
+`common.sql`'s shared create path raises `PN059 'BUG: game with no players'`
+with `hint = 'fault', column = '_'`, while `<PlayersSection>` reads
+`errors.player_user_ids` — the same relationship F-9 found between
+`require_valid_timer` and `errors.timer`. Every other `column = '_'` fault in
+`common.sql` was checked and is about no field (a scratchpad owner, club
+membership, the mode, a concede in coop). Not reachable from the dialog: the
+gate keeps Start off below the floor, and a solo club's set is the lone member.
+
+Joel: option 1. `column = 'player_user_ids'` on the one raise in
+`supabase/sql/common.sql` (behavior, so in place). No test moved: the only
+pgTAP site is `games_test.sql`'s `throws_ok`, which cannot see a column.
+Verified directly — `create_game` called as a club member with an empty array,
+`get stacked diagnostics` reads `PN059` / `player_user_ids`. The whole pgTAP
+suite passes; one run of it failed nine tests and the three runs after it
+passed unchanged, and the failing run's output was not captured.
+
+### F-setup-form-20 · `docs-name-dead-paths` · WORKED — three game docs
+
+`docs/games/strands.md` and `connections.md` named
+`common/components/setup/SetupNextPuzzleSection`, `boggle.md` named
+`common/lib/game/setupRows.ts`; neither folder exists since the reorg. The three
+that name this area's files are fixed. **`common/components/` survives in
+twenty-seven other doc sentences** about other folders' files — a sweep
+for the docs, not this area's, and noted here so it is not mistaken for done.
+
 ## Notes
 
 - **The tests are real.** Every test file pins behavior a caller depends on,
@@ -416,7 +516,7 @@ e2e.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-14, F-14 to F-20)
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1; the re-read added the count-twice and mode-tail details)
+- [x] `todo.md` holds everything still owed (the mono-face decision; the seed effect's deps); no finding is open
+- [x] every file on the roster blessed — all 26 read `cs-blessed-setup-form` (Joel, 2026-09-14)

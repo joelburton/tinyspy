@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { test, expect, type Page } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'
@@ -8,7 +8,7 @@ import { startGameRow } from './helpers/clubPage'
 /**
  * The three date-anchored games' setup dialogs.
  *
- * connections and strands lost their pickers entirely: the server hands out
+ * connections and strands have no picker: the server hands out
  * the earliest puzzle none of the SELECTED PLAYERS has played, in any club
  * (`next_puzzle_for_club`), and the dialog only previews it. crosswords picks a
  * WEEKDAY, because its dates carry real meaning — an NYT crossword's day is
@@ -22,7 +22,7 @@ import { startGameRow } from './helpers/clubPage'
  * (tests/strands/next_puzzle_test.sql); this owns "the dialog and the server
  * agree".
  *
- * Locators scope to the Puzzle fieldset on purpose. The setup dialog is a
+ * Locators scope to the Puzzle section on purpose. The setup dialog is a
  * draggable window, not a `role="dialog"`, AND a strands game's TITLE is
  * `<date>: <clue>` — the same shape as the preview line — so an unscoped
  * match happily finds the club-page game row behind the dialog and reports a

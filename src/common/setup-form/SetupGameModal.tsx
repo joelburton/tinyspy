@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { Suspense, useCallback, useState } from 'react'
 import { MODE_LABEL, type GameManifest } from '../manifest/gameManifest'
@@ -47,43 +47,26 @@ type Props = {
 }
 
 /**
- * Floating modal for collecting per-game setup options before
- * `create_game` fires. A `<NormalModal>`, which is what decides
- * most of its behavior — the light scrim saying "this is the
- * focused task" while chat stays reachable above it, the drag,
- * and opening centered every time rather than where you left it.
- * Two things it chooses for itself:
+ * The dialog that collects a game's setup before `create_game` fires: a
+ * `<StandardForm>` inside a `<NormalModal>`, with the game's own body in the
+ * middle. ClubPage mounts it to open it and unmounts it to close it — there is
+ * no open state here; Cancel / Esc / X call `onCancel`, and the parent stops
+ * rendering us. How the values are seeded and split is `doc.md` → Details.
  *
- *   - **resizable=false, fitContent** — the form's height is its
- *     own answer (radios, a calendar widget), so resize would
- *     only add empty space. Drag survives, which is what lets
- *     someone move it aside to read chat about "what timer
- *     should we pick?"
- *   - **No persistKey** — deliberate, not an omission. Persisting
- *     would mean dragging Setup to the corner once and finding it
- *     there forever, which is surprising for a modal whose job is
- *     "appear, get the decision, close."
+ * What it chooses for itself against `<NormalModal>`'s defaults:
  *
- * Lifecycle model: the parent (ClubPage) conditionally renders
- * this component — mounting opens it, unmounting closes it. We
- * never hold a separate "is open" state. On Cancel / Esc / X
- * we call `onCancel`, which is the parent's signal to stop
- * rendering us.
+ *   - **resizable=false, fitContent** — the form's height is its own answer
+ *     (radios, a calendar widget), so resize would only add empty space. Drag
+ *     survives, which is what lets someone move it aside to read chat about
+ *     "what timer should we pick?"
+ *   - **No persistKey** — deliberate. Persisting would mean dragging Setup to
+ *     the corner once and finding it there forever, which is surprising for a
+ *     modal whose job is "appear, get the decision, close."
  *
- * Setup-value flow: it is a `<StandardForm>`, so the FORM owns the
- * values — seeded from `manifest.setupForm.defaults` merged under
- * the club's saved default, plus `player_user_ids`. The game's body
- * renders against them and writes back with `set`. On submit the
- * players are split off as their own RPC argument and the rest goes
- * to `manifest.startGameInClub`. Server-side validation rejects
- * malformed payloads — see each game's `create_game` RPC.
- *
- * Cancel during a pending start: we don't try to abort the RPC.
- * If the user cancels after clicking Start, the RPC keeps going
- * and the resulting game turns up in the club's "Your games"
- * list. The friends-only audience makes "the click was loud —
- * don't sneak around it" the wrong trade; we accept the minor
- * accidental-creation possibility.
+ * Cancel during a pending start does not abort the RPC: the game turns up in
+ * the club's list anyway. The friends-only audience makes "the click was loud
+ * — don't sneak around it" the wrong trade; the odd accidental game is
+ * accepted.
  */
 export function SetupGameModal({
   manifest, members, selfId, clubHandle, soloClub, savedDefault, onStarted, onCancel,

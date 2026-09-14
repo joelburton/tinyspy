@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * COOP PACING (see SetupCoopStyleSection.tsx) — free-for-all or turn by turn,

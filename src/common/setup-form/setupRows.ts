@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import type { CoopStyle, CoopTurnSetup } from './SetupCoopStyleSection'
 import type { TimerMode } from '../manifest/gameManifest'
@@ -16,7 +16,7 @@ import { timerLabel } from '../timer/timerLabel'
  * row, why the mode isn't one, and why a board's letters are printed even when
  * nobody typed them. Read that before writing a game's `setupRows`.
  *
- * What this file owns is the TYPE and the rows every game shares: the roster,
+ * What this file owns is the TYPE and the rows more than one game draws: the roster,
  * coop pacing, a center-letter board, the timer. `guards/setupRows.test.ts`
  * holds every game to having the module, and carries a reason beside each game
  * exempted from it.
@@ -42,7 +42,8 @@ export type SetupRow = {
 export const ROSTER_KEY = 'players'
 
 /**
- * The board's own letters — see "The board-identity exception" above.
+ * The board's own letters — the exception in docs/pdf.md → Setup rows: printed
+ * even when nobody typed them.
  *
  * **The KEY is what's shared; the label and the value are each game's own.** A
  * board is a different shape in every one of these games (`A-CHIROT` vs `ABCD

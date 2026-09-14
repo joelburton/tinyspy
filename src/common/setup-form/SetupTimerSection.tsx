@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { useState, type ReactNode } from 'react'
 import { formatTimerSeconds } from '../timer/useGameTimer'
@@ -11,7 +11,7 @@ import styles from './SetupTimerSection.module.css'
 
 // Bounds for the count-down picker, kept in lockstep with the server-side range
 // check in `common.require_valid_timer` (1..3600): no zero-length games, and an
-// hour is plenty for any cooperative-puzzle gametype.
+// hour is plenty for any gametype here.
 const MIN_COUNTDOWN_SECONDS = 1
 const MAX_COUNTDOWN_SECONDS = 60 * 60
 

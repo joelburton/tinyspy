@@ -488,7 +488,7 @@ board), swapped in for spellingbee's hex flower.
     the setup dialog's custom-board field takes back
     ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it for a
     ROLLED board is the documented board-identity exception to "the recap is the
-    dialog read back" (`common/lib/game/setupRows.ts` → `BOARD_KEY`): a row that
+    dialog read back" (`common/setup-form/setupRows.ts` → `BOARD_KEY`): a row that
     appeared only on hand-picked boards would be exactly the half you never need
     to copy.
   - **`WordList`:** the **shared `common/components/game/lists/WordList`** (identical to

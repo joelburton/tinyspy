@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 import { useEffect, type ReactNode } from 'react'
 import { RadioRow } from '../fields/RadioRow'
@@ -67,8 +67,8 @@ type Props = {
  * Follows SetupTimerSection's shape: a collapsed `<SetupSection>` whose
  * summary carries the live value ("Co-op: free-for-all",
  * "Co-op: turns (ada first)"), so the setting reads at a glance
- * without expanding. Inside, two labeled radio rows — "Co-op style"
- * and (only when turns is chosen) "First player".
+ * without expanding. Inside, a "Co-op style" radio row and — only
+ * when turns is chosen — a "First player" dropdown.
  *
  * First-player seeding is an effect that writes back to the parent — picking
  * players[0] whenever turns is on and the current choice isn't among the
@@ -102,7 +102,8 @@ export function SetupCoopStyleSection({
   // The deps do not gate it. Every caller builds `players` inline
   // (`members.filter(…)`) and passes an inline `onChange`, so both identities
   // are new each render and the effect runs each render — cheaply, since it
-  // no-ops. Memoizing in the nine forms is what would change that.
+  // no-ops. Memoizing both in the forms that mount this is what would change
+  // that.
   useEffect(
     function seedFirstTurn() {
       if (!active || !isTurns) return

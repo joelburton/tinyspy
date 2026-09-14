@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * WHO IS PLAYING (see PlayersSection.tsx) — the picker as a setup section, and

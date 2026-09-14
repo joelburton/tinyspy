@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * `<SetupTimerSection>`'s behavior, pinned because nothing pinned it.

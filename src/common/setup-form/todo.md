@@ -16,3 +16,10 @@
 ## Someday
 
 ## Maybe
+
+- **`<SetupCoopStyleSection>`'s seed effect runs on every render.** Each form
+  builds its `players` prop inline and passes an inline `onChange`, so the deps
+  never stabilize; the effect no-ops, so nothing is wrong, but the deps read as
+  a gate and are not one. Memoizing both in the forms that mount it is the
+  change. It touches every such game's form for no behavior, so it waits for
+  those games' areas.

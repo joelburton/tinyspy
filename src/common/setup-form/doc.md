@@ -14,9 +14,9 @@ The dialog is a `<StandardForm>` inside a `<NormalModal>`, and the form owns
 every value. A game supplies the rest through `manifest.setupForm`: a lazy body
 component, its defaults, an optional cross-field check and an optional intro
 sentence. The modal supplies what is the same in every game — seeding the
-values, the players picker, the Help button, the Cancel/Start row, and where a
-refusal lands. Which means a game's setup form is a list of fields and nothing
-else.
+values, the intro sentence, the Help button, the Cancel/Start row, and where a
+refusal lands — and every body opens with the shared players picker. Which
+means a game's setup form is a list of fields and nothing else.
 
 Every setting is a collapsible `<SetupSection>` whose summary carries its
 current value ("Timer: none", "Co-op: turns (ada first)"), so the dialog reads
@@ -63,6 +63,21 @@ it — the one thing here that renders during play rather than before it.
   lists only the checked players — so it cannot be something you discover by
   expanding. Its value is WHO, and a row of the same identity colors used on
   every board says that faster than names, which would wrap at 480px anyway.
+
+- **The player count is read twice, on purpose.** The picker draws the
+  complaint ("Pick at least 2 players.") from the manifest's bounds, and the
+  modal counts the same bounds again to gate Start. They cannot share, because
+  the picker returns nothing in a solo club — there is nobody to pick — and the
+  gate has to hold with no picker mounted. The silent Start that implies is not
+  reachable: it needs a solo club enrolled in a gametype whose floor is two, and
+  the floor is exactly what decides enrollment.
+
+- **The title and the Start button carry a mode tail** — "· Co-op" or
+  "· Compete" — so two sibling dialogs are told apart. A solo club drops it, the
+  way `<ModeBadge>` does, except for a compete variant whose manifest seats an
+  AI opponent: scrabble's compete floor is one human, so a solo club is enrolled
+  in both siblings and the tail says "· AI". Shorter than the badge's "AI
+  Compete" because the Start button has Cancel beside it and no room.
 
 - **The timer's box holds text the setup never sees.** An unparseable MM:SS
   does not reach `setup.timer`, which keeps the last valid seconds; the

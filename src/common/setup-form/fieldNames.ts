@@ -1,4 +1,4 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * WHAT A SETUP FORM OFFERS — every control's `name`, in the order they appear.

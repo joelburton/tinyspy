@@ -611,7 +611,7 @@ reader with it, and the 2026-08-18 palette sweep deleted it outright — the
 "active" family it belonged to turned out not to be an outcome at all, and its
 one live value is now `--gamelist-suspended-color`.
 
-What connections shows instead is `common/components/setup/SetupNextPuzzleSection.tsx`,
+What connections shows instead is `common/setup-form/SetupNextPuzzleSection.tsx`,
 shared with strands: the read-only "next up" line, the date override, and a
 fixed-height slot so the sections below can't jump when the RPC lands.
 

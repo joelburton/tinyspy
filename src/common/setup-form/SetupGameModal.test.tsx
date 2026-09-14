@@ -1,11 +1,10 @@
-// cs-audited-setup-form
+// cs-blessed-setup-form
 
 /**
  * THE SETUP DIALOG (see SetupGameModal.tsx) — what it collects, and what it
  * does with it on the way out.
  *
- * It is an ordinary `<StandardForm>` now, so what is left that is its own is
- * the SEAM: the form holds one flat object keyed by field name, and
+ * It is an ordinary `<StandardForm>`, so what is its own is the SEAM: the form holds one flat object keyed by field name, and
  * `create_game` takes a setup blob plus a separate list of players. Splitting
  * them is one destructure in one place, and getting it wrong sends a game's
  * roster into the setup column where nothing reads it.
@@ -258,7 +257,7 @@ describe('SetupGameModal — when Start is refused', () => {
   })
 
   it('puts a validation that NAMES a field under that field', async () => {
-    // The whole reason the dialog became a form: `create_game` raising
+    // The whole reason the dialog is a form: `create_game` raising
     // `column = 'guesses'` reaches the box the player typed into, rather than
     // a line at the bottom that makes them work out which of six it meant.
     startGameInClub.mockResolvedValue({
@@ -288,8 +287,8 @@ describe('SetupGameModal — when Start is refused', () => {
   })
 
   it('screams at an `ok` it cannot name, and leaves the dialog usable', async () => {
-    // An `ok` whose `data` does not say `created` — what a game whose SQL has
-    // not been converted yet sends. It must not navigate: there is no game to
+    // An `ok` whose `data` does not say `created` — an answer no branch here is
+    // written for. It must not navigate: there is no game to
     // navigate to. `busy` clears so the player can press Start again once
     // someone fixes it.
     clearFaultsForTest()

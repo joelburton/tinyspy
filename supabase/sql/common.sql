@@ -980,7 +980,7 @@ begin
      or array_length(player_user_ids, 1) is null
      or array_length(player_user_ids, 1) = 0 then
     raise exception 'BUG: game with no players'
-      using errcode = 'PN059', hint = 'fault', column = '_',
+      using errcode = 'PN059', hint = 'fault', column = 'player_user_ids',
       detail = 'player_user_ids was empty';
   end if;
 
