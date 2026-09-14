@@ -6,9 +6,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
 26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
-F-12, F-13 and F-14 worked 2026-09-13**, F-9 taking F-11's club-page half and
-F-15's four not-ok arms with it. The prose group (F-1 to F-8) is fork-free and
-waits on "do the prose"; F-16 and F-17 each still hold a decision.
+F-12, F-13, F-14 and F-16 worked 2026-09-13**, F-9 taking F-11's club-page
+half and F-15's four not-ok arms with it. The prose group (F-1 to F-8) is
+fork-free and waits on "do the prose"; F-17 is the last that holds a
+decision.
 
 ## The roster
 
@@ -33,6 +34,7 @@ The folder, 22 files:
   `ClubGameRow.module.css` went with it)
 - `ModeBadge.tsx` + `.module.css` + `ModeBadge.test.tsx` — was `game-page`'s
   `ModePill` (moved 2026-09-13, F-10); still `cs-unmet`
+- `ClubPage.test.tsx` (added 2026-09-13, F-16)
 - `CreateClubModal.tsx` + `.module.css` + `CreateClubModal.test.tsx`
 - `EditClubModal.tsx` + `EditClubModal.test.tsx`
 - `useClubRoster.ts` — used by `GamePage`, not by this page
@@ -450,29 +452,41 @@ The one hand-built envelope left is `LOADED_WITH_NEITHER`, a module constant
 for the loader's `else` — a wire type neither `ok` nor `not-ok`, which has
 already screamed. It is a page with no sentence of its own to write.
 
-### F-club-page-16 · `no-unit-test` · the page has no test file
+### F-club-page-16 · `no-unit-test` · WORKED 2026-09-13 — option 1
 
-`ClubPage.tsx` is 1162 lines and its two tests are the modals'. Nothing pins:
-the load sequence and its five failure arms (four faults, one not-found); the
-games list from a `common.games` answer, the current game found by
-`is_current_view`, an unknown gametype skipped; the two filters (mode narrows
-the start list only, gametype narrows the games list only, a stale gametype
-selection falling back to all, a solo club pinned to all); `?new=` opening the
-setup dialog after load; deleting a game (the toast on each answer, the card
-backing out on a thrown error); `EditClubModal`'s `onSaved` updating the start
-list without a refetch. The heal and the current-game broadcast need Realtime
-and are the e2es' to hold.
+Joel: *"1"* — write it, on `HomePage.test.tsx`'s pattern.
 
-Options:
+`ClubPage.test.tsx`, 15 assertions in five groups: the club RPC's three answers
+(the page, the server-worded error page, the scream); the games list (what came
+back, the current game found by `is_current_view`, an unknown gametype skipped,
+a failed read keeping the page); the filters (mode narrows the start list only,
+the start list can be emptied and says which mode, a solo club has no filter);
+`?new=` (opens for a known gametype, ignores an unknown one); and the delete
+answers (the title toasted before the refetch sweeps the row, a not-ok toasted
+and the button backing out, a scream at an answer with no branch).
 
-1. **Write it**, on the `HomePage.test.tsx` pattern: `readRows` mocked per
-   table, `runRpc` mocked, the presence hooks stubbed, `SetupGameModal` and
-   `Chat` mocked to their props.
-2. **Not now** — the four e2es cover the filters and the keyboard, and a
-   1162-line page is a test that will fight its mocks.
+**The finding's inventory was stale and F-9 is why.** It listed "five failure
+arms (four faults, one not-found)" — the four-read world. What the test pins is
+three answers, and two of the paths it covers (the games-read pill and the
+empty-state text) F-9 added with no coverage at all.
 
-Recommend 1, scoped to the load arms, the list build, the filters and the
-delete answers.
+**One assertion was aiming at nothing, and planting found it.** `expect(
+peekFaultsForTest()).toEqual([])` was commented as proof that
+`presentFaults: false` keeps the modal away — but `runRpc` is MOCKED, so the
+wrapper that would raise the modal never runs, and deleting `presentFaults:
+false` from the page left the test green. The empty queue proves only that the
+PAGE raises nothing itself. The other half is now asserted at the call
+(`toHaveBeenCalledWith(expect.anything(), { presentFaults: false })`), and that
+plant is red.
+
+Three plants, all red after the fix: dropping `presentFaults: false`, reverting
+the games-failed empty text to "No games yet.", and letting an unknown gametype
+through the list build.
+
+**What it cannot see** is the whole class of bug this session shipped twice:
+jsdom does no layout. It also confirmed F-13's cost first-hand — both instances
+of each filter answer a bare query, so every filter lookup is scoped through
+its heading.
 
 ### F-club-page-17 · `class-sniffing-e2e` · three e2es find rows and rows-of-controls by hashed class fragment
 
