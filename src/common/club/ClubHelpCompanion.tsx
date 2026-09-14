@@ -12,12 +12,11 @@ type Props = {
 /**
  * The club page's help / rules modal — opened from the "Help" item in the club
  * logo menu (or the `?` shortcut, which opens that menu). It's the club-page
- * counterpart to each game's `Help` modal on GamePage, added so the club menu
- * has the same Help affordance games do (parity — see docs/common.md → ClubPage).
+ * counterpart to each game's `Help` modal on GamePage, so the club menu has the
+ * same Help affordance games do.
  *
- * **Placeholder content for now.** A club is just a named venue where friends
- * start games together; there isn't much to explain yet, so this is a couple of
- * orienting sentences. Flesh it out when clubs grow features (invites, roles).
+ * It is two orienting sentences, and deliberately: a club is a named venue
+ * where friends start games together, and there is not much to explain.
  */
 export function ClubHelpCompanion({ onClose }: Props) {
   return (

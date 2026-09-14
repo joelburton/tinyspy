@@ -6,26 +6,26 @@ import { GameEntry, type ClubGameState } from './GameEntry'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 
 type Props = {
-  /** The gametype's manifest — drives the logo and the mode badge. ClubPage has
-   *  it in hand for every row it builds. */
+  // The gametype's manifest — drives the logo and the mode badge. ClubPage has
+  // it in hand for every row it builds.
   manifest: GameManifest
   // The algorithmic per-game title, from `common.games.title` — `not null`
   // there, and resolved by ClubPage before it builds the row.
   title: string
-  /** Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
-   *  Produced by the manifest's `labelFor`. */
+  // Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
+  // Produced by the manifest's `labelFor`.
   statusLabel: string
-  /** `common.games.last_active_at`, ISO — the last status/progress write (or end
-   *  time), a "last played" proxy. Rendered via friendlyDate. */
+  // `common.games.last_active_at`, ISO — the last status/progress write (or end
+  // time), a "last played" proxy. Rendered via friendlyDate.
   lastActiveAt: string
   // Where in the lifecycle this game sits. Drives exactly one thing: the corner
   // flag <GameEntry> draws (orange = the club's current game, yellow = shelved
   // but still open, none = finished).
   state: ClubGameState
-  /** Whether this row's club is a solo club. Forwarded to <ModeBadge> so the
-   *  "Co-op" badge is suppressed there. */
+  // Whether this row's club is a solo club. Forwarded to <ModeBadge> so the
+  // "Co-op" badge is suppressed there.
   soloClub: boolean
-  /** Omit and the row is read-only — no delete affordance renders. */
+  // Omit and the row is read-only — no delete affordance renders.
   onDelete?: () => Promise<void> | void
 }
 
@@ -40,11 +40,9 @@ type Props = {
  * with a corner flag when the game is still open and a hover-revealed delete ×.
  *
  * **A row, not a card.** `.card` is a page-level pattern in this repo — a
- * bordered section of a page — and a list item is not one. The standalone
- * current-game callout above the list is a separate component that happens to
- * wear a similar face; it is not a list of one (Joel, 2026-08-24), and the two
- * sharing an inner shape is a question for the club-page area rather than for
- * this pass (docs/ui.md → Selection lists).
+ * bordered section of a page — and a list item is not one. `<CurrentGameCard>`
+ * above the list is the separate component that IS one; the two share their
+ * face through `<GameEntry>` rather than one being a variant of the other.
  */
 export function ClubGameRow({
   manifest,

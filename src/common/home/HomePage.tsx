@@ -56,10 +56,10 @@ export function HomePage({ session }: Props) {
   // Load every club the caller is a member of (incl. their solo club), IN
   // DISPLAY ORDER: solo clubs first, then newest-first within each group.
   //
-  // Subscribed to MY clubs_members rows so the list stays live: when a
-  // friend accepts an invite and I add them — or when I'm added to /
-  // removed from a club — the INSERT/DELETE on my membership refetches
-  // the list, no manual page refresh. (The removal DELETE reaches me via
+  // Subscribed to MY clubs_members rows so the list stays live: being added
+  // to or removed from a club is an INSERT/DELETE on my membership, and it
+  // refetches the list with no manual refresh. (The removal DELETE reaches me
+  // via
   // the `user_id = auth.uid()` arm of clubs_members_select; see that
   // policy.) SUBSCRIBED-refetch also heals any events missed offline.
   useRealtimeRefetch({

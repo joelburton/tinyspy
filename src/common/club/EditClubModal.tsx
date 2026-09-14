@@ -16,29 +16,24 @@ import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  /** Club being edited. */
+  // Club being edited.
   clubHandle: string
-  /** Club display name — shown in the panel title. */
+  // Club display name — shown in the panel title.
   clubName: string
-  /**
-   * The club's currently-enrolled gametypes (the
-   * `common.clubs_gametypes` set), as sourced by ClubPage. Seeds the
-   * checkboxes; the dialog edits a local copy and only writes on Save.
-   */
+  // The club's currently-enrolled gametypes (the `common.clubs_gametypes` set),
+  // as sourced by ClubPage. Seeds the checkboxes; the dialog edits a local copy
+  // and only writes on Save.
   allowedGametypes: Set<string>
-  /** Save succeeded — hand the new enrolled set back so ClubPage can
-   *  update its `allowedGametypes` (and thus the Start buttons)
-   *  without a refetch. */
+  // Save succeeded — hand the new enrolled set back so ClubPage can update its
+  // `allowedGametypes` (and thus the Start buttons) without a refetch.
   onSaved: (next: Set<string>) => void
-  /** User dismissed without saving (Cancel / Esc / X). */
+  // User dismissed without saving (Cancel / Esc / X).
   onCancel: () => void
 }
 
 /**
- * "Edit club" dialog. Today it holds a single setting — which
- * gametypes the club plays (the row set in `common.clubs_gametypes`)
- * — but it's framed as a general club-options panel so future
- * settings (rename, member management) slot in beside the games list.
+ * "Edit club" dialog. It holds one setting — which gametypes the club plays,
+ * the row set in `common.clubs_gametypes` — in a panel shaped to take more.
  *
  * The games list is the full FE registry (`src/gametypes.ts`), NOT
  * filtered by player count: per the product call, a solo club may
@@ -112,8 +107,7 @@ export function EditClubModal({
       onClose={onCancel}
       resizable={false}
       // Height is the content's: the number below is only the first-paint
-      // seed, and `fitContent` grows past it. Before this, the height was a
-      // fixed pixel count nobody derived (F23 → C).
+      // seed, and `fitContent` grows past it.
       fitContent
       defaultSize={{ width: 440, height: 520 }}
     >

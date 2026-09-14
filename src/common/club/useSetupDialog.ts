@@ -47,21 +47,17 @@ export function useSetupDialog(startListRef: RefObject<HTMLDivElement | null>) {
       ? null
       : (gametypes.find((g) => g.gametype === requestedGametype) ?? null))
 
-  /** Open it on a gametype, from a start row's press. Unknown gametype: no-op. */
+  // Open it on a gametype, from a start row's press. Unknown gametype: no-op.
   const open = useCallback((gametype: string) => {
     const game = gametypes.find((g) => g.gametype === gametype)
     if (!game) return
     setPressed(game)
   }, [])
 
-  /**
-   * Close it, whichever way it was opened, and drop `?new=` from the URL so a
-   * refresh does not re-open it.
-   *
-   * Focus goes back to the start list. The list keeps its cursor index in
-   * state rather than deriving it from focus, so returning focus restores the
-   * cursor exactly where it was.
-   */
+  // Close it, whichever way it was opened, and drop `?new=` from the URL so a
+  // refresh does not re-open it. Focus goes back to the start list, which keeps
+  // its cursor index in state rather than deriving it from focus — so the
+  // cursor comes back exactly where it was.
   const close = useCallback(() => {
     setPressed(null)
     setRequestConsumed(true)

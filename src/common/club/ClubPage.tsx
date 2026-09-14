@@ -93,29 +93,18 @@ type Props = {
 }
 
 /**
- * Club detail page — accessed via `/c/<handle>`.
+ * The club room: who is here, what is being played, what could be started, and
+ * everything the club has played. `<ClubPageLoader>` renders it at
+ * `/c/<handle>` once the club has answered.
  *
- * Shows: club name, member roster, games (active / suspended /
- * completed), per-gametype "Start" buttons, and chat.
+ * Takes the club, its roster and the gametypes it plays — all loaded, none
+ * nullable. `initialGametypes` is a SEED rather than a fact: the club editor
+ * changes the enrolled set while the page is up, so the page owns it from
+ * here. Everything else is the page's own: the two filters, the mobile tab,
+ * which dialog is open, and what a delete answer says.
  *
- * Everything this page needs to render arrives in ONE call,
- * `common.get_club_page` — the club, the roster, and the enrolled
- * gametypes with their saved setups. Being a definer function, it can
- * tell "no such club" from "a club that isn't yours", which RLS cannot:
- * RLS hides a club you are outside, so a direct read gets zero rows for
- * both. Everything else here is still RLS-gated on membership —
- * `common.games` (on is_club_member(club_handle)), each game's tables
- * (via the gametype's own RLS), and `messages` (transitively, through
- * useClubChat).
- *
- * Realtime: subscribed to common.games changes for this club. When
- * another tab (different member, or yourself in another
- * window) starts/ends a game, the current-view pointer changes
- * and we refetch — so the games section updates without a
- * manual refresh. Within-game updates (chat, board state, etc.)
- * belong to other subscriptions inside those views; ClubPage
- * only cares about the club's current-view pointer + the
- * games-list shape.
+ * The games list is not here either — `useClubGames` reads and re-reads it.
+ * See `club/doc.md` for how the pieces sit together.
  */
 export function ClubPage({ club, members, initialGametypes, session }: Props) {
   const selfId = session.user.id
@@ -138,28 +127,12 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   const [mobileTab, setMobileTab] = useState<'new' | 'completed'>('new')
 
   // ─── The two list filters ────────────────────────────────────────────────
-  // One per column, each narrowing only its own list, both purely FE state
-  // (nothing is refetched — the club's games are already all in hand).
-  //
-  //   • start-a-new-game → by interaction mode ('all' | 'coop' | 'compete')
-  //   • your games       → by gametype FAMILY (a baseGametype, or 'all'), so
-  //                        "Wordle" covers wordle_coop + wordle_compete
-  //
-  // The two are persisted DIFFERENTLY, because they mean different things:
-  //
-  //   • The mode filter is a STANDING TASTE — "I'm here to play compete games" —
-  //     and it narrows a menu of things you could start, hiding nothing that
-  //     exists. Re-picking it on every visit is friction, so it sticks (per
-  //     user, across clubs: the taste is yours, not the club's).
-  //   • The gametype filter is NOT persisted. It narrows a list of the club's
-  //     real games, so a remembered one hides games that are still there — a
-  //     club page that opens already filtered from a week ago reads as broken
-  //     ("where did our games go?"). It's a way to find something right now,
-  //     which is over when you leave.
+  // One per column, each narrowing only its own list. Why one persists and the
+  // other does not is docs/ui.md → "Filtering the two lists".
   //
   // Keyed by user id so two accounts sharing a browser don't inherit each
-  // other's taste. `selfId` is a prop-derived value available on the first
-  // render, so the hook's read-the-key-once contract is satisfied.
+  // other's taste. `selfId` is prop-derived and available on the first render,
+  // which is what `useStickyChoice`'s read-the-key-once contract needs.
   const [modeFilter, setModeFilter] = useStickyChoice<ModeFilterValue>(
     `puzpuzpuz:club:modeFilter:${selfId}`,
     MODE_FILTER_VALUES,
@@ -197,14 +170,11 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
     [presence],
   )
 
-  // Heal an abandoned current-view pointer. `is_current_view` is a
-  // synced DB flag that can get stuck `true` when the last viewer's
-  // "I left" write is missed — the simultaneous-leave race in
-  // useCommonGame (e.g. a suspend that navigates everyone at once).
-  // Presence is the reliable truth for "is anyone actually viewing
-  // this game?", and the club page is where the staleness shows — so
-  // reconcile here: a game flagged current but with nobody present in
-  // it gets its flag cleared.
+  // Heal an abandoned current-view pointer: a game flagged current with nobody
+  // present in it gets its flag cleared. How the flag sticks is docs/common.md
+  // → the current-view pointer; this is here because presence is the reliable
+  // answer to "is anyone viewing it?", and the club page is where the
+  // staleness shows.
   const healedRef = useRef<string | null>(null)
   useEffect(function healAbandonedCurrentGame() {
     if (!currentGameId) {
@@ -331,12 +301,11 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // it: not the header marks, not the filters, not a row's delete affordance.
   useTabRing([startListRef, gamesListRef])
 
-
-  // The startable games in DISPLAY order — alphabetical by brand (registry
-  // order means nothing to a player scanning for a game; the stable sort
-  // keeps a coop/compete sibling pair coop-first within the brand tie).
-  // Hoisted from StartGameButtons so the keyboard cursor indexes the same
-  // order the buttons render in.
+  // The startable games in DISPLAY order — alphabetical by brand. Registry
+  // order means nothing to a player scanning for a game, and the stable sort
+  // keeps a coop/compete sibling pair coop-first within the brand tie. Here
+  // rather than in the row, so the keyboard cursor indexes the order the list
+  // renders in.
   const startableGames = useMemo(
     () =>
       gametypes
@@ -491,19 +460,18 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
     ? allGames.find((g) => g.gameId === currentGameId) ?? null
     : null
 
-  /** How a game reads in the list: the club's current game, a shelved one, or
-   *  a finished one. Only the corner flag varies (orange / yellow / none) —
-   *  see GameEntry, which draws it. Terminal vs non-terminal is a rendering distinction,
-   *  not a schema one (docs/states.md → "no special 'suspended' category in
-   *  the schema or the listing"). */
+  // How a game reads in the list: the club's current game, a shelved one, or a
+  // finished one. Only the corner flag varies, and GameEntry draws it. Terminal
+  // vs non-terminal is a rendering distinction, not a schema one
+  // (docs/states.md → no special 'suspended' category in the listing).
   const gameState = (g: ListedGame) =>
     g.gameId === currentGameId ? 'current' : g.isTerminal ? 'completed' : 'suspended'
 
-  // "Your games" lists EVERY game the club has, the current one included. It
-  // was excluded back when it lived only in the callout, which made the club's
-  // one live game the single thing missing from the list of the club's games —
-  // and it dropped out of the gametype filter's reach along with it. It's an
-  // ordinary row here (same size as the rest), told apart by its orange flag.
+  // "Your games" lists EVERY game the club has, the current one included —
+  // otherwise the club's one live game would be the single thing missing from
+  // the list of its games, and out of the gametype filter's reach besides. It
+  // is an ordinary row here, the same size as the rest, told apart by its
+  // orange flag.
 
   // ─── Apply the two filters ───────────────────────────────────────
   // Everything downstream — rendering AND the keyboard cursors — reads the
@@ -548,14 +516,10 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // only thing that knows which of its dialogs are open.
   const kbDialogUp = activeSetup !== null || editing || helpOpen
 
-  // Menu sections for the club logo's dropdown. Mirrors the
-  // GamePage menu shape (a single common section, no per-game
-  // dynamic section because there's no PlayArea here to push
-  // items in). Help opens the club Help modal (parity with the
-  // GamePage menu; also what `?` reaches); Rename club is a
-  // placeholder — it fires a "coming soon" toast so a click still
-  // has visible feedback. See docs/ui.md → "ClubPage header" for
-  // the spec.
+  // Menu sections for the club logo's dropdown; the shape is docs/ui.md →
+  // "ClubPage header". One common section — there is no PlayArea here to push
+  // a dynamic one — and "Rename club" is a placeholder that acknowledges in
+  // the global feedback slot, so a click still has visible feedback.
   const menuSections: MenuSection[] = [
     // Each row IS its action — its words, its glyph and its `<` come from the
     // registry, so the row and the key cannot disagree about any of them.
@@ -570,12 +534,9 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
       <PageHeader>
         <PageHeaderMenu logo={<PuzpuzpuzLogo />} sections={menuSections} label="Club menu" />
         <ChatButton />
-        {/* PageHeaderStatusSlot's `players` prop is a Member[] under the
-            hood; here we feed it the club's member roster (the
-            naming.md rule keeps the variable named `members` in
-            club context even though the component prop reads
-            `players`). PageHeaderPlayersStrip renders the same colored-dot
-            + colored-name shape either way. */}
+        {/* The `players` prop takes this club's roster: it is a `Member[]`
+            either way, and the strip draws the same dot-and-name shape for
+            both. */}
         <PageHeaderStatusSlot
           players={members}
           globalFeedbackSlot={globalFeedbackSlot}
@@ -598,21 +559,13 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
           </h1>
         </div>
 
-        {/* Mobile-only view switcher (phones + portrait tablets). On
-            desktop this bar is display:none and both columns show side
-            by side; below the breakpoint only the selected column
-            renders, so the page still fits the viewport without
-            scrolling. Labels are kept short + count-free — the section
-            headings (which carried the count) are hidden on mobile.
-
-            These are two toggle BUTTONS (`aria-pressed`), NOT an ARIA tabs
-            pattern. `role="tab"` would promise the full tabs keyboard model —
-            a single tab-stop with arrow-key navigation between tabs, plus
-            `aria-controls`/`role="tabpanel"` wiring — which we don't implement
-            (this is a touch-first two-way switch; you tap it). `aria-pressed`
-            is the honest shape: two independent toggle buttons whose pressed
-            state says which view is showing. `role="group"` + a label ties
-            them together for assistive tech without over-claiming behavior. */}
+        {/* Mobile-only view switcher: `display: none` on desktop, where both
+            columns show side by side. "New game" is the left column, "Your
+            games" the right; below the breakpoint only the selected one
+            renders, so the page still fits the viewport. Labels are short and
+            count-free because the headings that carried the count are hidden
+            here. Why it is toggle buttons rather than an ARIA tabs pattern is
+            <Segmented>'s own docstring. */}
         <Segmented label="Show new game or your games" className={styles.tabs}>
           <button
             type="button"
@@ -660,9 +613,9 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
 
         {/* Two-column body that takes the rest of the viewport height
             (per docs/ui.md → "Page-height fits the viewport"). Left
-            column holds the current-game card + start-game buttons;
-            right column is the "Other games" list as a fixed-size
-            frame with internal overflow-y: auto. The `data-tab` attr
+            column holds the current-game card + the start list; right
+            column is the "Your games" list as a fixed-size frame with
+            internal overflow-y: auto. The `data-tab` attr
             drives the mobile single-column view (see the CSS); it's
             inert on desktop where both columns are always shown. */}
         <div className={styles.columns} data-tab={mobileTab}>
@@ -700,11 +653,10 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
                 <h3>Start a new game</h3>
                 <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
               </div>
-              {/* The scrolling card: the heading above stays put; only the
-                  button list inside this frame scrolls (mirrors the right
-                  column's heading + gamesList split). Also one of the page's
-                  two KEYBOARD tab stops (see the kb-nav block above): the
-                  container takes focus, arrows move the cursor, Enter starts. */}
+              {/* The heading above stays put; only the list inside this frame
+                  scrolls, matching the right column. Also one of the page's two
+                  KEYBOARD tab stops (see the kb-nav block above): the container
+                  takes focus, arrows move the cursor, Enter starts. */}
               {/* visibleStartable = the registry filtered by the club's
                   allowed-gametype m2m AND by the mode filter, in display order.
                   ClubPage stays game-agnostic; the RPC call lives inside the
@@ -725,8 +677,8 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
                 // first Tab. closeSetup() hands focus back when a dialog closes.
                 autoFocus
                 onActivate={(g) => handleStartSetup(g.gametype)}
-                // The one predicate, evaluated once. It used to decide the paint
-                // in StartGameButtons and decide Enter again here.
+                // The one predicate, evaluated once: the list dims the row AND
+                // declines Enter from this single answer.
                 disabled={(g) => !playerCountFits(g.numberOfPlayers, members.length)}
                 rowTitle={(g) =>
                   playerCountFits(g.numberOfPlayers, members.length)
@@ -844,11 +796,10 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
           clubName={club.name}
           allowedGametypes={allowedGametypes}
           onSaved={(next) => {
-            // Reflect the new enrolled set immediately so the Start
-            // buttons update without a refetch. (default_setup for
-            // any removed gametype is gone server-side, but those
-            // gametypes no longer render a Start button anyway, so
-            // the stale savedDefaults entries are harmless.)
+            // Reflect the new enrolled set immediately, so the start list
+            // updates without a refetch. A removed gametype's saved default
+            // stays in `savedDefaults` and is harmless: it draws no start row
+            // to open a dialog from.
             setAllowedGametypes(next)
             setEditing(false)
           }}

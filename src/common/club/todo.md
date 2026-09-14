@@ -13,18 +13,6 @@
 
 ## Soon
 
-- **`<StartGameButtons>` no longer exists and is still named in nine places.**
-  The row of per-gametype Start buttons became a `<SelectionList>` of
-  `<StartGameRow>`s, and the predicate it used to evaluate for the paint moved
-  into ClubPage. Left behind: two comments in `ClubPage.tsx` (402, 1099), one
-  in `ModeFilter.tsx` (47), and six doc mentions — `docs/naming.md` (its own
-  row in the component table), `docs/ui.md` (the shared-components list, the
-  mode-badge "where it shows", the click-target list), `docs/code-conventions
-  .md` (the shared list) and `docs/deferred.md` (which also carries the
-  pre-reorg path `common/components/club/StartGameButtons.module.css`). The
-  docs rows are the ones that matter — a reader looking for the component
-  finds nothing. `GameLogo.module.css` names it too; that one belongs to the
-  logo's own comment rewrite.
 - **The `=` solo-handle convention is still tested in the FE** — `modeSuffix`
   in `SetupGameModal.tsx`. `common.clubs.is_solo` (a generated column) carries
   it, and the homepage reads that instead. Joel: *"fine for now, but we should

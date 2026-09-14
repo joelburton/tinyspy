@@ -15,9 +15,9 @@ import { TextField } from '../fields/TextField'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  /** The club exists — its handle, so the opener can go there. */
+  // The club exists — its handle, so the opener can go there.
   onCreated: (handle: string) => void
-  /** User dismissed without creating (Cancel / Esc / X). */
+  // User dismissed without creating (Cancel / Esc / X).
   onCancel: () => void
 }
 
@@ -74,35 +74,6 @@ function getErrorTextForSlug(slug: string): string | null {
 const CLUB_NAME_MAX = 20
 
 /**
- * "Create a club" dialog. POSTs to `common.create_club` and hands the new
- * club's handle back, so the opener can go there.
- *
- * The exact sibling of `<EditClubModal>` — create and edit of the same object,
- * in the same shell — and it takes no `session`, because `create_club` reads
- * `auth.uid()` on the server.
- *
- * The "Club name" field doubles as the handle source — we slugify
- * it live and show the preview ("/c/joels-crossword-club") as the
- * user types. There's no separate handle input; if they want a
- * different URL they edit the name. Same pattern keeps the
- * handle/name relationship one-way: handle is derived FROM name,
- * never typed independently.
- *
- * v1 club semantics (see CLAUDE.md / docs/common.md / project
- * memory): the membership list is fixed at creation. There's no
- * "invite later" flow yet. The creator is auto-added by the RPC,
- * so this form only asks for the other members.
- *
- * UX is intentionally minimal — alpha-software prior; we're
- * optimizing for "Joel and a couple friends can use this" not
- * "looks polished for strangers." A real picker for member
- * selection (typeahead from common.profiles) lands when we have
- * enough users to make that worthwhile.
- *
- * Lifecycle mirrors the other normal modals: the opener conditionally renders
- * us — mounting opens, unmounting closes. We hold no "is open" state.
- */
-/**
  * What the form holds, keyed by the name each value is SENT AS.
  *
  * The keys are `common.create_club`'s own parameters, which is what makes the
@@ -119,6 +90,29 @@ type CreateClubAnswer = { result: 'created'; handle: string }
 
 const EMPTY: Values = { club_name: '', member_usernames: '' }
 
+/**
+ * "Create a club" dialog. POSTs to `common.create_club` and hands the new
+ * club's handle back, so the opener can go there.
+ *
+ * The exact sibling of `<EditClubModal>` — create and edit of the same object,
+ * in the same shell — and it takes no `session`, because `create_club` reads
+ * `auth.uid()` on the server.
+ *
+ * The "Club name" field doubles as the handle source — we slugify
+ * it live and show the preview ("/c/joels-crossword-club") as the
+ * user types. There's no separate handle input; if they want a
+ * different URL they edit the name. Same pattern keeps the
+ * handle/name relationship one-way: handle is derived FROM name,
+ * never typed independently.
+ *
+ * **Membership is fixed at creation** (docs/common.md): there is no
+ * invite-later flow, and the creator is auto-added by the RPC, so this form
+ * asks only for the other members — typed as usernames, since a club is a
+ * handful of friends whose names you know.
+ *
+ * Lifecycle mirrors the other normal modals: the opener conditionally renders
+ * us — mounting opens, unmounting closes. We hold no "is open" state.
+ */
 export function CreateClubModal({ onCreated, onCancel }: Props) {
   const [errors, setErrors] = useState<FormErrors>({})
   const [busy, setBusy] = useState(false)

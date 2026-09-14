@@ -6,9 +6,9 @@ import { TrashButton } from '../buttons/TrashButton'
 import styles from './ClubGameDeleteButton.module.css'
 
 type Props = {
-  /** Called when the user confirms. The caller (ClubPage) owns the mechanics:
-   *  for the club's current game, broadcasting a `suspend` so peers navigate
-   *  out before the row vanishes; for any game, the `common.delete_game` RPC. */
+  // Called when the user confirms. The caller (ClubPage) owns the mechanics:
+  // for the club's current game, broadcasting a `suspend` so peers navigate out
+  // before the row vanishes; for any game, the `common.delete_game` RPC.
   onDelete: () => Promise<void> | void
 }
 

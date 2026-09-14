@@ -102,10 +102,9 @@ test.describe('club page list filters', () => {
     await pickGametype(page, 'WordNerd')
     // BOTH wordle games survive the family filter; the waffles don't.
     await expect(gameCards).toHaveCount(2)
-    // ...and the filter never took focus in the first place, so the games list
-    // keeps its arrow-key cursor without any hand-back. (The old native <select>
-    // stole focus to open its popup and needed ClubPage to give it back — which
-    // it failed to do when you re-picked the option already selected.)
+    // ...and the filter never took focus, so the games list keeps its arrow-key
+    // cursor. A control that took focus to open would blank it (see
+    // GametypeFilter).
     expect(
       await page.evaluate(() => document.activeElement?.tagName),
     ).not.toBe('BUTTON')

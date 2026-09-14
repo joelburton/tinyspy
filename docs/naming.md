@@ -170,8 +170,8 @@ Concretely:
 
 | identifier | phase | what it does |
 |---|---|---|
-| `<StartGameButtons onStartSetup={...} />` | startSetup | The row of buttons on ClubPage. Click → open dialog. |
-| `ClubPage.handleStartSetup` | startSetup | Sets `pendingSetup` so the dialog mounts. |
+| `<StartGameRow />` in ClubPage's start list | startSetup | A row per startable gametype. Activate → open dialog. |
+| `useSetupDialog`'s `open` | startSetup | Names the gametype, which mounts the dialog. |
 | `SetupGameModal.handleStartGame` | startGame | Click-handler for the dialog's commit button. |
 | `manifest.startGameInClub` | startGame | The RPC-firing function. Always actually creates a game. |
 | `SetupGameModal.onStarted(gameId)` | startGame done | Past tense; fires after `startGameInClub` returns success. |

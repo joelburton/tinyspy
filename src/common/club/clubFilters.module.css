@@ -4,14 +4,12 @@
  * (ModeFilter, over "Start a new game") and the gametype dropdown
  * (GametypeFilter, over "Your games").
  *
- * ONE file for both, for the same reason ClubPage.module.css shares a rule
- * between `.startList` and `.gamesList`: the two controls sit in matching
- * heading rows one column apart, so anything that lets them drift apart
- * cosmetically is a bug. They share a font size and a height — which is all
- * this file still sets for the dropdown, since its fill, border and radius
- * come from `<FilterSelect>`.
+ * ONE file for both: the two controls sit in matching heading rows one column
+ * apart, so anything that lets them drift apart cosmetically is a bug. They
+ * share a font size and a height — which is all this file still sets for the
+ * dropdown, since its fill, border and radius come from `<FilterSelect>`.
  *
- * Both are sized DOWN from the app's standard controls (theme.css's <button>,
+ * Both are sized DOWN from the app's standard controls (base.css's `<button>`,
  * fields/SelectField). A filter is chrome ON a heading, not something you came
  * to the page to press — it should read as quieter than the game buttons and
  * game cards it's filtering.

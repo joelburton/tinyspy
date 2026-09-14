@@ -24,14 +24,14 @@ import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
  */
 export type ListedGame = {
   gameId: string
-  /** The gametype's manifest, resolved once when the row is built — a gametype
-   *  this FE doesn't know never becomes a `ListedGame`, so everything
-   *  downstream takes it as given instead of looking it up again. */
+  // The gametype's manifest, resolved once when the row is built — a gametype
+  // this FE doesn't know never becomes a `ListedGame`, so everything downstream
+  // takes it as given instead of looking it up again.
   manifest: GameManifest
   title: string
-  /** `common.games.last_active_at` — last status/progress write (or the
-   *  end time). The card dates + the list orders by this, so a long-
-   *  suspended game reads by when it was last played, not when it began. */
+  // `common.games.last_active_at` — the last status/progress write, or the end
+  // time. The card dates by it and the list orders by it, so a long-suspended
+  // game reads by when it was last played rather than when it began.
   lastActiveAt: string
   isTerminal: boolean
   statusLabel: string
@@ -152,13 +152,10 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
     // flip, create_game's auto-vacate of the prior current game, an
     // end_game terminal — all surface here and trigger a list reload.
     //
-    // We DON'T auto-navigate anyone into a newly-started game anymore.
-    // Being added to a game pops a join invitation *globally* (see
-    // `useGameInvitations` mounted in App.tsx), so a player joins on their
-    // own terms wherever they are — no more being yanked off the club
-    // page (or out of whatever they were doing) the instant a game starts.
-    // A member here just sees the new game appear in the Current section
-    // and gets the invite popup; the game waits (paused) until they join.
+    // It navigates NOBODY. Being added to a game pops a join invitation
+    // globally (`useGameInvitations`, mounted in App.tsx), so a player joins on
+    // their own terms wherever they are; a member here just sees the new game
+    // appear and gets the invite. The game waits, paused, until they join.
     const channel = supabase
       .channel(`club-games:${clubHandle}:${channelDedupSuffix()}`)
       .on(

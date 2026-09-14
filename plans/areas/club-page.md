@@ -7,9 +7,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
 26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
 F-12, F-13, F-14, F-16 and F-17 worked 2026-09-13**, F-9 taking F-11's
-club-page half and F-15's four not-ok arms with it. **Every finding that held a
-decision is worked.** What is left is the prose group (F-1 to F-8), fork-free,
-waiting on "do the prose".
+club-page half and F-15's four not-ok arms with it — and **the prose group
+(F-1 to F-8) done the same day.** Every finding is worked. What is left is
+Joel's: the closing re-read, the stamps, the close.
 
 ## The roster
 
@@ -627,3 +627,51 @@ AFTER the file was staged. It reads the git index, so a brand-new file is
 invisible to it until then: for a new file, `git add` before trusting a green
 run. (The two words are not repeated here — the guard's list is absolute, and
 CLAUDE.md keeps even prose about the rule clear of them.)
+
+## The prose pass — F-1 to F-8, 2026-09-13
+
+Joel: *"do the prose (we refactored the clubpage heavily, so remember to check
+that)"* — and the warning was the right one. Every line number in F-3, F-4 and
+F-5 was stale, two files had been renamed, and the code three of the findings
+described had moved into files that did not exist when they were written. Each
+category was re-swept fresh rather than worked from the list.
+
+**F-1** — `doc.md` gets its intro and comes off `INTROS_OWED`. It answers the
+four questions the page answers at once (who is here, what is being played,
+what could be started, what has been played), then the two reads with two
+different jobs, then the thing the decomposition made true: three of the four
+game entries are one object drawn three times.
+
+**F-2** — the page docstring described a page with three game sections and
+Start buttons, then (after F-9) a load that is no longer here. It now says what
+a caller needs: what the page is, that everything arrives loaded, and that
+`initialGametypes` is a SEED rather than a fact.
+
+**F-3** — the marker rule, applied to eight Props blocks plus `ListedGame`'s
+member notes and three function-valued consts. `handleDelete` keeps its `/**`:
+it is a function DECLARATION, not a const.
+
+**F-4** — the folder no longer narrates how it used to work. Fourteen sites,
+including two dated attributions and a finding id from a deleted audit.
+
+**F-5** — one claim had already gone with F-12's `savedDefaults` rewrite; the
+rest were checked one at a time against the current code. Two were in other
+folders (`HomePage.tsx`'s invite flow, which does not exist) and were fixed in
+place.
+
+**F-6** — five comments that carried a doc section's argument in full now carry
+their local decision and a pointer. The filters block lost sixteen lines to
+`docs/ui.md`, the tab bar's ARIA argument to `<Segmented>`'s own docstring.
+
+**F-7** — `StartGameButtons` is gone from the repo: two docs rows rewritten for
+what replaced it, three list entries and a `deferred.md` opacity row deleted,
+one comment reworded.
+
+**F-8** — the stray blank line, and one I had left in `ClubPage.module.css`.
+
+**The marker pass fixed a guard entry nobody predicted.** `orphanedDocstrings`
+listed `EditClubModal › Values` as a known orphan; converting the Props block
+to `//` un-stacked the pair and the guard went red asking for its line back.
+Its sibling `CreateClubModal › Values` was a real orphan of a different kind —
+the component's docstring sat above `type Values` instead of above the
+component — and moving it cleared that one too. Both lines are deleted.

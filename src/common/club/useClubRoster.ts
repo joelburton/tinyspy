@@ -11,9 +11,8 @@ import type { Member } from '../members/member'
  *
  * Exists because the GAME page only knows the current game's *players*, but chat
  * is club-wide — so naming a chat sender (in the chat window AND the global-
- * feedback pill) needs every club member, player or not. ClubPage already has
- * the roster; the game page didn't, which is why a non-player's messages used to
- * render as `?`.
+ * feedback pill) needs every club member, player or not. Without it a
+ * non-player's messages have no name to render.
  *
  * One-shot fetch (roster changes are rare); a member who joins mid-session
  * resolves after a reload. Returns an empty list until the fetch resolves, and

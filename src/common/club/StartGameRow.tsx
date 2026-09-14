@@ -5,11 +5,11 @@ import { playerCountShort } from '../manifest/gameManifest'
 import { GameEntry } from './GameEntry'
 
 type Props = {
-  /** The gametype this row offers. */
+  // The gametype this row offers.
   game: GameManifest
-  /** Whether this is a solo club (handle starts with '='). Suppresses the
-   *  "Co-op" badge and the player count — both are noise when there's only one
-   *  member and every game there is played by them. */
+  // Whether this is a solo club (handle starts with '='). Suppresses the
+  // "Co-op" badge and the player count — both are noise when there's only one
+  // member and every game there is played by them.
   soloClub: boolean
 }
 
@@ -23,8 +23,7 @@ type Props = {
  * The list owns the box, the hover, the cursor ring and the click; it also owns
  * whether this row is choosable at all — a gametype the club's member count
  * doesn't fit is passed to `disabled`, and the list dims it and declines Enter.
- * That predicate used to be evaluated twice, once for the paint here and once
- * for the keyboard in ClubPage (docs/ui.md → Selection lists).
+ * (docs/ui.md → Selection lists).
  *
  * The name is the prominent first line, the description the subtle second, so a
  * column of these reads as "options to consider" rather than "actions to take"

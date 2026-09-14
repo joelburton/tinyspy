@@ -8,10 +8,10 @@ import styles from './clubFilters.module.css'
 export type GametypeOption = { value: string; label: string }
 
 type Props = {
-  /** The selected `baseGametype`, or `'all'`. */
+  // The selected `baseGametype`, or `'all'`.
   value: string
-  /** The families present in the list being filtered, in display order.
-   *  Excludes the `'all'` choice, which this component always renders first. */
+  // The families present in the list being filtered, in display order. Excludes
+  // the `'all'` choice, which this component always renders first.
   options: GametypeOption[]
   onChange: (value: string) => void
 }
@@ -34,14 +34,11 @@ type Props = {
  *
  * **`<FilterSelect>`, not a native `<select>`** — the club page is not a "real
  * form" (docs/ui.md → Real forms), so its controls don't take focus and don't
- * wear focus rings. That's also a bug fix, not only a look: a native select has
- * to accept the press that opens its popup, so it stole focus from the games
- * list along with that list's keyboard cursor, and `ClubPage` needed a
- * hand-focus-back on change to cope. That hand-back never ran when you re-picked
- * the option already selected (no `change` event fires), leaving the games list
- * without its arrow-key cursor until you clicked it again. Declining focus in
- * the first place removes the workaround and the hole together — and matches
- * `ModeFilter` beside it, which already declines focus on mousedown.
+ * wear focus rings. That is load-bearing here rather than only a look: a native
+ * select must accept the press that opens its popup, which would take focus off
+ * the games list directly below and blank that list's arrow-key cursor.
+ * Declining the focus is what keeps the cursor, and it matches `ModeFilter`
+ * beside it.
  */
 export function GametypeFilter({ value, options, onChange }: Props) {
   return (

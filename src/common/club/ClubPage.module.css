@@ -8,9 +8,9 @@
  * the rest, and the right column's games-list frame absorbs growth via
  * overflow-y: auto.
  *
- * There is no `.card` on this page. The only card-style chrome is
- * the gamesList frame (a border + radius around the scroll region)
- * and the per-game CurrentGameCard items inside it.
+ * There is no `.card` on this page. The card-style chrome is each list's own
+ * frame, which is <SelectionList>'s, plus <CurrentGameCard>'s box above the
+ * start list.
  */
 
 /* The wrapper's layout is the shared `.pageHeaderAndMainArea`
@@ -77,12 +77,11 @@
   min-height: 0;
 }
 
-/* This page's two lists say both of these for themselves now: `fills` for the
- * "take what's left of the column after the heading" half, and `density`
- * for the packed rows every entry here wants — two lines of text where home's
- * carry one. Both used to be written here, the second by reaching through
- * `:global(.item-row)` into a shared pattern, which is the door
- * <SelectionList>'s module closed (docs/ui.md → Selection lists). */
+/* This page's two lists say both of these for themselves: `fills` for the
+ * "take what's left of the column after the heading" half, and `density` for
+ * the packed rows every entry here wants — two lines of text where home's
+ * carry one. Nothing about a row is written here; <SelectionList>'s module
+ * owns it (docs/ui.md → Selection lists). */
 
 /* Club title block — a full-width row of the .frame column (between
  * the header and the two-column body), so the "Club: <name>" heading
@@ -131,10 +130,9 @@
 }
 
 /* `.headingRow` is a bare hook: the shape is the shared
- * `.heading-with-controls` (common/core-css/patterns/heading.css), and this class
- * exists only so the mobile block below can hide the row. A module can't
- * target a global class without `:global()`, which nothing in this codebase
- * uses. */
+ * `.heading-with-controls` (common/core-css/patterns/heading.css), and this
+ * class exists only so the mobile block below can hide the row — a module
+ * cannot target a global class directly. */
 
 @media (--mobile) {
   /* The bar spans the same centered well the club name and the columns do, so

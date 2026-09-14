@@ -7,8 +7,8 @@ import styles from './clubFilters.module.css'
 type Props = {
   value: ModeFilterValue
   onChange: (value: ModeFilterValue) => void
-  /** Whether this is a solo club (handle starts with '='). Renders nothing —
-   *  see the docstring. */
+  // Whether this is a solo club (handle starts with '='). Renders nothing — see
+  // the docstring.
   soloClub: boolean
 }
 
@@ -40,11 +40,10 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
           className={styles.modeOption}
           aria-pressed={value === o.value}
           // Don't let the press MOVE FOCUS off the start list. That list is a
-          // keyboard tab stop holding the Up/Down cursor (ClubPage's
-          // `focusedList`), and it sits directly under this control — taking
-          // focus here would blank the cursor ring every time you narrowed the
-          // list you were about to arrow through. Same trick, same reason, as
-          // StartGameButtons' own buttons; `click` still fires.
+          // keyboard tab stop holding the Up/Down cursor, and it sits directly
+          // under this control — taking focus here would blank the cursor ring
+          // every time you narrowed the list you were about to arrow through.
+          // `click` still fires.
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onChange(o.value)}
         >

@@ -126,7 +126,6 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   | value | rule | file |
   |---|---|---|
   | `0.45` | `.shuffle:disabled` | `common/buttons/ShuffleButton.module.css` |
-  | `0.5` | `.button:disabled` | `common/components/club/StartGameButtons.module.css` |
   | `0.5` | `.timerInput:disabled` | `common/setup-form/SetupTimerSection.module.css` |
   | `0.5` | `.btn:disabled` | `crosswords/components/Controls.module.css` |
   | `0.55` | `.select:disabled` | `common/fields/SelectField.module.css` |

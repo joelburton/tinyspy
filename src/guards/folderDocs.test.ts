@@ -79,7 +79,6 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  * is the test.
  */
 const INTROS_OWED: string[] = [
-  'common/club',
   'common/game-page', 'common/info-sheet',
   'common/manifest',
   'common/move-flash',

@@ -5,9 +5,9 @@
  * box.
  *
  * The border is what makes it prominent, and it is a dark NEUTRAL rather than
- * the accent blue: since the keyboard list-nav arrived, blue means "the cursor
- * is here / Enter acts on this", and this callout is in neither list. Borrowing
- * that color would be a lie about what the box does.
+ * the accent blue: blue means "the cursor is here, Enter acts on this", and
+ * this card is in neither list. Borrowing that color would be a lie about what
+ * the box does.
  *
  * The face inside is <GameEntry>'s, the same one both lists draw, asked for a
  * step larger. What this file owns is the box around it and the flag on it.

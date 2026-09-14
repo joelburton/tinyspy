@@ -56,8 +56,6 @@ const KNOWN: string[] = [
   // → codenamesduet
   'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
   // → common — club-page / hooks / common-hosts / shared-game-chrome
-  'src/common/club/CreateClubModal.tsx › Values',
-  'src/common/club/EditClubModal.tsx › Values',
   'src/common/game-page/GamePage.tsx › isGameId',
   // → connections
   'src/connections/components/BoardCol.tsx › GuessAnswer',

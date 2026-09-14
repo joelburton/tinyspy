@@ -1392,7 +1392,7 @@ Same principle, applied to components.
 
 **The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
 
-- `Chat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmationBlockingModal`, `SetupTimerSection`, `CurrentGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
+- `Chat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmationBlockingModal`, `SetupTimerSection`, `CurrentGameCard` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage` are shell-level, game-agnostic.
 - **The account submenu** ([`useAccountMenuSection`](../src/common/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile**, **Add word** (editors only) and **Log out**.
   - **Inside the page's menu rather than a control of its own.** A fixed chip would cost the header permanently reserved width at every viewport, and that is exactly the width the mobile game header needs for feedback.
@@ -1968,7 +1968,7 @@ opens a floating thing (the Menu button, FilterSelect's trigger) · `choice` one
 of a mutually-exclusive set (ModeFilter, crosswords' source picker) · `toggle` a
 two-state switch drawn as a button (crosswords' pencil/pen) · `tab` switches
 which view you're looking at (ClubPage's mobile tabs) · `row` a whole list row
-that IS the control (StartGameButtons, a Menu item, a game card, FilterSelect's
+that IS the control (a club-page start or game row, a Menu item, FilterSelect's
 options, the account color swatches) · `handle` a small inline control inside
 content (the turn log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
 text that reads as prose or a link (`.link-button`, DefinitionView's

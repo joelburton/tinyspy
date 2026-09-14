@@ -14,11 +14,9 @@
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
-  /* The tone, the size and the fixed square are all `<TrashButton small>`'s now.
-     This module is left with only what is genuinely local: the corner position
-     and the reveal. It used to set `--iconButton-size: 1.6rem` itself — that is
-     exactly what `small` supplies, which is how we know the prop landed on the
-     right value. */
+  /* The tone, the size and the fixed square are `<TrashButton small>`'s. What
+     is left here is what is genuinely local: the corner position and the
+     reveal. */
   opacity: 0;
   transition: opacity 120ms ease, background 120ms ease,
               color 120ms ease, border-color 120ms ease,
