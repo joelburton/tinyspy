@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-page
 
 import type { Session } from '@supabase/supabase-js'
 import type { GamePlayer } from '../members/member'

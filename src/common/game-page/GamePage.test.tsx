@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-page
 
 /**
  * Tests for the three actions the game shell binds for every game — the pause

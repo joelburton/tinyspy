@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-page
 
 /**
  * Tests for useStandardGameActions — the End / Concede / Restart actions every

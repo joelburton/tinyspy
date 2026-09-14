@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-game-page
 
 import { Component, type ReactNode } from 'react'
 import { ErrorPage } from '../error-page/ErrorPage'
