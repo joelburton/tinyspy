@@ -29,10 +29,9 @@ const box = () => document.querySelector('[name=\'timer.seconds\']') as HTMLInpu
 /**
  * Render the field with its disclosure OPEN.
  *
- * `<SetupSection>` is closed by default — every setup field is, since F35 — and
- * a closed `<details>` hides its contents from the accessible tree, so every
- * query below would miss. Opening it is a fact about the surrounding component,
- * not about the timer.
+ * `<SetupSection>` is closed by default, and a closed `<details>` hides its
+ * contents from the accessible tree, so every query below would miss. Opening
+ * it is a fact about the surrounding component, not about the timer.
  */
 async function open(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByText(/^Timer:/))
@@ -106,10 +105,10 @@ describe('SetupTimerSection', () => {
     await user.type(box(), '2:')
     expect(onChange).not.toHaveBeenCalled()
     expect(box()).toHaveAttribute('aria-invalid', 'true')
-    // UNDER THE TIMER FIELD, not merely on the page. This used to be a loose
-    // `<p className="error">` outside the errors object entirely — the words
-    // were right and no test could tell it was the one setting whose complaint
-    // arrived somewhere different from every other setting's.
+    // UNDER THE TIMER FIELD, not merely on the page. Asserting the words are
+    // somewhere would pass just as well with the complaint on the form's line,
+    // which would make the timer the one setting whose message arrives
+    // somewhere different from every other setting's.
     expect(errorUnder('timer')).toMatch(/Enter MM:SS/)
   })
 
@@ -131,9 +130,9 @@ describe('SetupTimerSection', () => {
   })
 
   it('lets the typed value win, because it is what is on screen now', async () => {
-    // The form's copy is about whatever was last submitted; the box holds what
-    // you are typing. Showing the stale one over a value you can see is wrong
-    // would send you to fix the wrong thing.
+    // The form's stored message is about whatever was last submitted; the box
+    // holds what you are typing. Showing the stale one over a value you can see
+    // is wrong would send you to fix the wrong thing.
     const user = userEvent.setup()
     render(
       <SetupTimerSection

@@ -15,8 +15,8 @@ import type { Member } from '../members/member'
  * and `GameSetupForm` is the object your manifest's `setupForm` must be.
  *
  * **`CreatedGame` is deliberately NOT here** even though it reads like setup.
- * It stays in `lib/gameManifest.ts` beside `GameManifest.startGameInClub`, the
- * interface it satisfies, so the two cannot drift.
+ * It stays in `manifest/gameManifest.ts` beside `GameManifest.startGameInClub`,
+ * the interface it satisfies, so the two cannot drift.
  *
  * **`SetupBodyProps.errors` is the form layer's `FormErrors`, on purpose.**
  * Every setup is a form, so a setup body's errors are a form's errors: one
@@ -57,10 +57,10 @@ export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void
  */
 export type SetupBodyProps = {
   members: Member[]
-  // This gametype's user-facing brand name (the manifest's `name`),
-  // forwarded by SetupGameModal so a setup form's own copy reads the
-  // brand from the single branding source rather than hardcoding it
-  // (e.g. connections's "Pick a <brand> puzzle"). Most forms ignore it.
+  // This gametype's user-facing brand name (the manifest's `name`), forwarded
+  // by SetupGameModal so a setup form's own sentences read the brand from the
+  // single branding source rather than hardcoding it (e.g. connections's "Pick
+  // a <brand> puzzle"). Most forms ignore it.
   brand: string
   // Club the game would start in. Per-game setup forms that
   // need club-scoped data read it; the rest ignore it.
@@ -162,8 +162,8 @@ export type GameSetupForm = {
   // dictionary" is about two selects at once.
   //
   // Gets `playerCount` because some constraints couple the setup to the
-  // headcount — bananagrams's "bag must hold `playerCount × hand_size` tiles"
-  // is the first. Pure + synchronous; the server re-validates in `create_game`
+  // headcount — bananagrams's "bag must hold `playerCount × hand_size` tiles".
+  // Pure + synchronous; the server re-validates in `create_game`
   // regardless (this is UX, not the authority).
   //
   // Lives beside the game's setup types rather than inside its `SetupForm`

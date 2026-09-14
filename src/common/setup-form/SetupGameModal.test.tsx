@@ -204,8 +204,8 @@ describe('SetupGameModal — when Start is refused', () => {
     // The whole reason `validate` returns an object. A game's own check and the
     // server's `validation` answer the same question about the same control, so
     // they land in the same place — which one noticed is not the player's
-    // business. Before this the frontend's half always went to the bottom line,
-    // even when the field that owned it was directly above.
+    // business. A frontend check that landed on the bottom line instead would
+    // put the message away from the field that owned it, often directly above.
     validate.mockReturnValue({ guesses: 'Pick a smaller board.' })
     draw()
 

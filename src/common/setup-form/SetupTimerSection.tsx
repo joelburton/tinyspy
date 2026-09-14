@@ -9,17 +9,14 @@ import { SetupSection } from './SetupSection'
 import type { TimerMode } from '../manifest/gameManifest'
 import styles from './SetupTimerSection.module.css'
 
-/**
- * Bounds for the count-down picker — kept in lockstep with the
- * server-side range check in `common.require_valid_timer` (1..3600).
- * Minimum 1 second (no zero-length games); max 60 minutes (1 hour
- * is plenty for any cooperative-puzzle gametype).
- */
+// Bounds for the count-down picker, kept in lockstep with the server-side range
+// check in `common.require_valid_timer` (1..3600): no zero-length games, and an
+// hour is plenty for any cooperative-puzzle gametype.
 const MIN_COUNTDOWN_SECONDS = 1
 const MAX_COUNTDOWN_SECONDS = 60 * 60
 
 type Props = {
-  /** What this section is about, under the summary. */
+  // What this section is about, under the summary.
   help?: ReactNode
   value: TimerMode
   onChange: (next: TimerMode) => void
@@ -51,9 +48,8 @@ type Props = {
  * removes the "5:3" ambiguity (5 min 3 sec vs. 5 min 30 sec)
  * without requiring the field to second-guess what the user meant.
  *
- * NOTE: the component is *just the timer fieldset*. Per-game
- * setup forms wrap it in their own `<div>` (alongside other
- * fields) — this file doesn't impose layout outside the fieldset.
+ * It draws a `<SetupSection>` and nothing around it, so a setup form places it
+ * beside its other sections and this file imposes no layout of its own.
  */
 export function SetupTimerSection({ value, onChange, help, errors }: Props) {
   // Local text state for the MM:SS input. Initialized from the
@@ -101,7 +97,8 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
   // the timer, and putting it anywhere else would make this the one setting
   // whose complaint arrives somewhere different from every other setting's.
   // It wins over `errors.timer` on the way past: this reflects what is in the
-  // box right now, while the form's copy is about whatever was last submitted.
+  // box right now, while the form's stored one is about whatever was last
+  // submitted.
   const timerError = downSelected && !textValid
     ? 'Enter MM:SS between 0:01 and 60:00.'
     : errors.timer
@@ -124,12 +121,11 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
           { value: 'countup', label: 'Up' },
           {
             value: 'countdown',
-            // THE MM:SS BOX LIVES INSIDE THE DOWN OPTION'S LABEL, which is why
-            // this was the app's last hand-written radio group — and why it
-            // needn't have been. `label` is a ReactNode and <RadioRow> renders
-            // it INSIDE the `<label>`, immediately after the radio, so nesting
-            // the input is what the shape already supports. Clicking the box
-            // therefore picks Down, which is the behavior we had and wanted.
+            // THE MM:SS BOX LIVES INSIDE THE DOWN OPTION'S LABEL. `label` is a
+            // ReactNode and <RadioRow> renders it INSIDE the `<label>`,
+            // immediately after the radio, so nesting the input is what the
+            // shape already supports — and clicking the box picks Down, which
+            // is what we want.
             label: (
               <>
                 Down:
@@ -162,9 +158,8 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
  * exactly 2-digit seconds (so we don't have to disambiguate
  * "5:3" — that's 5 minutes 3 seconds vs. 5 minutes 30 seconds).
  *
- * Exported as a private helper of this component; not for outside
- * use. The SetupTimerSection's onChange already gives callers the parsed
- * `seconds` value when it's valid.
+ * Private to this file: the section's `onChange` already gives a caller the
+ * parsed `seconds` when it is valid.
  */
 function parseMmSs(text: string): number | null {
   const match = text.match(/^(\d{1,2}):(\d{2})$/)

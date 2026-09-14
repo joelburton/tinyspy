@@ -8,23 +8,22 @@ import { SetupSection } from './SetupSection'
 import type { Member } from '../members/member'
 
 /**
- * The two ways a coop game can be paced. `'free-for-all'` (the
- * default) is the historical behavior — anyone acts whenever.
- * `'turns'` opts into the common turn-order primitive (one player
- * at a time, in a rotation seeded at create-time). Stored on
- * `common.games.setup.coop_style`, so the value doubles as the
- * server-side opt-in flag (see each game's create_game). Compete
- * games never carry it — they either have their own turns
+ * The two ways a coop game can be paced: `'free-for-all'` (the default, anyone
+ * acts whenever) or `'turns'` (one player at a time, in a rotation seeded at
+ * create-time). Compete games never carry it — they either have their own turns
  * (scrabble) or are simultaneous by nature.
  */
 export type CoopStyle = 'turns' | 'free-for-all'
 
 /**
- * The two reserved setup keys the turn-order feature adds. A game's
- * own Setup type spreads these in (both optional — an older/other
- * setup blob simply omits them, reading as free-for-all). Kept here,
- * next to the field that writes them, so all six opting-in games
- * share one definition rather than re-declaring the pair.
+ * The two reserved setup keys the turn-order feature adds. A game's own Setup
+ * type spreads these in (both optional — a setup blob that omits them reads as
+ * free-for-all). Declared here, beside the field that writes them, so every
+ * opting-in game shares one definition rather than re-declaring the pair.
+ *
+ * What each key means, and which survives into a club's saved default:
+ * [docs/code-conventions.md → Reserved coop-turn setup
+ * keys](../../../docs/code-conventions.md#reserved-coop-turn-setup-keys).
  */
 export type CoopTurnSetup = {
   coop_style?: CoopStyle
@@ -32,37 +31,34 @@ export type CoopTurnSetup = {
 }
 
 type Props = {
-  /** What this section is about, under the summary. */
+  // What this section is about, under the summary.
   help?: ReactNode
-  /** The manifest mode of the sibling being set up. The field is
-   *  coop-only — it renders nothing for compete (which has no shared
-   *  budget to collide on, and where scrabble owns its own turns). */
+  // The manifest mode of the sibling being set up. The field is coop-only — it
+  // renders nothing for compete (which has no shared budget to collide on, and
+  // where scrabble owns its own turns).
   mode: 'coop' | 'compete'
-  /** The SELECTED players (SetupBodyProps.players), NOT the whole club
-   *  roster — the first-player picker may only offer people who'll
-   *  actually play, and re-seeds when the current pick is unchecked. */
+  // The SELECTED players, NOT the whole club roster — each game's setup form
+  // filters `members` by the form's `player_user_ids`. The first-player picker
+  // may only offer people who'll actually play, and re-seeds when the current
+  // pick is unchecked.
   players: Member[]
   coopStyle: CoopStyle
   firstTurnUserId: string
-  /** Emits BOTH keys together so the parent can merge them into its setup in
-   *  one call. The props are camelCase (React) while the setup keys they map to
-   *  are snake_case (the DB vocabulary — see docs/naming.md), so each parent
-   *  spells the mapping out: `{ ...s, coop_style: coopStyle, … }`. */
+  // Emits BOTH keys together so the parent can merge them into its setup in one
+  // call. The props are camelCase (React) while the setup keys they map to are
+  // snake_case (the DB vocabulary — see docs/naming.md), so each parent spells
+  // the mapping out: `{ ...s, coop_style: coopStyle, … }`.
   onChange: (next: { coopStyle: CoopStyle; firstTurnUserId: string }) => void
-  /** The form's errors. This section draws TWO fields and reads the key for
-   *  each — they are separate setup keys with different lifetimes (the style
-   *  is a club preference that round-trips, the first player is a per-game
-   *  choice `create_game` strips), so a raise names one or the other. */
+  // The form's errors. This section draws TWO fields and reads the key for
+  // each — they are separate setup keys, so a raise names one or the other.
   errors: FormErrors
 }
 
 /**
  * Shared coop-pacing setup field — the "Co-op" disclosure that lets
  * the creator switch a coop game from free-for-all to turn-by-turn
- * and pick who goes first. Dropped into all six turn-order games'
- * SetupForms (psychicnum, wordle, connections, waffle, wordiply,
- * scrabble-coop); the component self-gates so those forms render it
- * unconditionally:
+ * and pick who goes first. Dropped into every coop game that offers turns; the
+ * component self-gates, so those forms render it unconditionally:
  *
  *   - **compete** → renders nothing (turns are a coop-only concept here).
  *   - **solo (1 selected player)** → renders nothing (a rotation of one

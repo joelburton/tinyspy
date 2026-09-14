@@ -9,9 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
-**The decision group is DONE — F-8 through F-13**, taken one at a time. The
-prose group (F-1 to F-7) is untouched and is what remains; F-9, F-11 and F-12
-each left it a sentence lighter (see their records).
+**All thirteen findings are worked** — the decision group (F-8 to F-13) one at
+a time, then the prose group (F-1 to F-7) in one pass, 2026-09-14. The folder
+is off `INTROS_OWED`. **Not blessed and not closed** — both are Joel's.
 
 ## The roster
 
@@ -66,161 +66,106 @@ eslint clean. No e2e is run without Joel's word.
 
 ## Findings
 
-### The prose group — fork-free
+### The prose group — WORKED 2026-09-14, in one pass
 
-### F-setup-form-1 · `intro-owed` · `setup-form/doc.md` is a lede on `INTROS_OWED`
+Re-swept fresh rather than worked from the recorded list
+([[reference_area_file_line_numbers_rot]] — the decision group had already
+moved several of these, and re-reading turned up three the audit had missed).
+What each finding came to:
 
-The lede is one sentence and says what the folder holds. The intro, from what
-the files already argue: starting a game is two phases, and this folder is the
-first — a dialog that collects the choices, then hands `create_game` a setup
-blob and a separate player list. The dialog is one `<StandardForm>` inside a
-`<NormalModal>`; a game supplies a lazy body, its defaults, an optional
-cross-field check and an optional intro sentence through `manifest.setupForm`,
-and the modal supplies the players picker's seeding, the Help button, the
-Cancel/Start row and where a refusal lands (under the field the server named,
-or the form's own line). Every setting is a collapsible section whose summary
-shows the current value, so the dialog reads at a glance and opens only to
-change. The same choices are read back later: `setupRows` is the recap the
-info column and the printed board both draw, and `SetupDisclosure` is the
-in-game wrapper for it. `ClubPage` mounts the dialog, from a start row's press
-or a `?new=` arrival.
+### F-setup-form-1 · `intro-owed` · WORKED — `doc.md` has an intro, and the folder is off `INTROS_OWED`
 
-Details: the seeding order (manifest defaults under the club's saved default,
-players from the roster); the one seam (players split off the setup, and why a
-game's `Setup` type is `Omit<Values, 'player_user_ids'>`); why a section is a
-`<details>` and why `defaultOpen` is a default rather than a controlled value;
-Players open by default and its summary being dots; the timer's text-vs-value
-split (the box can hold text the setup never sees); the puzzle section's two
-three-state values; the recap rule and the board-identity exception (pointer to
-`docs/pdf.md` → Setup rows, which owns it). Then the row comes off
-`INTROS_OWED`.
+Four paragraphs: starting a game is two phases and this is the first; the
+dialog is a `<StandardForm>` in a `<NormalModal>` where a game supplies only a
+body, defaults, a check and a sentence; every setting is a `<SetupSection>`
+whose summary carries its value; and the choices are read back later by
+`setupRows` and `<SetupDisclosure>`.
 
-### F-setup-form-2 · `marker-pass` · six Props blocks put `/**` on their members
+`## Details` took the eight things that are arguments rather than narrative:
+the one destructure at the seam, the seeding order, where a refusal lands,
+`defaultOpen` being a default, the players picker's two peculiarities, the
+timer's text-vs-value split (pointing at the new envelopes section F-9 wrote),
+the puzzle section's three-state values, and a pointer to `docs/pdf.md` for
+what earns a recap row.
 
-A prop note is `//`. `SetupGameModal.tsx` (seven props), `SetupSection.tsx`
-(the inline props type: `label`, `help`, `defaultOpen`), `PlayersSection.tsx`
-(six), `SetupCoopStyleSection.tsx` (six), `SetupTimerSection.tsx` (two),
-`SetupNextPuzzleSection.tsx` (seven). `setupForm.ts`'s `SetupBodyProps` and
-`GameSetupForm` already have it right and are the model. Also
-`SetupTimerSection.tsx`'s one docstring over two consts
-(`MIN_COUNTDOWN_SECONDS`, `MAX_COUNTDOWN_SECONDS`) documents the first and
-leaves the second bare.
+Verified by planting: renaming the heading to `## Intro` fails
+`folderDocs.test.ts` naming this folder, so the guard is watching it.
 
-### F-setup-form-3 · `archaeology` · the folder narrates how it used to work, in sixteen places
+### F-setup-form-2 · `marker-pass` · WORKED — every prop note is `//`
 
-- `SetupGameModal.tsx`: the intro's JSX comment ("It used to live inside each
-  game's SetupForm, which meant it rendered BELOW the player picker … It is
-  manifest copy now").
-- `PlayersSection.tsx`: "**In the form, not around it.** It sat in
-  `<SetupGameModal>` while the setup bodies were handed a `setup` object the
-  picker was not part of. Now the form holds one values object" — the standing
-  fact is one sentence.
-- `SetupSection.tsx`, `defaultOpen`: "(2026-08-25) … which an e2e spec caught
-  by timing out on an invisible input."
-- `SetupSection.module.css`: "Until the fields became components each brought
-  its own margins, and when they stopped, 'Required words' sat flush on …";
-  and `.help`'s "It carried its own until 2026-08-26, back when it was a
-  hand-written <p>".
-- `SetupTimerSection.module.css`: the whole `.timerRow` paragraph — a rule
-  that no longer exists, measured before it was deleted.
-- `SetupTimerSection.tsx`: "which is why this was the app's last hand-written
-  radio group — and why it needn't have been."
-- `SetupTimerSection.test.tsx`: "This used to be a loose `<p className=
-  "error">` outside the errors object entirely"; and "every setup field is,
-  since F35" — a finding id from a deleted audit, in a durable file.
-- `SetupCoopStyleSection.tsx`: "'free-for-all' (the default) is the historical
-  behavior".
-- `SetupNextPuzzleSection.tsx`: "Collapsing them to one `null` made 'we
-  haven't asked yet' indistinguishable from … which read as an error for the
-  instant between typing a date and the answer coming back" — the reason
-  survives as "`undefined` is LOOKING, `null` is nothing"; the story goes.
-- `fieldNames.ts`: "So the composed names are gone, and both of them were
-  parts rather than settings" — a paragraph about names that no longer appear.
-- `SetupGameModal.test.tsx`: "Before this the frontend's half always went to
-  the bottom line".
-- `e2e/puzzle-pickers.e2e.ts`: "after the 2026-08-13 rework"; "It was a
-  `<fieldset>` until 2026-08-25, when every setup field became a
-  `<SetupSection>`"; "Leaving a source used to be a side effect of pressing a
-  different tab"; and "(It did, while this was being written.)" — which was
-  twice until F-11 rewrote `nextUpLine`'s docstring and took one with it.
+`SetupGameModal`, `PlayersSection`, `SetupCoopStyleSection`, `SetupTimerSection`,
+`SetupNextPuzzleSection`, and `SetupSection`'s inline props type.
+`SetupTimerSection`'s one docstring over two consts became a `//` comment
+covering both, which is what it always described.
 
-Each keeps its standing fact and loses the story.
+### F-setup-form-3 · `archaeology` · WORKED — every site, and the standing fact kept
 
-### F-setup-form-4 · `stale-claims` · sentences in the folder describe something that is not there
+`SetupGameModal`'s intro comment now says the sentence is the manifest's and
+that is why the modal places it, rather than telling where it used to live.
+`PlayersSection`'s "In the form, not around it" keeps the fact and drops the
+before. `SetupSection`'s `defaultOpen` keeps "it can go false again and must
+not slam shut" and loses the date and the e2e story; its stylesheet keeps the
+three-step spacing argument and loses "until the fields became components".
+`SetupTimerSection.module.css` loses the whole `.timerRow` paragraph — a rule
+that is not there. `SetupTimerSection` loses "the app's last hand-written radio
+group". `SetupCoopStyleSection` loses "the historical behavior".
+`SetupNextPuzzleSection` keeps "`undefined` is LOOKING, `null` is nothing" and
+loses the story. `fieldNames.ts` loses the paragraph about names that no longer
+appear and keeps the rule that produced it. The three test files lose "since
+F35", "this used to be a loose `<p className="error">`" and "before this the
+frontend's half…", each rewritten to say what the assertion is FOR. Both e2es
+lose their rework dates, the `<fieldset>` history, the tabs the pickers
+replaced, and both "(It did, while this was being written.)".
 
-- `SetupGameModal.tsx`, the `manifest` prop: "Non-null while the dialog should
-  be open — the parent unmounts us by passing `null`" — the prop is typed
-  `GameManifest`, and the parent stops rendering the component.
-- `SetupGameModal.tsx`, `savedDefault`: "Sourced by the parent (ClubPage)
-  alongside the allowed-gametypes query so the dialog opens instantly without
-  an extra round-trip" — it arrives in `get_club_page`'s one answer.
-- `SetupGameModal.tsx`, the docstring: "the resulting game lands in the club's
-  paused-games list" — it lands in "Your games", flying its flag.
-- ~~`SetupTimerSection.tsx`, the `errors` prop and the RadioRow comment~~ —
-  **resolved by F-9, which made them true rather than rewriting them.** The
-  raises name `timer` now; both sentences say so, and say it is a fault. The
-  component docstring's "server-side validation rejects with a clear message"
-  was the same claim in the wrong vocabulary and went with them.
-- `SetupTimerSection.tsx`, the docstring: "NOTE: the component is *just the
-  timer fieldset*. Per-game setup forms wrap it in their own `<div>`" — it is
-  a `<SetupSection>`, and wordle renders it bare beside its siblings.
-- `SetupTimerSection.tsx`, `parseMmSs`: "Exported as a private helper of this
-  component" — it is not exported.
-- `SetupCoopStyleSection.tsx`, the `players` prop: "The SELECTED players
-  (SetupBodyProps.players)" — no such prop; the body reads
-  `values.player_user_ids`.
-- `SetupCoopStyleSection.tsx`, the docstring: "Dropped into all six turn-order
-  games' SetupForms (psychicnum, wordle, connections, waffle, wordiply,
-  scrabble-coop)" — nine render it (letterboxed, setgame and strands too). A
-  census in a docstring; say "every coop game that offers turns".
-- `SetupSection.module.css`: "a bordered box (matching the setup form's
-  `.fieldset` chrome)" and "the rest matches `.fieldset`'s inner padding" — no
-  `.fieldset` class exists in `src/common`.
-- `SetupSection.module.css`, `.help`: "The three in the app all head a pair" —
-  five forms pass a section `help`. A census; the rule ("a group, not one
-  field") is the standing fact.
-- `SetupNextPuzzleSection.module.css`: "in place of a date picker" (the date
-  box IS there, as the override), "the only concrete fact in the fieldset",
-  "the fieldsets below it (the timer, and strands' three knobs)" — sections.
-- `setupForm.ts`: "It stays in `lib/gameManifest.ts`" — it is
-  `manifest/gameManifest.ts`.
-- `setupRows.ts`: "carries the reason for the one game exempted from it" —
-  "the one" rots; the guard carries each exemption's reason.
-- `SetupDisclosure.test.tsx`: "so sixteen info columns don't each re-author" —
-  a count.
-- `e2e/coop-setup.e2e.ts`: "(coop is the first WordNerd button)" — a row;
-  "identical across the six turn-order games" — nine.
+### F-setup-form-4 · `stale-claims` · WORKED — and three more found in the re-sweep
 
-### F-setup-form-5 · `comments-restate-docs` · two module headers carry a doc section in full
+The recorded list, less the three the decision group had already resolved
+(F-9 made the timer sentences true; F-10 and F-11 took their own). Plus three
+the audit had not caught:
 
-- `setupRows.ts`'s header is `docs/pdf.md` → Setup rows nearly verbatim: the
-  rule, the mode exception, the board-identity exception with its two
-  reasons. The doc is listed as owning it. Local: what a `SetupRow` is, the two
-  pseudo-keys, and a pointer.
-- `SetupCoopStyleSection.tsx`'s `CoopStyle` and `CoopTurnSetup` docstrings
-  carry `docs/code-conventions.md` → Reserved coop-turn setup keys (what
-  round-trips and what `create_game` strips). Local: the two values, and that
-  the pair is declared once here for every opting-in game.
+- `SetupNextPuzzleSection`'s "a caller that has not converted yet leaves this
+  line as the only word" — there is no unconverted caller: connections raises
+  PN302 and strands PN416, both validations naming `puzzle_id`.
+- `SetupNextPuzzleSection.module.css` said the line has THREE states; the code
+  has four, and the fourth ("nothing on that date") is the one the min-height
+  argument most needs.
+- `e2e/coop-setup.e2e.ts` called a start-list row a "button", which
+  `clubPage.ts`'s own docstring says it is not. It now says what is actually
+  load-bearing: `startGameRow` takes the FIRST match, and the registry lists
+  each sibling pair coop-first.
 
-### F-setup-form-6 · `copy-for-text` · "copy" used for a message's words, six times
+Also gone: `.fieldset` named twice in `SetupSection.module.css` for a class no
+stylesheet defines; "the three in the app all head a pair"; "Exported as a
+private helper" on a function that is not exported; "bananagrams's … is the
+first"; "the one game exempted"; `lib/gameManifest.ts` for
+`manifest/gameManifest.ts`; and a garbled sentence in `SetupGameModal`'s
+Suspense-fallback comment that had lost its verb.
 
-`SetupGameModal.tsx` ("manifest copy"), `setupForm.ts` (`brand`: "a setup
-form's own copy"), `SetupNextPuzzleSection.tsx` (`brand`: "for the exhausted
-copy"), `SetupTimerSection.tsx` and its test ("the form's copy is about
-whatever was last submitted" — here it means the form's ENTRY, which is the
-better word anyway), `e2e/puzzle-pickers.e2e.ts` ("the not-found copy names
-the date").
+### F-setup-form-5 · `comments-restate-docs` · WORKED — both headers point instead
 
-### F-setup-form-7 · `tidy` · three things the eye trips on
+`setupRows.ts`'s header was `docs/pdf.md` → Setup rows nearly verbatim, rule
+and both exceptions. It now says what the file IS — one array per game, shared
+by the info column and the PDF — names what this file owns, and links the doc
+for the rules. `SetupCoopStyleSection`'s `CoopTurnSetup` links
+`docs/code-conventions.md` → Reserved coop-turn setup keys instead of restating
+which key round-trips; its `errors` prop note dropped the same sentence a third
+time.
 
-- `e2e/coop-setup.e2e.ts` ends its one test with `page.screenshot({ path:
-  '/private/tmp/claude-501/…/d9659abe-…/scratchpad/coop-setup-turns.png' })` —
-  a debugging artifact aimed at a session scratchpad that no longer exists,
-  committed. Delete the call.
-- `SetupCoopStyleSection.test.tsx` is the folder's one test file without the
-  file docstring the other six carry.
-- `SetupNextPuzzleSection.test.tsx` imports `fireEvent` on its own line right
-  after importing from the same module.
+### F-setup-form-6 · `copy-for-text` · WORKED — all six
+
+Four were the banned sense and are now "sentence" / "message" / "sentences".
+Two meant a DUPLICATE (`SetupTimerSection` and its test, on the form's stored
+error) and read ambiguously beside the ban, so they say "the form's stored one"
+and "the form's stored message".
+
+### F-setup-form-7 · `tidy` · WORKED — all three
+
+The committed `page.screenshot` to a dead session scratchpad is deleted from
+`coop-setup.e2e.ts`. `SetupCoopStyleSection.test.tsx` has the file docstring
+the other test files carry — self-gating first, then the seeded default and the
+re-seed on unchecking, then both keys traveling together.
+`SetupNextPuzzleSection.test.tsx`'s two imports from `@testing-library/react`
+are one.
 
 ### The decision group — each waits for Joel
 

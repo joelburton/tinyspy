@@ -13,25 +13,26 @@ import type { FormErrors } from '../forms/formState'
 export type NextPuzzle = { id: string; puzzle_date: string; label: string } | null
 
 type Props = {
-  /** What this section is about, under the summary. */
+  // What this section is about, under the summary.
   help?: ReactNode
-  /** The gametype's user-facing brand, for the exhausted copy. */
+  // The gametype's user-facing brand, named in the sentence shown when the
+  // archive is used up.
   brand: string
-  /** The selected players' user ids. The preview is scoped to exactly the
-   *  people about to be seated, so unchecking someone can bring a puzzle
-   *  back — which is why this re-fetches when the selection changes. */
+  // The selected players' user ids. The preview is scoped to exactly the people
+  // about to be seated, so unchecking someone can bring a puzzle back — which
+  // is why this re-fetches when the selection changes.
   seenBy: string[]
-  /** Calls the game's `next_puzzle_for_club`. Supplied by the game because
-   *  each has its own schema-scoped, typed `db` handle. */
+  // Calls the game's `next_puzzle_for_club`. Supplied by the game because each
+  // has its own schema-scoped, typed `db` handle.
   load: (seenBy: string[]) => Promise<NextPuzzle>
-  /** Calls the game's `puzzle_for_date` — the override. */
+  // Calls the game's `puzzle_for_date` — the override.
   loadByDate: (date: string) => Promise<NextPuzzle>
-  /** Reports the override: a puzzle id to play THAT one, or undefined to go
-   *  back to letting the server choose. Written into `setup.puzzle_id`. */
+  // Reports the override: a puzzle id to play THAT one, or undefined to go back
+  // to letting the server choose. Written into `setup.puzzle_id`.
   onPick: (puzzleId: string | undefined) => void
-  /** The form's errors. This section reads the key for the field it draws —
-   *  `puzzle_id`, which is what `create_game` names when the puzzle behind a
-   *  chosen date has been retired since it was picked. */
+  // The form's errors. This section reads the key for the field it draws —
+  // `puzzle_id`, which is what `create_game` names when the puzzle behind a
+  // chosen date has been retired since it was picked.
   errors: FormErrors
 }
 
@@ -42,9 +43,10 @@ type Props = {
  * THE DEFAULT IS NO CHOICE. Both games' archives are QUEUES, not catalogues —
  * the date carries none of the meaning a crossword's does (a Monday crossword
  * and a Saturday one are different animals; connections #900 and #901 are
- * not), so the only question worth asking is "give us one we haven't done". The server answers exactly that, excluding anything any
- * SELECTED PLAYER has played in ANY club, so it can't be a repeat for anyone
- * at the table. Leave the date box empty and that is what you get.
+ * not), so the only question worth asking is "give us one we haven't done".
+ * The server answers exactly that, excluding anything any SELECTED PLAYER has
+ * played in ANY club, so it can't be a repeat for anyone at the table. Leave
+ * the date box empty and that is what you get.
  *
  * THE DATE BOX IS THE OVERRIDE, and it filters nothing: a puzzle everyone has
  * already finished comes back like any other, and starting it makes a SECOND
@@ -82,10 +84,10 @@ export function SetupNextPuzzleSection({
   // a date with no puzzle) and what it resolved to.
   //
   // `undefined` is LOOKING, `null` is "no puzzle that day" — the same
-  // three-state shape `fetched` uses above, and for the same reason. Collapsing
-  // them to one `null` made "we haven't asked yet" indistinguishable from "we
-  // asked and there is nothing", which read as an error for the instant between
-  // typing a date and the answer coming back.
+  // three-state shape `fetched` uses above, and for the same reason: one `null`
+  // for both would make "we haven't asked yet" read as "there is nothing",
+  // which is an error message for the instant between typing a date and the
+  // answer arriving.
   const [date, setDate] = useState('')
   const [picked, setPicked] = useState<NextPuzzle | undefined>(null)
 
@@ -134,12 +136,11 @@ export function SetupNextPuzzleSection({
     : derived === undefined
       ? ' '
       : derived === null
-        // TERSE, because it is no longer this line's job to explain. A caller
-        // whose RPC says why — connections' PN302, "Everyone playing has
-        // already done every puzzle" — puts that under the date field, in red,
-        // where a blocking condition belongs. A caller that has not converted
-        // yet leaves this line as the only word, which is why it still says
-        // something true rather than nothing (Joel, 2026-08-29).
+        // TERSE, because explaining is not this line's job: both callers'
+        // RPCs raise a validation naming `puzzle_id` when the archive is spent
+        // (connections PN302, strands PN416), so the sentence saying why is
+        // already under the date field in red, where a blocking condition
+        // belongs. This says the state, and nothing more.
         ? 'No next puzzle.'
         : derived.label
 

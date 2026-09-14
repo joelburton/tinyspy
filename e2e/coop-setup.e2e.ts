@@ -10,8 +10,9 @@ import { startGameRow } from './helpers/clubPage'
  * setup dialog: it's the FIRST section (right below the dialog's player picker),
  * the "Co-op style" radio (free-for-all / turns) sits above a spaced "First
  * player" DROPDOWN that only appears once turns is chosen. Driven on WordNerd
- * (wordle) coop as a representative — the field is identical across the six
- * turn-order games. A 2-player club so the field shows (it hides for solo).
+ * (wordle) coop as a representative — the field is the same component in every
+ * game that offers turns. A 2-player club so the field shows (it hides for
+ * solo).
  */
 test.describe('coop setup — pacing field', () => {
   test('Co-op section is first, turns reveals a first-player dropdown', async ({ browser }) => {
@@ -21,7 +22,8 @@ test.describe('coop setup — pacing field', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    // Open the WordNerd COOP setup dialog (coop is the first WordNerd button).
+    // Open the WordNerd COOP setup dialog. `startGameRow` takes the FIRST
+    // matching row, and the registry lists each sibling pair coop-first.
     await startGameRow(page, /WordNerd/).click()
 
     // The Co-op disclosure is present, collapsed, showing the current value.
@@ -35,10 +37,6 @@ test.describe('coop setup — pacing field', () => {
     await expect(firstPlayer).toBeVisible()
     // The dropdown lists the selected players.
     await expect(firstPlayer.getByRole('option')).toHaveCount(2)
-
-    await page.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/d9659abe-d158-4755-86b7-c17d10569fef/scratchpad/coop-setup-turns.png',
-    })
 
     await ctx.close()
   })

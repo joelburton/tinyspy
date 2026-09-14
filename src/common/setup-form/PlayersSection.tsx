@@ -7,18 +7,18 @@ import type { Member } from '../members/member'
 import styles from './PlayersSection.module.css'
 
 type Props = {
-  /** The club roster, in the order it should be listed. */
+  // The club roster, in the order it should be listed.
   members: Member[]
-  /** The creating user, whose row is locked on. */
+  // The creating user, whose row is locked on.
   selfId: string
-  /** Who is checked right now — the form's `player_user_ids`. */
+  // Who is checked right now — the form's `player_user_ids`.
   value: Set<string>
   onChange: (next: Set<string>) => void
-  /** The manifest's `[min, max]`, which decides the count complaint. */
+  // The manifest's `[min, max]`, which decides the count complaint.
   numberOfPlayers: [number, number]
-  /** The form's entry for this field, when there is one. It WINS over the
-   *  count check below: the server saw the real roster, and this component
-   *  only counted. */
+  // The form's entry for this field, when there is one. It WINS over the count
+  // check below: the server saw the real roster, and this component only
+  // counted.
   error?: string
   disabled?: boolean
 }
@@ -27,15 +27,12 @@ type Props = {
  * WHO IS PLAYING — the players picker as a setup section, rendered by each
  * game's setup form the way `<SetupTimerSection>` is.
  *
- * **In the form, not around it.** It sat in `<SetupGameModal>` while the setup
- * bodies were handed a `setup` object the picker was not part of. Now the form
- * holds one values object and `player_user_ids` is a field in it, so the picker
- * belongs where the other fields are — and every setup body reads the same,
- * rather than one section arriving from the dialog and the rest from the game.
+ * **In the form, not around it.** `player_user_ids` is a field in the form's
+ * one values object like any other, so the picker sits where the other fields
+ * are and every setup body reads the same.
  *
- * A section rather than sixteen copies of its markup: the summary, the
- * `defaultOpen`, and the count complaint are the same everywhere, and only the
- * bounds differ.
+ * A section rather than one per game: the summary, the `defaultOpen`, and the
+ * count complaint are the same everywhere, and only the bounds differ.
  *
  * **Open to start**, unlike every other section. Who is playing changes what
  * the rest of the form can offer — the turn-order picker lists only the checked

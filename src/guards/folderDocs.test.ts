@@ -83,7 +83,6 @@ const INTROS_OWED: string[] = [
   'common/manifest',
   'common/move-flash',
   'common/pause-suspend', 'common/pdf', 'common/reveal',
-  'common/setup-form',
   'common/terminal',
   'common/timer',
   'common/turn-log', 'common/word-entry',

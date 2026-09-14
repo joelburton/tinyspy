@@ -7,47 +7,19 @@ import { timerLabel } from '../timer/timerLabel'
 
 /**
  * The setup recap — **one array per game, for the info column and the PDF to
- * share** (docs/pdf.md → Setup rows).
+ * share.** A game exports `setupRows()` from `<game>/lib/setupSummary.ts`;
+ * `<SetupDisclosure>` renders it as `<li>`s and `drawSetup` prints the same
+ * array, which is what makes the screen and the paper agree.
  *
- * A game exports `setupRows()` from `<game>/lib/setupSummary.ts` — the same
- * per-game seam `lib/history.ts` uses — and both surfaces render that one array.
- * Sharing it is what makes the screen and the printout agree: two
- * hand-maintained lists of the same facts will not stay in step, so a game that
- * renders one surface from something else has no way to keep them together.
+ * **The rules that shape a game's rows live in
+ * [docs/pdf.md → Setup rows](../../../docs/pdf.md#setup-rows)** — what earns a
+ * row, why the mode isn't one, and why a board's letters are printed even when
+ * nobody typed them. Read that before writing a game's `setupRows`.
  *
- * `guards/setupRows.test.ts` holds every game to having the module, and carries
- * the reason for the one game exempted from it.
- *
- * ── The rule ────────────────────────────────────────────────────────────────
- * **The recap is the setup dialog, read back.** Every control the dialog showed
- * produces exactly one row, in the dialog's order; a control that didn't apply
- * produces NO row; nothing else appears. Omit rather than print "n/a" — a
- * record must not assert a choice nobody made. Anything that isn't a control
- * (a game constant, a derived number) belongs in Help, not here.
- *
- * The MODE is the one deliberate exception, and it isn't a row: it's locked at
- * the gametype level (`manifest.mode`), never chosen on the form, so it rides
- * the PDF's heading instead (`Setup: Co-op`). See `drawSetup`.
- *
- * ── The board-identity exception (`BOARD_KEY`) ───────────────────────────────
- * Every game that BUILDS a board out of letters prints a row naming the board
- * itself, and prints it whether the letters were hand-picked in the dialog or
- * rolled at random. On a random board that is plainly not a control read back,
- * so it needs saying why it's allowed:
- *
- *   1. Those dialogs can all TAKE the letters as input ("Custom letters" /
- *      "Custom board"), so the row is the round trip — you read a board you
- *      liked off the recap (or off the printout) and paste it into the next
- *      game's dialog to hand a friend the same puzzle. A row that only appeared
- *      on hand-picked boards would be exactly the wrong half.
- *   2. Like the roster, it's the most useful line on a record you keep: it says
- *      WHICH board this was, which no other row can.
- *
- * It's an exception to "controls only", not a loophole in it: a derived number
- * (a word count, a par) still belongs in Help. The test at
- * `src/guards/setupRows.test.ts` doesn't police extra rows, so this costs no opt-out —
- * but the games' `custom_*` setup keys DO carry a `NOT_A_ROW` entry there,
- * because the override itself isn't the row; the board it produced is.
+ * What this file owns is the TYPE and the rows every game shares: the roster,
+ * coop pacing, a center-letter board, the timer. `guards/setupRows.test.ts`
+ * holds every game to having the module, and carries a reason beside each game
+ * exempted from it.
  */
 
 /** One line of the recap: what it describes, what it's called, what it says. */
@@ -102,9 +74,9 @@ export function rosterRow(players: Member[]): SetupRow {
 
 /**
  * Co-op pacing, for the games that offer it (everything with a
- * `<SetupCoopStyleSection>`). Returns NOTHING when the field wouldn't have rendered —
- * compete, or a solo club — because a control that didn't apply produces no
- * row.
+ * `<SetupCoopStyleSection>`). Returns NOTHING when the field wouldn't have
+ * rendered — compete, or a solo club — because a control that didn't apply
+ * produces no row.
  *
  * Two keys, one control, so this returns up to two rows: the style, then the
  * opening seat when (and only when) turns were picked.

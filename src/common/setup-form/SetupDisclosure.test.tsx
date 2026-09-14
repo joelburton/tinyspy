@@ -6,7 +6,7 @@
  *
  * Only the name links it to `<SetupSection>`: that one wraps a field you are
  * editing before the game starts, this one recaps the settings afterwards and
- * lives on the play surface. It exists so sixteen info columns don't each
+ * lives on the play surface. It exists so every game's info column doesn't
  * re-author the same `<details>`, so what is worth holding is that the wrapper
  * is the same for all of them and the rows are the caller's.
  */

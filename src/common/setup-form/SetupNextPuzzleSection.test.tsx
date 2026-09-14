@@ -14,8 +14,7 @@
  * the ABSENCE of `setup.puzzle_id` is what tells `create_game` to choose for
  * itself. An empty string would be a puzzle id nothing matches.
  */
-import { render, screen, waitFor } from '@testing-library/react'
-import { fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SetupNextPuzzleSection } from './SetupNextPuzzleSection'
 

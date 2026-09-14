@@ -1,8 +1,8 @@
 /* cs-audited-setup-form */
 
-/* A collapsible setup-dialog field: a bordered box (matching the setup form's
- * `.fieldset` chrome) whose <summary> is the clickable header showing the field's
- * current value, and whose body holds the editable controls when expanded. */
+/* A collapsible setup-dialog field: a bordered box whose <summary> is the
+ * clickable header showing the field's current value, and whose body holds the
+ * editable controls when expanded. */
 
 /* @@ */ .section {
   border: 1px solid var(--page-surface-border-color);
@@ -29,15 +29,14 @@
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
-/* The revealed controls. Top padding is 0 because the summary already spaces it;
- * the rest matches `.fieldset`'s inner padding. */
+/* The revealed controls. Top padding is 0 because the summary already spaces
+ * it. */
 /* @@ */ .sectionContent {
   padding: 0.25rem 1rem 0.85rem;
-  /* TWO FIELDS IN A ROW NEED AIR BETWEEN THEM. Until the
-     fields became components each brought its own margins, and when they
-     stopped, "Required words" sat flush on "Legal (bonus) words" — two
-     caption/help/control stacks reading as one run-on block.
-   
+  /* TWO FIELDS IN A ROW NEED AIR BETWEEN THEM — a field brings no margin of its
+     own, so without a gap here two caption/help/control stacks read as one
+     run-on block.
+
      0.75rem is the middle step of three, and the three are the point: 0.4rem
      inside a field (caption to help to control), 0.75rem between fields in a
      section, 1rem between sections. A field holds together more tightly than a
@@ -50,20 +49,18 @@
 /*
  * HELP FOR THE WHOLE SECTION — a sentence about a GROUP of fields, not one.
  *
- * The three in the app all head a pair: spellingbee's and wordwheel's
- * "Dictionaries" (a required band and a legal one) and scrabble's AI pair. A
- * sentence about ONE field belongs to that field's `help` — attaching a
- * sentence about two of them to one would be a lie.
+ * A section's help heads a GROUP — wordwheel's "Dictionaries" (a required band
+ * and a legal one), scrabble's AI pair. A sentence about ONE field belongs to
+ * that field's `help`; attaching a sentence about two of them to one would be a
+ * lie.
  *
- * Same values as `<Field>`'s `.help`, which is the same sentence one level down.
- * It carries its own margin where that one doesn't, because this is a bare <p>
- * in a section rather than a row in a field's own gapped column.
+ * Same values as `<Field>`'s `.help`, which is the same sentence one level
+ * down.
  */
 /* @@ */ .help {
   color: var(--page-text-muted-color);
   font-size: 0.9rem;
-  /* No margin: the column above spaces it, the way it spaces everything else in
-     the section. It carried its own until 2026-08-26, back when it was a
-     hand-written <p> with nothing around it to do the job. */
+  /* No margin: `.sectionContent`'s column gaps it, the way it gaps everything
+     else in the section. */
   margin: 0;
 }

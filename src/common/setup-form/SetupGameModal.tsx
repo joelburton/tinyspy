@@ -17,41 +17,32 @@ import { CancelButton } from '../buttons/CancelButton'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type Props = {
-  /**
-   * Manifest of the game being set up. The dialog renders the
-   * manifest's lazy setup body and calls `startGameInClub` on
-   * submit. Non-null while the dialog should be open — the
-   * parent unmounts us by passing `null` (we expect to be
-   * conditionally rendered, not toggled in place).
-   */
+  // Manifest of the game being set up. The dialog renders its lazy setup body
+  // and calls `startGameInClub` on submit.
   manifest: GameManifest
-  /** Club members — forwarded to per-game forms for member-aware UI. */
+  // Club members — forwarded to per-game forms for member-aware UI.
   members: Member[]
-  /** The creating user. Always a player — their checkbox in the
-   *  picker is locked on (you can't start a game you don't play in). */
+  // The creating user. Always a player — their checkbox in the picker is locked
+  // on (you can't start a game you don't play in).
   selfId: string
-  /** Club the game would start in. */
+  // Club the game would start in.
   clubHandle: string
   // One-player club (`common.clubs.is_solo`, read by ClubPage). Decides the
   // mode tail on the title and the Start button — see `modeSuffix` below.
   soloClub: boolean
-  /**
-   * The club's last-saved setup for this gametype, from
-   * `common.clubs_gametypes.default_setup`. Sourced by the parent
-   * (ClubPage) alongside the allowed-gametypes query so the dialog
-   * opens instantly without an extra round-trip. Undefined when
-   * the friends haven't played this gametype yet — in that case
-   * the form seeds from the manifest's static defaults alone.
-   * Field-level merged UNDER the manifest defaults: saved fields
-   * win, but a manifest growing a new field stays backward-
-   * compatible (the new field fills from manifest defaults).
-   */
+  // The club's last-saved setup for this gametype, from
+  // `common.clubs_gametypes.default_setup`. It arrives in `get_club_page`'s one
+  // answer, so the dialog opens without a round-trip of its own. Undefined when
+  // the friends haven't played this gametype yet — the form then seeds from the
+  // manifest's static defaults alone. Merged field by field UNDER those
+  // defaults: saved fields win, and a manifest that grows a new field stays
+  // compatible (the new one fills from the manifest).
   savedDefault?: unknown
-  /** RPC succeeded — caller navigates into the new game's URL. */
+  // RPC succeeded — caller navigates into the new game's URL.
   onStarted: (gameId: string) => void
-  /** User dismissed the dialog (Cancel, Esc, or X). Backdrop
-   *  click is intentionally NOT bound — mid-setup state is too
-   *  easy to lose to a stray click outside the panel. */
+  // User dismissed the dialog (Cancel, Esc, or X). Backdrop click is
+  // intentionally NOT bound — mid-setup state is too easy to lose to a stray
+  // click outside the panel.
   onCancel: () => void
 }
 
@@ -89,9 +80,9 @@ type Props = {
  *
  * Cancel during a pending start: we don't try to abort the RPC.
  * If the user cancels after clicking Start, the RPC keeps going
- * and the resulting game lands in the club's paused-games list.
- * The friends-only audience makes "the click was loud — don't
- * sneak around it" the wrong trade; we accept the minor
+ * and the resulting game turns up in the club's "Your games"
+ * list. The friends-only audience makes "the click was loud —
+ * don't sneak around it" the wrong trade; we accept the minor
  * accidental-creation possibility.
  */
 export function SetupGameModal({
@@ -267,23 +258,22 @@ export function SetupGameModal({
           const allErrors = { ...errors, ...setupErrors }
           return (
             <>
-              {/* WHAT THIS GAME IS, first — above the form. It used to live inside
-                  each game's SetupForm, which meant it rendered BELOW the player
-                  picker: an introduction under the thing it introduces. It is
-                  manifest copy now (setupForm.ts → GameSetupForm.intro), so the modal
-                  decides where it goes. */}
+              {/* WHAT THIS GAME IS, first — above the form. The sentence is the
+                  manifest's (setupForm.ts → GameSetupForm.intro) rather than a
+                  game's own body, so the modal is what decides it goes here,
+                  above the player picker instead of under it. */}
               {manifest.setupForm.intro && (
                 <p className={styles.intro}>{manifest.setupForm.intro}</p>
               )}
 
-              {/* The fallback RESERVES most of a setup body's height rather than being
-                    the one bare line it reads as. The panel is `fitContent`: it measures
-                  whatever is mounted, so a one-line fallback made it fit to that —
-                  collapsing to its 300px floor, then leaping ~370px when the real form
-                  arrived ~300ms later, with the footer buttons sailing out from under
-                  the cursor. Reserving the slot is the same no-reflow move the setup
-                  error line below reflows freely; this one cannot, because it is
-                  what the panel MEASURES. */}
+              {/* The fallback RESERVES most of a setup body's height rather than
+                  being the one bare line it reads as. The panel is `fitContent`,
+                  so it measures whatever is mounted: a one-line fallback made it
+                  fit to that — collapsing to its 300px floor, then leaping
+                  ~370px when the real form arrived ~300ms later, with the footer
+                  buttons sailing out from under the cursor. The error line below
+                  may reflow freely; this cannot, because it is what the panel
+                  measures. */}
               <Suspense
                 fallback={<p className={cls('muted', styles.optionsPlaceholder)}>Loading options…</p>}
               >

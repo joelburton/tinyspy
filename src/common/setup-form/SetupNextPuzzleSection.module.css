@@ -1,18 +1,19 @@
 /* cs-audited-setup-form */
 
 /*
- * The one line connections + strands show in place of a date picker.
+ * The one line connections + strands show above the date box: what Start will
+ * play.
  *
- * Full-strength `--page-text-color`, not the `muted` of the helper line above it:
- * this is the actual value you're about to play, the only concrete fact in
- * the fieldset, and the thing a player's eye should land on.
+ * Full-strength `--page-text-color`, not the `muted` of the helper line above
+ * it — this is the value you are about to play, and the thing a player's eye
+ * should land on.
  *
- * THE MIN-HEIGHT IS THE POINT. The line has three states — waiting on the
- * RPC, a puzzle, or "you've played them all" — and the fieldsets below it
- * (the timer, and strands' three knobs) would drop a row when the fetch
- * landed if the slot collapsed while empty. One line covers every case: the
- * labels are `YYYY-MM-DD: <clue or two words>`, which fits the 480px dialog
- * with room to spare, and the exhausted sentence is shorter still.
+ * THE MIN-HEIGHT IS THE POINT. The line has four states — waiting on the RPC,
+ * a puzzle, "you've played them all", and "nothing on that date" — and the
+ * sections below it would drop a row when the fetch landed if the slot
+ * collapsed while empty. One line covers every case: the labels are
+ * `YYYY-MM-DD: <clue or two words>`, which fits the 480px dialog with room to
+ * spare, and the other sentences are shorter still.
  */
 /* @@ */ .next {
   color: var(--page-text-color);

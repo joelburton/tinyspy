@@ -19,15 +19,11 @@
  * member, and counting controls would make the first appear four times and the
  * second depend on how many friends are in the test's club.
  *
- * So the composed names are gone, and both of them were parts rather than
- * settings: `player_user_ids.<uuid>` is one checkbox per friend in the club,
- * and `timer.seconds` is the MM:SS box that lives inside the timer's own radio
- * row. Neither is a thing a game offers; `player_user_ids` and `timer` are, and
- * each now appears exactly once however many controls it draws.
- *
- * A test that needs one of those parts still finds it by `name` — that is what
- * the name is for. This list answers a narrower question: which SETTINGS does
- * this game put in front of you.
+ * A control that is a PART of a setting is therefore absent: the per-friend
+ * checkboxes inside `player_user_ids`, the MM:SS box inside `timer`. A test
+ * that needs one finds it by `name`, which is what the name is for. This list
+ * answers a narrower question: which SETTINGS does this game put in front of
+ * you.
  */
 export function fieldNames(container: HTMLElement): string[] {
   const seen = Array.from(container.querySelectorAll('[data-field]')).map(

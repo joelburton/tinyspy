@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 import { startGameRow } from './helpers/clubPage'
 
 /**
- * The three date-anchored games' setup dialogs, after the 2026-08-13 rework.
+ * The three date-anchored games' setup dialogs.
  *
  * connections and strands lost their pickers entirely: the server hands out
  * the earliest puzzle none of the SELECTED PLAYERS has played, in any club
@@ -26,14 +26,13 @@ import { startGameRow } from './helpers/clubPage'
  * draggable window, not a `role="dialog"`, AND a strands game's TITLE is
  * `<date>: <clue>` — the same shape as the preview line — so an unscoped
  * match happily finds the club-page game row behind the dialog and reports a
- * stale date. (It did, while this was being written.)
+ * stale date.
  */
 
 /**
- * The puzzle field's DISCLOSURE. It was a `<fieldset>` until 2026-08-25, when
- * every setup field became a `<SetupSection>`, so
- * the answer now lives in the summary — `Puzzle: 2025-06-15: Here's to him!` —
- * and the body holds only the date override.
+ * The puzzle field's DISCLOSURE — a `<SetupSection>` like every other setup
+ * field, so the answer lives in the summary (`Puzzle: 2025-06-15: Here's to
+ * him!`) and the body holds only the date override.
  */
 function puzzleSection(page: Page) {
   return page
@@ -121,10 +120,10 @@ test.describe('puzzle pickers', () => {
     // being handed the next unplayed puzzle outright. The server turns that
     // into the most recent date of that weekday nobody playing has done.
     //
-    // The four sources are four blocking modals now, not tabs, so the
-    // resolved date is read off the setup form's CAPTION rather than a line
-    // inside the source's body: once the picker closes, the caption is the only
-    // place that answer exists.
+    // Each source is its own blocking modal, so the resolved date is read off
+    // the setup form's CAPTION rather than a line inside the source's body:
+    // once the picker closes, the caption is the only place that answer
+    // exists.
     const club = await createClubWithMembers(['erin', 'finn'])
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -138,7 +137,7 @@ test.describe('puzzle pickers', () => {
     const caption = page.getByText(/^Puzzle: /)
     await expect(caption).toHaveText('Puzzle: choose one')
 
-    // Choosing CLOSES the picker: one press, the same as the tab it replaces.
+    // Choosing CLOSES the picker: one press, and you are back at the form.
     await page.getByRole('button', { name: 'NYT', exact: true }).click()
     await page.getByText('Monday', { exact: true }).click()
     await expect(caption).toHaveText(/^Puzzle: NYT Monday · \d{4}-\d{2}-\d{2}$/, {
@@ -169,9 +168,8 @@ test.describe('puzzle pickers', () => {
   })
 
   test('crosswords: a picker can be canceled without choosing', async ({ browser }) => {
-    // The affordance the tabs did not have. Leaving a source used to be a side
-    // effect of pressing a different tab, which also cleared what you had
-    // already chosen; backing out of a picker now leaves the choice alone.
+    // Backing out of a picker leaves the choice alone — Cancel is not a way to
+    // clear what you had already chosen.
     const club = await createClubWithMembers(['erin', 'finn'])
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -217,9 +215,9 @@ test.describe('puzzle pickers', () => {
       await expect(nextUpLine(page)).toBeVisible({ timeout: 15000 })
     }
     // 2025-06-15's clue is the fixtures' own reference puzzle; asserting on the
-    // CLUE rather than the date matters, because the not-found copy names the
-    // date too ("No PaulPath puzzle for 2025-06-15") and would match a looser
-    // check while showing the opposite of what's meant.
+    // CLUE rather than the date matters, because the not-found sentence names
+    // the date too ("No PaulPath puzzle for 2025-06-15") and would match a
+    // looser check while showing the opposite of what's meant.
     const CLUE = "Here's to him!"
 
     await open()

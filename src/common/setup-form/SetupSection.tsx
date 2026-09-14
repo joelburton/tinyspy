@@ -22,31 +22,26 @@ export function SetupSection({
   defaultOpen = false,
   children,
 }: {
-  /** The summary text — the field's name plus its current value. Optional,
-   *  like a field's caption. */
+  // The summary text — the field's name plus its current value. Optional, like
+  // a field's caption.
   label?: ReactNode
-  /**
-   * WHAT THIS SECTION IS ABOUT — a sentence under the summary, above the
-   * controls. The section's answer to a field's `help`, and the same words in
-   * the same place.
-   *
-   * **For a group, and only a group.** A sentence about ONE field belongs to
-   * that field's own `help`, where the reader's eye already is. This is for what
-   * no single field owns: "both are length-agnostic", said of a required band
-   * and a legal one.
-   */
+  // WHAT THIS SECTION IS ABOUT — a sentence under the summary, above the
+  // controls. The section's answer to a field's `help`, and the same words in
+  // the same place.
+  //
+  // For a group, and only a group. A sentence about ONE field belongs to that
+  // field's own `help`, where the reader's eye already is. This is for what no
+  // single field owns: "both are length-agnostic", said of a required band and
+  // a legal one.
   help?: ReactNode
-  /**
-   * Open it without being asked. Default closed — the summary already shows the
-   * value, so opening is for changing.
-   *
-   * **It can go false again, and that must not slam the section shut**
-   * (2026-08-25). `<SetupNextPuzzleSection>` sets this from "there is nothing to
-   * play", which flips back the moment you type a date that has one — and the
-   * date box you are typing into is INSIDE the section. Forcing it closed
-   * yanked the control out from under the cursor mid-edit, which an e2e spec
-   * caught by timing out on an invisible input.
-   */
+  // Open it without being asked. Default closed — the summary already shows the
+  // value, so opening is for changing.
+  //
+  // It can go false again, and that must not slam the section shut.
+  // `<SetupNextPuzzleSection>` sets this from "there is nothing to play", which
+  // flips back the moment you type a date that has one — and the date box you
+  // are typing into is INSIDE the section, so forcing it closed would yank the
+  // control out from under the cursor mid-edit.
   defaultOpen?: boolean
   children: ReactNode
 }) {

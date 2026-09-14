@@ -1,5 +1,19 @@
 // cs-audited-setup-form
 
+/**
+ * COOP PACING (see SetupCoopStyleSection.tsx) — free-for-all or turn by turn,
+ * and who opens.
+ *
+ * The component SELF-GATES, which is why every game drops it in
+ * unconditionally, and that is the first thing worth pinning: nothing at all
+ * for compete, nothing for a roster of one. Past that, the first-player picker
+ * appears only once turns is chosen, and its default is seeded rather than
+ * left empty — including when the player who was chosen gets unchecked in the
+ * picker above, which is the case a reader will not think of.
+ *
+ * Both keys travel together on every change, because the parent merges them
+ * into its setup in one call.
+ */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
