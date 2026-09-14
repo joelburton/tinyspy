@@ -10,7 +10,7 @@
  * Three things live here:
  *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .actionSlot /
  *      .floatingShuffle);
- *   2. the four info-column READOUT kinds (.infoSetup / .infoState / .infoHelp /
+ *   2. the three info-column READOUT kinds (.infoState / .infoHelp /
  *      .infoActions) + the terminal swap (.terminalActions / .outcome*);
  *   3. the shared TILE chrome (.tile / .tileWord + hover + .selected).
  *
@@ -318,29 +318,15 @@
 }
 
 /* ─── Info-column readouts ───────────────────────────────────────────────
- * Four recurring kinds of info, each a named class (not raw `muted`) so they
- * read the same across games — see docs/ui.md → "Info-column readouts".
- * SETUP (choices made at game creation) + STATE (the live state) are both
- * important → full text color; HELP (UI instructions) is muted; ACTIONS is the
- * button row. */
-
-/* SETUP is a <details> disclosure ("Setup options"). Closed by default so it
- * doesn't claim space; opening it grows the slot — an allowed exception to the
- * no-growth rule precisely because it's closable and reclaims the space. */
-/* @@ */ .infoSetup {
-  color: var(--page-text-color);
-  font-size: 0.85rem;
-}
-
-/* @@ */ .infoSetup summary {
-  cursor: pointer;
-  user-select: none;
-}
-
-/* @@ */ .infoSetup ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.25rem;
-}
+ * Three recurring kinds of info, each a named class (not raw `muted`) so they
+ * read the same across games — see docs/playarea.md → "Info-column readouts".
+ * A game's own InfoCol applies these to its own markup, which is what makes
+ * them shared. STATE (the live state) is important → full text color; HELP (UI
+ * instructions) is muted; ACTIONS is the button row.
+ *
+ * The setup recap that sits in the same column is NOT one of these: it is a
+ * common component (`setup-form/SetupDisclosure`) a game mounts, and it brings
+ * its own stylesheet. */
 
 /* @@ */ .infoState {
   color: var(--page-text-color);

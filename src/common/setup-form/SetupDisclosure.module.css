@@ -1,0 +1,28 @@
+/* cs-audited-setup-form */
+
+/* The info-column "Setup options" disclosure. Three rules, and they are this
+ * component's alone — no game names them and nothing else in the app does.
+ *
+ * They sat in `game-page/PlayArea.module.css` as `.infoSetup`, grouped with the
+ * info-column readout kinds a game's own InfoCol wears (`.infoState`,
+ * `.infoHelp`, `.infoActions`). Those really are shared — a dozen games apply
+ * each — and this one never was: it is drawn in the same column, which is not
+ * the same thing as being one of them. */
+
+/* Closed by default so it doesn't claim space; opening it grows the slot — an
+ * allowed exception to the no-growth rule precisely because it's closable and
+ * reclaims the space. */
+/* @@ */ .disclosure {
+  color: var(--page-text-color);
+  font-size: 0.85rem;
+}
+
+/* @@ */ .disclosure summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* @@ */ .disclosure ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.25rem;
+}

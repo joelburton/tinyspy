@@ -78,15 +78,18 @@ and [the decomposition below](#the-boardcol--infocol-decomposition).
 
 ### Info-column readouts
 
-The non-log part of the info column converges on **four recurring kinds of
-info**, each a **named class** (not raw `muted`) so it reads the same across
-games and can promote to a common stylesheet. Validated on psychicnum; reuse
-these names when a new game's info column needs the same.
+The non-log part of the info column converges on a few recurring kinds of info,
+each drawn the same way in every game so it reads the same. Three are **named
+classes** (not raw `muted`) a game's own InfoCol applies to its own markup —
+validated on psychicnum, and reuse these names when a new game's info column
+needs the same. The setup recap is a shared **component** instead, since its
+markup is identical everywhere and only its rows differ.
 
 **The canonical order** (top → bottom), enforced on every standard game: **state
 (`.infoState`) → opponent strip (`<OpponentStrip>`, compete) → action row
 (`.infoActions`) → help (`.infoHelp`) → terminal extra (`.terminalExtra`,
-game-over only) → setup disclosure (`.infoSetup`) → turn log / word list.**
+game-over only) → setup disclosure (`<SetupDisclosure>`) → turn log / word
+list.**
 The terminal extra sits **above** the setup disclosure deliberately (Joel's
 rule, 2026-08-05): the reveal is the payoff, the setup recap is bookkeeping —
 the recap must never push the answer down. A v1/v2 layout's order is *not* a reliable guide — read this
@@ -138,7 +141,7 @@ That dual placement is the rule, not redundancy to trim.
 
 | class | what it is | style | terminal? |
 |---|---|---|---|
-| **`.infoSetup`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default | **shown** (still useful in review) |
+| **`<SetupDisclosure>`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default. A common COMPONENT with its own stylesheet, not a class a game applies — see below | **shown** (still useful in review) |
 | **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
 | **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
 | **`.infoActions`** | the action-button row | — | **swaps** (see below) |
@@ -180,9 +183,12 @@ That dual placement is the rule, not redundancy to trim.
   answer reveal is NOT one of these — it's progressive and shows all game, part
   of the status readout.)
 
-Shared in `common/game-page/PlayArea.module.css` — `.infoSetup` / `.infoState` /
-`.infoHelp` / `.infoActions` / `.terminalActions` / `.outcome_*` /
-`.terminalExtra`. A button in the row carries nothing of its own: it is an
+Shared in `common/game-page/PlayArea.module.css` — `.infoState` / `.infoHelp` /
+`.infoActions` / `.terminalActions` / `.outcome_*` / `.terminalExtra`. **The
+setup recap is the odd one and is not among them**: the rest are classes a
+game's own InfoCol puts on its own markup, while the recap is a common
+component every game mounts, so its three rules live beside it in
+`setup-form/SetupDisclosure.module.css`. A button in the row carries nothing of its own: it is an
 `<ActionButton>`, sized by its own icon and label. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
 "N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hint** + **End**

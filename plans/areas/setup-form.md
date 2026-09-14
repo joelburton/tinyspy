@@ -9,8 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
-**Worked so far: F-8, F-9** — both decision findings, taken one at a time. The
-prose group is untouched, and F-9 left it one sentence lighter (see its record).
+**Worked so far: F-8, F-9, F-10** — all decision findings, taken one at a time.
+The prose group is untouched, and F-9 left it one sentence lighter (see its
+record).
 
 ## The roster
 
@@ -30,7 +31,8 @@ The folder:
 - `SetupCoopStyleSection.tsx` + `.test.tsx`
 - `SetupTimerSection.tsx` + `.module.css` + `.test.tsx`
 - `SetupNextPuzzleSection.tsx` + `.module.css` + `.test.tsx`
-- `SetupDisclosure.tsx` + `.test.tsx` — the in-game "Setup options" recap
+- `SetupDisclosure.tsx` + `.module.css` + `.test.tsx` — the in-game "Setup
+  options" recap (the stylesheet was created by F-10 and joins the roster)
 - `doc.md` (a lede, on `INTROS_OWED`) and `todo.md` (one Soon item: five
   games' `font-family: monospace` on their letters preview, to be decided
   once)
@@ -50,7 +52,7 @@ records); `ClubPage` + `useSetupDialog` (mount it); `gameManifest.ts`
 `FailureLine`, `RadioRow`, `SelectField`, `DateField`, `PlayersField`,
 `Field` (`data-field`); `common.require_valid_timer`; connections' and
 strands' `next_puzzle_for_club` / `puzzle_for_date`; `PlayArea.module.css`
-(`.infoSetup`, which `SetupDisclosure` wears). `src/guards/setupRows.test.ts`
+(which `SetupDisclosure` wore until F-10). `src/guards/setupRows.test.ts`
 is a guard and on no roster.
 
 Docs that describe it: `docs/code-conventions.md` → Reserved coop-turn setup
@@ -297,27 +299,56 @@ still name a field"** (and its `field` row in The keys points at it),
 `common.sql`'s COLUMN legend says the channel is not validation-only, and
 `envelope.ts`'s comment on `field` says any severity may name one.
 
-### F-setup-form-10 · `disclosure-wears-game-page-css` · `SetupDisclosure` styles itself from `game-page/PlayArea.module.css`
+### F-setup-form-10 · `disclosure-wears-game-page-css` · WORKED 2026-09-14 — the rules move here and the class is renamed
 
-`SetupDisclosure.tsx` imports `PlayArea.module.css` for `.infoSetup`, one of
-the four info-column readout kinds that stylesheet defines together
-(`.infoSetup` / `.infoState` / `.infoHelp` / …). The component lives here, its
-look lives in `game-page`, and `info-sheet`'s row says it owns "the bordered
-panel its readouts wear". A component reaching into another folder's module
-for a class is the shape `docs/common-folders.md` is against.
+`SetupDisclosure` had no stylesheet. Its one class came from
+`game-page/PlayArea.module.css` as `.infoSetup`, three rules about 300 lines
+into a file about the play surface.
 
-Options:
+**The finding as first recorded got the shape wrong**, and the recount is the
+useful part. It said `.infoSetup` was one of four info-column readout kinds
+that belonged together, so pulling it out would break a family. Counting the
+readers killed that:
 
-1. **Leave it, hand the question to `game-page`**: the four kinds are one
-   family in one file, and splitting one out to this folder would break the
-   family to satisfy the folder. A `todo.md` line in `game-page` (or
-   `info-sheet`) to decide where the readout kinds live when that area opens.
-2. **Move `SetupDisclosure` to `info-sheet`**, next to the readouts it is one
-   of; `setupRows.ts` stays here (it is the dialog read back).
-3. **Give it its own `SetupDisclosure.module.css`** with the `.infoSetup`
-   rules, and remove them from `PlayArea.module.css`.
+| class | readers |
+|---|---|
+| `.infoActions` | 17 — every game's `InfoCol`, plus both terminal rows |
+| `.infoHelp` | 11 games' `InfoCol` |
+| `.infoState` | 11 — ten games plus `TurnStatusLine` |
+| `.infoSetup` | **1 — `SetupDisclosure`** |
 
-Recommend 1. The family is the unit, and its owning area has not opened.
+The other three are shared because a game's own InfoCol applies them to its own
+markup. Nothing applied `.infoSetup` but this component. It was grouped with
+them for being drawn in the same column, which is not the same thing, and the
+stylesheet's header calling them "the four info-column READOUT kinds" is what
+made the grouping look like a fact.
+
+Joel: *"if the setup-form needs css for the setup-form, it should be in
+setup-form, right? if it's in PlayArea instead, it should move to here and lose
+the .infoSetup name."*
+
+So: a new `SetupDisclosure.module.css` holds the three rules as `.disclosure`
+(matching `SetupSection`'s `.section` — a component's root class named for the
+component), and they are gone from `PlayArea.module.css`. Nothing else changes
+— no other reader existed. The `/* @@ */` markers travel with the rules, since
+they are unreviewed either way.
+
+Sites that named the class: `docs/playarea.md` (the "four recurring kinds"
+sentence, the canonical-order line, the table row, and the "Shared in" list —
+all now say the recap is a COMPONENT, not a class), `docs/games/waffle.md`,
+`docs/games/codenamesduet.md`, and the `info-sheet/todo.md` line filed earlier
+this session. `PlayArea.module.css`'s own header and its readout section say
+three kinds and say why the recap is not one of them.
+
+`vocabularies.test.ts` needed the pending-literal rows to travel too — `0.3rem`
+(spacer) and `0.85rem` (font-size) moved from `PlayArea.module.css`'s rows to
+the new file's. The guard failing on the new file before that edit is the
+proof it is watching it.
+
+**What this does NOT settle**: the three genuinely-shared classes, whose home
+is still `game-page` while `docs/common-folders.md` gives `info-sheet` "the
+chrome its panels share". That question is filed in `terminal`, `info-sheet`
+and `word-entry` (Joel, 2026-09-14), each with its own version of it.
 
 ### F-setup-form-11 · `class-sniffing-e2e` · two locators in `puzzle-pickers` read hashed class names
 

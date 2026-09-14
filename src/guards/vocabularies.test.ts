@@ -298,7 +298,8 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/word-list/WordList.module.css': ['0.5rem', '16px', '7px'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
-      'src/common/game-page/PlayArea.module.css': ['0.75rem', '1rem', '0.3rem', '0.5rem'],
+      'src/common/game-page/PlayArea.module.css': ['0.75rem', '1rem', '0.5rem'],
+      'src/common/setup-form/SetupDisclosure.module.css': ['0.3rem'],
       // The players strip's three spacings are BESPOKE by decision (Joel,
       // 2026-09-12), not unconverted: a row of identity marks, tuned by eye
       // against the dot's 0.85rem — between players, dot to name, and between
@@ -368,7 +369,8 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/info-sheet/MobileStatusBar.module.css': ['0.95rem'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
-      'src/common/game-page/PlayArea.module.css': ['0.85rem', '0.95rem', '0.9rem'],
+      'src/common/game-page/PlayArea.module.css': ['0.95rem', '0.9rem'],
+      'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
       'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
       'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],

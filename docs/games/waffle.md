@@ -472,7 +472,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   answer — the grid renders it all-green for free, with zero FE branching.
 - **Info column** — the shared readouts in canonical order (`.infoState` swap
   tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) → action
-  row → `.infoHelp` → `.infoSetup` disclosure), over the coop `GameTurnLog`.
+  row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameTurnLog`.
   The swap tally is the shared **`StateLine`** ("Swaps 3/12 (9 left) · Par 10"),
   which `BoardCol` also renders above the board in the shared `<MobileStatusBar>`
   below `--mobile`, where the info column is off-canvas

@@ -363,7 +363,7 @@ src/codenamesduet/
                           The info column runs the shared readouts in the canonical order
                           (`.infoState` = "{green}/15 agents · n/cap turns spent", then the
                           finished-player banners, `.infoActions` = End, `.infoHelp` =
-                          phase copy, and the `.infoSetup` disclosure = turn cap + first
+                          phase copy, and the setup disclosure = turn cap + first
                           clue-giver) above the GameTurnLog. **Turn-history viewer:**
                           clicking a log `#N` hands Board the `lib/history.ts` board
                           for that turn (its own cells ringed) with input frozen until
