@@ -114,25 +114,17 @@ export type GamePageCtx = {
   // `usePeerFeedback` takes the slot and shows into it. One instance for
   // the life of the page, so it is safe in a dependency array.
   globalFeedbackSlot: FeedbackSlot
-  // Navigate to this game's club page directly — no suspend-
-  // confirm modal. Wired by `<GamePage>` to use the resolved
-  // `club_handle` for terminal-game navigation; downstream
-  // consumers (the PlayArea terminal action row's "Back to club"
-  // button) call it without re-deriving the URL. Identity is stable
-  // across renders. Only valid to call when the game is terminal —
-  // for non-terminal back-to-club, use the menu (which fires the
-  // suspend-confirm flow).
-  goToClub: () => void
   // The club this game belongs to (`common.games.club_handle`) —
   // so a PlayArea can start a FOLLOW-UP game in the same club
   // (waffle's "New game" menu item: same setup, fresh board,
   // new game id).
   clubHandle: string
-  // Navigate to another game's page (`/g/<gametype>/<gameId>`) —
-  // the follow-up-game companion to `goToClub`: after a PlayArea
-  // starts a new game (see `clubHandle`), this jumps the creator
-  // into it. Peers arrive via the game-invitation toast, as with
-  // any new game. Identity is stable across renders.
+  // Navigate to another game's page (`/g/<gametype>/<gameId>`): after a
+  // PlayArea starts a follow-up game (see `clubHandle`), this jumps the
+  // creator into it. Peers arrive via the game-invitation toast, as with any
+  // new game. The one navigation a game does for itself — going back to the
+  // CLUB is `menu.actBackToClub`, which knows when to ask first. Identity is
+  // stable across renders.
   goToGame: (gametype: string, gameId: string) => void
   // The GamePage menu (the dropdown opened from the game logo). The PlayArea
   // owns its WHOLE menu — it calls `menu.setGameSections([...])` (usually via

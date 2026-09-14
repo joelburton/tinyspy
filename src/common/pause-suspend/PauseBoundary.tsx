@@ -24,10 +24,10 @@ type Props = {
   /** Resume handler for the manual-pause case. Any connected
    *  player can call it — no privileged "original pauser" check. */
   onResume?: () => void
-  /** Escape hatches shown on the overlay whenever paused: leave for the club
-   *  (suspends the game) / end the game now. The reliable way out of a wedged
-   *  presence-pause — see PauseOverlay + the deadlock note. */
-  onReturnToClub?: () => void
+  /** Back to club, bound by `GamePage` — one of the two escape hatches shown
+   *  on the overlay whenever paused, and the reliable way out of a wedged
+   *  presence-pause. See PauseOverlay + the deadlock note. */
+  actBackToClub?: BoundAction
   /** End game, bound by `GamePage` — which is above this boundary, so it keeps
    *  the binding while the play area below is unmounted. It hides itself unless
    *  paused, so passing it always is right. */
@@ -74,7 +74,7 @@ export function PauseBoundary({
   presentUserIds,
   manuallyPausedBy,
   onResume,
-  onReturnToClub,
+  actBackToClub,
   actEndGame,
   children,
 }: Props) {
@@ -85,7 +85,7 @@ export function PauseBoundary({
         presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={onResume}
-        onReturnToClub={onReturnToClub}
+        actBackToClub={actBackToClub}
         actEndGame={actEndGame}
       />
     )

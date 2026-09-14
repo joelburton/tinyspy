@@ -483,10 +483,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // Desktop-only block (see `isTouch` above). Rendered AFTER every hook so the
   // Rules of Hooks hold, and in place of the whole play surface so the drag
   // arena never mounts on touch. GamePage's chrome (header menu, Back to club)
-  // still wraps this, and the notice carries its own exit.
+  // still wraps this, and the notice repeats that exit where it is obvious.
+  //
+  // It is the SHELL's action, so a blocked player leaves the way anyone else
+  // does: a live game is shelved and every peer is sent back to the club. That
+  // is the right answer rather than a heavy one — if one friend cannot play
+  // this, the group picks another game, and this one is waiting to resume.
   if (isTouch) {
     return (
-      <DeviceBlockNotice title="Bananagrams needs a desktop" onBackToClub={ctx.goToClub}>
+      <DeviceBlockNotice title="Bananagrams needs a desktop" actBackToClub={ctx.menu.actBackToClub}>
         You play by dragging tiles around a big board — that wants a mouse and a
         full-size screen, so it&rsquo;s not available on phones or tablets. Open
         this game on a computer to play.

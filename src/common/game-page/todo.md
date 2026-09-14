@@ -2,11 +2,6 @@
 
 ## Bugs
 
-- `act-back-to-club` answers `active` before `clubHandle` has loaded, and
-  `requestBackToClub` then returns silently. `act-new-game-from-setup` beside
-  it already answers `hidden` for that moment; this one should answer
-  `disabled`.
-
 ## Soon
 
 - **`game-page/PlayArea.module.css` is five concerns in one file, and only one

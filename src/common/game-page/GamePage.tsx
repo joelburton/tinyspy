@@ -209,17 +209,10 @@ export function GamePage({
   // can show the row. Null on a page with no chat panel — never here in
   // practice, since GamePage mounts one, but the type says what it is.
   const actChat = useAppAction('act-open-chat')
-  // Direct-nav to the club page — the terminal branch. Exposed via ctx so each
-  // PlayArea's terminal action row can call it without re-deriving the URL.
-  // `clubHandle` and `gameOver` are the callback deps rather than `commonGame`,
-  // so identities only change on the rare terminal flip and not on every
-  // realtime row update.
-  const goToClub = useCallback(() => {
-    navigate(clubPath(clubHandle))
-  }, [clubHandle])
   // Jump to another game's page — for a PlayArea that just started a
-  // follow-up game (waffle's "New game"). Kept here beside goToClub so
-  // per-game code never touches the router.
+  // follow-up game (waffle's "New game"). On ctx so per-game code never
+  // touches the router; going back to the CLUB is `actBackToClub` below,
+  // which is the same act from every surface.
   const goToGame = useCallback((gametype: string, gameId: string) => {
     navigate(gamePath(gametype, gameId))
   }, [])
@@ -395,11 +388,12 @@ export function GamePage({
         presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}
-        // The other escape hatch from a wedged presence-pause: shelve the game
-        // and go (sendSuspend broadcasts + navigates). NOT `act-back-to-club`,
-        // which asks first mid-game — there is nothing to ask about here, since
-        // the game is already stopped.
-        onReturnToClub={sendSuspend}
+        // One escape hatch from a wedged presence-pause: shelve the game and
+        // go. The SAME action every other surface places, so leaving from the
+        // overlay is the same act it is anywhere else — a game with peers asks
+        // first, and the question is what explains that everyone gets sent
+        // back. It goes through PostgREST, so it works when Realtime is stuck.
+        actBackToClub={actBackToClub}
         // End game — bound above, and hidden unless paused, so the overlay is
         // the only place it is ever drawn.
         actEndGame={actEndGame}
@@ -417,7 +411,6 @@ export function GamePage({
           currentTurnUserId: commonGame.current_turn_user_id,
           setup: commonGame.setup,
           status: commonGame.status,
-          goToClub,
           clubHandle: commonGame.club_handle,
           goToGame,
           globalFeedbackSlot,

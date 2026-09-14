@@ -92,7 +92,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     setup: SETUP,
     status: { bunch_remaining: 100, bag_remaining: 0 },
     globalFeedbackSlot: createFeedbackSlot('global'),
-    goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
     menu: {

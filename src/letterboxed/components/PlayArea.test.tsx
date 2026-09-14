@@ -108,7 +108,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     setup: { extra_words: 3, difficulty: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
-    goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
     menu: {

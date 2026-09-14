@@ -14,8 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { StandardButton } from './StandardButton'
 import { TrashButton } from './TrashButton'
 import { CancelButton } from './CancelButton'
-import { BackToClubButton } from './BackToClubButton'
-import { IconConcede } from '../icons/icons'
+import { IconBack, IconConcede } from '../icons/icons'
 
 describe('StandardButton — label, show, tooltip', () => {
   it('show="both" draws the words and the glyph', () => {
@@ -97,12 +96,14 @@ describe('purpose buttons', () => {
     expect(btn.querySelector('svg')).toBeNull()
   })
 
-  it('Back-to-club draws "Club" and stays called "Back to club"', () => {
-    // The one button whose drawn words and name differ, in both forms — which
-    // is the whole reason `tooltip` is separate from `label`.
-    const { rerender } = render(<BackToClubButton show="both" onClick={() => {}} />)
+  it('a tooltip RENAMES the button, in both forms', () => {
+    // Drawn words and name differing is the whole reason `tooltip` is separate
+    // from `label`: a short word fits the button, the sentence says what it is.
+    const { rerender } = render(
+      <StandardButton label="Club" tooltip="Back to club" icon={IconBack} show="both" />,
+    )
     expect(screen.getByRole('button', { name: 'Back to club' })).toHaveTextContent('Club')
-    rerender(<BackToClubButton show="icon" onClick={() => {}} />)
+    rerender(<StandardButton label="Club" tooltip="Back to club" icon={IconBack} show="icon" />)
     expect(screen.getByRole('button', { name: 'Back to club' })).toHaveTextContent('')
   })
 })

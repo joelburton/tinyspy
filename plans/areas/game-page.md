@@ -5,8 +5,8 @@ The folders it reads: `game-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Eleven findings recorded: a prose group
-(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group, F-7 and F-8
-are worked**; F-9 to F-11 are open. On top of the findings, the route was split
+(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group and F-7 to F-9
+are worked**; F-10 and F-11 are open. On top of the findings, the route was split
 into three components — see "The route split" below. The folder's `todo.md`
 carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
@@ -91,22 +91,23 @@ that were not: `isGameOver` and `gameOver` were the same expression computed on
 either side of the guard, now one; and `useClubRoster`'s "no-ops on `''`"
 comment described nothing.
 
-**It dissolves `todo.md`'s only Bug.** `act-back-to-club` answered `active`
-before `clubHandle` loaded and then returned silently. There is no such beat
-now — the loader does not render the page without a row, and a row always
-carries its club — so the state is unrepresentable rather than fixed. Its two
-tests went with it (`act-new-game-from-setup`'s "hidden until the club handle
-is known" became "is active on a loaded game"; back-to-club's "does nothing
-before the club handle is known" was deleted). **The `todo.md` entry is still
-there and wants closing** — left deliberately, since Joel asked that the bug
-not ride along inside the move.
+**It dissolved `todo.md`'s only Bug, which is now deleted.** `act-back-to-club`
+answered `active` before `clubHandle` loaded and then returned silently. There
+is no such beat now — the loader does not render the page without a row, and a
+row always carries its club — so the state is unrepresentable rather than
+fixed. Its two tests went with it (`act-new-game-from-setup`'s "hidden until
+the club handle is known" became "is active on a loaded game"; back-to-club's
+"does nothing before the club handle is known" was deleted). Joel, on the entry
+that outlived it: *"if there a bug that can't be reached, remove it."* The
+`## Bugs` section is now empty.
 
 **`ErrorPage` took a `title` prop** (Joel: *"i think we should use the ErrorPage
 for no-such-game"*), defaulting to `'Error'`, and `diagnostics` became optional.
 `NoSuchGamePage` is now `<ErrorPage title="Not Found">` with no `k=v` line,
 which keeps the 2026-08-31 ruling that a missing game is a 404 and not a fault,
-and its bespoke card and stylesheet are gone. **Open, and Joel's to call:
-`.heading` is `--chrome-fault-color`, so "Not Found" renders in the fault red.**
+and its bespoke card and stylesheet are gone. `.heading` is
+`--chrome-fault-color`, so "Not Found" draws in the fault red — raised, and
+**Joel: "'Not Found' in red is fine."** Settled, not owed.
 
 `ErrorPage.tsx` is stamped `cs-blessed-simple-page` and was edited; the stamp
 was not touched.
@@ -351,21 +352,90 @@ Four edits, because one rule was load-bearing in three other places:
 - `todo.md`'s five-concerns list, and one comment in `cssTokens.test.ts` that
   used the deleted token as its camelCase naming example.
 
-### F-game-page-9 · `go-to-club-mid-game` · The device block exits through `goToClub`, which says it is terminal-only
+### F-game-page-9 · `go-to-club-mid-game` · The device block exited through `goToClub`, which says it is terminal-only — WORKED
 
 `ctx.goToClub`'s note: "Only valid to call when the game is terminal — for
 non-terminal back-to-club, use the menu (which fires the suspend-confirm
-flow)." `bananagrams/PlayArea.tsx` hands it to `DeviceBlockNotice` as the
-blocked player's exit, mid-game. So a phone that opens a bananagrams game
-tracks presence, then leaves with no suspend and no broadcast; the desktop
-peers get a presence-pause the moment it goes, for a player who was never
-going to play. `ctx.menu.actBackToClub` is on the same context and does the
-right thing for every shape (terminal, solo, peers).
+flow)." `bananagrams/PlayArea.tsx` handed it to `DeviceBlockNotice` as the
+blocked player's exit, and that branch fires on `isTouch` before any terminal
+check, so a phone leaving a LIVE game did so with no suspend and no broadcast.
 
-Options: (1) the block's exit is `actBackToClub` — `DeviceBlockNotice` takes a
-`BoundAction` and places it, like the overlay does; (2) keep `goToClub` and
-loosen its note to "navigates without suspending"; (3) leave it — a phone
-opening bananagrams is rare enough.
+I first argued the finding's own fix was wrong — that suspending on behalf of
+the group was worse than leaving quietly. **Joel: "That's no 'strictly worse'.
+Friends want to play games with friends. If one person can't play it, they'd
+pick another game."** Which is CLAUDE.md's Zoom-call test, and it settles it:
+the group being told is the point. The confirm's text was already written for
+this case ("Everyone in this game will return to the club page; you can resume
+from there later").
+
+Joel's spec: *"if a player is on mobile, they see a back-to-club button on the
+block that does the same thing as every other back-to-club button on a live
+game — the game is shelved and everyone goes back to the club. we have an
+action for this."*
+
+Done: `DeviceBlockNotice` takes `actBackToClub: BoundAction` and places it as an
+`<ActionButton>`, the way codenamesduet's terminal row already does; bananagrams
+passes `ctx.menu.actBackToClub`. All three shapes now come free — solo suspends
+with no dialog, multiplayer asks, terminal navigates straight through.
+
+**The premise that justified the callback was a false claim in a blessed file.**
+`BackToClubButton`'s docstring said it served "the two surfaces that cannot
+reach the action ... the game's binding is not on the stack". `act-back-to-club`
+is not a game's binding — it is `GamePage`'s, handed down on `ctx.menu`, and the
+shell stays mounted when the play area is replaced. So both surfaces could
+always reach it. The overlay's reason is real but different, and `GamePage`
+states it correctly at the call site: it must NOT ask, because the game is
+already stopped. Docstring corrected (prose only; the `cs-blessed-buttons` stamp
+was not touched).
+
+**The e2e stopped selecting by wording.** `bananagrams-block.e2e.ts` found the
+button with `getByRole('button', { name: 'Back to club' })`, which read the
+`BackToClubButton` tooltip. Joel: *"or you[r] test could stop relying on tooltip
+text to find things in tests."* `ActionButton` already emits the handle for
+exactly this — `data-action={action.id}`, documented as "a handle for a
+stylesheet or a test that would otherwise search by wording" — so the assertion
+is now `[data-action="act-back-to-club"]`. **Not run; e2e needs Joel.**
+
+**The pause overlay took the action too** (Joel: *"why not use the normal
+back-to-club action for the pause overlay? it would pop up a confirmation, but
+that's fine."*). Nothing blocked it: the ladder in `base.css` documents
+`--z-pause-gate` as "A LAYER WITH NO Z-INDEX ... a render gate, not a stacking
+one", and the confirm is `GamePage`'s, rendered outside `PauseBoundary` at
+`--z-modal-blocking`, so it paints over the overlay unopposed. The overlay was
+already placing `actEndGame` this way, so its two escapes are now placed alike.
+Solo is unchanged (immediate suspend, no dialog); a paused game with peers now
+asks. What is lost is the overlay's hand-written "Suspend and return to club" —
+the button says "Back to club" and the confirm carries the promise instead.
+
+**`BackToClubButton` is deleted**, having gone to zero callers. `iconScale.ts`
+had already planned for it — "the buttons that used to own these numbers are
+going away ... the chevron's 0.9 ... would have died with the file" — which is
+why the glyph scale was moved out ahead of time. Its `StandardButton.test.tsx`
+case, which pinned "drawn words and name differ", now exercises
+`StandardButton`'s `label`/`tooltip` pair directly, and `docs/ui.md`'s Back-to-
+club paragraph (whose "cannot reach the binding" claim was the same false one)
+is rewritten.
+
+**`ctx.goToClub` went with it.** The block card was its last production caller.
+Its own docstring said it served "the PlayArea terminal action row's Back to
+club button" — no terminal row called it; they all place `<ActionButton
+action={actBackToClub}>`, and at terminal that navigates straight through with
+no dialog, so the stated purpose was already served. The only behavior it
+uniquely offered was *navigate mid-game, without asking*, which is the one this
+finding ruled wrong. Joel: *"is there a reason not to remove ctx.goToClub?"* —
+there wasn't.
+
+Gone: the `GamePageCtx` member, its `useCallback` in `GamePage`, the handoff,
+and `goToClub: vi.fn()` from sixteen per-game PlayArea fixtures. `goToGame`'s
+docstring loses its cross-reference and says instead that it is the one
+navigation a game does for itself. Five docs named the member — `code-
+conventions.md`, `common.md`, `ui.md` ("`<GamePage>` provides `goToClub` for the
+Back-to-Club button") and `games/psychicnum.md` twice — all corrected, and
+crosswords' comment about going around it no longer names it.
+
+Not touched: `plans/react-context.md` names `goToClub` twice. It is the GATED
+"ONLY A CONVERSATION" file, a record of what was said on 2026-09-07 rather than
+a description of today, so it keeps the vocabulary of its own moment.
 
 ### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus, and its one reader is not this folder's
 

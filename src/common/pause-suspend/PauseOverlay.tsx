@@ -5,7 +5,6 @@ import { Dot } from '../members/Dot'
 import { DotActor } from '../members/ActorMention'
 import { ActionButton } from '../actions/ActionButton'
 import type { BoundAction } from '../actions/useBoundAction'
-import { BackToClubButton } from '../buttons/BackToClubButton'
 import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
@@ -26,11 +25,13 @@ type Props = {
    *  `manuallyPausedBy` is set. Any connected player can call
    *  it; there's no privileged "original pauser" check. */
   onResume?: () => void
-  /** Leave for the club, shelving the game (`sendSuspend`). Shown as a
-   *  "Return to club" button whenever paused — the reliable escape when a
+  /** Leave for the club, shelving the game — the reliable escape when a
    *  presence-pause won't clear (both players walked away, presence timed out).
-   *  It goes through PostgREST, so it works even if Realtime is wedged. */
-  onReturnToClub?: () => void
+   *  `GamePage`'s `act-back-to-club`, the same one every other surface places,
+   *  so leaving from here is the same act it is anywhere else: a solo game
+   *  shelves at once, a game with peers asks first. It goes through PostgREST,
+   *  so it works even if Realtime is wedged. */
+  actBackToClub?: BoundAction
   /** End the game now — the other escape from a stuck pause. Bound by
    *  `GamePage`, which sits above the boundary that unmounts the play area, so
    *  the binding survives the pause that the game's own one does not. It hides
@@ -79,7 +80,7 @@ export function PauseOverlay({
   presentUserIds,
   manuallyPausedBy,
   onResume,
-  onReturnToClub,
+  actBackToClub,
   actEndGame,
 }: Props) {
   // Anyone expected but off the channel is who we're waiting on. Derived
@@ -128,23 +129,16 @@ export function PauseOverlay({
         </p>
         {/* Actions: Resume (manual pause only), plus the always-available
             escapes — the reliable out if presence never comes back. */}
-        {(onResume && manuallyPausedBy) || onReturnToClub || actEndGame ? (
+        {(onResume && manuallyPausedBy) || actBackToClub || actEndGame ? (
           <div className={styles.actions}>
             {onResume && manuallyPausedBy && (
               <StandardButton show="label" label="Resume" weight="primary" onClick={onResume} />
             )}
-            {/* The one place the button says more than "Club": leaving from a
-                paused game suspends it, and the overlay has the room to say so.
-                The tooltip goes with it, or the bubble would still say the
-                shorter "Back to club" over a button that promises more. */}
-            {onReturnToClub && (
-              <BackToClubButton
-                show="both"
-                label="Suspend and return to club"
-                tooltip="Suspend and return to club"
-                onClick={onReturnToClub}
-              />
-            )}
+            {/* Both escapes are the shell's own actions, placed the same way.
+                The button says "Back to club" and the confirm behind it is what
+                spells out that leaving shelves the game for everyone — which it
+                does better than a longer label could. */}
+            {actBackToClub && <ActionButton action={actBackToClub} show="both" />}
             {actEndGame && <ActionButton action={actEndGame} show="both" />}
           </div>
         ) : null}

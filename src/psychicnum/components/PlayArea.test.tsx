@@ -70,7 +70,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
-    goToClub: vi.fn(),
     clubHandle: 'testclub',
     goToGame: vi.fn(),
     menu: {

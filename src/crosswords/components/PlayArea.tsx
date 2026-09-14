@@ -768,7 +768,8 @@ type Explained =
   // solution must never reach the unshielded setup blob), so there's nothing
   // to re-send at all. Picking the next puzzle is the only sane "another one",
   // and the setup dialog is where puzzles are picked.
-  // (`navigate` directly rather than ctx's goToClub, which takes no query.)
+  // (`navigate` directly, since the club URL needs a query and no ctx handle
+  // carries one.)
   //
   // The registry asks NEW_GAME_CONFIRM mid-play — starting one SHELVES this
   // game (create_game clears the club's current-view flag, so it stays resumable

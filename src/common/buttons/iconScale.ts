@@ -10,11 +10,11 @@ import { IconBack, IconDelete, type AppIcon } from '../icons/icons'
  * needs a shade more. That is a fact about the glyph ON A BUTTON, not about the
  * glyph: a menu row draws it at its own size and wants none of this.
  *
- * It lives here because the buttons that used to own these numbers are going
- * away. `<BackToClubButton>` carried the chevron's 0.9 as a default parameter,
- * which worked while every back-to-club went through that component; now the
- * action draws its own button and the fact would have died with the file — or
- * worse, been retyped at each call site as a number nobody could explain.
+ * It lives here because a purpose button is the wrong home for a fact about a
+ * glyph when the button can go away. The chevron's 0.9 was a default parameter
+ * on a back-to-club button, and every back-to-club went through it; now the
+ * action draws its own button, and the number would have gone with the file —
+ * or worse, been retyped at each call site as a value nobody could explain.
  *
  * A glyph whose purpose button SURVIVES keeps its scale there instead:
  * `<CloseButton>` owns the ✕'s 0.85 ("the purpose button owns its glyph scale,

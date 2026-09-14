@@ -34,8 +34,9 @@ test.describe('bananagrams desktop-only block', () => {
     // grid cells — none should exist behind the block).
     await expect(page.getByText('Bananagrams needs a desktop')).toBeVisible({ timeout: 20000 })
     await expect(page.locator('[data-cell]')).toHaveCount(0)
-    // The in-card exit is present.
-    await expect(page.getByRole('button', { name: 'Back to club' })).toBeVisible()
+    // The in-card exit is present. Found by `data-action` — what the action IS
+    // — rather than by its wording, which is the registry's to change.
+    await expect(page.locator('[data-action="act-back-to-club"]')).toBeVisible()
 
     await ctx.close()
   })

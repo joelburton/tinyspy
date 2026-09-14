@@ -1,7 +1,8 @@
 // cs-audited-game-page
 
 import type { ReactNode } from 'react'
-import { BackToClubButton } from '../buttons/BackToClubButton'
+import { ActionButton } from '../actions/ActionButton'
+import type { BoundAction } from '../actions/useBoundAction'
 import styles from './DeviceBlockNotice.module.css'
 
 type Props = {
@@ -9,8 +10,11 @@ type Props = {
   title: string
   // The explanation of *why* this device can't play, and what to do instead.
   children: ReactNode
-  // Exit: leaving for the club page is the only thing to do from here.
-  onBackToClub: () => void
+  // Exit: leaving for the club page is the only thing to do from here. The
+  // SHELL's `act-back-to-club` (`ctx.menu.actBackToClub`), not a callback — a
+  // blocked player leaves a live game exactly the way anyone else does, which
+  // means shelving it so the others are told rather than left waiting.
+  actBackToClub: BoundAction
 }
 
 /**
@@ -29,13 +33,13 @@ type Props = {
  * It renders inside `<GamePage>`'s chrome, so the header menu (and its own
  * Back-to-club) stay reachable too; the in-card button is the obvious exit.
  */
-export function DeviceBlockNotice({ title, children, onBackToClub }: Props) {
+export function DeviceBlockNotice({ title, children, actBackToClub }: Props) {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
         <h2 className={styles.title}>{title}</h2>
         <p className={styles.reason}>{children}</p>
-        <BackToClubButton show="both" onClick={onBackToClub} weight="primary" />
+        <ActionButton action={actBackToClub} show="both" weight="primary" />
       </div>
     </div>
   )

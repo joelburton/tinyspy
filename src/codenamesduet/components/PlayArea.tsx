@@ -68,7 +68,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *   1. The below-board slot swaps the CluePanel for the filled verdict
  *      carrying `over.pillText`, and the info-column action row swaps the
  *      End button for a bold `over.infoColText` line + a compact Back-to-club
- *      button (wired to `ctx.goToClub`). Both persist until the user
+ *      button (`ctx.menu.actBackToClub`). Both persist until the user
  *      navigates away.
  *   2. A **win** — and only a win — also pops `<CelebrationBlockingModal>`, at the
  *      MOMENT the 15th agent is contacted. `useCelebration` deliberately never
