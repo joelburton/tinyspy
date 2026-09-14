@@ -32,14 +32,14 @@ test('home page: arrows move the club cursor, Enter opens', async ({ browser }) 
   // The rows are the SelectionList's own, scoped by the list's label so this
   // can't drift onto some other module that also calls a class `row`.
   const LIST = '[aria-label="Your clubs"]'
-  const rows = page.locator(`${LIST} [class*="_row_"]`)
+  const rows = page.locator(`${LIST} [data-testid="list-row"]`)
   await expect(rows.first()).toBeVisible()
   expect(await rows.count()).toBeGreaterThanOrEqual(2)
 
   /** Index of the row wearing the 2px cursor ring, or -1. */
   const ringed = () =>
     page.evaluate((sel) => {
-      const els = [...document.querySelectorAll(`${sel} [class*="_row_"]`)]
+      const els = [...document.querySelectorAll(`${sel} [data-testid="list-row"]`)]
       return els.findIndex((el) => getComputedStyle(el).outlineWidth === '2px')
     }, LIST)
 

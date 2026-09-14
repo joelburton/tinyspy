@@ -405,9 +405,10 @@ database, not the person. Lint clean; the e2e not yet run — asked.
 - **The zero-rows fault writes its own `call` line** (`'GET /rest/v1/clubs'`,
   `status: 200`) rather than getting one from `readRows`, because `readRows`
   answered ok. Consistent with "whoever detects a condition writes its words".
-- **The e2e finds rows by `[class*="_row_"]`** — sniffing a CSS-module class
-  name. It is scoped by the list's `aria-label`, and the comment says why. A
-  `data-` handle would be `lists`' to add; left.
+- ~~**The e2e finds rows by `[class*="_row_"]`** — sniffing a CSS-module class
+  name. A `data-` handle would be `lists`' to add; left.~~ `club-page` F-17
+  added it (2026-09-13): `SelectionList`'s row carries
+  `data-testid="list-row"`, and `home-keyboard.e2e.ts` uses it.
 - ~~**Two stray blank lines** — `HomePage.tsx` 158–159 and 259.~~ Gone with
   F-5, the first finding to touch the file.
 - **`+ New club` is not keyboard-reachable**, by design (ui.md says "the

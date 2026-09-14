@@ -270,6 +270,10 @@ export function SelectionList<T>({
             <div
               key={rowKey(item)}
               title={rowTitle?.(item)}
+              // A row is not a labelable thing, so tests had been finding it by
+              // a fragment of its hashed module class. This is the handle they
+              // wanted; the class is free to be renamed again.
+              data-testid="list-row"
               className={cls(
                 styles.row,
                 isDisabled && styles.disabled,

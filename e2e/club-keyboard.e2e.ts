@@ -44,7 +44,7 @@ test.describe('club page keyboard nav', () => {
     // wrap).
     const ringed = () =>
       page.evaluate(() => {
-        const els = [...document.querySelectorAll('[class*="_row_"]')]
+        const els = [...document.querySelectorAll('[data-testid="list-row"]')]
         const hit = els.find((el) => getComputedStyle(el).outlineWidth === '2px')
         return hit?.textContent ?? null
       })
@@ -94,7 +94,7 @@ test.describe('club page keyboard nav', () => {
     await page.keyboard.press('ArrowDown')
     const ringedTitle = await page.evaluate(
       () =>
-        [...document.querySelectorAll('[aria-label="Your games"] [class*="_row_"]')]
+        [...document.querySelectorAll('[aria-label="Your games"] [data-testid="list-row"]')]
           .find((el) => getComputedStyle(el).outlineWidth === '2px')
           ?.textContent ?? null,
     )
@@ -138,7 +138,7 @@ test.describe('club page keyboard nav', () => {
     // tab stop, and a focused button would paint a stray focus ring that Enter
     // doesn't act on. A click sets the cursor without revealing it.
     const cancel = page.getByRole('button', { name: /^cancel$/i })
-    await page.locator('[aria-label="Start a new game"] [class*="_row_"]').first().click()
+    await page.locator('[aria-label="Start a new game"] [data-testid="list-row"]').first().click()
     await expect(cancel).toBeVisible({ timeout: 5000 })
     expect(await listFocused()).toBe(true)
     expect(await rings()).toEqual([])
@@ -170,11 +170,11 @@ test.describe('club page keyboard nav', () => {
     await page.goto(`/c/${club.handle}`)
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
 
-    const buttons = page.locator('[aria-label="Start a new game"] [class*="_row_"]')
+    const buttons = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
     /** Index of the start button wearing the cursor ring, or -1. */
     const ringed = () =>
       page.evaluate(() =>
-        [...document.querySelectorAll('[aria-label="Start a new game"] [class*="_row_"]')].findIndex(
+        [...document.querySelectorAll('[aria-label="Start a new game"] [data-testid="list-row"]')].findIndex(
           (el) => getComputedStyle(el).outlineWidth === '2px',
         ),
       )

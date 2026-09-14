@@ -6,10 +6,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
 26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
-F-12, F-13, F-14 and F-16 worked 2026-09-13**, F-9 taking F-11's club-page
-half and F-15's four not-ok arms with it. The prose group (F-1 to F-8) is
-fork-free and waits on "do the prose"; F-17 is the last that holds a
-decision.
+F-12, F-13, F-14, F-16 and F-17 worked 2026-09-13**, F-9 taking F-11's
+club-page half and F-15's four not-ok arms with it. **Every finding that held a
+decision is worked.** What is left is the prose group (F-1 to F-8), fork-free,
+waiting on "do the prose".
 
 ## The roster
 
@@ -491,21 +491,34 @@ jsdom does no layout. It also confirmed F-13's cost first-hand — both instance
 of each filter answer a bare query, so every filter lookup is scoped through
 its heading.
 
-### F-club-page-17 · `class-sniffing-e2e` · three e2es find rows and rows-of-controls by hashed class fragment
+### F-club-page-17 · `class-sniffing-e2e` · WORKED 2026-09-13 — option 2
 
-`club-filters` scopes by `_headingRow_` and `_mobileFilters_`, and all three
-list e2es find rows by `[class*="_row_"]`. Each says why (the desktop and
-mobile instances would trip strict mode; the rows are `SelectionList`'s own).
-A `data-` handle would be `lists`' to add, as `homepage` noted and left.
+Joel: *"2"* — add the handles now. I had recommended leaving it, on the
+grounds that the fix belongs to `lists` and `homepage` had already declined it
+for that reason. He took the other branch, and it is the better one: "wait for
+the owning area" had already been said once, which is how a thing never gets
+done.
 
-Options:
+`SelectionList`'s row carries `data-testid="list-row"`; this page's two heading
+rows carry `data-testid="heading-controls"` and its mobile filter row
+`data-testid="mobile-filters"`. Every `[class*="_row_"]`,
+`[class*="_headingRow_"]` and `[class*="_mobileFilters_"]` in
+`club-keyboard`, `club-filters`, `home-keyboard` and `helpers/clubPage.ts` uses
+them instead — `home-keyboard` included, since the handle it wanted is the one
+`SelectionList` now has. `homepage`'s own note is struck through and points
+here.
 
-1. **Leave**, as `homepage` did; a line in `lists/todo.md` if Joel wants the
-   handle.
-2. **Add `data-testid` on `SelectionList`'s row and on this page's two
-   heading rows** now.
+The shape follows the one precedent in the app, `EntryBox`'s
+`data-testid="entry-value"`: kebab-case, named for what the thing is.
 
-Recommend 1.
+**The e2es are NOT run** — a selector swap with no behavior behind it, and e2e
+runs are Joel's to ask for.
+
+**One sniff is left, and it is a unit test's**: `ClubPage.test.tsx`'s
+`emptyLine` helper matches `el.className === 'emptyState'`. That is a plain
+global class rather than a hashed module one, so it does not rot the same way,
+and this finding named the three sites it named. Recorded rather than
+extended.
 
 ## Notes
 

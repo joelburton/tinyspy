@@ -14,7 +14,7 @@ import type { Locator, Page } from '@playwright/test'
  */
 function clubRow(page: Page, listLabel: string, text: RegExp): Locator {
   return page
-    .locator(`[aria-label="${listLabel}"] [class*="_row_"]`)
+    .locator(`[aria-label="${listLabel}"] [data-testid="list-row"]`)
     .filter({ hasText: text })
     .first()
 }

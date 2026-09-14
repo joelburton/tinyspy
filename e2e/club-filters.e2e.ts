@@ -19,8 +19,8 @@ import { signIn } from './helpers/session'
  *
  * Both filters render TWICE (the desktop heading-row instance and the mobile
  * under-the-tabs one, one of them always hidden — see ClubPage), so every
- * locator here is scoped: `_headingRow_` for the desktop tests,
- * `_mobileFilters_` for the mobile one. An unscoped `getByRole` would match
+ * locator here is scoped: `heading-controls` for the desktop tests,
+ * `mobile-filters` for the mobile one. An unscoped `getByRole` would match
  * both instances and trip Playwright's strict mode.
  */
 /** Pick from ClubPage's gametype <FilterSelect> by its visible label. The
@@ -60,12 +60,12 @@ test.describe('club page list filters', () => {
     // changes under the assertions.
     await expect(page.getByText('Join the current game')).toHaveCount(0, { timeout: 20000 })
 
-    const headings = page.locator('[class*="_headingRow_"]')
+    const headings = page.locator('[data-testid="heading-controls"]')
     const modeButton = (name: string) =>
       headings.getByRole('button', { name, exact: true })
     const select = headings.getByLabel('Filter your games by game')
-    const startButtons = page.locator('[aria-label="Start a new game"] [class*="_row_"]')
-    const gameCards = page.locator('[aria-label="Your games"] [class*="_row_"]')
+    const startButtons = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
+    const gameCards = page.locator('[aria-label="Your games"] [data-testid="list-row"]')
 
     // ─── Mode filter ────────────────────────────────────────────────────
     const allStart = await startButtons.count()
@@ -145,7 +145,7 @@ test.describe('club page list filters', () => {
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
     await expect(page.getByText('Join the current game')).toHaveCount(0, { timeout: 20000 })
 
-    const headings = page.locator('[class*="_headingRow_"]')
+    const headings = page.locator('[data-testid="heading-controls"]')
     const modeButton = (name: string) => headings.getByRole('button', { name, exact: true })
     const select = headings.getByLabel('Filter your games by game')
 
@@ -192,7 +192,7 @@ test.describe('club page list filters', () => {
     await expect(page.getByRole('group', { name: 'Filter games by mode' })).toHaveCount(0)
     // ...and the solo club's whole startable set is listed, unfiltered.
     await expect(
-      page.locator('[aria-label="Start a new game"] [class*="_row_"]'),
+      page.locator('[aria-label="Start a new game"] [data-testid="list-row"]'),
     ).not.toHaveCount(0)
 
     await ctx.close()
@@ -216,7 +216,7 @@ test.describe('club page list filters', () => {
     const page = await ctx.newPage()
     await page.goto(`/c/${club.handle}`)
 
-    const bar = page.locator('[class*="_mobileFilters_"]')
+    const bar = page.locator('[data-testid="mobile-filters"]')
     const modeFilter = bar.getByRole('group', { name: 'Filter games by mode' })
     const gametypeFilter = bar.getByLabel('Filter your games by game')
 
@@ -230,7 +230,7 @@ test.describe('club page list filters', () => {
     // The desktop instances are still in the tree — hidden with their heading
     // rows, which is what keeps exactly one of each control on screen.
     await expect(
-      page.locator('[class*="_headingRow_"]').getByRole('button', { name: 'All', exact: true }),
+      page.locator('[data-testid="heading-controls"]').getByRole('button', { name: 'All', exact: true }),
     ).toBeHidden()
 
     await ctx.close()

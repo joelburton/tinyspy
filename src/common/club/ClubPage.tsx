@@ -645,7 +645,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
             no mode filter (see ModeFilter), and an empty row would still take the
             .frame's 1rem gap — a mystery band of space under the tabs. */}
         {!(mobileTab === 'new' && soloClub) && (
-          <div className={styles.mobileFilters}>
+          <div className={styles.mobileFilters} data-testid="mobile-filters">
             {mobileTab === 'new' ? (
               <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
             ) : (
@@ -690,7 +690,13 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
               {/* Heading + its filter, one row. The whole row is hidden on
                   mobile (the tab bar names the view and the mobile filter row
                   above carries the control). */}
-              <div className={cls('heading-with-controls', styles.headingRow)}>
+              <div
+                className={cls('heading-with-controls', styles.headingRow)}
+                // Both heading rows carry it: the filters a test reaches for
+                // are in the tree twice (club/doc.md), and this is what tells
+                // the desktop pair from the mobile row below.
+                data-testid="heading-controls"
+              >
                 <h3>Start a new game</h3>
                 <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
               </div>
@@ -742,7 +748,10 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
                 included — current / shelved / finished being a flag on the row
                 rather than three sections (docs/states.md). The count is of
                 what's SHOWING, so it agrees with the list under a filter. */}
-            <div className={cls('heading-with-controls', styles.headingRow)}>
+            <div
+              className={cls('heading-with-controls', styles.headingRow)}
+              data-testid="heading-controls"
+            >
               <h3>Your games ({visibleGames.length})</h3>
               <GametypeFilter
                 value={selectedGametype}
