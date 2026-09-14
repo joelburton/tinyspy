@@ -4,6 +4,11 @@
 
 ## Soon
 
+- **`useGameHasKeyboard.ts` has no test**, which was invisible in `game-page/`
+  and is conspicuous here, where every other unit has one. It moved in from the
+  game-page area on 2026-09-16 and arrived stamped `cs-audited-game-page`; the
+  test is this folder's to write, not that area's.
+
 - **A ring nested inside another loses when the two mount in the SAME commit.**
   The stack is ordered by mount and the innermost is the last on it, but React
   fires a child's effect BEFORE its parent's — so the OUTER ring is pushed last

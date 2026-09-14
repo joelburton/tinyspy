@@ -1,7 +1,7 @@
 // cs-audited-game-page
 
 import { useEffect, useState } from 'react'
-import { isEditableField } from '../keyboard/editableField'
+import { isEditableField } from './editableField'
 
 /**
  * True while the *game* owns the keyboard — i.e. no text field is focused.

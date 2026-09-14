@@ -80,7 +80,7 @@ Two consequences worth knowing:
 
 - **The blinking caret is honest.** The simulated caret in an `<EntryBox>` shows
   only while the game actually owns the keyboard
-  ([`useGameHasKeyboard`](../src/common/game-page/useGameHasKeyboard.ts)) — it
+  ([`useGameHasKeyboard`](../src/common/keyboard/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
 - **Tab is not a navigation key on a board.** Every play surface declares the
   ring of stops Tab may visit ([`useTabRing`](../src/common/keyboard/useTabRing.ts)),

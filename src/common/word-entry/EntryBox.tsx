@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
-import { useGameHasKeyboard } from '../game-page/useGameHasKeyboard'
+import { useGameHasKeyboard } from '../keyboard/useGameHasKeyboard'
 import styles from './EntryBox.module.css'
 
 type Props = {

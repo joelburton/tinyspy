@@ -5,8 +5,8 @@ The folders it reads: `game-page`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Eleven findings recorded: a prose group
-(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group and F-7 to F-9
-are worked**; F-10 and F-11 are open. On top of the findings, the route was split
+(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group and F-7 to F-10
+are worked**; F-11 is open. On top of the findings, the route was split
 into three components — see "The route split" below. The folder's `todo.md`
 carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
@@ -32,7 +32,7 @@ and nothing else:
 - `PlayAreaMountLog.tsx` — the two console breadcrumbs for a blank play area
 - `PlayArea.module.css` — the play surface's stylesheet, five concerns wide
 - `DeviceBlockNotice.tsx` + `.module.css` — the "needs a desktop" card
-- `useGameHasKeyboard.ts` — does the game own the keyboard right now
+- ~~`useGameHasKeyboard.ts`~~ — moved to `common/keyboard/` (F-10)
 - `doc.md` (a lede, on `INTROS_OWED`) and `todo.md` (one Bug, six Soon, three
   Someday)
 
@@ -437,21 +437,51 @@ Not touched: `plans/react-context.md` names `goToClub` twice. It is the GATED
 "ONLY A CONVERSATION" file, a record of what was said on 2026-09-07 rather than
 a description of today, so it keeps the vocabulary of its own moment.
 
-### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus, and its one reader is not this folder's
+### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus — MOVED to `common/keyboard/`
 
 **The evidence first recorded here was wrong** (corrected 2026-09-14 during the
 prose pass): it named three readers, and two of them only mention the hook in a
-docstring. The hook answers "is a text field focused" off `focusin`/`focusout`
-and `isEditableField` from `common/keyboard/`. Its ONE caller is
-`word-entry/EntryBox`, for the simulated caret. `lists/FilterSelect` and
-bananagrams' `usePlayerBoard` cite it as the reason they hand focus back, which
-makes it a rule they obey, not a hook they call. `common/keyboard/` already
-holds `editableField.ts` and `useCaptureKeys.ts`, the two things it is written
-against.
+docstring. Its ONE caller is `word-entry/EntryBox`, for the simulated caret.
+`lists/FilterSelect` and bananagrams' `usePlayerBoard` cite it as the reason
+they hand focus back, which makes it a rule they obey, not a hook they call.
 
-Options: (1) move it to `common/keyboard/` (one import site moves with it, and
-the two citations' path references need updating); (2) leave it here — the
-docstring now names the caller and the two citers correctly either way.
+Options were: (1) move it to `common/keyboard/`; (2) leave it here with the
+corrected docstring. **Joel took 1.**
+
+The argument was already written, in the target folder's own `doc.md`, before
+this file was a candidate to join it: *"What is here is the part that was never
+about a particular key ... **Whose keystroke is it — a focused text field's, or
+the game's?** `editableField.ts` answers with two predicates, and it lives here
+because the action dispatcher is not the only asker."* The hook is that
+question as a value that changes with focus, and it is built on
+`isEditableField` from that folder.
+
+The objection I expected — a `cs-audited-game-page` file landing in a blessed
+folder — does not hold: `keyboard/` already hosts `useDismissOnEscape.ts`
+(`cs-blessed-floating-panels`) and a `cs-unmet` test, so a file under another
+area's stamp is precedented, and this one's stamp is honest about who audited
+it.
+
+Moved with `git mv`; one import in `EntryBox`, and its own import of
+`editableField` shortens to `./`. Two prose citations name it without a path,
+so they did not move. `docs/keyboard-shortcuts.md` links it by path and was
+corrected — **the `docLinks` guard caught that, not me.**
+
+`keyboard/doc.md` said "three questions and one shape", a count this move makes
+wrong and that would rot again anyway; the intro now says "a few" and names the
+hook beside `editableField.ts`, and `## Details` gains a paragraph on the caret
+invariant and on the two files that cite it without calling it.
+
+`useGameHasKeyboard.ts` has **no test**, invisible in `game-page/` and
+conspicuous in `keyboard/` where every other unit has one. Filed as a Soon in
+`keyboard/todo.md` rather than written unasked — it is that folder's to write.
+
+**Not touched: `plans/areas/keyboard.md`** names `game-page/useGameHasKeyboard.
+ts:14` in a table of four spellings of one predicate. That area is CLOSED
+(2026-09-10) and three of the four rows already name files that no longer exist
+(`useGlobalKeyHandler.ts`, `useAppShortcuts.tsx`), so the table is the record of
+that audit's reading rather than a description of today. Correcting one row
+would make it less coherent, not more.
 
 ### F-game-page-11 · `from-todo` · The seven items `todo.md` handed this area, each a decision
 

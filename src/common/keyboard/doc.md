@@ -16,9 +16,11 @@ command, a command is an action, and one listener at the app root fires
 whichever action answers. What is here is the part that was never about a
 particular key.
 
-That comes to three questions and one shape. Whose keystroke is it — a focused
+That comes to a few questions and one shape. Whose keystroke is it — a focused
 text field's, or the game's? `editableField.ts` answers with two predicates,
-and it lives here because the action dispatcher is not the only asker. Where
+and `useGameHasKeyboard` answers the same question as a value that changes as
+focus moves, for a caret that must blink only while typing lands on the board.
+Both live here because the action dispatcher is not the only asker. Where
 may Tab go? Never where native Tab goes, which is out of the board and into the
 browser's URL bar; instead each surface declares a ring of stops and Tab moves
 within it, a form's fields being stops rather than an exception. What stands in
@@ -40,6 +42,16 @@ press `/` to reach chat while the chat box itself keeps the character literal.
 It lives here rather than beside the dispatcher because the dispatcher is not
 the only asker: the blinking-caret indicator and bananagrams' drag need the
 same answer, and a second copy of it is how `<select>` gets omitted.
+
+**The caret's version of that question is `useGameHasKeyboard`**, which tracks
+`focusin`/`focusout` and reports whether the game owns the keyboard right now.
+`word-entry/EntryBox` gates its simulated caret on it — **caret visible ⟺
+keystrokes go to the game** — because a caret on the board while a real one
+sits in the chat box reads as two cursors. `lists/FilterSelect` and
+bananagrams' board hook cite that invariant as the reason they hand focus back;
+neither calls the hook. It tracks FOCUS rather than "is chat open": chat can
+sit open beside the board while you click back to type, and there the game owns
+the keyboard.
 
 **Tab needs a different idea**, because native Tab does the thing this app
 never wants. It walks focus out of the board, onto the header, and then out of
