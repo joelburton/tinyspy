@@ -192,7 +192,16 @@ export type GameManifest = {
   //   - clubHandle
   //   - setup: the typed value the dialog wrapper collected
   //   - playerUserIds: who's actually playing. The dialog defaults this to
-  //     every current club member; the caller does NOT have to be in the list.
+  //     every current club member and locks the caller's own row on — you
+  //     cannot start a game you are not in.
+  //
+  //     That rule is the DIALOG's, not the server's. `common.create_game`
+  //     requires the caller to be a club member and every listed player to be
+  //     one, and never that the caller is among them — so a hand-built request
+  //     can seat a game its own caller cannot then open, since the game page
+  //     gates on `require_game_player`. Left permissive on purpose: friends do
+  //     not hand-build requests, and the lock is a UX decision rather than a
+  //     defense (docs/common.md → Membership gates viewing).
   //
   // Returns the ENVELOPE, so a validation that names a column can reach the
   // box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup

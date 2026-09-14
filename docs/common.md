@@ -539,7 +539,7 @@ There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes 
 
 ### Membership gates viewing; playership gates acting
 
-A game's players are a **subset** of the club, picked at create time (the `SetupGameModal` player checklist, defaulting to all members; the creator's own checkbox is locked on — you can't start a game you're not in) and frozen into `common.game_players`. The authz model splits cleanly along that line:
+A game's players are a **subset** of the club, picked at create time (the `SetupGameModal` player checklist, defaulting to all members; the creator's own checkbox is locked on — you can't start a game you're not in, a rule the dialog holds up and `create_game` does not check) and frozen into `common.game_players`. The authz model splits cleanly along that line:
 
 - **Viewing is club-gated.** Read-RLS on every game table uses `is_club_member`, so *any* club member can watch any of the club's games — including one they're not playing in.
 - **Acting is player-gated.** Every game **move** RPC (`submit_clue` / `submit_guess` / `submit_word` / `submit_timeout`, per-game `end_game`) gates on `require_game_player` — a club member who isn't a player of *this* game is rejected with `42501 'not playing this game'`.

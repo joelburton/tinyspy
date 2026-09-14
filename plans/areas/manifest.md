@@ -6,8 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
 six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
-group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-9, F-11,
-F-14.
+group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-9, F-10,
+F-11, F-14.
 
 ## The roster
 
@@ -221,23 +221,28 @@ All four are gone.
 `GamePage.test.tsx` loses the case that mounted a manifest with
 `endGame: undefined`, which the type no longer permits.
 
-### F-manifest-10 · `creator-need-not-play`
+### F-manifest-10 · `creator-need-not-play` · WORKED 2026-09-14 — option 1: the server stays permissive and the note says both halves
 
-`startGameInClub`'s note: "the caller does NOT have to be in the list." True
-of the server — `common.create_game` checks every listed player is a club
-member and never that the caller is among them — and the opposite of what
-the dialog does: the creator's row is locked on ("you can't start a game you
-don't play in", `SetupGameModal`, `PlayersSection`, `docs/common.md`). Two
-layers, two rules, and the manifest states the permissive one as if it were
-the contract.
+`startGameInClub`'s note said "the caller does NOT have to be in the list",
+which is true of the server and the opposite of what the dialog does.
+`common.create_game` requires the caller to be a club member
+(`require_club_member`) and every listed player to be one (PN060), and never
+that the caller is among them.
+`PlayersField` checks the creator's row and disables it, and refuses the toggle
+in the same file so the two halves cannot drift.
 
-Options:
+The note now carries both layers and says which is which, and names the cost:
+a hand-built request can seat a game its own caller cannot open, since the game
+page gates on `require_game_player`.
 
-1. Keep the server permissive, and the note says both halves: the dialog
-   locks the creator on, the server does not require it, and a hand-built
-   request can seat a game its caller is not in.
-2. Add the server check — a fault naming `player_user_ids`, F-9's and
-   F-19's shape — so the two layers agree and the note has one sentence.
+Option 2 — add the check — was declined. The state it admits is unreachable
+from the app, nothing corrupts, and the lock is a UX decision rather than a
+defense; the trust model's rule is that we do not contort the server against
+something friends will not do.
+
+`docs/common.md` → Membership gates viewing had stated the dialog's rule inside
+the authz model, which is where a reader would read it as the server's; it now
+says the dialog holds it up and `create_game` does not check it.
 
 ### F-manifest-11 · `registry-order-is-load-bearing` · WORKED 2026-09-14 — option 2: the start list's sort spells out both halves
 
@@ -358,7 +363,7 @@ extracting it today adds a file to a closed area for two call sites.
 - F-1 to F-8: prose only; F-1 moves a row out of `INTROS_OWED`.
 - F-9 option 1: `GamePage.test.tsx`'s "no endGame" case, deleted. `tsc` is what
   found `crosswordsCompeteGame`, which the prediction had missed.
-- F-10 option 2: a new pgTAP case in `tests/common/games_test.sql`.
+- F-10 option 1: none — prose only.
 - F-11 option 2: none — `ClubPage.test.tsx` passes; the rendered order did not
   move (the sixteen brands are distinct, so a `name` tie is always a family).
 - F-14 option 1: none — `src/common/club` (46 tests) passes; no test pinned the
