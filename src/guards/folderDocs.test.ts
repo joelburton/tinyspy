@@ -80,7 +80,6 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  */
 const INTROS_OWED: string[] = [
   'common/game-page', 'common/info-sheet',
-  'common/manifest',
   'common/move-flash',
   'common/pause-suspend', 'common/pdf', 'common/reveal',
   'common/terminal',

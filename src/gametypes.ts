@@ -34,37 +34,31 @@ import {
 import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
 
 /**
- * The single source of truth for which games this monorepo includes.
+ * THE REGISTRY — which games this monorepo includes. Nothing else in the
+ * codebase names a specific game: the shell iterates this list, common code
+ * stays generic, and each game lives in its own folder + schema.
  *
- * Adding a game = create `src/<game>/` and add its manifest import +
- * registry entry here. **Also add the game's schema to
- * `supabase/config.toml`'s `[api] schemas`** (PostgREST only serves
- * listed schemas; a missing one makes every request fail with
- * `Invalid schema: <game>`) — and restart the stack so PostgREST
- * re-reads it (`supabase stop && supabase start`; a `db reset` does
- * NOT re-read `[api]`). `src/guards/schemaExposure.e2e.test.ts` guards this.
- * Removing a game = delete the folder, delete the line(s) below, drop
- * its Postgres schema. Nothing else in the codebase names a specific
- * game directly (the shell iterates this list; common code stays
- * generic; each game lives in its own folder + schema).
+ * **Adding or removing a game is a checklist, and it is not here.**
+ * docs/common.md holds it, along with the removability invariant that makes it
+ * the structural integrity check for the whole monorepo, and the
+ * sibling-manifest pattern that lets one folder + schema export a coop and a
+ * compete entry. The step easiest to forget is the schema in
+ * `supabase/config.toml`'s `[api] schemas`, which docs/supabase.md explains and
+ * `src/guards/schemaExposure.e2e.test.ts` catches.
  *
- * **Variants** — a single game folder/schema can export multiple
- * manifest entries (e.g. psychicnum exports both a coop and a compete
- * manifest pointing at the same schema). Each entry gets its own
- * registry row, its own Start button, its own URL prefix. Use the
- * `baseGametype` field on each manifest to group siblings. Removing
- * the family drops *all* its registry lines together with the
- * schema.
+ * **Two things are this file's own**, and both are about the lines below rather
+ * than about games:
  *
- * That removability property is the structural integrity check for the
- * whole monorepo — see docs/common.md.
- *
- * ESLint's `no-restricted-imports` carves this file out as the one
- * place allowed to import from every `<game>/` folder. Don't replicate
- * those imports elsewhere. `eslint.config.js` also *reads* this file to
- * derive that rule's game list — it regexes the `from './<name>/manifest'`
- * specifiers below, so keep them in that literal shape (no aliasing the
- * path, no computed imports) or a game silently stops being guarded.
+ *   - **ESLint reads this file.** `no-restricted-imports` carves it out as the
+ *     one place allowed to import from every `<game>/` folder, and
+ *     `eslint.config.js` derives that rule's game list by regexing the
+ *     `from './<name>/manifest'` specifiers below. Keep them in that literal
+ *     shape — no aliasing the path, no computed imports — or a game silently
+ *     stops being guarded.
+ *   - **The order is the generated doc's order.** `gameStatusLabels.test.ts`
+ *     walks this list to build the table in `docs/game-status-labels.md`, so
+ *     reordering it rewrites that doc. Nothing a PLAYER sees comes from this
+ *     order: the club page's lists sort for themselves.
  */
 export const gametypes: GameManifest[] = [
   codenamesduetGame,

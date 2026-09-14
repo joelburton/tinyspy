@@ -30,8 +30,8 @@ import type { GamePageCtx } from '../game-page/gamePageCtx'
  *
  * The smaller contracts a game also meets, and where each one lives:
  *
- *   - who someone is ......... `common/members/member.ts` ·
- *                              `common/terminal/terminalOutcomeVerb.ts`
+ *   - who someone is ......... `common/members/member.ts`
+ *   - how an ending is said ... `common/terminal/terminalOutcomeVerb.ts`
  *   - what a setup form is ... `common/setup-form/setupForm.ts`
  *   - what a message is ...... `common/feedback/FeedbackMessage.tsx`
  *   - what a menu is ......... `common/menu/menuModel.ts`
@@ -91,12 +91,12 @@ export type GameManifest = {
   // the shared root (`psychicnum_coop` and `psychicnum_compete`
   // both set `baseGametype: 'psychicnum'`).
   //
-  // Used wherever code wants to group siblings programmatically:
-  // docs lookups (one docs/games/<baseGametype>.md per family),
-  // shared logos, and a future ClubPage treatment that renders
-  // siblings side-by-side. Read as "what family does this
-  // gametype belong to?" — not as a parent FK; the shape's a
-  // flat string for cheap filtering.
+  // Read as "what family does this gametype belong to?" — not as a parent FK;
+  // the shape is a flat string for cheap filtering. What filters on it is the
+  // club page's gametype dropdown (`<GametypeFilter>`), which offers a
+  // coop/compete pair as the one family a player thinks of it as. The family
+  // is also what a game's doc is named after, one `docs/games/<baseGametype>.md`
+  // per family — a convention, not a lookup any code performs.
   baseGametype: string
 
   // Interaction axis — `'coop'` for cooperative (players on the
@@ -105,36 +105,38 @@ export type GameManifest = {
   mode: 'coop' | 'compete'
 
   // This compete variant seats an autonomous AI OPPONENT when played
-  // solo (scrabble's compete AI — docs/games/scrabble.md §12), so a solo
-  // club's pill says "AI Compete". Absent/false, compete-in-a-solo-club
-  // is just a race with nobody to beat ("compete for 1" — bananagrams),
-  // which reads as coop and gets NO pill there. Manifest-declared so the
-  // club UI never has to know about specific games (the removability
-  // invariant — docs/common.md).
+  // solo (scrabble's compete AI — docs/games/scrabble.md §12), so in a solo
+  // club its `<ModeBadge>` reads "AI Compete" and the setup dialog tails the
+  // Start button with the same words. Absent/false, compete-in-a-solo-club is
+  // just a race with nobody to beat ("compete for 1" — bananagrams), which
+  // reads as coop and gets no badge there at all. Manifest-declared so neither
+  // surface has to know about specific games (the removability invariant —
+  // docs/common.md).
   aiOpponent?: boolean
 
   // Human-readable name shown in pickers and titles.
   name: string
 
-  // Short, action-flavored summary shown as the subtle second
-  // line on each per-gametype "Start" button on ClubPage. Aim
-  // for ~30 characters — long enough to convey the verb + the
-  // shape ("Guess the secret number"), short enough to fit
-  // beside the player-count badge without wrapping.
+  // Short, action-flavored summary shown as the subtle second line on each
+  // per-gametype Start row on ClubPage, and under each game in the Edit-club
+  // enrollment list. Aim for ~30 characters — long enough to convey the verb +
+  // the shape ("Guess the secret number"), short enough to fit beside the
+  // player-count badge without wrapping.
   shortDescription: string
 
-  // URL to this gametype's square SVG logo, used in the
-  // GamePage header. Resolved by Vite via
-  // `import logoUrl from './logo.svg?url'` in each game's
-  // manifest. See docs/ui.md → "GamePage header".
+  // URL to this gametype's square SVG logo. Drawn by `<GameLogo>`, which
+  // appears in the GamePage header and against every game in the club page's
+  // list. Resolved by Vite via `import logoUrl from './logo.svg?url'` in each
+  // game's manifest. See docs/ui.md → "GamePage header".
   logoUrl: string
 
-  // This gametype's "how to play" / rules modal. Opened from
-  // the "Help" item in the GamePage menu (the dropdown anchored
-  // to the logo). Every game declares one — the question "how
-  // do I play this?" is universal. Lazy-loaded so each game's
-  // help content ships in that game's chunk, not the main
-  // bundle. See docs/ui.md → "Help" + "GamePage menu".
+  // This gametype's "how to play" / rules modal. Opened from the "Help" item
+  // in the GamePage menu (the dropdown anchored to the logo), and from the
+  // setup dialog's own Help button, which stacks it over the dialog — "how do
+  // I play this?" is a question you ask BEFORE agreeing to a game as well as
+  // during one. Every game declares one. Lazy-loaded so each game's help
+  // content ships in that game's chunk, not the main bundle. See docs/ui.md →
+  // "Help" + "GamePage menu".
   //
   // Receives `brand` (the manifest's own `name`) so the modal's
   // "How to play <brand>" title is sourced from the single
@@ -148,32 +150,20 @@ export type GameManifest = {
   // GamePage renders the `<ScratchpadButton>` + `<GameScratchpadCompanion>` when set.
   scratchpad?: { enabled: boolean; perPlayerInCompete?: boolean }
 
-  // Supported player-count range `[min, max]`.
+  // Supported player-count range `[min, max]`. Together with the club's
+  // `common.clubs_gametypes` row it decides whether a Start row is offered, and
+  // whether it is startable at this club's size (`playerCountFits`).
   //
-  // **Coop starts at 1 and compete at 2**, because compete needs an opposing
-  // PLAYER — a countdown timer is not an opponent, so a solo club sees only
-  // coop Start buttons. Six is the house max. Departing from any of that is
-  // allowed and wants a reason: scrabble's compete opens at 1 because it seats
-  // an AI (`aiOpponent`), boggle and crosswords take 8 because a bigger board
-  // absorbs more people, scrabble caps at 4 because of the tile bag.
-  //
-  // **Every game's actual numbers are one table**, in
-  // docs/features.md → Player counts, beside the cap each `create_game`
-  // enforces.
-  //
-  // The shell uses this to decide whether the "Start" button is
-  // hidden / disabled / enabled (in combination with the
-  // club's `common.clubs_gametypes` row).
-  //
-  // MUST AGREE with the member-count check in this gametype's `create_game`
-  // RPC — no automated sync, just paired cross-reference comments. The MAX
-  // half is honest: every game caps on the server (a cap passed to
-  // `common.require_player_count_max`, or codenamesduet's inline exactly-2)
-  // and every cap agrees with this field. **The compete MINIMUM is not** —
-  // some games declare a compete `[2, …]` with no server check, so drift
-  // there fails silently rather than loudly. docs/features.md → Player counts
-  // lists which, beside the cap each `create_game` enforces; the rule is
+  // **What the numbers should be**, and every game's actual pair, is
+  // docs/features.md → Player counts; the rule they follow is
   // docs/code-conventions.md → "Per-game player counts."
+  //
+  // **What a person typing them here has to know** is that this field and the
+  // member-count check in the gametype's own `create_game` must agree, with no
+  // automated sync — and that the two halves are not equally safe. Every game
+  // caps on the server, so a wrong MAX is caught there. The compete MINIMUM
+  // often is not checked, so a wrong one fails silently: the game starts, and
+  // the rule you wrote here was the only thing enforcing it.
   numberOfPlayers: [number, number]
 
   // The gametype-specific play surface. Mounted inside
@@ -299,10 +289,10 @@ export type CommonGameListRow = {
   // again.
   //
   // The pairing is the thing to hold onto: `status` changes and `setup` does
-  // not. Most labels want only `status`. Five want this too, for a choice that
-  // shapes how the game reads — waffle, wordle and stackdown name the
-  // dictionary band (`· dict "Familiar"`), boggle the target percentage,
-  // setgame the deck.
+  // not. Most labels want only `status`. A label wants this as well when a
+  // CREATE-TIME choice is what shapes how the game reads — waffle, wordle and
+  // stackdown name the dictionary band (`· dict "Familiar"`), boggle the target
+  // percentage, setgame the deck.
   //
   // A create-time value cannot simply be written into `status` instead:
   // `common.update_state` MERGES into that blob, but `common.reset_game`
@@ -332,10 +322,11 @@ export type TimerMode =
 
 /**
  * Does a player count fall inside a gametype's supported range?
- * Used on the club page, and only there: `<StartGameRow>` disables
- * the ones that don't fit the club's member count, and ClubPage's
- * Enter handler re-checks before starting, so the keyboard no-ops
- * on a disabled button exactly as a click does.
+ *
+ * ClubPage hands it to the start list as that list's ONE `disabled` predicate,
+ * evaluated once per row: the same answer dims the row and declines Enter on
+ * it, so a keyboard and a click cannot disagree about which games a club has
+ * the members for.
  */
 export function playerCountFits(
   range: GameManifest['numberOfPlayers'],
@@ -346,8 +337,9 @@ export function playerCountFits(
 }
 
 /**
- * Human-readable description of the player-count requirement,
- * for tooltip text on a disabled Start button.
+ * Human-readable description of the player-count requirement — the start
+ * list's `rowTitle`, so hovering a row the club is too small (or too large)
+ * for says what it would take.
  *
  *   [2, 2] → "Needs exactly 2 members"
  *   [1, 6] → "Needs 1–6 members"

@@ -7,7 +7,7 @@
  * members need:
  *
  *     submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
- *     endGame:       makeRpcDispatcher(db, 'end_game'),
+ *     endGame: makeRpcDispatcher(db, 'end_game'),
  *
  * `GameManifest` wants a `(gameId) => Promise<Envelope<GameStopResult>>` thunk
  * for each, and every game would otherwise write the same closure by hand.
@@ -30,10 +30,10 @@ import type { GameStopResult } from './gameManifest'
  *
  * **Generic over the ONE function name being called**, so a call site only has
  * to prove its client can call *that* function rather than every name this
- * module might use. No game needs the narrowing today — every schema
- * define both `submit_timeout` and `end_game`, bananagrams included, which also
- * has per-player concede rather than instead of `end_game`. It is kept because
- * a per-call constraint costs nothing and is the honest requirement.
+ * module might use. No game needs that narrowing: every schema defines both
+ * `submit_timeout` and `end_game`. It is kept because a per-call constraint
+ * costs nothing and is the honest requirement — a client that can call one of
+ * them is all this function uses.
  *
  * Both halves of the awaited result are needed, not just `error`: on a 2xx the
  * ENVELOPE arrives in `data`, and reading it is `runRpc`'s whole job.

@@ -55,14 +55,15 @@ describe('playerCountLabel', () => {
 })
 
 /**
- * The third sibling, and the one on screen most: `playerCountLabel` writes a
- * tooltip you only see on a DISABLED Start button, while this writes the meta
- * line under every ENABLED one (`StartGameRow.tsx:50`) — so a club sees it
- * once per startable gametype, every visit.
+ * The third sibling, and the one on screen most: `playerCountLabel` is the row
+ * title you only get by hovering a row the club CANNOT start, while this rides
+ * the meta line of every start row in a club with more than one member — so a
+ * club sees it once per offered gametype, every visit.
  */
 describe('playerCountShort', () => {
   it('formats an exact-match range as "N players"', () => {
-    // codenamesduet's [2, 2] — the only fixed-seat game on the roster.
+    // A fixed-seat game: min and max the same, so the count is not a range.
+    // codenamesduet declares it — two spies, no more and no fewer.
     expect(playerCountShort([2, 2])).toBe('2 players')
   })
 
@@ -74,9 +75,9 @@ describe('playerCountShort', () => {
   })
 
   it('formats a bounded range as "N–M players"', () => {
-    // The three shapes actually in the roster (docs/features.md → Player
-    // counts): the house default, boggle/crosswords' wider board, scrabble's
-    // tile-bag cap.
+    // Three of the shapes the roster actually declares (docs/features.md →
+    // Player counts): the house default, the wider board a bigger game absorbs
+    // people on, and scrabble's tile-bag cap.
     expect(playerCountShort([1, 6])).toBe('1–6 players')
     expect(playerCountShort([2, 8])).toBe('2–8 players')
     expect(playerCountShort([1, 4])).toBe('1–4 players')

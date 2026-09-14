@@ -1,7 +1,7 @@
 // cs-audited-manifest
 
 /**
- * Tests for manifestRpcs — what is left of it.
+ * ONE FRONTEND PATH OVER EVERY GAME'S `submit_timeout` AND `end_game`.
  *
  * Nothing here covers `startGameInClub`: every `create_game` returns the
  * envelope itself, so a manifest calls `runRpc` / `runEdgeFn` and those two

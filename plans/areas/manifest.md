@@ -6,8 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
 six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
-group (F-9 to F-13), and F-14, which working F-11 turned up. The decision group
-is done: F-9 to F-14 all worked. The prose group (F-1 to F-8) is not started.
+group (F-9 to F-13), and F-14, which working F-11 turned up. All fourteen are
+worked. What remains is the closing re-read.
 
 ## The roster
 
@@ -59,9 +59,9 @@ eslint clean.
 
 ## Findings
 
-### The prose group
+### The prose group — WORKED 2026-09-14, in one pass
 
-### F-manifest-1 · `intro-owed`
+### F-manifest-1 · `intro-owed` · WORKED — `doc.md` has an intro, and the folder is off `INTROS_OWED`
 
 `doc.md` is a two-sentence lede. It needs the `## Intro to area` narrative —
 what a manifest is for, who reads it (the shell, never naming a game), the
@@ -72,9 +72,19 @@ RPC members answering in one shape; what the registry's order does and does
 not carry, per F-11). Then the folder comes off `INTROS_OWED` in
 `src/guards/folderDocs.test.ts`.
 
-### F-manifest-2 · `stale-claims`
+### F-manifest-2 · `stale-claims` · WORKED — and ONE of them was not stale
 
-Verified against the code, each one:
+Re-verified against the code before touching anything, and one item of the
+audit's own list turned out to be wrong:
+
+- **`CommonGameListRow`'s docstring was RIGHT.** The audit said "ClubPage
+  fetches `common.games` for the club" names the wrong reader and that
+  `get_club_page` does it. It does not: `get_club_page` answers the club, its
+  roster and its enrolled gametypes, and `useClubGames` reads `common.games`
+  directly with one PostgREST query. Fixing it as recorded would have
+  introduced the error. Left alone.
+
+The rest, each verified and fixed:
 
 - `aiOpponent`'s note: "a solo club's **pill** says 'AI Compete'" and "gets
   NO pill" — it is `<ModeBadge>` (F-club-page-10), and a badge. And the setup
@@ -118,7 +128,7 @@ bare `Playing`"; `dictLabel`'s "waffle, wordle, stackdown" (a grep for
 `dictLabel(` also matches connections' `verdictLabel(` — that is not a
 caller).
 
-### F-manifest-3 · `counts`
+### F-manifest-3 · `counts` · WORKED — each one names a condition now
 
 - `CommonGameListRow.setup`: "**Five** want this too … waffle, wordle and
   stackdown … boggle … setgame". True today; the tally rots the day a sixth
@@ -131,7 +141,7 @@ caller).
   implementations"; sixteen manifests carry a `labelFor`. A one-word fix in
   a guard — "each manifest's" — that this area can make.
 
-### F-manifest-4 · `restates-docs`
+### F-manifest-4 · `restates-docs` · WORKED — both, and `gametypes.ts` lost two thirds of its header
 
 - `gametypes.ts`'s docstring is the add-a-game checklist — the
   `config.toml` `[api] schemas` step, the restart that re-reads it, the
@@ -147,7 +157,7 @@ caller).
   the max half honest and the compete min not) — and links both. Keep the
   links and what only the reader of this field needs.
 
-### F-manifest-5 · `todo-line-numbers`
+### F-manifest-5 · `todo-line-numbers` · WORKED by F-12 — the item is gone
 
 `todo.md`'s Soon item anchors five call sites by line number
 (`App.tsx:125`, `ClubPage.tsx:319`, `:574`, `:749`,
@@ -162,7 +172,7 @@ The item itself is GONE with F-12, which answered it, so the rotted anchors
 went with it ([[reference_area_file_line_numbers_rot]]). What is left of this
 finding is nothing.
 
-### F-manifest-6 · `archaeology`
+### F-manifest-6 · `archaeology` · WORKED — the header says what the file covers
 
 `manifestRpcs.test.ts`'s header: "Tests for manifestRpcs — what is left of
 it." The rest of the paragraph says what the file covers; the lede says what
@@ -174,7 +184,7 @@ Every prop in `GameManifest` and `CommonGameListRow` is `//`; every exported
 declaration has its `/**`. Recorded so the closing re-read knows a pass was
 made.
 
-### F-manifest-8 · `tidy`
+### F-manifest-8 · `tidy` · WORKED — both
 
 - `manifestRpcs.ts`'s header shows the two call lines aligned with spaces
   (`endGame:       makeRpcDispatcher`) — fine in a docstring, noted only
