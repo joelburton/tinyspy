@@ -37,8 +37,6 @@
   `height` on a full-bleed page; the **relay** — a flex column carrying it
   down; the **scroller**), and a flex/grid item allowed to shrink below its
   content, which is board geometry. The relay still has no good name.
-- The two-column fold: `.columns` stacks at `--mobile` and `data-tab` hides
-  one side. GamePage answers the same question with the info sheet.
 
 ## Someday
 

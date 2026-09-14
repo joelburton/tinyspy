@@ -6,9 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
 26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
-F-12 and F-13 worked 2026-09-13**, F-9 taking F-11's club-page half and F-15's
-four not-ok arms with it. The prose group (F-1 to F-8) is fork-free and waits
-on "do the prose"; F-14 to F-17 each still hold a decision.
+F-12, F-13 and F-14 worked 2026-09-13**, F-9 taking F-11's club-page half and
+F-15's four not-ok arms with it. The prose group (F-1 to F-8) is fork-free and
+waits on "do the prose"; F-16 and F-17 each still hold a decision.
 
 ## The roster
 
@@ -413,19 +413,26 @@ F-6's defect, so the comment shrank to the local fact plus a pointer in the
 same pass. `doc.md` gained its `## Details` section for this; the folder stays
 on `INTROS_OWED` until F-1 writes the intro above it.
 
-### F-club-page-14 · `fold-vs-sheet` · the two-column fold answers the mobile question differently from GamePage
+### F-club-page-14 · `fold-vs-sheet` · CLOSED 2026-09-13 — option 1, keep the tabs
 
-`todo.md` Soon: "The two-column fold: `.columns` stacks at `--mobile` and
-`data-tab` hides one side. GamePage answers the same question with the info
-sheet." Here both columns are lists a player chooses from; on the game page
-the second column is information beside a board.
+Joel: *"1."*
 
-Options:
+The reason, now in `docs/mobile.md` → "Club page — tabs instead of two
+columns", beside the tabs it explains: **what differs is what the second column
+holds.** A game's info column sits beside a BOARD, and the board is the page,
+so the info-sheet recipe takes the column off-canvas and hands the board the
+full width. This page has no board — both columns are lists you choose from,
+peers, and choosing one is why you arrived. A sheet would make one the page and
+the other an aside, which is a claim about priority this page does not make.
 
-1. **Keep the tabs**, record why the two pages differ, close the item.
-2. **Make "Your games" a sheet** opened from a button, like the info column.
-
-Recommend 1: the two columns are peers here, and a sheet would demote one.
+**It also corrected F-13, one commit old.** `docs/mobile.md` already carried the
+duplicated-filters reasoning, in its club-page section, and F-13 put a second
+copy in `club/doc.md` because I recorded the reason without checking whether it
+was already written down. The doc.md item is now a pointer plus the one thing
+mobile.md does not say (why the `useIsMobile` alternative is worse). Reading the
+docs the area file LISTS — it names `docs/mobile.md` → "Club page — tabs
+instead of two columns" in its own roster — would have caught it before the
+commit rather than after.
 
 ### F-club-page-15 · `error-page-pair` — RESOLVED 2026-09-13 by F-9
 

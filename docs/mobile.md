@@ -260,6 +260,15 @@ column renders, so the page still fits the viewport. The tab bar is
 lives in `mobileTab`; a `data-tab` attribute on the body drives the CSS that
 hides the inactive column.
 
+**Tabs here, a sheet on a game page, and the difference is what the second
+column holds.** A game's info column sits *beside a board*, and the board is the
+page — so the recipe below takes the column off-canvas and hands the board the
+full width. This page has no board: both of its columns are lists you choose
+from, peers, and choosing one is the whole reason you arrived. A sheet would
+make one of them the page and the other an aside, a claim about priority the
+page does not want to make. Tabs say the two are equals and you are looking at
+one of them.
+
 **The list filters move with the tabs.** Each column's filter (see
 [ui.md → Filtering the two lists](ui.md#clubpage-header)) lives at the right of
 its section heading on desktop — and the breakpoint hides those heading *rows*
