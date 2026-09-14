@@ -35,6 +35,9 @@ The folder, 22 files:
 - `ModeBadge.tsx` + `.module.css` + `ModeBadge.test.tsx` — was `game-page`'s
   `ModePill` (moved 2026-09-13, F-10); still `cs-unmet`
 - `ClubPage.test.tsx` (added 2026-09-13, F-16)
+- `ClubPageLoader.tsx` + `.test.tsx`, `useClubGames.ts` + `.test.ts`,
+  `useSetupDialog.ts` + `.test.ts` — the decomposition and its tests, added
+  2026-09-13 (see "The decomposition" below)
 - `CreateClubModal.tsx` + `.module.css` + `CreateClubModal.test.tsx`
 - `EditClubModal.tsx` + `EditClubModal.test.tsx`
 - `useClubRoster.ts` — used by `GamePage`, not by this page
@@ -533,3 +536,81 @@ Recommend 1.
 - [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
+
+## The decomposition — 2026-09-13, after the findings
+
+Not a finding. Joel, once F-16 had put a net under the page: *"the ClubPage is
+very long and has a lot of complex stuff inside… Is there a decomposition
+(either multiple components or hooks) that you'd recommend?"* — and then *"do
+it. we can weigh the JSX later, once i see how much the other ideas helped."*
+
+**`ClubPageLoader`** (114 lines) owns the `get_club_page` call and the three
+pages it can end in — `<Loading>`, `<EnvelopeErrorPage>`, or `<ClubPage>`. The
+point was never the line count: `club` stops being `ClubRow | null` for the
+length of the file, and the two early returns, the `!club` narrowing arm and
+four scattered null guards go with it. `savedDefaults` turned out to be derived
+rather than state once the payload was a prop — nothing on the page changes a
+saved default — and the `?new=` intent lost its `loading ||` guard, since the
+page no longer exists before the load lands.
+
+**`useClubGames(clubHandle, slot)`** (192 lines) is the games read, its
+Realtime subscription, the generation guard and the list build, returning
+`{ games, currentGameId, failed }`. `ListedGame` went with it.
+
+**`useSetupDialog(startListRef)`** (73 lines) collapses five scattered pieces —
+`pendingSetup`, `requestedGametype`, `requestConsumed`, the derived open state,
+`closeSetup`, `handleStartSetup` — into `{ manifest, open, close }`. It was the
+smallest cut by volume and the largest by scatter.
+
+**`handleDelete` was left**, as recommended: one contiguous function with a
+docstring, whose extraction would trade cohesion for a parameter list.
+
+`ClubPage.tsx` 1155 → 851. Nothing behavioral moved: the 26 club tests passed
+unchanged at every step, and `ClubPage.test.tsx` needed one edit — it renders
+the loader now.
+
+**One behavior did shift, and it is worth knowing**: `useClubPresence` used to
+run while the club was loading and now runs after, since it lives in the page
+rather than above it. A member is announced at the club a beat later, which is
+if anything more honest, but it is a change no test can see.
+
+**The JSX is untouched** — ~285 lines, and the open question Joel parked.
+
+### The tests followed it
+
+Joel: *"does the refactoring help the complexity of the tests you wrote for
+ClubPage?"* — no, not as they stood; the rename was the only edit they had
+taken. Then: *"do it."*
+
+`ClubPage.test.tsx` was one file mounting the whole tree through the loader,
+with ten mocks. It is now four files, each testing one unit:
+
+- **`ClubPageLoader.test.tsx`** — the three answers, and the two things the
+  not-ok arm carries separately: the server's sentence, and the promise
+  (`presentFaults: false`) asserted at the CALL rather than inferred from an
+  empty fault queue, which a mocked wrapper would leave empty anyway.
+- **`useClubGames.test.ts`** — the list build and the failure, via `renderHook`.
+  Its channel stub keeps the `postgres_changes` handler so a test can fire the
+  event that actually drives a refetch; a `rerender` cannot, since the effect's
+  deps do not change. That is what let "a failed refetch keeps the list" be
+  tested honestly.
+- **`useSetupDialog.test.ts`** — a press, a `?new=` arrival, and the collapse of
+  the two into one answer.
+- **`ClubPage.test.tsx`** — props in, `useClubGames` mocked. Three mocks left
+  the file with the code they served (the Realtime channel, `postgresAttached`,
+  `readRows`), and with them went the settle-retries four assertions needed.
+
+What this gives up, and it is real: no test now mounts the page against the
+real hook, so nothing proves the two fit together. The integration had caught
+nothing, and the units say more precisely what they mean, but it is a trade
+rather than a free win.
+
+Three plants, all red: dropping the unknown-gametype skip, dropping
+`setRequestConsumed(true)` from `close`, and dropping `presentFaults: false`
+from the loader.
+
+**The spelling guard caught two comments across this work**, both times only
+AFTER the file was staged. It reads the git index, so a brand-new file is
+invisible to it until then: for a new file, `git add` before trusting a green
+run. (The two words are not repeated here — the guard's list is absolute, and
+CLAUDE.md keeps even prose about the rule clear of them.)

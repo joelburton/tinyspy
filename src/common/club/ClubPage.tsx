@@ -1,8 +1,8 @@
 // cs-audited-club-page
 
-import { readRows, runRpc } from '../supabase/dbResult'
+import { runRpc } from '../supabase/dbResult'
 import { showToast, DEFAULT_TOAST_MS } from '../toasts/toastStore'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { supabase } from '../supabase/supabase'
@@ -10,8 +10,6 @@ import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { cls } from '../utils/cls'
 import { navigate } from '../routing/router'
 import { gamePath } from '../routing/routes'
-import { channelDedupSuffix } from '../realtime/channelDedup'
-import { onPostgresAttached } from '../realtime/postgresAttached'
 import { useBoundAction } from '../actions/useBoundAction'
 import { useTabRing } from '../keyboard/useTabRing'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
@@ -19,8 +17,6 @@ import { useStickyChoice } from '../web-storage/useStickyChoice'
 import { MODE_LABEL, playerCountFits, playerCountLabel } from '../manifest/gameManifest'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
-import { Loading } from '../loading/Loading'
-import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import { ChatButton } from '../page-header/ChatButton'
 import { Chat } from '../chat/Chat'
 import { CurrentGameCard } from './CurrentGameCard'
@@ -39,16 +35,14 @@ import { StartGameRow } from './StartGameRow'
 import { SelectionList } from '../lists/SelectionList'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { gametypes } from '@/gametypes'
-import type { CommonGameListRow, GameManifest } from '../manifest/gameManifest'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
+import { useClubGames, type ListedGame } from './useClubGames'
+import { useSetupDialog } from './useSetupDialog'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuSection } from '../menu/menuModel'
 import type { Database } from '@/types/db'
 import type { Member } from '../members/member'
-import type { NotOkEnvelope } from '../supabase/envelope'
-import {
-  environmentalEnvelope, OUR_BUG_TO_CODE_AND_TEXT, reportUnhandled,
-} from '../supabase/dbEnvelope'
+import { reportUnhandled } from '../supabase/dbEnvelope'
 import styles from './ClubPage.module.css'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -62,7 +56,7 @@ type ClubRow = Pick<
 /** What `common.get_club_page` answers with: everything this page needs to
  *  render, in one read. The three pieces were four serial queries until the
  *  RPC replaced them — see that function's own comment for why. */
-type ClubPageData = {
+export type ClubPageData = {
   // The RPC's one answer. A call site's ok branch asserts this rather than
   // `type` alone, so an answer added later cannot sail into it.
   result: 'loaded'
@@ -72,32 +66,6 @@ type ClubPageData = {
   // one shape, because a second read for the defaults is what the RPC
   // exists to avoid.
   gametypes: { gametype: string; default_setup: unknown }[]
-}
-
-/**
- * Display shape for one game in the club's games list: the fields of a
- * common.games row this page renders, plus the manifest of the gametype it
- * belongs to. ClubPage's classify-into-sections logic also reads `isTerminal`
- * to assign the right state for CSS treatment.
- *
- * Anything about the GAMETYPE is reached through `manifest` rather than copied
- * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
- * is the exception because it isn't a field at all: it's `labelFor(row)`, a
- * call that needs the game as well as the gametype.
- */
-type ListedGame = {
-  gameId: string
-  /** The gametype's manifest, resolved once when the row is built — a gametype
-   *  this FE doesn't know never becomes a `ListedGame`, so everything
-   *  downstream takes it as given instead of looking it up again. */
-  manifest: GameManifest
-  title: string
-  /** `common.games.last_active_at` — last status/progress write (or the
-   *  end time). The card dates + the list orders by this, so a long-
-   *  suspended game reads by when it was last played, not when it began. */
-  lastActiveAt: string
-  isTerminal: boolean
-  statusLabel: string
 }
 
 /** What `common.unset_current_view` puts in `data` when it cleared the pointer.
@@ -110,23 +78,19 @@ type UnsetAnswer = { result: 'cleared' } | null
 type DeleteAnswer = { result: 'deleted' }
 
 type Props = {
-  handle: string
-  /** Signed-in session — its user id is this client's identity on the
-   *  club presence channel (member dots + abandoned-game heal). */
+  // The club itself, already loaded — see ClubPageLoader for why it is a prop
+  // and not state.
+  club: ClubRow
+  // Its full roster, alphabetical. Fixed for the page's life: membership is
+  // set at creation.
+  members: Member[]
+  // The enrolled set as it was at load, which seeds the page's own state —
+  // the club editor changes it while the page is up.
+  initialGametypes: ClubPageData['gametypes']
+  // Signed-in session — its user id is this client's identity on the club
+  // presence channel (member dots + abandoned-game heal).
   session: Session
 }
-
-/**
- * The page with no club and no failure — which a load cannot produce, since it
- * ends by setting one or the other. It exists because the render arm needs an
- * envelope to narrow `club` against, and a page that says "unknown error" with
- * nothing under it leaves nothing to diagnose. If it is ever on screen, the
- * `else` in the loader has already screamed the answer it could not read.
- */
-const LOADED_WITH_NEITHER = environmentalEnvelope(
-  OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer,
-  'get_club_page: neither a club nor a failure',
-)
 
 /**
  * Club detail page — accessed via `/c/<handle>`.
@@ -153,34 +117,13 @@ const LOADED_WITH_NEITHER = environmentalEnvelope(
  * only cares about the club's current-view pointer + the
  * games-list shape.
  */
-export function ClubPage({ handle, session }: Props) {
+export function ClubPage({ club, members, initialGametypes, session }: Props) {
   const selfId = session.user.id
-  const [club, setClub] = useState<ClubRow | null>(null)
+  const handle = club.handle
   // One-player club. Suppresses the "Co-op" mode badge on this page's cards
   // and rows — see ModeBadge. `is_solo` is a generated column over the handle's
   // '=' prefix, so the convention is stated in the database and read here.
-  // Null only while loading, and every reader below sits past the early
-  // returns.
-  const soloClub = club?.is_solo ?? false
-  const [members, setMembers] = useState<Member[]>([])
-  const [allGames, setAllGames] = useState<ListedGame[]>([])
-  // Whether the last games read failed. Only the list's empty state reads it:
-  // "No games yet." is a lie when the read is what came back empty, and this is
-  // a page the player is being told to reload.
-  const [gamesFailed, setGamesFailed] = useState(false)
-  // The club's current game — the `is_current_view = true` row's id, or null
-  // when nobody is in one. Drives the card above the start list, the orange
-  // corner flag on its row, and the abandoned-pointer heal.
-  const [currentGameId, setCurrentGameId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  /**
-   * Why the page can't render, when it can't — the envelope `get_club_page`
-   * answered with, kept whole so `<EnvelopeErrorPage>` can derive both the
-   * sentence and the diagnostics line from it. That is also the promise behind
-   * this page's `presentFaults: false`: a modal over a page that failed to load
-   * would say the same sentence twice (error-page/doc.md).
-   */
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
+  const soloClub = club.is_solo
   // Whether the club Help modal is mounted — toggled by the menu's "Help" item
   // (the club-page counterpart to each game's Help modal on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
@@ -228,6 +171,23 @@ export function ClubPage({ handle, session }: Props) {
   // any game page of the club) and which game they're viewing. We
   // pass `null` for our own location — we're in the club room, not a
   // game. Drives the member-strip dots + the abandoned-game heal.
+  // The page's GLOBAL feedback slot — the header's status slot draws its top
+  // message in place of the members strip. Nothing is handed down: this page
+  // has no render-prop child.
+  //
+  // `feedback/doc.md` splits the two slots by WHO a message is about, and gives
+  // the header to other people's news. This page has no second slot, so it uses
+  // this one for its own news too: the chat producer below, the "coming soon"
+  // acknowledgment on the placeholder menu item, and a failed games read. That
+  // last one is why hiding the members strip is acceptable here — a page whose
+  // list has gone stale with nothing to refresh it is a page to reload, and the
+  // roster and chat pills are not what the player needs to see while it is.
+  const globalFeedbackSlot = useFeedbackSlot('global')
+  // The club's games, kept fresh by their own Realtime subscription: the list
+  // in last-played order, the current game's id (the `is_current_view` row),
+  // and whether the last read failed.
+  const { games: allGames, currentGameId, failed: gamesFailed } =
+    useClubGames(handle, globalFeedbackSlot)
   const presence = useClubPresence(handle, null, selfId)
 
   const accountSection = useAccountMenuSection()
@@ -308,68 +268,33 @@ export function ClubPage({ handle, session }: Props) {
   // editable via the "Edit club" dialog (set_club_gametypes). We gate
   // the Start-button rendering on this set; the EditClubModal hands
   // back the new set on save so the buttons update without a refetch.
-  const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(new Set())
-  // Saved setup defaults per gametype, also from clubs_gametypes.
-  // NULL when the friends haven't started a game of that gametype
-  // yet — the dialog falls through to the manifest's static
-  // defaults in that case. Sourced from the same query that
-  // populates allowedGametypes; passed to SetupGameModal as
-  // `savedDefault` so the form pre-fills with what the friends
-  // played last time. See common.create_game's saved_default arg
-  // for the write side and docs/code-conventions.md (TBD) for
-  // the evolution-strategy story.
-  const [savedDefaults, setSavedDefaults] = useState<
-    Map<string, unknown>
-  >(new Map())
-  // The manifest currently being set up in the dialog, or null if
-  // the dialog isn't open. Setting this opens the dialog (the
-  // dialog component is mounted iff this is non-null); the dialog
-  // calls back into us via onStarted / onCancel to close.
-  const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
-
-  // ── "Start another one" arriving from a game's terminal row ──────────────
-  // A game whose board IS its identity can't offer a meaningful "same again"
-  // (crosswords: replaying the setup re-serves the puzzle you just solved, and
-  // an uploaded board is stripped before it's persisted). Those games send the
-  // player here with `?new=<gametype>` instead, which opens this club's setup
-  // dialog on that gametype so they can pick the NEXT puzzle.
-  //
-  // Read ONCE at mount (the value is a navigation intent, not live state), and
-  // honored only after the club fetch settles: SetupGameModal seeds its form
-  // from `savedDefault` + `members` with a lazy initializer and never re-seeds,
-  // so opening it early would strip the club's last-played setup and show an
-  // empty player list.
-  const [requestedGametype] = useState(
-    () => new URLSearchParams(window.location.search).get('new'),
+  const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(
+    () => new Set(initialGametypes.map((k) => k.gametype)),
   )
-  // Set once the intent has been acted on (opened then canceled/started), so
-  // the derived value below stops re-opening the dialog.
-  const [requestConsumed, setRequestConsumed] = useState(false)
-  // The dialog's manifest: an explicit Start-button click wins; otherwise the
-  // `?new=` intent, once loaded and until consumed. DERIVED at render rather
-  // than pushed into state by an effect (the repo bans setState-in-effect); the
-  // two setters below run in the dialog's own event handlers.
-  const activeSetup =
-    pendingSetup ??
-    (loading || requestConsumed
-      ? null
-      : (gametypes.find((g) => g.gametype === requestedGametype) ?? null))
+  // Saved setup defaults per gametype — what the friends played last time,
+  // handed to SetupGameModal as `savedDefault` so the form pre-fills. A
+  // gametype with none falls through to the manifest's static defaults. See
+  // common.create_game's saved_default arg for the write side.
+  //
+  // Derived, not state: unlike the enrolled set beside it, nothing on this
+  // page changes a saved default. Editing the club can only remove a gametype,
+  // and a removed one draws no start row to open a dialog from.
+  const savedDefaults = useMemo(
+    () =>
+      new Map(
+        initialGametypes
+          .filter((k) => k.default_setup !== null)
+          .map((k) => [k.gametype, k.default_setup]),
+      ),
+    [initialGametypes],
+  )
+  const startListRef = useRef<HTMLDivElement | null>(null)
+  const gamesListRef = useRef<HTMLDivElement | null>(null)
 
-  /** Close the setup dialog, whichever way it was opened, and drop `?new=` from
-   *  the URL so a refresh doesn't re-open it.
-   *
-   *  Hand focus back to the start list. The dialog autofocuses a field inside
-   *  itself, so when it unmounts the focus it held dies with it and lands on
-   *  <body> — which blanks `focusedList` and with it the Up/Down cursor, so
-   *  canceling a setup used to cost a Tab press to get the keyboard back.
-   *  Returning focus to the list container restores the cursor exactly where it
-   *  was (the index is kept in state, not derived from focus). */
-  const closeSetup = useCallback(() => {
-    setPendingSetup(null)
-    setRequestConsumed(true)
-    if (window.location.search) navigate(window.location.pathname, true)
-    startListRef.current?.focus({ preventScroll: true })
-  }, [])
+  // Whether the setup dialog is open and on what — a start row's press or a
+  // `?new=` arrival, collapsed into one answer.
+  const { manifest: activeSetup, open: handleStartSetup, close: closeSetup } =
+    useSetupDialog(startListRef)
 
   // Announce "I'm setting up a game" to the club while MY setup dialog is open,
   // and toast when a PEER is — so two members don't both start the next game
@@ -379,7 +304,7 @@ export function ClubPage({ handle, session }: Props) {
   // disconnect, syncs to late-joiners); see useClubSetupPresence.
   const selfUsername = members.find((m) => m.user_id === selfId)?.username ?? 'You'
   useClubSetupPresence({
-    clubHandle: club?.handle ?? null,
+    clubHandle: handle,
     selfId,
     announce: activeSetup
       ? { brand: activeSetup.name, mode: activeSetup.mode, username: selfUsername }
@@ -389,18 +314,6 @@ export function ClubPage({ handle, session }: Props) {
   // Whether the "Edit club" options dialog is open. Like the setup
   // dialog, the component is mounted iff this is true.
   const [editing, setEditing] = useState(false)
-  // The page's GLOBAL feedback slot — the header's status slot draws its top
-  // message in place of the members strip. Nothing is handed down: this page
-  // has no render-prop child.
-  //
-  // `feedback/doc.md` splits the two slots by WHO a message is about, and gives
-  // the header to other people's news. This page has no second slot, so it uses
-  // this one for its own news too: the chat producer below, the "coming soon"
-  // acknowledgment on the placeholder menu item, and a failed games read. That
-  // last one is why hiding the members strip is acceptable here — a page whose
-  // list has gone stale with nothing to refresh it is a page to reload, and the
-  // roster and chat pills are not what the player needs to see while it is.
-  const globalFeedbackSlot = useFeedbackSlot('global')
 
   // ─── Keyboard navigation ────────────────────────────────
   // The cursor, the ring, Enter and focus-on-arrival belong to each
@@ -411,8 +324,6 @@ export function ClubPage({ handle, session }: Props) {
   // never wander into other controls — while an open overlay's own ring is
   // innermost and answers Tab instead (chat / setup / help / lookup), and
   // the global shortcuts (/, ?, ~) are untouched.
-  const startListRef = useRef<HTMLDivElement | null>(null)
-  const gamesListRef = useRef<HTMLDivElement | null>(null)
   // This page's TAB RING is its two lists, in this order — skipping whichever
   // the mobile one-column layout has hidden, and entered at the start list from
   // anywhere else, which is how the keyboard comes back after a click on some
@@ -483,8 +394,6 @@ export function ClubPage({ handle, session }: Props) {
    * read earns and a delete's own answer does not (docs/ui.md → Toasts).
    */
   async function handleDelete(gameId: string, isCurrent: boolean) {
-    if (!club) return
-
     if (isCurrent) {
       // Open a temp channel matching the game's stable name and
       // broadcast the suspend event so any peer on the GamePage
@@ -574,219 +483,6 @@ export function ClubPage({ handle, session }: Props) {
       reportUnhandled('delete_game', res)
       throw new Error('delete_game: unreadable answer')
     }
-  }
-
-  /**
-   * Click handler for the per-gametype "Start X" buttons. Opens
-   * the setup dialog — does NOT actually create the game; that
-   * happens when the user clicks Start inside the dialog and
-   * SetupGameModal calls `manifest.startGameInClub`.
-   *
-   * Two distinct phases that both got called "start" before the
-   * rename: this is `startSetup` (the first one); the dialog's
-   * is `startGame`.
-   */
-  function handleStartSetup(gametype: string) {
-    const game = gametypes.find((g) => g.gametype === gametype)
-    if (!club || !game) return
-    setPendingSetup(game)
-  }
-
-  // Step 1: the club, its roster, and the gametypes it plays. None of these
-  // change while the page is open — membership is fixed at creation — so this
-  // runs once and nothing resubscribes it.
-  useEffect(function loadClubAndRoster() {
-    let mounted = true
-
-    async function load() {
-      // ONE call where there were four serial reads (clubs → clubs_members →
-      // profiles → clubs_gametypes). `presentFaults: false` because every
-      // not-ok below — the RPC's own refusals and a transport failure alike —
-      // becomes the page itself, and a modal on top of it would say the same
-      // sentence twice. See `common.get_club_page`.
-      const res = await runRpc<ClubPageData>(
-        commonDb.rpc('get_club_page', { target_handle: handle }),
-        { presentFaults: false },
-      )
-      if (!mounted) return
-
-      if (res.type === 'not-ok') {
-        // Includes the two answers RLS could never tell apart from a direct
-        // read: no such club, and a club that isn't yours.
-        setFailure(res)
-        setLoading(false)
-        return
-      } else if (res.type === 'ok' && res.data.result === 'loaded') {
-        // Read off `res.data` rather than destructured: `club`, `members` and
-        // `gametypes` are the right names for the payload AND all three are
-        // taken here — two by this page's state, one by the imported registry.
-        setClub(res.data.club)
-        setMembers(res.data.members)
-        setAllowedGametypes(new Set(res.data.gametypes.map((k) => k.gametype)))
-        setSavedDefaults(
-          new Map(
-            res.data.gametypes
-              .filter((k) => k.default_setup !== null)
-              .map((k) => [k.gametype, k.default_setup]),
-          ),
-        )
-        setLoading(false)
-        return
-      } else {
-        reportUnhandled('get_club_page', res)
-        // The page behind the scream's modal is `LOADED_WITH_NEITHER`'s.
-        setLoading(false)
-        return
-      }
-    }
-
-    load()
-    return () => {
-      mounted = false
-    }
-  }, [handle])
-
-  // Step 2: load games for this club + the current-view game id.
-  // Re-runs whenever realtime tells us a games row for this club
-  // changed (new game inserted, end_game wrote a terminal
-  // play_state, set_current_view / unset_current_view flipped the
-  // is_current_view pointer, etc.). Also fires on initial mount.
-  useEffect(function subscribeToClubGames() {
-    if (!club) return
-    const clubHandle = club.handle
-    let mounted = true
-    // Monotonic generation for out-of-order protection: loadGames fires on
-    // initial + on-SUBSCRIBED + every common.games event, and these overlapping
-    // loads can resolve out of order. Commit only the newest, so a slow initial
-    // load can't clobber a fresher event-load's listing. Same fix as
-    // useRealtimeRefetch / useCommonGame.
-    let generation = 0
-
-    async function loadGames() {
-      const myGen = ++generation
-      // One read into common.games — the labelFor refactor moved
-      // all the listing data here, so per-gametype fan-out is
-      // gone. Each row's label comes from the matching manifest's
-      // pure `labelFor`. Games whose gametype isn't in this FE's
-      // registry are silently skipped (the same forward-compat
-      // posture used for Start buttons).
-      const res = await readRows(
-        commonDb
-          .from('games')
-          .select(
-            'id, gametype, title, play_state, is_terminal, status, setup, last_active_at, is_current_view',
-          )
-          .eq('club_handle', clubHandle)
-          .order('last_active_at', { ascending: false })
-          // Explicit bound so a long-lived club can't drift into PostgREST's
-          // silent `max_rows` truncation. Overflow past 200 is DELIBERATE — the
-          // list shows everything it gets, and descending order means the drop
-          // is the oldest games (nobody scrolls a club's full lifetime history;
-          // the current game is always recently-active, so it's never cut).
-          .limit(200),
-      )
-      if (!mounted || myGen !== generation) return
-      // A failure here leaves the LIST alone — no error page, no cleared list.
-      // Unlike the club load above, this runs against a page that is already on
-      // screen and whose other half is fine, so a modal over it is the right
-      // escalation and replacing it would not be (error-page/doc.md).
-      //
-      // What it must not be is silent. Nothing retries this read: it re-runs
-      // only when another common.games row changes, and the commonest failure
-      // is the refetch that follows your OWN delete — where that DELETE was the
-      // event, so no second one is coming and the game sits in the list looking
-      // undeleted. So the modal is escalated by a message that outlives
-      // dismissing it, and the honest instruction is to reload.
-      if (res.type === 'not-ok') {
-        setGamesFailed(true)
-        globalFeedbackSlot.show(FeedbackMessage.notOk(res))
-        return
-      }
-      setGamesFailed(false)
-
-      const rows = res.data
-      let currentId: string | null = null
-      const listed: ListedGame[] = []
-      for (const r of rows) {
-        if (r.is_current_view) currentId = r.id
-        const manifest = gametypes.find((g) => g.gametype === r.gametype)
-        if (!manifest) continue
-        const listRow: CommonGameListRow = {
-          id: r.id,
-          gametype: r.gametype,
-          play_state: r.play_state,
-          is_terminal: r.is_terminal,
-          status: r.status as Record<string, unknown> | null,
-          setup: r.setup as Record<string, unknown> | null,
-        }
-        listed.push({
-          gameId: r.id,
-          manifest,
-          title: r.title,
-          lastActiveAt: r.last_active_at,
-          isTerminal: r.is_terminal,
-          statusLabel: manifest.labelFor(listRow),
-        })
-      }
-      setCurrentGameId(currentId)
-      setAllGames(listed)
-    }
-
-    loadGames()
-
-    // Subscribe to common.games changes for this club purely to keep the
-    // games list fresh: a new-game start, a set/unset_current_view pointer
-    // flip, create_game's auto-vacate of the prior current game, an
-    // end_game terminal — all surface here and trigger a list reload.
-    //
-    // We DON'T auto-navigate anyone into a newly-started game anymore.
-    // Being added to a game pops a join invitation *globally* (see
-    // `useGameInvitations` mounted in App.tsx), so a player joins on their
-    // own terms wherever they are — no more being yanked off the club
-    // page (or out of whatever they were doing) the instant a game starts.
-    // A member here just sees the new game appear in the Current section
-    // and gets the invite popup; the game waits (paused) until they join.
-    const channel = supabase
-      .channel(`club-games:${clubHandle}:${channelDedupSuffix()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'common',
-          table: 'games',
-          filter: `club_handle=eq.${clubHandle}`,
-        },
-        () => loadGames(),
-      )
-    // Deaf-window closer: reload once the postgres_changes attach is
-    // confirmed — SUBSCRIBED below is only the join ack, and an event
-    // committed before the attach is dropped. See postgresAttached.ts
-    // + docs/realtime-lost-events.md.
-    onPostgresAttached(channel, () => loadGames())
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') loadGames()
-    })
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(channel)
-    }
-    // `globalFeedbackSlot` is created once and keeps its identity across
-    // renders (`useFeedbackSlot`), so listing it re-subscribes nothing.
-  }, [club, globalFeedbackSlot])
-
-  if (loading) return <Loading />
-  // The club did not load, so there is no page to put a modal over — the
-  // failure IS the route. Both halves come off the envelope: the server wrote
-  // the sentence (including "no club with that name" and "not a member", which
-  // it can tell apart and a direct read could not), and the diagnostics line
-  // is derived from the same answer.
-  //
-  // `!club` with no failure is the loader's `else` branch and nothing else —
-  // an answer neither `ok` nor `not-ok`, which has already screamed. The arm
-  // is also the type narrowing everything below depends on.
-  if (failure || !club) {
-    return <EnvelopeErrorPage envelope={failure ?? LOADED_WITH_NEITHER} />
   }
 
   // The current game — the one whose id matches the is_current_view=true row

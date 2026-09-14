@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { useSession } from './common/session/useSession'
 import { LoginScreen } from './common/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/auth/ClaimHandleScreen'
-import { ClubPage } from './common/club/ClubPage'
+import { ClubPageLoader } from './common/club/ClubPageLoader'
 import { GamePage } from './common/game-page/GamePage'
 import { PlayAreaErrorBoundary } from './common/game-page/PlayAreaErrorBoundary'
 import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/game-page/PlayAreaMountLog'
@@ -188,7 +188,7 @@ export default function App() {
 
     const club = matchClubRoute(path)
     // Keyed by handle so a club→club navigation REMOUNTS — fresh subscriptions
-    if (club) return <ClubPage key={club.handle} handle={club.handle} session={session} />
+    if (club) return <ClubPageLoader key={club.handle} handle={club.handle} session={session} />
 
     const game = matchGameRoute(path)
     if (game) return gamePage(game.gametype, game.gameId)
