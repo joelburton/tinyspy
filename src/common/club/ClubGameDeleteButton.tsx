@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useEffect, useState } from 'react'
 import { cls } from '../utils/cls'
@@ -17,9 +17,8 @@ type Props = {
  * two-step confirmation behind it.
  *
  *   - **idle** — a small trash can, invisible until the entry around it is
- *     hovered or
- *     holds focus, so it doesn't compete with the entry's content until you go
- *     looking for it.
+ *     hovered or holds focus, so it doesn't compete with the entry's content
+ *     until you go looking for it.
  *   - **confirming** — expands into a labeled "Confirm delete?" button, always
  *     visible, auto-reverting after 4 seconds. A misclicked × can simply be
  *     ignored; there is no Cancel to find.
@@ -30,7 +29,7 @@ type Props = {
  * deletes something" is there BEFORE the click rather than after it. Only the
  * SHAPE changes, from a square trash can to a labeled button.
  *
- * **It stops the click from propagating**, which is load-bearing now that a
+ * **It stops the click from propagating**, which is load-bearing because a
  * game row is a `<SelectionList>` row: the row's own click activates it, so
  * without this, pressing × would open the game you were trying to delete.
  */

@@ -1,4 +1,4 @@
-/* cs-audited-club-page */
+/* cs-blessed-club-page */
 
 /* ClubPage layout + component-scoped styles.
  *
@@ -58,7 +58,7 @@
   min-height: 0;
 }
 
-/* Only the LEFT column has two blocks to separate — the active-game callout
+/* Only the LEFT column has two blocks to separate — the current-game card
  * above the start-a-new-game block. The right column is one heading and one
  * list, where the h3's own margin is the whole space above the frame (and
  * matches what the left column has between its h3 and its first row). */
@@ -103,19 +103,14 @@
 
 /* ─── Mobile tab switcher ────────────────────────────────────────────
  *
- * This app is desktop-first (docs/ui.md): the desktop layout above is
- * the default, and mobile is expressed as an *exception* layered on
- * top — never mobile-first min-width. `--mobile` is the shared
- * collapse breakpoint (src/common/mobile/breakpoints.css): 900px, capturing
- * phones and portrait tablets while landscape tablets (≥ ~1024px)
- * keep the two-column desktop layout.
- *
  * On desktop the tab bar is hidden and both body columns show side by
- * side. Below the breakpoint the two columns would be too cramped, so
- * the body stacks to a single column and this tab bar switches between
- * the "New game" (.left) and "Your games" (.right) views — only
- * one renders at a time, so the page still fits the viewport without
- * scrolling. */
+ * side. Below `--mobile` (the shared breakpoint, src/common/mobile/
+ * breakpoints.css) the two columns would be too cramped, so the body
+ * stacks to a single column and this tab bar switches between the "New
+ * game" (.left) and "Your games" (.right) views — only one renders at a
+ * time, so the page still fits the viewport without scrolling. Mobile is
+ * the exception layered on the desktop default, as everywhere (docs/ui.md
+ * → Audience and platform). */
 /* @@ */ .tabs {
   /* Desktop: no tabs. The mobile query below flips this to flex. */
   display: none;
@@ -162,7 +157,7 @@
     display: none;
   }
 
-/* @@ */   .columns[data-tab='completed'] .left {
+/* @@ */   .columns[data-tab='games'] .left {
     display: none;
   }
 

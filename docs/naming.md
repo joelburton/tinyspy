@@ -32,7 +32,7 @@ This is the field downstream code reads to ask "what family does this gametype b
 
 - **Docs** — `docs/games/<baseGametype>.md`. One per family, regardless of variant count.
 - **Logo / theme** — siblings share `logo.svg` and `theme.css`.
-- **Future ClubPage rendering** — siblings could render as a single grouped block ("psychicnum: coop / compete") rather than two unconnected buttons.
+- **The club page's gametype filter** — one "Wordle" choice over "Your games" covers both siblings.
 - **Schema** — one set of tables under `<baseGametype>.*` serves all siblings.
 
 See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the wider write-up.
@@ -163,7 +163,7 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 
 "Start a game" is a two-phase flow in this codebase: the user picks options first, *then* the game is created. The same word would describe both phases in casual speech, so identifier naming splits them:
 
-- **`startSetup`** — click the "Start connections" button on ClubPage. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
+- **`startSetup`** — activate the connections row in ClubPage's start list. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
 - **`startGame`** — click "Start connections" inside the dialog after picking options. Fires `manifest.startGameInClub`, which calls `create_game` and writes the new `common.games` row.
 
 Concretely:

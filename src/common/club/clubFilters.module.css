@@ -1,4 +1,4 @@
-/* cs-audited-club-page */
+/* cs-blessed-club-page */
 
 /* Shared styles for ClubPage's two list filters — the mode segmented buttons
  * (ModeFilter, over "Start a new game") and the gametype dropdown
@@ -11,8 +11,8 @@
  *
  * Both are sized DOWN from the app's standard controls (base.css's `<button>`,
  * fields/SelectField). A filter is chrome ON a heading, not something you came
- * to the page to press — it should read as quieter than the game buttons and
- * game cards it's filtering.
+ * to the page to press — it should read as quieter than the rows it's
+ * filtering.
  */
 
 /* ─── ModeFilter — the All / Co-op / Compete segmented buttons ───────────── */

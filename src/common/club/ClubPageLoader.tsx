@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -57,8 +57,8 @@ export function ClubPageLoader({ handle, session }: Props) {
     let mounted = true
 
     async function load() {
-      // ONE call where there were four serial reads (clubs → clubs_members →
-      // profiles → clubs_gametypes). See `common.get_club_page`.
+      // One call for the club, its roster and its enrolled gametypes; why it
+      // is one call is docs/common.md → `get_club_page`.
       const res = await runRpc<ClubPageData>(
         commonDb.rpc('get_club_page', { target_handle: handle }),
         { presentFaults: false },

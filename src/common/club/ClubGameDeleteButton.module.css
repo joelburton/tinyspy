@@ -1,4 +1,4 @@
-/* cs-audited-club-page */
+/* cs-blessed-club-page */
 
 /* The delete affordance in a game entry's top-right corner. Two visual states,
  * driven by `deleteButtonActive`: the quiet × until you go looking for it, and
@@ -7,7 +7,7 @@
  * keeps the loud state from sticking around.
  *
  * It absolute-positions against WHATEVER CONTAINS IT — a SelectionList row, or
- * the standalone callout's box. Both supply the positioning context; neither is
+ * the current-game card's box. Both supply the positioning context; neither is
  * named here, which is what lets one affordance serve both. */
 
 /* @@ */ .deleteButton {

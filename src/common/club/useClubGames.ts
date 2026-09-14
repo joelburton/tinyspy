@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
@@ -14,8 +14,8 @@ import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
 /**
  * Display shape for one game in the club's games list: the fields of a
  * common.games row this page renders, plus the manifest of the gametype it
- * belongs to. ClubPage's classify-into-sections logic also reads `isTerminal`
- * to assign the right state for CSS treatment.
+ * belongs to. ClubPage's `gameState` reads `isTerminal` to pick the row's
+ * corner flag.
  *
  * Anything about the GAMETYPE is reached through `manifest` rather than copied
  * flat — the filter's family and brand, the row's mode and logo. `statusLabel`
@@ -77,12 +77,11 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
 
     async function loadGames() {
       const myGen = ++generation
-      // One read into common.games — the labelFor refactor moved
-      // all the listing data here, so per-gametype fan-out is
-      // gone. Each row's label comes from the matching manifest's
-      // pure `labelFor`. Games whose gametype isn't in this FE's
-      // registry are silently skipped (the same forward-compat
-      // posture used for Start buttons).
+      // One read into common.games: everything a label needs is on the
+      // row, so each row's label is the matching manifest's pure
+      // `labelFor`. A gametype this FE's registry doesn't have is
+      // silently skipped — the same forward-compat posture the start
+      // list takes.
       const res = await readRows(
         commonDb
           .from('games')
@@ -100,7 +99,7 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       )
       if (!mounted || myGen !== generation) return
       // A failure here leaves the LIST alone — no error page, no cleared list.
-      // Unlike the club load above, this runs against a page that is already on
+      // Unlike the club load (ClubPageLoader), this runs against a page that is already on
       // screen and whose other half is fine, so a modal over it is the right
       // escalation and replacing it would not be (error-page/doc.md).
       //

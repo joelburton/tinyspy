@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
 import { Segmented } from '../buttons/Segmented'
@@ -7,8 +7,7 @@ import styles from './clubFilters.module.css'
 type Props = {
   value: ModeFilterValue
   onChange: (value: ModeFilterValue) => void
-  // Whether this is a solo club (handle starts with '='). Renders nothing — see
-  // the docstring.
+  // Whether this is a solo club. Renders nothing there — see the docstring.
   soloClub: boolean
 }
 
@@ -18,8 +17,8 @@ type Props = {
  * on desktop, and under the tab bar on mobile.
  *
  * Three toggle BUTTONS (`aria-pressed`) rather than radios or an ARIA tabs
- * pattern — the same shape, and the same reasoning, as ClubPage's mobile tab
- * bar: exactly one is pressed at a time, and pressed-ness is the whole state.
+ * pattern — `<Segmented>`'s docstring says why: exactly one is pressed at a
+ * time, and pressed-ness is the whole state.
  *
  * **A solo club gets no filter at all.** Mode is noise with one player — the
  * same call `<ModeBadge>` makes when it suppresses the "Co-op" badge there — so

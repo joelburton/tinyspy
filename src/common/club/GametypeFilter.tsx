@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { FilterSelect } from '../lists/FilterSelect'
 import styles from './clubFilters.module.css'
@@ -29,8 +29,7 @@ type Props = {
  * is lost by collapsing the pair here.
  *
  * A dropdown rather than a second row of segmented buttons: this one has as
- * many choices as the club has played games (up to thirteen families), which is
- * a list, not a switch.
+ * many choices as the club has played families, which is a list, not a switch.
  *
  * **`<FilterSelect>`, not a native `<select>`** — the club page is not a "real
  * form" (docs/ui.md → Real forms), so its controls don't take focus and don't

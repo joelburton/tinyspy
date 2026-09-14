@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createWaffleGame } from './helpers/fixtures'
@@ -16,7 +16,7 @@ test.describe('club page keyboard nav', () => {
   test('tab toggles lists; arrows move; enter starts/opens', async ({ browser }) => {
     const club = await createSoloClub('ckbn')
     // Three games: creating each un-currents the previous, so the club shows
-    // one active game — as a callout AND as a row — plus two shelved rows.
+    // one current game — as the card AND as a row — plus two shelved rows.
     const g1 = await createWaffleGame(club)
     const g2 = await createWaffleGame(club)
     const g3 = await createWaffleGame(club)
@@ -105,7 +105,7 @@ test.describe('club page keyboard nav', () => {
     expect([g1.id, g2.id, g3.id]).toContain(landedOn)
   })
 
-  test('a mouse click on a start button leaves no focus ring and keeps the cursor', async ({
+  test('a mouse click on a start row leaves no focus ring and keeps the cursor', async ({
     browser,
   }) => {
     const club = await createSoloClub('ckbm')
@@ -162,7 +162,7 @@ test.describe('club page keyboard nav', () => {
    * mouse and the keyboard disagreeing about "the selected item" — and the next
    * arrow key jumped somewhere unrelated.
    */
-  test('clicking a start button moves the cursor to it', async ({ browser }) => {
+  test('clicking a start row moves the cursor to it', async ({ browser }) => {
     const club = await createSoloClub('ckbc')
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -170,8 +170,8 @@ test.describe('club page keyboard nav', () => {
     await page.goto(`/c/${club.handle}`)
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
 
-    const buttons = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
-    /** Index of the start button wearing the cursor ring, or -1. */
+    const rows = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
+    /** Index of the start row wearing the cursor ring, or -1. */
     const ringed = () =>
       page.evaluate(() =>
         [...document.querySelectorAll('[aria-label="Start a new game"] [data-testid="list-row"]')].findIndex(
@@ -185,7 +185,7 @@ test.describe('club page keyboard nav', () => {
     // Click the THIRD game, then cancel its setup dialog: the click set the
     // cursor there without revealing it (a mouse user has no use for the ring)...
     const cancel = page.getByRole('button', { name: /^cancel$/i })
-    await buttons.nth(2).click()
+    await rows.nth(2).click()
     await expect(cancel).toBeVisible({ timeout: 5000 })
     expect(await ringed()).toBe(-1)
     await cancel.click()

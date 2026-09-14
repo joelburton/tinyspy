@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { StandardForm } from '../forms/StandardForm'
 import { FORM_ERROR_KEYNAME, type FormErrors } from '../forms/formState'
@@ -31,8 +31,7 @@ type Props = {
  * in the "name is taken" message; the server runs the canonical
  * version before insert.
  *
- * Keep in sync with `common.slugify_club_name` in
- * 20260615000000_common.sql.
+ * Keep in sync with `common.slugify_club_name` in `supabase/sql/common.sql`.
  */
 function slugify(name: string): string {
   return name

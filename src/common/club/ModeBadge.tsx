@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-club-page
 
 import { cls } from '../utils/cls'
 import { MODE_LABEL } from '../manifest/gameManifest'

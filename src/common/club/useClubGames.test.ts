@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * WHAT A GAMES ANSWER BECOMES, AND WHAT A FAILED ONE DOES INSTEAD.

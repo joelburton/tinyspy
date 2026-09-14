@@ -7,10 +7,9 @@ import type { Locator, Page } from '@playwright/test'
  *
  * A row is a plain `<div>` — it is not a `<button>` and has no `href`, because
  * the list container owns the keyboard and the click (docs/ui.md → Selection
- * lists). So `getByRole('button', { name: /Brand/ })` cannot reach one, which is
- * what every one of these call sites used to do. Scoped by the list's own label
- * so the class needle can't drift onto some other module that also calls a
- * class `row`.
+ * lists). So `getByRole('button', { name: /Brand/ })` cannot reach one; the
+ * row's `data-testid` can, scoped by the list's own label so the two lists'
+ * rows are told apart.
  */
 function clubRow(page: Page, listLabel: string, text: RegExp): Locator {
   return page

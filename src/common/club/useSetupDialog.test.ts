@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * TWO WAYS INTO ONE DIALOG, AND ONE WAY OUT.

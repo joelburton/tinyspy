@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useState } from 'react'
 import { db as commonDb } from '../supabase/db'
@@ -25,27 +25,12 @@ type Props = {
   // and only writes on Save.
   allowedGametypes: Set<string>
   // Save succeeded — hand the new enrolled set back so ClubPage can update its
-  // `allowedGametypes` (and thus the Start buttons) without a refetch.
+  // `allowedGametypes` (and thus the start list) without a refetch.
   onSaved: (next: Set<string>) => void
   // User dismissed without saving (Cancel / Esc / X).
   onCancel: () => void
 }
 
-/**
- * "Edit club" dialog. It holds one setting — which gametypes the club plays,
- * the row set in `common.clubs_gametypes` — in a panel shaped to take more.
- *
- * The games list is the full FE registry (`src/gametypes.ts`), NOT
- * filtered by player count: per the product call, a solo club may
- * list a two-player game if its member wants it shown — they simply
- * won't be able to start it (the Start button stays disabled by the
- * manifest's `numberOfPlayers`). Server-side, `set_club_gametypes`
- * likewise applies no solo filter; that filter only shapes the
- * *default* enrollment at club creation.
- *
- * Lifecycle mirrors SetupGameModal: ClubPage conditionally renders
- * us — mounting opens, unmounting closes. We hold no "is open" state.
- */
 /**
  * What the form holds, keyed by the name it is SENT AS — `gametypes` is
  * `common.set_club_gametypes`'s own parameter, so a validation naming that
@@ -58,6 +43,21 @@ type Values = { gametypes: Set<string> }
  *  answer says, and the only thing a branch can assert about it. */
 type SetGametypesAnswer = { result: 'saved' }
 
+/**
+ * "Edit club" dialog. It holds one setting — which gametypes the club plays,
+ * the row set in `common.clubs_gametypes` — in a panel shaped to take more.
+ *
+ * The games list is the full FE registry (`src/gametypes.ts`), NOT
+ * filtered by player count: per the product call, a solo club may
+ * list a two-player game if its member wants it shown — they simply
+ * won't be able to start it (the start row stays dimmed by the
+ * manifest's `numberOfPlayers`). Server-side, `set_club_gametypes`
+ * likewise applies no solo filter; that filter only shapes the
+ * *default* enrollment at club creation.
+ *
+ * Lifecycle mirrors SetupGameModal: ClubPage conditionally renders
+ * us — mounting opens, unmounting closes. We hold no "is open" state.
+ */
 export function EditClubModal({
   clubHandle, clubName, allowedGametypes, onSaved, onCancel,
 }: Props) {

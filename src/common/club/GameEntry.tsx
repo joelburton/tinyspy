@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import type { ReactNode } from 'react'
 import type { GameManifest } from '../manifest/gameManifest'
@@ -22,7 +22,7 @@ type Props = {
   manifest: GameManifest
   // The prominent first line — a gametype's name on the start list, a game's
   // generated title everywhere else. Always present: `common.games.title` is
-  // `not null` and ClubPage resolves it before it builds a row.
+  // `not null`, and `useClubGames` builds every row from one.
   title: ReactNode
   // True for the current-game callout, which takes a larger title than a list
   // row. Nothing else differs between the two.

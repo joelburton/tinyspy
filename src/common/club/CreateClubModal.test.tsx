@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * WHERE A SERVER VALIDATION LANDS.

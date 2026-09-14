@@ -183,7 +183,7 @@ A "suspended" game is just a description for **a non-current, non-terminal game*
 
 Terminal games are non-current and `is_terminal = true`. Clubs can still view these (to look at the solved grid, reminisce, etc.).
 
-There's no special "suspended" category in the schema or the listing. The club page shows a single list of non-current games, marked with a color/CSS indicator for terminal vs non-terminal.
+There's no special "suspended" category in the schema or the listing. The club page's "Your games" is a single list of every game, the current one included; a corner flag marks the ones still open (orange for the current game, yellow for a suspended one), and a terminal game has none.
 
 ## Lifecycle: when `is_current_view` flips
 

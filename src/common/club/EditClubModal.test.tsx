@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * WHICH GAMES THIS CLUB PLAYS — and where a refusal from

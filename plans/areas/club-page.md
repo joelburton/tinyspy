@@ -4,21 +4,25 @@ The folders it reads: `club`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
-26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
-F-12, F-13, F-14, F-16 and F-17 worked 2026-09-13**, F-9 taking F-11's
-club-page half and F-15's four not-ok arms with it — and **the prose group
-(F-1 to F-8) done the same day.** Every finding is worked. What is left is
-Joel's: the closing re-read, the stamps, the close.
+**Status: CLOSED 2026-09-14, blessed.** Joel: *"bless all the files (including
+the ModeBadge ones) and close the area. then commit."* Every roster file —
+the folder's code and stylesheets, `ModeBadge`'s three, and the four e2es —
+reads `cs-blessed-club-page`. `e2e/helpers/clubPage.ts` was never on the
+roster and stays `cs-unmet`. Opened and audited 2026-09-13: seventeen
+findings plus a decomposition, then a closing re-read that found eight more
+(F-18 to F-25) and that F-7 had been declared done with three listed sites
+untouched — all worked. `doc.md` is harvested; `todo.md` carries the Bug and
+two Soon items. Nothing was seen in a browser and no e2e was run.
 
 ## The roster
 
 Agreed 2026-09-13 (Joel: "1. ok" to the four e2es, "2. keep in setup-form"
 for `SetupGameModal`, "3. yes" to `CreateClubModal` staying here).
 
-The folder, 22 files:
+The folder:
 
-- `ClubPage.tsx` (1162 lines) + `ClubPage.module.css`
+- `ClubPage.tsx` (1162 lines at the opening, 851 after the decomposition) +
+  `ClubPage.module.css`
 - `CurrentGameCard.tsx` + `.module.css` — the current-game callout (was
   `ClubGameCard`; renamed 2026-09-13, F-12)
 - `ClubGameRow.tsx` — a "Your games" row's contents (its stylesheet went with
@@ -55,8 +59,7 @@ seven Soon and one Someday from the stopped step 6.
 
 **Evidence, not roster:** `SetupGameModal` (setup-form's, mounted here),
 `SelectionList` + `FilterSelect` (lists'), `Segmented`, `TrashButton`,
-`Companion`, `KeyList`, `ModePill` (game-page's; every render site is here),
-`Chat` + `ChatButton`, `PageHeader` + `PageHeaderMenu` + `PageHeaderStatusSlot`,
+`Companion`, `KeyList`, `Chat` + `ChatButton`, `PageHeader` + `PageHeaderMenu` + `PageHeaderStatusSlot`,
 `useClubPresence` + `useClubSetupPresence`, `useTabRing`, `useBoundAction`,
 `useStickyChoice`, `useFeedbackSlot`, `GameLogo`, `friendlyDate`, and the RPCs
 `unset_current_view`, `delete_game`, `create_club`, `set_club_gametypes`. `App`
@@ -532,6 +535,17 @@ extended.
   `create_club` and `claim_username` are the only writers of `clubs_members`.
 - **`todo.md`'s "viewport-fit chain has no vocabulary"** is core-css's
   question and stays in the todo.
+- **`e2e/helpers/clubPage.ts` is `cs-unmet`** and not on the roster, though
+  F-17 edited it and every caller is a club-page e2e. Whether it joins is
+  Joel's call, the same question as `ModeBadge`'s three files. Its docstring
+  is in F-19 and F-22 either way.
+- **`orphanedDocstrings` cannot see F-21.** Its one exemption — a stacked pair
+  is not suspect when the earlier docstring is the file's first — is what let
+  the `EditClubModal › Values` line come off: converting the Props block to
+  `//` made that pair the file's first, so the guard stopped reporting it, and
+  the prose pass read "stopped reporting" as "fixed". Not a finding about the
+  guard (guards are not part of the audit); a note that green there is not
+  evidence here.
 
 ## Predicted test breaks
 
@@ -545,10 +559,14 @@ extended.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-13;
+      F-18 to F-25 below)
+- [x] the folder's `doc.md` intro written (F-1); its row off `INTROS_OWED`;
+      Details harvested at the re-read
+- [x] `todo.md` holds everything still owed (the Bug and two Soon items);
+      its stale Someday item went with F-22
+- [x] every file on the roster blessed (2026-09-14, on Joel's word — 36 files
+      read `cs-blessed-club-page`; the helper is not on the roster)
 
 ## The decomposition — 2026-09-13, after the findings
 
@@ -675,3 +693,232 @@ to `//` un-stacked the pair and the guard went red asking for its line back.
 Its sibling `CreateClubModal › Values` was a real orphan of a different kind —
 the component's docstring sat above `type Values` instead of above the
 component — and moving it cleared that one too. Both lines are deleted.
+
+## The closing re-read — 2026-09-13
+
+Every roster file end to end in one sitting, the four e2es and
+`e2e/helpers/clubPage.ts` with them, then every doc section the roster lists,
+then a grep per worked finding for the same defect elsewhere in the folder.
+The unit tests (57 across the folder and three guards) are green going in.
+Eight findings. Three are the area's own findings recurring in
+prose the area wrote the same day — F-4's archaeology in F-9's comments, F-7's
+Start buttons in three docs, and F-3's docstring-on-the-wrong-declaration in
+the modal next to the one it fixed.
+
+### F-club-page-18 · `hook-still-called-clubpage` · WORKED 2026-09-13 · the decomposition left six sentences naming ClubPage for what its hooks now do
+
+`useClubGames` builds the rows and holds the subscription; `ClubPageLoader`
+holds the club load. The prose around them still says ClubPage:
+
+- `ClubPage.tsx`, `handleDelete`'s docstring: "the postgres-changes
+  subscription on ClubPage refetches the games list"; and in its `ok` arm,
+  "the postgres-changes subscription below fires DELETE … our loadGames()
+  re-runs" — there is nothing below; both live in the hook.
+- `useClubGames.ts`, the not-ok branch: "Unlike the club load above" — the
+  club load is in another file.
+- `useClubGames.ts`, `ListedGame`'s docstring: "ClubPage's
+  classify-into-sections logic also reads `isTerminal` to assign the right
+  state for CSS treatment" — no sections (F-2), and what reads it is
+  `gameState`, for the corner flag.
+- `GameEntry.tsx` (`title`), `CurrentGameCard.tsx` (`manifest`, `title`),
+  `ClubGameRow.tsx` (`manifest`, `title`, and the `dateLabel` comment "when
+  ClubPage refetches via realtime"): "ClubPage has it in hand for every row it
+  builds" / "resolved by ClubPage before it builds the row". The hook builds
+  the row.
+- `ClubPage.tsx`: the club-presence comment ("Club presence: who's in the
+  club orbit right now …") sits above the feedback slot's comment, four
+  statements away from the `useClubPresence` call it describes — the
+  decomposition inserted the games hook between them.
+
+Each is a one-word fix, and together they are the shape
+[[reread-checks-siblings]] predicts: a finding that moves code writes the
+next day's stale claim.
+
+### F-club-page-19 · `archaeology-written-today` · WORKED 2026-09-13 · F-4's class, in prose F-9 and the decomposition wrote
+
+- `ClubPage.tsx`, `ClubPageData`'s docstring: "The three pieces were four
+  serial queries until the RPC replaced them — see that function's own comment
+  for why."
+- `ClubPageLoader.tsx`, at the call: "ONE call where there were four serial
+  reads (clubs → clubs_members → profiles → clubs_gametypes)."
+- `useClubGames.ts`, at the read: "the labelFor refactor moved all the listing
+  data here, so per-gametype fan-out is gone" — **this is F-4's own listed
+  site** (`ClubPage.tsx` 679–681 at the opening). It moved into the hook with
+  the decomposition, before the prose pass, and the pass swept `ClubPage.tsx`
+  by category and did not follow it.
+- `ClubGameDeleteButton.tsx`: "load-bearing now that a game row is a
+  `<SelectionList>` row".
+- `e2e/helpers/clubPage.ts`: "which is what every one of these call sites
+  used to do".
+- `docs/ui.md` → ClubPage header, three sentences: "deleting a game used to
+  use this slot and no longer does"; "(They *were* outline cards — a treatment
+  that read well at three games and badly at thirteen …)"; "The body Members
+  list and the `/c/<handle>` URL line are gone".
+
+Each keeps its standing fact and loses the story, as F-4 said.
+
+### F-club-page-20 · `start-buttons-remain` · WORKED 2026-09-13 · F-7 was declared done with three of its sites untouched, and the class has a dozen more
+
+**Listed in F-7 and still there, verified against the current files:**
+
+- `docs/ui.md` → Page-height fits the viewport: "ClubPage — fits the viewport
+  via `height: calc(100svh - 2 * var(--page-padding-y))`" — the bound is the
+  shared `.pageHeaderAndMainArea`'s, on every page.
+- `docs/common.md`, the player-count paragraph: "`src/common/lib/gameManifest.ts`"
+  — it is `common/manifest/gameManifest.ts`.
+- `docs/common.md`, the `baseGametype` row: "later structurally — ClubPage may
+  render siblings as a single visual group".
+
+F-7's summary in the prose pass says what it worked — the `StartGameButtons`
+mentions — and these three were never that; they were in the list and got
+skipped. [[re-verify-a-finding-before-presenting]].
+
+**Same class, not listed.** Start buttons have been rows since the lists
+arrived; the page's docs still say buttons, and cards, in a dozen places:
+
+- `docs/common.md`: "ClubPage hides the button entirely … and disables it with
+  a tooltip" (player-count paragraph); "its own Start button on the ClubPage";
+  "both modes are visible as separate Start buttons"; "the Start button hides
+  in 1-player solo clubs" (Solo-club handling); and three in the Solo clubs
+  section ("render their Start buttons normally", "the FE just hides the
+  button", "their Start button is hidden").
+- `docs/ui.md` → ClubPage header, the Layout bullet: "**Left column** — the
+  club name + handle, the active game card (when there is one), and the
+  per-gametype Start buttons … The buttons are a **dense list** … Future
+  treatment may group siblings as a single visual block (one logo + two
+  side-by-side Start buttons …)". The club name is not in the left column
+  either — it is a full-width row above both.
+- `docs/naming.md`: "Future ClubPage rendering — siblings could render as a
+  single grouped block … rather than two unconnected buttons"; and in the
+  action glossary, "click the 'Start connections' button on ClubPage".
+- `docs/states.md`: "The club page shows a single list of non-current games,
+  marked with a color/CSS indicator" — it lists every game, the current one
+  included, and the flag is the indicator.
+- In the folder: `ClubPage.tsx`'s `allowedGametypes` comment ("We gate the
+  Start-button rendering on this set … so the buttons update without a
+  refetch"); `EditClubModal.tsx` twice ("and thus the Start buttons", "the
+  Start button stays disabled by the manifest's `numberOfPlayers`");
+  `useClubGames.ts` ("the same forward-compat posture used for Start
+  buttons"); `clubFilters.module.css` ("quieter than the game buttons and game
+  cards it's filtering").
+- The e2es: `club-filters` names its two row locators `startButtons` and
+  `gameCards` and says "Every remaining start button"; `club-keyboard` has two
+  test titles and a helper docstring saying "start button".
+
+### F-club-page-21 · `docstring-on-values-again` · WORKED 2026-09-13 · EditClubModal's component docstring sits on `type Values`
+
+`EditClubModal.tsx`: the docstring beginning "'Edit club' dialog. It holds one
+setting …" is immediately followed by `Values`' own docstring and then `type
+Values`; `export function EditClubModal` has no docstring at all. This is the
+exact defect the prose pass fixed one file over in `CreateClubModal.tsx`, and
+the pass believed it had cleared this one too — see the Notes for why the
+guard went quiet. Move it down to the function.
+
+### F-club-page-22 · `stale-claims-second-sweep` · WORKED 2026-09-13 · sentences that describe something not there
+
+- `ClubPage.tsx`, the `mobileTab` comment: "'completed' = the right column
+  ('Your games' — the club's completed + shelved games)". The list holds every
+  game, the current one included, which the same file says twice further down.
+  The state value `'completed'` names the tab for what it is not; the CSS keys
+  on it (`[data-tab='completed']`) and nothing else does. Options: (1) fix the
+  comment only; (2) rename the value to what the tab shows (`'yours'`) and the
+  one CSS selector with it.
+- `ClubPage.tsx`, the delete toast: "the toast is the only lasting record here,
+  since this page has no pill" — the page's one slot is the header's, which
+  the same function's docstring says two paragraphs up. "No pill of its own"
+  is the claim.
+- `ClubPage.tsx`, `handleDelete`'s docstring: "The card itself owns the
+  confirm-flow state" — `ClubGameDeleteButton` does, and the `else` arm
+  already says so.
+- `useClubRoster.ts`: "read in the two steps `docs/supabase.md` prescribes for
+  a roster: `clubs_members` → `profiles`" — supabase.md prescribes no such
+  thing; its two mentions of `profiles` are the stale-JWT check and the seed
+  tables.
+- `CreateClubModal.tsx`, `slugify`: "Keep in sync with
+  `common.slugify_club_name` in 20260615000000_common.sql" — the function is
+  behavior, and lives in `supabase/sql/common.sql`; the migration does not
+  contain it.
+- `CurrentGameCard.tsx`: "**The duplication between this and `<ClubGameRow>`
+  is known and left.** Whether the two should share an inner shape is a
+  club-page question, and that area has not opened" — resolved by
+  `<GameEntry>` (F-12), and a sprint reference in a durable file.
+- `GametypeFilter.tsx`: "(up to thirteen families)" — there are sixteen
+  `baseGametype`s, and a count in prose rots; say "as many as the club has
+  played".
+- `ClubPage.test.tsx`: "a registry of three, not the real sixteen" — the
+  registry has thirty manifests; sixteen is the families. Same fix.
+- `docs/mobile.md` → Club page: the mobile filter row is "left-aligned (it
+  belongs to the list below it; the full-width split is the tab bar's look,
+  not its)". `.mobileFilters` is `justify-content: flex-end`, and its comment
+  argues for RIGHT ("matching where both filters sit on desktop"). The CSS is
+  what ships; the doc is wrong. **Not seen in a browser** — read off the rule.
+- `e2e/helpers/clubPage.ts`: "so the class needle can't drift onto some other
+  module that also calls a class `row`" — F-17 made it a test id; there is no
+  class needle.
+- `e2e/club-mobile-tabs.e2e.ts` ("see the comment in ClubPage.tsx") and
+  `ModeFilter.tsx` ("the same shape, and the same reasoning, as ClubPage's
+  mobile tab bar"): F-6 moved that reasoning to `<Segmented>`'s docstring, and
+  ClubPage's comment now only points there. Point at `<Segmented>`.
+- `StartGameRow.tsx` and `ModeFilter.tsx`, the `soloClub` prop note: "(handle
+  starts with '=')" — F-11 handed these to the prose pass, which did not take
+  them. The FE reads `is_solo`; say "a solo club".
+- `todo.md` → Someday: "`ClubPage.tsx` builds its own `{ text, diagnostics }`
+  pair and renders `<ErrorPage>` from it" — F-9 and F-15: the loader renders
+  `<EnvelopeErrorPage>` from the envelope. Delete the item.
+
+### F-club-page-23 · `active-means-current` · WORKED 2026-09-13 · the value was renamed and the prose kept the old word
+
+F-12 made `ClubGameState`'s `'active'` `'current'` because docs/states.md says
+"active" reads as both view-state and play-state. Five sentences still say it
+for the current game: `ClubPage.module.css` ("the active-game callout"),
+`e2e/club-keyboard.e2e.ts` ("one active game — as a callout AND as a row"),
+`e2e/club-filters.e2e.ts` ("the active-game card"), `docs/mobile.md` → Club
+page ("left = active game + start-a-new-game"), and `docs/ui.md`'s Layout
+bullet ("the active game card"). "Callout" itself is ui.md's word for the
+card and stays.
+
+### F-club-page-24 · `desktop-first-restated` · WORKED 2026-09-13 · one comment carries docs/ui.md's platform argument in full
+
+`ClubPage.module.css`, above `.tabs`: "This app is desktop-first (docs/ui.md):
+the desktop layout above is the default, and mobile is expressed as an
+*exception* layered on top — never mobile-first min-width. `--mobile` is the
+shared collapse breakpoint (src/common/mobile/breakpoints.css): 900px,
+capturing phones and portrait tablets while landscape tablets (≥ ~1024px) keep
+the two-column desktop layout." That is docs/ui.md → Audience and platform
+and `breakpoints.css`'s own header. Local: the bar is hidden on desktop and
+shown below `--mobile`. F-6's class.
+
+### F-club-page-25 · `tidy` · WORKED 2026-09-13 · three things the eye trips on
+
+- `ClubPage.tsx`: the "'Your games' lists EVERY game the club has …" comment
+  above the filters section is attached to nothing — a blank line follows it
+  — and its content is the right column's JSX comment further down.
+- `ClubGameDeleteButton.tsx`, the **idle** bullet: "hovered or" / "holds
+  focus" is broken across two lines mid-clause.
+- `e2e/new-game-shortcut.e2e.ts`: "its copy says *shelved*" and "the copy
+  reassures" — a message's words are its text; "copy" is not a word the repo
+  spends that way. (Both sentences are in the file's first test, which is a
+  game-page test.)
+
+### Working F-18 to F-25 — 2026-09-13
+
+Joel: *"fix any of the new findings that don't require a decision."* Every
+item above is worked except F-22's two decisions. **The tab value: Joel took
+option 2** (*"2"*) — `mobileTab` is `'new' | 'games'`, `'games'` being the
+tab's label, and the one CSS selector followed; nothing else read the value.
+**The filter row: right, and it stays there** (Joel: *"that's on the
+right, and it should stay there"*) — docs/mobile.md now says right-aligned,
+with the stylesheet's reason. Nothing in F-18 to F-25 is open.
+
+The class grep after the edits found four more sentences of F-20's kind that
+the finding had not listed — `docs/ui.md`'s Selection-lists paragraph ("a
+start button opens its SetupGameModal … a game card navigates", "exactly like
+the start buttons below them", "The active-game card is mouse-only") and
+`docs/common.md`'s `clubs_gametypes` row ("which Start buttons to surface").
+Fixed with the rest. "Help copy" / "distinct copy" in `docs/common.md`'s
+sibling-manifest list is the same word F-25 changed in the e2e, outside the
+roster and left.
+
+Verified: `tsc -b` clean, eslint clean on every touched file, 329 tests green
+(the folder and every guard). The four e2es changed only prose and two local
+names (`startRows`, `gameRows`, `rows`) and **were not run**.

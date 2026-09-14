@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useCallback, useState, type RefObject } from 'react'
 import { navigate } from '../routing/router'

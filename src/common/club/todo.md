@@ -28,9 +28,4 @@
 
 ## Someday
 
-- `ClubPage.tsx` builds its own `{ text, diagnostics }` pair and renders
-  `<ErrorPage>` from it. `EnvelopeErrorPage` derives both from the envelope the
-  hook already has — see `error-page/doc.md`. Whether the club hook keeps its
-  pair is this folder's decision, with its files open.
-
 ## Maybe

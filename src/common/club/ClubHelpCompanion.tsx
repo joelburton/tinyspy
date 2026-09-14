@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { Companion } from '../floating-panels/Companion'
 import { KeyList } from '../actions/KeyList'

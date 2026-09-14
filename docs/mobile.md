@@ -251,7 +251,7 @@ PostCSS pipeline resolves them.
 ### Club page — tabs instead of two columns
 
 [`ClubPage`](../src/common/club/ClubPage.tsx) is a two-column body on
-desktop (left = active game + start-a-new-game; right = the "Your games" list).
+desktop (left = current game + start-a-new-game; right = the "Your games" list).
 On a phone the two columns are too cramped, so below the breakpoint the body
 becomes a **single column with a tab switcher**: a "New game" tab (the left
 column) and a "Your games" tab (the right column). Only the selected
@@ -273,9 +273,10 @@ one of them.
 [ui.md → Filtering the two lists](ui.md#clubpage-header)) lives at the right of
 its section heading on desktop — and the breakpoint hides those heading *rows*
 entirely, since the tab already names the view. So the filter for the showing
-tab renders instead in a row directly under the tab bar, left-aligned (it
-belongs to the list below it; the full-width split is the tab bar's look, not
-its). Both filters are therefore in the tree twice, one instance hidden: no CSS
+tab renders instead in a row directly under the tab bar, right-aligned — where
+both filters sit on desktop, so the control doesn't jump sides across the
+breakpoint, and where a `<FilterSelect>`'s list, which opens leftward from the
+trigger's right edge, stays on screen. Both filters are therefore in the tree twice, one instance hidden: no CSS
 relocates an element from inside a column to a sibling of the tab bar, and the
 controls are stateless, so the two instances can't disagree. The gametype
 filter goes back up to full control size on touch — it's the only control in

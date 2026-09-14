@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { MODE_LABEL } from '../manifest/gameManifest'
 

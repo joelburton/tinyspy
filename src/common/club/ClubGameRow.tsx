@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import type { GameManifest } from '../manifest/gameManifest'
 import { friendlyDate } from '../utils/friendlyDate'
@@ -6,11 +6,11 @@ import { GameEntry, type ClubGameState } from './GameEntry'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 
 type Props = {
-  // The gametype's manifest — drives the logo and the mode badge. ClubPage has
-  // it in hand for every row it builds.
+  // The gametype's manifest — drives the logo and the mode badge.
+  // `useClubGames` resolves it when it builds the row.
   manifest: GameManifest
   // The algorithmic per-game title, from `common.games.title` — `not null`
-  // there, and resolved by ClubPage before it builds the row.
+  // there.
   title: string
   // Gametype-rendered status string, e.g. "13/16 agents" or "lost (assassin)".
   // Produced by the manifest's `labelFor`.
@@ -54,7 +54,7 @@ export function ClubGameRow({
   onDelete,
 }: Props) {
   // Friendly relative date — see friendlyDate.ts. Doesn't tick; re-renders when
-  // ClubPage refetches via realtime, which is often enough for a game list.
+  // `useClubGames` refetches via realtime, which is often enough for a game list.
   const dateLabel = friendlyDate(lastActiveAt)
 
   return (

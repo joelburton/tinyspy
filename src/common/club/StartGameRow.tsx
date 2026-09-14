@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import type { GameManifest } from '../manifest/gameManifest'
 import { playerCountShort } from '../manifest/gameManifest'
@@ -7,9 +7,9 @@ import { GameEntry } from './GameEntry'
 type Props = {
   // The gametype this row offers.
   game: GameManifest
-  // Whether this is a solo club (handle starts with '='). Suppresses the
-  // "Co-op" badge and the player count — both are noise when there's only one
-  // member and every game there is played by them.
+  // Whether this is a solo club. Suppresses the "Co-op" badge and the player
+  // count — both are noise when there's only one member and every game there
+  // is played by them.
   soloClub: boolean
 }
 

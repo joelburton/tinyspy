@@ -44,3 +44,30 @@ read as one kind of thing seen three times.
   resize. A duplicated STATELESS control has nothing to disagree about. The
   cost the duplication does carry is real DOM, which is why
   `club-filters.e2e.ts` scopes every locator.
+- **The current-game pointer is healed here, not trusted.** A game flagged
+  current with nobody present in it is a pointer that stuck, and this page is
+  where that shows, so after a short grace period it clears the flag itself.
+  Presence is the evidence — a game page announces its game on the club's
+  presence channel — and how the pointer sticks in the first place is
+  [docs/common.md](../../../docs/common.md) → the current-view pointer.
+- **Deleting the current game is a broadcast, then the RPC.** Its players may
+  be on the game page, so the page sends the same `suspend` event the suspend
+  confirm does, waits a beat for them to leave, and only then deletes. The
+  broadcast is friendliness rather than correctness and never blocks the
+  delete. A game that is not current has nobody in it by definition and goes
+  straight to the RPC. `handleDelete` in `ClubPage.tsx` carries the mechanics.
+- **A failed games read is shown in the header's slot**, which is otherwise
+  for other people's news. Nothing retries that read — it re-runs only when
+  another of the club's game rows changes — so a stale list is a page to
+  reload, and the members strip the message hides is not what the player needs
+  meanwhile. A delete's own answers are toasts for the same reason: they must
+  not cost the strip.
+- **`?new=<gametype>` opens the setup dialog on arrival.** It is sent from
+  outside this folder — the game page's ⌥+ and crosswords' New game — for a
+  fresh game whose options you want to change first. The page reads it once,
+  and closing the dialog drops it from the URL so a refresh does not reopen
+  it. `useSetupDialog` is where a press and an arrival become one answer.
+- **`useClubRoster` lives here and this page does not use it.** The game page
+  does, for chat: a game knows its players, but chat is club-wide, and a sender
+  who is not in the game still needs a name. It sits in this folder because
+  the roster is the club's.

@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createBoggleGame } from './helpers/fixtures'
@@ -14,7 +14,7 @@ import { signIn } from './helpers/session'
  * Starting a new game doesn't END the current one: `create_game` clears the
  * club's current-view flag and the old game stays resumable from the club page.
  * The confirm exists so an accidental `+` doesn't read as "I just lost my
- * game" — which is why its copy says *shelved*, not ended.
+ * game" — which is why its text says *shelved*, not ended.
  */
 test('“+” starts a new game, after confirming mid-play', async ({ browser }) => {
   const club = await createSoloClub('ngsc')
@@ -35,7 +35,7 @@ test('“+” starts a new game, after confirming mid-play', async ({ browser })
   await page.keyboard.press('Escape')
   await expect(page.getByRole('menuitem', { name: /New game/ })).toBeHidden()
 
-  // `+` mid-play asks first — and the copy reassures rather than warns.
+  // `+` mid-play asks first — and the text reassures rather than warns.
   await page.keyboard.press('+')
   await expect(page.getByText('Start a new game?')).toBeVisible({ timeout: 10000 })
   await expect(page.getByText(/shelved, not lost/)).toBeVisible()

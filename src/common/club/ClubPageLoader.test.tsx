@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * THREE ANSWERS, THREE PAGES.

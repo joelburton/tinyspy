@@ -577,7 +577,7 @@ will list the other as a dependency whichever goes first.
 |    | **The pages** | | |
 | 29 | `simple-page` | `auth` · `loading` · `error-page` | **CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Twenty findings; the summary is under "Where to start" |
 | 30 | `homepage` | `home` | **CLOSED 2026-09-13, blessed.** the landing page after login: one list and the button that adds to it. Nineteen findings, all worked; the summary is under "Where to start". The roster took `e2e/faults.e2e.ts`, which no area had audited: grep `e2e/` by the page's heading text at every opening |
-| 31 | `club-page` | `club` | **OPEN 2026-09-13.** the club page; its `todo.md` carries what step 6 left |
+| 31 | `club-page` | `club` | **CLOSED 2026-09-14, blessed.** the club page: one RPC for the load, a shared face for its three game entries, a decomposition into a loader and two hooks. Twenty-five findings; the reading is `plans/areas/club-page.md` |
 | 32 | `setup-form` | `setup-form` | the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts |
 |    | **The game shell** — needed by games and nothing else | | |
 | 33 | `manifest` | `manifest` · `gametypes.ts` | the registry and the manifest contract every game fills in. `gametypes.ts` is the registry's list, the one file allowed to import every game; it was `root-files`' until that row folded into this one (Joel, 2026-09-05), once `boot` had taken the other two root files |

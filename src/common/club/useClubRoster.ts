@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
@@ -6,8 +6,8 @@ import { readRows } from '../supabase/dbResult'
 import type { Member } from '../members/member'
 
 /**
- * The FULL club membership (id + username + color), read in the two steps
- * `docs/supabase.md` prescribes for a roster: `clubs_members` → `profiles`.
+ * The FULL club membership (id + username + color), read in two steps:
+ * `clubs_members` for the ids, then `profiles` for those ids.
  *
  * Exists because the GAME page only knows the current game's *players*, but chat
  * is club-wide — so naming a chat sender (in the chat window AND the global-

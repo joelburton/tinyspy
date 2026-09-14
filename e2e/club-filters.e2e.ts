@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { test, expect } from '@playwright/test'
 import {
@@ -54,7 +54,7 @@ test.describe('club page list filters', () => {
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
 
     // The last-created game is the club's CURRENT one, so it starts out in the
-    // active-game card rather than the list. Nobody is actually viewing it, so
+    // current-game card rather than the list. Nobody is actually viewing it, so
     // ClubPage's abandoned-pointer heal clears it a beat later and it joins the
     // list. Wait that out before counting anything — otherwise the list length
     // changes under the assertions.
@@ -64,31 +64,31 @@ test.describe('club page list filters', () => {
     const modeButton = (name: string) =>
       headings.getByRole('button', { name, exact: true })
     const select = headings.getByLabel('Filter your games by game')
-    const startButtons = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
-    const gameCards = page.locator('[aria-label="Your games"] [data-testid="list-row"]')
+    const startRows = page.locator('[aria-label="Start a new game"] [data-testid="list-row"]')
+    const gameRows = page.locator('[aria-label="Your games"] [data-testid="list-row"]')
 
     // ─── Mode filter ────────────────────────────────────────────────────
-    const allStart = await startButtons.count()
+    const allStart = await startRows.count()
     expect(allStart).toBeGreaterThan(2)
-    await expect(gameCards).toHaveCount(4)
+    await expect(gameRows).toHaveCount(4)
 
     await modeButton('Co-op').click()
-    const coopOnly = await startButtons.count()
+    const coopOnly = await startRows.count()
     expect(coopOnly).toBeGreaterThan(0)
     expect(coopOnly).toBeLessThan(allStart)
-    // Every remaining start button is a co-op one...
+    // Every remaining start row is a co-op one...
     await expect(
       page.locator('[aria-label="Start a new game"]').getByText('Compete', { exact: true }),
     ).toHaveCount(0)
     // ...and the OTHER column is untouched — each filter owns one list.
-    await expect(gameCards).toHaveCount(4)
+    await expect(gameRows).toHaveCount(4)
 
     // Every gametype is coop or compete, so the two halves partition the whole.
     await modeButton('Compete').click()
-    expect(await startButtons.count()).toBe(allStart - coopOnly)
+    expect(await startRows.count()).toBe(allStart - coopOnly)
 
     await modeButton('All').click()
-    expect(await startButtons.count()).toBe(allStart)
+    expect(await startRows.count()).toBe(allStart)
 
     // ─── Gametype filter ────────────────────────────────────────────────
     // Siblings collapse: ONE option covers wordle_coop + wordle_compete, so
@@ -101,17 +101,17 @@ test.describe('club page list filters', () => {
 
     await pickGametype(page, 'WordNerd')
     // BOTH wordle games survive the family filter; the waffles don't.
-    await expect(gameCards).toHaveCount(2)
+    await expect(gameRows).toHaveCount(2)
     // ...and the filter never took focus, so the games list keeps its arrow-key
     // cursor. A control that took focus to open would blank it (see
     // GametypeFilter).
     expect(
       await page.evaluate(() => document.activeElement?.tagName),
     ).not.toBe('BUTTON')
-    expect(await startButtons.count()).toBe(allStart) // start list untouched
+    expect(await startRows.count()).toBe(allStart) // start list untouched
 
     await pickGametype(page, 'All games')
-    await expect(gameCards).toHaveCount(4)
+    await expect(gameRows).toHaveCount(4)
 
     await ctx.close()
   })

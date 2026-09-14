@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { runRpc } from '../supabase/dbResult'
 import { showToast, DEFAULT_TOAST_MS } from '../toasts/toastStore'
@@ -54,8 +54,8 @@ type ClubRow = Pick<
 >
 
 /** What `common.get_club_page` answers with: everything this page needs to
- *  render, in one read. The three pieces were four serial queries until the
- *  RPC replaced them — see that function's own comment for why. */
+ *  render, in one read. Why it is one read rather than three is docs/common.md
+ *  → `get_club_page`. */
 export type ClubPageData = {
   // The RPC's one answer. A call site's ok branch asserts this rather than
   // `type` alone, so an answer added later cannot sail into it.
@@ -121,10 +121,11 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // that drives it is display:none there (see ClubPage.module.css's mobile
   // breakpoint). Below the breakpoint only one column renders at a time so the
   // page still fits the viewport; the tabs pick which. 'new' = the left column
-  // (current game + start-a-new-game); 'completed' = the right column ("Your
-  // games" — the club's completed + shelved games). It also picks which
-  // filter the mobile filter row shows, since only one list is on screen.
-  const [mobileTab, setMobileTab] = useState<'new' | 'completed'>('new')
+  // (current game + start-a-new-game); 'games' = the right column ("Your
+  // games" — every game the club has, the current one included). It also
+  // picks which filter the mobile filter row shows, since only one list is on
+  // screen.
+  const [mobileTab, setMobileTab] = useState<'new' | 'games'>('new')
 
   // ─── The two list filters ────────────────────────────────────────────────
   // One per column, each narrowing only its own list. Why one persists and the
@@ -140,10 +141,6 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   )
   const [gametypeFilter, setGametypeFilter] = useState<string>('all')
 
-  // Club presence: who's in the club orbit right now (this page, or
-  // any game page of the club) and which game they're viewing. We
-  // pass `null` for our own location — we're in the club room, not a
-  // game. Drives the member-strip dots + the abandoned-game heal.
   // The page's GLOBAL feedback slot — the header's status slot draws its top
   // message in place of the members strip. Nothing is handed down: this page
   // has no render-prop child.
@@ -161,6 +158,10 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // and whether the last read failed.
   const { games: allGames, currentGameId, failed: gamesFailed } =
     useClubGames(handle, globalFeedbackSlot)
+  // Club presence: who's in the club orbit right now (this page, or
+  // any game page of the club) and which game they're viewing. We
+  // pass `null` for our own location — we're in the club room, not a
+  // game. Drives the member-strip dots + the abandoned-game heal.
   const presence = useClubPresence(handle, null, selfId)
 
   const accountSection = useAccountMenuSection()
@@ -235,9 +236,9 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // The set of gametypes this club is allowed to play, read from
   // common.clubs_gametypes. Seeded at club-creation (every gametype
   // for friend clubs; the solo-playable subset for solo clubs) and
-  // editable via the "Edit club" dialog (set_club_gametypes). We gate
-  // the Start-button rendering on this set; the EditClubModal hands
-  // back the new set on save so the buttons update without a refetch.
+  // editable via the "Edit club" dialog (set_club_gametypes). The start
+  // list is gated on this set; the EditClubModal hands back the new set
+  // on save so the list updates without a refetch.
   const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(
     () => new Set(initialGametypes.map((k) => k.gametype)),
   )
@@ -347,16 +348,16 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
    * event on the game's channel — exactly what the suspend-
    * confirm modal does — and useCommonGame's handler navigates
    * each peer back to the club page. Once they've cleared, the
-   * DELETE cascades and the postgres-changes subscription on
-   * ClubPage refetches the games list.
+   * DELETE cascades and `useClubGames`' subscription refetches the
+   * games list.
    *
    * For non-current games no peers are viewing them by
    * definition (is_current_view=false ⟹ nobody on the GamePage),
    * so we skip the broadcast and call the RPC directly.
    *
-   * The card itself owns the confirm-flow state (idle → confirming
-   * → deleting) and the auto-revert timeout; this function is
-   * called only when the user has already confirmed.
+   * `ClubGameDeleteButton` owns the confirm-flow state (idle →
+   * confirming → deleting) and the auto-revert timeout; this function
+   * is called only when the user has already confirmed.
    *
    * Both answers are toasts. The page's one feedback slot is the header's,
    * and a message parked there hides the members strip — which a failed games
@@ -421,7 +422,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
       // modal is an escalation, not a replacement).
       //
       // No `ms`, so it waits to be dismissed: the toast is the only lasting
-      // record here, since this page has no pill.
+      // record here, since this page has no pill of its own.
       //
       // `tone` by hand, and NOT from `FeedbackMessage.notOk`: a toast has its own
       // three-value vocabulary (`info` / `success` / `error`, an accent stripe
@@ -442,9 +443,8 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
         tone: 'success',
         ms: DEFAULT_TOAST_MS,
       })
-      // No explicit list refresh — the postgres-changes
-      // subscription below fires DELETE on common.games and our
-      // loadGames() re-runs.
+      // No explicit list refresh — `useClubGames` sees the DELETE on
+      // common.games and re-reads.
     } else {
       // Throws as well as screams: the button only leaves "Deleting…" when this
       // function rejects (ClubGameDeleteButton's catch), so a fallen-through
@@ -466,12 +466,6 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // (docs/states.md → no special 'suspended' category in the listing).
   const gameState = (g: ListedGame) =>
     g.gameId === currentGameId ? 'current' : g.isTerminal ? 'completed' : 'suspended'
-
-  // "Your games" lists EVERY game the club has, the current one included —
-  // otherwise the club's one live game would be the single thing missing from
-  // the list of its games, and out of the gametype filter's reach besides. It
-  // is an ordinary row here, the same size as the rest, told apart by its
-  // orange flag.
 
   // ─── Apply the two filters ───────────────────────────────────────
   // Everything downstream — rendering AND the keyboard cursors — reads the
@@ -577,9 +571,9 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
           </button>
           <button
             type="button"
-            aria-pressed={mobileTab === 'completed'}
+            aria-pressed={mobileTab === 'games'}
             className={styles.tab}
-            onClick={() => setMobileTab('completed')}
+            onClick={() => setMobileTab('games')}
           >
             Your games
           </button>

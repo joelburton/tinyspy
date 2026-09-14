@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 import { test, expect } from '@playwright/test'
 import { createSoloClub } from './helpers/fixtures'
@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * ClubPage's mobile view-switcher (docs/mobile.md → club-page tabs). Below the
  * breakpoint the two-column page folds to one column and a toggle bar picks
  * which column shows. These are `aria-pressed` toggle BUTTONS, not an ARIA tabs
- * pattern (see the comment in ClubPage.tsx) — so we assert the honest shape:
+ * pattern (see `<Segmented>`'s docstring) — so we assert the honest shape:
  * `role="button"` + `aria-pressed` flipping, and the CSS keyed on `aria-pressed`
  * (the un-pressed toggle takes the surface treatment) still switches the view.
  */

@@ -1,4 +1,4 @@
-// cs-audited-club-page
+// cs-blessed-club-page
 
 /**
  * WHAT THE PAGE DECIDES, GIVEN A CLUB AND ITS GAMES.
@@ -18,7 +18,7 @@
  *
  * `runRpc` is still mocked, because deleting a game calls it from here.
  *
- * `@/gametypes` is a registry of three, not the real sixteen, so a filter
+ * `@/gametypes` is a registry of three, not the real one, so a filter
  * assertion can name the rows it expects instead of counting them.
  */
 
