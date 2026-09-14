@@ -36,21 +36,20 @@
   rather than a choice. The bar is a documented exemption from the shared
   button (its ON state is a game color), so the size is this game's to keep or
   collapse; the point is only that nothing yet says which.
-- **A race here has no way to stop the whole table.** Compete offers Concede
-  alone, so a group that has lost interest can only close the game by every
-  player conceding — one at a time, each taking a loss on their record for a
-  game nobody wanted to finish.
+- **The board still has no control that stops the whole table in compete.**
+  Everything under it is done: `crosswords.end_game` runs in either mode and
+  writes the neutral terminal (`ended` + `outcome: 'manual'`, `status.mode` says
+  which, nobody won), `crosswordsCompeteGame` supplies `endGame`, and the
+  reading was checked — `competeLabel` answers `'ended'` and `buildOver` hands
+  it to `gameEndedTerminalMessage('compete')`, which is "Game ended — no winner"
+  at `outcome: 'neutral'`.
 
-  Most of it already exists. `crosswords.end_game` writes the neutral terminal
-  (`ended` + `outcome: 'manual'`, nobody won) and does not care which mode it is
-  called in, and the FE side is one argument: `offersEndForAll` on this game's
+  What is left is one argument: `offersEndForAll` on this game's
   `useStandardGameActions` call, which grows Concede's question a second answer
   ("End for everyone") rather than putting a second red button on the board.
-  bananagrams is the worked example.
-
-  What to check first is the READING, not the wiring — that this game's
-  `labelFor` and its in-game verdict treat `ended` in COMPETE as neutral, since
-  nobody won is not the same as everyone losing.
+  bananagrams is the worked example. Until then a race can only reach End from
+  the pause overlay, so a group that is merely done with the crossword still
+  closes it by conceding one at a time, each taking a loss.
 
 ## Someday
 

@@ -71,7 +71,7 @@ const ENDED_OK = {
 } as const
 
 /** The smallest manifest the shell will take. `endGame` is a spy so a test can
- *  drop it (bananagrams has no whole-table end) or assert it fired. */
+ *  assert it fired. */
 function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
   return {
     gametype: 'psychicnum_coop',
@@ -198,11 +198,6 @@ describe('act-end-game, bound for the pause overlay', () => {
     await mount(commonGameState({ paused: true }))
     expect(bound('act-end-game').describe().state).toBe('active')
     expect(screen.queryByText('play')).toBeNull()
-  })
-
-  it('stays hidden while paused when the manifest has no endGame', async () => {
-    await mount(commonGameState({ paused: true }), makeManifest({ endGame: undefined }))
-    expect(bound('act-end-game').describe().state).toBe('hidden')
   })
 
   it('asks, then fires the manifest endGame with the game id', async () => {

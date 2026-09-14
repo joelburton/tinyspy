@@ -419,15 +419,14 @@ function GamePageInner({
   //
   // **Hidden unless paused**, which is what keeps the two bindings from ever
   // being live together: while a game is playing its PlayArea owns `⌥⌫`, and
-  // this one is not there at all. `manifest.endGame` is optional (bananagrams
-  // has no whole-table end), and a game that omits it hides this too.
+  // this one is not there at all. Paused is the whole of the condition —
+  // `manifest.endGame` is required, so there is no game this hatch is missing
+  // from.
   const actEndGame = useBoundAction('act-end-game', {
     terminal: isGameOver,
-    describe: () => (paused && manifest.endGame ? 'active' : 'hidden'),
+    describe: () => (paused ? 'active' : 'hidden'),
     run: async () => {
-      const endGame = manifest.endGame
-      if (!endGame) return
-      const res = await endGame(gameId)
+      const res = await manifest.endGame(gameId)
       if (res.type === 'not-ok') {
         // A lost End race shows PN486's "Game over" in its own words and its
         // own tone — the same sentence the in-game End action shows, because it

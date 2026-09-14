@@ -210,5 +210,11 @@ export const crosswordsCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete'),
   labelFor: competeLabel,
   submitTimeout,
-  // No whole-table end in compete — dropping out is per-player `concede`.
+  // Compete has BOTH, as bananagrams does: `concede` is one racer dropping out
+  // (a loss on their record), End is the whole table agreeing the crossword
+  // beat them. The board does not offer End yet — that is
+  // `offersEndForAll` in the PlayArea, and `todo.md` holds it — so today this
+  // is the pause overlay's escape hatch from a wedged presence-pause, which
+  // compete had no way out of.
+  endGame,
 }

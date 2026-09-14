@@ -246,12 +246,17 @@ export type GameManifest = {
   // goes through PostgREST (whose token auto-refreshes independently of the
   // Realtime socket), so it works even when Realtime is stuck.
   //
-  // **Optional** in the type, but every gametype supplies it today — including
-  // bananagrams, which needs BOTH: conceding is a loss on your record and takes
-  // every player doing it to close a game the group has merely lost interest
-  // in, while End is the group agreeing there is no result. The overlay's
-  // button hides when a game omits this, and none currently does.
-  endGame?: (gameId: string) => Promise<Envelope<GameStopResult>>
+  // **Required**, which is what makes the pause overlay's escape hatch exist
+  // for every game rather than most of them: a group that cannot reach End
+  // from a wedged pause has no way out of one.
+  //
+  // Nothing is asked of a game that its schema does not already have — every
+  // schema defines `end_game`, because a group has to be able to abandon any
+  // game. A race that also offers per-player `concede` supplies this too:
+  // they are different acts, conceding being a loss on your record while End
+  // is the group agreeing there is no result, and wanting the second does not
+  // mean taking the first.
+  endGame: (gameId: string) => Promise<Envelope<GameStopResult>>
 }
 
 /**

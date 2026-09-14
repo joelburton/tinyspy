@@ -1280,9 +1280,16 @@ grant execute on function crosswords.export_solution(uuid) to authenticated;
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout
 -- ============================================================
 
--- Coop mutual give-up ends NEUTRALLY ('ended' + outcome 'manual') — not a
--- loss (putting down an unfinished crossword is normal). The solution
--- reveals in the terminal view (games_state) once is_terminal flips.
+-- Mutual give-up ends NEUTRALLY ('ended' + outcome 'manual') — not a loss
+-- (putting down an unfinished crossword is normal). The solution reveals in
+-- the terminal view (games_state) once is_terminal flips.
+--
+-- Offered in BOTH modes. Coop's End and compete's Concede are different acts —
+-- conceding is one racer's loss, ending is the whole table agreeing there is no
+-- result — and a race can want the second without the first: the crossword is
+-- too hard and everyone is done. Nobody won either way, so a compete end is the
+-- same neutral 'ended' rather than `lost_compete`, which is the clock or the
+-- last racer quitting.
 drop function if exists crosswords.end_game(uuid);
 
 create or replace function crosswords.end_game(target_game uuid)
@@ -1307,20 +1314,13 @@ begin
 
   perform common.require_game_player(target_game);
 
-  -- The mirror of `concede`'s PN484: crosswords offers End in coop and Concede
-  -- in compete, so each RPC refuses the other's mode. A fault — the menu never
-  -- shows this one in compete.
-  if v_mode <> 'coop' then
-    raise exception 'BUG: an end in a compete game'
-      using errcode = 'PN487', hint = 'fault', column = '_',
-      detail = 'compete drops out per player via concede';
-  end if;
-
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
     perform common._raise_game_over();
   end if;
 
+  -- Nobody won. A racer who had already conceded stays conceded — their own
+  -- quit is still theirs; this only says the table reached no result.
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
     into v_results
     from common.game_players
@@ -1328,7 +1328,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('mode', 'coop', 'outcome', 'manual'),
+    jsonb_build_object('mode', v_mode, 'outcome', 'manual'),
     v_results
   );
   return common.ok_envelope(jsonb_build_object('result', 'ended'));

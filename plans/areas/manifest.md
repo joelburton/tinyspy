@@ -6,7 +6,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
 six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
-group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-11,
+group (F-9 to F-13), and F-14, which working F-11 turned up. Worked: F-9, F-11,
 F-14.
 
 ## The roster
@@ -122,7 +122,8 @@ caller).
   stackdown … boggle … setgame". True today; the tally rots the day a sixth
   label reads a create-time choice. Name the condition.
 - `endGame`: "every gametype supplies it **today** … and none currently
-  does" — the count is the finding; see F-9.
+  does" — the count was the finding, and it was also wrong. Gone with F-9;
+  the member is required and the note states a condition instead.
 - `manifestRpcs.ts`: "No game needs the narrowing **today**".
 - Outside the roster: `src/guards/gameStatusLabels.test.ts` says "13
   implementations"; sixteen manifests carry a `labelFor`. A one-word fix in
@@ -181,20 +182,44 @@ made.
 
 ### The decision group — each waits for Joel
 
-### F-manifest-9 · `end-game-optional-but-universal`
+### F-manifest-9 · `end-game-optional-but-universal` · WORKED 2026-09-14 — option 1, after the premise turned out to be wrong and the gap it exposed was fixed
 
-`endGame?` is optional in the type, and its own note says every gametype
-supplies it. Sixteen do. `GamePage`'s pause overlay carries the branch for its
-absence (`if (!endGame) return`, and the button hides), which no game reaches.
-An optional member with no game omitting it is a default that was never
-decided ([[feedback_a_default_is_a_decision]]).
+**As first recorded this finding was false, and the correction is the finding.**
+It said sixteen gametypes supply `endGame` and no game reaches `GamePage`'s
+`if (!endGame) return`. That counted manifest FILES, not registry ENTRIES:
+there are thirty entries, and `crosswordsCompeteGame` did not supply it —
+deliberately, with `crosswords.end_game` raising PN487 on a compete caller. The
+hide-branch was live in exactly one game. `tsc` is what said so, when option 1
+was attempted and refused ([[feedback_investigate_dont_guess]]).
 
-Options:
+**Joel's call (2026-09-14): give crosswords compete the ability.** A race
+wanting to stop the whole table is a real want — its own `todo.md` had asked
+for it — and Concede is the wrong instrument, since it is a loss on a player's
+record. So `crosswords.end_game` now runs in either mode (PN487 deleted and
+retired), `crosswordsCompeteGame` supplies `endGame`, and the reading was
+verified rather than assumed: `competeLabel` already answered `'ended'`,
+`buildOver` already handed it to `gameEndedTerminalMessage('compete')` at
+`outcome: 'neutral'`, and the generated status-label table already carried the
+row. **No UI was added** — `offersEndForAll` in the PlayArea is the board
+control, and `src/crosswords/todo.md` holds it.
 
-1. Make it required. Drop the `?`, drop the hide branch in `GamePage`, and
-   the note stops counting.
-2. Keep it optional and say WHY a game might omit it — what a game with no
-   `end_game` would be — or there is no reason to keep the `?`.
+**Then option 1, with every entry supplying it.** The `?` is gone, and with it
+`GamePage`'s `if (!endGame) return` and the `&& manifest.endGame` in its
+`describe` — paused is now the whole of the condition. The argument that
+decided it: a wedged presence-pause with no way out is the failure the optional
+branch silently allowed, and it was allowed in a real game.
+
+The note no longer counts anything ([[feedback_no_pointless_counts]]); it gives
+the condition — every schema defines `end_game`, because a group has to be able
+to abandon any game — and says why a race that offers `concede` supplies this
+as well. The claim that BANANAGRAMS is the game without a whole-table end was
+never true (`src/bananagrams/manifest.ts` supplies `endGame`, and needs both);
+it appeared in `gameManifest.ts`, in `GamePage.tsx`, in `GamePage.test.tsx`'s
+`makeManifest` docstring, and in `docs/states.md`'s pause-overlay paragraph.
+All four are gone.
+
+`GamePage.test.tsx` loses the case that mounted a manifest with
+`endGame: undefined`, which the type no longer permits.
 
 ### F-manifest-10 · `creator-need-not-play`
 
@@ -331,8 +356,8 @@ extracting it today adds a file to a closed area for two call sites.
 ## Predicted test breaks
 
 - F-1 to F-8: prose only; F-1 moves a row out of `INTROS_OWED`.
-- F-9 option 1: `GamePage.test.tsx` if it mounts a manifest without
-  `endGame`; every game manifest already supplies one.
+- F-9 option 1: `GamePage.test.tsx`'s "no endGame" case, deleted. `tsc` is what
+  found `crosswordsCompeteGame`, which the prediction had missed.
 - F-10 option 2: a new pgTAP case in `tests/common/games_test.sql`.
 - F-11 option 2: none — `ClubPage.test.tsx` passes; the rendered order did not
   move (the sixteen brands are distinct, so a `name` tie is always a family).

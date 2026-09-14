@@ -2,7 +2,7 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(10);
+select plan(13);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -71,17 +71,6 @@ select is(
      where game_id = :'gc_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'false'::jsonb, 'coop give-up → nobody "won" (but it is not a loss)');
 
--- end_game is coop-only (compete drops out via concede).
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- The mirror of the concede check above: crosswords offers End in coop and
--- Concede in compete, so each RPC refuses the other's mode.
-select pg_temp.envelope_is(
-  crosswords.end_game(:'gp2_id'::uuid),
-  '{"type":"not-ok","severity":"fault","dbcode":"PN487",
-    "message":"BUG: an end in a compete game"}'::jsonb,
-  'end_game is rejected in compete');
-reset role;
-
 -- A conceded compete player can't check their now-frozen grid (same guard
 -- set_cell has). ada concedes gp2 (bea still active → game stays playing).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -92,6 +81,24 @@ select pg_temp.envelope_is(
     "message":"Already conceded"}'::jsonb,
   'check_cells is rejected for a conceded compete player');
 reset role;
+
+-- ── Compete give-up (end_game): the table stops, neutrally ───────────
+-- Concede is NOT the only way out of a race. gp2 still has bea racing and ada
+-- conceded above, so this also pins what an end does to a player who already
+-- quit: nothing. Unlike the last-conceder path, which is `lost_compete`.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select crosswords.end_game(:'gp2_id');
+reset role;
+select is((select play_state from common.games where id = :'gp2_id'), 'ended',
+  'compete give-up → play_state ended (neutral, not lost_compete)');
+select is((select status ->> 'outcome' from common.games where id = :'gp2_id'), 'manual',
+  'compete give-up → outcome manual, the same word coop''s end writes');
+select is((select status ->> 'mode' from common.games where id = :'gp2_id'), 'compete',
+  'compete give-up → the status blob says which mode ended');
+select is(
+  (select conceded from common.game_players
+     where game_id = :'gp2_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  true, 'compete give-up leaves an earlier conceder conceded — their quit is theirs');
 
 select * from finish();
 rollback;
