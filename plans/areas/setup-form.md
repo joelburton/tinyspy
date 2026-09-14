@@ -219,9 +219,9 @@ the date").
 
 ### The decision group — each waits for Joel
 
-### F-setup-form-8 · `solo-prefix-in-fe` · the dialog still reads the `=` prefix, and the claim beside it is false
+### F-setup-form-8 · `solo-prefix-in-fe` · WORKED 2026-09-14 — option 1, with "AI" for "AI Compete"
 
-Carried from F-club-page-11. `SetupGameModal.tsx`:
+Carried from F-club-page-11, and the last FE site to test the handle. Was:
 
 ```ts
 const modeSuffix = clubHandle.startsWith('=')
@@ -229,29 +229,27 @@ const modeSuffix = clubHandle.startsWith('=')
   : ` · ${MODE_LABEL[manifest.mode]}`
 ```
 
-The comment says the mode is dropped in a solo club because "solo clubs
-register a single variant per game, so there's no ambiguity to resolve". They
-do not: `scrabble_compete` registers `min_players 1` so a lone player can race
-the AI, so a solo club is enrolled in BOTH scrabble variants and both dialogs
-are titled "Start Scrabble". `<ModeBadge>` already has the rule for exactly
-this — a solo club shows no badge except "AI Compete" when the manifest's
-`aiOpponent` is set — and the dialog does not apply it.
+Two things wrong with it. The prefix test is the FE reading a convention
+`common.clubs.is_solo` already carries, and the comment beside it said solo
+clubs "register a single variant per game, so there's no ambiguity to
+resolve" — they do not. `scrabble_compete` seeds `min_players 1` so a lone
+player can race the AI, so a solo club is enrolled in BOTH scrabble variants
+and both dialogs read "Start RackAttack" with nothing between them.
 
-`ClubPage` has `club.is_solo` in hand and passes the dialog `clubHandle`.
+`SetupGameModal` takes a `soloClub` prop now and applies `<ModeBadge>`'s rule:
+no tail in a solo club, except a compete variant whose manifest sets
+`aiOpponent`. `ClubPage` passes `club.is_solo`, which it already holds.
 
-Options:
+**The words are "· AI", not the badge's "AI Compete".** Joel: *"we can't have
+the button says 'Start Scrabble - AI Compete'; there wouldn't be room."* The
+tail is drawn after the game's name on the Start button as well as in the
+title, and that button also holds Cancel beside it. So the dialog and the club
+row deliberately say the same thing at different lengths.
 
-1. **A `soloClub` prop, and the badge's rule.** `ClubPage` passes
-   `soloClub={soloClub}`; the suffix is dropped in a solo club unless
-   `manifest.aiOpponent`, in which case it says "· AI Compete" — the same
-   words the row shows. The `=` test leaves the FE here.
-2. **A `soloClub` prop only.** Same prop, the suffix still always dropped in a
-   solo club; the scrabble ambiguity stays and the comment is corrected.
-3. **Leave the `=` test**, correct the comment.
-
-Recommend 1: it is the smaller change once the prop exists, and it makes the
-title agree with the row you just pressed. `SetupGameModal.test.tsx`'s `draw`
-grows a `soloClub`; one assertion for the AI case.
+`SetupGameModal.test.tsx`'s `draw` grew a third argument, and a
+`— the mode tail` describe covers the three branches. Each was verified by
+planting: inverting the solo test fails all three, lengthening the tail fails
+the AI one.
 
 ### F-setup-form-9 · `timer-refusal-names-no-field` · the server's timer check is five faults, and the field expects a validation
 

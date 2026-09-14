@@ -13,13 +13,13 @@
 
 ## Soon
 
-- **The `=` solo-handle convention is still tested in the FE** — `modeSuffix`
-  in `SetupGameModal.tsx`. `common.clubs.is_solo` (a generated column) carries
-  it, and the homepage reads that instead. Joel: *"fine for now, but we should
-  get '=' stuff out of FE when we get to them."* `ClubPage`'s `soloClub` was
-  the other one; it reads `is_solo` off `get_club_page`'s payload now. The two
-  SQL sites (`common.sql`, the setgame migration) write `like '=%'` and can
-  take the column too.
+- **The `=` solo-handle convention is still written in two SQL sites** —
+  `common.sql` and the setgame migration say `like '=%'` where
+  `common.clubs.is_solo` (a generated column over the same prefix) would do.
+  The FE no longer tests the prefix anywhere: `ClubPage` reads `is_solo` off
+  `get_club_page`'s payload and passes it down, `SetupGameModal` takes it as
+  `soloClub`. Joel: *"fine for now, but we should get '=' stuff out of FE when
+  we get to them."*
 - **The viewport-fit chain has no vocabulary.** `min-height: 0` does TWO jobs
   in the app: the chain (the **bound** — `max-height` on a centered card or
   `height` on a full-bleed page; the **relay** — a flex column carrying it

@@ -73,7 +73,7 @@ function manifest(over: Partial<GameManifest> = {}): GameManifest {
   } as GameManifest
 }
 
-function draw(over: Partial<GameManifest> = {}, savedDefault?: unknown) {
+function draw(over: Partial<GameManifest> = {}, savedDefault?: unknown, soloClub = false) {
   const onStarted = vi.fn()
   render(
     <SetupGameModal
@@ -81,6 +81,7 @@ function draw(over: Partial<GameManifest> = {}, savedDefault?: unknown) {
       members={MEMBERS}
       selfId="self"
       clubHandle="moths"
+      soloClub={soloClub}
       savedDefault={savedDefault}
       onStarted={onStarted}
       onCancel={() => {}}
@@ -117,6 +118,28 @@ describe('SetupGameModal — what it starts with', () => {
     draw()
     const boxes = await screen.findAllByRole('checkbox')
     for (const box of boxes) expect(box).toBeChecked()
+  })
+})
+
+describe('SetupGameModal — the mode tail', () => {
+  // One string, drawn in two places: the dialog title and the Start button.
+  // Asserted on the button, which is the one with no room to spare.
+  it('names the mode when the club has more than one member', async () => {
+    draw()
+    await waitFor(() => expect(start()).toHaveTextContent(/^Start PsychicNum · Co-op$/))
+  })
+
+  it('drops it in a solo club, where mode is noise', async () => {
+    draw({ mode: 'compete' }, undefined, true)
+    await waitFor(() => expect(start()).toHaveTextContent(/^Start PsychicNum$/))
+  })
+
+  it('says "AI" for a solo club\'s compete variant that seats an AI opponent', async () => {
+    // The case the drop would swallow: a club enrolled in BOTH siblings
+    // (scrabble, whose compete floor is one human) would see two dialogs
+    // titled identically.
+    draw({ mode: 'compete', aiOpponent: true }, undefined, true)
+    await waitFor(() => expect(start()).toHaveTextContent(/^Start PsychicNum · AI$/))
   })
 })
 

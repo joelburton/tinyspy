@@ -770,6 +770,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
           members={members}
           selfId={selfId}
           clubHandle={club.handle}
+          soloClub={soloClub}
           savedDefault={savedDefaults.get(activeSetup.gametype)}
           onStarted={(id) => {
             // Capture gametype before closing — the state setter is

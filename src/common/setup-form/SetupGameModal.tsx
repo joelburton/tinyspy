@@ -32,6 +32,9 @@ type Props = {
   selfId: string
   /** Club the game would start in. */
   clubHandle: string
+  // One-player club (`common.clubs.is_solo`, read by ClubPage). Decides the
+  // mode tail on the title and the Start button — see `modeSuffix` below.
+  soloClub: boolean
   /**
    * The club's last-saved setup for this gametype, from
    * `common.clubs_gametypes.default_setup`. Sourced by the parent
@@ -92,7 +95,7 @@ type Props = {
  * accidental-creation possibility.
  */
 export function SetupGameModal({
-  manifest, members, selfId, clubHandle, savedDefault, onStarted, onCancel,
+  manifest, members, selfId, clubHandle, soloClub, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
@@ -207,13 +210,19 @@ export function SetupGameModal({
   }
 
   // The chosen mode (Co-op / Compete), shown in BOTH the dialog title and the
-  // Start button so it's clear which sibling you're launching. Dropped entirely
-  // in a solo club, matching ModeBadge's suppression there — mode is noise with
-  // one player (solo clubs register a single variant per game, so there's no
-  // ambiguity to resolve).
-  const modeSuffix = clubHandle.startsWith('=')
-    ? ''
-    : ` · ${MODE_LABEL[manifest.mode]}`
+  // Start button so it's clear which sibling you're launching.
+  //
+  // A solo club follows <ModeBadge>'s rule: mode is noise with one player, so
+  // the tail is dropped — except for a compete variant that seats an AI
+  // opponent, where the club really is enrolled in both siblings and two
+  // dialogs would otherwise be titled the same. Said as "AI", not the badge's
+  // "AI Compete": the Start button draws this tail after the game's name and
+  // has no room for the longer phrase.
+  const modeSuffix = !soloClub
+    ? ` · ${MODE_LABEL[manifest.mode]}`
+    : manifest.mode === 'compete' && manifest.aiOpponent
+      ? ' · AI'
+      : ''
 
   // The manifest's lazy Help component (same one the in-game menu's Help opens).
   const HelpComponent = manifest.help
