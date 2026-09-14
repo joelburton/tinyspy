@@ -9,9 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
-**Worked so far: F-8 through F-12** — all decision findings, taken one at a
-time. The prose group is untouched; F-9, F-11 and F-12 each left it a sentence
-lighter (see their records).
+**The decision group is DONE — F-8 through F-13**, taken one at a time. The
+prose group (F-1 to F-7) is untouched and is what remains; F-9, F-11 and F-12
+each left it a sentence lighter (see their records).
 
 ## The roster
 
@@ -405,30 +405,42 @@ the two uses answer different questions — what to say, and whether to allow �
 the bounds come from one manifest value so they cannot drift apart silently,
 and its real payoff was the case the server already prevents.
 
-### F-setup-form-13 · `coop-style-reseed-effect` · the first-player seed is an effect that calls up
+### F-setup-form-13 · `coop-style-reseed-effect` · WORKED 2026-09-14 — option 1: the effect stays, the comment stops arguing
 
-`SetupCoopStyleSection` re-seeds `first_turn_user_id` from an effect that
-calls the parent's `onChange`. The comment argues it is not
-setState-in-effect because the setter is the parent's; it is the same loop in
-a different coat — a child computing a value for its parent after render —
-and `GameSetupForm.validate`'s own docstring names that loop as what the rule
-exists to prevent. It works because the parent's `set` is stable and the
-condition converges in one pass. Options:
+`SetupCoopStyleSection` seeds `first_turn_user_id` to `players[0]` from an
+effect that calls the parent's `onChange`, whenever turns is on and the current
+pick is not among the selected players.
 
-1. **Leave it**, and say plainly in the comment that it is a render-then-write
-   and why it converges.
-2. **Seed in the handlers**: when turns is chosen, `onChange({ coopStyle:
-   'turns', firstTurnUserId: players[0].user_id })`; when a player is
-   unchecked, the players picker's `onChange` in each game's form has no view
-   of this — so the modal would need to do it, which is where option 2 gets
-   expensive.
-3. **Derive at read time**: treat a `first_turn_user_id` that is not among the
-   selected players as "first selected" when rendering AND when submitting
-   (the modal's seam), never writing it back. No effect; one more rule at the
-   seam.
+The defense beside it was wrong: *"Parent-owned onChange, so this is not a
+setState-in-effect."* It is a render-then-write either way — a child computing
+a value for its parent after render — and whose setter gets called does not
+change what the rule is about. `GameSetupForm.validate`'s docstring names the
+same loop as the thing the rule exists to prevent.
 
-Recommend 1. The e2e and the unit tests both pin the seed, and the
-alternatives move a small rule to a bigger place.
+It is nonetheless safe, and the comment now says why instead of why-it-isn't:
+the write makes `stillSelected` true, so the next pass takes the early return
+and every pass after it does nothing.
+
+**Found while verifying, and recorded rather than fixed: the dep array never
+stabilizes.** All nine callers build the prop inline
+(`members.filter((m) => s.player_user_ids.has(m.user_id))`) and pass an inline
+`onChange`, so both identities are new every render and the effect runs every
+render. It no-ops, so nothing is broken and no test moves — but the deps read
+as a gate and are not one. The comment says so, and names memoizing in the nine
+forms as the change that would alter it. Not done: it touches nine game files
+for no behavior, and those games have their own areas coming.
+
+The docstring's "mirrors codenamesduet's SetupForm" was re-checked and holds —
+`seedFirstClueGiver` there is the same shape — so it stays, without the lint
+argument.
+
+Options 2 (seed in the handlers) and 3 (derive at read time) were declined for
+the same reason: the re-seed is triggered by unchecking a player, which happens
+in `<PlayersSection>` inside each game's form, so both push the rule out of the
+component that understands it and into `SetupGameModal`'s seam — which today
+knows only "split `player_user_ids` off, the rest is setup" and does not know
+the coop keys exist. Pinned meanwhile by two unit tests and the `coop-setup`
+e2e.
 
 ## Notes
 

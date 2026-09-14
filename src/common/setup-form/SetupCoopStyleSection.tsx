@@ -74,11 +74,11 @@ type Props = {
  * without expanding. Inside, two labeled radio rows — "Co-op style"
  * and (only when turns is chosen) "First player".
  *
- * First-player seeding mirrors codenamesduet's SetupForm: an effect
- * calls the parent-owned `onChange` (NOT a local setState — that would
- * trip the repo's no-setState-in-effects rule) to pick players[0]
- * whenever turns is on and the current choice isn't among the selected
- * players (initial empty, or the chosen player got unchecked).
+ * First-player seeding is an effect that writes back to the parent — picking
+ * players[0] whenever turns is on and the current choice isn't among the
+ * selected players (initial empty, or the chosen player got unchecked).
+ * codenamesduet's own SetupForm seeds its first clue-giver the same way. See
+ * the comment on the effect for why a render-then-write is safe here.
  */
 export function SetupCoopStyleSection({
   mode,
@@ -93,10 +93,20 @@ export function SetupCoopStyleSection({
   // Coop-only, and pointless for a lone player — a one-person rotation.
   const active = mode === 'coop' && players.length > 1
 
-  // Re-seed the first player to players[0] when turns is on and the
-  // current pick isn't a selected player: the initial empty string, or
-  // a previously-chosen player who's since been unchecked in the picker.
-  // Parent-owned onChange, so this is not a setState-in-effect.
+  // Re-seed the first player to players[0] when turns is on and the current
+  // pick isn't a selected player: the initial empty string, or a
+  // previously-chosen player who's since been unchecked in the picker.
+  //
+  // This IS a render-then-write — a child computing a value for its parent
+  // after render — and calling the parent's setter rather than a local one
+  // does not change that. It is safe because it converges: the write makes
+  // `stillSelected` true, so the next pass takes the early return and every
+  // pass after it does nothing.
+  //
+  // The deps do not gate it. Every caller builds `players` inline
+  // (`members.filter(…)`) and passes an inline `onChange`, so both identities
+  // are new each render and the effect runs each render — cheaply, since it
+  // no-ops. Memoizing in the nine forms is what would change that.
   useEffect(
     function seedFirstTurn() {
       if (!active || !isTurns) return
