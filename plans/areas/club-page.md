@@ -5,10 +5,10 @@ The folders it reads: `club`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-13.** Roster stamped `cs-audited-club-page`,
-26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10 and
-F-12 worked 2026-09-13**, F-9 taking F-11's club-page half and F-15's four
-not-ok arms with it. The prose group (F-1 to F-8) is fork-free and waits on
-"do the prose"; F-13 to F-17 each still hold a decision.
+26 files at the opening, 29 now. Seventeen findings recorded; **F-9, F-10,
+F-12 and F-13 worked 2026-09-13**, F-9 taking F-11's club-page half and F-15's
+four not-ok arms with it. The prose group (F-1 to F-8) is fork-free and waits
+on "do the prose"; F-14 to F-17 each still hold a decision.
 
 ## The roster
 
@@ -390,26 +390,28 @@ exist and a `CurrentGameCard` that drew both registers; it now describes the
 three entries sharing one face. That took one of F-7's eight `StartGameButtons`
 sites with it, in the mode-badge "Where it shows" line.
 
-### F-club-page-13 · `filters-twice` · both filters are in the tree twice
+### F-club-page-13 · `filters-twice` · CLOSED 2026-09-13 — option 1, keep both
 
-`todo.md` Soon: "The club page's filters render TWICE, desktop and mobile,
-each hidden in the other mode. A markup decision before a CSS one." The
-comment at 943–957 argues why: the desktop home is inside a column, the mobile
-one is a sibling of the tab bar, and CSS cannot move an element across
-containers; the components are stateless, so the two instances cannot
-disagree. The `club-filters` e2e scopes every locator because of it.
+Joel: *"1."* — keep two instances, record the reason, close the todo item.
 
-Options:
+The argument, now in `club/doc.md` → Details rather than only in a comment: a
+filter's desktop home is inside a column and its mobile home is a sibling of
+the tab bar, and no CSS relocates an element across containers, so one instance
+placed by CSS is not available. One instance placed by a `useIsMobile` hook
+would state the mobile threshold twice — a media query and JS — which can
+disagree across a resize (`mobile/doc.md`). A duplicated STATELESS control has
+nothing to disagree about, since all the state is `ClubPage`'s. The cost it
+does carry is real DOM, which is why `club-filters.e2e.ts` scopes every
+locator.
 
-1. **Keep two instances**, record the reason in the Details, and close the
-   todo item.
-2. **One instance, placed by a media-query hook** (`useIsMobile`) — the page
-   renders the filter in one of two places. A hook and a CSS rule are two
-   reads of the same threshold and can disagree across a resize
-   (`mobile/doc.md`).
+Reading the comment rather than this finding's summary of it corrected one
+thing: on mobile only ONE filter is in the row at a time — the showing tab's —
+so it is each filter that appears twice, not both at once.
 
-Recommend 1: the argument in the comment holds, and option 2 trades a
-duplicated stateless control for a duplicated threshold.
+Moving the argument into the doc left the comment restating it, which is
+F-6's defect, so the comment shrank to the local fact plus a pointer in the
+same pass. `doc.md` gained its `## Details` section for this; the folder stays
+on `INTROS_OWED` until F-1 writes the intro above it.
 
 ### F-club-page-14 · `fold-vs-sheet` · the two-column fold answers the mobile question differently from GamePage
 

@@ -941,12 +941,9 @@ export function ClubPage({ handle, session }: Props) {
             the tab bar names the view — so the filter for the SHOWING tab goes
             directly under the tabs, where the heading would have been.
 
-            Both filters are therefore in the tree twice, one instance hidden by
-            the breakpoint. The alternative — a single instance moved by CSS —
-            isn't available: the desktop home is inside a column, the mobile one
-            is a sibling of the tab bar, and no CSS relocates an element across
-            containers. The components are stateless (all state lives here), so
-            the two instances can't disagree.
+            Both filters are therefore in the tree twice, one instance hidden
+            by the breakpoint; why that is the shape and not a failing is in
+            club/doc.md.
 
             The ROW ITSELF is conditional, not just its contents: a solo club has
             no mode filter (see ModeFilter), and an empty row would still take the
