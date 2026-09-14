@@ -4,10 +4,11 @@ The folders it reads: `manifest`, and `src/gametypes.ts`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-manifest`,
-six files. Fourteen findings recorded: a prose group (F-1 to F-8), a decision
-group (F-9 to F-13), and F-14, which working F-11 turned up. All fourteen are
-worked. What remains is the closing re-read.
+**Status: CLOSED 2026-09-14, blessed** (Joel: *"bless all the files then close
+the area"*). Seven roster files `cs-blessed-manifest`. Fourteen findings
+recorded: a prose group (F-1 to F-8), a decision group (F-9 to F-13), and
+F-14, which working F-11 turned up; the closing re-read added F-15. All
+worked, and `doc.md` is harvested.
 
 ## The roster
 
@@ -107,9 +108,6 @@ The rest, each verified and fixed:
   handed to the start list (`disabled={(g) => …}`), which dims the row and
   declines Enter from the same answer; `playerCountLabel` is the row's
   `rowTitle`, not a "tooltip on a button".
-- `CommonGameListRow`'s docstring: "ClubPage fetches `common.games` for the
-  club" — `get_club_page` does, in the one answer the page loads from. Still
-  one query, which is the point; the sentence names the wrong reader.
 - `statusLabel.ts`: "the second line of a game **card**", "a narrow card" —
   the games list draws rows, and `docs/game-status-labels.md` says row.
 - `gameManifest.test.ts`: "`StartGameRow.tsx:50`" (the call is at another
@@ -392,7 +390,57 @@ show the same brands.
 
 **The tiebreak is now spelled out twice in `common/club/`.** A shared
 `byBrandThenMode` comparator is where that goes if a third caller appears;
-extracting it today adds a file to a closed area for two call sites.
+extracting it today adds a file to a closed area for two call sites. Recorded
+in `club/todo.md` → Maybe.
+
+### The closing re-read — 2026-09-14
+
+### F-manifest-15 · `reread` · WORKED — one fix that never landed, five stale words, and the F-9 class in three siblings
+
+Every roster file read end to end, then the fault classes grepped rather than
+the phrases: "no whole-table end/stop", "registry order", counts in prose,
+`endGame` optional, PN487, the old `common/lib/game` path. What it found:
+
+- **F-2's `submitTimeout` fix had not landed.** The area file records it as
+  fixed; the note still said "the FE swallows the 'already terminal'
+  **error**" — `git log -S` shows the phrase untouched since the folder
+  reorg. It is PN486, a race, swallowed by `GamePage` at
+  `severity === 'race'`. Now says so.
+- **The area file's own F-2 list contradicted itself**: it said
+  `CommonGameListRow`'s docstring was left alone AND listed it among the
+  fixed. The bullet is gone.
+- **Rows, not buttons, and no badge.** `gameManifest.test.ts`'s header still
+  said "a Start button", "the tooltip", "every enabled one";
+  `playerCountShort` said "the Start-game button's"; `shortDescription` said
+  "beside the player-count **badge**" — `StartGameRow` draws it as text after
+  ` · ` on the same meta line, in a club that is not solo.
+- **Two dead pointers.** `help`'s note sent the reader to `docs/ui.md →
+  "Help"`, a heading that does not exist (the setup dialog's Help button is
+  under "Dialog buttons"); `GameManifest`'s docstring named a "removability
+  in three actions" rule that `docs/common.md` calls the removability
+  invariant.
+- **`doc.md`, written yesterday, had three.** "Nothing else mentions it"
+  contradicted `gametypes.ts`'s own header (`config.toml`'s `[api] schemas`
+  does); "each terminal RPC writes a `status` blob" — every state-changing RPC
+  does, which is the duplicate-write discipline; and "the start list and
+  games list each sort for themselves" named the wrong second list — the games
+  list orders by `last_active_at` and never walks the registry; the Edit-club
+  enrollment list does (F-14). Harvested one more Details bullet: what a
+  registry miss means, from `manifestFor`'s three sources.
+- **The F-9 class recurred in three siblings**: `PauseOverlay`'s `actEndGame`
+  prop ("hides itself … for a gametype with no whole-table end" — paused is
+  the whole condition now), `PauseBoundary.test.tsx`'s case title,
+  `docs/games/bananagrams.md`'s "most races genuinely have no whole-table
+  stop" and `e2e/concede.e2e.ts`'s "wordwheel has no whole-table stop" — both
+  about the board control, now worded that way.
+- **A count**: `docs/common.md` said `_raise_game_over` is "shared by all
+  twenty-nine sites" (the SQL has more now, and any number rots). "Every
+  site."
+- **A ruling with no durable home**: club enrollment is not checked by
+  `create_game` either (Notes, below). Added to `docs/common.md → Membership
+  gates viewing` beside the creator rule it matches.
+
+Marker pass: no `/**` on a prop anywhere on the roster; nothing to do.
 
 ## Notes
 
@@ -434,7 +482,7 @@ extracting it today adds a file to a closed area for two call sites.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-14)
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not (2026-09-14)

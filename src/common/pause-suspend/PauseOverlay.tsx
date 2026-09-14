@@ -34,8 +34,7 @@ type Props = {
   /** End the game now — the other escape from a stuck pause. Bound by
    *  `GamePage`, which sits above the boundary that unmounts the play area, so
    *  the binding survives the pause that the game's own one does not. It hides
-   *  itself unless paused and for a gametype with no whole-table end, so this
-   *  places it without asking. */
+   *  itself unless paused, so this places it without asking. */
   actEndGame?: BoundAction
 }
 

@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status

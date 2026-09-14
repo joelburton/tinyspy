@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 /**
  * ONE FRONTEND PATH OVER EVERY GAME'S `submit_timeout` AND `end_game`.

@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 import { showFaultModal } from '../faults/faultStore'
 

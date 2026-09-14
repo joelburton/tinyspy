@@ -14,9 +14,10 @@ that fills it is playable; a game that stops filling it does not compile.
 Which games exist is a separate question, and its answer is a list rather than
 a type: `src/gametypes.ts`, the one file ESLint lets import from every game
 folder. Everything the shell renders is a walk over that list. Removing a game
-is deleting its folder, its lines there, and its schema — nothing else mentions
-it — and that property is the monorepo's structural integrity check rather
-than a convenience.
+is deleting its folder, its lines there, and its schema, with no game-specific
+code left anywhere else to find — the removability invariant in
+`docs/common.md`, which also holds the add-a-game checklist. That property is
+the monorepo's structural integrity check rather than a convenience.
 
 Most of a manifest is data the shell reads. Three members are functions the
 shell CALLS — starting a game, ending one, and answering a countdown that
@@ -35,9 +36,9 @@ and `docs/game-status-labels.md` shows what every game actually says.
 
 - **`labelFor` is pure and synchronous, and that is a constraint on the
   SERVER.** The club page draws a whole club's games from one query, so
-  everything a label needs has to be on the row already — which is why each
-  terminal RPC writes a `status` blob for it to read rather than leaving the
-  frontend to go ask. A label that needed a second query would turn one query
+  everything a label needs has to be on the row already — which is why every
+  state-changing RPC rewrites the row's `status` blob for it to read rather
+  than leaving the frontend to go ask. A label that needed a second query would turn one query
   into one per row.
 
 - **A status line may only say what every player already sees.**
@@ -51,8 +52,16 @@ and `docs/game-status-labels.md` shows what every game actually says.
 
 - **The registry's ORDER carries one thing and not the other.** It sets the row
   order of the generated `docs/game-status-labels.md`, so reordering it rewrites
-  that doc. It reaches no player: the club page's start list and games list
-  each sort for themselves, explicitly.
+  that doc. It reaches no player: the two lists that walk the registry — the
+  club page's start list and the Edit-club enrollment list — each sort by
+  brand, coop first, explicitly.
+
+- **A gametype string can miss the registry, and a miss means three
+  things.** From the URL it is a typo and earns the error page; from another
+  manifest it is impossible and faults; from a `common.games` row it means
+  this bundle is behind the server, because removing a game deletes its rows.
+  `manifestFor` says so where it sits, and `unknownGametype.ts` is the third
+  answer: one fault per load, telling the player to reload.
 
 - **`manifest` and `game-page` import each other.** This direction is type-only
   — a manifest names `GamePageCtx` to type its `PlayArea` — so the cycle is

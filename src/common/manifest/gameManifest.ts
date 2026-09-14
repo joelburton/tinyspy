@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 import type { ComponentType } from 'react'
 // Type-only, so the cycle these participate in is erased at runtime.
@@ -62,8 +62,8 @@ export type GameStopResult = { result: 'ended' }
 /**
  * Manifest exported by each game's `manifest.ts`. The shell
  * consumes the registry of manifests (`src/gametypes.ts`) and never
- * names a specific game directly — see docs/common.md for the
- * "removability in three actions" rule that motivates this.
+ * names a specific game directly — see docs/common.md for the removability
+ * invariant that motivates this.
  */
 export type GameManifest = {
 
@@ -120,8 +120,8 @@ export type GameManifest = {
   // Short, action-flavored summary shown as the subtle second line on each
   // per-gametype Start row on ClubPage, and under each game in the Edit-club
   // enrollment list. Aim for ~30 characters — long enough to convey the verb +
-  // the shape ("Guess the secret number"), short enough to fit beside the
-  // player-count badge without wrapping.
+  // the shape ("Guess the secret number"), short enough to fit on one line
+  // with the player count (`· 1–6 players`) after it.
   shortDescription: string
 
   // URL to this gametype's square SVG logo. Drawn by `<GameLogo>`, which
@@ -136,7 +136,7 @@ export type GameManifest = {
   // I play this?" is a question you ask BEFORE agreeing to a game as well as
   // during one. Every game declares one. Lazy-loaded so each game's help
   // content ships in that game's chunk, not the main bundle. See docs/ui.md →
-  // "Help" + "GamePage menu".
+  // "GamePage menu", and → "Dialog buttons" for the setup dialog's button.
   //
   // Receives `brand` (the manifest's own `name`) so the modal's
   // "How to play <brand>" title is sourced from the single
@@ -224,9 +224,10 @@ export type GameManifest = {
   // Fire this gametype's timeout RPC. Called by GamePage when
   // `useGameTimer.expired` flips true in countdown mode.
   //
-  // Each gametype's RPC is idempotent on its terminal-state
-  // check — the FE swallows the "already terminal" error so
-  // peers racing to fire the timeout is fine.
+  // Every connected client fires it on the same countdown edge, so all but
+  // one arrive to find the game already over. That answer is PN486, a race
+  // (`severity: 'race'`), and GamePage swallows exactly that severity into a
+  // log — peers racing to fire the timeout is fine.
   //
   // Per-gametype rather than one common.submit_timeout because
   // each RPC writes its own gametype-specific terminal state +
@@ -355,8 +356,9 @@ export function playerCountLabel(
 }
 
 /**
- * Compact player-count rendering for the Start-game button's
- * subtle meta line. Pair with the gametype's shortDescription.
+ * Compact player-count rendering for a start row's subtle meta line, after
+ * the gametype's `shortDescription`. Every row of a club that is not solo
+ * shows it.
  *
  *   [2, 2] → "2 players"
  *   [1, 6] → "1–6 players"

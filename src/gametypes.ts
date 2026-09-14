@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 import type { GameManifest } from './common/manifest/gameManifest'
 import { codenamesduetGame } from './codenamesduet/manifest'

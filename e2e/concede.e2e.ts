@@ -17,8 +17,8 @@ import { signIn } from './helpers/session'
  * conceded") while Bob keeps playing (no terminal for him, his Concede still
  * live).
  *
- * wordwheel has no whole-table stop, so its question is the plain two-button
- * CONCEDE_CONFIRM. bananagrams' spec covers the other shape — the same action
+ * wordwheel's board does not offer End for everyone, so its question is the
+ * plain two-button CONCEDE_CONFIRM. bananagrams' spec covers the other shape — the same action
  * with ending for everyone as its second answer.
  */
 test.describe('concede (compete)', () => {

@@ -1,4 +1,4 @@
-// cs-audited-manifest
+// cs-blessed-manifest
 
 import { describe, expect, it } from 'vitest'
 import { playerCountFits, playerCountLabel, playerCountShort } from './gameManifest'
@@ -7,10 +7,10 @@ import { playerCountFits, playerCountLabel, playerCountShort } from './gameManif
  * Pure-function tests for the player-count helpers — **all three of them.**
  *
  * They read the same `numberOfPlayers` tuple off a gametype's manifest and
- * answer three different questions about it: `playerCountFits` drives
- * ClubPage's enable/disable decision for a Start button, `playerCountLabel`
- * writes the tooltip explaining a disabled one, and `playerCountShort` writes
- * the meta line on every enabled one.
+ * answer three different questions about it: `playerCountFits` is the start
+ * list's one `disabled` predicate, `playerCountLabel` is the row title that
+ * says why a dimmed row is dimmed, and `playerCountShort` is the player count
+ * on every row's meta line in a club that is not solo.
  *
  * See `gameManifest.ts` for the tuple itself, and docs/features.md → Player
  * counts for what each game actually declares.

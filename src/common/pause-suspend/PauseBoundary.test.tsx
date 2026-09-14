@@ -168,7 +168,7 @@ describe('PauseBoundary', () => {
     expect(actEndGame.run).toHaveBeenCalledTimes(1)
   })
 
-  it('draws nothing for an action that says it is hidden — a gametype with no whole-table end', () => {
+  it('draws nothing for an action that says it is hidden', () => {
     render(
       <PauseBoundary
         paused={true}
