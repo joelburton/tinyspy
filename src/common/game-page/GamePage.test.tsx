@@ -60,7 +60,7 @@ vi.mock('../account/useAccountMenuSection', () => ({
 }))
 vi.mock('../chat/Chat', () => ({ Chat: () => null }))
 
-import { GamePage } from './GamePage'
+import { GamePageGate } from './GamePageGate'
 
 const GAME_ID = '11111111-2222-3333-4444-555555555555'
 const ADA: Member = { user_id: 'ada', username: 'ada', color: 'red' }
@@ -104,7 +104,8 @@ type Overrides = {
 }
 
 /** What the mocked `useCommonGame` answers: a loaded, playing, solo game by
- *  default. `game: null` is the row not yet loaded (no club handle either). */
+ *  default. `game: null` is the row gone, which the loader turns into the "no
+ *  such game" card rather than passing down. */
 function commonGameState({ paused = false, players = [ADA], game = {} }: Overrides = {}) {
   const commonGame: CommonGame | null =
     game === null
@@ -136,26 +137,23 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
     sendSuspend: vi.fn(),
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    // `loading` false with a null row is the shape the page shows "no such
-    // game" for; the tests that want a not-yet-loaded club handle keep the
-    // row and blank the handle instead (see `withoutClub`).
+    // `loading` false with a null row is the shape `GamePageLoader` shows "no
+    // such game" for. The page below it never sees that combination.
     loading: false,
     failure: null,
   } as unknown as CommonGameState
 }
 
-/** The row is here but its club is not — the beat before the handle loads. */
-const withoutClub: Overrides = { game: { club_handle: '' } }
 const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', is_terminal: true } }
 
-/** Mount the page over the pre-flight read; resolves once the play surface is
- *  up (or the pause overlay, when paused). */
+/** Mount the whole route — gate, loader, page — over the pre-flight read;
+ *  resolves once the play surface is up (or the pause overlay, when paused). */
 async function mount(state = commonGameState(), manifest = makeManifest()) {
   mockUseCommonGame.mockReturnValue(state)
   const view = render(
-    <GamePage gameId={GAME_ID} session={session} manifest={manifest}>
+    <GamePageGate gameId={GAME_ID} session={session} manifest={manifest}>
       {() => <div>play</div>}
-    </GamePage>,
+    </GamePageGate>,
   )
   await act(async () => {
     await Promise.resolve()
@@ -211,16 +209,11 @@ describe('act-end-game, bound for the pause overlay', () => {
 })
 
 describe('act-new-game-from-setup', () => {
-  it('is hidden until the club handle is known, then active', async () => {
-    const { view } = await mount(commonGameState(withoutClub))
-    expect(bound('act-new-game-from-setup').describe().state).toBe('hidden')
-
-    mockUseCommonGame.mockReturnValue(commonGameState())
-    view.rerender(
-      <GamePage gameId={GAME_ID} session={session} manifest={makeManifest()}>
-        {() => <div>play</div>}
-      </GamePage>,
-    )
+  // It used to answer `hidden` until the club handle arrived. There is no such
+  // beat now: `GamePageLoader` does not render the page without a row, and a
+  // row always carries its club.
+  it('is active on a loaded game', async () => {
+    await mount()
     expect(bound('act-new-game-from-setup').describe().state).toBe('active')
   })
 
@@ -280,11 +273,4 @@ describe('act-back-to-club', () => {
     expect(state.sendSuspend).toHaveBeenCalledTimes(1)
   })
 
-  it('does nothing before the club handle is known', async () => {
-    const { state } = await mount(commonGameState(withoutClub))
-    act(() => bound('act-back-to-club').run())
-    await flush()
-    expect(mockNavigate).not.toHaveBeenCalled()
-    expect(state.sendSuspend).not.toHaveBeenCalled()
-  })
 })

@@ -4,10 +4,11 @@ The folders it reads: `game-page`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-game-page`,
-eighteen files. Eleven findings recorded: a prose group (F-1 to F-6) and a
-decision group (F-7 to F-11). **The prose group, F-7 and F-8 are worked**; F-9
-to F-11 are open. The folder's `todo.md` carries seven
+**Status: OPEN — audited 2026-09-14.** Eleven findings recorded: a prose group
+(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group, F-7 and F-8
+are worked**; F-9 to F-11 are open. On top of the findings, the route was split
+into three components — see "The route split" below. The folder's `todo.md`
+carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
 decision this area makes with its files open.
 
@@ -16,8 +17,10 @@ decision this area makes with its files open.
 Agreed 2026-09-14 (Joel: "these e2e's aren't part of this area"). The folder,
 and nothing else:
 
-- `GamePage.tsx` + `.module.css` + `.test.tsx` — the page: the pre-flight
-  "does this game exist" read, then the shell (`GamePageInner`)
+- `GamePageGate.tsx` — the pre-flight "does this game exist" read
+- `GamePageLoader.tsx` — `useCommonGame` and the wait for its answer
+- `GamePage.tsx` + `.module.css` + `.test.tsx` — the shell, drawn from props
+- `NoSuchGamePage.tsx` — `<ErrorPage>` in its Not-Found shape
 - `gamePageCtx.ts` — what the shell hands a game
 - `useCommonGame.ts` + `.test.ts` — the shared room: the row, the roster, the
   channel, presence, pause, suspend, the timer
@@ -36,8 +39,9 @@ and nothing else:
 No e2e is the area's own. `bananagrams-block.e2e.ts` drives `DeviceBlockNotice`
 but is bananagrams'; `presence` and `suspend-dialog` are `pause-suspend`'s.
 
-**Evidence, not roster:** `App.tsx` (mounts `GamePage`, the boundary, the two
-mount logs and the Suspense — the render-prop child); `pause-suspend/
+**Evidence, not roster:** `App.tsx` (mounts `GamePageGate`, the boundary, the
+two mount logs and the Suspense — the render-prop child); `error-page/
+ErrorPage.tsx` (took a `title` prop for this area's Not-Found page); `pause-suspend/
 PauseBoundary.tsx` + `PauseOverlay.tsx` (take `actEndGame`); every game's
 `PlayArea.tsx` (reads `GamePageCtx`); `bananagrams/components/PlayArea.tsx`
 (the one `DeviceBlockNotice` caller); `word-entry/EntryBox.tsx` (the one caller
@@ -53,6 +57,59 @@ page; `docs/mobile.md` → Where each game plays; `docs/realtime-lost-events.md`
 
 Baseline at the opening: the folder's four test files pass (52 tests); `tsc -b`
 and eslint clean.
+
+## The route split — done 2026-09-16
+
+Not a finding. Joel, reading `GamePage.tsx`: *"one of my goals is to make the
+components more readable — some are hairy, which is leading to me letting you
+do everything and then i don't understand things."* The file exported two
+components, `GamePage` and `GamePageInner`, which is the defect `todo.md`
+already records against `PlayAreaMountLog` ("the filename is the component" is
+false there) and had never been recorded against this one.
+
+**Three components, not two, and the third is the point.** `ClubPageLoader` is
+the repo's precedent and its promise is *"it exists so `<ClubPage>` never holds
+a club that might not be there."* The pre-flight alone does not keep that
+promise — it hands down no loaded data — so the split that pays is:
+
+- **`GamePageGate`** — does this game exist? One `select id`.
+- **`GamePageLoader`** — `useCommonGame`, and the wait for its answer.
+- **`GamePage`** — the shell, drawn from props. 647 lines to ~430.
+
+Why three and not two is a hard constraint, not taste: React forbids calling a
+hook conditionally, so `useCommonGame` cannot sit in the component that decides
+whether to call it. The gate and the loader must be separate components.
+
+Naming went `GamePageInner` → `LiveGame`/`GameRoom` → Joel's `GamePageStateLoader`
+→ **Gate → Loader → Page**, so the two waits are distinguishable by name and
+`GamePageLoader` means the same thing here as in `club/`. (`GameRoom` was
+dropped because `docs/naming.md` already gives "room" to the club.)
+
+What fell out, as predicted: five `commonGame?.` narrowings, the `clubHandle =
+''` sentinel, and `if (!commonGame) return` inside the timeout effect. Two more
+that were not: `isGameOver` and `gameOver` were the same expression computed on
+either side of the guard, now one; and `useClubRoster`'s "no-ops on `''`"
+comment described nothing.
+
+**It dissolves `todo.md`'s only Bug.** `act-back-to-club` answered `active`
+before `clubHandle` loaded and then returned silently. There is no such beat
+now — the loader does not render the page without a row, and a row always
+carries its club — so the state is unrepresentable rather than fixed. Its two
+tests went with it (`act-new-game-from-setup`'s "hidden until the club handle
+is known" became "is active on a loaded game"; back-to-club's "does nothing
+before the club handle is known" was deleted). **The `todo.md` entry is still
+there and wants closing** — left deliberately, since Joel asked that the bug
+not ride along inside the move.
+
+**`ErrorPage` took a `title` prop** (Joel: *"i think we should use the ErrorPage
+for no-such-game"*), defaulting to `'Error'`, and `diagnostics` became optional.
+`NoSuchGamePage` is now `<ErrorPage title="Not Found">` with no `k=v` line,
+which keeps the 2026-08-31 ruling that a missing game is a 404 and not a fault,
+and its bespoke card and stylesheet are gone. **Open, and Joel's to call:
+`.heading` is `--chrome-fault-color`, so "Not Found" renders in the fault red.**
+
+`ErrorPage.tsx` is stamped `cs-blessed-simple-page` and was edited; the stamp
+was not touched.
 
 ## Findings
 

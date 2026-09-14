@@ -1,16 +1,6 @@
 // cs-audited-game-page
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
-import type { Session } from '@supabase/supabase-js'
-import type { GamePageCtx } from './gamePageCtx'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuApi } from '../menu/menuModel'
@@ -20,7 +10,9 @@ import { useIsMobile } from '../mobile/useIsMobile'
 import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
-import { useCommonGame } from './useCommonGame'
+import type { CommonGame } from './useCommonGame'
+import type { GameRouteProps } from './GamePageGate'
+import type { GamePlayer, Member } from '../members/member'
 import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
 import { navigate } from '../routing/router'
@@ -34,125 +26,49 @@ import { PauseBoundary } from '../pause-suspend/PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { InfoSwitchButton } from '../info-sheet/InfoSwitchButton'
 import { cls } from '../utils/cls'
-import { Link } from '../routing/Link'
 import { PageHeader } from '../page-header/PageHeader'
 import { GameHeaderMenu } from './GameHeaderMenu'
 import { setGameMenuSections } from '../menu/gameMenuStore'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from '../pause-suspend/SuspendConfirmationBlockingModal'
-import { Loading } from '../loading/Loading'
-import { EnvelopeErrorPage } from '../error-page/ErrorPage'
-import type { GameManifest } from '../manifest/gameManifest'
-import { db as commonDb } from '../supabase/db'
-import { readRows } from '../supabase/dbResult'
-import type { NotOkEnvelope } from '../supabase/envelope'
 import styles from './GamePage.module.css'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-type Props = {
-  // The game's id. Drives every common-side data read (common.games,
-  // common.game_players) and the channel name.
-  gameId: string
-  // Authenticated session, threaded into useCommonGame for presence tracking
-  // and re-exposed via ctx to PlayArea.
-  session: Session
-  // The game's manifest, not the gametype string: the router has already
-  // looked it up to decide whether the URL names a real game at all, so a
-  // second lookup here could only fail in a way the first one ruled out. Every
-  // per-game thing the shell draws or dispatches comes off it.
-  manifest: GameManifest
-  // Render-prop child. Receives `GamePageCtx` and returns the per-gametype play
-  // surface JSX. Called only when the game is loaded AND not paused —
-  // PauseBoundary conditional-renders the overlay otherwise (children unmount
-  // cleanly).
-  children: (ctx: GamePageCtx) => ReactNode
-}
-
-/** Could this string BE a game id? Not "does the game exist" — that is a
- *  question for the server, and one worth asking only about ids that could
- *  have an answer. Postgres rejects anything else as `22P02`, once per query,
- *  and every one of those becomes its own fault modal. */
-const isGameId = (s: string) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
-
 /**
- * **The one "no such game" page**, for both of the ways to have no game: an id
- * that cannot name one, and an id that names one which is not there.
+ * What the route hands down (`GameRouteProps` — gameId, session, manifest and
+ * the render-prop child) plus the shared state `GamePageLoader` waited for.
  *
- * One function rather than two call sites writing the same card, because a
- * player cannot tell the two apart and should not be asked to.
- *
- * **Deliberately not an `<ErrorPage>`.** Nothing is broken here — a link points
- * at a game that is not there, which is a 404 — so it wears no red "Error" and
- * shows no `k=v` line. `detail` still says which of the two it was, but to the
- * CONSOLE: it is worth having when someone reports "it says there's no game",
- * and worth nothing to the person reading the page.
+ * Every member of the second half comes from one `useCommonGame` call in the
+ * loader. They are listed one by one rather than passed as a single `game`
+ * object so this block IS the page's contract: what it draws from, in the open.
  */
-function noSuchGamePage(detail: string) {
-  console.debug(`[ui] no-such-game | ${detail}`)
-  return (
-    <div className={cls('card', 'pageMain', styles.notFound)}>
-      <p className={styles.notFoundMessage}>
-        There's no game here. It may have been deleted, or the link you followed
-        might be wrong or out of date.
-      </p>
-      <Link to="/" className="link-button">
-        ← Back home
-      </Link>
-    </div>
-  )
-}
-
-/**
- * **Does this game exist? — asked once, before anything else runs.**
- *
- * One cheap `select id` and three answers, and NOTHING below mounts until it
- * says yes. That is the whole job of this component; `GamePageInner` holds the
- * shell as it always has, and `useCommonGame` is untouched.
- *
- * **Why a pre-flight query rather than reading the answer out of
- * `useCommonGame`,** which fetches the same row a moment later: because that
- * hook does far more than fetch. It joins the realtime channel, tracks
- * presence, and asserts `set_current_view` on the subscribe ack — for a game
- * that may not be there. Sequencing those internally means teaching a 600-line
- * hook to half-run, which is worse than one extra PK lookup on a path that is
- * about to make six more.
- *
- * **Why the id test appears twice.** In the effect it prevents the request: an
- * id that cannot be a uuid is a `22P02` per query and a fault modal per
- * `22P02`, and the answer is knowable without asking. In the render it picks
- * the page. Two different jobs — *don't ask*, and *say why*.
- *
- * The `'checking'` state and the `mounted` flag are React's tax and nothing
- * more: a render is synchronous so it cannot await, and a render that gets
- * discarded must not write state.
- */
-export function GamePage(props: Props) {
-  const { gameId, manifest } = props
-  const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnvelope>('checking')
-
-  useEffect(function askWhetherTheGameExists() {
-    if (!isGameId(gameId)) return
-    let mounted = true
-    async function readAndAnswer() {
-      const res = await readRows(commonDb.from('games').select('id').eq('id', gameId))
-      if (!mounted) return
-      // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
-      // player their game is gone because the network blinked — the confident
-      // wrong answer this whole area exists to stop.
-      setExists(res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no')
-    }
-    void readAndAnswer()
-    return function ignoreALateAnswer() {
-      mounted = false
-    }
-  }, [gameId])
-
-  if (!isGameId(gameId)) return noSuchGamePage(`not a game id: ${gameId}`)
-  if (exists === 'checking') return <Loading />
-  if (exists === 'no') return noSuchGamePage(`rows=0 gametype=${manifest.gametype} game=${gameId}`)
-  if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists} />
-  return <GamePageInner {...props} />
+type Props = GameRouteProps & {
+  // The game's row. A row, not a maybe-row — the loader does not render this
+  // page until it has one, which is most of why the loader exists.
+  commonGame: CommonGame
+  // Everyone in the game.
+  players: GamePlayer[]
+  // The presence-pause roster: `players` minus anyone who conceded. What
+  // PauseBoundary watches and the overlay lists.
+  activePlayers: GamePlayer[]
+  // Somebody in `activePlayers` is off the channel, or somebody clicked Pause.
+  // Forced false once the game has ended.
+  paused: boolean
+  // User ids currently on the game's realtime channel — paired with
+  // `activePlayers` to tell present from absent in the pause overlay.
+  presentUserIds: Set<string>
+  // Who clicked Pause, null when the pause is presence-only.
+  manuallyPausedBy: Member | null
+  // Broadcast the manual pause / its release to every peer, this tab included.
+  sendManualPause: () => void
+  sendManualUnpause: () => void
+  // Shelve the game and leave: broadcasts to every peer, then navigates self.
+  sendSuspend: () => void
+  // The game clock — seconds to show, and whether a countdown has run out.
+  timer: { displaySeconds: number; expired: boolean }
+  // True when the local player may act right now under turn-order; always true
+  // for free-for-all and solo games.
+  isMyTurn: boolean
 }
 
 /**
@@ -160,50 +76,54 @@ export function GamePage(props: Props) {
  * surface inside it, and the panels that outlive a pause — chat, the scratchpad,
  * help, the suspend confirm.
  *
- * Mounted only once `GamePage` above has proved the game exists, so it may read
- * as though the row is there. The hole in the middle is `children`, called with
- * a `GamePageCtx` while the game is loaded and unpaused; `PauseBoundary`
- * unmounts it to show the overlay, which is why anything that must survive a
- * pause lives out here or in the DB.
+ * The last of the game route's three components — `GamePageGate` asked whether
+ * the game exists, `GamePageLoader` joined its room and waited for its state,
+ * and this draws it. So every prop is a value, never a maybe-value, and this
+ * file never waits for anything.
+ *
+ * The hole in the middle is `children`, called with a `GamePageCtx` while the
+ * game is unpaused; `PauseBoundary` unmounts it to show the overlay, which is
+ * why anything that must survive a pause lives out here or in the DB.
  *
  * doc.md holds the rest: the tree, what the shell owns, the three ways out, and
  * why the menu's sections live in a store.
  */
-function GamePageInner({
+export function GamePage({
   gameId,
   session,
   manifest,
   children,
+  commonGame,
+  players,
+  activePlayers,
+  paused,
+  presentUserIds,
+  manuallyPausedBy,
+  sendManualPause,
+  sendManualUnpause,
+  sendSuspend,
+  timer,
+  isMyTurn,
 }: Props) {
   const gametype = manifest.gametype
-  const {
-    commonGame,
-    players,
-    activePlayers,
-    paused,
-    presentUserIds,
-    manuallyPausedBy,
-    sendManualPause,
-    sendManualUnpause,
-    sendSuspend,
-    timer,
-    isMyTurn,
-    loading,
-    failure,
-  } = useCommonGame(gameId, session)
+  // The club this game belongs to. Every club-shaped URL and both presence
+  // announcements come off it, and it is always a real handle — the loader
+  // waited for the row.
+  const clubHandle = commonGame.club_handle
+  const gameOver = commonGame.ended_at !== null
 
   // Announce on the club's presence channel that this player is
   // viewing THIS game, so the club page's member dots +
   // abandoned-game heal can see them. We don't read the roster here —
   // GamePage only announces.
-  useClubPresence(commonGame?.club_handle ?? null, gameId, session.user.id)
+  useClubPresence(clubHandle, gameId, session.user.id)
 
   // Receive-only: while you're IN a game of this club (active OR paused), still
   // surface a peer's "setting up a new game" toast — e.g. someone abandons a
   // stuck paused game to start the next one. `announce: null` because you can't
   // open a setup dialog from a game page (ClubPage owns the announcing side).
   useClubSetupPresence({
-    clubHandle: commonGame?.club_handle ?? null,
+    clubHandle,
     selfId: session.user.id,
     announce: null,
   })
@@ -239,8 +159,6 @@ function GamePageInner({
     // is recorded keeps the defer contract: a timeout that comes due exactly
     // as a pause engages resolves on resume (the edge is still unconsumed).
     if (paused) return
-    // Not loaded yet — don't consume an edge we can't act on.
-    if (!commonGame) return
     const wasExpired = prevExpiredRef.current
     prevExpiredRef.current = timer.expired
     if (!timer.expired || wasExpired) return
@@ -291,17 +209,13 @@ function GamePageInner({
   // can show the row. Null on a page with no chat panel — never here in
   // practice, since GamePage mounts one, but the type says what it is.
   const actChat = useAppAction('act-open-chat')
-  // Club handle + terminal flag drive both "Back to club" affordances. Derived
-  // from `commonGame` here so the menu API can be assembled; the primitives
-  // (not the `commonGame` object) are the callback deps, so identities only
-  // change on the rare club-load / terminal flip — not on every realtime
-  // `commonGame` update.
-  const clubHandle = commonGame?.club_handle ?? ''
-  const isGameOver = commonGame?.ended_at != null
   // Direct-nav to the club page — the terminal branch. Exposed via ctx so each
   // PlayArea's terminal action row can call it without re-deriving the URL.
+  // `clubHandle` and `gameOver` are the callback deps rather than `commonGame`,
+  // so identities only change on the rare terminal flip and not on every
+  // realtime row update.
   const goToClub = useCallback(() => {
-    if (clubHandle) navigate(clubPath(clubHandle))
+    navigate(clubPath(clubHandle))
   }, [clubHandle])
   // Jump to another game's page — for a PlayArea that just started a
   // follow-up game (waffle's "New game"). Kept here beside goToClub so
@@ -318,11 +232,10 @@ function GamePageInner({
   //     it shelves the game + navigates self.)
   //   - MULTIPLAYER mid-game: the suspend-confirm modal.
   const requestBackToClub = useCallback(() => {
-    if (!clubHandle) return
-    if (isGameOver) navigate(clubPath(clubHandle))
+    if (gameOver) navigate(clubPath(clubHandle))
     else if (players.length <= 1) sendSuspend()
     else setConfirmingSuspend(true)
-  }, [clubHandle, isGameOver, players.length, sendSuspend])
+  }, [clubHandle, gameOver, players.length, sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBoundAction('act-back-to-club', {
@@ -343,10 +256,10 @@ function GamePageInner({
   // `?new=<gametype>`; canceling it just leaves you on the club page, which is
   // a fine place to be. The registry asks NEW_GAME_CONFIRM first, mid-game.
   useBoundAction('act-new-game-from-setup', {
-    terminal: isGameOver,
-    describe: () => (clubHandle ? 'active' : 'hidden'),
+    terminal: gameOver,
+    describe: () => 'active',
     run: () => {
-      if (clubHandle) navigate(`${clubPath(clubHandle)}?new=${gametype}`)
+      navigate(`${clubPath(clubHandle)}?new=${gametype}`)
     },
   })
 
@@ -380,28 +293,15 @@ function GamePageInner({
     }
   }
   const actEndGame = useBoundAction('act-end-game', {
-    terminal: isGameOver,
+    terminal: gameOver,
     describe: () => (paused ? 'active' : 'hidden'),
     run: endTheGameFromTheOverlay,
   })
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
-  // naming a sender (chat window + the feedback pill) needs every member. Empty
-  // until the game row (and its club_handle) loads; `useClubRoster` no-ops on ''.
+  // naming a sender (chat window + the feedback pill) needs every member.
   const { members: clubMembers } = useClubRoster(clubHandle)
 
-  // `GamePage` proved the row existed before mounting this, so these are about
-  // what happens AFTER: `useCommonGame` refetches on every realtime event, so a
-  // game someone deletes mid-session arrives here as zero rows, and an outage
-  // arrives as a failed read. The pre-flight answers the question once; this
-  // keeps answering it.
-  if (loading) return <Loading />
-  // A failed read is NOT a missing game — both leave `commonGame` null, and
-  // only one of them means the game is gone.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!commonGame) return noSuchGamePage(`rows=0 gametype=${gametype} game=${gameId}`)
-
-  const gameOver = commonGame.ended_at !== null
   // A COUNT-UP clock survives the end of the game and a COUNTDOWN does not, and
   // the difference is what each one is for. A countdown is a budget: once the
   // game is over it can only read 0:00, which says nothing anyone needs. A

@@ -4,7 +4,7 @@ The live game's page and everything it hands down to a game: the page, the conte
 
 ## Intro to area
 
-There is one game page, and every game plays on it. The route `/g/<gametype>/<gameId>` mounts `GamePage`, which asks the server once whether that game exists and then mounts the shell around a hole. The hole is where the game goes. Sixteen play surfaces take turns filling it, and none of them draws a header, a clock, a chat panel or a way back to the club, because the shell does all of that and the game never has to think about it.
+There is one game page, and every game plays on it. The route `/g/<gametype>/<gameId>` mounts three components in a row — a gate that asks whether the game exists, a loader that joins its room and waits for its state, and the page itself, a shell around a hole. The hole is where the game goes. Sixteen play surfaces take turns filling it, and none of them draws a header, a clock, a chat panel or a way back to the club, because the shell does all of that and the game never has to think about it.
 
 What the shell owns divides cleanly. The chrome is the header — the logo that is also the menu, the players strip that a message can take over, the pause button, the clock, and on a phone the switch between the board page and the info page. The shared state is `useCommonGame`: the `common.games` row, the roster, presence, the two kinds of pause, suspend, and the timer. What a game gets is `GamePageCtx`, one object handed to the render-prop child, carrying the row's useful fields, the clock, the turn gate, the global feedback slot, the menu API and the two navigations. A game reads that object and renders a board.
 
@@ -14,21 +14,27 @@ Leaving has three shapes, and the menu's Back to club picks between them. A fini
 
 ## Details
 
-**The tree the shell renders.** `GamePage` is the pre-flight; `GamePageInner` is the shell:
+**The three components, and the tree the last of them renders.** `GamePageGate` asks whether the game exists; `GamePageLoader` calls `useCommonGame` and waits; `GamePage` draws. Each hands its props straight down, so the page receives the route's four plus everything the loader waited for — as values, never as maybe-values:
 
 ```
-GamePageInner
-├── PageHeader   menu(logo) · chat + scratchpad buttons · status slot | pause · timer · info switch
-├── PauseBoundary
-│     ├── not paused → children(GamePageCtx)   ← the game's board
-│     └── paused     → PauseOverlay
-├── Chat                  outside the boundary: still there mid-pause
-├── GameScratchpadCompanion   opt-in per manifest, also outside
-├── Help                  the manifest's rules component, lazily loaded
-└── SuspendConfirmationBlockingModal
+GamePageGate                    does this game exist?
+└── GamePageLoader              join the room, wait for its state
+    └── GamePage
+        ├── PageHeader          menu(logo) · chat + scratchpad · status slot | pause · timer · switch
+        ├── PauseBoundary
+        │     ├── not paused →  children(GamePageCtx)   ← the game's board
+        │     └── paused     →  PauseOverlay
+        ├── Chat                outside the boundary: still there mid-pause
+        ├── GameScratchpadCompanion   opt-in per manifest, also outside
+        ├── Help                the manifest's rules component, lazily loaded
+        └── SuspendConfirmationBlockingModal
 ```
 
-**The existence check is its own component, and it runs first.** `GamePage` does one `select id` and mounts nothing until it answers. It cannot instead read the answer out of `useCommonGame`, which fetches the same row a moment later, because that hook does far more than fetch: calling it joins the channel, tracks presence and asserts `set_current_view` — for a game that may not be there. Sequencing those internally would mean teaching a long hook to half-run, which is worse than one extra primary-key lookup on a path about to make six more reads. The answer is three-way on purpose: a read that FAILED is not a game that is gone, and collapsing them would tell a player their game was deleted because the network blinked.
+Either of the first two can end the route instead of descending: `<Loading>`
+while it waits, `<NoSuchGamePage>` if the game is not there, an error page if a
+read failed.
+
+**The existence check is its own component, and that is why there are three.** The gate does one `select id` and mounts nothing until it answers. It cannot instead read the answer out of `useCommonGame`, which fetches the same row a moment later, because that hook does far more than fetch: calling it joins the channel, tracks presence and asserts `set_current_view` — for a game that may not be there. React forbids calling a hook conditionally, so the only place `useCommonGame` can wait for the gate's answer is a component the gate has not mounted yet. Sequencing it internally instead would mean teaching a long hook to half-run, which is worse than one extra primary-key lookup on a path about to make six more reads. The answer is three-way on purpose: a read that FAILED is not a game that is gone, and collapsing them would tell a player their game was deleted because the network blinked.
 
 **A pause unmounts the board.** `PauseBoundary` renders the overlay instead of `children`, so the play surface's selections, form state and per-gametype channels all start fresh on resume. Anything that must survive a pause therefore lives above the boundary — in `useCommonGame`, in the shell's own feedback and menu state, or in the database. Chat and the scratchpad are deliberately outside the boundary for the same reason: a stalled game is exactly when people want to talk.
 

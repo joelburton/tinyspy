@@ -5,7 +5,7 @@ import { useSession } from './common/session/useSession'
 import { LoginScreen } from './common/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/auth/ClaimHandleScreen'
 import { ClubPageLoader } from './common/club/ClubPageLoader'
-import { GamePage } from './common/game-page/GamePage'
+import { GamePageGate } from './common/game-page/GamePageGate'
 import { PlayAreaErrorBoundary } from './common/game-page/PlayAreaErrorBoundary'
 import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/game-page/PlayAreaMountLog'
 import { HomePage } from './common/home/HomePage'
@@ -52,7 +52,8 @@ import { manifestFor } from './gametypes'
  *
  *   /                       →  HomePage
  *   /c/<handle>             →  ClubPage, keyed by handle
- *   /g/<gametype>/<gameId>  →  GamePage, keyed by gameId, with the manifest's
+ *   /g/<gametype>/<gameId>  →  GamePage (via its gate + loader), keyed by
+ *                              gameId, with the manifest's
  *                              lazily-imported PlayArea as its render-prop
  *                              child; the boundary, the Suspense and the two
  *                              mount logs are supplied here (common/game-page)
@@ -120,8 +121,8 @@ export default function App() {
     <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
   )
 
-  // The game route: the `<GamePage>` shell with the manifest's PlayArea as its
-  // render-prop child.
+  // The game route: `<GamePageGate>` — which leads to the loader and then the
+  // shell — with the manifest's PlayArea as its render-prop child.
   //
   // The gametype is matched case-INSENSITIVELY but the registry is keyed on the
   // lowercase codename, so it is normalized before the lookup. Without that,
@@ -134,7 +135,7 @@ export default function App() {
 
     // A gametype the registry has never heard of is a different thing from a
     // game that isn't there, and the two wear different screens on purpose: an
-    // error page here, and GamePage's calmer "no game here" card for a game id
+    // error page here, and the gate's calmer "no game here" card for a game id
     // that is malformed or names no row.
     if (!gameManifest)
       return (
@@ -157,7 +158,7 @@ export default function App() {
     // Keyed by gameId so navigating between games REMOUNTS — a clean state
     // slate, no stale subscriptions.
     return (
-      <GamePage key={gameId} gameId={gameId} session={session} manifest={gameManifest}>
+      <GamePageGate key={gameId} gameId={gameId} session={session} manifest={gameManifest}>
         {(ctx) => (
           // The two mount-only console breadcrumbs for "blank play area"
           // reports — slot handed over vs game code actually committed. See
@@ -176,7 +177,7 @@ export default function App() {
             </PlayAreaErrorBoundary>
           </PlayAreaSlotLog>
         )}
-      </GamePage>
+      </GamePageGate>
     )
   }
 
