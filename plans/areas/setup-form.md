@@ -9,9 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
 half, carried in on Joel's word.
 
-**Worked so far: F-8, F-9, F-10** — all decision findings, taken one at a time.
-The prose group is untouched, and F-9 left it one sentence lighter (see its
-record).
+**Worked so far: F-8, F-9, F-10, F-11** — all decision findings, taken one at a
+time. The prose group is untouched; F-9 and F-11 each left it one sentence
+lighter (see their records).
 
 ## The roster
 
@@ -141,7 +141,8 @@ leaves the second bare.
 - `e2e/puzzle-pickers.e2e.ts`: "after the 2026-08-13 rework"; "It was a
   `<fieldset>` until 2026-08-25, when every setup field became a
   `<SetupSection>`"; "Leaving a source used to be a side effect of pressing a
-  different tab"; and "(It did, while this was being written.)" twice.
+  different tab"; and "(It did, while this was being written.)" — which was
+  twice until F-11 rewrote `nextUpLine`'s docstring and took one with it.
 
 Each keeps its standing fact and loses the story.
 
@@ -350,21 +351,31 @@ is still `game-page` while `docs/common-folders.md` gives `info-sheet` "the
 chrome its panels share". That question is filed in `terminal`, `info-sheet`
 and `word-entry` (Joel, 2026-09-14), each with its own version of it.
 
-### F-setup-form-11 · `class-sniffing-e2e` · two locators in `puzzle-pickers` read hashed class names
+### F-setup-form-11 · `class-sniffing-e2e` · WORKED 2026-09-14 — option 1: our half gets a handle, the library's half is filed
 
-`nextUpLine` is `p[class*="next"]` (the `.next` rule in
-`SetupNextPuzzleSection.module.css`), and the crosswords cancel test scopes
-the picker with `.react-draggable, [class*="rnd"]`. The first is exactly what
-F-club-page-17 removed from the club e2es, and `homepage` before it. Options:
+`nextUpLine` was `puzzleSection(page).locator('p[class*="next"]').first()` — a
+substring match against the hashed build of `styles.next` in
+`SetupNextPuzzleSection.module.css`, standing under about ten assertions.
+Renaming that class would have turned every one of them into "element not
+found" rather than a wrong message, which is the failure mode the helper's own
+docstring says it exists to avoid.
 
-1. **A `data-testid="next-puzzle"` on the line** now, following the club
-   page's `list-row` / `heading-controls`; the picker locator is a
-   floating-panels question (the panel could carry a test id by its heading)
-   and is left for that area with a note.
-2. Leave both, note for `floating-panels`.
+The line takes `data-testid="next-puzzle"` and the helper takes
+`getByTestId('next-puzzle')`, following F-club-page-17's precedent (`list-row`,
+`heading-controls`, `mobile-filters`). The trailing `.first()` goes:
+`puzzleSection` already narrows to one `<details>`, and there is one such line
+in it. The docstring keeps the reason the locator is by element rather than by
+text shape and loses the archaeology in its last sentence (F-3's class).
 
-Recommend 1 — the precedent Joel set at F-club-page-17 ("add the handles
-now").
+**The other locator stays**, and is a different problem: the crosswords cancel
+test scopes the NYT picker with `.react-draggable, [class*="rnd"]`, which are
+`react-rnd`'s class names, not ours. Nothing here can keep those true, and what
+a `<FloatingPanel>` should offer a test instead — most likely a test id off its
+title, which would serve every "which panel" locator — is that folder's call.
+Filed in `floating-panels/todo.md`.
+
+**Not run.** The e2e is edited and unverified; `tsc -b`, eslint and the unit
+suites are clean. Same standing as F-club-page-17's four.
 
 ### F-setup-form-12 · `players-section-count-twice` · the player-count check is written in two places
 

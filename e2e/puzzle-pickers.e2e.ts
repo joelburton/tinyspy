@@ -57,14 +57,14 @@ async function openPuzzle(page: Page) {
 /**
  * The "next up" line inside the opened disclosure.
  *
- * Matched by ELEMENT, not by text shape. The line has four states — waiting,
- * a puzzle, "everyone has played everything", "no puzzle for that date" — and
- * a `/^\d{4}-\d{2}-\d{2}: /` locator silently matches none of the last two,
- * so asserting on them fails as "element not found" rather than as a wrong
- * message. (It did, while this was being written.)
+ * Matched by its TEST ID, not by text shape. The line has four states —
+ * waiting, a puzzle, "everyone has played everything", "no puzzle for that
+ * date" — and a `/^\d{4}-\d{2}-\d{2}: /` locator silently matches none of the
+ * last two, so asserting on them fails as "element not found" rather than as a
+ * wrong message.
  */
 function nextUpLine(page: Page) {
-  return puzzleSection(page).locator('p[class*="next"]').first()
+  return puzzleSection(page).getByTestId('next-puzzle')
 }
 
 test.describe('puzzle pickers', () => {

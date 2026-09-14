@@ -166,7 +166,9 @@ export function SetupNextPuzzleSection({
 
   return (
     <SetupSection label={summary} help={help} defaultOpen={nothingToPlay}>
-      <p className={styles.next}>{line}</p>
+      {/* The e2e's handle for this line: it has four states, and a text-shape
+          locator silently matches none of two of them. See `puzzle-pickers`. */}
+      <p className={styles.next} data-testid="next-puzzle">{line}</p>
       <DateField
         // Named for the SETTING, not the control: the field's question is
         // "which puzzle?", and a date is how you address one. That is also the
