@@ -1,11 +1,13 @@
 // cs-unmet
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import type { GamePageCtx } from './gamePageCtx'
 import { Loading } from '../loading/Loading'
 import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import type { GameManifest } from '../manifest/gameManifest'
+import { ErrorPage } from '../error-page/ErrorPage'
+import { diagnosticsLine } from '../supabase/dbLog'
+import { manifestFor } from '@/gametypes'
 import { db as commonDb } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
@@ -13,27 +15,33 @@ import { GamePageLoader } from './GamePageLoader'
 import { NoSuchGamePage } from './NoSuchGamePage'
 
 /**
- * What the game route hands down, the whole way: the gate takes these, passes
- * them to the loader, and the loader passes them to the page alongside the
- * state it loaded.
+ * What the gate hands down once the URL has survived it: the loader takes
+ * these, and passes them to the page alongside the state it loaded. Nothing
+ * else is supplied from outside — the play surface and its wrappers are
+ * assembled by `GamePage` off the manifest.
  */
-export type GameRouteProps = {
+export type GameShellProps = {
   // The game's id. Drives every common-side data read (common.games,
   // common.game_players) and the channel name.
   gameId: string
   // Authenticated session, threaded into useCommonGame for presence tracking
   // and re-exposed via ctx to PlayArea.
   session: Session
-  // The game's manifest, not the gametype string: the router has already
-  // looked it up to decide whether the URL names a real game at all, so a
-  // second lookup here could only fail in a way the first one ruled out. Every
-  // per-game thing the shell draws or dispatches comes off it.
+  // The game's manifest, resolved by the gate — so below here it is a
+  // manifest, not a lookup that might miss. Every per-game thing the shell
+  // draws or dispatches comes off it.
   manifest: GameManifest
-  // Render-prop child. Receives `GamePageCtx` and returns the per-gametype play
-  // surface JSX. Called only when the game is loaded AND not paused —
-  // PauseBoundary conditional-renders the overlay otherwise (children unmount
-  // cleanly).
-  children: (ctx: GamePageCtx) => ReactNode
+}
+
+type Props = {
+  // The gametype EXACTLY as the URL spelled it. Matched case-insensitively but
+  // looked up in lowercase, since the registry is keyed on the lowercase
+  // codename — without normalizing, `/g/Wordle/<id>` matches the route, misses
+  // the registry, and is reported as a fault, which it isn't. The raw spelling
+  // survives because the not-found page echoes what the URL actually said.
+  urlGametype: string
+  gameId: string
+  session: Session
 }
 
 /** Could this string BE a game id? Not "does the game exist" — that is a
@@ -44,10 +52,15 @@ const isGameId = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
 
 /**
- * **Does this game exist? — asked once, before anything else runs.** The first
- * of the game route's three components: this gate, then `GamePageLoader`, then
- * `GamePage`. Renders nothing of its own beyond the waiting and not-found
- * pages.
+ * **Can this URL name a game at all? — asked once, before anything else runs.**
+ * The first of the game route's three components: this gate, then
+ * `GamePageLoader`, then `GamePage`. Renders nothing of its own beyond the
+ * waiting, error and not-found pages.
+ *
+ * Every way a game URL can come to nothing is answered here, which is why the
+ * route hands over the gametype as the URL spelled it rather than a manifest:
+ * an unknown gametype, an id that cannot be one, an id that names no row, and
+ * a read that failed are four different answers and they belong together.
  *
  * One cheap `select id` and three answers, and NOTHING below mounts until it
  * says yes. **That gate is the reason the route is three components and not
@@ -66,8 +79,8 @@ const isGameId = (s: string) =>
  * more: a render is synchronous so it cannot await, and a render that gets
  * discarded must not write state.
  */
-export function GamePageGate(props: GameRouteProps) {
-  const { gameId, manifest } = props
+export function GamePageGate({ urlGametype, gameId, session }: Props) {
+  const manifest = manifestFor(urlGametype.toLowerCase())
   const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnvelope>('checking')
 
   useEffect(function askWhetherTheGameExists() {
@@ -87,9 +100,29 @@ export function GamePageGate(props: GameRouteProps) {
     }
   }, [gameId])
 
+  // A gametype the registry has never heard of is a different thing from a
+  // game that isn't there, and the two wear different screens on purpose: this
+  // is a fault — the app cannot name the thing the link asks for — while the
+  // calmer card below is a 404 for an id that is malformed or names no row.
+  if (!manifest)
+    return (
+      <ErrorPage
+        message={
+          <>
+            There's no game type called <code>{urlGametype}</code>. The link is
+            wrong, or the game was removed from the app.
+          </>
+        }
+        diagnostics={diagnosticsLine('FAULT', {
+          call: `GET /g/${urlGametype}`,
+          severity: 'fault',
+          detail: 'no manifest registered for this gametype',
+        })}
+      />
+    )
   if (!isGameId(gameId)) return <NoSuchGamePage detail={`not a game id: ${gameId}`} />
   if (exists === 'checking') return <Loading />
   if (exists === 'no') return <NoSuchGamePage detail={`rows=0 gametype=${manifest.gametype} game=${gameId}`} />
   if (exists !== 'yes') return <EnvelopeErrorPage envelope={exists} />
-  return <GamePageLoader {...props} />
+  return <GamePageLoader gameId={gameId} session={session} manifest={manifest} />
 }

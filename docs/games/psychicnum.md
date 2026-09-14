@@ -402,7 +402,7 @@ src/psychicnum/
                             GameTurnLog (chronological guess + hint log, auto-scroll)
                             CelebrationBlockingModal (shared) — pops on a COOP WIN only,
                               once, at the moment it happens; the only modal here
-                          Mounted by <GamePage> as its render-prop child; receives
+                          Mounted by <GamePage> as its play surface; receives
                           the GamePageCtx ({ session, gameId, players, playState,
                           isTerminal, timer, setup, feedback, menu }).
                           Cross-cutting chrome (logo, chat-bubble, players strip,
@@ -492,7 +492,7 @@ Reads from `psychicnum.games_state` (the view that exposes `secrets` conditional
 
 Drives off the shared [`useRealtimeRefetch`](../../src/common/realtime/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
-The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
+The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution comes from `useCommonGame`, via the props GamePage hands the PlayArea.
 
 ### Code-splitting
 

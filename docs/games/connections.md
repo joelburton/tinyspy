@@ -486,7 +486,7 @@ src/connections/
                           Hints+End action row → terminal outcome line, and the TurnLog below).
                           No outer card — the only divider is the info column's left border.
                           Branches on game.mode for the OpponentStrip + eliminated-spectator
-                          state. Mounted by <GamePage> as its render-prop child. **Decomposed**
+                          state. Mounted by <GamePage> as its play surface. **Decomposed**
                           into `BoardCol` (bands + tile grid + Shuffle + the Clear/Submit input
                           engine) + `InfoCol` (the readouts + TurnLog); PlayArea is the thin
                           coordinator — `useGame`, the guess RPC, and the turn-history
@@ -783,7 +783,7 @@ otherwise every opponent row would read a bare "Correct".
 | How does the FE branch on mode | [`src/connections/components/PlayArea.tsx`](../../src/connections/components/PlayArea.tsx) (OpponentStrip + buildOver + eliminated state) and [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (mistakeCount / opponentMistakes / isEliminated projections + broadcast short-circuit) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-connections-puzzles.ts`](../../supabase/scripts/import-connections-puzzles.ts) — run via `gmake g-connections-puzzles` |
-| What does the play surface look like | [`src/connections/components/PlayArea.tsx`](../../src/connections/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| What does the play surface look like | [`src/connections/components/PlayArea.tsx`](../../src/connections/components/PlayArea.tsx) (mounted as `<GamePage>`'s play surface) |
 | What does the tile grid + category-band render look like | [`src/connections/components/Board.tsx`](../../src/connections/components/Board.tsx) (ONE grid: full-width colored bands + remaining tiles, both wearing the shared `.tileFace`; carries the identity ring, the in-flight dim, the verdict fill, the band attention flash and the three board-scope marks — see [Board feedback](#board-feedback-the-shared-vocabulary). Pulls `RANK_TOKEN` from `lib/rankColors`. Replaced the old separate `TileGrid` + `CategoryBands`.) |
 | How shared selection works | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast; `broadcast()` short-circuits to local-only in compete) |
 | How `matchedCategories` is projected | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the projection at the bottom of the hook) |

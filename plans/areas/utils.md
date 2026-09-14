@@ -143,7 +143,7 @@ share". The stamp is shared; the prefix is not:
 ```
 [db] 12:00:00.000 rpc create_game severity=… ← dbLog.ts: stamp AFTER the bracket
 [rt 12:00:00.000] game:abc — status SUBSCRIBED  ← realtimeDiag.ts: stamp INSIDE
-[ui 12:00:00.000] playarea slot mounted — …     ← PlayAreaMountLog.tsx: INSIDE
+[ui 12:00:00.000] playarea slot mounted — …     ← PlayAreaSlotLog.tsx: INSIDE
 ```
 
 So a console filtered on `[db]` and one filtered on `[rt` are two different

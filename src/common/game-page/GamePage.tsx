@@ -11,7 +11,7 @@ import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import type { CommonGame } from './useCommonGame'
-import type { GameRouteProps } from './GamePageGate'
+import type { GameShellProps } from './GamePageGate'
 import type { GamePlayer, Member } from '../members/member'
 import { formatTimerSeconds } from '../timer/useGameTimer'
 import { useClubRoster } from '../club/useClubRoster'
@@ -31,18 +31,20 @@ import { GameHeaderMenu } from './GameHeaderMenu'
 import { setGameMenuSections } from '../menu/gameMenuStore'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { SuspendConfirmationBlockingModal } from '../pause-suspend/SuspendConfirmationBlockingModal'
+import { PlayAreaSlotLog } from './PlayAreaSlotLog'
+import { PlayAreaErrorBoundary } from './PlayAreaErrorBoundary'
+import { Loading } from '../loading/Loading'
 import styles from './GamePage.module.css'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /**
- * What the route hands down (`GameRouteProps` — gameId, session, manifest and
- * the render-prop child) plus the shared state `GamePageLoader` waited for.
+ * What the gate resolved (`GameShellProps`) plus the state the loader waited for.
  *
  * Every member of the second half comes from one `useCommonGame` call in the
  * loader. They are listed one by one rather than passed as a single `game`
  * object so this block IS the page's contract: what it draws from, in the open.
  */
-type Props = GameRouteProps & {
+type Props = GameShellProps & {
   // The game's row. A row, not a maybe-row — the loader does not render this
   // page until it has one, which is most of why the loader exists.
   commonGame: CommonGame
@@ -92,7 +94,6 @@ export function GamePage({
   gameId,
   session,
   manifest,
-  children,
   commonGame,
   players,
   activePlayers,
@@ -310,6 +311,7 @@ export function GamePage({
   // than a judgment about why.
   const timerStopped = paused || gameOver
   const HelpComponent = manifest.help
+  const PlayArea = manifest.PlayArea
 
   return (
     <div className={styles.frame}>
@@ -398,24 +400,41 @@ export function GamePage({
         // the only place it is ever drawn.
         actEndGame={actEndGame}
       >
-        {children({
-          session,
-          gameId,
-          brand: manifest.name,
-          title: commonGame.title,
-          players,
-          playState: commonGame.play_state,
-          isTerminal: commonGame.is_terminal,
-          timer,
-          isMyTurn,
-          currentTurnUserId: commonGame.current_turn_user_id,
-          setup: commonGame.setup,
-          status: commonGame.status,
-          clubHandle: commonGame.club_handle,
-          goToGame,
-          globalFeedbackSlot,
-          menu: menuApi,
-        })}
+        {/* The play surface, assembled here rather than by the route: the
+            wrappers are identical for every game and none of them needs
+            anything the route knows. The mount log is outermost so its line
+            lands before a broken game can throw; the boundary is inside the log
+            and outside the Suspense, so a game whose chunk fails to load gets
+            the card rather than the blank page. */}
+        <PlayAreaSlotLog
+          gametype={gametype}
+          gameId={gameId}
+          playState={commonGame.play_state}
+          isTerminal={commonGame.is_terminal}
+        >
+          <PlayAreaErrorBoundary>
+            <Suspense fallback={<Loading />}>
+              <PlayArea
+                session={session}
+                gameId={gameId}
+                brand={manifest.name}
+                title={commonGame.title}
+                players={players}
+                playState={commonGame.play_state}
+                isTerminal={commonGame.is_terminal}
+                timer={timer}
+                isMyTurn={isMyTurn}
+                currentTurnUserId={commonGame.current_turn_user_id}
+                setup={commonGame.setup}
+                status={commonGame.status}
+                clubHandle={commonGame.club_handle}
+                goToGame={goToGame}
+                globalFeedbackSlot={globalFeedbackSlot}
+                menu={menuApi}
+              />
+            </Suspense>
+          </PlayAreaErrorBoundary>
+        </PlayAreaSlotLog>
       </PauseBoundary>
 
       {/* Chat is club-context vocabulary ("anyone in the club may send a

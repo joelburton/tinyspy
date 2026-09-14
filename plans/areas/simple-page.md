@@ -438,7 +438,7 @@ probe-failed answer draws `EnvelopeErrorPage`, and the paragraph says so now.
 - `src/guards/callSiteShape.test.ts`: "the modal-vs-page rule in `ErrorPage`"
   — the same move, the same stale pointer. A guard is not audited; the edit
   is the mechanical consequence of F-5.
-- `src/common/game-page/PlayAreaMountLog.tsx`: the Suspense fallback's text is
+- `src/common/game-page/PlayAreaSlotLog.tsx` (then `PlayAreaMountLog.tsx`): the Suspense fallback's text is
   given as "Loading game…"; the fallback is `<Loading />`, which says
   "Loading…". game-page's file, fixed here because it is the same defect.
 - `docs/common.md` → Auth & magic links quotes the toggle as "I have a code";

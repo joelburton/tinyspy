@@ -29,7 +29,8 @@ and nothing else:
 - `GameHeaderMenu.tsx` — the logo menu; the one subscriber to `gameMenuStore`
 - `GameHelpCompanion.tsx` + `.module.css` — the how-to-play panel frame
 - `PlayAreaErrorBoundary.tsx` + `.test.tsx` — the boundary around a board
-- `PlayAreaMountLog.tsx` — the two console breadcrumbs for a blank play area
+- `PlayAreaSlotLog.tsx` — the console breadcrumb + browser snapshot for a
+  blank play area (was `PlayAreaMountLog.tsx`, two components; F-11.5)
 - `PlayArea.module.css` — the play surface's stylesheet, five concerns wide
 - `DeviceBlockNotice.tsx` + `.module.css` — the "needs a desktop" card
 - ~~`useGameHasKeyboard.ts`~~ — moved to `common/keyboard/` (F-10)
@@ -39,8 +40,8 @@ and nothing else:
 No e2e is the area's own. `bananagrams-block.e2e.ts` drives `DeviceBlockNotice`
 but is bananagrams'; `presence` and `suspend-dialog` are `pause-suspend`'s.
 
-**Evidence, not roster:** `App.tsx` (mounts `GamePageGate`, the boundary, the
-two mount logs and the Suspense — the render-prop child); `error-page/
+**Evidence, not roster:** `App.tsx` (hands the gate the URL's two parts and the
+session, and nothing else — F-11.6 and the gametype move); `error-page/
 ErrorPage.tsx` (took a `title` prop for this area's Not-Found page); `pause-suspend/
 PauseBoundary.tsx` + `PauseOverlay.tsx` (take `actEndGame`); every game's
 `PlayArea.tsx` (reads `GamePageCtx`); `bananagrams/components/PlayArea.tsx`
@@ -476,12 +477,14 @@ invariant and on the two files that cite it without calling it.
 conspicuous in `keyboard/` where every other unit has one. Filed as a Soon in
 `keyboard/todo.md` rather than written unasked — it is that folder's to write.
 
-**Not touched: `plans/areas/keyboard.md`** names `game-page/useGameHasKeyboard.
-ts:14` in a table of four spellings of one predicate. That area is CLOSED
-(2026-09-10) and three of the four rows already name files that no longer exist
-(`useGlobalKeyHandler.ts`, `useAppShortcuts.tsx`), so the table is the record of
-that audit's reading rather than a description of today. Correcting one row
-would make it less coherent, not more.
+`plans/areas/keyboard.md` names the hook in a table of four spellings of one
+predicate; its row now points at the new home. I had left it, on the reasoning
+that a CLOSED area is a record rather than a description — **Joel corrected
+that: "just because an area is closed doesn't mean we can't change things
+there ... closing an area is just acknowledging that we audited it, so i don't
+lose track. it doesn't mean locked-down."** The other three rows still name
+files that no longer exist, which is the audit's own reading of a moment and
+stays.
 
 ### F-game-page-11 · `from-todo` · The seven items `todo.md` handed this area, each a decision
 
@@ -496,12 +499,10 @@ Recorded here so the area's status can count them; the text is in `todo.md`.
    box, or record the per-game `over ?` split as the shape.
 4. **A contract-slot guard per mount point** — the custom properties a game
    must define for the CSS it mounts.
-5. **`PlayAreaMountLog.tsx` exports two components** — split, or justify the
-   one file (Joel asked what it is and why two, 2026-09-14; the answer is that
-   they commit at different positions in the tree).
-6. **`GamePage` should build the play surface itself and drop `children`** —
-   `App.tsx` carries five levels of identical plumbing; `App` is the only
-   caller.
+5. ~~**`PlayAreaMountLog.tsx` exports two components**~~ — WORKED, by
+   subtraction rather than by splitting or justifying. See below.
+6. ~~**`GamePage` should build the play surface itself and drop `children`**~~
+   — WORKED. See below.
 7. **`PlayAreaErrorBoundary`'s docstring under-describes** the reload path
    (Vite's preload helper returns, the `.then` throws on `undefined`, the card
    paints for a frame).
@@ -523,7 +524,100 @@ ownership is `feedback`'s; the page is the one not wearing
   `SetupGameModal`); each page owns its own. Not a finding.
 - **`PlayAreaMountLog`'s two components are read by `App.tsx` only.** F-11.6
   (drop `children`) would move them into this folder's own render and settle
-  F-11.5 at the same time; decide those two together.
+  F-11.5 at the same time; decide those two together. — Both worked 2026-09-16;
+  the note was half right. F-11.6 did not settle F-11.5, it made it answerable,
+  and the answer turned out to be that one of the two components had aged out.
+
+### F-11.5 + F-11.6 · the render prop, and the two logs — WORKED 2026-09-16
+
+Presented together because the area file said 6 would settle 5. Re-verifying,
+it would not have — after 6 the logs are still two exported components in one
+file, which is the actual complaint. What 6 does is make 5 answerable in this
+folder instead of deferring to `App.tsx`.
+
+Then Joel asked the better question: *"i'm wondering if we really still need
+the two-components-to-log. we added those to help debug issue where a gamepage
+didn't render anything other than a white page ... this may be complexity
+overload that is no longer needed."*
+
+**Reading the file's own decision tree against today's code, two of its three
+cases had changed under us.** "No slot-mounted line → the shell never rendered
+the surface" is now self-announcing: the gate, the loader and the pause
+boundary each draw a named page for every way they stop, so the log's silence
+corroborates what is on screen rather than being the only evidence. And "slot
+mounted but no rendered → the chunk never committed" was insurance the
+docstring itself described as such — *"Both designed exits for that are
+visible, not blank — so this pair IS the smoking gun for a NEW failure mode."*
+A branch for a case with no instance.
+
+The asymmetry is that the slot log had grown a second job with nothing to do
+with blank pages: its browser snapshot (viewport, DPR, zoom, root font, pointer,
+UA), whose own docstring names a live use — bananagrams gates on `pointer:
+coarse` alone, so a touchscreen laptop gets the desktop-only screen while
+holding a mouse, and the log is how that reaches you from a report.
+
+So: **`PlayAreaReadyLog` deleted, `PlayAreaSlotLog` kept**, file renamed to
+match its one component. F-11.5 dissolved rather than being split or justified.
+The cost, stated and accepted: a future blank play area can no longer be told
+apart as "chunk never committed" vs "game rendered empty" without shipping a
+deploy mid-incident.
+
+**F-11.6**: `GamePage` now builds the play surface — the slot log, the
+boundary, the Suspense and `<PlayArea …/>` — and `children` is gone from all
+three route components. `App.tsx`'s game route is one self-closing tag, and App
+imports nothing from this folder but the gate. Behavior identical: same
+wrappers, same order, under `PauseBoundary` as before.
+
+Test impact was the one predicted: `GamePage.test.tsx` used `children` as its
+"is the surface up" probe. The probe is now the manifest's `PlayArea`, which the
+fixture already supplied — it draws the same word, and every assertion stands.
+
+**What the change falsified, beyond the folder.** `render-prop child` was
+written into `docs/common.md` (three places), `docs/code-conventions.md`, four
+game docs, this folder's `doc.md` and `GamePage.tsx`'s own Props docstring —
+all corrected. `logStamp.ts`'s log-format example named the old filename.
+`members/todo.md` and `turn-log/todo.md` both cite `game-page` for
+`PlayAreaMountLog.tsx` as a sibling instance of "two components in one file";
+both now record how it was answered, since subtraction is worth trying before a
+split. Closed areas updated too, once Joel ruled that closed is not locked:
+`boot.md`'s F-boot-3 — the handoff item 6 came from — now says it landed, and
+its re-verification note that "App imports THREE files out of
+`common/game-page/`" records that it is now one; `app-audit.md`'s matching
+hand-off line says the same; `simple-page.md`, `utils.md` and `mobile.md` each
+named the old filename, and `mobile.md` anchored on a line number besides.
+
+### Also moved: the unknown-gametype error page — 2026-09-16
+
+Not a finding; Joel, reading the collapsed route: *"can we move this into
+GamePageGate? that seems a better place for this, and simplifier readers of
+App.tsx."*
+
+`App` was resolving the gametype through the registry and drawing an
+`<ErrorPage>` when it named nothing, then handing the gate a `manifest`. So the
+four ways a game URL can come to nothing were split two and two — unknown
+gametype in the routing file, and a bad id, a missing row and a failed read in
+the gate. They are now all the gate's, which is what the gate is for.
+
+The route therefore hands over `urlGametype` rather than a manifest, and the
+gate resolves it. No rule stretched: six `common/` files already import
+`manifestFor`, and this was `App`'s only use of it. The case-insensitive
+lookup and its comment moved along with it. `GameRouteProps` became
+`GameShellProps` — with the gate taking its own props, the shared type is now
+what the gate hands DOWN rather than what the route hands in.
+
+App's game route is four props and no logic; it dropped three imports
+(`manifestFor`, `ErrorPage`, `diagnosticsLine`) and its `gamePage` helper
+entirely.
+
+**The branch gained a test on the way.** It had none while it lived in
+`App.tsx`; `GamePage.test.tsx` now mocks `@/gametypes` — which is also how a
+test supplies its manifest now — and asserts the fault screen for a gametype the
+registry has never heard of, and that the play surface does not draw.
+
+`plans/areas/boot.md`'s **F-boot-4** is the ruling that these two screens should
+stay different ("this division is intentional and good"). It stands; its
+citations pointed at `App.tsx:127–142`, so that closed area's entry now records
+where both branches live and that they sit four lines apart.
 
 ## Predicted test breaks
 

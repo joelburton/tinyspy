@@ -371,7 +371,7 @@ src/codenamesduet/
                           Pops the shared `<CelebrationBlockingModal>` on a win (only) and renders
                           the AI `<CodenamesduetAISuggestCompanion>` at the `.layout` level (a
                           floating panel must mount high — see ui.md → Components).
-                          Mounted by <GamePage> as its render-prop child;
+                          Mounted by <GamePage> as its play surface;
                           cross-cutting chrome (logo, chat-bubble, players strip,
                           pause, timer, suspend-confirm, the global UserMenu) lives
                           on <GamePage> / App.
@@ -683,7 +683,7 @@ Decided against, not queued — listed only so reviews don't re-propose them.
 | What does an RPC do | [`supabase/migrations/20260615000001_codenamesduet.sql`](../../supabase/migrations/20260615000001_codenamesduet.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/codenamesduet/*_test.sql`](../../supabase/tests/codenamesduet/) |
 | What does the board look like | [`src/codenamesduet/components/Board.tsx`](../../src/codenamesduet/components/Board.tsx) (presentational per-tile render + corner overlays; calls `onGuess`) |
-| What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx; owns the `submit_guess` dispatch, the header pill, and the in-page terminal verdict + win celebration) |
+| What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as `<GamePage>`'s play surface; owns the `submit_guess` dispatch, the header pill, and the in-page terminal verdict + win celebration) |
 | How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/codenamesduet-suggest-clue/index.ts`](../../supabase/functions/codenamesduet-suggest-clue/index.ts) |

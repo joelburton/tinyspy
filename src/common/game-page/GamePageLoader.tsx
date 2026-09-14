@@ -5,7 +5,7 @@ import { EnvelopeErrorPage } from '../error-page/ErrorPage'
 import { useCommonGame } from './useCommonGame'
 import { GamePage } from './GamePage'
 import { NoSuchGamePage } from './NoSuchGamePage'
-import type { GameRouteProps } from './GamePageGate'
+import type { GameShellProps } from './GamePageGate'
 
 /**
  * The game's shared state, loaded — and the pages it can end in instead:
@@ -26,7 +26,7 @@ import type { GameRouteProps } from './GamePageGate'
  *
  * Takes what the route hands down and renders nothing of its own.
  */
-export function GamePageLoader({ gameId, session, manifest, children }: GameRouteProps) {
+export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
   const {
     commonGame,
     players,
@@ -67,8 +67,6 @@ export function GamePageLoader({ gameId, session, manifest, children }: GameRout
       sendSuspend={sendSuspend}
       timer={timer}
       isMyTurn={isMyTurn}
-    >
-      {children}
-    </GamePage>
+    />
   )
 }

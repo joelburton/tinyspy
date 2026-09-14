@@ -4,46 +4,31 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { logStamp } from '../utils/logStamp'
 
 /**
- * Console breadcrumbs for the play surface's LIFECYCLE — the diagnosis
- * trail for "the play area is blank" reports from real browsers, where the
- * setup can't be inspected directly and the console has to tell the story.
+ * Console breadcrumbs for the play surface's LIFECYCLE — the diagnosis trail
+ * for "the play area is blank" reports from real browsers, where the setup
+ * can't be inspected directly and the console has to tell the story.
  *
- * Deliberately **mount/unmount only** — the play surface re-renders
- * constantly (every keystroke, timer tick, presence sync, realtime
- * refetch), so a per-render log would drown the console and bury the
- * `[rt]` trail it's meant to sit beside. Mounts are rare events: page
- * load, pause/resume (PauseBoundary unmounts the surface), navigation.
- *
- * Two components because "the shell decided to show the surface" and "the
- * game's code actually committed" are different facts with different
- * failure modes, and App.tsx has a distinct place for each:
- *
- *   - `PlayAreaSlotLog` wraps the whole render-prop child (boundary +
- *     Suspense + game). Its mount means GamePage is past loading/pause
- *     and handed the surface its slot.
- *   - `PlayAreaReadyLog` sits INSIDE the Suspense boundary as a sibling
- *     of the lazy game component, so it commits only when the game's
- *     code-split chunk has loaded and the game rendered alongside it.
+ * Deliberately **mount/unmount only** — the play surface re-renders constantly
+ * (every keystroke, timer tick, presence sync, realtime refetch), so a
+ * per-render log would drown the console and bury the `[rt]` trail it is meant
+ * to sit beside. Mounts are rare events: page load, pause/resume (PauseBoundary
+ * unmounts the surface), navigation.
  *
  * Reading the trail when someone reports a blank play area:
- *   - **no "slot mounted" line** → the shell never rendered the surface
- *     (still loading, paused, game row missing). GamePage shows its own
- *     cards for all of those, so a truly blank screen here points at the
- *     shell, not the game.
- *   - **"slot mounted" but no "rendered"** → the game chunk never
- *     committed: stuck on the Suspense fallback ("Loading…") or the
- *     import failed. Both designed exits for that (reloadOnStaleChunk in
- *     main.tsx, the PlayAreaErrorBoundary card) are visible, not blank —
- *     so this pair IS the smoking gun for a new failure mode.
- *   - **both lines, then blank** → the game component itself rendered
- *     empty; the gametype + play_state in the slot line say exactly which
- *     game and state to reproduce against.
+ *   - **no "slot mounted" line** → the shell never got as far as the surface.
+ *     It says so itself — the gate, the loader and the pause boundary each draw
+ *     a named page for every way they stop — so the log's silence corroborates
+ *     what is already on screen rather than being the only evidence.
+ *   - **"slot mounted", then blank** → the shell handed the slot over and what
+ *     filled it drew nothing. The gametype + play_state in the line say exactly
+ *     which game and state to reproduce against.
  *
- * The slot-mount log is followed by a one-line **browser snapshot**
- * (viewport, DPR, screen, an approximate zoom, root font size, pointer, UA) so
- * a filtered-to-`[ui]` copy-paste carries the environment along with the
- * lifecycle. It re-logs on every remount on purpose — zoom and window
- * size can change mid-session, and a pause/resume captures the new state.
+ * The mount line is followed by a one-line **browser snapshot** (viewport, DPR,
+ * screen, an approximate zoom, root font size, pointer, UA), which is worth
+ * having for a report about anything on a game page, not just a blank one — a
+ * filtered-to-`[ui]` copy-paste carries the environment along with the
+ * lifecycle. It re-logs on every remount on purpose: zoom and window size can
+ * change mid-session, and a pause/resume captures the new state.
  */
 
 /** One-line environment snapshot for the mount log. All raw measurements
@@ -123,13 +108,4 @@ export function PlayAreaSlotLog({
     }
   }, [gametype, gameId])
   return children
-}
-
-/** Suspense sibling of the lazy game component; commits — and logs — only
- *  once the game's chunk has loaded and rendered. Renders nothing. */
-export function PlayAreaReadyLog({ gametype }: { gametype: string }) {
-  useEffect(() => {
-    console.log(`[ui ${logStamp()}] playarea rendered — ${gametype} (chunk loaded + committed)`)
-  }, [gametype])
-  return null
 }

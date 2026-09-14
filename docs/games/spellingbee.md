@@ -516,7 +516,7 @@ src/spellingbee/
 
 ### Routes & shell
 
-Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationBlockingModal>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
+Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `<GamePage>`, which builds the play surface around `spellingbee`'s shared `PlayArea`. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationBlockingModal>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 

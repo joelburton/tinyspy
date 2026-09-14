@@ -449,8 +449,8 @@ tablet leaves tooltips off until reload. Whether it becomes
 `useMediaQuery('(hover: hover)')` (or a fourth named hook with a CSS twin, since
 nothing in CSS asks `(hover: hover)` today) is `common-hosts`'s call, which owns
 `tooltips`; a line in `src/common/tooltips/todo.md` → Soon. Left alone:
-`game-page/PlayAreaMountLog.tsx:73` reads four queries once for a diagnostic
-line, which is a one-shot read on purpose.
+`game-page/PlayAreaSlotLog.tsx`'s `browserInfoLine` reads four queries once for
+a diagnostic line, which is a one-shot read on purpose.
 
 **Closed with no change (Joel, 2026-09-05): the behavior is not worth code.**
 The whole cost of reading once is that a device gaining a mouse mid-session

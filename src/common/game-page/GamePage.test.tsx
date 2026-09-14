@@ -25,11 +25,16 @@ import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import type { CommonGame, useCommonGame } from './useCommonGame'
 
-const { mockUseCommonGame, mockNavigate, askConfirmation } = vi.hoisted(() => ({
+const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor } = vi.hoisted(() => ({
   mockUseCommonGame: vi.fn(),
   mockNavigate: vi.fn(),
   askConfirmation: vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm'),
+  mockManifestFor: vi.fn(),
 }))
+
+// The gate resolves the URL's gametype through the registry, so a test supplies
+// its manifest here rather than as a prop.
+vi.mock('@/gametypes', () => ({ manifestFor: (g: string) => mockManifestFor(g) }))
 
 vi.mock('./useCommonGame', () => ({
   useCommonGame: (...args: unknown[]) => mockUseCommonGame(...args),
@@ -63,6 +68,7 @@ vi.mock('../chat/Chat', () => ({ Chat: () => null }))
 import { GamePageGate } from './GamePageGate'
 
 const GAME_ID = '11111111-2222-3333-4444-555555555555'
+const GAMETYPE = 'psychicnum_coop'
 const ADA: Member = { user_id: 'ada', username: 'ada', color: 'red' }
 const BEA: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
 const session = { user: { id: 'ada' } } as unknown as Session
@@ -73,7 +79,9 @@ const ENDED_OK = {
 } as const
 
 /** The smallest manifest the shell will take. `endGame` is a spy so a test can
- *  assert it fired. */
+ *  assert it fired, and `PlayArea` draws a word the mounting tests look for —
+ *  the shell builds the play surface off the manifest, so this IS how a test
+ *  sees that the surface is up. */
 function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
   return {
     gametype: 'psychicnum_coop',
@@ -85,7 +93,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     logoUrl: '',
     help: () => null,
     numberOfPlayers: [1, 6],
-    PlayArea: () => null,
+    PlayArea: () => <div>play</div>,
     setupForm: { Component: () => null, defaults: {} },
     startGameInClub: vi.fn(),
     labelFor: () => '',
@@ -150,10 +158,9 @@ const over: Overrides = { game: { ended_at: '2026-09-10T01:00:00Z', is_terminal:
  *  resolves once the play surface is up (or the pause overlay, when paused). */
 async function mount(state = commonGameState(), manifest = makeManifest()) {
   mockUseCommonGame.mockReturnValue(state)
+  mockManifestFor.mockReturnValue(manifest)
   const view = render(
-    <GamePageGate gameId={GAME_ID} session={session} manifest={manifest}>
-      {() => <div>play</div>}
-    </GamePageGate>,
+    <GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />,
   )
   await act(async () => {
     await Promise.resolve()
@@ -182,6 +189,18 @@ describe('GamePage — mounting', () => {
   it('shows the play surface once the pre-flight read says the game is there', async () => {
     await mount()
     expect(screen.getByText('play')).toBeInTheDocument()
+  })
+
+  it('says so when the URL names a gametype the registry has never heard of', async () => {
+    // A different screen from the calm "no game here" card on purpose: the app
+    // cannot name the thing the link asks for, which is a fault, not a 404.
+    mockUseCommonGame.mockReturnValue(commonGameState())
+    mockManifestFor.mockReturnValue(undefined)
+    render(<GamePageGate urlGametype="noodle" gameId={GAME_ID} session={session} />)
+    await act(async () => { await Promise.resolve() })
+    expect(screen.getByText(/There's no game type called/)).toBeInTheDocument()
+    expect(screen.getByText('noodle')).toBeInTheDocument()
+    expect(screen.queryByText('play')).toBeNull()
   })
 })
 

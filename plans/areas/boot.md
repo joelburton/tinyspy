@@ -169,7 +169,12 @@ Two corrections the re-verification made to the finding above:
   diagnostics with `diagnosticsLine` (`dbLog.ts:127–140`), which formats a
   string and logs nothing.
 
-### HANDED OFF · F-boot-3 · `render-prop-with-manifest-in-hand` · App wraps the play surface in the boundary, the Suspense and both mount logs inside a render-prop, for a GamePage that already holds the manifest
+### HANDED OFF — AND LANDED · F-boot-3 · `render-prop-with-manifest-in-hand` · App wraps the play surface in the boundary, the Suspense and both mount logs inside a render-prop, for a GamePage that already holds the manifest
+
+**Done 2026-09-16 in the game-page area** (its F-11.6): `GamePage` builds the
+play surface itself, `children` is gone from the route, and App's game route is
+one self-closing tag. One of the two mount logs went at the same time. The
+reading below is left as it was written — it is why the handoff was made.
 
 `App.tsx:144–168` builds `PlayAreaSlotLog > PlayAreaErrorBoundary > Suspense >
 PlayAreaReadyLog > PlayArea` inside `<GamePage>`'s render-prop child. GamePage
@@ -203,7 +208,8 @@ Two things the re-verification added:
 
 - The count above is wrong: `App` imports THREE files out of `common/game-page/`,
   not four — `GamePage`, `PlayAreaErrorBoundary`, and `PlayAreaMountLog` for
-  two symbols (`App.tsx:8–10`).
+  two symbols (`App.tsx:8–10`). (Since F-boot-3 landed it imports ONE, the
+  route's entry component.)
 - **`App` is `GamePage`'s only caller** (`App.tsx:148`; every other hit in the
   tree is a docstring or a test's `GamePageCtx` fixture), and
   `gameManifest.PlayArea` is read only at `App.tsx:144`. So the render-prop
@@ -215,19 +221,25 @@ same `todo.md` in this change.
 
 ### CLOSED, NO CHANGE · F-boot-4 · `unknown-gametype-is-a-fault` · A mistyped gametype gets an ErrorPage logged as a FAULT; a mistyped game id gets a card and a debug line
 
-`App.tsx:127–142`: no manifest for the URL's gametype → `<ErrorPage>` with
+No manifest for the URL's gametype → `<ErrorPage>` with
 `diagnosticsLine('FAULT', { call: 'GET /g/<gametype>', severity: 'fault',
-detail: 'no manifest registered for this gametype' })`. `GamePage.tsx:166–179`:
-no row for the game id → `noSuchGamePage`, a `card` with "There's no game
+detail: 'no manifest registered for this gametype' })`. No row for the game id
+→ `<NoSuchGamePage>`, a `card` with "There's no game
 here. It may have been deleted, or the link you followed might be wrong or out
 of date", a Back home link, and `console.debug('[ui] no-such-game …')`.
 
 From the person's side these are the same mistake — a bad link — and they get
 two different screens, one of which calls itself a fault. Nothing in the app
 is broken when someone types `/g/wordl/…`; `docs/envelopes.md` reserves
-`fault` for the app failing. The comment two lines up (`:119–122`) already
-knows this for the case-mismatch case ("reported as a fault — which it
-isn't") and normalizes to avoid it.
+`fault` for the app failing. The comment beside the lookup already knows this
+for the case-mismatch case ("reported as a fault — which it isn't") and
+normalizes to avoid it.
+
+**The ruling stands; both branches moved.** On 2026-09-16 the game-page area
+took the gametype lookup and this error page into `GamePageGate`, which now
+answers every way a game URL can come to nothing in one place — App passes the
+URL's two parts and the session. The two screens are still deliberately
+different, and now sit four lines apart where the difference can be read.
 
 **Recommendation.** One not-found treatment for both: the unknown-gametype
 branch renders what `noSuchGamePage` renders, with its own detail in the debug
@@ -563,7 +575,8 @@ key), `diagnosticsLine`'s format (`FAULT | boot |` is the second and third
 field), the one boundary in the app, `useSession`'s fields, `routes.ts:28`
 carrying the gametype-in-the-URL reason App's docstring credits it with,
 `GamePage`/`PlayAreaSlotLog`/`PlayAreaReadyLog`/`ErrorPage`/`StandardButton`
-props, `WordEditDialog` being a `Dialog` and so a `FloatingPanel`,
+props (`PlayAreaReadyLog` has since been deleted — F-boot-3 above),
+`WordEditDialog` being a `Dialog` and so a `FloatingPanel`,
 `GameInvitations` returning null, `TooltipHost` reading `data-tooltip`, the
 `docs/ui.md` Faults heading (`:112`) and FloatingPanel gotcha (`:1335`), the
 `docs/common.md` Code-splitting heading (`:588`) and boot lines (`:548–554`),

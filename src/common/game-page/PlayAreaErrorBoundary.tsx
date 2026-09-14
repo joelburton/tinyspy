@@ -23,10 +23,10 @@ import { StandardButton } from '../buttons/StandardButton'
  * instead of a blank page. A class component because error boundaries have no
  * hook equivalent (React 19 still requires `getDerivedStateFromError`).
  *
- * It sits INSIDE the game shell, so the chrome (header, chat, back-to-club)
- * survives a broken play surface and there is still a way out of the page. The
- * shell is keyed by gameId, so navigating to another game remounts the boundary
- * and clears a caught error.
+ * The shell mounts it around the play surface and nothing else, so the chrome
+ * (header, chat, back-to-club) survives a broken game and there is still a way
+ * out of the page. The shell is keyed by gameId, so navigating to another game
+ * remounts the boundary and clears a caught error.
  */
 export class PlayAreaErrorBoundary extends Component<
   { children: ReactNode },

@@ -8,7 +8,7 @@
  *
  *     [db] 12:00:00.000 | OK | create_game | severity=…    dbLog.ts
  *     [rt 12:00:00.000] game:abc — status SUBSCRIBED       realtimeDiag.ts
- *     [ui 12:00:00.000] playarea slot mounted — …          PlayAreaMountLog.tsx
+ *     [ui 12:00:00.000] playarea slot mounted — …          PlayAreaSlotLog.tsx
  *
  * `[rt` and `[ui` hold the stamp inside the bracket, and `[db]` puts it after,
  * so filtering a console on `[db]` and on `[rt ` are two different gestures.

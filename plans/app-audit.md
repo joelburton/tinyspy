@@ -192,8 +192,10 @@ Details), and a gametype the registry has never heard of keeps its error page
 rather than sharing `GamePage`'s "no game here" card — "this division is
 intentional and good", now a comment at the branch. Handed on: the render-prop
 `App` builds for a `GamePage` that already holds the manifest is `game-page`'s
-to remove, written into that folder's `todo.md`. `docs/common.md` lost a path
-that had not existed since the reorg. `todo.md` is empty. **The closing re-read
+to remove, written into that folder's `todo.md` — and removed there 2026-09-16,
+along with the gametype lookup and F-boot-4's error page, which moved into
+`GamePageGate`. `docs/common.md` lost a path that had not existed since the
+reorg. `todo.md` is empty. **The closing re-read
 earned its place again** — three more, all prose in the `loadTheme` pair, and
 the F-boot-1 ruling turned out to have no durable home until `doc.md` gave it
 one.
