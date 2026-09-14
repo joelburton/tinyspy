@@ -140,7 +140,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, jsonb_build_object('puzzle_id', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN035"}'::jsonb,
   'create_game: missing setup.timer is rejected');
 
 -- timer.kind is bogus
@@ -149,7 +149,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"fast"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN037"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN037"}'::jsonb,
   'create_game: bogus timer.kind is rejected');
 
 -- countdown without seconds
@@ -158,7 +158,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN038"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN038"}'::jsonb,
   'create_game: countdown without seconds is rejected');
 
 -- countdown with 0 seconds (below min)
@@ -167,7 +167,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":0}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN039"}'::jsonb,
   'create_game: countdown with seconds=0 is rejected');
 
 -- countdown with 3601 seconds (above max — Joel's 60-min cap)
@@ -176,7 +176,7 @@ select pg_temp.envelope_is(
     $$ select connections.create_game(%L, pg_temp.connections_setup(%L::uuid, '{"kind":"countdown","seconds":3601}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN039"}'::jsonb,
   'create_game: countdown over 60min is rejected');
 
 -- 'none' is accepted (no seconds needed). lives_ok creates a real

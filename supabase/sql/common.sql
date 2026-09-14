@@ -51,12 +51,17 @@ grant usage on schema common to authenticated;
 --     if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
 --     return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
 --
--- COLUMN is the fifth channel, and it says WHICH FIELD a validation is about.
+-- COLUMN is the fifth channel, and it says WHICH FIELD the message is about.
 -- The other four are spoken for (message/detail/errcode/hint), and packing two
 -- values into one of them would rebuild the delimited mini-format this design
 -- removed. PostgREST relays only {code, message, details, hint}, so COLUMN
 -- would be lost on a RAW error — it doesn't need to survive that trip, because
 -- the handler converts the raise to jsonb before any response is built.
+--
+-- **It is not a validation-only channel.** A fault can be about one control
+-- too — `require_valid_timer` is — and naming it is what puts the sentence
+-- under that control once the fault modal is dismissed. What decides the value
+-- is whether one field is what the message is about, not the severity.
 --
 -- **Every validation states its column, and '_' means "not one field".**
 --
@@ -628,17 +633,25 @@ revoke execute on function common.require_club_member(text) from public;
 -- timer wherever they want and the helper stays agnostic about
 -- the surrounding key.
 --
--- Raises (all P0001):
---   - 'setup.timer is required'                          when null
---   - 'setup.timer.kind must be none, countup, or countdown (got X)'
---   - 'setup.timer.seconds is required for countdown'
---   - 'setup.timer.seconds must be 1..3600 (got X)'
+-- PN035-PN039, and EVERY ONE IS A FAULT. The timer control cannot
+-- produce any of them: the kind comes from three radios, and an
+-- unparseable MM:SS never reaches the setup (the box keeps the
+-- last valid seconds and complains in place, over the same
+-- 1..3600 range). So arriving here means a bug, a hand-built
+-- request, or a corrupt saved default — and the messages say
+-- BUG: accordingly.
 --
--- The error-message path uses 'setup.timer.*' because all current
--- games place timer at setup.timer. A future game with a different
--- nesting would either accept the slight message mismatch or write
--- its own validator — the canonical *shape* is the contract here,
--- not the path string in error messages.
+-- **They name their column anyway**: `timer`, not '_'. A fault
+-- is not about no field just because it is a fault — this one is
+-- about the timer, and saying so is what puts the sentence under
+-- the control it is about once the fault modal is dismissed. A
+-- raise says '_' when no one control is what it is about, which
+-- is the ordinary case for a fault and why they mostly do.
+--
+-- `detail` uses the 'setup.timer.*' path because every current
+-- game places the timer there. A future game nesting it elsewhere
+-- would either accept the mismatch or write its own validator —
+-- the canonical *shape* is the contract here, not the path.
 
 create or replace function common.require_valid_timer(timer jsonb)
 returns void
@@ -651,7 +664,7 @@ declare
 begin
   if timer is null then
     raise exception 'BUG: game with no timer setting'
-      using errcode = 'PN035', hint = 'fault', column = '_',
+      using errcode = 'PN035', hint = 'fault', column = 'timer',
       detail = 'setup.timer absent';
   end if;
 
@@ -662,25 +675,25 @@ begin
   -- "must be" messages give clearer FE error display.
   if timer_kind is null then
     raise exception 'BUG: timer with no setting'
-      using errcode = 'PN036', hint = 'fault', column = '_',
+      using errcode = 'PN036', hint = 'fault', column = 'timer',
       detail = 'setup.timer.kind absent';
   end if;
   if timer_kind not in ('none', 'countup', 'countdown') then
     raise exception 'BUG: timer setting of ''%''', timer_kind
-      using errcode = 'PN037', hint = 'fault', column = '_',
+      using errcode = 'PN037', hint = 'fault', column = 'timer',
       detail = 'timer kind must be none, countup or countdown';
   end if;
 
   if timer_kind = 'countdown' then
     if (timer->>'seconds') is null then
       raise exception 'BUG: countdown with no length'
-        using errcode = 'PN038', hint = 'fault', column = '_',
+        using errcode = 'PN038', hint = 'fault', column = 'timer',
       detail = 'countdown needs setup.timer.seconds';
     end if;
     timer_seconds := (timer->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
       raise exception 'BUG: countdown of % seconds', timer_seconds
-        using errcode = 'PN039', hint = 'fault', column = '_',
+        using errcode = 'PN039', hint = 'fault', column = 'timer',
       detail = 'countdown seconds must be 1..3600';
     end if;
   end if;

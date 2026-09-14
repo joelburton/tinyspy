@@ -225,7 +225,7 @@ select pg_temp.envelope_is(
     )$q$,
     (select handle from club2)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN035"}'::jsonb,
   'create_game: missing setup.timer is rejected'
 );
 
@@ -243,7 +243,7 @@ select pg_temp.envelope_is(
     )$q$,
     (select handle from club2)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN037"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN037"}'::jsonb,
   'create_game: bogus timer.kind is rejected'
 );
 
@@ -261,7 +261,7 @@ select pg_temp.envelope_is(
     )$q$,
     (select handle from club2)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN038"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN038"}'::jsonb,
   'create_game: countdown without seconds is rejected'
 );
 
@@ -279,7 +279,7 @@ select pg_temp.envelope_is(
     )$q$,
     (select handle from club2)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN039"}'::jsonb,
   'create_game: countdown with seconds=0 is rejected'
 );
 

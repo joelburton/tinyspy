@@ -794,7 +794,7 @@ Two reasons, and the second is the load-bearing one:
 | `outcome` | both | how it reads on screen |
 | `severity` | not-ok | what kind of `not-ok` it is |
 | `message` | both | **the player-facing sentence** |
-| `field` | not-ok | which control a `form-validation` is about |
+| `field` | not-ok | which control the message is about — **at any severity**, see [below](#a-fault-can-still-name-a-field) |
 | `meta` | both | the additive slot — SQL can leave breadcrumbs with no FE change |
 | `dbcode` | both | **which answer this is** — a SQLSTATE when a raise produced it, an `FE`/`PN` code when the frontend built the envelope |
 | `detail` | both | the debugging line — **never the player's sentence**; it reaches the screen only as the muted diagnostics under the message |
@@ -838,6 +838,34 @@ cannot return null for `COLUMN`: an unset one arrives as `''`, so without `_`,
 "decided" and "forgot" would look identical. The same string is the form-level
 key in a form's errors object, so it serves SQL, the envelope and the form
 alike.
+
+### A fault can still name a field
+
+`field` and `severity` answer different questions, and a raise sets them
+independently. **`severity` says what kind of failure this is; `field` says what
+the sentence is about.** A fault is not about no field just because it is a
+fault.
+
+`common.require_valid_timer` is the case that makes the pairing concrete. Its
+raises are faults — the timer control sends a kind from three radios and keeps
+the last valid seconds, so nothing a player does reaches them, and they say
+`BUG:` like every other fault. But each one is *about the timer*, so each says
+`column = 'timer'`, and the setup dialog uses both facts: the fault modal comes
+up first with the words, and dismissing it leaves the same words under the timer
+section rather than on the form's own line.
+
+Nothing in the frontend has to opt in. A form files the message with
+`res.field ?? FORM_ERROR_KEYNAME`, having never asked how severe it was — so a
+fault that names a control lands under it the way a validation does.
+
+**Which does not make it the default for a fault.** Most faults are about a
+state, a missing row, or the request as a whole, and `'_'` is the honest answer
+for those. The question to ask at the raise is "is one control what this
+sentence is about?", and only that.
+
+Don't change a fault into a `form-validation` to get this. The severity is a
+statement about whether a bug happened; a bug that reached the server is a fault
+whatever else is true of it (Joel, 2026-09-14).
 
 ## How SQL builds one
 

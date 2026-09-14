@@ -204,7 +204,7 @@ select pg_temp.envelope_is(
        array['ada11111-1111-1111-1111-111111111111'::uuid])$$,
     (select handle from club)
   )),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN035"}'::jsonb,
   'missing timer is rejected'
 );
 

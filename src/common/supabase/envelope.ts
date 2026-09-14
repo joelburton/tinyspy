@@ -111,7 +111,9 @@ export type Envelope<T = unknown> =
       outcome: Outcome | null
       severity: Severity
       message: string
-      // Which control a `form-validation` is about, from the raise's `COLUMN`.
+      // Which control this message is about, from the raise's `COLUMN`. Any
+      // severity may name one — a fault about one field is still about that
+      // field (`require_valid_timer`), and the form files it there either way.
       //
       //     'letters'   the message belongs under that field
       //     '_'         deliberately not about one field — the form's own line

@@ -23,9 +23,9 @@ type Props = {
   help?: ReactNode
   value: TimerMode
   onChange: (next: TimerMode) => void
-  /** The form's errors. This section reads the key for the field it draws —
-   *  `timer`, which is what `common.require_valid_timer` names when it
-   *  refuses one. */
+  // The form's errors. This section reads the key for the field it draws:
+  // `timer`, which is both where its own MM:SS complaint goes and what
+  // `common.require_valid_timer` names when it refuses one.
   errors: FormErrors
 }
 
@@ -42,9 +42,10 @@ type Props = {
  * updates to the new seconds count. When it's malformed, the
  * displayed text reflects what the user typed but the setup
  * still carries the most recent *valid* value — so hitting Start
- * always sends something the server will accept. (If the user
- * does manage to send an invalid value, server-side validation
- * rejects with a clear message; the dialog shows it.)
+ * always sends something the server will accept. Which is why
+ * `require_valid_timer` refusing one is a FAULT: getting there
+ * means a bug, not a setting typed wrong. It names `timer` all
+ * the same, so its words land under this section.
  *
  * Two-digit-only seconds is a deliberate ergonomic choice: it
  * removes the "5:3" ambiguity (5 min 3 sec vs. 5 min 30 sec)
@@ -111,8 +112,9 @@ export function SetupTimerSection({ value, onChange, help, errors }: Props) {
     <SetupSection label={`Timer: ${timerLabel(value)}`} help={help}>
       <RadioRow
         // Named for the SETUP KEY it writes, not for the control. The timer is
-        // one field holding one compound value, so a raise saying
-        // `column = 'timer'` lands here.
+        // one field holding one compound value, so `require_valid_timer`'s
+        // raises — which say `column = 'timer'` — land here. They are FAULTS,
+        // so the modal comes first and this is what is left behind it.
         name="timer"
         error={timerError}
         value={value.kind}

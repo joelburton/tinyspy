@@ -5,9 +5,12 @@ The folders it reads: `setup-form`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-setup-form`,
-25 files. Thirteen findings recorded, none worked: a prose group (F-1 to F-7)
-and a decision group (F-8 to F-13). F-8 is F-club-page-11
-(`solo-prefix-in-fe`)'s remaining half, carried in on Joel's word.
+25 files. Thirteen findings recorded: a prose group (F-1 to F-7) and a decision
+group (F-8 to F-13). F-8 is F-club-page-11 (`solo-prefix-in-fe`)'s remaining
+half, carried in on Joel's word.
+
+**Worked so far: F-8, F-9** — both decision findings, taken one at a time. The
+prose group is untouched, and F-9 left it one sentence lighter (see its record).
 
 ## The roster
 
@@ -150,12 +153,11 @@ Each keeps its standing fact and loses the story.
   an extra round-trip" — it arrives in `get_club_page`'s one answer.
 - `SetupGameModal.tsx`, the docstring: "the resulting game lands in the club's
   paused-games list" — it lands in "Your games", flying its flag.
-- `SetupTimerSection.tsx`, the `errors` prop and the RadioRow comment:
-  "`timer`, which is what `common.require_valid_timer` names when it refuses
-  one" / "a raise saying `column = 'timer'` lands here". **It never does:**
-  every raise in `require_valid_timer` (PN035–PN039) is a `fault` with
-  `column = '_'`. See F-9 for what to do about it; the sentences are wrong
-  either way.
+- ~~`SetupTimerSection.tsx`, the `errors` prop and the RadioRow comment~~ —
+  **resolved by F-9, which made them true rather than rewriting them.** The
+  raises name `timer` now; both sentences say so, and say it is a fault. The
+  component docstring's "server-side validation rejects with a clear message"
+  was the same claim in the wrong vocabulary and went with them.
 - `SetupTimerSection.tsx`, the docstring: "NOTE: the component is *just the
   timer fieldset*. Per-game setup forms wrap it in their own `<div>`" — it is
   a `<SetupSection>`, and wordle renders it bare beside its siblings.
@@ -251,28 +253,49 @@ row deliberately say the same thing at different lengths.
 planting: inverting the solo test fails all three, lengthening the tail fails
 the AI one.
 
-### F-setup-form-9 · `timer-refusal-names-no-field` · the server's timer check is five faults, and the field expects a validation
+### F-setup-form-9 · `timer-refusal-names-no-field` · WORKED 2026-09-14 — the raises name `timer`, and stay faults
 
-`common.require_valid_timer` raises PN035–PN039 with `hint = 'fault'` and
-`column = '_'`. `SetupTimerSection` reads `errors.timer` "for the raise that
-names it", which cannot happen: a refused timer arrives as a fault modal and a
-line at the bottom of the form, not under the timer.
+`common.require_valid_timer` raised PN035-PN039 with `hint = 'fault'` and
+`column = '_'`, while `SetupTimerSection` read `errors.timer` "for the raise
+that names it" — a raise that could not happen.
 
-Whether that is wrong depends on who can reach it. The field never sends a
-malformed timer — a bad MM:SS leaves the last valid seconds in the setup and
-complains in place — so a raise there means a bug or a hand-built request,
-which is what a fault is for.
+The severity was never in question. Joel: *"of course it's a fault... a bug is
+a bug. we'd never change a bug to a form-validation."* Nothing the timer
+control can do reaches those raises: the kind comes from three radios, and an
+unparseable MM:SS never reaches the setup, so the box keeps the last valid
+seconds and complains in place over the same 1..3600 range. Arriving means a
+bug, a hand-built request, or a corrupt saved default, and the `BUG:` messages
+are right.
 
-Options:
+**What changed is the column: `'_'` → `'timer'` on all five.** `field` and
+`severity` answer different questions — one says what kind of failure this is,
+the other what the sentence is about — and a fault about one control is still
+about that control.
 
-1. **Leave the SQL; fix the prose** (F-4 carries the sentences). The field's
-   `errors.timer` stays as the slot the frontend check writes, which is real.
-2. **Make them validations naming `timer`** — five `hint = 'form-validation',
-   column = 'timer'` edits in `supabase/sql/common.sql` (behavior, in place),
-   so a refusal lands under the field like every other server validation.
+Measured before deciding, since the option existed only if the frontend would
+honor it: a probe stubbing `severity: 'fault'` **with** `field: 'guesses'` put
+the words under that field and left the form line empty. No opt-in anywhere —
+`SetupGameModal` files with `result.field ?? FORM_ERROR_KEYNAME` and never
+consults severity. So the dialog shows the fault modal, and dismissing it
+leaves the same words under the timer.
 
-Recommend 1. Nothing a player can do reaches those raises, and a validation
-for an unreachable case is a promise the tests would then have to keep.
+Sites: the five raises and the helper's header comment in `supabase/sql/common.sql`
+(behavior, so in place); twelve `"field":"_"` assertions across the
+codenamesduet / connections / psychicnum / bananagrams `create_game` tests
+(`helpers_test.sql` uses `throws_ok`, which cannot see a column, so it is
+unchanged). Verified by planting: PN035 back to `'_'` fails four pgTAP files.
+
+Prose that this made TRUE rather than needing a fix: `SetupTimerSection`'s
+`errors` prop and its RadioRow comment, both on F-4's list. They say it is a
+fault now as well as that it names the field. The component docstring's
+"server-side validation rejects with a clear message" was the same claim in the
+wrong vocabulary and is rewritten.
+
+Vocabulary that outgrew the area, since `field` had been described as a
+validation-only channel everywhere: `docs/envelopes.md` gains **"A fault can
+still name a field"** (and its `field` row in The keys points at it),
+`common.sql`'s COLUMN legend says the channel is not validation-only, and
+`envelope.ts`'s comment on `field` says any severity may name one.
 
 ### F-setup-form-10 · `disclosure-wears-game-page-css` · `SetupDisclosure` styles itself from `game-page/PlayArea.module.css`
 

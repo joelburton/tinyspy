@@ -183,6 +183,11 @@ select pg_temp.envelope_is(
 -- function's handler. A FAULT rather than a validation: the timer control
 -- always sends a kind and keeps the last VALID seconds, so neither of these
 -- can come from the form — arriving means something else is wrong.
+--
+-- It still names `timer` as its field, which is the pairing worth pinning:
+-- fault severity says a bug happened, `field` says which control the sentence
+-- is about, and the dialog uses both — modal first, then the words under the
+-- timer.
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
@@ -190,7 +195,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN035"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN035"}'::jsonb,
   'a missing timer is a fault — the control always sends one'
 );
 
@@ -201,7 +206,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN039"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","field":"timer","dbcode":"PN039"}'::jsonb,
   'an out-of-range countdown is a fault — the box keeps the last valid length'
 );
 
