@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-setup-form
 
 import { test, expect, type Page } from '@playwright/test'
 import { createClubWithMembers } from './helpers/fixtures'

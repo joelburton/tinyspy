@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-setup-form
 
 /**
  * THE SETUP DIALOG (see SetupGameModal.tsx) — what it collects, and what it

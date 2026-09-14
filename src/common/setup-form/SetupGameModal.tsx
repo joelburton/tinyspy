@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-setup-form
 
 import { Suspense, useCallback, useState } from 'react'
 import { MODE_LABEL, type GameManifest } from '../manifest/gameManifest'

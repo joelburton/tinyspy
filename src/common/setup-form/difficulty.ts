@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-setup-form
 
 /**
  * Vocabulary-difficulty bands (1..6), shared by every word game's setup. The

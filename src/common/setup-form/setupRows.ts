@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-setup-form
 
 import type { CoopStyle, CoopTurnSetup } from './SetupCoopStyleSection'
 import type { TimerMode } from '../manifest/gameManifest'
