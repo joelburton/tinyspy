@@ -3,8 +3,7 @@
 import type { Member } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -214,17 +213,17 @@ export function InfoCol({
             back-to-club (secondary, via the suspend-confirm flow). WATCHING
             (not in the game): a bold note, no button. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): restart this
                 board, see the answer, or spin up the next game. */}
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : selfDone ? (
-          <LocalTerminalRow
-            label={myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps'}
+          <InfoActionsRow
+            message={{ text: myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps', outcome: 'neutral' }}
           >
             {/* Reveal keeps its slot while the others race, but inert: the
                 solution opens only when the game is over for EVERYONE
@@ -234,14 +233,14 @@ export function InfoCol({
                 last racer finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
             {exits}
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : isPlayer ? (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {exits}
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         ) : (
-          <LocalTerminalRow label="Watching — not in this game" />
+          <InfoActionsRow message={{ text: 'Watching — not in this game', outcome: 'neutral' }} />
         )}
 
         {/* Help — shown ONLY while you can actually act on it (the locally-terminal /

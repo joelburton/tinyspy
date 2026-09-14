@@ -456,7 +456,7 @@ sizing).
   desktop (1400×950) and tablet (1024×768) widths.
 
   **The chrome strip has three states**, swapping in place: the control bar
-  while playing; a `<LocalTerminalRow>` "You conceded" + inert Concede for a
+  while playing; an `<InfoActionsRow>` "You conceded" line + inert Concede for a
   conceded compete player (no Reveal — the solution is still shielded while the
   others race); and at terminal an action row of **Reveal solution / Hide
   solution** (the same toggle as the menu item) · **New game** ·
@@ -464,7 +464,7 @@ sizing).
   penciling a finished grid is meaningless.
 
   Two documented departures from the sweep here. **No outcome message in the
-  row** — unlike every other game's `<TerminalActionRow>`, whose shape is
+  row** — unlike every other game's `<InfoActionsRow>`, whose shape is
   message-plus-actions: the verdict is already a permanent pill in the
   active-clue slot directly above (the one readout a phone shows without
   opening the info sheet), so a second copy a line below would be noise. That's

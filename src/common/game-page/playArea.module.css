@@ -382,6 +382,22 @@
   color: var(--page-text-color);
 }
 
+/* The rest of the outcome vocabulary, for a row whose line is not a verdict —
+ * `near`, `warning` and `noted` judge a MOVE, so they can only appear while a
+ * game is still being played (docs/outcomes.md). One rule per member, because
+ * a class this is indexed into must answer for every value the type admits. */
+/* @@ */ .outcome_near {
+  color: var(--outcomes-near-ink-color);
+}
+
+/* @@ */ .outcome_warning {
+  color: var(--outcomes-warning-ink-color);
+}
+
+/* @@ */ .outcome_noted {
+  color: var(--outcomes-noted-ink-color);
+}
+
 /* Terminal-only EXTRA info in the info column — content shown ONLY at game over
  * (e.g. wordle's answer reveal: words too tall for the below-board slot, which
  * would overflow the viewport and scroll the page — a hard no). It sits INSIDE

@@ -7,6 +7,13 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: CLOSED (2026-09-08), every file blessed.** Opened 2026-09-05 out of
 §3's order — `members` was the next row and Joel chose `buttons` first.
 
+**`TerminalActionRow` is `game-page/InfoActionsRow` now** (2026-09-16, the
+game-page area): it absorbed its neutral twin `LocalTerminalRow` and the
+playing-state row both, so a game writes one element for all three states and
+varies an optional `{ text, outcome }` line. Every finding below that names
+`TerminalActionRow` — `backShow`, the `show=` props, the primary variant — is
+the reading that was made of it here, and stands; only the file moved.
+
 Nineteen findings came from the read, and two more from Joel while it ran:
 F-buttons-20 (the `label`/`show` vocabulary) and F-buttons-21 (`<Segmented>`).
 **Worked:** F-buttons-1 through -5, -7, -8, -10 through -14, -17, -18, -20 and

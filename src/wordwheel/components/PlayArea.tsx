@@ -591,7 +591,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onChange={setWord}
         onSubmit={submit}
         // The slot the entry row draws: a word result, the "you're out" state
-        // (its info-column twin is the LocalTerminalRow — dual placement is the
+        // (its info-column twin is the InfoActionsRow's line — dual placement is the
         // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
         // this is the ONLY copy the player sees), the verdict.
         localFeedbackSlot={localFeedbackSlot}

@@ -4,10 +4,9 @@ import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
@@ -171,7 +170,7 @@ export function InfoCol({
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
@@ -180,11 +179,11 @@ export function InfoCol({
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
           // now-disabled Concede) so the drop-out reads loudly.
-          <LocalTerminalRow label="You conceded">
+          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Reveal keeps its slot while the others race, but inert: the
                 words don't even reach this client until the game is over for
                 EVERYONE (stackdown._solution_for gates on is_terminal), so a
@@ -193,9 +192,9 @@ export function InfoCol({
                 finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actConcede} show="icon" />
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : isPlayer ? (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
@@ -209,7 +208,7 @@ export function InfoCol({
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
             <ActionButton action={actEndGame} show="icon" />
-          </div>
+          </InfoActionsRow>
         ) : null}
 
         {/* Help — only while the player can act on it (never silently swapped).
@@ -225,7 +224,7 @@ export function InfoCol({
             CLAUDE.md). Given the terminal LOOK rather than a muted help line:
             being unable to act is terminal for you, so it reads as a state, not
             as advice. Matches waffle. */}
-        {!over && !isPlayer && <LocalTerminalRow label="Watching — not in this game" />}
+        {!over && !isPlayer && <InfoActionsRow message={{ text: 'Watching — not in this game', outcome: 'neutral' }} />}
 
         {/* The six solution words — an info-column region allowed to grow when
             the viewer opens it and to give the space back when they close it

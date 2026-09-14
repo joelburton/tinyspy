@@ -304,7 +304,7 @@ Roles, not implementations:
 | The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/game-page/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameModal` | `SetupForm` | per-game |
-| End-of-game info-column row | `TerminalActionRow` | shared (`common/terminal/`); per-game callers pass the `TerminalMessage` their `buildOver()` returns + any extra terminal actions as children |
+| The info column's action row, in every state | `InfoActionsRow` | shared (`common/game-page/`); callers pass their buttons as children, plus an optional `{ text, outcome }` line — at terminal, two fields of the `TerminalMessage` their `buildOver()` returns |
 | Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
@@ -403,7 +403,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<CurrentGameCard>`, `<SuspendConfirmationBlockingModal>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all eight turn-log games; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
-- Extracted-to-common after recurrence: `TerminalActionRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
+- Extracted-to-common after recurrence: `InfoActionsRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
 

@@ -2,7 +2,7 @@
 
 import { DotActor } from '@/common/members/ActorMention'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -153,7 +153,7 @@ export function InfoCol({
         {/* Action row. Playing: End. Terminal: the bold, outcome-colored result line +
             a compact back-to-club button (the shared swap). */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options, left of the leave option (Club): open the
                 partner's key card (the post-mortem, once you've talked through
                 what you'd have played next), run the same board back, or deal a
@@ -162,9 +162,9 @@ export function InfoCol({
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* Manual "we're done" stop — flag + error/red tone, the canonical
                 "End game" label. Both exits are placed, as in every other game's
                 row; duet is coop, so Concede hides itself and only End is drawn.
@@ -174,7 +174,7 @@ export function InfoCol({
             <ActionButton action={actConcede} show="icon" />
             <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         {/* Help — a stable orienting line during play (the per-phase guidance lives

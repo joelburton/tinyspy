@@ -490,7 +490,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   [ui.md → Button iconography](../ui.md#button-iconography)): during play the
   two exits plus back-to-club; at terminal the bold outcome line + Restart /
   Reveal (the terminal-local reveal) / New game / primary back-to-club, in
-  `TerminalActionRow`'s children. Every one is an `<ActionButton>` over a bound
+  `InfoActionsRow`'s children. Every one is an `<ActionButton>` over a bound
   action ([common/actions](../../src/common/actions/doc.md)), including
   back-to-club: ONE binding serves both rows, navigating directly at terminal
   and routing through the shell's **suspend-confirm** flow mid-game. Stay-here options sit left of the leave option.

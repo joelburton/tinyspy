@@ -3,10 +3,9 @@
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -183,7 +182,7 @@ export function InfoCol({
             New game / Club. CONCEDED (others race on): the terminal look + disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
             {/* The best possible word, hidden until asked for: a score you can
                 read without being told the answer is a puzzle you can keep
@@ -192,21 +191,21 @@ export function InfoCol({
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isLocallyDone ? (
-          <LocalTerminalRow label="You conceded">
+          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
             <ActionButton action={actConcede} show="icon" />
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
             <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         {/* Setup — what was picked at create time. */}

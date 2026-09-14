@@ -49,7 +49,7 @@ test.describe('concede (compete)', () => {
     await pageA.getByRole('button', { name: 'Concede game' }).click()
     await pageA.locator('[data-floating-panel]').getByRole('button', { name: 'Concede' }).click()
 
-    // Alice is now locally terminal — "You conceded" (LocalTerminalRow).
+    // Alice is now locally terminal — "You conceded" (the InfoActionsRow line).
     await expect(pageA.getByText('You conceded')).toBeVisible({ timeout: 15000 })
 
     // Bob keeps racing: no conceded/terminal state for him, and his Concede is live.

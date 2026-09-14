@@ -16,6 +16,29 @@
 
 ## Soon
 
+- **Collapse the info-column action row's branches.** Every state is one
+  `<InfoActionsRow>` now (common/game-page), varying only an optional `{ text,
+  outcome }` line — but this game still FORKS on `over ? … : locally done ? …
+  : …` and lists a different set of buttons in each. Crosswords was
+  deliberately left out of the 2026-09-16 conversion — its buttons are not
+  ordinary action buttons — so this area decides whether they can join the row
+  or genuinely cannot.
+
+  `ActionButton` already promises the way out: *"Nothing renders when the
+  action is hidden, so a list of these needs no `if` around any of them."* So
+  list every button once, in one order, and push the knowledge into each
+  action's `describe()` — an action that should not appear mid-play says
+  `hidden` itself.
+
+  The blocker is that some `describe()`s are not truthful yet: `actNewGame`
+  and `actRestart` answer `'active'` unconditionally, so listing them today
+  would draw them during play. Making them honest is this game's judgment,
+  which is why this is filed here rather than swept (Joel, 2026-09-16: *"there
+  may be action rows where we need to do something very different between
+  playing/terminal states and, if so, we can address this when we get to that
+  game. but the common case would be the full collapse."*). It also restores
+  the missing back-to-club by construction.
+
 - **Link a from-site puzzle back to its source.** For puzzles imported from a
   publisher (NYT, Guardian, …) it would be nice to offer a link to the puzzle
   on that site. The importer already keeps `author` and `copyright` from the

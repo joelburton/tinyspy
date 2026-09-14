@@ -11,6 +11,28 @@
   beside it already answers `hidden` for it.
 
 ## Soon
+- **Collapse the info-column action row's branches.** Every state is one
+  `<InfoActionsRow>` now (common/game-page), varying only an optional `{ text,
+  outcome }` line — but this game still FORKS on `over ? … : locally done ? …
+  : …` and lists a different set of buttons in each. Its locally-done branch
+  holds `actReveal` + `actConcede` today, and **no back-to-club** — so a
+  player who concedes mid-race has no way off the page but the header menu.
+
+  `ActionButton` already promises the way out: *"Nothing renders when the
+  action is hidden, so a list of these needs no `if` around any of them."* So
+  list every button once, in one order, and push the knowledge into each
+  action's `describe()` — an action that should not appear mid-play says
+  `hidden` itself.
+
+  The blocker is that some `describe()`s are not truthful yet: `actNewGame`
+  and `actRestart` answer `'active'` unconditionally, so listing them today
+  would draw them during play. Making them honest is this game's judgment,
+  which is why this is filed here rather than swept (Joel, 2026-09-16: *"there
+  may be action rows where we need to do something very different between
+  playing/terminal states and, if so, we can address this when we get to that
+  game. but the common case would be the full collapse."*). It also restores
+  the missing back-to-club by construction.
+
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a

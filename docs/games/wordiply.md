@@ -519,7 +519,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   ICON-ONLY: playing = both exits, each hiding itself in the mode that isn't its own, +
   back-to-club; terminal = the outcome line + Restart / Reveal / New game / primary Club —
   every one an `<ActionButton>` over a bound action;
-  a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
+  a conceded compete player (the others race on) gets the `InfoActionsRow` "You conceded" line
   + the below-board out-of-race message —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**
   ("Best possible word: **HANGARS** (7)" — full-color, no card; it grows the column when
@@ -704,7 +704,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   needs a physical keyboard).
 - **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,
-  `<TerminalActionRow>` / `<LocalTerminalRow>`, the standard actions (`act-end-game` /
+  `<InfoActionsRow>`, the standard actions (`act-end-game` /
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each placed as an
   `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").

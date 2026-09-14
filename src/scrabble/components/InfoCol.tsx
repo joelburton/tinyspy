@@ -5,10 +5,9 @@ import { type Member, type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -228,7 +227,7 @@ export function InfoCol({
               // Mid-game a conceder reads as "out".
               if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : scoreOf(player)
               // At terminal the per-seat OUTCOME rides along, and it earns its
-              // place: the TerminalActionRow beneath names only the winner, so
+              // place: the action row beneath names only the winner, so
               // this is the only thing distinguishing a player who QUIT from one
               // who played to the end and lost — which matters the moment there
               // are three seats rather than two.
@@ -247,21 +246,21 @@ export function InfoCol({
             conceded" terminal look once I've dropped out (others race on); at
             terminal the bold outcome line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): deal this table
                 again, or spin up the next game. */}
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isCompete && myConceded ? (
-          <LocalTerminalRow label="You conceded">
+          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
             <ActionButton action={actConcede} show="icon" />
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
@@ -270,7 +269,7 @@ export function InfoCol({
                 buttons; its results render in the reserved box below the help
                 text. It hides itself in a race. */}
             <ActionButton action={actSuggestMove} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         {/* Help — only while the player can act on it (never silently swapped). */}

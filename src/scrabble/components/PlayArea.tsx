@@ -528,7 +528,7 @@ type Suggested =
   }, [localFeedbackSlot, over])
 
   // Locally terminal (compete: I conceded while the others play on). The
-  // InfoCol's LocalTerminalRow carries the terse half of this; dual placement
+  // InfoCol's action-row line carries the terse half of this; dual placement
   // is the rule (docs/playarea.md), and on a phone the InfoCol is off-canvas,
   // making this the ONLY copy the player sees.
   const isLocallyDone = isCompete && myConceded && !isTerminal

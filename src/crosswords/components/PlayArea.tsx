@@ -9,7 +9,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useAppAction, useBoundAction, type ActionState } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
@@ -988,7 +988,7 @@ type Explained =
                   - TERMINAL: the controls all vanish (checking and penciling a
                     finished grid is meaningless) and the row becomes the three
                     things left to do. Deliberately NO outcome message here — a
-                    documented departure from the shared <TerminalActionRow>,
+                    documented departure from the shared <InfoActionsRow>,
                     whose whole shape is message-plus-actions: crosswords already
                     renders the verdict as a permanent pill in the active-clue
                     slot right above (the one readout a phone shows), so a
@@ -1009,7 +1009,7 @@ type Explained =
                   <ActionButton action={menu.actBackToClub} show="icon" weight="primary" />
                 </div>
               ) : myConceded ? (
-                <LocalTerminalRow label="You conceded">
+                <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
                   {/* Inert, but present: the solution isn't even on this client
                       until the game is over for EVERYONE (_solution_for gates on
                       is_terminal), so a player who dropped out can't spoil a
@@ -1017,7 +1017,7 @@ type Explained =
                       solver finishes. */}
                   <ActionButton action={actReveal} show="icon" />
                   <ActionButton action={actConcede} show="icon" />
-                </LocalTerminalRow>
+                </InfoActionsRow>
               ) : (
                 <div className={styles.toolRow}>
                   {/* End / Concede rides INSIDE the bar as icon-only children,

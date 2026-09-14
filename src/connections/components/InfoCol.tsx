@@ -1,10 +1,9 @@
 // cs-unmet
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -194,7 +193,7 @@ export function InfoCol({
             status ("You're out" / "You conceded") + Concede. Terminal: the outcome
             line + Reveal / Restart / New game / Club. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): see the
                 categories you didn't get, run this puzzle back, or move on to
                 the next unplayed date. */}
@@ -202,14 +201,14 @@ export function InfoCol({
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : !showInput ? (
-          <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
+          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }}>
             {endButton}
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
           <>
-            <div className={shared.infoActions}>
+            <InfoActionsRow>
               {/* Hints toggles the inline HintList below (warning-toned, amber);
                   aria-pressed reflects whether the list is currently unfolded. */}
               <ActionButton
@@ -218,7 +217,7 @@ export function InfoCol({
                 aria-pressed={hintsOpen}
               />
               {endButton}
-            </div>
+            </InfoActionsRow>
             {/* The per-player hint reveals — unfolds right under the action row when
                 Hints is on; stays mounted (so revealed tiles persist across toggles). */}
             <HintList

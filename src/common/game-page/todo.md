@@ -39,12 +39,16 @@
   be a in a better place."* The consumers ARE the games, so the split wants a
   game's own CSS pass open beside it.
 
-- **The info column's action box does not reserve its height.** The design for
-  the action row was a container that reserves the size of its largest state,
-  so the terminal set and the play set both fit without the box moving; today
-  `.infoActions` reserves nothing and each game keeps its own `over ?` split.
-  Decide whether to build the reserved box (the no-reflow rule argues for it)
-  or record that the per-game split is the shape.
+- **The info column's action box does not reserve its height.** Narrowed
+  2026-09-16: the `over ?` split is gone (every state is one `<InfoActionsRow>`
+  now), and the container is `.actionSlot`, which has `min-height: 6rem` — a
+  floor, not a reserved box. So what is left is the HELP line, play-only in
+  eight games: it and its 1rem gap leave at terminal, which under 6rem the floor
+  absorbs and over 6rem it does not. **Measure before deciding** — read
+  `.actionSlot`'s height in both states in a game with a long help line
+  (stackdown, letterboxed) and a short one (waffle). Then either reserve the
+  slot or amend docs/ui.md, whose Terminal-results paragraph claims the row
+  "never adds or removes a flow element".
 - **A contract-slot guard, per MOUNT POINT.** Common CSS reads custom
   properties a game fills in and no file declares (`--cols`, `--grid-gap`,
   `--max-tile-width`, the bee games' `--board-units-*`, `--rank-text`, …;

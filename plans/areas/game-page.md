@@ -21,6 +21,8 @@ and nothing else:
 - `GamePageLoader.tsx` — `useCommonGame` and the wait for its answer
 - `GamePage.tsx` + `.module.css` + `.test.tsx` — the shell, drawn from props
 - `NoSuchGamePage.tsx` — `<ErrorPage>` in its Not-Found shape
+- `InfoActionsRow.tsx` + `.test.tsx` — the info column's action row, every state
+  (arrived from `common/terminal/`; see below)
 - `gamePageCtx.ts` — what the shell hands a game
 - `useCommonGame.ts` + `.test.ts` — the shared room: the row, the roster, the
   channel, presence, pause, suspend, the timer
@@ -650,6 +652,58 @@ wants a game's CSS pass open beside it.
 Measured while deciding, and worth having when it is picked up — consumers per
 concern: shell 16 games (`.layout`, `.boardCol`), info-column readouts 19 files,
 below-board feedback 8, tile chrome 5, the marks 4.
+
+### F-11.3 · the info column's action row — ONE component, arrived from `terminal/`
+
+The recorded item was *"the action box does not reserve its height ... decide
+whether to build the reserved box or record that the per-game `over ?` split is
+the shape."* Re-verifying it turned up two things.
+
+**Its premise named the wrong class.** `.infoActions` reserves nothing, true,
+but the container is `.actionSlot` and it has `min-height: 6rem` — a floor. So
+the rule holds while both states fit under it, and the thing that could break it
+is the help line vanishing at terminal (`shared.infoHelp` is play-only in eight
+games), which removes a flow element plus a 1rem gap. Whether any game exceeds
+6rem is a measurement nobody has taken.
+
+**And Joel saw past the question.** *"All games have an area where the actions
+appear (both in-play and terminal). The only difference between them is that
+terminal games also show a brief terminal message to the left of the buttons."*
+Which is the answer to the layout question too: if the row is the same row
+throughout, there is nothing to reserve.
+
+What existed: `terminal/TerminalActionRow` (message from `over`) and
+`terminal/LocalTerminalRow` (a hand-written neutral label), two near-identical
+files, plus a bare `<div className={shared.infoActions}>` for the playing
+branch — three branches, two components, in a folder that is not the one owning
+the stylesheet all three wore.
+
+Now: **`game-page/InfoActionsRow`**, `message?: InfoActionsMessage` and
+children. Joel named it — *"it's helpful to clarify that it's in the InfoCol"* —
+and set its type: the message is its own (`InfoActionsMessage`), not a
+`TerminalMessage`, and takes **any** outcome rather than a terminal one, since a
+live game may want a line too. `error` is the one member excluded, because
+docs/outcomes.md says it is never an outcome. That required three new rules in
+`playArea.module.css` (`.outcome_near`, `.outcome_warning`, `.outcome_noted`) —
+the ink tokens for all of them already existed — and the new test asserts one
+class per member, because the class is INDEXED into and a missing rule renders
+unstyled rather than failing.
+
+**The message is passed, never derived**, which was Joel's open question
+("or calculate it, which makes more sense"). `terminalMessage.ts` already draws
+that boundary in its own words: the one message common code can write is "the
+friends agreed to stop", *"because nothing about that outcome is game-specific"*.
+"Out of guesses" needs the game's rules.
+
+19 call sites across 16 games. **crosswords is deliberately untouched** (Joel:
+its buttons are not normal action buttons — its own area's call).
+
+**It also closes an item in `terminal/todo.md`**, which asked whether those two
+components belonged there at all given they wore another folder's stylesheet.
+They did not, and now they do not.
+
+Still open, and separate: whether `.actionSlot` needs a reserved height. The
+row is one row now, but the help line above it still comes and goes.
 
 ## Predicted test breaks
 

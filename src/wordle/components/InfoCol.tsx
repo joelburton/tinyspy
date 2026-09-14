@@ -1,10 +1,9 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -191,16 +190,16 @@ export function InfoCol({
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
             hint/reveal). */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): restart this
                 word, see the answer, or spin up the next game. */}
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isLocallyDone ? (
-          <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
+          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }}>
             {/* Reveal keeps its slot while the others race, but inert: the
                 answer opens only when the game is over for EVERYONE — the
                 target doesn't even reach this client before then
@@ -210,12 +209,12 @@ export function InfoCol({
                 the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
             {endButton}
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {endButton}
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         {/* Help — only while you can act (never a silent swap; the locally-done state is

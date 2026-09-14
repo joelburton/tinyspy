@@ -166,7 +166,7 @@ That dual placement is the rule, not redundancy to trim.
   play buttons with a **bold, outcome-colored result line** (won = green / lost =
   red / manual-end = neutral, via the `--outcomes-*-ink-color` tones), any
   per-game terminal actions (Restart / Reveal / New game), and a **compact**
-  back-to-club button — the shared `<TerminalActionRow>`, icon-only in most games
+  back-to-club button — the shared `<InfoActionsRow>`, icon-only in most games
   so four items survive a ~22rem column (see
   [ui.md → Terminal results](ui.md#terminal-results--the-moment-vs-the-record)).
 - **`.terminalExtra` — the one allowed growth on the play→terminal transition.**
@@ -790,7 +790,7 @@ layout exception — see below):
 |---|---|---|
 | **`Board`** | pure presentation of a board state | state **down**, clicks **up**. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
-| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onSelectTurn`, …). Near-zero internal state. |
+| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onSelectTurn`, …). Near-zero internal state. |
 | **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `viewingSeq`) | wires `BoardCol` ↔ `InfoCol`. |
 
 ### The load-bearing contract

@@ -5,8 +5,7 @@ import type { GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
@@ -165,20 +164,20 @@ export function InfoCol({
             / Club. CONCEDED (others race on): the terminal look + a disabled
             Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actReveal} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isLocallyDone ? (
-          <LocalTerminalRow label="You conceded">
+          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
             <ActionButton action={actConcede} show="icon" />
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* The two rungs of the help ladder, icon-only like everything else
                 in this row. Each hides itself in compete, so this row places
                 them and asks nothing. */}
@@ -189,7 +188,7 @@ export function InfoCol({
             <ActionButton action={actConcede} show="icon" />
             <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         {/* Help — the interface in one line, and only while the player can act

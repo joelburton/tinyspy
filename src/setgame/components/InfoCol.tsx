@@ -3,9 +3,8 @@
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
@@ -143,19 +142,19 @@ export function InfoCol({
         )}
 
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : isLocallyDone ? (
-          <LocalTerminalRow label="You conceded">
+          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Concede disables itself once conceded — the row keeps its shape
                 and the button says why it can't be pressed again. */}
             <ActionButton action={actConcede} show="icon" />
-          </LocalTerminalRow>
+          </InfoActionsRow>
         ) : (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* The hint sits with the other game actions rather than on a line
                 of its own — it is one of the things you can DO here, not a
                 feature that needs its own billing.
@@ -171,7 +170,7 @@ export function InfoCol({
             <ActionButton action={actConcede} show="icon" />
             <ActionButton action={actEndGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
-          </div>
+          </InfoActionsRow>
         )}
 
         <SetupDisclosure>

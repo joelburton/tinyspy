@@ -1,10 +1,9 @@
 // cs-unmet
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -193,7 +192,7 @@ export function InfoCol({
             LOOK (a bold status line + the action on the right) so the state change
             reads loudly, not as a silently-swapped help line. */}
         {over ? (
-          <TerminalActionRow over={over}>
+          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): hunt this board
                 again, or deal a new one. */}
             {/* Reveal first: it acts on THIS finished board. Restart / New game
@@ -205,9 +204,9 @@ export function InfoCol({
                 glyph, which the button reads off `buttons/iconScale.ts` rather
                 than being told. */}
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </TerminalActionRow>
+          </InfoActionsRow>
         ) : canGuess ? (
-          <div className={shared.infoActions}>
+          <InfoActionsRow>
             {/* Hint = a clue (common.words.hint); Spoiler = the answer word
                 itself. Both log to the turn log, cost nothing — and both wear
                 the registry's caution tone (amber); the lightbulb-vs-bare-eye
@@ -217,9 +216,9 @@ export function InfoCol({
             <ActionButton action={actHint} show="icon" />
             <ActionButton action={actSpoiler} show="icon" />
             {exits}
-          </div>
+          </InfoActionsRow>
         ) : (
-          <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
+          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }}>
             {/* Reveal keeps its slot while the others race, but inert: the
                 solution opens only when the game is over for EVERYONE
                 (common.reveal_solution enforces the same rule server-side), so
@@ -228,7 +227,7 @@ export function InfoCol({
                 last racer finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
             {exits}
-          </LocalTerminalRow>
+          </InfoActionsRow>
         )}
 
         {/* Help — shown ONLY while you can actually act on it (canGuess). It never

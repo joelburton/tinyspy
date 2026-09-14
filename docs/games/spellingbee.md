@@ -536,7 +536,7 @@ spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the sh
 
 When `isTerminal` flips true:
 1. A **coop win** pops the shared `<CelebrationBlockingModal>` via `useCelebration` — only at the moment of the win, never on opening an already-won game. Nothing else pops: the verdict is carried in-page ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
-2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<TerminalActionRow>`'s bold `message` line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
+2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<InfoActionsRow>`'s bold message line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
 4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `(required ∪ bonus) − found`, no refetch needed.
 5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.

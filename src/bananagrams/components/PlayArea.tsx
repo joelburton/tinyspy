@@ -7,8 +7,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { timerLabel } from '@/common/timer/timerLabel'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
-import { TerminalActionRow } from '@/common/terminal/TerminalActionRow'
-import { LocalTerminalRow } from '@/common/terminal/LocalTerminalRow'
+import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
 import { DeviceBlockNotice } from '@/common/game-page/DeviceBlockNotice'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -585,14 +584,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // "you're out" row keeps Club alone — the race is still running, so offering
   // to start a different game there would be a distraction.
   const infoActions = over ? (
-    <TerminalActionRow over={over}>
+    <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
       <ActionButton action={actNewGame} show="icon" />
       <ActionButton action={ctx.menu.actBackToClub} show="icon" weight="primary" />
-    </TerminalActionRow>
+    </InfoActionsRow>
   ) : isConceded ? (
     // No Concede button to carry: bananagrams' conceded row is the status line
     // plus the way out, since the race running on is the whole point.
-    <LocalTerminalRow label="You conceded" />
+    <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }} />
   ) : (
     // Both exits are placed, but only Concede draws while you are racing: its
     // question offers ending the table as the second answer (`offersEndForAll`).
