@@ -200,11 +200,13 @@ once the game is over and can go; a keyboard that has been recording your guesse
 for six turns is a record, and a record is the one thing a finished game should
 keep showing.
 
-A **frame** is the other way to say it, and it is the one in use. Both are named
-(`.dimGameOver` / `.gameOverFrame`, `--mark-game-over-dim-color` / `--outcome-neutral-terminal-frame-color`) so
-the choice is one class either way, and each gets its own token even where a value
-matches a neighbor's, so game-over can move without dragging the history frame or
-the not-your-turn dim with it.
+A **frame** is the other way to say it, and it is **the choice — settled, not
+pending** (Joel, 2026-09-14: *"we're not going to be dimming the board at end of
+game"*). A dim was carried alongside it as `.dimGameOver` for a while; that rule
+and its `--mark-gameOver-dim-color` token are **gone**, because a dim that never
+lifts contradicts what a dim means everywhere else here, and a finished board is
+exactly the thing a reader is left studying. What survives is
+`.gameOverFrame` and `--outcomes-neutral-terminalFrame-color`.
 
 **The game-over frame and the history-viewer frame are ONE MARK IN TWO COLORS.**
 Same property, same width, same offset; only the color differs. Both say *what

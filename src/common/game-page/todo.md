@@ -17,7 +17,7 @@
   `.terminalActions`, `.outcome_*`, `.terminalExtra`); the below-board feedback
   slot (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
   `.tileFace`, `.tileWord` + states); and the board-wide state marks
-  (`.dimInFlight`, `.dimNotYourTurn`, `.dimGameOver`, `.gameOverFrame`,
+  (`.dimInFlight`, `.dimNotYourTurn`, `.gameOverFrame`,
   `.verdict*`, `.attentionFlash`, `.yourTurnFlash` + keyframes), which are
   [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject. Joel,
   2026-09-14: *"it's also wrong for stuff about info-col shared css to be in

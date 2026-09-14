@@ -6,8 +6,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-14.** Roster stamped `cs-audited-game-page`,
 eighteen files. Eleven findings recorded: a prose group (F-1 to F-6) and a
-decision group (F-7 to F-11). **The prose group and F-7 are worked**; F-8 to
-F-11 are open. The folder's `todo.md` carries seven
+decision group (F-7 to F-11). **The prose group, F-7 and F-8 are worked**; F-9
+to F-11 are open. The folder's `todo.md` carries seven
 more items from earlier areas, listed under "From todo.md" below; each is a
 decision this area makes with its files open.
 
@@ -261,17 +261,38 @@ no production reader either — `pause.test.ts` alone. Unlike the hook's, it is 
 byproduct the function needs internally, so it is not obviously dead. That is
 `pause-suspend`'s call when its area opens.
 
-### F-game-page-8 · `dim-game-over-kept` · `.dimGameOver` has no user and says it is "the alternative, kept"
+### F-game-page-8 · `dim-game-over-kept` · `.dimGameOver` had no user and said it was "the alternative, kept" — WORKED (deleted)
 
-`.gameOverFrame` is the mark a finished board wears; `.dimGameOver` is a second
-way to say it, used by no game, kept "because it may yet be the better answer
-on a board whose edges are busy". A rule with no reader is a rule the phantom
-guard cannot vouch for and the marks census miscounts. This is
-`plans/tile-feedback.md`'s subject.
+`.gameOverFrame` is the mark a finished board wears — `waffle`, `wordle`,
+`connections` and `psychicnum` boards each apply it as `gameOver !== null &&
+!viewing && shared.gameOverFrame`. `.dimGameOver` was a second way to say it,
+used by no game, kept "because it may yet be the better answer on a board whose
+edges are busy".
 
-Options: (1) delete it, with the note moved to tile-feedback.md as an option
-not taken; (2) keep it and record it in `todo.md` as a mark waiting for a
-board; (3) leave it.
+Options were: (1) delete it; (2) keep it and record it in `todo.md` as a mark
+waiting for a board; (3) leave it.
+
+**Joel ruled it settled, not open** (2026-09-14): *"we're not going to be
+dimming the board at end of game — the frame is the choice we made (i think in
+tile-feedback, which we're in the middle of)."* So this is not an option-not-
+taken filed for later; the dim is gone and the reason is written where the
+choice lives.
+
+Four edits, because one rule was load-bearing in three other places:
+
+- `PlayArea.module.css` — the rule, its `::after`, and the "two ways to say it"
+  paragraph. What was two comment blocks is one, and it now states the
+  frame-not-dim ruling with a pointer to tile-feedback.md.
+- `core-css/base.css` — `--mark-gameOver-dim-color` and the paragraph of the
+  dim-ramp comment arguing its value against `notYourTurn`. **Deleting the rule
+  alone would have failed `cssTokens.test.ts`'s dead-token guard**, which the
+  finding did not predict; the token had exactly one reader.
+- `plans/tile-feedback.md` — the paragraph naming both classes and both tokens
+  as a live pair now records the ruling. It also had the token's name wrong
+  (`--mark-game-over-dim-color` for `--mark-gameOver-dim-color`), which is why
+  a grep for the dim missed it.
+- `todo.md`'s five-concerns list, and one comment in `cssTokens.test.ts` that
+  used the deleted token as its camelCase naming example.
 
 ### F-game-page-9 · `go-to-club-mid-game` · The device block exits through `goToClub`, which says it is terminal-only
 
@@ -354,7 +375,8 @@ ownership is `feedback`'s; the page is the one not wearing
   left its `KNOWN` list. F-1 moved a row out of `INTROS_OWED` as predicted.
 - F-7 option 1 (worked): three `useCommonGame.test.ts` assertions, plus one the
   prediction missed — `GamePage.test.tsx`'s hook fixture sets `missing: []`.
-- F-8 option 1: none — no test names the class.
+- F-8 (worked): no test names the class, as predicted — but the prediction
+  missed the dead-token guard, which the rule's token would have tripped.
 - F-9 option 1: `bananagrams-block.e2e.ts` clicks the card's Back-to-club (not
   run — ASK first); `bananagrams` PlayArea tests may mount the block.
 - F-10 option 1: import-path edits only.

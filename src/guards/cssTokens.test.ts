@@ -57,8 +57,8 @@ function scanTokens() {
   // TOKEN spells what may appear in a custom-property name, and it is wider than
   // it looks like it should be — do not narrow it back to [a-z0-9-]:
   //
-  //   UPPERCASE  a multi-word part is camelCased (--mark-gameOver-dim-color),
-  //              matching the 345 camelCase class names already in src/. CSS
+  //   UPPERCASE  a multi-word part is camelCased (--mark-notYourTurn-dim-color),
+  //              matching the camelCase class names already in src/. CSS
   //              custom properties are case-SENSITIVE, unlike the rest of CSS,
   //              which is what makes that a stable name rather than a typo.
   //   UNDERSCORE a leading --_ marks a name private to one file

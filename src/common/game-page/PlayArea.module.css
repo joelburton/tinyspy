@@ -592,38 +592,18 @@
   }
 }
 
-/* GAME OVER — this board is finished.
+/* GAME OVER — this board is finished. A frame around the outside, leaving
+ * everything inside it untouched at full strength.
  *
  * Worn by the board AND by any input surface that belongs to it (a keyboard, a
  * rack), because the message is about the whole play surface rather than about
  * one part of it. Most games change nothing at all when they end, so the board
  * you are studying looks exactly like one you could still play.
  *
- * Two ways to say it. `.gameOverFrame` below is the one in use; this is the
- * alternative, kept because it may yet be the better answer on a board whose
- * edges are busy.
- *
- * It would be the one PERMANENT dim, a deliberate exception to "a game piece may
- * be dimmed only for transient inactivity". That rule protects a spent PIECE,
- * whose color is its message and must read at full strength; this is the whole
- * SURFACE, where there is no longer any distinction between active and spent to
- * preserve. It stays weak because a finished board is exactly what people sit
- * and read afterwards. */
-/* @@ */ .dimGameOver {
-  position: relative;
-}
-
-/* @@ */ .dimGameOver::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--mark-gameOver-dim-color);
-  pointer-events: none;
-}
-
-/* GAME OVER, the frame — what a finished board wears today: a band around the
- * outside, leaving everything inside it untouched at full strength.
+ * A frame and not a dim, which is settled and not a preference: dimming the
+ * finished board is the thing a reader is left studying, and it would be the one
+ * PERMANENT dim in a vocabulary where a dim means transient inactivity. See
+ * plans/tile-feedback.md.
  *
  * Deliberately the history viewer's SHAPE (same width, same gap) in a different
  * color, because the two are the same kind of statement — "what you are looking
