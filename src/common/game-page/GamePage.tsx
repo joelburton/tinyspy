@@ -131,18 +131,19 @@ export function GamePage(props: Props) {
   const { gameId, manifest } = props
   const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnvelope>('checking')
 
-  useEffect(() => {
+  useEffect(function askWhetherTheGameExists() {
     if (!isGameId(gameId)) return
     let mounted = true
-    void (async () => {
+    async function readAndAnswer() {
       const res = await readRows(commonDb.from('games').select('id').eq('id', gameId))
       if (!mounted) return
       // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
       // player their game is gone because the network blinked — the confident
       // wrong answer this whole area exists to stop.
       setExists(res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no')
-    })()
-    return () => {
+    }
+    void readAndAnswer()
+    return function ignoreALateAnswer() {
       mounted = false
     }
   }, [gameId])
@@ -244,7 +245,7 @@ function GamePageInner({
     prevExpiredRef.current = timer.expired
     if (!timer.expired || wasExpired) return
     if (commonGame.ended_at !== null) return // a peer already ended it
-    void manifest.submitTimeout(gameId).then((res) => {
+    void manifest.submitTimeout(gameId).then(function logHowTheTimeoutLanded(res) {
       // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
       // connected client fires this on the same countdown edge, so in a
       // four-player game three arrive to find the work done. Logged at info,
@@ -364,23 +365,24 @@ function GamePageInner({
   // this one is not there at all. Paused is the whole of the condition —
   // `manifest.endGame` is required, so there is no game this hatch is missing
   // from.
+  const endTheGameFromTheOverlay = async () => {
+    const res = await manifest.endGame(gameId)
+    if (res.type === 'not-ok') {
+      // A lost End race shows PN486's "Game over" in its own words and its
+      // own tone — the same sentence the in-game End action shows, because it
+      // is the same raise.
+      globalFeedbackSlot.show(FeedbackMessage.notOk(res))
+    } else if (res.type === 'ok' && res.data?.result === 'ended') {
+      // Nothing here: the terminal arrives by subscription and the overlay
+      // unmounts with the pause.
+    } else {
+      reportUnhandled('end_game', res)
+    }
+  }
   const actEndGame = useBoundAction('act-end-game', {
     terminal: isGameOver,
     describe: () => (paused ? 'active' : 'hidden'),
-    run: async () => {
-      const res = await manifest.endGame(gameId)
-      if (res.type === 'not-ok') {
-        // A lost End race shows PN486's "Game over" in its own words and its
-        // own tone — the same sentence the in-game End action shows, because it
-        // is the same raise.
-        globalFeedbackSlot.show(FeedbackMessage.notOk(res))
-      } else if (res.type === 'ok' && res.data?.result === 'ended') {
-        // Nothing here: the terminal arrives by subscription and the overlay
-        // unmounts with the pause.
-      } else {
-        reportUnhandled('end_game', res)
-      }
-    },
+    run: endTheGameFromTheOverlay,
   })
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
@@ -571,12 +573,9 @@ function GamePageInner({
         <SuspendConfirmationBlockingModal
           title={commonGame.title}
           onCancel={() => setConfirmingSuspend(false)}
-          onSuspend={() => {
-            // sendSuspend broadcasts + navigates self. Peers
-            // navigate themselves on receipt; the last leaver
-            // clears is_current_view via cleanup.
-            sendSuspend()
-          }}
+          // sendSuspend broadcasts + navigates self. Peers navigate themselves
+          // on receipt; the last leaver clears is_current_view via cleanup.
+          onSuspend={sendSuspend}
         />
       )}
     </div>
