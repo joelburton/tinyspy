@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-manifest
 
 import type { ComponentType } from 'react'
 // Type-only, so the cycle these participate in is erased at runtime.

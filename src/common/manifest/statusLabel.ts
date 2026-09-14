@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-manifest
 
 /**
  * The vocabulary every game's `labelFor` speaks — the club-page **status

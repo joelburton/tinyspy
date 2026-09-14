@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-manifest
 
 /**
  * Build the `submitTimeout` and `endGame` functions a game's manifest declares.

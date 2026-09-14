@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-manifest
 
 /**
  * Tests for manifestRpcs — what is left of it.

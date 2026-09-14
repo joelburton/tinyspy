@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-manifest
 
 import { describe, expect, it } from 'vitest'
 import { playerCountFits, playerCountLabel, playerCountShort } from './gameManifest'
