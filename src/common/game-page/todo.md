@@ -9,6 +9,26 @@
 
 ## Soon
 
+- **`game-page/PlayArea.module.css` is five concerns in one file, and only one
+  of them is PlayArea's.** 55 rules: the two-column shell (`.layout`,
+  `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
+  `.floatingShuffle`) — which is the file's real subject; the info-column
+  readouts (`.actionSlot`, `.infoState`, `.infoHelp`, `.infoActions`,
+  `.terminalActions`, `.outcome_*`, `.terminalExtra`); the below-board feedback
+  slot (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
+  `.tileFace`, `.tileWord` + states); and the board-wide state marks
+  (`.dimInFlight`, `.dimNotYourTurn`, `.dimGameOver`, `.gameOverFrame`,
+  `.verdict*`, `.attentionFlash`, `.yourTurnFlash` + keyframes), which are
+  [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject. Joel,
+  2026-09-14: *"it's also wrong for stuff about info-col shared css to be in
+  PlayArea.module.css, it would be much better in a shared InfoCol.module.css."*
+  Splitting by concern needs no component to change and would have made
+  setup-form's `.infoSetup` misfiling (F-setup-form-10) impossible to write.
+  There is also no `common/game-page/PlayArea.tsx` — the file is named for the
+  play surface, not for a component here, which is what made it a magnet. Decide
+  the split with the naming rule in [docs/deferred.md](../../../docs/deferred.md)
+  → Common / architecture.
+
 - **The info column's action box does not reserve its height.** The design for
   the action row was a container that reserves the size of its largest state,
   so the terminal set and the play set both fit without the box moving; today

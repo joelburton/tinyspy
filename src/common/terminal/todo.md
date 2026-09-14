@@ -15,7 +15,8 @@
   terminal swap, which is the family's most-entangled reader: the swap exists
   because these two replace the play buttons. Decide whether that makes them
   part of the readout family (leave it), or whether the terminal's own chrome
-  belongs here. Same question in `info-sheet` and `word-entry`.
+  belongs here. Same question in `info-sheet` and `word-entry`, and the convention it turns on is
+  [docs/deferred.md](../../../docs/deferred.md) → Common / architecture.
 
 - `CelebrationBlockingModal`'s `.title` is an `<h2>` at `1.5rem` — h1's size,
   where h2 is `1.25rem`. May be earned; should be a decision.

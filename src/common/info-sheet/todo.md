@@ -4,6 +4,30 @@
 
 ## Soon
 
+- **Emerge a shared `<InfoCol>` component.** Every game has its own
+  `InfoCol.tsx` (fourteen of them, 196-348 lines) and each opens with the same
+  skeleton: `.infoCol` → `.actionSlot` → state line → `<OpponentStrip>` when
+  compete → action row → help → `<SetupDisclosure>` → turn log.
+  [docs/playarea.md](../../../docs/playarea.md) → Info-column readouts calls
+  that order "enforced on every standard game", which today means documented and
+  obeyed by hand — and it records codenamesduet having drifted out of it once. A
+  shared component would make the order structural and, more to the point here,
+  would give the info column a real matched stylesheet: today its shared classes
+  live in `game-page/PlayArea.module.css` (see that folder's todo), which is the
+  wrong file for them.
+
+  Joel's steer, 2026-09-14: a game extending the shared look should do it
+  through CSS Modules' `composes:`, so the game's own module names what it takes
+  from the shared one and the **component** never knows its style comes from two
+  places. *"not having the component itself know which parts of its style comes
+  from one module vs another is a real win."* The repo uses `composes` nowhere
+  today; see [docs/deferred.md](../../../docs/deferred.md) → Common /
+  architecture.
+
+  Bigger than the CSS split and shouldn't block it: it needs the slots named and
+  decided first (what is a slot, what is free-form, what a game that wants none
+  of one does).
+
 - **`TurnStatusLine` takes `.infoState` from another folder's stylesheet** —
   `game-page/PlayArea.module.css`, one of the four info-column readout kinds.
   Raised from setup-form's audit (Joel, 2026-09-14): *"it feels wrong for

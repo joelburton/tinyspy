@@ -21,7 +21,8 @@
   when it opens. `.localFeedback` is the odd one of these readers: the others
   take an info-column readout kind, while this is the entry row's own feedback
   line sitting under the board. Decide whether it is play-surface chrome or this
-  folder's. Same question in `terminal` and `info-sheet`.
+  folder's. Same question in `terminal` and `info-sheet`, and the convention it turns on is
+  [docs/deferred.md](../../../docs/deferred.md) → Common / architecture.
 
 ## Someday
 

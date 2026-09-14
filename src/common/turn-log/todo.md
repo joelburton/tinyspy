@@ -25,6 +25,16 @@
 
 ## Soon
 
+- **`TurnLog.module.css` is read by eleven games' `GameTurnLog.tsx`**, which
+  makes it the repo's clearest case of a component-named stylesheet that is not
+  one component's. Joel, 2026-09-14: a `Foo.module.css` should be about the look
+  of `Foo`, changeable without worrying about anyone else. Two ways out, both in
+  [docs/deferred.md](../../../docs/deferred.md) → Common / architecture: rename
+  it `turnLog.module.css` (the repo's existing lowercase-means-shared
+  convention), or let each game's own module `composes:` from it so a game's
+  `.tsx` imports only its own stylesheet. Decide here when the area opens; the
+  convention itself is the cross-cutting half.
+
 - `<TurnLog>`'s `headerAction` is optional in name only — every call site
   passes it, so the bare-`<h3>` arm is dead. Make it required.
 - **`TurnLog.tsx` exports more than one component**, so "the filename is the
