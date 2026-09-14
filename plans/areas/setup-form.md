@@ -253,7 +253,7 @@ still name a field"** (and its `field` row in The keys points at it),
 ### F-setup-form-10 · `disclosure-wears-game-page-css` · WORKED 2026-09-14 — the rules move here and the class is renamed
 
 `SetupDisclosure` had no stylesheet. Its one class came from
-`game-page/PlayArea.module.css` as `.infoSetup`, three rules about 300 lines
+`game-page/playArea.module.css` as `.infoSetup`, three rules about 300 lines
 into a file about the play surface.
 
 **The finding as first recorded got the shape wrong**, and the recount is the

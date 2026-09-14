@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* boggle play surface, on the shared two-column scaffold
- * (common/game-page/PlayArea.module.css, imported as `shared`) — the same
+ * (common/game-page/playArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
  * This module holds only boggle's own bits: the per-game layout vars, the SQUARE
  * board sizing (the waffle model — boggle's board is a square tile grid like

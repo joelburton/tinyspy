@@ -9,7 +9,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Stats, type BoggleStats } from './Stats'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves

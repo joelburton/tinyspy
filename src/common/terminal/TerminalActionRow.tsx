@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import type { TerminalMessage } from './terminalMessage'
-import shared from '../game-page/PlayArea.module.css'
+import shared from '../game-page/playArea.module.css'
 
 type Props = {
   /** The terminal message — `outcome` picks the color, `infoColText` is the line. */

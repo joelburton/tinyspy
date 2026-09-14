@@ -17,7 +17,7 @@ function publish(): void {
  * startup, from main.tsx.
  *
  * The viewport-bound game layout sizes the board column from the available width
- * (`--avail-w`, see common/game-page/PlayArea.module.css). The obvious source,
+ * (`--avail-w`, see common/game-page/playArea.module.css). The obvious source,
  * `100vw`, is wrong: **`100vw` INCLUDES the vertical scrollbar's width, but the
  * content box doesn't.**
  */

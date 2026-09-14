@@ -15,7 +15,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * spellingbee's info column — near-zero state, an arrangement of the shared scaffold

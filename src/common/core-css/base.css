@@ -338,7 +338,7 @@
      whole cue. The drop trebles, the blur doubles, the alpha barely
      moves. (The opposite was tried first: tighter and much darker read
      as the tile being pressed toward the page.) The LIFT is the other
-     half and lives with the hover rule in PlayArea.module.css — the
+     half and lives with the hover rule in playArea.module.css — the
      tile rises 2px while the shadow falls 4px, so the gap opens by
      about 6px. Change one without the other and the gesture stops
      making sense.
@@ -376,7 +376,7 @@
      flight" is the same strength whether it covers one tile or a whole
      board. The element it lands on says WHAT is dimmed; the value says
      what kind of dim it is. Both are worn via the shared `.dimInFlight`
-     / `.dimNotYourTurn` classes in PlayArea.module.css.
+     / `.dimNotYourTurn` classes in playArea.module.css.
 
      All translucent BLACK, drawn OVER the surface rather than applied
      as an opacity, so what is underneath darkens with its contents
@@ -652,7 +652,7 @@
    appearing/disappearing (e.g. the word list growing at game-over) doesn't
    resize the board. Correctness comes from `--client-width` (the scrollbar-
    excluded width the board math uses — see common/mobile/layoutWidth.ts +
-   PlayArea.module.css `--avail-w`); this just avoids a cosmetic width jump when
+   playArea.module.css `--avail-w`); this just avoids a cosmetic width jump when
    the scrollbar toggles. No effect on overlay-scrollbar systems (0px gutter);
    where unsupported (older Safari) it degrades to a harmless jump, not overflow. */
 html {
@@ -683,7 +683,7 @@ body {
 
      THE `center` HALF LOOKS DEAD AND IS NOT SAFE TO REMOVE. The only child it
      can center is `#root`, which is `width: 100%`, so in Chromium it does
-     nothing — measured. But `PlayArea.module.css` documents a WebKit-only bug
+     nothing — measured. But `playArea.module.css` documents a WebKit-only bug
      whose mechanism is this exact declaration: `justify-items: center` sizes
      the grid item to its content's MAX-CONTENT width, and a WordList's
      column-major grid leaked ~9500px up through it, dragging the board

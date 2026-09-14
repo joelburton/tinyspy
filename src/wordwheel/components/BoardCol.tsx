@@ -13,7 +13,7 @@ import { Stats } from '@/shared/rank-ladder/Stats'
 import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */

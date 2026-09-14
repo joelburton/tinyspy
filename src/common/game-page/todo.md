@@ -4,8 +4,10 @@
 
 ## Soon
 
-- **`game-page/PlayArea.module.css` is five concerns in one file, and only one
-  of them is PlayArea's.** 55 rules: the two-column shell (`.layout`,
+- **`game-page/playArea.module.css` is five concerns in one file.** Renamed to
+  lowercase 2026-09-16 (docs/deferred.md → Common / architecture: a sheet read
+  by others is not a component's), which was the half of this that was provably
+  right — **subdividing it is still open.** 45 rules: the two-column shell (`.layout`,
   `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
   `.floatingShuffle`) — which is the file's real subject; the info-column
   readouts (`.actionSlot`, `.infoState`, `.infoHelp`, `.infoActions`,
@@ -17,12 +19,25 @@
   [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject. Joel,
   2026-09-14: *"it's also wrong for stuff about info-col shared css to be in
   PlayArea.module.css, it would be much better in a shared InfoCol.module.css."*
-  Splitting by concern needs no component to change and would have made
-  setup-form's `.infoSetup` misfiling (F-setup-form-10) impossible to write.
-  There is also no `common/game-page/PlayArea.tsx` — the file is named for the
-  play surface, not for a component here, which is what made it a magnet. Decide
-  the split with the naming rule in [docs/deferred.md](../../../docs/deferred.md)
-  → Common / architecture.
+  A concern that had its own file would have made setup-form's `.infoSetup`
+  misfiling (F-setup-form-10) impossible to write. There is no
+  `common/game-page/PlayArea.tsx` — the sheet was named for the play surface,
+  not for a component here, which is what made it a magnet; the rename removed
+  that invitation without moving a rule.
+
+  **The cost to weigh when this is picked up**, which the item used to
+  understate by claiming the split "needs no component to change": every game
+  writes `shared.infoCol` off one import, so moving a class to another sheet is
+  a rename at each call site — **19 `.tsx` files** for the info-column classes
+  alone — and a missed one is an unstyled element, not a build error.
+  `composes:` would let the declarations split while consumers keep one import;
+  the repo uses it nowhere yet, which is the open decision in docs/deferred.md's
+  third bullet under the same heading.
+
+  Joel, 2026-09-16: *"let's do 1 now, and continue to have an issue to subdivide
+  it later. once we're at the point of being able to audit our first game, we'll
+  be a in a better place."* The consumers ARE the games, so the split wants a
+  game's own CSS pass open beside it.
 
 - **The info column's action box does not reserve its height.** The design for
   the action row was a container that reserves the size of its largest state,

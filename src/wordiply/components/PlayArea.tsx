@@ -29,7 +29,7 @@ import { useStandardGameActions } from '@/common/game-page/useStandardGameAction
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 

@@ -8,7 +8,7 @@ import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
 import { CELLS, isHole } from '../lib/waffle'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 

@@ -8,7 +8,7 @@ import { useCaptureKeys } from '../keyboard/useCaptureKeys'
 import { useArrowHistory } from './useArrowHistory'
 import { EntryBox } from './EntryBox'
 import { MoveRow } from './MoveRow'
-import shared from '../game-page/PlayArea.module.css'
+import shared from '../game-page/playArea.module.css'
 
 type Props = {
   /** The pending entry text. */

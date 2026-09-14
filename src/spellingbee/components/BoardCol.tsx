@@ -12,7 +12,7 @@ import { Stats } from '@/shared/rank-ladder/Stats'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */

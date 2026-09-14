@@ -20,7 +20,7 @@ import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGam
 import type { Category } from '../lib/board'
 import type { TurnSnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'

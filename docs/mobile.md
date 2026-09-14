@@ -639,7 +639,7 @@ mobile pass is now composing them, not copy-paste:
   spec in `waffle-mobile.e2e.ts`.) `overflow-y: auto` stays as the fallback for
   content that can't fit even after the log has shrunk.
 - **`shared.mobileFill`** on `.layout` (in the scaffold
-  [`PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)) —
+  [`PlayArea.module.css`](../src/common/game-page/playArea.module.css)) —
   the `@media (--mobile)` full-width `--avail-w` + height override.
 
 A converted game is now: `useInfoSheet()`, `cls(shared.layout, shared.mobileFill,
@@ -912,7 +912,7 @@ exists. See
 spellingbee + boggle grew bespoke tap feedback first (gray-flash suppression + an
 `:active` press on their own tiles); that treatment is now **canonical on the
 shared surfaces**, so every tap game matches instead of a handful. The shared
-`.tile` (in [`PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)
+`.tile` (in [`PlayArea.module.css`](../src/common/game-page/playArea.module.css)
 — psychicnum / connections / waffle / codenamesduet) and the shared
 on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/shared/onscreen-keyboard/GuessKeyboard.module.css)
 — wordle + wordiply) each carry three things:

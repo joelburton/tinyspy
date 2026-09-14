@@ -8,7 +8,7 @@ import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
 import { GuessBoard } from './GuessBoard'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */

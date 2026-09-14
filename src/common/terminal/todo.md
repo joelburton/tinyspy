@@ -5,7 +5,7 @@
 ## Soon
 
 - **`TerminalActionRow` and `LocalTerminalRow` take their look from another
-  folder's stylesheet** — `game-page/PlayArea.module.css`, for `.infoActions`,
+  folder's stylesheet** — `game-page/playArea.module.css`, for `.infoActions`,
   `.terminalActions` and `.outcome`. Raised from setup-form's audit
   (Joel, 2026-09-14): *"it feels wrong for someone else to import CSS that is
   named for one component."* The file is not in fact component-named — there is

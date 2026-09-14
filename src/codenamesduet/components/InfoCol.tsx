@@ -13,7 +13,7 @@ import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { StateLine } from './StateLine'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
 
 /**

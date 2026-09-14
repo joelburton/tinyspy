@@ -1,10 +1,14 @@
 /* cs-audited-game-page */
 
-/* Shared PlayArea scaffold — the two-column play surface every game converges
- * on. CSS-only (no behavior), imported directly by a game's PlayArea/board
- * components the same way setupForm.module.css is (`import shared from
- * '.../PlayArea.module.css'`), and composed with a thin per-game module via
- * `cls()`. See docs/ui.md → "PlayArea layout".
+/* The shared play-surface scaffold — the two-column layout every game
+ * converges on. CSS-only (no behavior), imported directly by a game's
+ * PlayArea/board components the same way setupForm.module.css is, and composed
+ * with a thin per-game module via `cls()`. See docs/ui.md → "PlayArea layout".
+ *
+ * **Lowercase because it is read by others.** A leading cap means one
+ * component's stylesheet, which only that component imports; this one is worn
+ * by every game and there is no `PlayArea` component in this folder for it to
+ * belong to. docs/deferred.md → Common / architecture states the rule.
  *
  * Five concerns live here, and only the first is the file's namesake:
  *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .mobileFill /

@@ -24,7 +24,7 @@ tools only. A correction to that doc made as a side effect of a finding is fine
 | `useIsPhone.ts` (was `usePhone.ts`) | `cs-audited-mobile` | `floating-panels/FloatingPanel.tsx`, `codenamesduet/components/CluePanel.tsx` (twice), `connections/components/BoardCol.tsx` |
 | `useIsCoarsePointer.ts` (was `useCoarsePointer.ts`) | `cs-audited-mobile` | `floating-panels/FloatingPanel.tsx`, `bananagrams/components/PlayArea.tsx`, `waffle/components/Board.tsx` |
 | `useVisualViewport.ts` | `cs-audited-mobile` | `floating-panels/FloatingPanel.tsx` only |
-| `layoutWidth.ts` | `cs-audited-mobile` | `main.tsx` calls it once; `--client-width` read by `game-page/PlayArea.module.css` (4 rules) |
+| `layoutWidth.ts` | `cs-audited-mobile` | `main.tsx` calls it once; `--client-width` read by `game-page/playArea.module.css` (4 rules) |
 | `doc.md` | — | lede written; Design owed |
 | `todo.md` | — | empty under all four headings at opening |
 

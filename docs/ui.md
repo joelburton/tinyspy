@@ -1426,7 +1426,7 @@ Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
 and the shared `.tile` / `.tileWord` classes in
-[`common/game-page/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css).
+[`common/game-page/playArea.module.css`](../src/common/game-page/playArea.module.css).
 A player who learns the board in one game reads it in the next.
 
 - **Resting** — a warm fill from the shared **tile ramp** (`--tile-slot-fill-color`, which

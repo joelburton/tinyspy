@@ -14,7 +14,7 @@
 ## Soon
 
 - **`EntryRow` takes `.localFeedback` from another folder's stylesheet** —
-  `game-page/PlayArea.module.css`. Raised from setup-form's audit
+  `game-page/playArea.module.css`. Raised from setup-form's audit
   (Joel, 2026-09-14): *"it feels wrong for someone else to import CSS that is
   named for one component."* The file is not in fact component-named — there is
   no `common/game-page/PlayArea.tsx` — but this folder should argue its own case

@@ -7,7 +7,7 @@ import { Dot } from '@/common/members/Dot'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 

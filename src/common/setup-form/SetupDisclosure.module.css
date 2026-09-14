@@ -3,7 +3,7 @@
 /* The info-column "Setup options" disclosure. Three rules, and they are this
  * component's alone — no game names them and nothing else in the app does.
  *
- * Not one of the info-column readout kinds in `game-page/PlayArea.module.css`
+ * Not one of the info-column readout kinds in `game-page/playArea.module.css`
  * (`.infoState`, `.infoHelp`, `.infoActions`): those are shared because a
  * game's own InfoCol applies them to its own markup, and nothing applies this
  * but the component. Drawn in the same column is not the same thing. */

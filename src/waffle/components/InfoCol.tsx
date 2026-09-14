@@ -15,7 +15,7 @@ import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
 import { GameTurnLog } from './GameTurnLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * waffle's info column — near-zero state, an arrangement of the shared scaffold

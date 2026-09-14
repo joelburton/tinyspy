@@ -15,7 +15,7 @@ import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
 import { GameTurnLog } from './GameTurnLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
 
 /**

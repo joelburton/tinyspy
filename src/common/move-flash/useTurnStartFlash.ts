@@ -5,7 +5,7 @@ import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
 
 /**
  * True for a beat at the moment the turn becomes MINE — drives the shared
- * `.yourTurnFlash` frame (common/game-page/PlayArea.module.css).
+ * `.yourTurnFlash` frame (common/game-page/playArea.module.css).
  *
  * The problem it solves: in a turn-order game the board looks exactly the same
  * the instant it becomes yours, and you are by definition looking somewhere else

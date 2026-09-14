@@ -13,7 +13,7 @@
   obeyed by hand — and it records codenamesduet having drifted out of it once. A
   shared component would make the order structural and, more to the point here,
   would give the info column a real matched stylesheet: today its shared classes
-  live in `game-page/PlayArea.module.css` (see that folder's todo), which is the
+  live in `game-page/playArea.module.css` (see that folder's todo), which is the
   wrong file for them.
 
   Joel's steer, 2026-09-14: a game extending the shared look should do it
@@ -29,7 +29,7 @@
   of one does).
 
 - **`TurnStatusLine` takes `.infoState` from another folder's stylesheet** —
-  `game-page/PlayArea.module.css`, one of the four info-column readout kinds.
+  `game-page/playArea.module.css`, one of the four info-column readout kinds.
   Raised from setup-form's audit (Joel, 2026-09-14): *"it feels wrong for
   someone else to import CSS that is named for one component."* The file is not
   in fact component-named — there is no `common/game-page/PlayArea.tsx` — but

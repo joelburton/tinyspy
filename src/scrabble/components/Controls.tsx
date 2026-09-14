@@ -8,7 +8,7 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
 import { cls } from '@/common/utils/cls'
 import styles from './PlayArea.module.css'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * The action half of scrabble's below-board row (the rack — with its floating

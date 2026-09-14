@@ -31,7 +31,8 @@ and nothing else:
 - `PlayAreaErrorBoundary.tsx` + `.test.tsx` — the boundary around a board
 - `PlayAreaSlotLog.tsx` — the console breadcrumb + browser snapshot for a
   blank play area (was `PlayAreaMountLog.tsx`, two components; F-11.5)
-- `PlayArea.module.css` — the play surface's stylesheet, five concerns wide
+- `playArea.module.css` — the shared play-surface stylesheet, five concerns
+  wide (renamed from `PlayArea.module.css`; see below)
 - `DeviceBlockNotice.tsx` + `.module.css` — the "needs a desktop" card
 - ~~`useGameHasKeyboard.ts`~~ — moved to `common/keyboard/` (F-10)
 - `doc.md` (a lede, on `INTROS_OWED`) and `todo.md` (one Bug, six Soon, three
@@ -493,8 +494,8 @@ Recorded here so the area's status can count them; the text is in `todo.md`.
 1. **Bug** — `act-back-to-club` answers `active` before `clubHandle` loads and
    then returns silently; should answer `disabled` (its sibling answers
    `hidden`).
-2. **`PlayArea.module.css` is five concerns in one file** — the split by
-   concern (Joel: info-col CSS belongs in a shared `InfoCol.module.css`).
+2. **`playArea.module.css` is five concerns in one file** — HALF WORKED: the
+   lowercase rename is done, the concern-split stays open. See below.
 3. **The info column's action box reserves no height** — build the reserved
    box, or record the per-game `over ?` split as the shape.
 4. **A contract-slot guard per mount point** — the custom properties a game
@@ -618,6 +619,37 @@ registry has never heard of, and that the play surface does not draw.
 stay different ("this division is intentional and good"). It stands; its
 citations pointed at `App.tsx:127–142`, so that closed area's entry now records
 where both branches live and that they sit four lines apart.
+
+### F-11.2 · `playArea.module.css` — the rename, and why the split waits
+
+The naming rule was already written and already named this file. `docs/deferred.
+md` → Common / architecture: *"a stylesheet meant to be read by others is named
+in lowercase, because it is not a component's ... The offenders under it are
+`turn-log/TurnLog.module.css` and `game-page/PlayArea.module.css` (no such
+component exists; five concerns in one file)."* So the leading cap was itself
+the defect — it promised "the look of `PlayArea`" in a folder with no
+`PlayArea`, which is what let `setup-form`'s `.infoSetup` land here.
+
+Renamed to `playArea.module.css` — 88 files, every one a path rewrite, and the
+case-only rename recorded in git as a rename rather than an add/delete. The
+sheet's header now says why it is lowercase. `docs/deferred.md`'s offender list
+is down to `turn-log/TurnLog.module.css`.
+
+**One premise in `todo.md` was wrong and is corrected there:** it said splitting
+"needs no component to change". Every game writes `shared.infoCol` off one
+import, so moving a class to another sheet renames it at each call site — 19
+`.tsx` files for the info-column classes alone — and a missed one is an
+unstyled element, not a build error. That is the real size of the split, and
+`composes:` (which the repo uses nowhere) is the way to avoid it.
+
+**Joel, 2026-09-16:** *"let's do 1 now, and continue to have an issue to
+subdivide it later. once we're at the point of being able to audit our first
+game, we'll be a in a better place."* The consumers are the games; the split
+wants a game's CSS pass open beside it.
+
+Measured while deciding, and worth having when it is picked up — consumers per
+concern: shell 16 games (`.layout`, `.boardCol`), info-column readouts 19 files,
+below-board feedback 8, tile chrome 5, the marks 4.
 
 ## Predicted test breaks
 

@@ -105,7 +105,7 @@
  * the shadow falls away and softens, then come back down and shrink under a
  * finger. A keycap and a board tile are the app's two pressable squares, and if
  * they feel different under the same pointer one of them is wrong — so this is
- * deliberately a copy of `.tile` (common/game-page/PlayArea.module.css)
+ * deliberately a copy of `.tile` (common/game-page/playArea.module.css)
  * rather than a keyboard-flavoured cousin of it. See plans/tile-feedback.md.
  *
  * A key is much smaller than a tile, so if the gesture proves too big here it

@@ -10,7 +10,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 The shape every game's play surface takes — **all sixteen games** are on it. The
 scaffold + readout classes live in
-[`common/components/game/PlayArea.module.css`](../src/common/game-page/PlayArea.module.css)
+[`common/components/game/PlayArea.module.css`](../src/common/game-page/playArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
 per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
 then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
@@ -60,7 +60,7 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 [local vs group](deferred.md#feedback-channels-local-vs-group).
 
 **Shared vs per-game:** the shell + readout classes now live in the shared
-`common/components/game/PlayArea.module.css` (a CSS-only scaffold, like
+`common/game-page/playArea.module.css` (a CSS-only scaffold, like
 `setupForm.module.css` — no behavior, so a stylesheet rather than a component).
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
@@ -183,7 +183,7 @@ That dual placement is the rule, not redundancy to trim.
   answer reveal is NOT one of these — it's progressive and shows all game, part
   of the status readout.)
 
-Shared in `common/game-page/PlayArea.module.css` — `.infoState` / `.infoHelp` /
+Shared in `common/game-page/playArea.module.css` — `.infoState` / `.infoHelp` /
 `.infoActions` / `.terminalActions` / `.outcome_*` / `.terminalExtra`. **The
 setup recap is the odd one and is not among them**: the rest are classes a
 game's own InfoCol puts on its own markup, while the recap is a common
@@ -660,7 +660,7 @@ exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
 
 ### The shared scaffold
 
-In `common/components/game/PlayArea.module.css`:
+In `common/game-page/playArea.module.css`:
 - **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
 - **`.layout`** defines **`--avail-w`** = `calc(var(--client-width, 100vw) -
   var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x))` — the

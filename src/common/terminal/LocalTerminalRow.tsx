@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
-import shared from '../game-page/PlayArea.module.css'
+import shared from '../game-page/playArea.module.css'
 
 type Props = {
   /** The neutral status line — "You conceded" / "Waiting for others" / "You're out" /

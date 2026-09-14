@@ -12,7 +12,7 @@ import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { StateLine } from './StateLine'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold

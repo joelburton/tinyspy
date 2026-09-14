@@ -32,7 +32,7 @@
   (`--pageHeader-height` + its padding-bottom + the 1px rule) and GamePage's
   1rem gap, but is not composed from them, so a header or padding change
   moves it by hand — and at the phone breakpoint, where the padding halves,
-  the number is over by 0.5rem while `PlayArea.module.css` trims a pixel the
+  the number is over by 0.5rem while `playArea.module.css` trims a pixel the
   other way. Benign today: the play surface is a flex item and gives the
   pixel. Decide: compose it from the tokens the way `--game-header-bottom`
   does, or keep the number and say so.

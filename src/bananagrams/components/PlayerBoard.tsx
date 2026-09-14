@@ -8,7 +8,7 @@ import { cls } from '@/common/utils/cls'
 import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import styles from './PlayerBoard.module.css'
 

@@ -14,7 +14,7 @@ import {
   estimateChainRows,
 } from '../lib/chainRows'
 import history from '@/common/turn-log/historyViewer.module.css'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 
 /**

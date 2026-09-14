@@ -18,7 +18,7 @@ import { GameTurnLog } from './GameTurnLog'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
 import type { GuessRow } from '../hooks/useGame'
 import type { WordiplySetup } from '../lib/setup'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 
 /**

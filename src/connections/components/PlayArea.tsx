@@ -35,7 +35,7 @@ import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { turnSnapshot } from '../lib/history'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 import { useTabRing } from '@/common/keyboard/useTabRing'

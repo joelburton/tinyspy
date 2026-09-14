@@ -2,7 +2,7 @@
 
 /* The play surface shared by the found-words rank-ladder games — spellingbee
  * (honeycomb) and wordwheel (wheel). Layered ON TOP of the two-column scaffold
- * (`common/game-page/PlayArea.module.css`, imported as `shared`), not a
+ * (`common/game-page/playArea.module.css`, imported as `shared`), not a
  * replacement for it: a call site composes `cls(shared.boardCol, foundWords.boardCol)`.
  *
  * WHY THIS EXISTS. wordwheel is a targeted fork of spellingbee (docs/games/

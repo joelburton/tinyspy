@@ -12,7 +12,7 @@ import { MoveRow } from '@/common/word-entry/MoveRow'
 import { exposedIds, type Tile } from '../lib/board'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 

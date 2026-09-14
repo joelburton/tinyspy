@@ -14,7 +14,7 @@ import type { GuessRow, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import shared from '@/common/game-page/PlayArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 
 
 /**
