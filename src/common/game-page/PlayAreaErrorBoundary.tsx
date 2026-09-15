@@ -12,11 +12,16 @@ import { StandardButton } from '../buttons/StandardButton'
  * whole tree to a blank page with the explanation buried in the console. The
  * two known ways in:
  *
- *   - a lazy game chunk failing to load. The common cause (a deploy replaced
- *     the hashed assets an old tab references) is auto-recovered by a reload
- *     before it ever throws — see `reloadOnStaleChunk` in main.tsx — so this
- *     boundary only sees a chunk failure when that path declined to reload
- *     (its loop guard tripped: the chunk is failing for a real reason);
+ *   - a lazy game chunk failing to load, which reaches here on BOTH of the
+ *     stale-chunk path's branches (`reloadOnStaleChunk` in main.tsx). When
+ *     that path declines to reload — its once-a-minute guard tripped, so the
+ *     chunk is failing for a real reason — the import throws and the card is
+ *     the answer. When it DOES reload, it calls `preventDefault()` on the
+ *     preload error, and Vite's helper then returns instead of throwing: the
+ *     import resolves to `undefined`, the manifest's
+ *     `.then((m) => ({ default: m.PlayArea }))` reads a property off nothing,
+ *     and this catches that too. The card paints for the frame before
+ *     `location.reload()` replaces the page, which is why nobody reports it;
  *   - a plain render bug in a game.
  *
  * Either way the person gets a card saying what broke and a Reload button

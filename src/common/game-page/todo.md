@@ -74,17 +74,9 @@
   also be unsound: psychicnum fills `--cols` from an inline `style` on the
   parent element, so a CSS-only check reports it broken on day one.
 
-- `PlayAreaErrorBoundary.tsx`'s docstring says the boundary sees a chunk
-  failure only when the stale-chunk path declined to reload. It also catches
-  one ON the reload path: Vite's preload helper returns instead of throwing
-  when the error is default-prevented, so the failed import resolves to
-  nothing, the manifest's `.then((m) => ({ default: m.PlayArea }))` throws on
-  `undefined`, and the card paints for the frame before the reload lands.
 
 ## Someday
 
-- Whether Help's "Got it" button belongs on a companion at all — a companion
-  is the family that closes by its ✕, having nothing to answer.
 - The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
   concern; whatever that redesign decides about slot ownership lands as a
   change this folder applies.

@@ -1,8 +1,0 @@
-/* cs-audited-game-page */
-
-/* The "Got it" close row at the bottom of every game's help modal —
- * right-aligned with a top gap. */
-/* @@ */ .gotItRow {
-  margin-top: 1rem;
-  text-align: right;
-}

@@ -4,8 +4,6 @@ import type { ReactNode } from 'react'
 import { Companion } from '../floating-panels/Companion'
 import { KeyList } from '../actions/KeyList'
 import { HELP_RECT_KEY } from '../floating-panels/FloatingPanel'
-import styles from './GameHelpCompanion.module.css'
-import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
   // The game's user-facing brand — the title reads "How to play {brand}".
@@ -21,10 +19,15 @@ type Props = {
 
 /**
  * The shared help frame every game's `Help.tsx` renders its rules into — the
- * `FloatingPanel`, the uniform "How to play {brand}" title, the key list and the
- * right-aligned "Got it". A game's `Help` is its rules and nothing else; the
- * chrome is identical everywhere because it is this file (docs/ui.md documents
- * Help as part of the uniform frame).
+ * `FloatingPanel`, the uniform "How to play {brand}" title, and the key list. A
+ * game's `Help` is its rules and nothing else; the chrome is identical
+ * everywhere because it is this file (docs/ui.md documents Help as part of the
+ * uniform frame).
+ *
+ * **It closes by its ✕ and nothing else**, like every other companion — the
+ * club's help twin, the crosswords note and explain panels, chat. It carried a
+ * "Got it" button until 2026-09-15, alone in the family: a companion is the
+ * shape you put away, not one that asks you a question.
  */
 export function GameHelpCompanion({
   brand,
@@ -53,9 +56,6 @@ export function GameHelpCompanion({
       {children}
       {/* The keys that work on this page, generated from what is bound. */}
       <KeyList />
-      <div className={styles.gotItRow}>
-        <StandardButton show="label" label="Got it" weight="primary" autoFocus onClick={onClose} />
-      </div>
     </Companion>
   )
 }
