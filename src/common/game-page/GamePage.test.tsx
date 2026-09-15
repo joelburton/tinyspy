@@ -207,14 +207,14 @@ describe('GamePage — mounting', () => {
 describe('act-end-game, bound for the pause overlay', () => {
   it('is hidden while the game is playing — the PlayArea owns ⌥⌫ then', async () => {
     await mount()
-    expect(bound('act-end-game').describe().state).toBe('hidden')
+    expect(bound('act-end-game').describe('button').state).toBe('hidden')
     // `describe()` is not "is it on screen": the overlay is up only when paused.
     expect(screen.queryByText('play')).toBeInTheDocument()
   })
 
   it('is active while paused', async () => {
     await mount(commonGameState({ paused: true }))
-    expect(bound('act-end-game').describe().state).toBe('active')
+    expect(bound('act-end-game').describe('button').state).toBe('active')
     expect(screen.queryByText('play')).toBeNull()
   })
 
@@ -233,7 +233,7 @@ describe('act-new-game-from-setup', () => {
   // row always carries its club.
   it('is active on a loaded game', async () => {
     await mount()
-    expect(bound('act-new-game-from-setup').describe().state).toBe('active')
+    expect(bound('act-new-game-from-setup').describe('button').state).toBe('active')
   })
 
   it('goes straight to the club page with ?new=<gametype> once the game is over', async () => {

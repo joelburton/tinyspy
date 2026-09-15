@@ -98,34 +98,47 @@ const REPLAYED_OK = {
 describe('which exit a game offers', () => {
   it('coop offers End and not Concede', () => {
     const { result } = setup({ mode: 'coop' })
-    expect(result.current.actEndGame.describe().state).toBe('active')
-    expect(result.current.actConcede.describe().state).toBe('hidden')
+    expect(result.current.actEndGame.describe('button').state).toBe('active')
+    expect(result.current.actConcede.describe('button').state).toBe('hidden')
   })
 
   it('a race offers Concede and hides End', () => {
     const { result } = setup({ mode: 'compete' })
-    expect(result.current.actConcede.describe().state).toBe('active')
-    expect(result.current.actEndGame.describe().state).toBe('hidden')
+    expect(result.current.actConcede.describe('button').state).toBe('active')
+    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
 
   it('a race that can stop the table puts BOTH behind Concede, not beside it', () => {
     // One row, one button, one key. The second ending lives inside the
     // question — which is where the difference between them gets explained.
     const { result } = setup({ mode: 'compete', offersEndForAll: true })
-    expect(result.current.actConcede.describe().state).toBe('active')
-    expect(result.current.actConcede.describe().label).toBe('Concede / End game')
-    expect(result.current.actEndGame.describe().state).toBe('hidden')
+    expect(result.current.actConcede.describe('button').state).toBe('active')
+    expect(result.current.actConcede.describe('button').label).toBe('Concede / End game')
+    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
 
   it('says only "Concede game" in a race that cannot stop the table', () => {
     // Named in both branches, so the row cannot rename itself as state changes.
     const { result } = setup({ mode: 'compete' })
-    expect(result.current.actConcede.describe().label).toBe('Concede game')
+    expect(result.current.actConcede.describe('button').label).toBe('Concede game')
   })
 
-  it('disables the exit once the game is terminal', () => {
+  it('takes the exits away once the game is terminal', () => {
+    // HIDDEN, not disabled: there is no race left to drop out of and no game
+    // left to end, and `disabled` means "possible here, not right now".
     const { result } = setup({ mode: 'compete', isTerminal: true, offersEndForAll: true })
-    expect(result.current.actConcede.describe().state).toBe('disabled')
+    expect(result.current.actConcede.describe('button').state).toBe('hidden')
+    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
+  })
+
+  it('keeps Restart off the BUTTON mid-game, while the menu and its key carry it', () => {
+    // The one action that answers two askers differently: RESTART_CONFIRM is
+    // written for mid-game use ("clears everyone's progress", "Keep playing"),
+    // so the key must fire — but the info column's slots belong to playing.
+    const { result } = setup()
+    expect(result.current.actRestart.describe('button').state).toBe('hidden')
+    expect(result.current.actRestart.describe('menu').state).toBe('active')
+    expect(result.current.actRestart.describe('key').state).toBe('active')
   })
 
   it('hands the table stop BACK to a player who has already conceded', () => {
@@ -134,18 +147,18 @@ describe('which exit a game offers', () => {
     // is still in the conversation. Their Concede is spent, and the question
     // that carried both endings went with it, so End comes back out on its own.
     const { result } = setup({ mode: 'compete', myConceded: true, offersEndForAll: true })
-    expect(result.current.actConcede.describe().state).toBe('disabled')
-    expect(result.current.actEndGame.describe().state).toBe('active')
+    expect(result.current.actConcede.describe('button').state).toBe('disabled')
+    expect(result.current.actEndGame.describe('button').state).toBe('active')
   })
 
   it('leaves a conceder nothing extra in a race that cannot stop the table', () => {
     const { result } = setup({ mode: 'compete', myConceded: true })
-    expect(result.current.actEndGame.describe().state).toBe('hidden')
+    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
 
   it('offers Restart at terminal too — a replayed board is a legal thing to replay', () => {
     const { result } = setup({ isTerminal: true })
-    expect(result.current.actRestart.describe().state).toBe('active')
+    expect(result.current.actRestart.describe('button').state).toBe('active')
   })
 })
 

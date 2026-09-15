@@ -35,7 +35,7 @@ function setup(initial: Partial<ArrowHistoryOptions> = {}) {
 /** What the two arrow bindings say about themselves, by id — read off the
  *  stack, since the hook hands nothing back. */
 function states() {
-  const byId = (id: string) => liveBindings().find((b) => b.id === id)!.describe().state
+  const byId = (id: string) => liveBindings().find((b) => b.id === id)!.describe('button').state
   return { recall: byId('act-recall-last'), clear: byId('act-clear-entry') }
 }
 

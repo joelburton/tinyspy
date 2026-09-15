@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/game-page/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -30,7 +30,7 @@ export function InfoCol({
   // same idea — see docs/playarea.md.
   isCompete,
   over,
-  canGuess,
+  isStillPlaying,
   myConceded,
   currentTurnUserId,
   found,
@@ -60,7 +60,7 @@ export function InfoCol({
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
   /** May I still guess? Gates the play action row + help (vs the locally-done look). */
-  canGuess: boolean
+  isStillPlaying: boolean
   /** I conceded a compete race (a real loss; the others keep racing) — picks the
    *  locally-done status wording. */
   myConceded: boolean
@@ -130,12 +130,14 @@ export function InfoCol({
   // itself in the mode that isn't its own. Shared by the "playing" and the "out
   // of guesses / conceded" rows. Icon-only (the canonical action-row
   // treatment): the styled tooltip carries the label and the key.
-  const exits = (
-    <>
-      <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actEndGame} show="icon" />
-    </>
-  )
+  // The row's line, and the only thing that varies between states: the verdict
+  // once the game is over, a neutral "you are done, they are not" while a race
+  // runs on without you, and nothing at all while you can still play.
+  const rowMessage: InfoActionsMessage | undefined = over
+    ? { text: over.infoColText, outcome: over.outcome }
+    : isStillPlaying
+      ? undefined
+      : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
 
   // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
   // to hide the "type a word" help while I'm waiting — the entry is inert then,
@@ -185,56 +187,61 @@ export function InfoCol({
           />
         )}
 
-        {/* The action row has three states. TERMINAL (game over): a bold,
-            outcome-colored result line + a compact back-to-club button. PLAYING (can
-            guess): Hint / Spoiler + End/Concede. WAITING (out of guesses OR conceded
-            but the game's still going — basically terminal for ME): reuse the terminal
-            LOOK (a bold status line + the action on the right) so the state change
-            reads loudly, not as a silently-swapped help line. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options left of the leave option (Club): hunt this board
-                again, or deal a new one. */}
-            {/* Reveal first: it acts on THIS finished board. Restart / New game
-                are both "move on", and they leave. */}
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            {/* Leaving, last. The chevron draws a shade smaller than an object
-                glyph, which the button reads off `buttons/iconScale.ts` rather
-                than being told. */}
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : canGuess ? (
-          <InfoActionsRow>
-            {/* Hint = a clue (common.words.hint); Spoiler = the answer word
-                itself. Both log to the turn log, cost nothing — and both wear
-                the registry's caution tone (amber); the lightbulb-vs-bare-eye
-                glyph is what separates them. The boxed-eye
-                Reveal is a different thing entirely (the whole solution,
-                terminal only) and never appears in this row. */}
-            <ActionButton action={actHint} show="icon" />
-            <ActionButton action={actSpoiler} show="icon" />
-            {exits}
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }}>
-            {/* Reveal keeps its slot while the others race, but inert: the
-                solution opens only when the game is over for EVERYONE
-                (common.reveal_solution enforces the same rule server-side), so
-                a player who dropped out can't spoil a live race. Present
-                rather than absent so the row doesn't change shape when the
-                last racer finishes — the button is simply enabled then. */}
-            <ActionButton action={actReveal} show="icon" />
-            {exits}
-          </InfoActionsRow>
-        )}
+        {/* ONE row, one order, every action listed once. Which of them is on
+            screen right now is each action's own answer — `<ActionButton>`
+            draws nothing for an action that says it is hidden — so there is no
+            branch here that can disagree with what the menu shows or what a key
+            does, and no state that can quietly lose a button (back to club used
+            to go missing while you waited out a race).
 
-        {/* Help — shown ONLY while you can actually act on it (canGuess). It never
+            The order is the one the old terminal branch argued for: what acts on
+            THIS board first, then the two ways to move on, then the exits, and
+            leaving last. */}
+        <InfoActionsRow message={rowMessage}>
+          {/* Hint = a clue (common.words.hint); Spoiler = the answer word
+              itself. Both log to the turn log, cost nothing — and both wear the
+              registry's caution tone (amber); the lightbulb-vs-bare-eye glyph is
+              what separates them. The boxed-eye Reveal below is a different
+              thing: the whole solution, and only once nobody can still play. */}
+          <ActionButton action={actHint} show="icon" />
+          <ActionButton action={actSpoiler} show="icon" />
+          {/* Everything right of here is about the END of the game rather than
+              about playing it. Both sides are pressable mid-game, so the bar is
+              what says where the meaning changes; it hides itself when nothing
+              is left on its left. */}
+          <span className={shared.actionsDivider} />
+          <ActionButton action={actReveal} show="icon" />
+          {/* Both say `hidden` to a button until the game is over, while their
+              menu rows and keys stay live all game — the row's few slots belong
+              to playing, and moving on is a thing you go looking for. */}
+          <ActionButton action={actRestart} show="icon" />
+          <ActionButton action={actNewGame} show="icon" />
+          {/* Compete's Concede and coop's End are distinct acts, and each hides
+              itself in the mode that isn't its own. */}
+          <ActionButton action={actConcede} show="icon" />
+          <ActionButton action={actEndGame} show="icon" />
+          {/* Leaving, last. The chevron draws a shade smaller than an object
+              glyph, which the button reads off `buttons/iconScale.ts` rather
+              than being told.
+
+              FILLED only once the game is over, where leaving is the obvious
+              next thing and the row has no other live action competing for the
+              eye. Mid-game it is an outline: going to the club is available,
+              not recommended, and a filled button there would out-shout the
+              game. `weight` is the placement's to choose (docs/ui.md → Back to
+              club), which is why this is a condition here and not a state. */}
+          <ActionButton
+            action={actBackToClub}
+            show="icon"
+            weight={over ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
+
+        {/* Help — shown ONLY while you can actually act on it (isStillPlaying). It never
             silently swaps text: the "out of guesses, waiting" state is carried loudly
             by the action row above (the terminal look), not by a quietly-changed help
             line. Below the action row, per the InfoCol order. */}
-        {canGuess && myTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
+        {isStillPlaying && myTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the turn log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we

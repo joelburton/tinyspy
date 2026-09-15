@@ -175,7 +175,7 @@ function rpcNames(): string[] {
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 /** A keystroke at the page, the way a player types with nothing focused.
  *  Awaited, because an action's run is single-flight: a second press before the

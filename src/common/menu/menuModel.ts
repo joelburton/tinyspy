@@ -118,7 +118,7 @@ export function menuRow(item: MenuItem): MenuRow {
       run: () => {},
     }
   }
-  const { state, label, icon } = item.describe()
+  const { state, label, icon } = item.describe('menu')
   return {
     id: item.id,
     label: label ?? item.spec.label,

@@ -119,16 +119,16 @@ describe('useCaptureKeys — what Submit says about itself', () => {
   // because the entry is here and it is the VALUE that cannot go.
   it('is disabled, not hidden, on an empty entry', () => {
     const { result } = setup({ value: '' })
-    expect(result.current.actSubmitEntry.describe().state).toBe('disabled')
+    expect(result.current.actSubmitEntry.describe('button').state).toBe('disabled')
   })
 
   it('is disabled, not hidden, when the value is vetoed (submitDisabled)', () => {
     const { result } = setup({ value: 'cat', submitDisabled: true })
-    expect(result.current.actSubmitEntry.describe().state).toBe('disabled')
+    expect(result.current.actSubmitEntry.describe('button').state).toBe('disabled')
   })
 
   it('is active with a value it may submit', () => {
     const { result } = setup({ value: 'cat' })
-    expect(result.current.actSubmitEntry.describe().state).toBe('active')
+    expect(result.current.actSubmitEntry.describe('button').state).toBe('active')
   })
 })

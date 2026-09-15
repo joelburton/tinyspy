@@ -11,7 +11,7 @@ import styles from './KeyList.module.css'
  */
 export function KeyList() {
   const rows = useBoundActions()
-    .map((action) => ({ action, key: action.spec.keys?.[0], ...action.describe() }))
+    .map((action) => ({ action, key: action.spec.keys?.[0], ...action.describe('help') }))
     .filter((row) => row.key !== undefined && row.state !== 'hidden')
   // One row per command, however many places offer it (`act-end-game` is bound
   // by the game and again by the page for the pause overlay): the first binding

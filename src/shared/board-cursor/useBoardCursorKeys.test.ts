@@ -113,7 +113,7 @@ describe('useBoardCursorKeys', () => {
   describe('what the four say about themselves', () => {
     /** Each binding's state by id, read off the stack the dispatcher reads. */
     const states = () =>
-      Object.fromEntries(liveBindings().map((b) => [b.id, b.describe().state]))
+      Object.fromEntries(liveBindings().map((b) => [b.id, b.describe('button').state]))
 
     it('with canCommit false only the commit is disabled; the cursor keys stay live', () => {
       const cb = setup({ canCommit: false })

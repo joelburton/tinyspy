@@ -43,10 +43,10 @@ describe('useBoundAction — the stack', () => {
     const view = renderHook(() =>
       useBoundAction('act-submit', { run: () => undefined, describe: () => ({ state: 'active', label: word }) }),
     )
-    expect(liveBindings()[0]!.describe().label).toBe('first')
+    expect(liveBindings()[0]!.describe('button').label).toBe('first')
     word = 'second'
     view.rerender()
-    expect(liveBindings()[0]!.describe().label).toBe('second')
+    expect(liveBindings()[0]!.describe('button').label).toBe('second')
     view.unmount()
   })
 })
@@ -54,7 +54,7 @@ describe('useBoundAction — the stack', () => {
 describe('useBoundAction — describe', () => {
   it('takes a bare state as shorthand', () => {
     const { view } = bind('act-shuffle', { describe: () => 'disabled' })
-    expect(view.result.current.describe()).toEqual({ state: 'disabled' })
+    expect(view.result.current.describe('button')).toEqual({ state: 'disabled' })
     view.unmount()
   })
 
@@ -72,13 +72,13 @@ describe('useBoundAction — describe', () => {
     )
     over = true
     view.rerender()
-    expect(view.result.current.describe()).toEqual({ state: 'active', label: 'Reveal secrets' })
+    expect(view.result.current.describe('button')).toEqual({ state: 'active', label: 'Reveal secrets' })
     view.unmount()
   })
 
   it('passes a label through when there is one', () => {
     const { view } = bind('act-submit', { describe: () => ({ state: 'active', label: 'Submit · 24' }) })
-    expect(view.result.current.describe()).toEqual({ state: 'active', label: 'Submit · 24' })
+    expect(view.result.current.describe('button')).toEqual({ state: 'active', label: 'Submit · 24' })
     view.unmount()
   })
 })

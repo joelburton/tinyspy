@@ -363,6 +363,40 @@
   flex-wrap: nowrap;
 }
 
+/* The break in the action row between what you do WHILE PLAYING — ask for a
+ * hint, take a spoiler — and what you do ABOUT THE END of the game: reveal the
+ * answer, restart, deal a new one, concede, end it, leave. Both sides can be
+ * chosen mid-game, which is why "can I press it now" does not divide them and a
+ * bar is needed to say where the meaning changes.
+ *
+ * **It draws only when a button sits immediately before it.** A hidden
+ * `<ActionButton>` renders no node at all, so "immediately before" means
+ * "actually on screen" — a row whose during-play actions have all gone quiet
+ * (every game, once it ends) simply has no bar rather than opening with one.
+ * `:first-child` cannot express that: the outcome line is a real element and
+ * takes the first slot whenever there is one.
+ *
+ * And never trailing, for the row that has during-play buttons and nothing
+ * after them — `:last-child` outweighs the sibling rule on specificity
+ * (0,2,0 against 0,1,1), so the two need no ordering trick. */
+/* @@ */ .actionsDivider {
+  display: none;
+  align-self: stretch;
+  /* The MUTED TEXT gray, not the surface-border gray: this is a mark a player
+     has to see — it is the only thing saying the buttons either side of it mean
+     different kinds of thing — where a surface border only has to separate two
+     panels that already look different. */
+  border-left: var(--border-width-line) solid var(--page-text-muted-color);
+}
+
+/* @@ */ button + .actionsDivider {
+  display: block;
+}
+
+/* @@ */ .actionsDivider:last-child {
+  display: none;
+}
+
 /* The terminal outcome line — bold, color-coded by result; grows so the
  * back-to-club button sits at the right edge. */
 /* @@ */ .outcome {

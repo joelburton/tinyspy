@@ -135,7 +135,7 @@ const selectedCards = () =>
  *  nothing action still swallows the keystroke, which is how it would take the
  *  history viewer's any-key exit away from it. */
 const cardKeyState = () =>
-  liveBindings().find((b) => b.id === 'act-toggle-card')?.describe().state
+  liveBindings().find((b) => b.id === 'act-toggle-card')?.describe('button').state
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
  *  focused. An Option chord matches on `code`, since ⌥ changes the character. */
@@ -270,7 +270,7 @@ describe('setgame PlayArea — before the game has loaded', () => {
       </>,
     )
     expect(screen.getByText('Loading…')).toBeInTheDocument()
-    for (const binding of liveBindings()) expect(() => binding.describe()).not.toThrow()
+    for (const binding of liveBindings()) expect(() => binding.describe('button')).not.toThrow()
   })
 })
 

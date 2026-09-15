@@ -162,7 +162,7 @@ const press = (init: KeyboardEventInit) =>
   })
 
 /** What a bound action says about itself right now. */
-const describeOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe()
+const describeOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button')
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)

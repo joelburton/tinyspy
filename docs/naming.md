@@ -304,7 +304,7 @@ The corollary to the rule above: when a cross-game name difference encodes a *re
 - **`result` numeric key** — scrabble `score` (points) vs stackdown `found` (a 0–6 words-cleared count). Different metrics, not one concept under two names.
 - **boggle `play_state = 'ended'`** for a normal finish — boggle has no win-threshold state (the winner is *derived* from most-points when the timer / manual End fires), so `'ended'` is its only terminal; `'won_compete'` would invent a state its model doesn't have.
 - **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle / spellingbee) — different signatures (stackdown carries the specific tile set spelled off the exposed stack); the self-describing name is deliberate.
-- **Board-gate FE props** — connections `showInput` / psychicnum `canGuess` stay distinct from the shared `readOnly`: they're cross-column input-*phase* flags that show/hide the input UI, not a board-only "visible-but-inert" `readOnly`.
+- **Board-gate FE props** — connections `showInput` / psychicnum `isStillPlaying` stay distinct from the shared `readOnly`: they're cross-column input-*phase* flags that show/hide the input UI, not a board-only "visible-but-inert" `readOnly`.
 - **Per-player metric props** — the three same-shaped `ReadonlyMap<string, number>` props were unified on `metricByUser`, but `playerStates` / `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not different names for one thing.
 - **`_maybe_finish_compete`** (connections / waffle / wordle) vs `_finish` / `_finalize` — a genuinely different function: it returns `boolean` and early-returns if the game *isn't* over, where `_finish` returns `void` and unconditionally finalizes.
 

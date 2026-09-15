@@ -65,7 +65,7 @@ export function BoardCol({
   onExitViewing,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
-  canGuess,
+  isStillPlaying,
   isMyTurn,
   localFeedbackSlot,
   decidedBy,
@@ -101,11 +101,11 @@ export function BoardCol({
   gameId: string
   /** Am I a live participant? Picks the entry (vs a waiting / terminal pill) — the
    *  play-vs-done LOOK. NOT turn-aware: a waiting player is still a participant. */
-  canGuess: boolean
+  isStillPlaying: boolean
   /** Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
    *  false the entry stays visible but inert (the tiles + capture are frozen); the
    *  InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
-   *  `canGuess` so a non-current turn doesn't read as "out of guesses". */
+   *  `isStillPlaying` so a non-current turn doesn't read as "out of guesses". */
   isMyTurn: boolean
   /** PlayArea's below-board slot. This column shows the guess results into it
    *  (Correct / Incorrect / a rejected guess) and the entry row draws its top. */
@@ -257,7 +257,7 @@ export function BoardCol({
         moveCount={moveCount}
         // The word with the server, if any: its tile dims until the answer lands.
         inFlightWord={inFlightWord}
-        onPick={canGuess && isMyTurn && !viewing ? handleEntryChange : undefined}
+        onPick={isStillPlaying && isMyTurn && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}
         // Shuffle floats over the board's top-right — purely visual (a fresh scan
@@ -316,7 +316,7 @@ export function BoardCol({
             // `act-exit-viewer` consumes the keystroke), when it's not my turn,
             // and once I'm done (out of guesses, conceded, the game over) —
             // the entry stays, inert, under whatever the slot shows.
-            disabled={viewing || !isMyTurn || !canGuess}
+            disabled={viewing || !isMyTurn || !isStillPlaying}
             onAnyKey={localFeedbackSlot.dismiss}
             recall={lastGuess}
             className={styles.bigEntry}

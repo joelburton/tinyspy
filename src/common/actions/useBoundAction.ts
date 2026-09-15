@@ -13,6 +13,29 @@ import { useSingleFlight } from '../single-flight/useSingleFlight'
 export type ActionState = 'active' | 'hidden' | 'disabled'
 
 /**
+ * Who is asking how an action looks. Every surface that reads `describe` names
+ * itself, so an action that belongs in one place and not another can say so
+ * once instead of each caller deciding by not placing it.
+ *
+ *   - `button` — anything drawing a control: `<ActionButton>`, and the bespoke
+ *     ones `actionSurface` drives (the shuffle pill, the pause mark).
+ *   - `menu` — a row in the logo menu.
+ *   - `help` — Help's key list, deciding whether to TEACH the chord.
+ *   - `key` — the keyboard: the dispatcher, deciding whether the chord fires.
+ *
+ * **`key` is the widest, and the other three may each narrow it.** A game
+ * offers Restart from the menu all game and gives it a button only at the end —
+ * `button` hidden, `menu` and `key` active. What none of them may do is WIDEN:
+ * an action a surface draws, or Help teaches, must be one `key` calls active,
+ * or the control works and its chord does not.
+ *
+ * **Take this parameter only when you use it.** `noUnusedParameters` is on, so
+ * an implementation that ignores it must omit it — which makes its presence a
+ * reliable signal that this action treats some surface specially.
+ */
+export type ActionAsker = 'button' | 'menu' | 'help' | 'key'
+
+/**
  * What a binding says about itself when asked. The words and the glyph are
  * optional and fall back to the registry's, so an action that always looks
  * the same answers with a bare state. What may vary here and what may not is
@@ -45,9 +68,11 @@ export type LiveAction = {
   // flag that could disagree with one. Concede is where this applies: a race
   // that can also stop the whole table passes the end-for-everyone call here.
   runAlternative?: () => void | Promise<void>
-  // What the action looks like right now. Called at read time, so it may read
-  // anything the component can see. A bare state is shorthand for `{ state }`.
-  describe: () => Described | ActionState
+  // What the action looks like right now, to whoever is asking. Called at read
+  // time, so it may read anything the component can see. A bare state is
+  // shorthand for `{ state }`. Most actions answer every asker alike and take
+  // no parameter at all — see `ActionAsker`.
+  describe: (asker: ActionAsker) => Described | ActionState
   // Is the game over? The registry's confirmation is skipped when it is —
   // at terminal there is nothing left to interrupt.
   terminal?: boolean
@@ -59,7 +84,8 @@ export type BoundAction = {
   id: ActionId
   spec: ActionSpec
   run: (key?: string) => void
-  describe: () => Described
+  // How this looks to the surface asking — every reader names itself.
+  describe: (asker: ActionAsker) => Described
   // Is a run still out? True from the moment it is triggered — the question
   // included, so a button behind an open confirm reads gray rather than live.
   pending: boolean
@@ -197,7 +223,23 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // On the handler, so the button, the menu row and the key are covered at once.
   const [run, pending] = useSingleFlight(ask)
 
-  const describe = useCallback(() => described(liveRef.current.describe()), [])
+  const describe = useCallback((asker: ActionAsker) => {
+    const answer = described(liveRef.current.describe(asker))
+    // A placement may narrow what `key` says, never widen it (see ActionAsker).
+    // Checked here because this is the one road every read takes, and only in
+    // development: the cost is a second `describe` call, and what it catches —
+    // a control that works while its chord is dead — is invisible until
+    // someone presses the key.
+    if (import.meta.env.DEV && asker !== 'key' && answer.state !== 'hidden') {
+      if (described(liveRef.current.describe('key')).state === 'hidden') {
+        console.error(
+          `[actions] ${id} draws for '${asker}' but is hidden to the keyboard — ` +
+            `a placement may narrow what 'key' says, never widen it.`,
+        )
+      }
+    }
+    return answer
+  }, [id])
 
   // Identity changes only when `pending` flips, so a surface holding this value
   // is holding something that stays true: `run` and `describe` are stable and

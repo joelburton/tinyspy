@@ -442,13 +442,21 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(menuItems(ctx).get('act-reveal')?.icon).not.toBe(revealFace)
   })
 
-  it('the menu twin is inert before the game is over for everyone', () => {
+  it('is not offered at all while the board is still yours to hunt', () => {
+    // Revealing is not a question you can ask mid-hunt, so it is HIDDEN rather
+    // than gray — and hidden to every surface alike, the menu included.
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
-    // Nothing to ring: the secrets don't reach this client until terminal.
-    expect(menuItems(ctx).get('act-reveal')?.disabled).toBe(true)
-    // Still named, though — an inert row that fell through to the registry's
-    // bare "Reveal" would rename itself as the game ended.
+    // `menuItems` reads the rows the game PUSHED; `hidden` is what the menu
+    // drops when it draws, so that is the flag to assert.
+    expect(menuItems(ctx).get('act-reveal')?.hidden).toBe(true)
+  })
+
+  it('is named in the menu once it appears', () => {
+    // An inert row that fell through to the registry's bare "Reveal" would
+    // rename itself as the game ended, which is why both branches name it.
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<PlayArea {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal secrets')
   })
 })
@@ -627,7 +635,7 @@ describe('psychicnum PlayArea — the keys', () => {
 
     it('still works on a finished board — the fidget is deliberate', async () => {
       render(<WithKeys {...ended()} />)
-      expect(bound('act-shuffle').describe().state).toBe('active')
+      expect(bound('act-shuffle').describe('button').state).toBe('active')
       const before = boardOrder()
 
       nextShuffleDiffers()

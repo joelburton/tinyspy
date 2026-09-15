@@ -161,12 +161,19 @@ export function PlayArea({
   const iFoundThemAll =
     (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
     >= SECRET_COUNT
-  // Am I a live PARTICIPANT (not out of budget, not conceded, game not over)?
-  // This drives the terminal-vs-play LOOK in both columns. It deliberately does
-  // NOT fold in turn-order: a player who's merely waiting their turn isn't
-  // "done", so they must not get the locally-terminal "out of guesses" look.
-  // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
-  const canGuess = !isTerminal && selfBudget > 0 && !myConceded
+  // Still in this game: it is live, I have guesses left, and I have not
+  // conceded. Drives the terminal-vs-play LOOK in both columns.
+  //
+  // NOT about whose turn it is — waiting your turn is still playing, and
+  // `isMyTurn` (passed to BoardCol) is what gates the actual input.
+  //
+  // Two people read false here through `selfBudget`'s `?? 0` rather than
+  // through a test of their own, which is worth knowing before that default
+  // changes: a club member WATCHING has no budget row, and a real player
+  // before the fetch lands has none yet. Both get the not-playing treatment,
+  // and both are right to — but give `selfBudget` a non-zero placeholder and a
+  // watcher silently becomes a player.
+  const isStillPlaying = !isTerminal && selfBudget > 0 && !myConceded
 
   // ─── The three standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -199,12 +206,12 @@ export function PlayArea({
   // Out of the race while the others play on: out of guesses, or conceded.
   // A standing state with the fill; the verdict outranks it when the game ends.
   useEffect(function showOutOfRace() {
-    if (isTerminal || canGuess) return
+    if (isTerminal || isStillPlaying) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.outOfRace(myConceded, 'Out of guesses — race continues'),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, canGuess, myConceded])
+  }, [localFeedbackSlot, isTerminal, isStillPlaying, myConceded])
 
   // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
   // is null in a free-for-all game, so this never fires there. It carries the
@@ -442,7 +449,10 @@ export function PlayArea({
   // stops a second press dealing a second game.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
+    // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
+    // the end, where "deal another" is what you came to the row for.
+    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -450,11 +460,15 @@ export function PlayArea({
   // row is what NAMES those glyphs (docs/ui.md → the menu is the legend), so a
   // disabled row still teaches the lightbulb and the bare eye.
   const actHint = useBoundAction('act-hint', {
-    describe: () => (canGuess && !hinting ? 'active' : 'disabled'),
+    // Three states, not two: GONE once the game is over (there is no move left
+    // to help with), gray while the game is live and you are out of guesses or
+    // one is in flight, live otherwise.
+    describe: () => (isTerminal ? 'hidden' : isStillPlaying && !hinting ? 'active' : 'disabled'),
     run: getHint,
   })
   const actSpoiler = useBoundAction('act-spoiler', {
-    describe: () => (canGuess && !spoiling ? 'active' : 'disabled'),
+    // Same three states as the hint above.
+    describe: () => (isTerminal ? 'hidden' : isStillPlaying && !spoiling ? 'active' : 'disabled'),
     run: getSpoiler,
   })
 
@@ -493,6 +507,10 @@ export function PlayArea({
   // the secrets at terminal, and nothing to do once solving has shown them.
   const actReveal = useBoundAction('act-reveal', {
     describe: () => {
+      // Not a question you can ask while you are still hunting: HIDDEN until
+      // you are done, whether that is the game ending or you conceding. It is
+      // then gray until EVERYONE is done, so a dropout cannot spoil a live race.
+      if (isStillPlaying) return 'hidden'
       if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
       if (secretsShown) return { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
       // Named in the inert case too: the registry's bare "Reveal" would make the
@@ -628,7 +646,7 @@ export function PlayArea({
         onExitViewing={exitViewing}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
-        canGuess={canGuess}
+        isStillPlaying={isStillPlaying}
         // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
         // above). Always true for free-for-all / solo. When false the waiting
         // message takes the entry slot (EntryRow's designed swap — same height),
@@ -653,7 +671,7 @@ export function PlayArea({
         // ── Mode + phase ──
         isCompete={game.mode === 'compete'}
         over={over}
-        canGuess={canGuess}
+        isStillPlaying={isStillPlaying}
         myConceded={myConceded}
         // ── Turn-order (null for free-for-all games → no TurnStatusLine) ──
         currentTurnUserId={currentTurnUserId}

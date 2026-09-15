@@ -782,7 +782,7 @@ describe('connections PlayArea — the keys', () => {
   it('Enter submits the four selected tiles', async () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx()} />)
-    expect(bound('act-submit').describe().state).toBe('active')
+    expect(bound('act-submit').describe('button').state).toBe('active')
 
     press(ENTER)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_guess', expect.anything()))
@@ -795,7 +795,7 @@ describe('connections PlayArea — the keys', () => {
       unionTiles: ['a', 'b'],
     })
     render(<WithKeys {...makeCtx()} />)
-    expect(bound('act-submit').describe().state).toBe('disabled')
+    expect(bound('act-submit').describe('button').state).toBe('disabled')
 
     await act(async () => press(ENTER))
     expect(rpc).not.toHaveBeenCalled()
@@ -810,7 +810,7 @@ describe('connections PlayArea — the keys', () => {
       sendClear,
     })
     render(<WithKeys {...makeCtx({ players: twoMembers })} />)
-    expect(bound('act-clear-selection').describe().state).toBe('active')
+    expect(bound('act-clear-selection').describe('button').state).toBe('active')
 
     await act(async () => press(BACKSPACE))
     expect(sendClear).toHaveBeenCalledTimes(1)
@@ -819,15 +819,15 @@ describe('connections PlayArea — the keys', () => {
   it("both leave on a teammate's turn — hidden, not merely inert", () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx({ isMyTurn: false, currentTurnUserId: 'u2', players: twoMembers })} />)
-    expect(bound('act-submit').describe().state).toBe('hidden')
-    expect(bound('act-clear-selection').describe().state).toBe('hidden')
+    expect(bound('act-submit').describe('button').state).toBe('hidden')
+    expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
   })
 
   it('both leave once the board is finished', () => {
     h.result = fourPicked({ mistakeCount: 4 })
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
-    expect(bound('act-submit').describe().state).toBe('hidden')
-    expect(bound('act-clear-selection').describe().state).toBe('hidden')
+    expect(bound('act-submit').describe('button').state).toBe('hidden')
+    expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
   })
 
   it('+ at terminal starts the next game with no question', async () => {
@@ -935,7 +935,7 @@ describe('connections PlayArea — the keys', () => {
       // swallow a keystroke another binding wanted.
       h.result = loaded({ game: game('coop'), mistakeCount: 4 })
       render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
-      expect(bound('act-shuffle').describe().state).toBe('hidden')
+      expect(bound('act-shuffle').describe('button').state).toBe('hidden')
       const before = tileOrder()
 
       vi.spyOn(Math, 'random').mockReturnValue(0)

@@ -141,7 +141,7 @@ const press = (init: KeyboardEventInit) =>
   })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 beforeEach(() => {
   h.game = loaded()

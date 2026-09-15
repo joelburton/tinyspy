@@ -150,7 +150,7 @@ const okEnvelope = (data: unknown) => ({
 })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 /** The five word slots, as the letters they hold. */
 const wordSlots = () => screen.getByLabelText('Current word').textContent ?? ''

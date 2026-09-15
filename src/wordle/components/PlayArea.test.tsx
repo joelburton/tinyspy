@@ -119,7 +119,7 @@ const okEnvelope = (data: unknown) => ({
 })
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)!

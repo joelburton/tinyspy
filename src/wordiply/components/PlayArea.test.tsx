@@ -162,7 +162,7 @@ const typedLength = () =>
   document.querySelector('ol li[class*="active"] span[aria-label$="letters"]')?.textContent ?? ''
 
 /** What a bound action says about itself right now. */
-const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe().state
+const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
 
 beforeEach(() => {
   h.result = { game: loadedGame(), guesses: [], loading: false }

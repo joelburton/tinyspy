@@ -132,7 +132,10 @@ export function useStandardGameActions({
     terminal: isTerminal,
     describe: (): ActionState => {
       if (mode === 'compete' && !(offersEndForAll && myConceded)) return 'hidden'
-      return isTerminal ? 'disabled' : 'active'
+      // HIDDEN at terminal, not disabled: there is no ending an ended game, and
+      // `disabled` is for what is possible here and not right now. A conceder
+      // still gets it while the others race — conceding is not ending.
+      return isTerminal ? 'hidden' : 'active'
     },
     run: endForAll,
   })
@@ -145,7 +148,11 @@ export function useStandardGameActions({
     terminal: isTerminal,
     describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
-      const state: ActionState = isTerminal || myConceded || selfSolved ? 'disabled' : 'active'
+      // Hidden once the game is over — there is no race left to drop out of.
+      // Disabled, not hidden, for the two states where the race runs on without
+      // you: the button says why (already conceded, or a win already banked).
+      if (isTerminal) return 'hidden'
+      const state: ActionState = myConceded || selfSolved ? 'disabled' : 'active'
       // Named in both branches: a row that fell back to the registry's "Concede
       // game" in one of them would rename itself as the game changed.
       return { state, label: offersEndForAll ? 'Concede / End game' : 'Concede game' }
@@ -174,7 +181,12 @@ export function useStandardGameActions({
   // board someone has already started guessing on.
   const actRestart = useBoundAction('act-restart', {
     terminal: isTerminal,
-    describe: (): ActionState => 'active',
+    // Reachable all game from the menu and its key — RESTART_CONFIRM is written
+    // for exactly that ("clears everyone's progress", "Keep playing"). It gets
+    // a BUTTON only at the end: mid-game the info column's few slots belong to
+    // playing the game, and restarting is a thing you go looking for.
+    describe: (asker): ActionState =>
+      asker === 'button' && !isTerminal ? 'hidden' : 'active',
     run: async () => {
       const res = await runRpc<ReplayResult>(db.rpc('replay_board', { target_game: gameId }))
       if (res.type === 'not-ok') {

@@ -82,7 +82,7 @@ export function useActionDispatcher(): void {
         if (!key) return null
         if (e.repeat && !action.spec.repeat) return null
         if (!reachable(action)) return null
-        return action.describe().state === 'active' ? key : null
+        return action.describe('key').state === 'active' ? key : null
       }
 
       const live = liveBindings()
@@ -139,7 +139,7 @@ export function useActionDispatcher(): void {
         if (action.spec.consumes === false || action.spec.keys?.some(isWildcard)) continue
         const key = action.spec.keys?.find((spec) => matches(spec, e))
         if (!key || !reachable(action)) continue
-        if (action.describe().state === 'disabled') {
+        if (action.describe('key').state === 'disabled') {
           e.preventDefault()
           return
         }

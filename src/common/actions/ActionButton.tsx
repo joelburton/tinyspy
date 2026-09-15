@@ -28,7 +28,7 @@ type Props = Omit<StandardButtonProps, 'label' | 'icon' | 'tone' | 'tooltip' | '
  * that New game is `+`.
  */
 export function ActionButton({ action, ...rest }: Props) {
-  const { state, label, icon, tooltip: reason } = action.describe()
+  const { state, label, icon, tooltip: reason } = action.describe('button')
   if (state === 'hidden') return null
 
   const { spec } = action

@@ -110,9 +110,9 @@ describe('useHistoryViewer — act-exit-viewer', () => {
     })
 
     const exit = () => liveBindings().find((b) => b.id === 'act-exit-viewer')
-    expect(exit()?.describe().state).toBe('hidden')
+    expect(exit()?.describe('button').state).toBe('hidden')
 
     act(() => result.current.select(1))
-    expect(exit()?.describe().state).toBe('active')
+    expect(exit()?.describe('button').state).toBe('active')
   })
 })

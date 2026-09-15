@@ -688,7 +688,7 @@ describe('wordwheel PlayArea — the keys', () => {
 
     it('still works on a finished board — the fidget is deliberate', async () => {
       render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
-      expect(bound('act-shuffle').describe().state).toBe('active')
+      expect(bound('act-shuffle').describe('button').state).toBe('active')
       const before = outerOrder()
 
       nextShuffleDiffers()

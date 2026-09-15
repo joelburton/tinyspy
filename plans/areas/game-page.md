@@ -705,6 +705,60 @@ They did not, and now they do not.
 Still open, and separate: whether `.actionSlot` needs a reserved height. The
 row is one row now, but the help line above it still comes and goes.
 
+### The action vocabulary gained an asker — 2026-09-16
+
+Filing F-11.3's collapse in sixteen todos told each game to "push the knowledge
+into each action's `describe()`". Working it on psychicnum proved that wrong
+three separate times, and the design that came out is worth reading before the
+other fifteen are done.
+
+**What failed.** `describe()` is read by four surfaces — the button, the menu
+row, Help's key list and the dispatcher — and they want different answers.
+Making hint and reveal honest for the ROW broke tests that defend the MENU
+("a grayed row still teaches its glyph"), and hiding `act-new-game` mid-game
+killed the `+` key, whose confirmation is written for exactly that use ("the
+game in progress will be shelved, not lost", "Keep playing").
+
+**What Joel proposed instead**, after rejecting a `hideDisabled` prop on the
+grounds that it cannot tell "not applicable" from "in flight": pass the caller's
+category to `describe`, and make it REQUIRED. Required costs the 119
+implementations nothing — a zero-argument function satisfies a one-argument
+signature — while forcing the seven readers to name themselves, which is the
+half that can get it wrong. `noUnusedParameters` then means an implementation
+takes the parameter only when it uses it, so its presence is a reliable signal.
+
+    export type ActionAsker = 'button' | 'menu' | 'help' | 'key'
+
+`help` is separate from `key` because a chord can work without being taught —
+`GamePage` binds `act-new-game-from-setup` on `⌥+` and says it is "placed
+nowhere", and Help advertises it today with no way to say otherwise. **`key` is
+the widest and the other three may each narrow it**, never widen; the wrapper in
+`useBoundAction` asserts that in development, since it is the one road every
+read takes.
+
+**Joel's state rule**, which the vocabulary already documented and the games had
+drifted from: `hidden` is *not even possible in this state*; `disabled` is
+*possible here, not right now*, with a tooltip. So End and Concede are hidden at
+terminal rather than gray — there is no ending an ended game — while a conceder
+keeps End, because conceding is not ending.
+
+**What psychicnum came to.** One row, eight actions listed once, the only branch
+being the message. Playing and terminal draw exactly what they drew before; the
+locally-done row gains the back-to-club it never had. Two actions answer their
+asker differently (Restart, New game: a button only at terminal, menu and key
+all game) and that is the whole of the placement knowledge.
+
+Three things the collapse would have destroyed silently, all now recorded in the
+todos: back-to-club's `weight="primary"` belonged to the terminal branch and
+became every state's when hoisted; `canGuess` hid "terminal" inside "out of
+guesses", which is how the hint bug was written in the first place (renamed
+`isStillPlaying` — Joel: *"that's a poor variable name, since i'd assume it also
+would be true for 'not your turn'"*); and the row needs a divider between the
+actions you take WHILE PLAYING and those about the END, because both sides are
+pressable mid-game and nothing else says where the meaning changes. The divider
+draws only when a button sits immediately before it — `:first-child` cannot
+express that, since the outcome line takes the first slot whenever there is one.
+
 ## Predicted test breaks
 
 - F-1 to F-6 (worked): prose only, and green — plus one break the prediction

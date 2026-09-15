@@ -39,7 +39,9 @@ export type ActionSurface = {
  * ("Shuffle the words", "Shuffle rack"); the key is appended either way.
  */
 export function actionSurface(action: BoundAction, name?: string): ActionSurface {
-  const { state, label, icon, tooltip } = action.describe()
+  // A bespoke control is still a control being drawn, so it asks what
+  // `<ActionButton>` asks.
+  const { state, label, icon, tooltip } = action.describe('button')
   const called = name ?? label ?? action.spec.label
   return {
     hidden: state === 'hidden',

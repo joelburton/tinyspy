@@ -9,27 +9,44 @@
 
 ## Soon
 
-- **Collapse the info-column action row's branches.** Every state is one
-  `<InfoActionsRow>` now (common/game-page), varying only an optional `{ text,
-  outcome }` line — but this game still FORKS on `over ? … : locally done ? …
-  : …` and lists a different set of buttons in each. Its locally-done branch
-  holds `actConcede` today, and **no back-to-club** — so a player who concedes
-  mid-race has no way off the page but the header menu.
+- **Collapse the info-column action row's branches.** This game still FORKS on
+  `over ? … : locally done ? … : …` and lists a different set of buttons in
+  each, which is how a state can quietly lose a button — every one of these
+  rows is missing back-to-club while a race runs on without you. psychicnum is
+  the worked example (2026-09-16); copy its shape.
 
-  `ActionButton` already promises the way out: *"Nothing renders when the
-  action is hidden, so a list of these needs no `if` around any of them."* So
-  list every button once, in one order, and push the knowledge into each
-  action's `describe()` — an action that should not appear mid-play says
-  `hidden` itself.
+  **The shape.** One `<InfoActionsRow>`, every action listed once in one
+  order, and the only thing that varies is the optional `{ text, outcome }`
+  line. Which buttons are on screen is each action's own answer —
+  `<ActionButton>` draws nothing for an action that says `hidden`.
 
-  The blocker is that some `describe()`s are not truthful yet: `actNewGame`
-  and `actRestart` answer `'active'` unconditionally, so listing them today
-  would draw them during play. Making them honest is this game's judgment,
-  which is why this is filed here rather than swept (Joel, 2026-09-16: *"there
-  may be action rows where we need to do something very different between
-  playing/terminal states and, if so, we can address this when we get to that
-  game. but the common case would be the full collapse."*). It also restores
-  the missing back-to-club by construction.
+  **The state rule** (Joel, 2026-09-16): `hidden` is *not even possible in
+  this state* — you cannot end a game that has ended, or reveal an answer you
+  are still hunting. `disabled` is *possible here, just not right now*, and it
+  carries a tooltip saying why — a hint when you have used your last one. Most
+  games' gate variable folds several of these together and has to be split
+  before the actions can be honest; psychicnum's `canGuess` hid "terminal"
+  inside "out of guesses" and is now `isStillPlaying`.
+
+  **Two answer their asker differently**, which is what `ActionAsker` is for:
+  Restart and New game are reachable all game from the menu and their keys —
+  the confirmations are written for exactly that ("will be shelved, not lost",
+  "Keep playing") — and get a BUTTON only at terminal. `describe: (asker) =>
+  asker === 'button' && !isTerminal ? 'hidden' : 'active'`. Restart's is
+  already done in `useStandardGameActions`; each game's own `act-new-game` is
+  not.
+
+  **Two things the collapse destroys if you are not watching.** Back-to-club
+  is `weight={over ? 'primary' : 'secondary'}` — filled only once the game is
+  over; hoisting the terminal branch's `weight="primary"` into the single list
+  makes it shout all game. And the gray `shared.actionsDivider` span goes
+  between the actions you take WHILE PLAYING and the ones about the END of the
+  game — both sides are pressable mid-game, so nothing but the bar says where
+  the meaning changes. It hides itself when nothing is left on its left.
+
+  **A test gotcha:** `menuItems` reads the rows a game PUSHED, and `hidden` is
+  what the menu drops at draw time — so "not in the menu" asserts `?.hidden
+  === true`, not `toBeUndefined()`.
 
 - **Two hand-written Fisher–Yates shuffles, one per side** — `shuffled` in
   `components/BoardCol.tsx` and `shuffled` in
