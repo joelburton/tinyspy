@@ -3,8 +3,8 @@
 /**
  * Tests for useStandardGameActions — the End / Concede / Restart actions every
  * game binds through it. What each one IS lives in the registry; what this owns
- * is when each applies (a coop game offers End, a race offers Concede, both go
- * disabled at terminal) and what each does with the answer its RPC gives back.
+ * is when each applies (a coop game offers End, a race offers Concede, both are
+ * hidden at terminal) and what each does with the answer its RPC gives back.
  *
  * The confirmation is mocked: whether a question was asked is
  * `useBoundAction`'s subject. Which of these carries one is not uniform —

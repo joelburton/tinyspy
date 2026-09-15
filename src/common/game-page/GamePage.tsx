@@ -83,9 +83,10 @@ type Props = GameShellProps & {
  * and this draws it. So every prop is a value, never a maybe-value, and this
  * file never waits for anything.
  *
- * The hole in the middle is `children`, called with a `GamePageCtx` while the
- * game is unpaused; `PauseBoundary` unmounts it to show the overlay, which is
- * why anything that must survive a pause lives out here or in the DB.
+ * The hole in the middle is the manifest's `PlayArea`, rendered with a
+ * `GamePageCtx` while the game is unpaused; `PauseBoundary` unmounts it to show
+ * the overlay, which is why anything that must survive a pause lives out here
+ * or in the DB.
  *
  * doc.md holds the rest: the tree, what the shell owns, the three ways out, and
  * why the menu's sections live in a store.
@@ -129,11 +130,11 @@ export function GamePage({
     announce: null,
   })
 
-  // Open/closed state for the suspend-confirm modal (fired from
-  // the menu's "Back to club" item for non-terminal games).
+  // Open/closed state for the suspend-confirm modal — `act-back-to-club`'s
+  // third shape (below): mid-game, with peers to warn.
   const [confirmingSuspend, setConfirmingSuspend] = useState(false)
-  // Whether the per-game Help modal is mounted. Toggled by the
-  // menu's "Help" item.
+  // Whether the per-game Help companion is mounted. Opened by `act-help`,
+  // closed by its own ✕.
   const [helpOpen, setHelpOpen] = useState(false)
   // The GLOBAL feedback slot — the header's status slot draws its top
   // message in place of the players strip. One instance for the life of the
@@ -217,7 +218,9 @@ export function GamePage({
   const goToGame = useCallback((gametype: string, gameId: string) => {
     navigate(gamePath(gametype, gameId))
   }, [])
-  // "Back to club" for the menu + its `<` key. Three shapes:
+  // "Back to club", from every surface that places it — the menu row and its
+  // `<` key, the info column's action row, the pause overlay, the device-block
+  // card. Three shapes:
   //   - TERMINAL: direct navigation, no dialog, no broadcast — the game is
   //     over, leaving affects nobody else.
   //   - SOLO mid-game: suspend immediately, no dialog — the confirm exists
@@ -471,9 +474,9 @@ export function GamePage({
         />
       )}
 
-      {/* Help modal — lazy-loaded from the manifest. Suspense
+      {/* The Help companion — lazy-loaded from the manifest. Suspense
           fallback is null because a brief blank moment during chunk
-          fetch is acceptable for a help modal (the user just
+          fetch is acceptable for a help panel (the user just
           clicked Help; they expect it to appear within a beat). */}
       {helpOpen && (
         <Suspense fallback={null}>

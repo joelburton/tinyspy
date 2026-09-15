@@ -10,8 +10,8 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 The shape every game's play surface takes — **all sixteen games** are on it. The
 scaffold + readout classes live in
-[`common/components/game/PlayArea.module.css`](../src/common/game-page/playArea.module.css)
-(a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
+[`common/game-page/playArea.module.css`](../src/common/game-page/playArea.module.css)
+(a CSS-only module imported the way `historyViewer.module.css` is, composed with a thin
 per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
 then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
 clue then several guesses, per-viewer keycard overlays, a real free-text `<input>`
@@ -61,7 +61,7 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 
 **Shared vs per-game:** the shell + readout classes now live in the shared
 `common/game-page/playArea.module.css` (a CSS-only scaffold, like
-`setupForm.module.css` — no behavior, so a stylesheet rather than a component).
+`historyViewer.module.css` — no behavior, so a stylesheet rather than a component).
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
 result/semantic tile fills, the board tray frame, and game-specific readout

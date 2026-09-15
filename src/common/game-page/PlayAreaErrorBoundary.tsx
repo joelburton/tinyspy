@@ -13,7 +13,8 @@ import { StandardButton } from '../buttons/StandardButton'
  * two known ways in:
  *
  *   - a lazy game chunk failing to load, which reaches here on BOTH of the
- *     stale-chunk path's branches (`reloadOnStaleChunk` in main.tsx). When
+ *     stale-chunk path's branches (`boot/reloadOnStaleChunk`, installed by
+ *     main.tsx). When
  *     that path declines to reload — its once-a-minute guard tripped, so the
  *     chunk is failing for a real reason — the import throws and the card is
  *     the answer. When it DOES reload, it calls `preventDefault()` on the

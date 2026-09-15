@@ -2,8 +2,8 @@
 
 /* The common game-page shell. Owns the layout for every game's
  * /g/<gametype>/<gameId> route. Layout-static header on top,
- * PauseBoundary + children (the play surface) in the middle,
- * chat as a floating panel.
+ * PauseBoundary around the play surface in the middle, chat as a
+ * floating panel.
  *
  * Header layout per docs/ui.md → "GamePage header":
  *   [logo] [chat scratchpad] [status-slot]     [pause] [timer-if-set]

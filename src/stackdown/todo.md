@@ -31,14 +31,14 @@
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
   rows is missing back-to-club while a race runs on without you. psychicnum is
-  the worked example (2026-09-16); copy its shape.
+  the worked example (2026-09-14); copy its shape.
 
   **The shape.** One `<InfoActionsRow>`, every action listed once in one
   order, and the only thing that varies is the optional `{ text, outcome }`
   line. Which buttons are on screen is each action's own answer —
   `<ActionButton>` draws nothing for an action that says `hidden`.
 
-  **The state rule** (Joel, 2026-09-16): `hidden` is *not even possible in
+  **The state rule** (Joel, 2026-09-14): `hidden` is *not even possible in
   this state* — you cannot end a game that has ended, or reveal an answer you
   are still hunting. `disabled` is *possible here, just not right now*, and it
   carries a tooltip saying why — a hint when you have used your last one. Most

@@ -3,34 +3,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { logStamp } from '../utils/logStamp'
 
-/**
- * Console breadcrumbs for the play surface's LIFECYCLE — the diagnosis trail
- * for "the play area is blank" reports from real browsers, where the setup
- * can't be inspected directly and the console has to tell the story.
- *
- * Deliberately **mount/unmount only** — the play surface re-renders constantly
- * (every keystroke, timer tick, presence sync, realtime refetch), so a
- * per-render log would drown the console and bury the `[rt]` trail it is meant
- * to sit beside. Mounts are rare events: page load, pause/resume (PauseBoundary
- * unmounts the surface), navigation.
- *
- * Reading the trail when someone reports a blank play area:
- *   - **no "slot mounted" line** → the shell never got as far as the surface.
- *     It says so itself — the gate, the loader and the pause boundary each draw
- *     a named page for every way they stop — so the log's silence corroborates
- *     what is already on screen rather than being the only evidence.
- *   - **"slot mounted", then blank** → the shell handed the slot over and what
- *     filled it drew nothing. The gametype + play_state in the line say exactly
- *     which game and state to reproduce against.
- *
- * The mount line is followed by a one-line **browser snapshot** (viewport, DPR,
- * screen, an approximate zoom, root font size, pointer, UA), which is worth
- * having for a report about anything on a game page, not just a blank one — a
- * filtered-to-`[ui]` copy-paste carries the environment along with the
- * lifecycle. It re-logs on every remount on purpose: zoom and window size can
- * change mid-session, and a pause/resume captures the new state.
- */
-
 /** One-line environment snapshot for the mount log. All raw measurements
  *  plus two derived hints, each with a known caveat:
  *    - `zoom` ≈ outerWidth/innerWidth is the classic desktop heuristic,
@@ -77,7 +49,33 @@ function browserInfoLine(): string {
   )
 }
 
-/** Wraps the play-surface slot; logs when GamePage mounts/unmounts it. */
+/**
+ * Wraps the play-surface slot and logs when `GamePage` mounts and unmounts it —
+ * the console trail for "the play area is blank" reports from real browsers,
+ * where the setup can't be inspected and the console has to tell the story.
+ *
+ * Deliberately **mount/unmount only** — the play surface re-renders constantly
+ * (every keystroke, timer tick, presence sync, realtime refetch), so a
+ * per-render log would drown the console and bury the `[rt]` trail it is meant
+ * to sit beside. Mounts are rare events: page load, pause/resume (PauseBoundary
+ * unmounts the surface), navigation.
+ *
+ * Reading the trail when someone reports a blank play area:
+ *   - **no "slot mounted" line** → the shell never got as far as the surface.
+ *     It says so itself — the gate, the loader and the pause boundary each draw
+ *     a named page for every way they stop — so the log's silence corroborates
+ *     what is already on screen rather than being the only evidence.
+ *   - **"slot mounted", then blank** → the shell handed the slot over and what
+ *     filled it drew nothing. The gametype + play_state in the line say exactly
+ *     which game and state to reproduce against.
+ *
+ * The mount line is followed by a one-line **browser snapshot** (viewport, DPR,
+ * screen, an approximate zoom, root font size, pointer, UA), which is worth
+ * having for a report about anything on a game page, not just a blank one — a
+ * filtered-to-`[ui]` copy-paste carries the environment along with the
+ * lifecycle. It re-logs on every remount on purpose: zoom and window size can
+ * change mid-session, and a pause/resume captures the new state.
+ */
 export function PlayAreaSlotLog({
   gametype,
   gameId,

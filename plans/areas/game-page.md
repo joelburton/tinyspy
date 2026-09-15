@@ -4,13 +4,18 @@ The folders it reads: `game-page`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-14.** Eleven findings recorded: a prose group
-(F-1 to F-6) and a decision group (F-7 to F-11). **The prose group and F-7 to F-10
-are worked**; F-11 is open. On top of the findings, the route was split
-into three components — see "The route split" below. The folder's `todo.md`
-carries seven
-more items from earlier areas, listed under "From todo.md" below; each is a
-decision this area makes with its files open.
+**Status: OPEN — audited 2026-09-14, the closing re-read done 2026-09-15;
+waiting on Joel's blessing.** Twenty-four findings: a prose group (F-1 to F-6)
+and a decision group (F-7 to F-11) from the reading, and thirteen more from the
+closing re-read (F-12 to F-24), every one worked or closed. On top of the
+findings, the route was split into three components — see "The route split"
+below. The folder's `todo.md` handed this area seven items from earlier areas
+(F-11); one of them, the concern split of `playArea.module.css`, stays open
+there by Joel's ruling, and the rest are worked, dissolved or closed. What is
+left is Joel's: the blessing (five files this area created are `cs-unmet`:
+`GamePageGate`, `GamePageLoader`, `NoSuchGamePage`, `InfoActionsRow` and its
+test), and `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed and
+which has not been run.
 
 ## The roster
 
@@ -29,7 +34,8 @@ and nothing else:
 - `useStandardGameActions.ts` + `.test.ts` — End, Concede and Restart, bound
   once per game
 - `GameHeaderMenu.tsx` — the logo menu; the one subscriber to `gameMenuStore`
-- `GameHelpCompanion.tsx` + `.module.css` — the how-to-play panel frame
+- `GameHelpCompanion.tsx` — the how-to-play panel frame (its `.module.css`
+  went with the "Got it" button, 2026-09-15)
 - `PlayAreaErrorBoundary.tsx` + `.test.tsx` — the boundary around a board
 - `PlayAreaSlotLog.tsx` — the console breadcrumb + browser snapshot for a
   blank play area (was `PlayAreaMountLog.tsx`, two components; F-11.5)
@@ -37,8 +43,9 @@ and nothing else:
   wide (renamed from `PlayArea.module.css`; see below)
 - `DeviceBlockNotice.tsx` + `.module.css` — the "needs a desktop" card
 - ~~`useGameHasKeyboard.ts`~~ — moved to `common/keyboard/` (F-10)
-- `doc.md` (a lede, on `INTROS_OWED`) and `todo.md` (one Bug, six Soon, three
-  Someday)
+- `doc.md` (a lede, on `INTROS_OWED` at the opening; the intro and Details
+  written by F-1, harvested at the re-read) and `todo.md` (one Bug, six Soon,
+  three Someday at the opening; one Soon open at the close)
 
 No e2e is the area's own. `bananagrams-block.e2e.ts` drives `DeviceBlockNotice`
 but is bananagrams'; `presence` and `suspend-dialog` are `pause-suspend`'s.
@@ -62,7 +69,7 @@ page; `docs/mobile.md` → Where each game plays; `docs/realtime-lost-events.md`
 Baseline at the opening: the folder's four test files pass (52 tests); `tsc -b`
 and eslint clean.
 
-## The route split — done 2026-09-16
+## The route split — done 2026-09-14
 
 Not a finding. Joel, reading `GamePage.tsx`: *"one of my goals is to make the
 components more readable — some are hairy, which is leading to me letting you
@@ -493,26 +500,34 @@ stays.
 
 Recorded here so the area's status can count them; the text is in `todo.md`.
 
-1. **Bug** — `act-back-to-club` answers `active` before `clubHandle` loads and
+1. ~~**Bug** — `act-back-to-club` answers `active` before `clubHandle` loads and
    then returns silently; should answer `disabled` (its sibling answers
-   `hidden`).
+   `hidden`).~~ — DISSOLVED by the route split: the state is unrepresentable.
+   See "The route split" above.
 2. **`playArea.module.css` is five concerns in one file** — HALF WORKED: the
-   lowercase rename is done, the concern-split stays open. See below.
-3. **The info column's action box reserves no height** — build the reserved
-   box, or record the per-game `over ?` split as the shape.
-4. **A contract-slot guard per mount point** — the custom properties a game
-   must define for the CSS it mounts.
+   lowercase rename is done, the concern-split stays open by Joel's ruling.
+   See below.
+3. ~~**The info column's action box reserves no height** — build the reserved
+   box, or record the per-game `over ?` split as the shape.~~ — WORKED as
+   F-11.3 (one row for every state), then CLOSED 2026-09-15: it will not
+   reserve. See "2026-09-15" below.
+4. ~~**A contract-slot guard per mount point** — the custom properties a game
+   must define for the CSS it mounts.~~ — CLOSED 2026-09-15, no change. See
+   "2026-09-15" below.
 5. ~~**`PlayAreaMountLog.tsx` exports two components**~~ — WORKED, by
    subtraction rather than by splitting or justifying. See below.
 6. ~~**`GamePage` should build the play surface itself and drop `children`**~~
    — WORKED. See below.
-7. **`PlayAreaErrorBoundary`'s docstring under-describes** the reload path
+7. ~~**`PlayAreaErrorBoundary`'s docstring under-describes** the reload path
    (Vite's preload helper returns, the `.then` throws on `undefined`, the card
-   paints for a frame).
+   paints for a frame).~~ — WORKED 2026-09-15; the docstring now walks both
+   branches of the stale-chunk path.
 
-Plus three Someday items (Help's "Got it" on a companion; the global slot's
-ownership is `feedback`'s; the page is the one not wearing
-`.pageHeaderAndMainArea`).
+Plus three Someday items (Help's "Got it" on a companion — WORKED 2026-09-15,
+the button and its stylesheet deleted; the global slot's ownership is
+`feedback`'s — CLOSED 2026-09-15, the redesign already landed; the page is the
+one not wearing `.pageHeaderAndMainArea` — CLOSED 2026-09-15 on measurement).
+All three are recorded in `todo.md` where they were filed.
 
 ## Notes
 
@@ -527,11 +542,11 @@ ownership is `feedback`'s; the page is the one not wearing
   `SetupGameModal`); each page owns its own. Not a finding.
 - **`PlayAreaMountLog`'s two components are read by `App.tsx` only.** F-11.6
   (drop `children`) would move them into this folder's own render and settle
-  F-11.5 at the same time; decide those two together. — Both worked 2026-09-16;
+  F-11.5 at the same time; decide those two together. — Both worked 2026-09-14;
   the note was half right. F-11.6 did not settle F-11.5, it made it answerable,
   and the answer turned out to be that one of the two components had aged out.
 
-### F-11.5 + F-11.6 · the render prop, and the two logs — WORKED 2026-09-16
+### F-11.5 + F-11.6 · the render prop, and the two logs — WORKED 2026-09-14
 
 Presented together because the area file said 6 would settle 5. Re-verifying,
 it would not have — after 6 the logs are still two exported components in one
@@ -589,7 +604,7 @@ its re-verification note that "App imports THREE files out of
 hand-off line says the same; `simple-page.md`, `utils.md` and `mobile.md` each
 named the old filename, and `mobile.md` anchored on a line number besides.
 
-### Also moved: the unknown-gametype error page — 2026-09-16
+### Also moved: the unknown-gametype error page — 2026-09-14
 
 Not a finding; Joel, reading the collapsed route: *"can we move this into
 GamePageGate? that seems a better place for this, and simplifier readers of
@@ -644,7 +659,7 @@ import, so moving a class to another sheet renames it at each call site — 19
 unstyled element, not a build error. That is the real size of the split, and
 `composes:` (which the repo uses nowhere) is the way to avoid it.
 
-**Joel, 2026-09-16:** *"let's do 1 now, and continue to have an issue to
+**Joel, 2026-09-14:** *"let's do 1 now, and continue to have an issue to
 subdivide it later. once we're at the point of being able to audit our first
 game, we'll be a in a better place."* The consumers are the games; the split
 wants a game's CSS pass open beside it.
@@ -705,7 +720,7 @@ They did not, and now they do not.
 Still open, and separate: whether `.noShrinkRow` needs a reserved height. The
 row is one row now, but the help line above it still comes and goes.
 
-### The action vocabulary gained an asker — 2026-09-16
+### The action vocabulary gained an asker — 2026-09-14
 
 Filing F-11.3's collapse in sixteen todos told each game to "push the knowledge
 into each action's `describe()`". Working it on psychicnum proved that wrong
@@ -776,9 +791,192 @@ express that, since the outcome line takes the first slot whenever there is one.
 - F-11.6: `GamePage.test.tsx` renders `children`; `App.tsx` loses three
   imports.
 
+## 2026-09-15 — the day between the last group and the re-read
+
+Not findings; the todo items F-11 counted, decided with Joel and recorded in
+`todo.md` and the commits. Listed so the area file says what happened to each:
+
+- **F-11.4 closed, no change.** A CSS-only guard for `--cols` /
+  `--max-tile-width` / `--grid-gap` would be unsound (psychicnum fills `--cols`
+  from an inline style on the parent) and the break it would catch is
+  immediate and visible in the board being edited.
+- **`.actionSlot` → `.steadyRows` → `.noShrinkRow`, and it reserves no
+  height.** Joel: the don't-move rule is kept at the item level — the action
+  row is always one line, an opponent strip reserves the lines it can grow to
+  — so a `min-height` on the stack was the container-level reservation the
+  rule refuses. The per-game row reservations are filed in each game's todo.
+- **The shell was 1px too tall.** `--game-chrome-height` was a hand-written
+  `5rem` for five stacked things and omitted the 1px rule; every desktop game
+  page scrolled by a pixel. MEASURED across fifteen solo-playable games at
+  three viewports before and after; the token is now composed from its terms.
+  Two tests had permitted the old number. The below-board reserves that carry
+  the same construction per game went to nine game todos (Joel: not
+  `deferred.md`).
+- **Help closes by its ✕.** The "Got it" button, its `.gotItRow` and the
+  stylesheet that rule was the whole of are gone; the boundary's docstring
+  (F-11.7) walks both branches of the stale-chunk path.
+- **Two Someday items closed** without change: the global feedback slot stays
+  in `GamePage` (feedback's redesign landed and states it as the rule);
+  the page keeps its own `.frame` rather than `.pageHeaderAndMainArea`, on
+  measurement and three reasons recorded in `todo.md`.
+
+## The closing re-read — 2026-09-15
+
+The whole roster in one sitting, then every worked finding's grep run over the
+siblings, the docs that describe the folder, and the day's own commits. Thirteen
+more, and eight of them were the area's own findings recurring next door or
+written by its own fixes.
+
+### F-game-page-12 · `children-in-prose` · `children` survived F-11.6 in three places — WORKED
+
+`GamePage`'s own component docstring ("The hole in the middle is `children`"),
+`GamePage.module.css`'s header ("PauseBoundary + children") and `doc.md`'s tree
+(`children(GamePageCtx)`) all still described the render prop F-11.6 removed.
+The Props docstring had been corrected; the sentence above it had not. All
+three now say the manifest's `PlayArea`, and the tree shows the three wrappers
+the page builds around it.
+
+### F-game-page-13 · `loader-named-page` · Three comments name `GamePage` as the reader the split moved — WORKED
+
+`useCommonGame.ts`: `failure`'s note ("GamePage renders this"), the zero-rows
+comment ("GamePage reads it as the game being gone") and the PA003 branch
+("GamePage says it properly"). Since the route split that reader is
+`GamePageLoader`, and the file has a component literally named `GamePage` that
+does none of it. Corrected.
+
+### F-game-page-14 · `echo-claims` · Three comments say a broadcast echoes to its sender; the same file says twice that it does not — WORKED
+
+`SuspendEvent`'s docstring ("every connected peer (including the sender)"),
+the suspend handler ("including the sender, via echo") and the manual-pause
+handler ("handles echoes of our own sends") — against `applyManualPause`'s and
+`sendSuspend`'s own comments that realtime-js defaults to `broadcast: { self:
+false }`, which is exactly why `sendSuspend` navigates itself. F-4 deleted the
+archaeology sentence that admitted the earlier claim was wrong and left the
+claims standing. `SuspendEvent`'s docstring also mis-described the cleanup
+(peers "see an empty presence set after they untrack" — the check reads the
+ref BEFORE untrack, and doc.md already had it right). The three comments now
+say who receives what; the type docstring is a pointer at the cleanup.
+
+### F-game-page-15 · `disabled-at-terminal` · The asker commit made End and Concede HIDDEN at terminal and left "disabled" in four places — WORKED
+
+`useStandardGameActions`'s docstring ("both go disabled once the game is
+over"), its test's header ("both go disabled at terminal" — while the file's
+own case says HIDDEN, not disabled), `docs/games/spellingbee.md` ("disabled at
+terminal") and a `dispatcher.test.tsx` comment that used it as its example.
+All four corrected; the dispatcher comment now describes its fixture rather
+than the app.
+
+### F-game-page-16 · `return-to-club` · F-9's overlay change left the old surface named in five places — WORKED
+
+`sendSuspend`'s return-type note ("by the pause overlay's Return to club"),
+`docs/states.md` ("Suspend and return to club (`sendSuspend`…)"),
+`GamePage`'s two comments that scoped Back to club to "the menu's item" and
+"the menu + its `<` key", `doc.md`'s intro ("the menu's Back to club picks") —
+and `doc.md`'s "the two navigations", which counted the `goToClub` F-9
+deleted. Every one now says the one action, placed by every surface. The
+`suspend-dialog` e2e's comment still quoted the overlay's old button; rewritten
+to say what `.first()` is for.
+
+### F-game-page-17 · `help-is-a-companion` · "Help modal" in eight places, and a day-old archaeology — WORKED
+
+The floating-panels vocabulary is the companion (`docs/ui.md` → "The keys in
+Help": "every game's help companion"), and a companion is by construction not
+modal. `GamePage.tsx` said "Help modal" three times, `GamePage.test.tsx` once,
+`ClubPage.tsx` twice, `boot/reloadOnStaleChunk.ts` and `codenamesduet/Help.tsx`
+once each. `GameHelpCompanion`'s docstring, rewritten on 2026-09-15, carried
+"It carried a 'Got it' button until 2026-09-15" — F-4's defect written by the
+day's own fix — and cited "docs/ui.md documents Help as part of the uniform
+frame", a passage that does not exist; `docs/ui.md`'s dialog-buttons paragraph
+still gave Help's "Got it" as its example. All corrected.
+
+### F-game-page-18 · `action-slot-leftovers` · The rename to `.noShrinkRow` left its predecessor's prose — WORKED
+
+An entire orphaned comment block sat directly above `.noShrinkRow`'s own,
+claiming the region is "same height whether the game is in play or terminal" —
+the reservation the rename had just refused, two blocks apart. "Action slot"
+survived in `.responsiveInfoCol`, `.infoCol` (twice) and `.terminalExtra`;
+`.infoActions` and `.outcome` still described the pre-`InfoActionsRow`
+terminal swap ("the play buttons are replaced by the bold outcome line + a
+compact back-to-club button"); `.terminalExtra` called itself "the one
+info-column region that GROWS" on the transition, when the help line leaves at
+terminal in eight games. Deleted, renamed and reworded.
+
+### F-game-page-19 · `stale-cites` · Six pointers at things that moved or went — WORKED
+
+`playArea.module.css`'s header and `docs/playarea.md` (twice) cite
+`setupForm.module.css`, which the setup-form area deleted; playarea.md's link
+text still read `common/components/game/`. `PlayAreaErrorBoundary` put
+`reloadOnStaleChunk` "in main.tsx" (it is `boot/`'s; main.tsx installs it).
+`.tile:disabled` quoted `button:disabled { opacity: 0.5 }`, which is a token
+now — `docs/deferred.md` had already listed it among four such comments, and
+its list is three. `.responsiveInfoCol` named three composers where five
+compose it (setgame and strands too); it names the condition now.
+
+### F-game-page-20 · `wrong-dates` · Forty-three lines in twenty-three files dated the area's work to a day that had not happened — WORKED
+
+Everything this area did on 2026-09-14 — the route split, F-10, F-11.2,
+F-11.5/6, the gametype move, the asker — was dated "2026-09-16" in this file,
+`app-audit.md`, the `boot`, `buttons` and `keyboard` area files,
+`docs/deferred.md`, this folder's `todo.md`, `keyboard/todo.md` and sixteen
+game todos. The commits are dated 2026-09-14. Every one corrected.
+
+### F-game-page-21 · `false-owed-item` · A closed todo entry carried an owed item, and the item was false — CORRECTED
+
+The action-box item, closed 2026-09-15, ended: "`SetupDisclosure` also adds
+`margin: 0.3rem 0 0` of its own on top of the column gap, so the setup row sits
+1.3rem below its neighbor … the one inconsistency in the column's spacing."
+The margin is on the `ul` INSIDE the disclosure, between its summary and its
+list; the disclosure sits at the column's gap like every other row. Nothing to
+file; the entry says so.
+
+### F-game-page-22 · `slot-log-header` · The component's story was a file header, its docstring one line — WORKED
+
+`PlayAreaSlotLog.tsx`: a 27-line `/**` block after the imports, attached to
+nothing (the orphan guard exempts a file's first docstring, so it was green),
+and `PlayAreaSlotLog` itself carried "Wraps the play-surface slot; logs when
+GamePage mounts/unmounts it." The feedback area's F-15 shape. One export, so
+the header is now its docstring.
+
+### F-game-page-23 · `asker-unharvested` · `ActionAsker` landed in a closed area with no word in its doc — WORKED
+
+The asker commit (2026-09-14) changed `actions/useBoundAction.ts` and left
+`actions/doc.md`'s Details describing `describe()` with no parameter. Closed is
+not locked: a paragraph there now says who asks, that the parameter is
+required, and that `key` is the widest.
+
+### F-game-page-24 · `gate-duplicate-import` · `GamePageGate` imported `ErrorPage` twice — WORKED
+
+Two import lines from `../error-page/ErrorPage`, one for each export. Merged.
+
+### Held up under checking
+
+The menu empties during a pause (psychicnum's publish effect returns
+`setGameSections([])`, and `menu/doc.md` says the same); every game's
+`Help.tsx` renders `GameHelpCompanion`; `.infoCol` is still the one `--z-host`
+declarer; `unset_current_view` has two callers (this hook and ClubPage's heal);
+`gamePageCtx.ts` is imported by the games and `gameManifest.ts` only;
+`App.tsx` keys the route by `gameId`; wordle's grid does read `ctx.brand` for
+its label; the `.moveAreaOrLocalFeedback` and `.localFeedback` rosters in the
+stylesheet are exact.
+
+### The doc.md harvest
+
+Done in the same sitting. The lede named "the manifest's device and keyboard
+gates" — the keyboard gate F-10 moved out — and now names the action row, the
+stylesheet and the device-block card; "sixteen" (twice) is "every game"; the
+tree shows the wrappers the page builds; "the route's four" is "what the gate
+resolved"; the gate's four answers and their two screens are written down.
+Two Details paragraphs added: what a game wears from this folder besides the
+page (`playArea.module.css`, `InfoActionsRow`, `useStandardGameActions`'s
+rules, `DeviceBlockNotice`), and the row-by-row don't-move rule.
+
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-15)
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1);
+      the harvest done at the re-read
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [ ] every file on the roster blessed, or its stamp says why not — **Joel's.**
+      Sixteen files are `cs-audited-game-page`; five the area created are
+      `cs-unmet` (`GamePageGate`, `GamePageLoader`, `NoSuchGamePage`,
+      `InfoActionsRow`, `InfoActionsRow.test`).

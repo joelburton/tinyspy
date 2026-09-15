@@ -12,7 +12,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * one, asks for a chunk that is no longer there.
  *
  * Without this, that failure is just an error: under the play surface it paints
- * PlayAreaErrorBoundary's card, and anywhere else — a SetupForm, a Help modal —
+ * PlayAreaErrorBoundary's card, and anywhere else — a SetupForm, a Help panel —
  * it reaches `panic.ts`'s last-resort screen. Both tell someone that a deploy
  * happened, which is not theirs to read about.
  *

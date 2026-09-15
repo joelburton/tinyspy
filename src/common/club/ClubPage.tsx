@@ -113,8 +113,8 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // and rows — see ModeBadge. `is_solo` is a generated column over the handle's
   // '=' prefix, so the convention is stated in the database and read here.
   const soloClub = club.is_solo
-  // Whether the club Help modal is mounted — toggled by the menu's "Help" item
-  // (the club-page counterpart to each game's Help modal on GamePage).
+  // Whether the club Help companion is mounted — opened by the menu's "Help"
+  // item (the club-page counterpart to each game's Help on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
   // Which body column is showing on MOBILE (phones + portrait tablets). On
   // desktop the two columns sit side by side and this is ignored — the tab bar
@@ -764,7 +764,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
         globalFeedbackSlot={globalFeedbackSlot}
       />
 
-      {/* The club Help modal — opened from the menu's "Help" item (or `?`,
+      {/* The club Help companion — opened from the menu's "Help" item (or `?`,
           which opens the menu). Parity with each game's Help on GamePage. */}
       {helpOpen && <ClubHelpCompanion onClose={() => setHelpOpen(false)} />}
 

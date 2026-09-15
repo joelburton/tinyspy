@@ -19,15 +19,13 @@ type Props = {
 
 /**
  * The shared help frame every game's `Help.tsx` renders its rules into — the
- * `FloatingPanel`, the uniform "How to play {brand}" title, and the key list. A
- * game's `Help` is its rules and nothing else; the chrome is identical
- * everywhere because it is this file (docs/ui.md documents Help as part of the
- * uniform frame).
+ * `FloatingPanel`, the uniform "How to play {brand}" title, and the key list
+ * (docs/ui.md → "The keys in Help"). A game's `Help` is its rules and nothing
+ * else; the chrome is identical everywhere because it is this file.
  *
  * **It closes by its ✕ and nothing else**, like every other companion — the
- * club's help twin, the crosswords note and explain panels, chat. It carried a
- * "Got it" button until 2026-09-15, alone in the family: a companion is the
- * shape you put away, not one that asks you a question.
+ * club's help twin, the crosswords note and explain panels, chat. No "Got it":
+ * a companion is the shape you put away, not one that asks you a question.
  */
 export function GameHelpCompanion({
   brand,

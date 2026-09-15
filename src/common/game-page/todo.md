@@ -5,7 +5,7 @@
 ## Soon
 
 - **`game-page/playArea.module.css` is five concerns in one file.** Renamed to
-  lowercase 2026-09-16 (docs/deferred.md → Common / architecture: a sheet read
+  lowercase 2026-09-14 (docs/deferred.md → Common / architecture: a sheet read
   by others is not a component's), which was the half of this that was provably
   right — **subdividing it is still open.** 45 rules: the two-column shell (`.layout`,
   `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
@@ -34,7 +34,7 @@
   the repo uses it nowhere yet, which is the open decision in docs/deferred.md's
   third bullet under the same heading.
 
-  Joel, 2026-09-16: *"let's do 1 now, and continue to have an issue to subdivide
+  Joel, 2026-09-14: *"let's do 1 now, and continue to have an issue to subdivide
   it later. once we're at the point of being able to audit our first game, we'll
   be a in a better place."* The consumers ARE the games, so the split wants a
   game's own CSS pass open beside it.
@@ -58,10 +58,10 @@
   specificity, decided by module import order.
 
   **What this leaves owed, per game:** the row-level reservations the
-  principle asks for. `SetupDisclosure` also adds `margin: 0.3rem 0 0` of its
-  own on top of the column gap, so the setup row sits 1.3rem below its
-  neighbor where every other pair is 1rem — the one inconsistency in the
-  column's spacing.
+  principle asks for, filed in each game's `todo.md`. (An earlier version of
+  this entry said `SetupDisclosure` adds a margin of its own on top of the
+  column gap; it does not — its `0.3rem` sits between the summary and the list
+  INSIDE the disclosure.)
 
 - ~~**A contract-slot guard, per MOUNT POINT.**~~ **Closed 2026-09-15, no
   change.** The shared `.hugRectWidth` reads `--cols` / `--max-tile-width` /

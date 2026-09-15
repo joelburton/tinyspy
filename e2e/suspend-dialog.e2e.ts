@@ -187,9 +187,8 @@ test.describe('confirm modals — suspend + end game', () => {
     // Wait for alice's board to render — it only exists when un-paused (the
     // pause overlay replaces PlayArea), so this absorbs presence-sync. Bob
     // needn't be un-paused first: ending short-circuits pause on his side too.
-    // (The old `exact` note is moot — the label is "End game" now, which no
-    // longer substring-matches the pause overlay's "Suspend and return to
-    // club"; the disambiguation that remains is trigger-vs-modal-confirm.)
+    // (`.first()` because "End game" is both the trigger and, once the question
+    // is up, the confirm's own button.)
     await alice.getByRole('grid', { name: /waffle board/i }).waitFor({ timeout: 15000 })
 
     // Alice ends the game (through the modal) → terminal for both.

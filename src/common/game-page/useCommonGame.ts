@@ -76,18 +76,12 @@ type ManualPauseEvent =
   | { type: 'manualUnpause' }
 
 /**
- * Broadcast payload sent when one peer accepts the suspend-
- * confirm modal. Every connected peer (including the sender)
- * navigates themselves back to the club page in response. No
- * userId field needed — the action is uniform; we don't need to
- * label "Bea suspended" in the UI (the disappearance into the
- * club page is itself the signal).
- *
- * Symmetry note: the matching unset_current_view write happens
- * naturally via each peer's useCommonGame cleanup-on-unmount as
- * they navigate out. The last-leaver's cleanup wins; the others
- * see an empty presence set after they untrack and either no-op
- * (someone already cleared the flag) or harmlessly re-clear it.
+ * Broadcast payload sent when a peer shelves the game. Every OTHER peer
+ * navigates back to the club page on receipt; the sender navigates itself,
+ * because a broadcast does not echo (see `sendSuspend`). No userId field —
+ * the action is uniform, and the disappearance into the club page is itself
+ * the signal. The club's pointer is cleared by the last tab out, in the join
+ * effect's cleanup below.
  */
 type SuspendEvent = { type: 'suspend' }
 
@@ -150,8 +144,9 @@ export function useCommonGame(
   sendManualPause: () => void
   sendManualUnpause: () => void
   // Shelve the game and leave: broadcasts to every peer, then navigates self to
-  // the club page. Called with a confirm for a game with peers to surprise,
-  // without one for a solo game, and by the pause overlay's Return to club.
+  // the club page. What `act-back-to-club` does mid-game, from whichever
+  // surface placed it — after a confirm when there are peers to surprise,
+  // straight away for a solo game.
   sendSuspend: () => void
   // The game clock — seconds to show, and whether a countdown has run out.
   timer: { displaySeconds: number; expired: boolean }
@@ -164,7 +159,7 @@ export function useCommonGame(
   // False once the initial fetch has settled, however it settled.
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
-  // GamePage renders this instead of "There's no game here."
+  // `GamePageLoader` renders this instead of "There's no game here."
   failure: NotOkEnvelope | null
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
@@ -295,8 +290,8 @@ export function useCommonGame(
       // with it rather than leaving the shell behind a stale explanation.
       setFailure(null)
 
-      // ZERO ROWS is the caller's to read, and GamePage reads it as the game
-      // being gone — which is only true because the read WORKED.
+      // ZERO ROWS is the caller's to read, and `GamePageLoader` reads it as the
+      // game being gone — which is only true because the read WORKED.
       const gameData = gameRes.data[0]
       const playerRows = playersRes.data
       if (!gameData) {
@@ -404,20 +399,21 @@ export function useCommonGame(
         load,
       )
 
-      // Manual-pause Broadcast. Idempotent apply handles echoes of
-      // our own sends.
+      // Manual-pause Broadcast, from a peer — our own sends do not echo (the
+      // senders below apply locally first). Idempotent apply, because the
+      // rebroadcast-on-peer-join effect below repeats the same event.
       ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
         applyManualPause(payload as ManualPauseEvent),
       )
 
-      // Suspend Broadcast. When one peer accepts the suspend-
-      // confirm modal, every connected peer (including the
-      // sender, via echo) navigates back to the club page. The
-      // resulting cascade of unmounts feeds last-viewer-leaves
-      // into unset_current_view; whichever cleanup runs last
-      // clears the flag. The clubHandleRef indirection is so the
-      // handler resolves the current handle at receive-time
-      // rather than at register-time (load() runs later).
+      // Suspend Broadcast. When one peer shelves the game, every OTHER
+      // connected peer navigates back to the club page here; the sender does
+      // not receive its own broadcast and navigates itself in `sendSuspend`.
+      // The resulting cascade of unmounts feeds last-viewer-leaves into
+      // unset_current_view; whichever cleanup runs last clears the flag. The
+      // clubHandleRef indirection is so the handler resolves the current
+      // handle at receive-time rather than at register-time (load() runs
+      // later).
       ch.on('broadcast', { event: 'suspend' }, () => {
         const handle = clubHandleRef.current
         if (!handle) return
@@ -481,7 +477,7 @@ export function useCommonGame(
               // The game was deleted out from under us — the reconnect case,
               // not a race: this ack fires again on every resubscribe. Nothing
               // to make current, and this is the wrong messenger anyway;
-              // `load()` finds zero rows and GamePage says it properly.
+              // `load()` finds zero rows and `GamePageLoader` says it properly.
             } else if (res.type === 'ok' && res.data?.result === 'set') {
               // Flipped, or already true — the RPC's own `is_current_view =
               // false` guard absorbing a re-assert.

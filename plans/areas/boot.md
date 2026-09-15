@@ -171,7 +171,7 @@ Two corrections the re-verification made to the finding above:
 
 ### HANDED OFF — AND LANDED · F-boot-3 · `render-prop-with-manifest-in-hand` · App wraps the play surface in the boundary, the Suspense and both mount logs inside a render-prop, for a GamePage that already holds the manifest
 
-**Done 2026-09-16 in the game-page area** (its F-11.6): `GamePage` builds the
+**Done 2026-09-14 in the game-page area** (its F-11.6): `GamePage` builds the
 play surface itself, `children` is gone from the route, and App's game route is
 one self-closing tag. One of the two mount logs went at the same time. The
 reading below is left as it was written — it is why the handoff was made.
@@ -235,7 +235,7 @@ is broken when someone types `/g/wordl/…`; `docs/envelopes.md` reserves
 for the case-mismatch case ("reported as a fault — which it isn't") and
 normalizes to avoid it.
 
-**The ruling stands; both branches moved.** On 2026-09-16 the game-page area
+**The ruling stands; both branches moved.** On 2026-09-14 the game-page area
 took the gametype lookup and this error page into `GamePageGate`, which now
 answers every way a game URL can come to nothing in one place — App passes the
 URL's two parts and the session. The two screens are still deliberately

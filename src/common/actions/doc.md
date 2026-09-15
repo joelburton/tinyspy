@@ -50,6 +50,17 @@ and the distinction matters: hidden is "not here at this moment", which is how
 a play-only action leaves at terminal, while disabled is "here, and not right
 now", which is Submit with an empty entry.
 
+**`describe()` is asked BY someone, and the asker names itself.** Four
+surfaces read a binding — a button, a menu row, Help's key list and the
+dispatcher — and they can want different answers: a game offers Restart from
+the menu and by key all game, and gives it a button only at the end. So
+`describe` takes an `ActionAsker` (`button` · `menu` · `help` · `key`), and the
+parameter is REQUIRED so every reader has to say who it is; an implementation
+that answers every asker alike simply omits it. `key` is the widest, and the
+other three may only narrow it — a control that draws, or a key Help teaches,
+must be one the key calls active, or the control works and its chord does not.
+The wrapper asserts that in development.
+
 **How an action looks now is separate from what it is.** A toggle has two
 faces — "Reveal secrets" with the boxed eye, "Hide secrets" with the
 crossed-out one — and both halves move together, because on an icon-only

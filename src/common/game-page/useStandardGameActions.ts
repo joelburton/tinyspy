@@ -46,7 +46,7 @@ type ReplayResult = { result: 'replayed' }
  * Concede, and a game that offers neither simply doesn't put them anywhere. The
  * actions themselves say when they apply, so a caller never asks — End is
  * hidden in a race unless the game opts in, Concede is hidden outside one, and
- * both go disabled once the game is over.
+ * both are hidden once the game is over (there is no ending an ended game).
  *
  * The genuinely per-game bits:
  *   - `localFeedbackSlot` is the game's own below-board slot, where a not-ok

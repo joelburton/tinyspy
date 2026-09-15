@@ -90,7 +90,7 @@ The predicate `INPUT | TEXTAREA | SELECT | isContentEditable`:
 |---|---|
 | `useGlobalKeyHandler.ts:53-58` | inline, with SELECT |
 | `useAppShortcuts.tsx:138-142` (`isNonGameField`) | inline, with SELECT, minus `data-game-input` |
-| `useGameHasKeyboard.ts` (`isEditableField`) | the exported one, with SELECT — its own docstring says "those two are candidates to consolidate onto it". The hook moved INTO this folder from `game-page` on 2026-09-16 |
+| `useGameHasKeyboard.ts` (`isEditableField`) | the exported one, with SELECT — its own docstring says "those two are candidates to consolidate onto it". The hook moved INTO this folder from `game-page` on 2026-09-14 |
 | `game-page/GamePage.tsx:446-448` | inline, **without SELECT** |
 
 Four spellings of one gate, and the shell's own shortcuts (`⇧<`, `+`, `⌥+`,

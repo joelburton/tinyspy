@@ -2,8 +2,9 @@
 
 /* The shared play-surface scaffold — the two-column layout every game
  * converges on. CSS-only (no behavior), imported directly by a game's
- * PlayArea/board components the same way setupForm.module.css is, and composed
- * with a thin per-game module via `cls()`. See docs/ui.md → "PlayArea layout".
+ * PlayArea/board components the same way historyViewer.module.css is, and
+ * composed with a thin per-game module via `cls()`. See docs/playarea.md →
+ * "PlayArea layout".
  *
  * **Lowercase because it is read by others.** A leading cap means one
  * component's stylesheet, which only that component imports; this one is worn
@@ -99,10 +100,9 @@
   }
 }
 
-/* Opt-in RESPONSIVE info column, composed by the WordList games (spellingbee,
- * wordwheel, boggle) — NOT the fixed-width games (waffle / psychicnum /
- * connections / codenamesduet), whose info column is a plain fixed
- * `--info-col-width` and which must not compose this.
+/* Opt-in RESPONSIVE info column, composed by a game whose column is wide
+ * enough to starve the board — the ones holding a WordList or a found-set grid.
+ * A game whose column is a plain fixed `--info-col-width` must not compose it.
  *
  * ─── The problem this solves ─────────────────────────────────────────────────
  * A fixed `--info-col-width` claims a constant slice of the row, so every pixel
@@ -117,7 +117,7 @@
  * single knob — nothing else in the scaffold changes.
  *
  *   - floor 22rem — the column never shrinks below a readable width (the
- *     action-slot readouts + ~1–2 word columns; the WordList side-scrolls the
+ *     info-column readouts + ~1–2 word columns; the WordList side-scrolls the
  *     rest, exactly as it does in the mobile sheet);
  *   - middle: viewport MINUS a reserved board (`--board-reserve`, per game) minus
  *     the gaps — wherever this term binds, `--avail-w` resolves to exactly
@@ -262,7 +262,7 @@
  * since the right column's needs differ (psychicnum's words want a narrow column,
  * spellingbee's word list a wide one). NO shared default on purpose, so a game
  * using this scaffold must declare the var (the value is a rem, never a pixel
- * lock). Action slot at the top, scrolling log below. The thin left border IS the
+ * lock). The no-shrink rows at the top, scrolling log below. The thin left border IS the
  * divider between the columns; padding-left keeps content off it. `min-height: 0`
  * is essential — without it the column grows to fit content and the log's
  * `overflow-y: auto` never engages. */
@@ -283,7 +283,7 @@
   flex: 0 0 var(--info-col-width);
   display: flex;
   flex-direction: column;
-  /* Space between the action slot and the turn log / word list below it. */
+  /* Space between the no-shrink rows and the turn log / word list below them. */
   gap: 1rem;
   min-width: 0;
   min-height: 0;
@@ -303,11 +303,6 @@
   }
 }
 
-/* The info column's top region — same height whether the game is in play
- * (readouts + action buttons) or terminal (readouts + outcome line), so
- * swapping between them doesn't shift the log below (docs/ui.md → "Layout
- * stability"). `flex-shrink: 0` anchors it; the log takes the rest via its own
- * flex: 1 + overflow. */
 /* Every row of the info column EXCEPT the turn log / word list: the state line,
  * the opponent strip, the action row, the help line, a terminal extra, the setup
  * disclosure. What they have in common is the only thing this says — **none of
@@ -365,11 +360,11 @@
   font-size: 0.9rem;
 }
 
-/* The action row — turn/game-altering buttons only (Hint / Reveal / End; a
- * board-visual control like Shuffle floats over the board instead). The
- * buttons share the row and wrap as needed. Terminal (.terminalActions): the
- * play buttons are replaced by the bold outcome line + a compact back-to-club
- * button (kept on one line). */
+/* The action row — `<InfoActionsRow>`: turn/game-altering buttons only (Hint /
+ * Reveal / End; a board-visual control like Shuffle floats over the board
+ * instead). The buttons share the row and wrap as needed. With a line beside
+ * them (.terminalActions — a verdict at terminal, "You conceded" while the
+ * others race) the row stops wrapping, so the buttons stay on the line's row. */
 /* @@ */ .infoActions {
   display: flex;
   flex-wrap: wrap;
@@ -415,8 +410,8 @@
   display: none;
 }
 
-/* The terminal outcome line — bold, color-coded by result; grows so the
- * back-to-club button sits at the right edge. */
+/* The action row's line — bold, inked by its outcome; grows so the buttons sit
+ * at the right edge. */
 /* @@ */ .outcome {
   flex: 1;
   font-weight: 700;
@@ -453,15 +448,15 @@
 /* Terminal-only EXTRA info in the info column — content shown ONLY at game over
  * (e.g. wordle's answer reveal: words too tall for the below-board slot, which
  * would overflow the viewport and scroll the page — a hard no). It sits INSIDE
- * the action slot, ABOVE the setup disclosure (Joel's rule, 2026-08-05: the
+ * `.noShrinkRow`, ABOVE the setup disclosure (Joel's rule, 2026-08-05: the
  * reveal is the payoff, the setup recap is bookkeeping — the recap must never
- * push the answer down). This is the one info-column region that GROWS on the
- * play→terminal transition: a DELIBERATE, allowed exception to the
- * layout-stability rule (docs/ui.md → "Layout stability"), because by then the
- * play surface is done and the INFO column absorbs it — the board doesn't move,
- * and the scrolling turn log below gives way so the page itself never scrolls.
- * `flex-shrink: 0` keeps its content height wherever it sits (the action slot
- * already refuses to shrink; the log — flex: 1, min-height: 0 — makes room). */
+ * push the answer down). It is allowed to APPEAR on the play→terminal
+ * transition — a DELIBERATE exception to the layout-stability rule (docs/ui.md
+ * → "Layout stability") — because by then the play surface is done and the
+ * INFO column absorbs it: the board doesn't move, and the scrolling turn log
+ * below gives way so the page itself never scrolls. `flex-shrink: 0` keeps its
+ * content height wherever it sits (the wrapper already refuses to shrink; the
+ * log — flex: 1, min-height: 0 — makes room). */
 /* @@ */ .terminalExtra {
   flex-shrink: 0;
 }
@@ -942,7 +937,8 @@
   /* A decided/locked tile is NOT faded — unlike a normal disabled button. Its
    * fill carries the result (psychicnum's green/red, a spent state) and its text
    * reads at full contrast; the color IS the message, so it must show at full
-   * strength. Overrides the global `button:disabled { opacity: 0.5 }`. */
+   * strength. Overrides the global `button:disabled` fade
+   * (`--chrome-disabled-opacity`, base.css). */
   opacity: 1;
 }
 

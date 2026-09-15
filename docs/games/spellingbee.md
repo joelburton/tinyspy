@@ -530,7 +530,7 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 
 ### "End game" menu wiring
 
-spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/menu/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (`<`) framing. End and Concede are the same bound actions that back the info-column buttons (`useStandardGameActions`). Click → the question the registry row carries (`END_GAME_CONFIRM` / `CONCEDE_CONFIRM`), asked by the shared run → `db.rpc('end_game' / 'concede', ...)`, disabled at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
+spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/menu/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (`<`) framing. End and Concede are the same bound actions that back the info-column buttons (`useStandardGameActions`). Click → the question the registry row carries (`END_GAME_CONFIRM` / `CONCEDE_CONFIRM`), asked by the shared run → `db.rpc('end_game' / 'concede', ...)`, hidden at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
 
 ### Terminal experience
 

@@ -6,7 +6,7 @@
 
 - **`useGameHasKeyboard.ts` has no test**, which was invisible in `game-page/`
   and is conspicuous here, where every other unit has one. It moved in from the
-  game-page area on 2026-09-16 and arrived stamped `cs-audited-game-page`; the
+  game-page area on 2026-09-14 and arrived stamped `cs-audited-game-page`; the
   test is this folder's to write, not that area's.
 
 - **A ring nested inside another loses when the two mount in the SAME commit.**

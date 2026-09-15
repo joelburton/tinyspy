@@ -5,8 +5,8 @@
  * game — the pause overlay's End game, New game from setup, and Back to club —
  * read through the binding stack the way the dispatcher and the key list read
  * them: what each says about itself as the game's state moves, and what its run
- * does. (Help is bound here too; it opens a modal and has no states to move
- * through, so it is not a subject of this file.)
+ * does. (Help is bound here too; it opens a companion and has no states to
+ * move through, so it is not a subject of this file.)
  *
  * Mocked at the hook layer. `useCommonGame` is the one input that matters here
  * (paused, the club handle, the roster, whether the game is over), and the
@@ -228,9 +228,9 @@ describe('act-end-game, bound for the pause overlay', () => {
 })
 
 describe('act-new-game-from-setup', () => {
-  // It used to answer `hidden` until the club handle arrived. There is no such
-  // beat now: `GamePageLoader` does not render the page without a row, and a
-  // row always carries its club.
+  // Active from the first render: `GamePageLoader` does not render the page
+  // without a row, and a row always carries its club, so there is no beat where
+  // the handle is still unknown.
   it('is active on a loaded game', async () => {
     await mount()
     expect(bound('act-new-game-from-setup').describe('button').state).toBe('active')

@@ -80,7 +80,7 @@ describe('the dispatcher — matching', () => {
 
 describe('the dispatcher — state', () => {
   it('skips a hidden or disabled binding, so the key can fall through', async () => {
-    // Both want ⌥⌫; End is disabled at terminal, so Concede answers.
+    // Both want ⌥⌫; the fixture disables End, so Concede answers.
     const { runs, view } = setup(
       ['act-concede', {}],
       ['act-end-game', { describe: () => 'disabled' as ActionState }],

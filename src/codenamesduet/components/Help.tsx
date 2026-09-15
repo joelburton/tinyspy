@@ -19,7 +19,7 @@ type Props = {
  * interactable.
  *
  * The parent (`GamePage`) mounts this component only when the
- * help modal is open, so there's no `open` prop — `onClose`
+ * help companion is open, so there's no `open` prop — `onClose`
  * unmounts it. Each open lands centered; position isn't persisted.
  */
 export function Help({ onClose, brand }: Props) {
