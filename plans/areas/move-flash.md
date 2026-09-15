@@ -9,9 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: AUDITED 2026-09-15; the prose pass done 2026-09-15.** Roster agreed
 and stamped `cs-met-move-flash`; every file read; thirteen findings, of which
-**F-1, F-2, F-5, F-9, F-11 and F-13 are WORKED** — the doc.md intro and the three
-docstrings, the stale path, and the two clocks. The remaining seven are
-decisions, one at a time; F-4 is the big one. The doc.md still gets the closing harvest pass.
+**F-1, F-2, F-4, F-5, F-9, F-11 and F-13 are WORKED** — the doc.md intro and the three
+docstrings, the stale path, the two clocks, and the centralization. The
+remaining six are decisions, one at a time. The doc.md still gets the closing harvest pass.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -27,6 +27,8 @@ heavily refactored since, so choices made there may want improving.
 - `feedbackTiming.ts`
 - `useFlash.ts` · `useFlash.test.ts`
 - `useMoveCausedChange.ts`
+- `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
+  (F-4), `cs-audited-move-flash`
 - `useTurnStartFlash.ts`
 - `doc.md` (one-sentence lede, no intro) · `todo.md` (empty)
 
@@ -123,7 +125,7 @@ by the file's own rule.
 
 ### F-move-flash-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
 
-waffle, connections and psychicnum each carry the same nine lines: a
+**WORKED 2026-09-15**, as option (2). waffle, connections and psychicnum each carry the same nine lines: a
 `useState<ReadonlySet>` seeded with a module-level empty set, a render-time
 `setFlashing(diff)` when `useMoveCausedChange` speaks, and a `useEffect` that
 starts a timer on `ATTENTION_FLASH_MS` and clears the set. `useFlash` — the
@@ -144,6 +146,26 @@ Recommend (1): the diff is where the audience rule lives and it differs per
 game (waffle marks its own in-flight cells whose color resolved; connections
 skips its own move), so it stays visible at the call site, and the eight
 identical lines go.
+
+
+**What was built.** `useMoveAttention` — the attention mark end to end: it takes
+the content, the key, the marker, a `changed` diff and a `quiet` flag, and
+returns the hot set. `useMoveCausedChange` stays exported underneath, for
+setgame's conversion and anything else that wants the cause without this mark.
+The three games lost their `useState`, their empty-set constant and their
+clearing effect; what each kept is its diff and its gate, passed in. waffle
+hands its existing `changedCells` straight across; connections' diff now reads
+the matched categories as objects rather than re-parsing its own key string.
+`useMoveAttention.test.ts` pins the contract: nothing on mount however long the
+log, the diff's set on a move, a re-deal absorbed silently, quiet suppressing,
+a move that changed nothing visible marking nothing, and the next move diffing
+against the absorbed board.
+
+Option (1) was the area's own recommendation at the audit and lost on what a
+game still had to know: that the cause result must be consumed during render,
+that an empty set means quiet, and that the timer is its own — the three rules
+worth sharing in the first place. It also dissolves F-8 for the common case:
+the confusingly-named return value is no longer something a game handles.
 
 ### F-move-flash-5 · `cause-docstring` · `useMoveCausedChange`'s docstring is the folder's design essay, and two of its claims have rotted
 

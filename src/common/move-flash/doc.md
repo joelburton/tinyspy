@@ -27,7 +27,9 @@ that breaks it. The cause is recorded on the server: a move writes a row, and
 the things that are not moves do not. So `useMoveCausedChange` takes the
 content, a key for what "changed" means, and the server's move marker, and
 hands back the board as it was only when the content and the marker advanced
-together. The caller diffs that against what is on screen now.
+together. A game does not usually reach for that directly: `useMoveAttention`
+wraps it with the diff and the mark's lifetime, and a game supplies only what
+is its own — what counts as changed, and when to stay quiet.
 
 The second question is whether the turn just became mine. In a turn-order game
 the board looks exactly the same the instant it becomes yours, and you are by
@@ -58,7 +60,7 @@ something unmarked is made.
 
 | hook | callers | what it marks |
 |---|---|---|
-| `useMoveCausedChange` + `ATTENTION_FLASH_MS` | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
+| `useMoveAttention` (over `useMoveCausedChange`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
 | `useFlash` | stackdown `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | an ambiguous letter, or scrabble's green / yellow / red placement outlines |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
@@ -106,9 +108,10 @@ fires late (a throttled tab, a constant someone lengthened) left dark ink on a
 piece that had handed its color back.
 
 **`useFlash`'s trigger starts a timer**, so it is called from an event handler
-or an effect and never during render. That is why the attention mark does not
-use it: the attention diff has to run during render to land in one commit with
-the change, and each of the three games holds its own hot set and timer instead.
+or an effect and never during render. That is why the attention mark has a hook
+of its own rather than using it: its diff has to run during render to land in
+one commit with the change, so `useMoveAttention` takes the diff as a function
+and raises the set itself.
 
 The tile wash is drawn as an overlay rather than as a background, because a
 background cannot be faded and the fade is what makes the mark hand the tile

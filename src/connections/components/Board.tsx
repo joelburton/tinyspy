@@ -1,15 +1,14 @@
 // cs-unmet
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { Category, CategoryRank } from '../lib/board'
+import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { GuessOutcome } from '../lib/evaluate'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
-import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
-import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import { useMoveAttention } from '@/common/move-flash/useMoveAttention'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -27,9 +26,6 @@ const VIEWED_TINT: Record<GuessOutcome, string> = {
 
 /** Empty highlight set — a stable reference so a live render never rings a tile. */
 const NO_TILES: ReadonlySet<string> = new Set()
-
-/** Empty flash set — the resting value of the attention state below. */
-const NO_RANKS: ReadonlySet<CategoryRank> = new Set()
 
 /**
  * The verdict's tone class, keyed by the tone its PILL wore.
@@ -190,7 +186,7 @@ export function Board({
   // The cause has to come from the LOG, never from the board: `replay_board`
   // re-deals the same sixteen tiles with every band gone, and the terminal
   // reveal swaps four bands in at once. Both differ wildly from the previous
-  // render and neither is news. `useMoveCausedChange` only speaks when the
+  // render and neither is news. `useMoveAttention` only speaks when the
   // content changed AND the server's move marker advanced, which is exactly
   // "a guess did this" (the marker drops on a replay, and the reveal doesn't
   // touch it).
@@ -198,25 +194,22 @@ export function Board({
   // The two are guaranteed to agree here for free: `matchedCategories` is
   // PROJECTED from the guess log in useGame, so a band can't arrive a render
   // before the row that produced it.
-  const [flashingRanks, setFlashingRanks] = useState<ReadonlySet<CategoryRank>>(NO_RANKS)
   const rankKey = sortedMatched.map((m) => m.rank).join(',')
-  const before = useMoveCausedChange(rankKey, rankKey, moveCount)
-  // `lastMoveMine` is the audience rule: my own correct guess is answered in the
-  // commit slot, on four tiles I chose myself. Quiet while viewing a past turn,
-  // too — the ringed tiles there are already the mark, and a live band landing
-  // behind the viewer is not something to point at on a board nobody is reading.
-  if (before !== null && !viewing && !lastMoveMine) {
-    const had = new Set(before.split(',').filter(Boolean).map(Number))
-    setFlashingRanks(new Set(sortedMatched.map((m) => m.rank).filter((r) => !had.has(r))))
-  }
-
-  // The wash is transient — take it off once it has played. (A timer, so an
-  // effect; the diff above is a reaction to new props and stays in render.)
-  useEffect(() => {
-    if (flashingRanks.size === 0) return
-    const timer = setTimeout(() => setFlashingRanks(NO_RANKS), ATTENTION_FLASH_MS)
-    return () => clearTimeout(timer)
-  }, [flashingRanks])
+  const flashingRanks = useMoveAttention({
+    content: sortedMatched,
+    contentKey: rankKey,
+    moveCount,
+    // `lastMoveMine` is the audience rule: my own correct guess is answered in
+    // the commit slot, on four tiles I chose myself. Quiet while viewing a past
+    // turn, too — the ringed tiles there are already the mark, and a live band
+    // landing behind the viewer is not something to point at on a board nobody
+    // is reading.
+    quiet: viewing || lastMoveMine,
+    changed: (before, now) => {
+      const had = new Set(before.map((m) => m.rank))
+      return new Set(now.map((m) => m.rank).filter((r) => !had.has(r)))
+    },
+  })
   // Total rows = one per band + the tile rows. Always 4 for a standard
   // 16-tile / 4×4 board, but computed so the cap math stays correct if a
   // category ever isn't exactly four tiles.

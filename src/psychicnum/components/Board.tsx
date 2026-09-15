@@ -1,18 +1,14 @@
 // cs-unmet
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
-import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
-import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
+import { useMoveAttention } from '@/common/move-flash/useMoveAttention'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
-
-/** A stable empty set, so "nothing is flashing" is one object per render. */
-const NO_WORDS: ReadonlySet<string> = new Set()
 
 type Props = {
   /** The board words (5..20), shown as clickable tiles. Lowercase; displayed
@@ -106,19 +102,16 @@ export function Board({
   // the board also changes when nothing was played — asking to see the answer
   // turns every unfound secret green at once, and a restart clears the lot. Both
   // would light up the board at the moment nothing happened. See
-  // `useMoveCausedChange`, and the same rule in waffle.
-  const decided = [...results.keys()].sort().join(',')
-  const [flashing, setFlashing] = useState<ReadonlySet<string>>(NO_WORDS)
-  const before = useMoveCausedChange(results, decided, moveCount)
-  if (before && !viewing) {
-    const fresh = new Set([...results.keys()].filter((w) => !before.has(w)))
-    if (fresh.size > 0) setFlashing(fresh)
-  }
-  useEffect(() => {
-    if (flashing.size === 0) return
-    const timer = setTimeout(() => setFlashing(NO_WORDS), ATTENTION_FLASH_MS)
-    return () => clearTimeout(timer)
-  }, [flashing])
+  // `useMoveAttention`, and the same rule in waffle.
+  const flashing = useMoveAttention({
+    content: results,
+    contentKey: [...results.keys()].sort().join(','),
+    moveCount,
+    // Quiet while reading a past turn: that board's guess is already ringed, and
+    // a live guess landing behind the viewer is not something to point at.
+    quiet: viewing,
+    changed: (before, now) => new Set([...now.keys()].filter((w) => !before.has(w))),
+  })
 
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)

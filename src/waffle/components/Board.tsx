@@ -1,20 +1,15 @@
 // cs-unmet
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { tileColor } from '@/shared/wordle-style/tileColor'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
-import { ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
-import { useMoveCausedChange } from '@/common/move-flash/useMoveCausedChange'
+import { useMoveAttention } from '@/common/move-flash/useMoveAttention'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
-
-/** A stable empty set, so "nothing is flashing" is one object rather than a new
- *  one per render (the flash state is a render-time comparison). */
-const NO_CELLS: ReadonlySet<number> = new Set()
 
 /** A render's board + colors + the swap it had in flight — what the next render
  *  compares itself against to find what changed. */
@@ -142,24 +137,16 @@ export function Board({
   // The wash is set DURING the render that applies the change, so both land in
   // one commit: paint the color a frame early and the eye catches it first, and
   // the flash then reads as a second, unexplained event.
-  const [flashing, setFlashing] = useState<ReadonlySet<number>>(NO_CELLS)
-  const before = useMoveCausedChange(
-    { board, colors, pendingSwap },
-    `${board}|${colors ?? ''}`,
+  const flashing = useMoveAttention({
+    content: { board, colors, pendingSwap },
+    contentKey: `${board}|${colors ?? ''}`,
     moveCount,
-  )
-  // Quiet while viewing a past turn — the ringed cells already mark what that
-  // swap did, and a move landing live behind the viewer is not something to
-  // point at on a board they are not looking at.
-  if (before && !viewing) setFlashing(changedCells(before, { board, colors }))
-
-  // The wash is transient: take it off once it has played. (An effect, not a
-  // render-time change — this one is a timer, not a reaction to new props.)
-  useEffect(() => {
-    if (flashing.size === 0) return
-    const timer = setTimeout(() => setFlashing(NO_CELLS), ATTENTION_FLASH_MS)
-    return () => clearTimeout(timer)
-  }, [flashing])
+    // Quiet while viewing a past turn — the ringed cells already mark what that
+    // swap did, and a move landing live behind the viewer is not something to
+    // point at on a board they are not looking at.
+    quiet: viewing,
+    changed: changedCells,
+  })
 
   // While a swap is in flight, EVERY input path stays quiet (tap, drag, and
   // the keyboard — a focused tile's Enter/Space lands in `activate` too).
