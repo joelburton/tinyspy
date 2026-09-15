@@ -77,9 +77,14 @@
 
 ## Someday
 
-- The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
-  concern; whatever that redesign decides about slot ownership lands as a
-  change this folder applies.
+- ~~The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
+  concern.~~ **Closed 2026-09-15: the redesign happened and left it here.**
+  That area closed blessed on 2026-09-12 and its `todo.md` is empty, so there
+  is nothing left to wait on — and `useFeedbackSlot`'s docstring now states
+  this arrangement as the rule: "a page calls `useFeedbackSlot('global')` for
+  the one in its header and hands it down as `ctx.globalFeedbackSlot`."
+  `ClubPage` does the identical thing, so `GamePage` is one of two pages
+  following it rather than an exception to anything.
 - **The game page is the one page not wearing `.pageHeaderAndMainArea`.**
   Its wrapper is its own `.frame` — a flex column with the same 1rem gap and
   no height bound, because the play surface bounds itself off
