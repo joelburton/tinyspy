@@ -105,7 +105,7 @@ export function InfoCol({
 }: Props) {
   return (
     <div className={shared.infoCol}>
-      <div className={shared.steadyRows}>
+      <div className={shared.noShrinkRow}>
         {/* One row of labeled numbers — the same component the mobile status
             bar renders, so the two can't word a count differently. Which counts
             each surface shows is `countsFor`. */}

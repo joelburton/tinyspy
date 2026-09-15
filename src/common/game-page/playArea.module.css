@@ -13,7 +13,7 @@
  * Five concerns live here, and only the first is the file's namesake:
  *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .mobileFill /
  *      .responsiveInfoCol / .hugRectWidth / .floatingShuffle);
- *   2. the info-column READOUTS (.steadyRows / .infoState / .infoHelp /
+ *   2. the info-column READOUTS (.noShrinkRow / .infoState / .infoHelp /
  *      .infoActions) + the terminal swap (.terminalActions / .outcome_* /
  *      .terminalExtra);
  *   3. the below-board feedback slot (.localFeedback /
@@ -312,8 +312,10 @@
  * flex: 1 + overflow. */
 /* Every row of the info column EXCEPT the turn log / word list: the state line,
  * the opponent strip, the action row, the help line, a terminal extra, the setup
- * disclosure. What they have in common is the only thing this says — **they keep
- * their height, and the log below absorbs whatever is left.**
+ * disclosure. What they have in common is the only thing this says — **none of
+ * them is squeezed when the column runs short; the log below absorbs it.**
+ * Their CONTENT changes all the time; what does not is that they are never the
+ * ones made smaller to fit.
  *
  * It is a wrapper because flex shrinking is negotiated between SIBLINGS. With
  * it, `.infoCol` has two children — this, which does not shrink, and the log,
@@ -329,15 +331,18 @@
  * that rule refuses.
  *
  * The gap matches `.infoCol`'s own, so every row of the column is evenly spaced
- * whichever side of this wrapper it falls. */
-/* @@ */ .steadyRows {
+ * whichever side of this wrapper it falls.
+ *
+ * Singular because that is what it is to the column above: ONE flex item, the
+ * one that does not shrink, beside the one that does. */
+/* @@ */ .noShrinkRow {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   flex-shrink: 0;
 }
 
-/* @@ */ .steadyRows p {
+/* @@ */ .noShrinkRow p {
   margin: 0;
 }
 

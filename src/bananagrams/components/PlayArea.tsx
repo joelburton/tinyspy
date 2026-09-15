@@ -45,7 +45,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * that fills the left column, and the HAND + peel + dump live in the RIGHT
  * (info) column instead. It's a desktop-only game and the hand-on-the-right feel
  * is deliberate (see docs/games/bananagrams.md). So `<PlayerBoard>` owns the
- * whole two-column shell (the shared `.layout` / `.infoCol` / `.steadyRows`
+ * whole two-column shell (the shared `.layout` / `.infoCol` / `.noShrinkRow`
  * scaffold, with a fill — not hug — board column), and THIS component supplies
  * the v3 info-column chrome (`infoTop`) + the below-board feedback slot.
  *
@@ -517,7 +517,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // + rotate) → the action row (Concede / Dump) at the very bottom. The hand +
   // peel live here, not in the board column (the game's other documented
   // exception), so the actions sit below them rather than in the shared
-  // `.steadyRows`. `infoTop` is the readout stack; `infoActions` is the bottom
+  // `.noShrinkRow`. `infoTop` is the readout stack; `infoActions` is the bottom
   // row (PlayerBoard renders it after the hand card).
   const infoTop = (
     <>

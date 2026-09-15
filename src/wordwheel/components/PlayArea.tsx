@@ -600,7 +600,7 @@ export function PlayArea(ctx: GamePageCtx) {
       />
 
       {/* The info column. Its top region — the readouts + action row + setup — is
-          wrapped in the shared `.steadyRows` (same as psychicnum / connections /
+          wrapped in the shared `.noShrinkRow` (same as psychicnum / connections /
           codenamesduet / waffle): a fixed-height block so the WordList below it
           doesn't shift when the action row swaps play↔terminal (docs/ui.md →
           Layout stability). Order follows the canonical info-column sequence

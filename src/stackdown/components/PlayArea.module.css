@@ -2,7 +2,7 @@
 
 /* stackdown play surface, on the shared two-column scaffold
  * (common/game-page/playArea.module.css, imported as `shared`) — the same
- * .layout / .boardCol / .infoCol / .steadyRows the other converged games use.
+ * .layout / .boardCol / .infoCol / .noShrinkRow the other converged games use.
  * PlayArea holds only the layout-root vars here; the board column's own styles
  * live in BoardCol.module.css and the terminal reveal in InfoCol.module.css. */
 

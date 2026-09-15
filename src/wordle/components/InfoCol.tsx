@@ -148,7 +148,7 @@ export function InfoCol({
 
   return (
     <div className={shared.infoCol}>
-      <div className={shared.steadyRows}>
+      <div className={shared.noShrinkRow}>
         {!isPlayer && (
           <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
         )}

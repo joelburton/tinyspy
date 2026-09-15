@@ -123,7 +123,7 @@ export function InfoCol({
 }) {
   return (
     <div className={shared.infoCol}>
-      <div className={shared.steadyRows}>
+      <div className={shared.noShrinkRow}>
         <StateLine
           lettersCovered={lettersCovered}
           wordsUsed={chain.length}

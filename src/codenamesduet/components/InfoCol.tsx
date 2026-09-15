@@ -118,7 +118,7 @@ export function InfoCol({
           pill] → ACTIONS → HELP → SETUP disclosure, then the turn log below.
           codenamesduet's finished-player banners are a loud live-state announcement,
           so they sit right under the state line. */}
-      <div className={shared.steadyRows}>
+      <div className={shared.noShrinkRow}>
         {/* The same `<StateLine>` the mobile status bar renders above the board
             (BoardCol) — one component so the two copies can't drift. */}
         <p className={shared.infoState}>

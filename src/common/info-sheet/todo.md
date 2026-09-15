@@ -6,7 +6,7 @@
 
 - **Emerge a shared `<InfoCol>` component.** Every game has its own
   `InfoCol.tsx` (fourteen of them, 196-348 lines) and each opens with the same
-  skeleton: `.infoCol` → `.steadyRows` → state line → `<OpponentStrip>` when
+  skeleton: `.infoCol` → `.noShrinkRow` → state line → `<OpponentStrip>` when
   compete → action row → help → `<SetupDisclosure>` → turn log.
   [docs/playarea.md](../../../docs/playarea.md) → Info-column readouts calls
   that order "enforced on every standard game", which today means documented and

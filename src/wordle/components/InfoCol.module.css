@@ -5,7 +5,7 @@
  * reveal line is wordle-specific. */
 
 /* The info-column terminal answer-reveal line. Drop the browser's default <p>
- * margin (this <p> sits outside .steadyRows, which zeroes its own paragraphs), so
+ * margin (this <p> sits outside .noShrinkRow, which zeroes its own paragraphs), so
  * the spacing matches the info column's own 1rem gap — like waffle's terminalExtra,
  * which wraps a margin-less component. */
 /* @@ */ .answerLine {
