@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-move-flash
 
 import { useEffect, useState } from 'react'
 import { YOUR_TURN_FLASH_MS } from './feedbackTiming'

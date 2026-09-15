@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-move-flash
 
 /**
  * How long the vocabulary's transient marks stay on screen, in milliseconds.

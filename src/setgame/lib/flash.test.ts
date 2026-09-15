@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-move-flash
 
 import { describe, expect, it } from 'vitest'
 import { claimTransition } from './flash'
