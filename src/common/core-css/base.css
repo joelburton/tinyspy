@@ -546,16 +546,24 @@
   --page-padding-y:  0.5rem;
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from
-     100svh so it fills to the bottom without overflowing. What it
-     stands for: the body's vertical padding (2 × --page-padding-y),
-     the header's box (--pageHeader-height, plus its 0.5rem
-     padding-bottom and the 1px rule under it), and GamePage's 1rem gap
-     between the header and the play surface. Written as one number
-     rather than composed from those tokens — unlike --game-header-bottom
-     below, which says why it composes — so a header or padding change
-     moves this by hand. See docs/ui.md → "Page-height fits the
+     100svh so it fills to the bottom without overflowing. Everything
+     above the play surface, in order down the page: the body's vertical
+     padding twice over, the header's own box, the padding under it, the
+     rule under that, and GamePage's gap.
+
+     COMPOSED, like --game-header-bottom below, and it has to be. Written
+     as a single 5rem it was wrong twice over: it omitted the 1px rule, so
+     the desktop page came to 100svh + 1px and scrolled — which is what
+     the `- 1px` on .mobileFill was really patching, on the wrong rule and
+     blamed on rounding — and it mixed units invisibly, since
+     --pageHeader-height carries the logo's 32px while every other term is
+     rem, so the hand-sum only held at a 16px root. calc() mixes them
+     exactly at any root size. See docs/ui.md → "Page-height fits the
      viewport". */
-  --game-chrome-height:  5rem;
+  --game-chrome-height: calc(
+    2 * var(--page-padding-y) + var(--pageHeader-height) + var(--spacer-4) +
+    var(--border-width-line) + var(--spacer-2)
+  );
 
   /* Where the GamePage header's bottom edge actually SITS, measured
      from the viewport top. Anything positioning itself directly under

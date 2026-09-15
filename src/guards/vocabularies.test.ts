@@ -283,7 +283,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/word-entry/MoveRow.module.css': ['0.5rem'],
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
       'src/shared/bee-games/foundWordsPlayArea.module.css': ['1.5rem'],
-      'src/common/game-page/GamePage.module.css': ['1rem', '0.1rem'],
+      'src/common/game-page/GamePage.module.css': ['0.1rem'],
       'src/common/game-page/GameHelpCompanion.module.css': ['1rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.5rem', '0.35rem'],
       'src/common/members/ActorMention.module.css': ['0.4rem'],

@@ -1,9 +1,10 @@
 // cs-unmet
 
 import { test, expect, type Page, type Locator } from '@playwright/test'
-import { createClubWithMembers, renameClub } from './helpers/fixtures'
+import { createClubWithMembers, createGame, createSoloClub, renameClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { startGameRow } from './helpers/clubPage'
+import { boardReady, settled } from './helpers/ready'
 
 /**
  * "The page never scrolls" is a HARD layout invariant for this app: every
@@ -22,7 +23,9 @@ import { startGameRow } from './helpers/clubPage'
  * dialog with a backdrop, and the persisted chat panel without one).
  */
 
-/** Assert the DOCUMENT has no scroll on either axis (the hard invariant). */
+/** Assert the DOCUMENT has no scroll on either axis (the hard invariant).
+ *  Reports the OVERFLOW rather than the two totals: "3px too tall" is the
+ *  number you act on, where 1291 against 1288 is arithmetic to do by hand. */
 async function expectNoPageScroll(page: Page, label: string): Promise<void> {
   const { scrollW, scrollH, vw, vh } = await page.evaluate(() => ({
     scrollW: document.documentElement.scrollWidth,
@@ -30,8 +33,8 @@ async function expectNoPageScroll(page: Page, label: string): Promise<void> {
     vw: window.innerWidth,
     vh: window.innerHeight,
   }))
-  expect(scrollW, `${label}: no horizontal page scroll`).toBeLessThanOrEqual(vw)
-  expect(scrollH, `${label}: no vertical page scroll`).toBeLessThanOrEqual(vh)
+  expect(scrollW - vw, `${label}: page is ${scrollW - vw}px too WIDE`).toBeLessThanOrEqual(0)
+  expect(scrollH - vh, `${label}: page is ${scrollH - vh}px too TALL`).toBeLessThanOrEqual(0)
 }
 
 /** Drag a panel by the CENTER of its header to an absolute viewport point. */
@@ -127,4 +130,34 @@ test.describe('page never scrolls', () => {
 
     await ctx.close()
   })
+})
+
+test.describe('the game page fits the viewport', () => {
+  // Three shapes, because --game-chrome-height is a sum of rem terms and one
+  // px one (the logo), so a viewport that changes the root font or the body
+  // padding changes the terms independently. The phone case also crosses the
+  // --phone breakpoint, where --page-padding-y halves.
+  const VIEWPORTS = [
+    { label: 'desktop', width: 1280, height: 900 },
+    { label: 'small laptop', width: 1100, height: 700 },
+    { label: 'phone', width: 390, height: 844 },
+  ]
+
+  for (const vp of VIEWPORTS) {
+    test(`a psychicnum board at rest does not scroll the page — ${vp.label}`, async ({
+      browser,
+    }) => {
+      const club = await createSoloClub(`nsc${vp.width}`)
+      const game = await createGame(club)
+      const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } })
+      await signIn(ctx, club.members[0].session)
+      const page = await ctx.newPage()
+      await page.goto(`/g/${game.gametype}/${game.id}`)
+      await boardReady(page, page.locator('[data-board]'))
+      await settled(page)
+
+      await expectNoPageScroll(page, `psychicnum at rest, ${vp.label}`)
+      await ctx.close()
+    })
+  }
 })

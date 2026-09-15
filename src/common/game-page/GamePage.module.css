@@ -19,7 +19,9 @@
 /* @@ */ .frame {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  /* The same token --game-chrome-height counts as "GamePage's gap". A literal
+     here and a token there is two numbers that must agree by hand. */
+  gap: var(--spacer-2);
 }
 
 

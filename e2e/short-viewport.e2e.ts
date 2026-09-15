@@ -19,7 +19,8 @@ import { boardReady } from './helpers/ready'
  * the column, and a width-hug board doesn't know when it has run out of height.
  * (Measured across thirteen games: every other one sizes off `--avail-h` and
  * fits at 560px. letterboxed sits ~5px over at short heights — small, constant,
- * unrelated to this, and left alone.)
+ * unrelated to this; re-measured 2026-09-15 and still 5px, now filed in
+ * docs/deferred.md rather than only noted here.)
  *
  * wordle's fix is a `max-width` on the grid derived from the leftover height.
  * That rule already existed — it was gated to `@media (--mobile)`, on the
@@ -73,8 +74,11 @@ test('wordle fits a desktop-width, phone-height window', async ({ browser }) => 
   const cramped = await measure(browser, session, url, CRAMPED)
   const roomy = await measure(browser, session, url, ROOMY)
 
-  // 1px is the shell's known standing overshoot (docs/deferred.md).
-  expect(cramped.overflow, 'nothing is clipped below the fold').toBeLessThanOrEqual(1)
+  // Zero, not "within 1px". The shell used to be 1px over on every desktop
+  // game page — `--game-chrome-height` omitted the rule under the header — and
+  // this assertion was widened to let it through, which is how a test stops
+  // testing. The number is composed now; the tolerance goes with it.
+  expect(cramped.overflow, 'nothing is clipped below the fold').toBeLessThanOrEqual(0)
   expect(
     cramped.keyboardBottom!,
     'the whole on-screen keyboard is above the bottom of the window',
@@ -103,5 +107,5 @@ test('the height cap is inert when there is room to spare', async ({ browser }) 
   const at720 = await measure(browser, session, url, { width: 1440, height: 720 })
   const at900 = await measure(browser, session, url, ROOMY)
   expect(at720.board).toEqual(at900.board)
-  expect(at720.overflow).toBeLessThanOrEqual(1)
+  expect(at720.overflow, 'nothing is clipped below the fold').toBeLessThanOrEqual(0)
 })
