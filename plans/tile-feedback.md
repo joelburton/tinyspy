@@ -312,7 +312,7 @@ Two requirements make it work, and both are worth checking in a new game:
   `Promise.all`, so within a render a board that has moved always comes with the
   row that moved it.
 
-The shared piece is `common/move-flash/useMoveCausedChange`: hand it the content,
+The shared piece is `common/move-flash/useChangeCause`: hand it the content,
 a key for "changed", and the server's move marker, and it hands back the previous
 content only when a move caused the change. setgame implements the same rule by
 hand (it has its own hold-then-arrive choreography around it) and folds in when

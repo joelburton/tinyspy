@@ -21,6 +21,8 @@ import { turnSnapshot } from '../lib/history'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { CLAIM_SIZE, liveSelection, toggleCard } from '../lib/selection'
 import { ARRIVE_MS, claimTransition, DEPART_MS, type FlashKind } from '../lib/flash'
+import { useChangeCause } from '@/common/move-flash/useChangeCause'
+import { useFlash } from '@/common/move-flash/useFlash'
 import { slotForKey } from '../lib/letters'
 import { hintLabel } from '../lib/readouts'
 import { setupRows } from '../lib/setupSummary'
@@ -123,53 +125,41 @@ export function PlayArea(ctx: GamePageCtx) {
   // every refetch mints a fresh array, so an identity check would re-fire on
   // realtime traffic that changed nothing.
   const boardKey = board.join(',')
-  // `claimId` rides along because it is what says a claim CAUSED this board.
-  const [seen, setSeen] = useState<{ key: string; claimId: number | null }>({
-    key: boardKey,
-    claimId: lastClaim?.id ?? null,
-  })
   const [shown, setShown] = useState<CardCode[]>(() => [...board])
   /** The departing set, held on screen; `mine` picks dim over lit. */
   const [depart, setDepart] = useState<{ leaving: CardCode[]; mine: boolean } | null>(null)
-  /** Cards lit as freshly arrived. */
-  const [arriving, setArriving] = useState<CardCode[]>([])
+  /** Cards lit as freshly arrived — raised when the hold ends, and it clears
+   *  itself after `ARRIVE_MS`. */
+  const [arriving, flashArriving, clearArriving] = useFlash<CardCode>(ARRIVE_MS)
   /** My own three, dim from the click — before any server answer. */
   const [submitted, setSubmitted] = useState<CardCode[]>([])
 
-  if (seen.key !== boardKey) {
-    // WHY did this board change? There are only two answers, and the log gives
-    // it away rather than us inferring it: a claim writes an event, and the only
-    // other thing that moves this board — a fresh deal, whether a new game or a
-    // restart — has no claim behind it (`replay_board` deletes the events).
-    //
-    // So a claim gets the flash and everything else is simply SHOWN. Nothing
-    // here depends on how many slots differ, on the board growing or shrinking,
-    // or on the deck — every one of those proxies had a case that broke it, and
-    // two of them shipped.
-    //
-    // Safe because the board and the events arrive in ONE fetch (useGame's
-    // single `Promise.all`), so they cannot disagree within a render.
-    //
-    // `shown.length` is the third condition and it is not a detail: on the FIRST
-    // load there is no previous board to have claimed FROM, and an ended game's
-    // history is full of claims — so without it, opening a finished game read
-    // the last claim as one that had just happened and lit the whole table up.
-    // You cannot claim from nothing.
-    const claimId = lastClaim?.id ?? null
-    const byClaim = shown.length > 0 && claimId !== null && claimId !== seen.claimId
-    if (byClaim) {
-      // `shown` deliberately stays put: the old cards are what we are holding.
-      setDepart({
-        leaving: claimTransition(shown, board).leaving,
-        mine: lastClaim?.user_id === selfId,
-      })
-    } else {
-      setShown([...board])
-      setDepart(null)
-      setArriving([])
-      setSubmitted([])
-    }
-    setSeen({ key: boardKey, claimId })
+  // WHY did this board change? There are only two answers, and the log gives it
+  // away rather than us inferring it: a claim writes an event, and the only other
+  // thing that moves this board — a fresh deal, whether a new game or a restart —
+  // has no claim behind it (`replay_board` deletes the events). So a claim gets
+  // the flash and everything else is simply SHOWN. Nothing here depends on how
+  // many slots differ, on the board growing or shrinking, or on the deck — every
+  // one of those proxies had a case that broke it, and two of them shipped.
+  //
+  // The claim's id is the move marker `useChangeCause` reads, and the board and
+  // the events arrive in ONE fetch (useGame's single `Promise.all`), so within a
+  // render they cannot disagree. Opening a finished game says nothing: the hook
+  // seeds on its first render, and you cannot claim from nothing.
+  const cause = useChangeCause(board, boardKey, lastClaim?.id ?? 0)
+  if (cause?.byMove) {
+    // `shown` deliberately stays put: the old cards are what we are holding, and
+    // they are what the departing set is measured against — not the board the
+    // hook handed back, which is the server's.
+    setDepart({
+      leaving: claimTransition(shown, board).leaving,
+      mine: lastClaim?.user_id === selfId,
+    })
+  } else if (cause) {
+    setShown([...board])
+    setDepart(null)
+    clearArriving()
+    setSubmitted([])
   }
 
   // The hold, then the swap. One timer for the whole board — the replacements
@@ -178,20 +168,13 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     if (!depart) return
     const timer = setTimeout(() => {
-      setArriving(claimTransition(shown, board).arriving)
+      flashArriving(claimTransition(shown, board).arriving)
       setShown([...board])
       setDepart(null)
       setSubmitted([]) // the claimer's dim ends exactly when everyone's mark does
     }, DEPART_MS)
     return () => clearTimeout(timer)
-  }, [depart, shown, board])
-
-  // Arrivals stay lit a while longer, then the board goes quiet again.
-  useEffect(() => {
-    if (arriving.length === 0) return
-    const timer = setTimeout(() => setArriving([]), ARRIVE_MS)
-    return () => clearTimeout(timer)
-  }, [arriving])
+  }, [depart, shown, board, flashArriving])
 
   const flashes = useMemo(() => {
     const marks = new Map<CardCode, FlashKind>()

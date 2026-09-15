@@ -9,9 +9,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: AUDITED 2026-09-15; the prose pass done 2026-09-15.** Roster agreed
 and stamped `cs-met-move-flash`; every file read; thirteen findings, of which
-**F-1, F-2, F-4, F-5, F-9, F-11 and F-13 are WORKED** — the doc.md intro and the three
-docstrings, the stale path, the two clocks, and the centralization. The
-remaining six are decisions, one at a time. The doc.md still gets the closing harvest pass.
+**F-1, F-2, F-4, F-5, F-8, F-9, F-10, F-11 and F-13 are WORKED** — the doc.md intro and the three
+docstrings, the stale path, the two clocks, the centralization, and setgame's
+conversion (which took the hook's name with it). The remaining four are
+decisions, one at a time. The doc.md still gets the closing harvest pass.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -26,7 +27,8 @@ heavily refactored since, so choices made there may want improving.
 
 - `feedbackTiming.ts`
 - `useFlash.ts` · `useFlash.test.ts`
-- `useMoveCausedChange.ts`
+- `useChangeCause.ts` — renamed from `useMoveCausedChange.ts` (F-10), and its
+  `useChangeCause.test.ts`, WRITTEN by this area
 - `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
   (F-4), `cs-audited-move-flash`
 - `useTurnStartFlash.ts`
@@ -46,7 +48,8 @@ Outside the folder, on the roster by Joel's word:
 Listed and LEFT — importers, read as evidence when a finding needs them, not
 roster: the attention wash and your-turn frame rules in
 `game-page/playArea.module.css`; the games that call the hooks (waffle,
-connections, psychicnum, wordle, stackdown, scrabble, strands); `setgame/components/PlayArea.tsx`.
+connections, psychicnum, wordle, stackdown, scrabble, strands); `setgame/components/PlayArea.tsx` — which F-10 then converted, so it is edited
+but not roster (`cs-unmet`, setgame's own area will read it).
 
 ## What the folder is, in one paragraph
 
@@ -205,7 +208,7 @@ A file per unit: `useMoveCausedChange.test.ts`, `useTurnStartFlash.test.ts`.
 
 ### F-move-flash-8 · `cause-hook-name` · The name asks a yes/no question and the hook answers with content
 
-`useMoveCausedChange(content, key, moves)` reads as "did a move cause a
+**WORKED 2026-09-15**, by F-10's rename. `useMoveCausedChange(content, key, moves)` reads as "did a move cause a
 change?" — a boolean — and returns the content as it was BEFORE the move, or
 null. Every caller writes `const before = useMoveCausedChange(…)`, naming the
 return what the hook does not. Options: rename to what it returns
@@ -225,7 +228,7 @@ rising-edge rules as `useCelebration`" or drop the cross-claim.
 
 ### F-move-flash-10 · `setgame-hand-rolled-cause` · setgame's cause check IS `useMoveCausedChange` keyed on an id, and it has not converted
 
-`PlayArea`'s `seen` / `claimId` block does what the hook does — content key +
+**WORKED 2026-09-15**, after the finding's premise turned out to be wrong. `PlayArea`'s `seen` / `claimId` block does what the hook does — content key +
 monotone marker, the marker dropping on `replay_board` because the events are
 deleted — with one extra guard, `shown.length > 0`, which the hook covers by
 seeding in its initializer. The hook takes a number and a claim id is one, so
@@ -239,6 +242,35 @@ transient set with `ARRIVE_MS`. So the shared machinery can take the cause
 check and the arrival's lifetime; the hold is setgame's forever. Whether the
 three `--setgame-*-bg` colors fold into `--mark-attention-*` is setgame's tf
 pass (tile-feedback.md's roster says so), not this area's.
+
+
+**The premise was wrong, and the correction is the finding.** setgame needs
+THREE answers where the hook gave two. Its block runs a reset — show the new
+board, drop every mark — whenever the board changed and a claim did not do it,
+and `useMoveCausedChange` returned `null` both for that and for "nothing
+changed". A conversion as the finding described it would have run the reset on
+every render.
+
+**What was built.** The hook now answers in three parts and is named for the
+question it answers: `useChangeCause` returns `null`, `{ byMove: true, before }`
+or `{ byMove: false }`. A move that landed on identical content is still
+`null` — nobody looking can see it — and the re-seed still happens on every
+change, so the next move diffs against the screen. `useMoveAttention` reads
+`cause?.byMove` and is otherwise untouched, so no game changed.
+
+setgame lost its `seen` state and its three-condition `byClaim` expression; its
+`shown.length > 0` guard is the hook's first-render seeding. What stayed is
+everything the choreography needs: the hold, `claimTransition(shown, board)`
+measured against the SCREEN rather than against the board the hook hands back,
+the `mine` split and the two lifetimes. Its arrivals moved onto `useFlash` with
+`ARRIVE_MS`, which deleted the second clearing effect — the raise happens inside
+the hold's timer, which is where `useFlash` is meant to be called from.
+
+**`useFlash` gained a third return, `clear`.** setgame's reset takes a lit mark
+off during render, and `flash([])` would have started a timer there. `clear`
+only empties the set — it leaves any pending timer alone, since that timer
+empties an already-empty set and a later `flash` cancels it first. Existing
+callers destructure two elements and were not touched.
 
 ### F-move-flash-11 · `two-clocks` · Each lifetime is written twice, and a comment holds them together
 

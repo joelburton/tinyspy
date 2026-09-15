@@ -24,12 +24,15 @@ moments nothing has happened. The rule is to read the cause rather than infer
 it from the state, because every proxy that can be measured off the board — how
 many pieces differ, whether a count grew, whether a score moved — has a case
 that breaks it. The cause is recorded on the server: a move writes a row, and
-the things that are not moves do not. So `useMoveCausedChange` takes the
-content, a key for what "changed" means, and the server's move marker, and
-hands back the board as it was only when the content and the marker advanced
-together. A game does not usually reach for that directly: `useMoveAttention`
-wraps it with the diff and the mark's lifetime, and a game supplies only what
-is its own — what counts as changed, and when to stay quiet.
+the things that are not moves do not. So `useChangeCause` takes the content, a
+key for what "changed" means, and the server's move marker, and answers in three
+parts: nothing changed, a move changed it (here is the content as it was, to
+diff), or it changed and no move did it. Most games need only the middle answer
+and do not reach for the hook directly — `useMoveAttention` wraps it with the
+diff and the mark's lifetime, and a game supplies only what is its own: what
+counts as changed, and when to stay quiet. The third answer is for a game that
+has to DO something about a board it did not expect, which in practice means
+showing the new one and taking its marks off.
 
 The second question is whether the turn just became mine. In a turn-order game
 the board looks exactly the same the instant it becomes yours, and you are by
@@ -60,14 +63,16 @@ something unmarked is made.
 
 | hook | callers | what it marks |
 |---|---|---|
-| `useMoveAttention` (over `useMoveCausedChange`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
+| `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
 | `useFlash` | stackdown `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | an ambiguous letter, or scrabble's green / yellow / red placement outlines |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
-setgame is on none of them. Its claim flash is its own (`setgame/lib/flash.ts`),
-because a claim substitutes cards in place and it holds the departing cards on
-screen before the swap — a choreography no other game has — and it keys its own
-cause check on the last claim's id.
+setgame is on the two pieces underneath instead: `useChangeCause`, keyed on the
+last claim's id, and `useFlash` for the arrivals. Its mark is not a wash for a
+beat — a claim substitutes cards in place, so the departing cards are held on
+screen before the swap, the claimer sees dim where everyone else sees lit, and
+the two halves have lifetimes chosen against each other (`setgame/lib/flash.ts`).
+That choreography is its own and stays its own.
 
 **Two requirements on the caller's data path**, and both are worth checking
 when a new game raises an attention mark. The content key and the move marker
@@ -84,11 +89,12 @@ can set its own flashing state from the result and have the mark and the change
 land in the same commit. If the change paints a frame before the mark, the eye
 catches the change first and the mark arrives as a second, unexplained event.
 
-**A change nobody can explain is absorbed silently.** `useMoveCausedChange`
-re-seeds on every change, whether or not a move caused it, so the next move
-diffs against what is actually on screen. The first render seeds too, which is
-why opening a finished game — a full move log, a board arrived at long ago —
-says nothing.
+**A change no move caused is absorbed, not ignored.** `useChangeCause` re-seeds
+on every change, whether or not a move caused it, so the next move diffs against
+what is actually on screen — and it still reports the change, as the answer
+whose `byMove` is false, because a game may have to act on it. The first render
+seeds too, which is why opening a finished game — a full move log, a board
+arrived at long ago — says nothing at all.
 
 **The two named lifetimes live in `feedbackTiming.ts`**, because how long news
 stays up is a property of the vocabulary rather than of a game: a player who

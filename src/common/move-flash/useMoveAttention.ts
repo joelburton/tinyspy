@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ATTENTION_FLASH_MS } from './feedbackTiming'
-import { useMoveCausedChange } from './useMoveCausedChange'
+import { useChangeCause } from './useChangeCause'
 
 /** A stable empty set, so "nothing is hot" is one object rather than a new one
  *  per render — the comparison this drives happens during render. */
@@ -15,7 +15,7 @@ type MoveAttention<Content, Id> = {
   contentKey: string
   /** The server's monotone move marker — the move log's length, or the last
    *  move's id. It must arrive with the content and drop on a re-deal; see
-   *  `useMoveCausedChange`. */
+   *  `useChangeCause`. */
   moveCount: number
   /** Which pieces this move changed, given the content before it and the content
    *  now. Runs during render, only on the renders where a move landed. */
@@ -49,7 +49,7 @@ type MoveAttention<Content, Id> = {
  * on the renders where a move landed.
  *
  * A game that wants the cause WITHOUT this mark — its own choreography around
- * it — calls `useMoveCausedChange` directly.
+ * it — calls `useChangeCause` directly.
  */
 export function useMoveAttention<Content, Id>({
   content,
@@ -60,9 +60,9 @@ export function useMoveAttention<Content, Id>({
 }: MoveAttention<Content, Id>): ReadonlySet<Id> {
   const [hot, setHot] = useState<ReadonlySet<Id>>(NOTHING)
 
-  const before = useMoveCausedChange(content, contentKey, moveCount)
-  if (before !== null && !quiet) {
-    const fresh = changed(before, content)
+  const cause = useChangeCause(content, contentKey, moveCount)
+  if (cause?.byMove && !quiet) {
+    const fresh = changed(cause.before, content)
     // An empty diff is a move that changed nothing anyone can see (a game whose
     // own move needs no mark returns one). Setting it would re-render to say so.
     if (fresh.size > 0) setHot(fresh)

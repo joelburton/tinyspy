@@ -416,7 +416,7 @@ undo:
   that entry is still in the slot, so a tap on the pill takes the mark with it.
 - **Attention is gated on the log, never on a board diff.** A restart re-deals and
   the reveal swaps four bands in at once; both differ wildly from the previous
-  render and neither is news (`useMoveCausedChange`). It also never fires for the
+  render and neither is news (`useMoveAttention`). It also never fires for the
   player who guessed — they picked those tiles and the commit slot already answered
   them.
 - **Nothing is drawn on a board that can't be acted on.** A frozen board (terminal,

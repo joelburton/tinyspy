@@ -36,6 +36,18 @@ describe('useFlash', () => {
     expect([...result.current[0]]).toEqual([])
   })
 
+  it('clears on demand, without waiting for the duration', () => {
+    const { result } = renderHook(() => useFlash(1000))
+    act(() => result.current[1]([1, 2]))
+    act(() => result.current[2]())
+    expect([...result.current[0]]).toEqual([])
+    // The pending timer is left alone deliberately; it empties an already-empty
+    // set, and a flash in the meantime cancels it before starting its own.
+    act(() => result.current[1]([3]))
+    act(() => vi.advanceTimersByTime(999))
+    expect(result.current[0].has(3)).toBe(true)
+  })
+
   it('accepts a custom duration', () => {
     const { result } = renderHook(() => useFlash(500))
     act(() => result.current[1]([9]))

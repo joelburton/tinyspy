@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+/** A stable empty set, so clearing twice is one object and not two renders. */
+const EMPTY: ReadonlySet<never> = new Set()
+
 /**
  * A transient highlight of a set of ids: `flash(items)` marks them "hot", and
  * they clear themselves after `durationMs`. Returns the current hot set (for
@@ -13,7 +16,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *
  * `flash` starts a timer, so it's called from an event handler or an effect,
  * never during render. A mark that must land in the same commit as the change
- * it points at holds its own set instead (common/move-flash/doc.md).
+ * it points at holds its own set instead (common/move-flash/doc.md). `clear`
+ * only empties the set, so it is safe during render — for the caller whose
+ * board changes out from under a mark that is still lit.
  *
  * A SET of ids is the whole of what it holds: a single nullable tagged value —
  * one mark with a reason attached — is a different shape and keeps its own
@@ -21,7 +26,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  */
 export function useFlash<T = number>(
   durationMs = 1000,
-): [ReadonlySet<T>, (items: Iterable<T>) => void] {
+): [ReadonlySet<T>, (items: Iterable<T>) => void, () => void] {
   const [flashed, setFlashed] = useState<ReadonlySet<T>>(() => new Set<T>())
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -45,5 +50,10 @@ export function useFlash<T = number>(
     [],
   )
 
-  return [flashed, flash]
+  // Take the mark off NOW. It deliberately leaves any pending timer alone, so
+  // that this is a plain state update and nothing else: that timer would empty
+  // an already-empty set, and a later `flash` cancels it before starting its own.
+  const clear = useCallback(() => setFlashed(EMPTY as ReadonlySet<T>), [])
+
+  return [flashed, flash, clear]
 }

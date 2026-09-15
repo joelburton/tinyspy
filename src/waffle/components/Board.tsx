@@ -121,7 +121,7 @@ export function Board({
   // A MOVE has to be what changed the board, which the swap log says and the
   // board itself cannot — a restart re-deals every cell, and a terminal reveal
   // swaps the whole solution in. Both differ from the previous board in twenty
-  // places and neither is news (`useMoveCausedChange`, and the reason it is
+  // places and neither is news (`useMoveAttention`, and the reason it is
   // shared: setgame learned it the hard way).
   //
   // Given a move, TWO kinds of cell qualify, which is the audience rule made
