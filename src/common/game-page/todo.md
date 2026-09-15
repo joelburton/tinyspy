@@ -49,14 +49,17 @@
   (stackdown, letterboxed) and a short one (waffle). Then either reserve the
   slot or amend docs/ui.md, whose Terminal-results paragraph claims the row
   "never adds or removes a flow element".
-- **A contract-slot guard, per MOUNT POINT.** Common CSS reads custom
-  properties a game fills in and no file declares (`--cols`, `--grid-gap`,
-  `--max-tile-width`, the bee games' `--board-units-*`, `--rank-text`, …;
-  the list is in docs/code-conventions.md → Known gotchas). A game that
-  mounts the reader and forgets one gets a silently dead declaration, and the
-  phantom-token guard passes it because each slot IS defined in *some* game.
-  The check has to be "every game mounting this component defines the slots
-  it reads", and this folder owns the mount points.
+- ~~**A contract-slot guard, per MOUNT POINT.**~~ **Closed 2026-09-15, no
+  change.** The shared `.hugRectWidth` reads `--cols` / `--max-tile-width` /
+  `--grid-gap` and no `common/` file sets them, so a game that wears the class
+  and forgets one gets an invalid `width` that the browser drops — the board
+  then sizes itself. Joel: *"wouldn't it break the layout in any obvious
+  way?"* It would, immediately, in the board being edited, and only when a new
+  board first wears the class. The rule already names what a game owes it
+  ("Each game supplies --cols / --max-tile-width / --grid-gap"). A guard would
+  also be unsound: psychicnum fills `--cols` from an inline `style` on the
+  parent element, so a CSS-only check reports it broken on day one.
+
 - `PlayAreaErrorBoundary.tsx`'s docstring says the boundary sees a chunk
   failure only when the stale-chunk path declined to reload. It also catches
   one ON the reload path: Vite's preload helper returns instead of throwing
