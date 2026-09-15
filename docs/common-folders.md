@@ -275,7 +275,7 @@ area is audited. No sweep.
 | `members` | who someone is, their color, and the disc that shows it |
 | `menu` | the one menu, its store, and what a game puts in it |
 | `mobile` | the desktop-versus-mobile machinery: the breakpoint, the device hooks, the viewport |
-| `move-flash` | flashing the tiles a move changed |
+| `move-flash` | the marks a board wears for a beat: a move's wash, the your-turn frame, a game's own hot set |
 | `outcomes` | the outcome vocabulary — won · lost · near · warning · neutral · noted |
 | `page-header` | the top strip and the marks in it |
 | `pause-suspend` | pausing, presence-pause, suspend |

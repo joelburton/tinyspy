@@ -7,10 +7,11 @@ stylesheet times are in scope). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED 2026-09-15.** Roster agreed and stamped `cs-met-move-flash`;
-every file read; **thirteen findings, all OPEN, none worked.** The prose ones
-(F-1, F-2, F-5, F-9) go first, on Joel's word; the rest are decisions, one at a
-time.
+**Status: AUDITED 2026-09-15; the prose pass done 2026-09-15.** Roster agreed
+and stamped `cs-met-move-flash`; every file read; thirteen findings, of which
+**F-1, F-2, F-5, F-9 and F-13 are WORKED** — the doc.md intro and the three
+docstrings, plus the stale path. The remaining eight are decisions, one at a
+time; F-4 is the big one. The doc.md still gets the closing harvest pass.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -72,7 +73,7 @@ turns this into the doc.md's caller table):
 
 ### F-move-flash-1 · `intro-owed` · `doc.md` is one sentence, and the sentence undersells the folder
 
-"Flashing the board pieces a move changed." Two of the four hooks are not
+**WORKED 2026-09-15.** "Flashing the board pieces a move changed." Two of the four hooks are not
 about a move's pieces at all: `useFlash` marks an ambiguous letter or a
 scrabble verdict, and `useTurnStartFlash` marks the board frame when the turn
 arrives. The `## Intro to area` owed: the situation (a board changes under a
@@ -89,7 +90,7 @@ name-vs-contents gap is a rename.
 
 ### F-move-flash-2 · `useflash-archaeology` · `useFlash`'s docstring is mostly how it used to be
 
-Of its three paragraphs, the second is "Replaces the copy-pasted … that
+**WORKED 2026-09-15.** Of its three paragraphs, the second is "Replaces the copy-pasted … that
 scrabble had three of … and stackdown had one of" — how the code came to be,
 which the conventions send to the commit message — and the third is a
 parenthetical about stackdown's `WordFlash` not fitting. What a caller needs is
@@ -146,7 +147,7 @@ identical lines go.
 
 ### F-move-flash-5 · `cause-docstring` · `useMoveCausedChange`'s docstring is the folder's design essay, and two of its claims have rotted
 
-Fifty-five lines. A caller needs the contract: what the three parameters are,
+**WORKED 2026-09-15.** Fifty-five lines. A caller needs the contract: what the three parameters are,
 what it returns and when, the two requirements on the data path, and that the
 comparison runs during render so the caller may set its own state from the
 result. The rest is the intro (F-1): "the lesson is setgame's, and it cost
@@ -192,7 +193,7 @@ finding may change what the hook is.
 
 ### F-move-flash-9 · `turn-flash-docstring` · Rationale and implementation notes in `useTurnStartFlash`'s docstring
 
-"You notice things that appear far better than things that stop" is the design
+**WORKED 2026-09-15.** "You notice things that appear far better than things that stop" is the design
 reason (intro material); "React's endorsed … shape, and the house rule against
 setState in effects" defends the implementation and belongs on the line it
 defends, inside the body. The two rules and the free-for-all note are the
@@ -245,7 +246,7 @@ board chrome. Recommend (1) unless Joel wants the honest name now.
 
 ### F-move-flash-13 · `stale-path` · `tile-feedback.md` points at `common/hooks/game/useMoveCausedChange`
 
-That folder went in the 2026-09-04 restructure. The plan is the design
+**WORKED 2026-09-15.** That folder went in the 2026-09-04 restructure. The plan is the design
 reference this area is told to read, so the pointer is fixed in passing:
 `common/move-flash/useMoveCausedChange`.
 

@@ -7,14 +7,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * they clear themselves after `durationMs`. Returns the current hot set (for
  * `.has()` membership checks) plus the trigger.
  *
- * Replaces the copy-pasted "set a `Set<number>`, clear it after ~1s" flash that
- * scrabble had three of (green / yellow / red placement flashes) and stackdown
- * had one of (the ambiguous-tile flash). Each call owns its own timer, so
- * scrabble's three independent flashes don't interfere. Calling `flash` again
- * before it clears restarts the countdown.
+ * Each call owns its own timer, so two marks on one board don't interfere, and
+ * calling `flash` again before it clears restarts the countdown and replaces
+ * the contents.
  *
- * (Not a fit for stackdown's `WordFlash` — that's a single nullable tagged
- * value, not a set of ids; it keeps its own self-clearing state.)
+ * `flash` starts a timer, so it's called from an event handler or an effect,
+ * never during render. A mark that must land in the same commit as the change
+ * it points at holds its own set instead (common/move-flash/doc.md).
+ *
+ * A SET of ids is the whole of what it holds: a single nullable tagged value —
+ * one mark with a reason attached — is a different shape and keeps its own
+ * self-clearing state.
  */
 export function useFlash<T = number>(
   durationMs = 1000,
