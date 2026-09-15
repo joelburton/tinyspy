@@ -35,6 +35,33 @@ read as one kind of thing seen three times.
 
 ## Details
 
+**Who renders the page, and what it renders.** Nodes from other folders are
+named in parentheses; everything else is this folder's:
+
+```
+App ── /c/<handle> ──> ClubPageLoader          get_club_page, and the wait for its answer
+                       └── ClubPage
+                           ├── PageHeader (page-header)
+                           │     ├── PageHeaderMenu (page-header) — logo: PuzpuzpuzLogo (branding)
+                           │     ├── ChatButton (page-header)
+                           │     └── PageHeaderStatusSlot (page-header)   the roster, lit by presence
+                           ├── <main>
+                           │     ├── Segmented (buttons)                  the phone's two tabs
+                           │     ├── ModeFilter · GametypeFilter          twice each: the phone's row, and each column's
+                           │     ├── left column
+                           │     │     ├── CurrentGameCard → GameEntry + ClubGameDeleteButton
+                           │     │     └── SelectionList (lists) → StartGameRow → GameEntry   one per enrolled gametype
+                           │     └── right column
+                           │           └── SelectionList (lists) → ClubGameRow → GameEntry + ClubGameDeleteButton
+                           ├── Chat (chat)                                for the life of the page
+                           ├── ClubHelpCompanion                          while Help is open
+                           ├── SetupGameModal (setup-form)                while a game is being started
+                           └── EditClubModal                              while the enrollment is being edited
+```
+
+`GameEntry` draws `GameLogo` (branding) and `ModeBadge`. `CreateClubModal`
+is the one component here this page does not render — `HomePage` does.
+
 - **Each filter is in the tree twice, and cannot be once** — why is in
   [docs/mobile.md](../../../docs/mobile.md) → "Club page — tabs instead of two
   columns", with the rest of this page's mobile shape. What that section does

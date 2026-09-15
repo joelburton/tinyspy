@@ -31,6 +31,28 @@ it — the one thing here that renders during play rather than before it.
 
 ## Details
 
+**Who renders the dialog, and what it renders.** One page opens it; the
+game supplies the middle:
+
+```
+ClubPage (club) ── a start row, or a ?new= arrival 
+  ──> SetupGameModal
+    └── NormalModal (floating-panels)
+        └── StandardForm (forms)            owns every value
+            ├── <Suspense> → manifest.setupForm.Component   ← THE GAME's fields, lazily loaded
+            │     ├── PlayersSection → SetupSection + Dot (members) + PlayersField (fields)   every game, first
+            │     ├── SetupTimerSection → SetupSection + RadioRow (fields)                    every game
+            │     ├── SetupCoopStyleSection → SetupSection + RadioRow + SelectField           the turn-order games
+            │     ├── SetupNextPuzzleSection → SetupSection + DateField                        the dated-puzzle games
+            │     └── SetupSection …                                                          one per setting of the game's own
+            ├── FailureLine (forms)                        the form's own line, for what belongs to no field
+            ├── ActionButton (actions) for act-help        → the game's Help, in a Suspense, over the dialog
+            └── CancelButton · FormSubmitButton (buttons)
+
+and during play, apart from the dialog:
+the game's InfoCol ──> SetupDisclosure ──> the rows setupRows.ts builds from the same setup
+```
+
 - **The seam is one destructure, in one place.** The form holds a flat object
   keyed by field name; `create_game` takes a setup blob plus a list of players.
   `handleStartGame` splits `player_user_ids` off and everything else IS the

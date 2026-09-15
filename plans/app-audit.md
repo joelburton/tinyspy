@@ -448,11 +448,11 @@ and `mobile.md`: a `<ul>` and a `.frame` the page does not have, rows that
 "stay ordinary links", a "Welcome, …" heading, a "SOLO pill". Nothing owed:
 `home/todo.md` is empty.
 
-**Closed-area doc passes — render trees owed.** The render-tree rule
-(§4 → "Harvest the folder's `doc.md`") arrived at `game-page` on 2026-09-15,
-after these closed. Each is a documentation pass on a closed area, Joel's to
-schedule; none reopens the area. Assessed 2026-09-15 by reading each folder's
-components and who mounts them:
+**Closed-area doc passes — render trees, DONE 2026-09-15.** The render-tree
+rule (§4 → "Harvest the folder's `doc.md`") arrived at `game-page` on
+2026-09-15, after these closed. Assessed by reading each folder's components
+and who mounts them, and drawn the same day at Joel's ask (each tree was built
+from the JSX, not the docs); none reopened its area:
 
 - **`boot`** — `App.tsx`'s tree: the page it picks per session state and
   route, and the hosts it mounts under every page (`ToastHost`, `FaultModal`,

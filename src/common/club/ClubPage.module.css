@@ -13,15 +13,16 @@
  * start list.
  */
 
-/* The wrapper's layout is the shared `.pageHeaderAndMainArea`
+/* The page's one wrapper. Its layout is the shared `.pageHeaderAndMainArea`
  * (common/core-css/patterns/page.css); all this adds is the page's own
- * content width.
+ * content width. Named for what it is and NOT `.frame` — a frame in this app
+ * is the outline a finished board wears.
  *
  * BESPOKE, and deliberately not a second tier in the vocabulary: 1000px was
  * chosen for THIS page, so that two columns of dense rows have room without
  * sprawling on a wide desktop. Set as the shared token so everything below
  * reads one number. */
-/* @@ */ .frame {
+/* @@ */ .clubPageWrapper {
   --pageMain-width: 62.5rem;
 }
 
@@ -83,7 +84,7 @@
  * carry one. Nothing about a row is written here; <SelectionList>'s module
  * owns it (docs/ui.md → Selection lists). */
 
-/* Club title block — a full-width row of the .frame column (between
+/* Club title block — a full-width row of the page's main column (between
  * the header and the two-column body), so the "Club: <name>" heading
  * spans both columns rather than living inside the left one. */
 /* @@ */ .clubNameBlock {

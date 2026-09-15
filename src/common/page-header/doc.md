@@ -64,6 +64,25 @@ where the key does not.
 
 ## Details
 
+**Who renders the strip, and what goes in it.** Three pages each render one
+`PageHeader`; the strip has two slots and both always draw:
+
+```
+HomePage (home) · ClubPage (club) · GamePage (game-page)
+└── PageHeader
+    ├── children — the left slot
+    │     ├── PageHeaderMenu → Menu (menu)            home and club place it; the game page wraps it as GameHeaderMenu
+    │     ├── ChatButton → PageHeaderButton          club and game
+    │     ├── ScratchpadButton → PageHeaderButton    game, when the manifest opts in
+    │     └── PageHeaderStatusSlot                   club and game
+    │           ├── FeedbackPill (feedback)           while the page's global slot holds a message
+    │           └── PageHeaderPlayersStrip → Dot (members)   otherwise
+    └── right — empty on home and club; the game page puts its pause button, clock and info switch here
+```
+
+`PageHeaderButton` is also the base of two marks other folders own:
+`PauseButton` (buttons) and `InfoSwitchButton` (info-sheet).
+
 - **The height token** is `--pageHeader-height` in base.css, `logo + 2 ×
   0.25rem`, and `--game-header-bottom` composes from it. The strip is
   `content-box` so that composition adds the padding and the rule to a content

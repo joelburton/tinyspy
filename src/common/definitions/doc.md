@@ -30,6 +30,25 @@ process to fold in later.
 
 ## Details
 
+**Who renders what.** Three roots, one view:
+
+```
+any surface ──> DefinableWord           a span in the text; a click writes the word and its place into the one-slot store
+                                        (word-list's WordList · the anagram finder · waffle's answer reveal ·
+                                         the games' turn logs and info columns)
+
+App ──> DefinitionHost                  one, at the root beside the other hosts
+        └── DefinitionPopover           under the clicked word
+            └── DefinitionView          fetches and renders; a cross-reference click is the next word
+
+AppActionsHost (actions) ── ~ ──> WordLookupDialog
+                                  └── Dialog (floating-panels) → StandardForm (forms) + TextField (fields)
+                                      └── DefinitionView             the same view, its first word typed
+
+App ── "Edit word…" / "Add word" ──> WordEditDialog                  editors only
+                                     └── Dialog → StandardForm → TextField · NumberField · CheckboxField (fields)
+```
+
 **A surface that shows definable words does exactly one thing: it renders each
 word as `<DefinableWord>`.** It holds no state, renders no card, and never
 decides where the card goes. The component writes the clicked word and its

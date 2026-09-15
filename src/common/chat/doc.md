@@ -86,6 +86,18 @@ blurring, so the next keystroke plays. The chat entry is the one text field a
 game page keeps while the board reads its keys off the window, and this is how
 the two share one keyboard.
 
+**Who renders it, and what it renders.** Two pages mount the panel; the
+header mark is not its child:
+
+```
+ClubPage (club) · GamePage (game-page)
+└── Chat                              for the life of the page; draws nothing while closed
+    └── Companion (floating-panels)   while open
+        └── ChatBody                  the transcript and the composer; DotActor (members) names each sender
+
+PageHeader (page-header) → ChatButton   the header mark, reached through the two stores rather than props
+```
+
 The whole of it, then:
 
 ```

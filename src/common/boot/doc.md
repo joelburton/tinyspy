@@ -43,6 +43,32 @@ theme loader it awaits belongs to `common/themes`.
 
 ## Details
 
+**What `main.tsx` and `App` render.** The root of every other folder's tree;
+which folder owns a node is in parentheses:
+
+```
+main.tsx                          loads the theme, finds the root; onUncaughtError → panic.ts
+└── <StrictMode>
+    └── App                       the session gates, then the page, then the hosts
+        ├── one of, by session state — and nothing else renders until it is the page:
+        │     Loading (loading) · LoginScreen (auth) · EnvelopeErrorPage (error-page)
+        │     ClaimHandleScreen (auth) · the two devtools pages, outside the audit
+        ├── one of, by route:
+        │     ClubPageLoader (club) → ClubPage            /c/<handle>
+        │     GamePageGate (game-page) → … → the game     /g/<gametype>/<gameId>
+        │     HomePage (home)                             / — and any path that matches nothing
+        ├── EditProfileModal (account)        while the account menu has it open
+        ├── WordEditDialog (definitions)      while an editor has it open
+        └── under every real page, never the auth screens — the singletons:
+              GameInvitations (invitations, headless) · ToastHost (toasts)
+              AppActionsHost (actions) · ConfirmationHost (floating-panels)
+              FaultModal (faults) · TooltipHost (tooltips) · DefinitionHost (definitions)
+```
+
+Why each host is at the root and not in a page is `App.tsx`'s docstring: a
+thing is mounted here when its state crosses subtrees, and a store is how a
+page reaches it.
+
 - **The stale-chunk counter has one accepted gap.** Where a browser blocks site
   data the counter cannot count, so it answers "reloaded just now" and gives
   the recovery up; the cost is a manual refresh. A browser whose storage reads

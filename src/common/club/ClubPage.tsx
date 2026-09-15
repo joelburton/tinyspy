@@ -528,7 +528,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   ]
 
   return (
-    <div className={cls('pageHeaderAndMainArea', styles.frame)}>
+    <div className={cls('pageHeaderAndMainArea', styles.clubPageWrapper)}>
       <PageHeader>
         <PageHeaderMenu logo={<PuzpuzpuzLogo />} sections={menuSections} label="Club menu" />
         <ChatButton />
@@ -594,7 +594,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
 
             The ROW ITSELF is conditional, not just its contents: a solo club has
             no mode filter (see ModeFilter), and an empty row would still take the
-            .frame's 1rem gap — a mystery band of space under the tabs. */}
+            main column's 1rem gap — a mystery band of space under the tabs. */}
         {!(mobileTab === 'new' && soloClub) && (
           <div className={styles.mobileFilters} data-testid="mobile-filters">
             {mobileTab === 'new' ? (
