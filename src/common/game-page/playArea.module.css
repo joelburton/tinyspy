@@ -701,16 +701,30 @@
 /* INK FOLLOWS THE BACKGROUND IT SITS ON. While the wash is up the tile is yellow,
  * so its label takes the dark ink — a decided tile's white letters on this yellow
  * measure about 1.5:1, which is a word you cannot read on the one occasion the
- * board is pointing at it. Ink returns to the state's own color when the class
- * comes off, which is the same moment the wash finishes fading.
+ * board is pointing at it. Not a violation of "ink = tried vs untried": ink's job
+ * is to be legible against whatever is behind it, and for this second that is the
+ * wash rather than the state.
  *
- * Not a violation of "ink = tried vs untried": ink's job is to be legible against
- * whatever is behind it, and for this second that is the wash rather than the
- * state. Qualified with `.tileFace` so it outranks the game's own state class,
- * which sets `--tile-slot-ink-color` from another stylesheet at equal specificity — order
- * between modules is the bundler's business, and this must not be a coin flip. */
+ * An ANIMATION on the wash's own duration, rather than a token the class
+ * overrides, because the ink has to return at the instant the wash finishes and
+ * at no other. The class cannot promise that: it comes off on a game's timer, and
+ * a timer that fires late leaves dark ink on a tile that has its state color
+ * back. Two animations, one duration — the halves of the mark cannot separate.
+ *
+ * It reverts by ENDING, which is why there is no fill mode: the cascade's value
+ * (a game's own state class) applies again the moment the animation is over, and
+ * an animation outranks that class while it runs without having to out-specify
+ * it. A piece wearing this AND `.verdictFill` would need both animations named in
+ * one declaration; none does today.
+ *
+ * Whatever silences one of the two under reduced motion silences the other, or
+ * the ink stays behind on a tile that has handed its color back. */
 /* @@ */ .tileFace.attentionFlash {
-/* @@ */   --tile-slot-ink-color: var(--page-text-color);
+/* @@ */   animation: attention-ink var(--mark-attention-flash-duration) step-end;
+}
+
+/* @@ */ @keyframes attention-ink {
+/* @@ */   from, to { color: var(--page-text-color); }
 }
 
 /* @@ */ .attentionFlash::before {
@@ -724,6 +738,10 @@
   background: var(--mark-attention-tile-color);
   pointer-events: none;
   z-index: 0;
+  /* The animation raises this to 1 and fades it back. Transparent underneath so
+   * a duration that never arrived (the token is published at boot) shows nothing
+   * rather than a tile stuck under solid yellow. */
+  opacity: 0;
   animation: attention-flash var(--mark-attention-flash-duration) ease-out forwards;
 }
 

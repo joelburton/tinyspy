@@ -43,13 +43,13 @@ hands it ids, they go hot, and they clear themselves. It is what marks an
 ambiguous letter in the word a player typed, or outlines the cells of a word
 the server just refused, neither of which is about a move at all.
 
-What this folder decides is who is hot and for how long; the drawing is CSS,
-and it lives outside the folder. The tile wash and the board frame are in
-`game-page/playArea.module.css`, and the animation durations are tokens in
-`core-css/base.css`. Because CSS cannot hand a duration back to JS, each
-lifetime is written in both places and kept in step by hand. Who a mark is FOR
-stays with the caller, because it differs per game: your own move is news to
-everyone except you, so each game's diff is where the decision to leave
+What this folder decides is which pieces are hot and for how long; the drawing
+is CSS, in `game-page/playArea.module.css`. The durations are not written twice:
+`feedbackTiming.ts` holds them and publishes them to the stylesheet at startup,
+and the marks are animations on those published durations, so what a mark looks
+like and how long it lasts end at one instant that no timer can move. Who a mark
+is FOR stays with the caller, because it differs per game: your own move is news
+to everyone except you, so each game's diff is where the decision to leave
 something unmarked is made.
 
 ## Details
@@ -90,11 +90,20 @@ says nothing.
 
 **The two named lifetimes live in `feedbackTiming.ts`**, because how long news
 stays up is a property of the vocabulary rather than of a game: a player who
-learns the beat in one game should read it in the next. The attention wash is
-700ms against a 0.7s animation, and the your-turn frame is 1200ms against a
-1.1s one — deliberately longer, so the class outlives the fade rather than
-clipping it. The JS value is what removes the class, so it must never be
-shorter than the CSS one. `useFlash`'s callers pass their own durations.
+learns the beat in one game should read it in the next. It is the only home for
+them: `publishMarkDurations` writes them onto the document root at startup and
+the stylesheet reads the tokens, so CSS holds no number of its own. What a game
+times is only the mark's CLASS, on the fade plus a little slack — early would
+clip the animation, late now costs nothing, because the visible mark ends by
+itself. `useFlash`'s callers pass their own durations.
+
+**Both halves of the attention mark are animations on that one duration** — the
+wash fading off the piece, and the dark ink it needs while it is up. They begin
+together when the class lands and end together when the duration is spent, so
+there is no state in which a piece shows its own color under the mark's ink.
+Tying the ink to the class instead is what produced exactly that: a timer that
+fires late (a throttled tab, a constant someone lengthened) left dark ink on a
+piece that had handed its color back.
 
 **`useFlash`'s trigger starts a timer**, so it is called from an event handler
 or an effect and never during render. That is why the attention mark does not
@@ -103,8 +112,8 @@ the change, and each of the three games holds its own hot set and timer instead.
 
 The tile wash is drawn as an overlay rather than as a background, because a
 background cannot be faded and the fade is what makes the mark hand the tile
-back rather than blink off it. While it is up the tile is yellow, so the tile's
-own label takes the dark ink for that second and gets it back when the class
-comes off. Both are `game-page/playArea.module.css`'s, along with the rule that
-a game whose tile has content must lift that content above the wash; the color
-vocabulary the marks draw from is [docs/ui.md](../../../docs/ui.md)'s.
+back rather than blink off it. It is transparent until the animation raises it,
+so a piece is never stuck under solid yellow if a duration never arrives. That
+rule and the one about a game lifting its tile's content above the wash are
+`game-page/playArea.module.css`'s; the color vocabulary the marks draw from is
+[docs/ui.md](../../../docs/ui.md)'s.

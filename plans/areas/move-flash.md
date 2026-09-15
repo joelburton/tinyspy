@@ -9,9 +9,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: AUDITED 2026-09-15; the prose pass done 2026-09-15.** Roster agreed
 and stamped `cs-met-move-flash`; every file read; thirteen findings, of which
-**F-1, F-2, F-5, F-9 and F-13 are WORKED** — the doc.md intro and the three
-docstrings, plus the stale path. The remaining eight are decisions, one at a
-time; F-4 is the big one. The doc.md still gets the closing harvest pass.
+**F-1, F-2, F-5, F-9, F-11 and F-13 are WORKED** — the doc.md intro and the three
+docstrings, the stale path, and the two clocks. The remaining seven are
+decisions, one at a time; F-4 is the big one. The doc.md still gets the closing harvest pass.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -220,7 +220,7 @@ pass (tile-feedback.md's roster says so), not this area's.
 
 ### F-move-flash-11 · `two-clocks` · Each lifetime is written twice, and a comment holds them together
 
-`ATTENTION_FLASH_MS = 700` and `--mark-attention-flash-duration: 0.7s`;
+**WORKED 2026-09-15**, by a route none of the three options named. `ATTENTION_FLASH_MS = 700` and `--mark-attention-flash-duration: 0.7s`;
 `YOUR_TURN_FLASH_MS = 1200` and `--mark-yourTurn-flash-duration: 1.1s`. The JS
 value removes the class, the CSS value runs the animation, and both files say
 "change both". Two ways to make it one clock: (1) JS is the home — at boot (or
@@ -232,6 +232,34 @@ the wash is at opacity 0 but `.tileFace.attentionFlash` still holds the dark
 ink on a tile that has handed its color back. (3) keep two and the comment.
 The your-turn pair is deliberately unequal (the class outlives the fade), which
 (1) keeps by computing and (2) makes moot.
+
+
+**What was built.** `feedbackTiming.ts` became the one home: it holds the two
+fade durations and `publishMarkDurations()` writes them onto the document root
+at boot (main.tsx, beside `trackLayoutWidth`), so no stylesheet declares them.
+And the attention mark's ink stopped hanging off the class — it is now an
+animation on the same published duration as the wash, so both halves start and
+end together and the class's removal time is no longer load-bearing. The
+`*_FLASH_MS` constants are composed as fade + 100ms slack and mean only "how
+long the class is held": early clips the animation, late now costs nothing.
+`.attentionFlash::before` gained `opacity: 0` so a duration that never arrives
+shows no mark rather than a piece stuck under solid yellow.
+
+Option (1) alone leaves two clocks and only one number, so a throttled timer
+still splits the wash from the ink; (2) makes the mark's removal depend on an
+event that a non-animating element, a future reduced-motion rule or jsdom never
+fires. A transition-based exit — the fourth option, weighed at the build — dies
+on the shorthand: `.tile` already sets `transition` on the same element as
+`.tileFace`, so one element has one transition list and the ink's would be
+silently dropped; and delaying the ink's return by the fade would delay every
+other ink change on every tile in every game.
+
+The your-turn ring keeps its animation and now reads a published token. It
+never had the ink coupling, so nothing else about it changed; the deliberate
+100ms by which its class outlives its fade is now the shared slack.
+
+No game changed. All three attention callers put `.attentionFlash` on the
+shared `.tileFace`, which is where both animations live.
 
 ### F-move-flash-12 · `folder-name` · `move-flash` names one of the folder's three jobs
 

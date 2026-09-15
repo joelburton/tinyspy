@@ -28,12 +28,17 @@ import './common/core-css/utilities.css'             // tiny utilities: muted, e
 import App from './App'
 import { loadTheme } from './common/themes/loadTheme'
 import { trackLayoutWidth } from './common/mobile/layoutWidth'
+import { publishMarkDurations } from './common/move-flash/feedbackTiming'
 import { reloadOnStaleChunk } from './common/boot/reloadOnStaleChunk'
 import { onUncaughtRender, showPanic } from './common/boot/panic'
 
 // Publish `--client-width` (usable viewport width, scrollbar excluded) for the
 // board-sizing math.
 trackLayoutWidth()
+
+// Publish the transient marks' durations, which is where the stylesheet gets
+// them from — see `publishMarkDurations`.
+publishMarkDurations()
 
 // A tab that outlives a deploy references lazy chunks the new deploy deleted;
 // reload once to pick up the current build. First, because the await below is

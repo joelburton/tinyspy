@@ -295,23 +295,14 @@
   --entryBox-font-size:  1.5rem;
 
   /* ── Feedback timings ──────────────────────────────────────────
-     How long the two transient marks last. Shared, because "how long
-     news stays on screen" is a property of the vocabulary rather than
-     of a game — and because a player who learns the beat in one game
-     should read it in the next. The JS that removes the classes waits
-     at least this long, and sometimes longer; the rule and the twin
-     constants are in common/move-flash/feedbackTiming.ts.
-
-     The tile flash is SHORT: solid for most of it, then a short tail
-     fading out, so the eye is caught and then handed back the true
-     state color. The mark only has to be SEEN, and a board that sits
-     colored is a board where loud has stopped meaning anything.
-
-     The board frame at the moment the turn becomes yours is a fade-out
-     rather than a blink: the message is "it just became yours", not
-     "something is wrong". */
-  --mark-attention-flash-duration:  0.7s;
-  --mark-yourTurn-flash-duration:   1.1s;
+     How long the two transient marks last —
+     `--mark-attention-flash-duration` and
+     `--mark-yourTurn-flash-duration`, both READ here and declared
+     nowhere in CSS. They are published onto the document root at
+     startup from common/move-flash/feedbackTiming.ts, which is the
+     one home for the numbers and carries the reasoning for each: a
+     mark's class comes off on a JS timer, so a duration written in
+     both languages is one design decision with two votes. */
 
   /* ── Depth on a GAME SURFACE ───────────────────────────────────
      Board tiles and the on-screen keyboard's keys. Ordinary buttons

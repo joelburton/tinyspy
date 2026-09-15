@@ -1,23 +1,56 @@
 // cs-audited-move-flash
 
 /**
- * How long the vocabulary's transient marks stay on screen, in milliseconds.
+ * How long the vocabulary's transient marks stay on screen, and the single home
+ * for those numbers.
  *
- * These live here rather than in each game because "how long news stays up" is a
+ * They live here rather than in each game because "how long news stays up" is a
  * property of the vocabulary, not of a game — a player who learns the beat in one
- * game should read it in the next. Every game that raises one of these marks uses
- * the same number to take it away again.
+ * game should read it in the next.
  *
- * Each has a twin in common/core-css/base.css (`--mark-attention-flash-duration`,
- * `--mark-yourTurn-flash-duration`) driving the CSS animation. CSS cannot hand a
- * duration back to JS, so the pair is kept in step by hand: **change both.** The
- * JS value is what removes the class, so it must be at least the CSS one — a
- * shorter value cuts the animation off mid-fade.
+ * CSS draws every mark and CSS times it: `publishMarkDurations` writes the two
+ * durations below into the tokens the animations read, so the stylesheet has no
+ * number of its own to drift from. That is what keeps the halves of one mark
+ * together — the attention wash fading and the ink returning from under it are
+ * two animations on one duration, and no timer can separate them.
+ *
+ * The `*_FLASH_MS` values are for the timers that take a mark's CLASS off
+ * afterward. They are the fade plus slack, deliberately: removing the class is
+ * what lets the next mark start its animation, and a class removed EARLY cancels
+ * the animation mid-fade, while one removed late costs nothing at all now that
+ * the visible mark ends on its own.
  */
 
-/** A piece wearing the attention wash: "this changed, look here". */
-export const ATTENTION_FLASH_MS = 700
+/** The attention wash: solid for most of it, then a short tail fading out, so the
+ *  eye is caught and then handed back the piece's true state color. Short — a
+ *  board that sits colored is a board where loud has stopped meaning anything. */
+const ATTENTION_FADE_MS = 400
 
-/** The board frame at the moment the turn becomes yours. Slightly longer than
- *  its animation, so the class outlives the fade rather than clipping it. */
-export const YOUR_TURN_FLASH_MS = 1200
+/** The board frame at the moment the turn becomes yours — a fade-out rather than
+ *  a blink: the message is "it just became yours", not "something is wrong". */
+const YOUR_TURN_FADE_MS = 2000
+
+/** How long a mark's class outlives the animation it started. Enough that an
+ *  ordinary timer cannot fire early and clip the fade, small enough that a mark
+ *  cannot be re-raised before the class is free again. */
+const CLASS_HOLD_SLACK_MS = 100
+
+/** A piece wearing the attention wash: "this changed, look here". */
+export const ATTENTION_FLASH_MS = ATTENTION_FADE_MS + CLASS_HOLD_SLACK_MS
+
+/** The board frame at the moment the turn becomes yours. */
+export const YOUR_TURN_FLASH_MS = YOUR_TURN_FADE_MS + CLASS_HOLD_SLACK_MS
+
+/**
+ * Hand the durations to the stylesheet, on the document root. Call once at
+ * startup, from main.tsx — before the first board can render a mark.
+ *
+ * The tokens are declared nowhere else, so the marks are drawn by whatever this
+ * publishes. A mark whose duration never arrives does not animate, and every
+ * mark is written to be invisible rather than stuck in that case.
+ */
+export function publishMarkDurations(): void {
+  const root = document.documentElement.style
+  root.setProperty('--mark-attention-flash-duration', `${ATTENTION_FADE_MS}ms`)
+  root.setProperty('--mark-yourTurn-flash-duration', `${YOUR_TURN_FADE_MS}ms`)
+}
