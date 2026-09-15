@@ -85,12 +85,34 @@
   the one in its header and hands it down as `ctx.globalFeedbackSlot`."
   `ClubPage` does the identical thing, so `GamePage` is one of two pages
   following it rather than an exception to anything.
-- **The game page is the one page not wearing `.pageHeaderAndMainArea`.**
-  Its wrapper is its own `.frame` — a flex column with the same 1rem gap and
-  no height bound, because the play surface bounds itself off
-  `--game-chrome-height` instead. Whether it should take the shared pattern
-  (`core-css/patterns/page.css`) and let the bound come from there is a
-  layout decision for this folder; a header or padding change moves both
-  numbers by hand today.
+- ~~**The game page is the one page not wearing `.pageHeaderAndMainArea`.**~~
+  **Closed 2026-09-15: it keeps its own `.frame`, on measurement.** It is
+  still the one page without the shared pattern — home, login, claim-handle
+  and club all wear it — but the argument the item made for adopting it is
+  gone: "a header or padding change moves both numbers by hand" stopped being
+  true when `--game-chrome-height` was composed from
+  `2 × --page-padding-y + --pageHeader-height + --spacer-4 +
+  --border-width-line + --spacer-2`, which is the same change that fixed the
+  shell's 1px overflow.
+
+  Three reasons not to adopt it, the first two measured across all fifteen
+  solo-playable games at three viewports:
+
+  - **the shell's derivation is uniform and right** once its input is —
+    every game sat at exactly the same figure, so there was one number wrong
+    in one place rather than fifteen pages each slightly off;
+  - **boards do not ask their parent.** Eleven games compute their board's
+    height from `100svh` directly, each minus its own reserve, so bounding
+    `.frame` would not reach them;
+  - **it would make the play surface shrinkable for the first time.** The
+    shared pattern puts a `height` on the wrapper, and a flex item with an
+    explicit height still has `flex-shrink: 1` — so an overflow would quietly
+    squeeze a board instead of scrolling, on the page whose whole invariant
+    is about fitting the viewport.
+
+  **What would reopen it:** taking on those eleven per-game reserves (filed
+  in each game's own `todo.md`). They are where the hand-maintained height
+  arithmetic still lives, and a change there is the moment to ask again
+  whether a board should measure the viewport at all or be handed a box.
 
 ## Maybe
