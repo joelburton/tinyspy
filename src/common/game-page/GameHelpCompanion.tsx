@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 import type { ReactNode } from 'react'
 import { Companion } from '../floating-panels/Companion'

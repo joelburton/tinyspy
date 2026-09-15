@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'

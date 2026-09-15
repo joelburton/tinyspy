@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-game-page
 
 import { Loading } from '../loading/Loading'
 import { EnvelopeErrorPage } from '../error-page/ErrorPage'

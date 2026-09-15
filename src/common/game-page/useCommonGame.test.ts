@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 /**
  * Tests for useCommonGame.

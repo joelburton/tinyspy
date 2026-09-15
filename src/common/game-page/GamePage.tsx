@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'

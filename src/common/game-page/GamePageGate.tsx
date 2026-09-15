@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-game-page
 
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'

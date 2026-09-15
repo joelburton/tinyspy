@@ -4,18 +4,18 @@ The folders it reads: `game-page`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-14, the closing re-read done 2026-09-15;
-waiting on Joel's blessing.** Twenty-four findings: a prose group (F-1 to F-6)
+**Status: CLOSED 2026-09-15, blessed.** Audited 2026-09-14, the closing
+re-read done 2026-09-15, and Joel blessed the roster the same day (nineteen
+files `cs-blessed-game-page`; `InfoActionsRow` and its test had moved to
+`info-sheet` and stay `cs-unmet` for that area). Twenty-four findings: a prose group (F-1 to F-6)
 and a decision group (F-7 to F-11) from the reading, and thirteen more from the
 closing re-read (F-12 to F-24), every one worked or closed. On top of the
 findings, the route was split into three components — see "The route split"
 below. The folder's `todo.md` handed this area seven items from earlier areas
 (F-11); one of them, the concern split of `playArea.module.css`, stays open
-there by Joel's ruling, and the rest are worked, dissolved or closed. What is
-left is Joel's: the blessing (five files this area created are `cs-unmet`:
-`GamePageGate`, `GamePageLoader`, `NoSuchGamePage`, `InfoActionsRow` and its
-test), and `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed and
-which has not been run.
+there by Joel's ruling, and the rest are worked, dissolved or closed. Still
+unrun at the close: `e2e/bananagrams-block.e2e.ts`, whose selector F-9
+changed.
 
 ## The roster
 
@@ -982,7 +982,6 @@ rules, `DeviceBlockNotice`), and the row-by-row don't-move rule.
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1);
       the harvest done at the re-read
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not — **Joel's.**
-      Sixteen files are `cs-audited-game-page`; five the area created are
-      `cs-unmet` (`GamePageGate`, `GamePageLoader`, `NoSuchGamePage`,
-      `InfoActionsRow`, `InfoActionsRow.test`).
+- [x] every file on the roster blessed, or its stamp says why not — Joel,
+      2026-09-15: nineteen files `cs-blessed-game-page`. `InfoActionsRow` and
+      its test are `info-sheet`'s now and stay `cs-unmet` for that area.

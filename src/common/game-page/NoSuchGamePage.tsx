@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-game-page
 
 import { ErrorPage } from '../error-page/ErrorPage'
 

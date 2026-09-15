@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 import type { DbError } from '../supabase/dbEnvelope'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'

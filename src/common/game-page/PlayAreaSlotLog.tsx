@@ -1,4 +1,4 @@
-// cs-audited-game-page
+// cs-blessed-game-page
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { logStamp } from '../utils/logStamp'
