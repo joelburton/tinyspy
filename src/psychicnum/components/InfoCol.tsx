@@ -149,7 +149,7 @@ export function InfoCol({
       {/* The non-log info column — the shared named readouts, in the canonical order
           (docs/playarea.md → Info-column readouts): STATE → OpponentStrip (compete) →
           ACTIONS → HELP → SETUP disclosure, then the turn log below. */}
-      <div className={shared.actionSlot}>
+      <div className={shared.steadyRows}>
         {/* State — shown in both play and terminal. The same `<StateLine>` the
             mobile status bar renders above the board (BoardCol), so the two
             copies can't drift. */}

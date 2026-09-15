@@ -128,7 +128,7 @@ export function InfoCol({
 }) {
   return (
     <div className={shared.infoCol}>
-      <div className={shared.actionSlot}>
+      <div className={shared.steadyRows}>
         {/* State — guesses only during play; score + letters at terminal.
             Fixed min-height so the swap doesn't jump the rows below. */}
         <div className={styles.stateBlock}>

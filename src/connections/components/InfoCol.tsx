@@ -144,7 +144,7 @@ export function InfoCol({
 
   return (
     <div className={shared.infoCol}>
-      <div className={shared.actionSlot}>
+      <div className={shared.steadyRows}>
         {/* State — categories found + mistakes (the mistakes dots live below the
             board; this is the at-a-glance textual count, kept here too). */}
         <p className={shared.infoState}>

@@ -35,7 +35,7 @@ import styles from './PlayerBoard.module.css'
  * slots and the slot itself. bananagrams' info column is the documented exception to the
  * canonical order: readouts (infoTop) → the HAND card → Peel → the bottom action row
  * (Concede / Dump) — its hand + peel live in the info column, so the actions sit below
- * them, not in the shared `.actionSlot`.
+ * them, not in the shared `.steadyRows`.
  */
 type Props = {
   gameId: string
@@ -45,7 +45,7 @@ type Props = {
    *  follows. */
   tiles: string
   /** The info-column readout stack (state / opponents / help / setup), built by
-   *  PlayArea and rendered in the shared `.actionSlot` above the hand card. */
+   *  PlayArea and rendered in the shared `.steadyRows` above the hand card. */
   infoTop: ReactNode
   /** The bottom action row (Concede / Dump, or the terminal / locally-terminal line),
    *  rendered BELOW the hand card (bananagrams' documented order exception). */
@@ -145,7 +145,7 @@ export function PlayerBoard({
           Dump). The hand + peel live here, not in the board column, so the actions sit
           below them. */}
       <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>{infoTop}</div>
+        <div className={shared.steadyRows}>{infoTop}</div>
 
         <HandCard
           displayedHand={arena.displayedHand}

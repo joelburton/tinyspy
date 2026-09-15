@@ -150,7 +150,7 @@ export function InfoCol({
 
   return (
     <div className={shared.infoCol}>
-      <div className={shared.actionSlot}>
+      <div className={shared.steadyRows}>
         {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → log. */}
 

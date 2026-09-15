@@ -660,7 +660,7 @@ whether to build the reserved box or record that the per-game `over ?` split is
 the shape."* Re-verifying it turned up two things.
 
 **Its premise named the wrong class.** `.infoActions` reserves nothing, true,
-but the container is `.actionSlot` and it has `min-height: 6rem` — a floor. So
+but the container is `.steadyRows` and it has `min-height: 6rem` — a floor. So
 the rule holds while both states fit under it, and the thing that could break it
 is the help line vanishing at terminal (`shared.infoHelp` is play-only in eight
 games), which removes a flow element plus a 1rem gap. Whether any game exceeds
@@ -702,7 +702,7 @@ its buttons are not normal action buttons — its own area's call).
 components belonged there at all given they wore another folder's stylesheet.
 They did not, and now they do not.
 
-Still open, and separate: whether `.actionSlot` needs a reserved height. The
+Still open, and separate: whether `.steadyRows` needs a reserved height. The
 row is one row now, but the help line above it still comes and goes.
 
 ### The action vocabulary gained an asker — 2026-09-16

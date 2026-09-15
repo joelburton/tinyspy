@@ -10,7 +10,7 @@
   right — **subdividing it is still open.** 45 rules: the two-column shell (`.layout`,
   `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
   `.floatingShuffle`) — which is the file's real subject; the info-column
-  readouts (`.actionSlot`, `.infoState`, `.infoHelp`, `.infoActions`,
+  readouts (`.steadyRows`, `.infoState`, `.infoHelp`, `.infoActions`,
   `.terminalActions`, `.outcome_*`, `.terminalExtra`); the below-board feedback
   slot (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
   `.tileFace`, `.tileWord` + states); and the board-wide state marks
@@ -39,16 +39,30 @@
   be a in a better place."* The consumers ARE the games, so the split wants a
   game's own CSS pass open beside it.
 
-- **The info column's action box does not reserve its height.** Narrowed
-  2026-09-16: the `over ?` split is gone (every state is one `<InfoActionsRow>`
-  now), and the container is `.actionSlot`, which has `min-height: 6rem` — a
-  floor, not a reserved box. So what is left is the HELP line, play-only in
-  eight games: it and its 1rem gap leave at terminal, which under 6rem the floor
-  absorbs and over 6rem it does not. **Measure before deciding** — read
-  `.actionSlot`'s height in both states in a game with a long help line
-  (stackdown, letterboxed) and a short one (waffle). Then either reserve the
-  slot or amend docs/ui.md, whose Terminal-results paragraph claims the row
-  "never adds or removes a flow element".
+- ~~**The info column's action box does not reserve its height.**~~ **Closed
+  2026-09-15: it will not.** Joel: *"while we have a general principle of
+  'don't shrink/grow things in the infoCol', we do that at the item level (ie,
+  we make it so that the action buttons are always one line, if the
+  opponentstrip would grow based on your last move, we'd reserve 2 lines for
+  it, etc)."* So the don't-move rule is kept row by row, and a height on the
+  stack is the container-level reservation it refuses. The `min-height: 6rem`
+  that was doing that is gone.
+
+  The wrapper itself stays, and is now `.steadyRows` rather than
+  `.actionSlot` — it holds every row of the column except the turn log / word
+  list, of which the action row is one, and what they share is that they keep
+  their height while the log absorbs the slack. It earns its place because
+  flex shrinking is negotiated between siblings: with it, `.infoCol` has two
+  children and "the log gives" is structural; without it the rule would be
+  `.infoCol > * { flex-shrink: 0 }` against `TurnLog`'s `flex: 1` at equal
+  specificity, decided by module import order.
+
+  **What this leaves owed, per game:** the row-level reservations the
+  principle asks for. `SetupDisclosure` also adds `margin: 0.3rem 0 0` of its
+  own on top of the column gap, so the setup row sits 1.3rem below its
+  neighbor where every other pair is 1rem — the one inconsistency in the
+  column's spacing.
+
 - ~~**A contract-slot guard, per MOUNT POINT.**~~ **Closed 2026-09-15, no
   change.** The shared `.hugRectWidth` reads `--cols` / `--max-tile-width` /
   `--grid-gap` and no `common/` file sets them, so a game that wears the class

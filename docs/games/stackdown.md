@@ -375,7 +375,7 @@ prettier title here.
 
 stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
 two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
-`.boardCol` / `.infoCol` / `.actionSlot`). The board column holds the stacked-tile
+`.boardCol` / `.infoCol` / `.steadyRows`). The board column holds the stacked-tile
 board, the **move row**, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in
 that fixed order. Feedback is **split** the canonical way: the player's OWN move

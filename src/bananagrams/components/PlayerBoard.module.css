@@ -194,7 +194,7 @@
 
 /* ---- info column: the HAND ----
  * Matches the shared WordList / TurnLog chrome: a plain black heading OUTSIDE
- * an evident 2px-framed box. Sits BELOW the shared .actionSlot and fills the
+ * an evident 2px-framed box. Sits BELOW the shared .steadyRows and fills the
  * rest of the column height (bananagrams has no turn log / word list — the hand
  * takes that slot). */
 /* @@ */ .handSection {

@@ -110,7 +110,7 @@ export function InfoCol({
 }: Props) {
   return (
     <div className={shared.infoCol}>
-      <div className={shared.actionSlot}>
+      <div className={shared.steadyRows}>
         {/* ── State ── */}
         {/* Quoted: the clue is the puzzle's own words, not ours, and unquoted
             it reads as a heading the app wrote. */}
