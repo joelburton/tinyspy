@@ -107,13 +107,17 @@ export function GamePage({
   timer,
   isMyTurn,
 }: Props) {
+  // ─── What this page is about ────────────────────────────────────────────
   const gametype = manifest.gametype
   // The club this game belongs to. Every club-shaped URL and both presence
   // announcements come off it, and it is always a real handle — the loader
   // waited for the row.
   const clubHandle = commonGame.club_handle
   const gameOver = commonGame.ended_at !== null
+  const HelpComponent = manifest.help
+  const PlayArea = manifest.PlayArea
 
+  // ─── The club, and being seen in it ─────────────────────────────────────
   // Announce on the club's presence channel that this player is
   // viewing THIS game, so the club page's member dots +
   // abandoned-game heal can see them. We don't read the roster here —
@@ -130,12 +134,17 @@ export function GamePage({
     announce: null,
   })
 
-  // Open/closed state for the suspend-confirm modal — `act-back-to-club`'s
-  // third shape (below): mid-game, with peers to warn.
-  const [confirmingSuspend, setConfirmingSuspend] = useState(false)
+  // The FULL club roster (not just this game's players) — chat is club-wide, so
+  // naming a sender (chat window + the feedback pill) needs every member.
+  const { members: clubMembers } = useClubRoster(clubHandle)
+
+  // ─── The shell's own state ──────────────────────────────────────────────
   // Whether the per-game Help companion is mounted. Opened by `act-help`,
   // closed by its own ✕.
   const [helpOpen, setHelpOpen] = useState(false)
+  // Open/closed state for the suspend-confirm modal — `act-back-to-club`'s
+  // third shape (below): mid-game, with peers to warn.
+  const [confirmingSuspend, setConfirmingSuspend] = useState(false)
   // The GLOBAL feedback slot — the header's status slot draws its top
   // message in place of the players strip. One instance for the life of the
   // page; a PlayArea reaches it as `ctx.globalFeedbackSlot`.
@@ -145,47 +154,6 @@ export function GamePage({
   // re-render the page and the board with it. Cleared on unmount, so a menu
   // cannot outlive the game that pushed it.
   useEffect(() => () => setGameMenuSections([]), [])
-
-  // Fire the timeout-loss when the countdown hits 0 — on the expired
-  // TRANSITION (false → true), not the level. Replay-board un-terminals a
-  // timed-out game while `expired` is still momentarily true (the tick-merge
-  // rewinds a beat later), and neither simpler trigger survives that: a level
-  // one re-ends the fresh game from any tab that hasn't fired yet, and a
-  // one-way "already submitted" latch blocks the replayed game's own genuine
-  // timeout. An edge (prevExpiredRef) handles both — the stale-true carries no
-  // edge, and once the clock rewinds the trigger is re-armed. The RPC is
-  // server-side idempotent for the multi-peer race case.
-  const prevExpiredRef = useRef(false)
-  useEffect(function fireTimeoutOnExpiry() {
-    // No moves while paused — including this one. Returning BEFORE the edge
-    // is recorded keeps the defer contract: a timeout that comes due exactly
-    // as a pause engages resolves on resume (the edge is still unconsumed).
-    if (paused) return
-    const wasExpired = prevExpiredRef.current
-    prevExpiredRef.current = timer.expired
-    if (!timer.expired || wasExpired) return
-    if (commonGame.ended_at !== null) return // a peer already ended it
-    void manifest.submitTimeout(gameId).then(function logHowTheTimeoutLanded(res) {
-      // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
-      // connected client fires this on the same countdown edge, so in a
-      // four-player game three arrive to find the work done. Logged at info,
-      // because "someone else ended it" is exactly what should have happened.
-      if (res.type === 'not-ok' && res.severity === 'race') {
-        console.log(`[db] submitTimeout: ${res.message} (${res.dbcode})`)
-      } else if (res.type === 'not-ok') {
-        // Everything else is real — a deleted game, an expired session. `[db]`
-        // so it sits in the same filter as every other failed call; this one
-        // reaches no player, which is exactly why it must be findable in a log.
-        console.error(`[db] submitTimeout failed: ${res.message} (${res.dbcode})`)
-      } else if (res.type === 'ok' && res.data?.result === 'ended') {
-        // The terminal arrives at every client by subscription, this one
-        // included — winning the race buys no extra work.
-      } else {
-        reportUnhandled('submit_timeout', res)
-      }
-    })
-  }, [timer.expired, paused, commonGame, gameId, manifest])
-
   const accountSection = useAccountMenuSection()
 
   // Which mobile page is showing (see infoSheetStore for why it's a store and
@@ -200,6 +168,7 @@ export function GamePage({
     setInfoSheetOpen(false)
   }, [gameId])
 
+  // ─── The actions the page binds ─────────────────────────────────────────
   // Help for THIS game — the manifest's rules component. Bound here rather than
   // in each PlayArea because the page is what mounts it, and handed down on the
   // menu API for the game to place.
@@ -295,10 +264,7 @@ export function GamePage({
     run: endTheGameFromTheOverlay,
   })
 
-  // The FULL club roster (not just this game's players) — chat is club-wide, so
-  // naming a sender (chat window + the feedback pill) needs every member.
-  const { members: clubMembers } = useClubRoster(clubHandle)
-
+  // ─── The clock ──────────────────────────────────────────────────────────
   // A COUNT-UP clock survives the end of the game and a COUNTDOWN does not, and
   // the difference is what each one is for. A countdown is a budget: once the
   // game is over it can only read 0:00, which says nothing anyone needs. A
@@ -313,11 +279,49 @@ export function GamePage({
   // says "these digits are not moving", which is a fact about the clock rather
   // than a judgment about why.
   const timerStopped = paused || gameOver
-  const HelpComponent = manifest.help
-  const PlayArea = manifest.PlayArea
+
+  // Fire the timeout-loss when the countdown hits 0 — on the expired
+  // TRANSITION (false → true), not the level. Replay-board un-terminals a
+  // timed-out game while `expired` is still momentarily true (the tick-merge
+  // rewinds a beat later), and neither simpler trigger survives that: a level
+  // one re-ends the fresh game from any tab that hasn't fired yet, and a
+  // one-way "already submitted" latch blocks the replayed game's own genuine
+  // timeout. An edge (prevExpiredRef) handles both — the stale-true carries no
+  // edge, and once the clock rewinds the trigger is re-armed. The RPC is
+  // server-side idempotent for the multi-peer race case.
+  const prevExpiredRef = useRef(false)
+  useEffect(function fireTimeoutOnExpiry() {
+    // No moves while paused — including this one. Returning BEFORE the edge
+    // is recorded keeps the defer contract: a timeout that comes due exactly
+    // as a pause engages resolves on resume (the edge is still unconsumed).
+    if (paused) return
+    const wasExpired = prevExpiredRef.current
+    prevExpiredRef.current = timer.expired
+    if (!timer.expired || wasExpired) return
+    if (commonGame.ended_at !== null) return // a peer already ended it
+    void manifest.submitTimeout(gameId).then(function logHowTheTimeoutLanded(res) {
+      // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
+      // connected client fires this on the same countdown edge, so in a
+      // four-player game three arrive to find the work done. Logged at info,
+      // because "someone else ended it" is exactly what should have happened.
+      if (res.type === 'not-ok' && res.severity === 'race') {
+        console.log(`[db] submitTimeout: ${res.message} (${res.dbcode})`)
+      } else if (res.type === 'not-ok') {
+        // Everything else is real — a deleted game, an expired session. `[db]`
+        // so it sits in the same filter as every other failed call; this one
+        // reaches no player, which is exactly why it must be findable in a log.
+        console.error(`[db] submitTimeout failed: ${res.message} (${res.dbcode})`)
+      } else if (res.type === 'ok' && res.data?.result === 'ended') {
+        // The terminal arrives at every client by subscription, this one
+        // included — winning the race buys no extra work.
+      } else {
+        reportUnhandled('submit_timeout', res)
+      }
+    })
+  }, [timer.expired, paused, commonGame, gameId, manifest])
 
   return (
-    <div className={styles.frame}>
+    <div className={styles.pageHeaderAndPlaySurface}>
       {/* ── The header, which on MOBILE is split across the two pages ──
           One `<header>` whose contents swap, not two headers: the switch button
           then can't move between pages (it's pinned to the right edge in both),

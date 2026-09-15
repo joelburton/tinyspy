@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import type { Outcome } from '../outcomes/outcomes'
-import shared from './playArea.module.css'
+import shared from '@/common/game-page/playArea.module.css'
+import styles from './InfoActionsRow.module.css'
 
 /**
  * The line an `<InfoActionsRow>` draws to the left of its buttons.
@@ -56,11 +57,12 @@ type Props = {
  */
 export function InfoActionsRow({ message, children }: Props) {
   return (
-    // `.terminalActions` stops the row wrapping, which is only wanted when
-    // there is a line for the buttons to stay beside.
+    // The row's own classes are the play-surface scaffold's, because a game can
+    // compose them directly; `.terminalActions` stops the row wrapping, which
+    // is only wanted when there is a line for the buttons to stay beside.
     <div className={cls(shared.infoActions, message && shared.terminalActions)}>
       {message && (
-        <span className={cls(shared.outcome, shared[`outcome_${message.outcome}`])}>
+        <span className={cls(styles.outcome, styles[`outcome_${message.outcome}`])}>
           {message.text}
         </span>
       )}

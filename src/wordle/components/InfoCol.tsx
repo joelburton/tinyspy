@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
+import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'

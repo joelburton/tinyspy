@@ -1,0 +1,40 @@
+/* cs-unmet */
+
+/* The line `<InfoActionsRow>` draws beside its buttons. Only the line's rules
+ * live here — the row itself (`.infoActions` / `.terminalActions`) is the
+ * play-surface scaffold's, in `game-page/playArea.module.css`, because a game
+ * can compose those directly. */
+
+/* Bold, inked by its outcome; grows so the buttons sit at the right edge. */
+/* @@ */ .outcome {
+  flex: 1;
+  font-weight: 700;
+}
+
+/* One rule per member of the outcome vocabulary (docs/outcomes.md), because
+ * the class is indexed into and must answer for every value the type admits.
+ * `won` / `lost` / `neutral` are the verdicts; `near`, `warning` and `noted`
+ * judge a MOVE, so they appear only while a game is still being played. */
+/* @@ */ .outcome_won {
+  color: var(--outcomes-won-ink-color);
+}
+
+/* @@ */ .outcome_lost {
+  color: var(--outcomes-lost-ink-color);
+}
+
+/* @@ */ .outcome_neutral {
+  color: var(--page-text-color);
+}
+
+/* @@ */ .outcome_near {
+  color: var(--outcomes-near-ink-color);
+}
+
+/* @@ */ .outcome_warning {
+  color: var(--outcomes-warning-ink-color);
+}
+
+/* @@ */ .outcome_noted {
+  color: var(--outcomes-noted-ink-color);
+}

@@ -448,6 +448,43 @@ and `mobile.md`: a `<ul>` and a `.frame` the page does not have, rows that
 "stay ordinary links", a "Welcome, …" heading, a "SOLO pill". Nothing owed:
 `home/todo.md` is empty.
 
+**Closed-area doc passes — render trees owed.** The render-tree rule
+(§4 → "Harvest the folder's `doc.md`") arrived at `game-page` on 2026-09-15,
+after these closed. Each is a documentation pass on a closed area, Joel's to
+schedule; none reopens the area. Assessed 2026-09-15 by reading each folder's
+components and who mounts them:
+
+- **`boot`** — `App.tsx`'s tree: the page it picks per session state and
+  route, and the hosts it mounts under every page (`ToastHost`, `FaultModal`,
+  `TooltipHost`, `DefinitionHost`, `ConfirmationHost`, `AppActionsHost`,
+  `GameInvitations`, the two root dialogs). The root of every other tree.
+- **`club-page`** — `App` → `ClubPageLoader` → `ClubPage`, and what the page
+  draws: header, current-game card, the start row, the game list's rows and
+  filters, the edit and help panels, `Chat`, and `setup-form`'s modal.
+- **`page-header`** — rendered by `ClubPage`, `HomePage` and `GamePage`;
+  draws the menu slot, the panel toggles, and the status slot that swaps the
+  players strip for `feedback`'s pill.
+- **`setup-form`** — `ClubPage` → `SetupGameModal` → the shared sections and
+  the game's own `setupForm.Component`; separately, every game's info column
+  → `SetupDisclosure`.
+- **`floating-panels`** — which shell wraps which: `FloatingPanel` under the
+  three window families, `BlockingModal` under its two members, and
+  `ConfirmationHost` at the root drawing whatever is pending. A family tree
+  more than a render tree, and the same question. Its `doc.md` has no
+  `## Details` at all today.
+- **`definitions`** — `DefinableWord` in text → `DefinitionHost` at the root
+  → the popover → `DefinitionView`; `AppActionsHost` → `WordLookupDialog` →
+  the same view; `App` → `WordEditDialog`. Two hosts, one view.
+- **`chat`** — short, and worth it for the edge: `Chat` → `ChatBody` is
+  mounted by `ClubPage` and `GamePage`, while its header mark is
+  `page-header`'s.
+
+Not worth a tree: `buttons`, `fields`, `forms`, `lists`, `members` (leaf
+components rendered from everywhere); `menu` (one component, one renderer —
+a sentence); `common-hosts`, `account`, `simple-page`, `scratchpad`,
+`actions` (their mount is `App`'s or `GamePage`'s tree). Folders not yet
+closed draw theirs at their own harvest.
+
 - **§3** is the areas, in order, and the ONLY place an area's position is
   written down.
 - **§4** is the process — the stamps, what opening an area means, what "broken"
@@ -583,8 +620,8 @@ will list the other as a dependency whichever goes first.
 | 32 | `setup-form` | `setup-form` | **CLOSED 2026-09-14, blessed.** the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts. Twenty findings in `plans/areas/setup-form.md`, all worked. The closing re-read earned its place again — seven more, five of them the area's own findings recurring next door, three in prose the day's fixes wrote. What changed the app: the dialog reads `is_solo` and says "· AI" for scrabble's solo compete; `require_valid_timer`'s faults name `timer` and the create path's no-players fault names `player_user_ids`; `SetupDisclosure` owns its stylesheet; the "next up" line has a test handle |
 |    | **The game shell** — needed by games and nothing else | | |
 | 33 | `manifest` | `manifest` · `gametypes.ts` | **CLOSED 2026-09-14, blessed.** the registry and the manifest contract every game fills in. `gametypes.ts` is the registry's list, the one file allowed to import every game; it was `root-files`' until that row folded into this one (Joel, 2026-09-05), once `boot` had taken the other two root files. Fifteen findings in `plans/areas/manifest.md`, all worked, and two of the recorded ones were WRONG as recorded — F-9 counted manifest files where the registry has thirty entries, and `tsc` found the one (crosswords compete) that omitted `endGame`. What changed the app: `endGame` is required and crosswords compete has `end_game` (PN487 retired); `manifestFor` replaced six hand-rolled lookups and a registry miss now says what it means — an error page from the URL, a reload fault from a stale bundle, and `?new=` no longer bypasses club enrollment; both club lists sort coop-first explicitly; `statusLabel.ts`'s header is the one home of the status-line grammar. The closing re-read found a recorded fix that had never landed |
-| 34 | `game-page` | `game-page` | **OPEN 2026-09-14; every finding worked and the closing re-read done 2026-09-15 — waiting on Joel's blessing.** the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them. Twenty-four findings in `plans/areas/game-page.md`: eleven from the reading, thirteen from the re-read, plus the seven decisions `todo.md` handed it. What changed the app: the route is three components (`GamePageGate` → `GamePageLoader` → `GamePage`), and the page builds its own play surface — `App.tsx` passes the URL's two parts and the session and nothing else; one Back to club from every surface, the pause overlay and the device-block card included (`BackToClubButton` and `ctx.goToClub` deleted); `InfoActionsRow` is the info column's action row in every state, absorbing `terminal/`'s two; `describe()` takes its asker; `.noShrinkRow` reserves no height, by Joel's row-by-row rule; `--game-chrome-height` is composed and the shell no longer overflows by 1px; Help closes by its ✕. The re-read's lesson, for the fifth area running: eight of its thirteen were the area's own findings next door or written by its own fixes — and forty-three lines in twenty-three files dated the work to a day that had not happened yet. Open in its `todo.md`: the concern split of `playArea.module.css`, which waits for the first game area (Joel). Unrun: `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed |
-| 35 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, the bordered panel its readouts wear, and the whose-turn line (`TurnStatusLine`, moved in from `turn-log` 2026-09-12). `turnText` is here but `feedback` owns its words |
+| 34 | `game-page` | `game-page` | **OPEN 2026-09-14; every finding worked and the closing re-read done 2026-09-15 — waiting on Joel's blessing.** the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them. Twenty-four findings in `plans/areas/game-page.md`: eleven from the reading, thirteen from the re-read, plus the seven decisions `todo.md` handed it. What changed the app: the route is three components (`GamePageGate` → `GamePageLoader` → `GamePage`), and the page builds its own play surface — `App.tsx` passes the URL's two parts and the session and nothing else; one Back to club from every surface, the pause overlay and the device-block card included (`BackToClubButton` and `ctx.goToClub` deleted); `InfoActionsRow` is the info column's action row in every state, absorbing `terminal/`'s two (moved on to `info-sheet/` at the close, Joel's call); `describe()` takes its asker; `.noShrinkRow` reserves no height, by Joel's row-by-row rule; `--game-chrome-height` is composed and the shell no longer overflows by 1px; Help closes by its ✕. The re-read's lesson, for the fifth area running: eight of its thirteen were the area's own findings next door or written by its own fixes — and forty-three lines in twenty-three files dated the work to a day that had not happened yet. Open in its `todo.md`: the concern split of `playArea.module.css`, which waits for the first game area (Joel). Unrun: `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed |
+| 35 | `info-sheet` | `info-sheet` | the info column: its mobile sheet, its switch, the bordered panel its readouts wear, the whose-turn line (`TurnStatusLine`, moved in from `turn-log` 2026-09-12), and its action row (`InfoActionsRow` + its test + its stylesheet, moved in from `game-page` 2026-09-15, all `cs-unmet`). `turnText` is here but `feedback` owns its words |
 | 36 | `timer` | `timer` | the game clock |
 | 37 | `pause-suspend` | `pause-suspend` | pausing, presence-pause, suspend |
 | 38 | `turn-log` | `turn-log` | the chronological history readout and its viewer |
@@ -816,6 +853,15 @@ making every single-line change in four folders its own commit is dumb.)
    both shapes. Its row comes off `INTROS_OWED` in
    `src/guards/folderDocs.test.ts`. Anything still owed goes to `todo.md`. The
    area file is then a record of the reading and nothing more.
+
+   **A folder that holds components gets a render tree in `## Details`** —
+   who renders it, and what it renders, the other folders' and the games'
+   nodes marked. `game-page/doc.md` is the model; Joel, 2026-09-15: *"this
+   kind of diagram ('who renders me and what do i render') is extremely
+   helpful."* The rule is in
+   [docs/common-folders.md → doc.md](../docs/common-folders.md#docmd--three-fixed-elements-then-freedom);
+   this is the reminder that the harvest draws it. Closed areas that would
+   benefit are listed under "Where to start" → closed-area doc passes.
 
 **Those two steps are the last things CLAUDE does. Neither is the close.** An
 area is closed when its roster files read `cs-blessed-<area>`, and only Joel

@@ -94,14 +94,14 @@ export function PlayAreaSlotLog({
   // the effect's deps would re-fire it on every play_state change, exactly
   // the flood this component exists to avoid.
   const atMountRef = useRef({ playState, isTerminal })
-  useEffect(() => {
+  useEffect(function logTheSlotMount() {
     const atMount = atMountRef.current
     console.log(
       `[ui ${logStamp()}] playarea slot mounted — ${gametype} ${gameId} ` +
         `(play_state=${atMount.playState} terminal=${atMount.isTerminal})`,
     )
     console.log(`[ui ${logStamp()}] browser — ${browserInfoLine()}`)
-    return () => {
+    return function logTheSlotUnmount() {
       console.log(`[ui ${logStamp()}] playarea slot unmounted — ${gametype} ${gameId}`)
     }
   }, [gametype, gameId])

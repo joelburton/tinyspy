@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/game-page/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'

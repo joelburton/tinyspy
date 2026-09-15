@@ -16,7 +16,10 @@
  * stay at their intrinsic sizes.
  */
 
-/* @@ */ .frame {
+/* The page's one wrapper: the header stacked over the play surface. Named for
+ * what it holds, and NOT `.frame` — a "frame" in this app is the outline a
+ * finished board wears (`.gameOverFrame`), and this is a layout box. */
+/* @@ */ .pageHeaderAndPlaySurface {
   display: flex;
   flex-direction: column;
   /* The same token --game-chrome-height counts as "GamePage's gap". A literal

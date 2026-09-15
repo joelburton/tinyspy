@@ -2,7 +2,7 @@
 
 import { DotActor } from '@/common/members/ActorMention'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
+import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'

@@ -165,6 +165,15 @@ who mounts it, how it stays current, and how its pieces answer that...
   have the shape (`common/home` is the pattern for a small folder). A large
   area — a game — will want more, and named: its schema, its rules, its tests.
   That structure is designed when the first game area opens.
+- **A folder that holds components draws its render tree in `## Details`** —
+  who renders this folder's components, and what they render in turn, as a
+  fenced `└──` tree with a few words per node. Mark the nodes that belong to
+  another folder or to a game, since those are the edges a reader is trying
+  to find. `common/game-page/doc.md` is the model (Joel, 2026-09-15: this kind
+  of diagram — "who renders me and what do I render" — is *extremely*
+  helpful). A folder of leaf components rendered from everywhere (`buttons`,
+  `fields`) has no tree to draw; a folder with one mount point and one host
+  has a short one, and draws it anyway.
 
 **The register to aim for.** Describing a whole GAME this way would take a few
 paragraphs, not a chapter: which tables hold its state, whether the frontend

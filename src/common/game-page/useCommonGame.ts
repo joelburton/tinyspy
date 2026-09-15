@@ -319,7 +319,7 @@ export function useCommonGame(
         const byId = new Map(
           (playerRows ?? []).map((r) => [r.user_id, r]),
         )
-        playerList = (profileData ?? []).map((prof) => {
+        playerList = (profileData ?? []).map(function mergeGamePlayerBits(prof) {
           const gp = byId.get(prof.user_id)
           return {
             ...(prof as Member),
@@ -414,7 +414,7 @@ export function useCommonGame(
       // clubHandleRef indirection is so the handler resolves the current
       // handle at receive-time rather than at register-time (load() runs
       // later).
-      ch.on('broadcast', { event: 'suspend' }, () => {
+      ch.on('broadcast', { event: 'suspend' }, function navigateToTheClub() {
         const handle = clubHandleRef.current
         if (!handle) return
         navigate(clubPath(handle))
@@ -432,7 +432,7 @@ export function useCommonGame(
       // user don't double-count. We also mirror to a ref so the
       // unmount cleanup can read the latest snapshot — see the
       // cleanup return below.
-      ch.on('presence', { event: 'sync' }, () => {
+      ch.on('presence', { event: 'sync' }, function mirrorPresence() {
         const state = ch.presenceState() as Record<
           string,
           Array<{ user_id?: string }>
@@ -448,7 +448,7 @@ export function useCommonGame(
         rtLog(room, `presence sync: [${[...ids].join(', ')}]`)
       })
 
-      ch.subscribe((status) => {
+      ch.subscribe(function loadAndAssertCurrentView(status) {
         if (status === 'SUBSCRIBED') {
           load()
           ch.track({ user_id: session.user.id })
@@ -470,7 +470,7 @@ export function useCommonGame(
           // reconnect. Same shape as `unset_current_view` below.
           void runRpc<SetAnswer>(
             commonDb.rpc('set_current_view', { target_game: gameId }),
-          ).then((res) => {
+          ).then(function logHowSetCurrentViewLanded(res) {
             if (res.type === 'not-ok' && res.severity === 'fault') {
               console.error('set_current_view failed', res.message)
             } else if (res.type === 'ok' && res.dbcode === 'PA003') {
@@ -502,7 +502,7 @@ export function useCommonGame(
 
     load()
 
-    return () => {
+    return function leaveGameRoom() {
       mounted = false
       canceled = true
 
@@ -533,7 +533,7 @@ export function useCommonGame(
         // the next set_current_view clears it as a straggler.
         void runRpc<UnsetAnswer>(
           commonDb.rpc('unset_current_view', { target_game: gameId }),
-        ).then((res) => {
+        ).then(function logHowUnsetCurrentViewLanded(res) {
           if (res.type === 'not-ok' && res.severity === 'fault') {
             // The severity is asserted, not assumed, and it is the reason a
             // console line is enough: a fault is the only not-ok this RPC can

@@ -3,7 +3,7 @@
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/game-page/InfoActionsRow'
+import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'

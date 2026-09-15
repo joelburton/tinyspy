@@ -15,7 +15,7 @@
  *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .mobileFill /
  *      .responsiveInfoCol / .hugRectWidth / .floatingShuffle);
  *   2. the info-column READOUTS (.noShrinkRow / .infoState / .infoHelp /
- *      .infoActions) + the terminal swap (.terminalActions / .outcome_* /
+ *      .infoActions / .actionsDivider) + the terminal swap (.terminalActions /
  *      .terminalExtra);
  *   3. the below-board feedback slot (.localFeedback /
  *      .moveAreaOrLocalFeedback);
@@ -410,40 +410,9 @@
   display: none;
 }
 
-/* The action row's line — bold, inked by its outcome; grows so the buttons sit
- * at the right edge. */
-/* @@ */ .outcome {
-  flex: 1;
-  font-weight: 700;
-}
-
-/* @@ */ .outcome_won {
-  color: var(--outcomes-won-ink-color);
-}
-
-/* @@ */ .outcome_lost {
-  color: var(--outcomes-lost-ink-color);
-}
-
-/* @@ */ .outcome_neutral {
-  color: var(--page-text-color);
-}
-
-/* The rest of the outcome vocabulary, for a row whose line is not a verdict —
- * `near`, `warning` and `noted` judge a MOVE, so they can only appear while a
- * game is still being played (docs/outcomes.md). One rule per member, because
- * a class this is indexed into must answer for every value the type admits. */
-/* @@ */ .outcome_near {
-  color: var(--outcomes-near-ink-color);
-}
-
-/* @@ */ .outcome_warning {
-  color: var(--outcomes-warning-ink-color);
-}
-
-/* @@ */ .outcome_noted {
-  color: var(--outcomes-noted-ink-color);
-}
+/* The line beside the buttons is `<InfoActionsRow>`'s own
+ * (`info-sheet/InfoActionsRow.module.css`); the row stays here because a game
+ * can compose `.infoActions` directly. */
 
 /* Terminal-only EXTRA info in the info column — content shown ONLY at game over
  * (e.g. wordle's answer reveal: words too tall for the below-board slot, which

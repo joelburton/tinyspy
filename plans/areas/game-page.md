@@ -26,8 +26,12 @@ and nothing else:
 - `GamePageLoader.tsx` — `useCommonGame` and the wait for its answer
 - `GamePage.tsx` + `.module.css` + `.test.tsx` — the shell, drawn from props
 - `NoSuchGamePage.tsx` — `<ErrorPage>` in its Not-Found shape
-- `InfoActionsRow.tsx` + `.test.tsx` — the info column's action row, every state
-  (arrived from `common/terminal/`; see below)
+- ~~`InfoActionsRow.tsx` + `.test.tsx`~~ — the info column's action row, every
+  state (arrived from `common/terminal/` as F-11.3; moved on to
+  `common/info-sheet/` 2026-09-15 at Joel's ask, with the outcome line's six
+  rules as its own `InfoActionsRow.module.css` — the row classes stay in
+  `playArea.module.css` because bananagrams composes them directly. Both files
+  still `cs-unmet`; `info-sheet`'s area reads them)
 - `gamePageCtx.ts` — what the shell hands a game
 - `useCommonGame.ts` + `.test.ts` — the shared room: the row, the roster, the
   channel, presence, pause, suspend, the timer
@@ -817,7 +821,9 @@ Not findings; the todo items F-11 counted, decided with Joel and recorded in
   (F-11.7) walks both branches of the stale-chunk path.
 - **Two Someday items closed** without change: the global feedback slot stays
   in `GamePage` (feedback's redesign landed and states it as the rule);
-  the page keeps its own `.frame` rather than `.pageHeaderAndMainArea`, on
+  the page keeps its own wrapper (`.pageHeaderAndPlaySurface`, renamed from
+  `.frame` at Joel's ask — a frame is what a finished board wears) rather than
+  `.pageHeaderAndMainArea`, on
   measurement and three reasons recorded in `todo.md`.
 
 ## The closing re-read — 2026-09-15

@@ -11,7 +11,9 @@
   `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
   `.floatingShuffle`) — which is the file's real subject; the info-column
   readouts (`.noShrinkRow`, `.infoState`, `.infoHelp`, `.infoActions`,
-  `.terminalActions`, `.outcome_*`, `.terminalExtra`); the below-board feedback
+  `.terminalActions`, `.terminalExtra`; the outcome line's rules went to
+  `info-sheet/InfoActionsRow.module.css` with the component, 2026-09-15); the
+  below-board feedback
   slot (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
   `.tileFace`, `.tileWord` + states); and the board-wide state marks
   (`.dimInFlight`, `.dimNotYourTurn`, `.gameOverFrame`,
@@ -86,7 +88,8 @@
   `ClubPage` does the identical thing, so `GamePage` is one of two pages
   following it rather than an exception to anything.
 - ~~**The game page is the one page not wearing `.pageHeaderAndMainArea`.**~~
-  **Closed 2026-09-15: it keeps its own `.frame`, on measurement.** It is
+  **Closed 2026-09-15: it keeps its own wrapper (`.pageHeaderAndPlaySurface`,
+  which was `.frame` until Joel renamed it the same day), on measurement.** It is
   still the one page without the shared pattern — home, login, claim-handle
   and club all wear it — but the argument the item made for adopting it is
   gone: "a header or padding change moves both numbers by hand" stopped being
@@ -103,7 +106,7 @@
     in one place rather than fifteen pages each slightly off;
   - **boards do not ask their parent.** Eleven games compute their board's
     height from `100svh` directly, each minus its own reserve, so bounding
-    `.frame` would not reach them;
+    the wrapper would not reach them;
   - **it would make the play surface shrinkable for the first time.** The
     shared pattern puts a `height` on the wrapper, and a flex item with an
     explicit height still has `flex-shrink: 1` — so an overflow would quietly

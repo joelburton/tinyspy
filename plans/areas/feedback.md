@@ -51,7 +51,7 @@ Edited by the area, owned elsewhere (stamps do not move):
 `common/chat/useChatFeedback.tsx` (+ test), `game-page/GamePage.tsx` +
 `gamePageCtx.ts`, `club/ClubPage.tsx`, `page-header/PageHeaderStatusSlot.tsx`,
 `word-entry/EntryRow.tsx`, `terminal/TerminalActionRow.tsx` (since generalized
-and moved — it is `game-page/InfoActionsRow.tsx` now),
+and moved — it is `info-sheet/InfoActionsRow.tsx` now),
 `game-page/useStandardGameActions.ts` (+ test), `guards/orphanedDocstrings`
 and `guards/vocabularies` (allowlist lines), `shared/word-hunt/useWordSubmit.ts`
 (+ test; gains `hideAccepted`), and every game's PlayArea, BoardCol and
