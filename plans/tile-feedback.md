@@ -1073,6 +1073,13 @@ and extends the line **with nothing to announce it**.
 **Trust + race.** The seeded pair and the playable list ship to the FE behind a
 display gate; the server validates each word. Coop shares one chain.
 
+**A refused word never leaves this client** (Joel, 2026-09-15): `rejectReason`
+answers every shape the frontend can judge — not a word, wrong side, wrong
+tail, cap reached — and returns before the RPC, so no row is written and there
+is nothing for a peer to be shown. What does reach the server is a RACE, the
+chain having moved under you, which is a not-ok rather than a verdict. So this
+board needs no peer-facing refusal mark at all, unlike stackdown's.
+
 **What we want** (proposals):
 - **Attention on the letters a teammate's word just covered**, and on the line
   it added. The line is a motion-shaped change drawn instantly, which is

@@ -48,6 +48,7 @@ export function BoardCol({
   onExitViewing,
   draft,
   onDraftChange,
+  refused,
   onSubmit,
   onPick,
   onRemoveLast,
@@ -71,6 +72,10 @@ export function BoardCol({
   viewingDescription: string | null
   onExitViewing: () => void
   // ── Entry ──
+  /** The word this player just had refused, with its replay nonce — the board
+   *  shakes its letters. Handed on only while it still describes what is in the
+   *  box: edit a letter and the answer is about a word that no longer exists. */
+  refused: { word: string; nonce: number } | null
   /** Only the letters the PLAYER added — the seed is derived, see above. */
   draft: string
   onDraftChange: (next: string) => void
@@ -207,6 +212,7 @@ export function BoardCol({
           word={viewingDescription !== null ? '' : word}
           onPick={onPick}
           disabled={entryDisabled || viewingDescription !== null}
+          shakeNonce={refused && refused.word === word ? refused.nonce : null}
         />
       </div>
 

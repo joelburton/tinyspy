@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import { canFollow, coveredLetters, EDGE, layout, NODE_R, pathPoints, SPAN } from '../lib/board'
+import { canFollow, coveredLetters, EDGE, layout, pathPoints, SPAN } from '../lib/board'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 import play from './PlayArea.module.css'
 
@@ -32,6 +33,7 @@ export function Board({
   word,
   onPick,
   disabled,
+  shakeNonce = null,
 }: {
   /** Twelve letters in side order. */
   sides: string
@@ -43,6 +45,11 @@ export function Board({
   onPick: (letter: string) => void
   /** Terminal / not my turn / conceded: the board is inert. */
   disabled: boolean
+  /** Set when the word on the board was just refused: its letters shake, which
+   *  is what side to side means everywhere in this app. The number is a replay
+   *  nonce — the letters are keyed on it, so refusing the same word twice shakes
+   *  twice (a CSS animation only restarts on a new element). */
+  shakeNonce?: number | null
 }) {
   const nodes = useMemo(() => layout(sides), [sides])
   const covered = useMemo(() => coveredLetters(chain), [chain])
@@ -69,25 +76,30 @@ export function Board({
   )
 
   return (
-    <svg
-      className={cls(styles.board, play.board)}
-      viewBox="0 0 100 100"
-      role="presentation"
-    >
-      <rect
-        className={styles.box}
-        x={EDGE}
-        y={EDGE}
-        width={SPAN}
-        height={SPAN}
-        rx="1.5"
-      />
+    // The board is TWO layers in one square: an SVG carrying the box and the two
+    // chain lines, and the letters laid over it as ordinary boxes. The letters
+    // left the SVG so they could be tiles — a `<circle>` takes no box-shadow, no
+    // shared tile face and none of the shared marks, so every one of those had to
+    // be hand-translated into SVG idioms and re-scaled by hand. The two layers
+    // cannot drift: both are addressed in the same 0-100 coordinates, the SVG
+    // through its viewBox and the letters as percentages.
+    <div className={cls(styles.board, play.board)}>
+      <svg className={styles.lines} viewBox="0 0 100 100" role="presentation">
+        <rect
+          className={styles.box}
+          x={EDGE}
+          y={EDGE}
+          width={SPAN}
+          height={SPAN}
+          rx="1.5"
+        />
 
-      {/* Both lines sit under the letters so a node is never obscured. The ghost
-          is first so a live path drawn over it wins — they only overlap while
-          the carried first letter is down, which draws no segment anyway. */}
-      {ghostPoints && <polyline className={styles.ghostPath} points={ghostPoints} />}
-      {points && <polyline className={styles.path} points={points} />}
+        {/* Both lines sit under the letters so a node is never obscured. The ghost
+            is first so a live path drawn over it wins — they only overlap while
+            the carried first letter is down, which draws no segment anyway. */}
+        {ghostPoints && <polyline className={styles.ghostPath} points={ghostPoints} />}
+        {points && <polyline className={styles.path} points={points} />}
+      </svg>
 
       {nodes.map((n) => {
         const isLast = n.letter === last
@@ -96,27 +108,32 @@ export function Board({
         // The current last letter is exempt — clicking it means submit.
         const blocked = !isLast && !canFollow(sides, last, n.letter)
         return (
-          <g
-            key={n.letter}
+          <div
+            // Keyed on the shake's nonce while this letter is in the refused
+            // word, so the same refusal twice replays the movement; the letters
+            // that are not in the word keep their identity.
+            key={inWord && shakeNonce !== null ? `${n.letter}#${shakeNonce}` : n.letter}
             className={cls(
               styles.node,
               covered.has(n.letter) && styles.covered,
               inWord && styles.inWord,
               isLast && styles.last,
               disabled && styles.disabled,
+              inWord && shakeNonce !== null && shared.verdictShake,
             )}
+            // The node's own coordinates, as a share of the square — the same
+            // numbers the SVG above positions by. `--node-d` (its diameter) is in
+            // the stylesheet, and the margins there pull it back onto its center.
+            style={{ left: `${n.x}%`, top: `${n.y}%` }}
             onClick={() => {
               if (disabled || blocked) return
               onPick(n.letter)
             }}
           >
-            <circle cx={n.x} cy={n.y} r={NODE_R} />
-            <text x={n.x} y={n.y} dominantBaseline="central" textAnchor="middle">
-              {n.letter.toUpperCase()}
-            </text>
-          </g>
+            {n.letter.toUpperCase()}
+          </div>
         )
       })}
-    </svg>
+    </div>
   )
 }
