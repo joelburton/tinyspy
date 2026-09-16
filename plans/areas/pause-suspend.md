@@ -7,8 +7,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
 findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6,
-F-7, F-8 and F-9. The two that remain each carry a decision and are presented
-one at a time: F-11, F-13.
+F-7, F-8, F-9 and F-13. **One is left: F-11**, moving the suspend question to
+`askConfirmation` — a build rather than a decision, since `todo.md` settled its
+shape, and it is what stands between this area and its closing re-read.
 
 ## The roster
 
@@ -354,6 +355,16 @@ clause answers a question nobody asked. Options: (1) draw the "waits until
 everyone's joined" sentence only with the roster and the "any player can
 pause it … selections reset" sentence always; (2) leave. Recommend (1); the
 text itself is Joel's and stays as written.
+
+**WORKED 2026-09-16 with Joel's text, and the third sentence deleted.** Neither
+of the options offered was taken: the line is now one sentence per source, in
+his words — presence draws "The game is waiting until everyone is joined and
+connected.", a manual pause draws "Any player can pause the game.", and a pause
+with both sources draws both. "Your in-progress selections reset on every
+pause." is gone entirely — Joel: *"will just be confusing for people to read."*
+The reset it described is a rule for whoever writes a game's state, and its home
+is `doc.md` → Details, not the banner. Nothing asserted any of that text, so no
+test moved.
 
 ## What checked out
 

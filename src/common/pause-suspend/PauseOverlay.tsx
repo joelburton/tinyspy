@@ -106,9 +106,10 @@ export function PauseOverlay({
             <DotActor actor={manuallyPausedBy} show="both" /> paused the game.
           </strong>
         )}
+        {/* One sentence per source, so neither explains the other's pause. */}
         <p className="muted">
-          The game waits until everyone's joined and connected, and any player
-          can pause it. Your in-progress selections reset on every pause.
+          {someoneMissing && 'The game is waiting until everyone is joined and connected. '}
+          {manuallyPausedBy && 'Any player can pause the game.'}
         </p>
         {/* Resume belongs to a manual pause only — a presence pause clears
             when the player comes back, not because anyone pressed anything.
