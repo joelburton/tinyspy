@@ -220,9 +220,17 @@ drops the tally ("Most of these just pin the arms of `TimerMode`"), covers the
 formatter that moved in under F-3, and says what the doubled `0:05` assertion is
 for: `padStart` is pinned through `formatTimerSeconds` directly AND through the
 countdown arm that calls it, so a label that stopped sharing the formatter fails
-here rather than drifting. **Still owed: the `ticked(n)` helper** in
-`useGameTimer.test.ts` — seven 200-character envelope literals differing only in
-N. That is a code change, not prose.
+here rather than drifting.
+
+**WORKED 2026-09-16 — the code half.** `ticked(n)` sits at module scope, above
+the `beforeEach` that needs it, with a docstring saying why the envelope is 200
+characters (every key present is the contract — docs/envelopes.md) and that only
+the count ever differs. `notOk` stays inside the `describe` where it is: its
+docstring introduces the not-ok specs that follow it, and moving it beside
+`ticked` would separate the two. **Eight call sites, not seven** — the audit
+counted the specs and missed the default in `beforeEach`. Plant-verified: making
+the helper report `n + 1` fails four specs, so it is load-bearing rather than
+decoration.
 
 ### F-timer-8 · `expired-is-a-level` · `expired` is a level and every consumer wants an edge or a fact
 

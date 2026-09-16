@@ -32,10 +32,22 @@ vi.mock('../supabase/db', () => ({
 import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
 import { useGameTimer } from './useGameTimer'
 
+/** `common.tick_timer`'s answer when it advanced the clock. Every key of the ok
+ *  envelope is present and null (docs/envelopes.md → the shape is the
+ *  contract), which is 200 characters in which only the count ever differs
+ *  between specs — so only the count is written at a call. */
+const ticked = (n: number) => ({
+  data: {
+    type: 'ok', data: { result: 'ticked', ticks: n }, outcome: null, severity: null,
+    message: null, field: null, meta: null, dbcode: null, detail: null,
+  },
+  error: null,
+})
+
 beforeEach(() => {
   vi.useFakeTimers()
   seedMock.mockResolvedValue({ data: [{ ticks: 0 }], error: null, status: 200 })
-  rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 0 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
+  rpcMock.mockResolvedValue(ticked(0))
 })
 
 afterEach(() => {
@@ -63,7 +75,7 @@ describe('useGameTimer', () => {
   })
 
   it('countup display equals the tick count', async () => {
-    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 3 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
+    rpcMock.mockResolvedValue(ticked(3))
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
@@ -72,7 +84,7 @@ describe('useGameTimer', () => {
   })
 
   it('countdown display is max(0, seconds - ticks)', async () => {
-    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 4 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
+    rpcMock.mockResolvedValue(ticked(4))
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
@@ -82,7 +94,7 @@ describe('useGameTimer', () => {
   })
 
   it('flips `expired` when a countdown reaches 0 and never goes negative', async () => {
-    rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 12 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // past the 10s duration
+    rpcMock.mockResolvedValue(ticked(12)) // past the 10s duration
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
@@ -174,8 +186,8 @@ describe('useGameTimer', () => {
 
   it('never rewinds the display when a later read reports fewer ticks', async () => {
     rpcMock
-      .mockResolvedValueOnce({ data: { type: 'ok', data: { result: 'ticked', ticks: 5 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null })
-      .mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 3 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // out-of-order / stale
+      .mockResolvedValueOnce(ticked(5))
+      .mockResolvedValue(ticked(3)) // out-of-order / stale
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
@@ -189,8 +201,8 @@ describe('useGameTimer', () => {
 
   it('accepts a LARGE backward jump — the server clock was reset (replay-board)', async () => {
     rpcMock
-      .mockResolvedValueOnce({ data: { type: 'ok', data: { result: 'ticked', ticks: 70 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // past the duration → expired
-      .mockResolvedValue({ data: { type: 'ok', data: { result: 'ticked', ticks: 1 }, outcome: null, severity: null, message: null, field: null, meta: null, dbcode: null, detail: null }, error: null }) // common.reset_game zeroed the clock
+      .mockResolvedValueOnce(ticked(70)) // past the duration → expired
+      .mockResolvedValue(ticked(1)) // common.reset_game zeroed the clock
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 60 }, paused: false, running: true }),
     )
