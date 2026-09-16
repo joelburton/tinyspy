@@ -18,8 +18,7 @@ import type { Member } from '../members/member'
  * `useCommonGame` owns the harder half and it is not tested here: which people
  * count as expected (this game's players, minus anyone who conceded) and how
  * presence arrives. What this file defends is that, given those two inputs, the
- * answer is right and its `missing` list stays in roster order — the order the
- * overlay reads names in.
+ * answer is right.
  */
 
 // Stand-ins for the personas the pgTAP suite uses. The values
@@ -34,25 +33,16 @@ const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
 const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }
 
 describe('computePause', () => {
-  it('returns paused=false when every member is present', () => {
-    const { paused, missing } = computePause(
-      new Set(['ada', 'bea']),
-      [ada, bea],
-    )
-    expect(paused).toBe(false)
-    expect(missing).toEqual([])
+  it('is false when every member is present', () => {
+    expect(computePause(new Set(['ada', 'bea']), [ada, bea])).toBe(false)
   })
 
-  it('returns paused=true with the offline members when one is missing', () => {
-    const { paused, missing } = computePause(new Set(['ada']), [ada, bea])
-    expect(paused).toBe(true)
-    expect(missing).toEqual([bea])
+  it('is true when one member is missing', () => {
+    expect(computePause(new Set(['ada']), [ada, bea])).toBe(true)
   })
 
-  it('returns paused=true with the whole roster when nobody is present', () => {
-    const { paused, missing } = computePause(new Set(), [ada, bea, cade])
-    expect(paused).toBe(true)
-    expect(missing).toEqual([ada, bea, cade])
+  it('is true when nobody is present', () => {
+    expect(computePause(new Set(), [ada, bea, cade])).toBe(true)
   })
 
   it('ignores extra present user_ids that are not members', () => {
@@ -60,30 +50,15 @@ describe('computePause', () => {
     // (e.g. an admin-tab in the same realtime channel for some
     // future debug surface). The presence of an unknown id must
     // not flip the result either direction.
-    const { paused, missing } = computePause(
-      new Set(['ada', 'bea', 'dee']),
-      [ada, bea],
-    )
-    expect(paused).toBe(false)
-    expect(missing).toEqual([])
+    expect(computePause(new Set(['ada', 'bea', 'dee']), [ada, bea])).toBe(false)
   })
 
-  it('returns paused=false on an empty roster (mid-load edge)', () => {
+  it('is false on an empty roster (mid-load edge)', () => {
     // useCommonGame's first render has players=[] for a tick
     // before the roster fetch resolves. Showing the pause overlay
     // immediately on every fresh mount would be a UX bug —
     // computePause has to treat "no roster yet" as "nothing
     // missing yet."
-    const { paused, missing } = computePause(new Set(), [])
-    expect(paused).toBe(false)
-    expect(missing).toEqual([])
-  })
-
-  it('preserves the original players array order in `missing`', () => {
-    // Stable order matters for the UI — "Bea and Cade have gone
-    // offline" should render in roster order, not in iteration
-    // order of the Set.
-    const { missing } = computePause(new Set(['ada']), [ada, bea, cade])
-    expect(missing.map((m) => m.user_id)).toEqual(['bea', 'cade'])
+    expect(computePause(new Set(), [])).toBe(false)
   })
 })

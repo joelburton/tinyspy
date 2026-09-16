@@ -637,9 +637,7 @@ export function useCommonGame(
   // not-yet-joined players stay counted — that presence-pause IS
   // deliberate; only a real concede removes someone.
   const activePlayers = players.filter((p) => !p.conceded)
-  // `computePause` also answers WHO is absent; the overlay derives that
-  // itself from `activePlayers` + `presentUserIds`, so only the flag is taken.
-  const { paused: presencePaused } = computePause(presentUserIds, activePlayers)
+  const presencePaused = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
     ? players.find((m) => m.user_id === manuallyPausedById) ??
       // The pauser can be a club member spectating (on the game page without

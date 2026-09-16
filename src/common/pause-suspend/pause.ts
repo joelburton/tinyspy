@@ -3,16 +3,15 @@
 import type { Member } from '../members/member'
 
 /**
- * Answers "is this game paused because somebody is missing, and who?" — the
- * presence half of a pause, which `useCommonGame` then unions with the manual
- * one.
+ * Answers "is this game paused because somebody is missing?" — the presence
+ * half of a pause, which `useCommonGame` then unions with the manual one.
  *
  * Pass the user ids realtime reports as connected on the game's channel, and
  * the players expected on it. Who is expected is the CALLER's call, and it is
  * this game's roster rather than the club's: a club of five can be playing a
  * two-player game, and the club list would report three people missing forever.
- * Back comes `paused`, and `missing` in roster order — the order the overlay
- * reads names in.
+ * Who exactly is missing is not answered here — the overlay draws the whole
+ * roster and marks each player present or away itself.
  *
  * Two edge cases the test pins, both of which show up in front of players: an
  * empty roster is NOT everyone missing (a fresh mount has no roster for a tick,
@@ -24,11 +23,6 @@ import type { Member } from '../members/member'
  * whether the club is still looking at this game at all; docs/states.md →
  * paused defines both words and is the only place that does.
  */
-export function computePause(
-  presentUserIds: Set<string>,
-  players: Member[],
-): { paused: boolean; missing: Member[] } {
-  const missing = players.filter((m) => !presentUserIds.has(m.user_id))
-  const paused = players.length > 0 && missing.length > 0
-  return { paused, missing }
+export function computePause(presentUserIds: Set<string>, players: Member[]): boolean {
+  return players.length > 0 && players.some((m) => !presentUserIds.has(m.user_id))
 }

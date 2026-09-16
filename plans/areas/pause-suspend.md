@@ -17,7 +17,7 @@ harvest is done. Then the blessing, which is Joel's.
 `src/common/pause-suspend/` — every file `cs-met-pause-suspend`:
 
 - `pause.ts` — `computePause`, the pure rule: given who is on the channel and
-  who is expected, is the game paused and who is missing
+  who is expected, is the game paused (a boolean since F-14)
 - `pause.test.ts`
 - `PauseBoundary.tsx` — renders the play surface OR the overlay, never both;
   the unmount is the contract
@@ -58,9 +58,10 @@ Evidence, read and left:
 
 Three files with a job each, and a fourth the todo already sentences. **The
 rule** — `computePause` takes the ids on the game's realtime channel and the
-players expected on it and answers "paused, and who is missing"; an empty
-roster is not everyone missing (the first render has no roster yet) and an
-unknown id on the channel is nobody. **The gate** — `PauseBoundary` takes one
+players expected on it and answers "paused" (it answered "and who is missing"
+too until F-14 found nothing read it); an empty roster is not everyone missing
+(the first render has no roster yet) and an unknown id on the channel is
+nobody. **The gate** — `PauseBoundary` takes one
 boolean and renders the play surface or the overlay, and it UNMOUNTS the play
 surface rather than hiding it, so every PlayArea's local state resets on
 resume for free; that is the contract its test defends. **The banner** —
@@ -433,6 +434,19 @@ taken" — and fix the order spec's quoted banner; (3) leave. Recommend (1): a
 return value with no reader is a claim, and this one has been recruiting false
 sentences since it was written. If Joel would rather keep a list-shaped answer
 for a future reader, (2) is the honest version of it.
+
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). Re-verified before working
+it: `computePause` has one caller and no file reads `missing`. The function is
+one line returning a boolean; its docstring says the overlay marks each player
+present or away itself, in place of the sentence that claimed it read a list.
+`useCommonGame` reads the boolean straight and lost the two-line comment
+explaining why it ignored half the answer. The test keeps its five cases on
+the flag — the four-case matrix plus the unknown-id case — and dropped the
+`missing` assertions, the order spec and the phantom banner it quoted; its
+header no longer promises roster order. `tsc -b`, the folder's, the caller's
+and the guard tests, and eslint on the three files are green. Prose elsewhere
+that names `computePause` (common.md, naming.md, connections.md) describes the
+boolean and needed nothing.
 
 ### F-pause-suspend-15 · `suspend-question-still-a-panel` · Three sentences still describe the question as something the page renders
 
