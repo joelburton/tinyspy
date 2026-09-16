@@ -6,9 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
-findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked. The six that
-remain each carry a decision and are presented one at a time: F-6, F-7, F-8,
-F-9, F-11, F-13.
+findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so is F-6.
+The five that remain each carry a decision and are presented one at a time:
+F-7, F-8, F-9, F-11, F-13.
 
 ## The roster
 
@@ -217,6 +217,20 @@ the guard — the boundary decides, the overlay draws what it is given; (2)
 keep the guard and make it scream (`console.error`), since the blank slot is
 a bug and silence is the wrong volume; (3) leave it. Recommend (1): one
 decision, made once, in `useCommonGame`.
+
+**WORKED 2026-09-16, as option (1).** The early return is gone; `someoneMissing`
+stays, because the roster block is what reads it, and the comment above it now
+says the boundary owns the paused decision. Joel asked first whether the guard's
+state is reachable at all, and it is not: with `manuallyPausedBy` set the guard
+cannot fire, and with it null `paused` required `presencePaused`, which is this
+same predicate over the same two values — `GamePage` passes `activePlayers` as
+`expected` and the same `presentUserIds`. Nor can the two read different
+snapshots: both are computed in one render pass, and the presence handler builds
+a fresh `new Set` per sync rather than mutating one. The `ended_at` clause only
+makes `paused` falser. What would make the state reachable is a SECOND caller
+computing `paused` from something other than the roster it passes — the tests
+are the nearest thing today, and no spec combines `paused={true}` with an empty
+`expected` and no manual pauser.
 
 ### F-pause-suspend-7 · `optional-props-one-caller` · Four props are optional for the tests' sake
 

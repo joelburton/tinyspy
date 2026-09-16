@@ -66,11 +66,10 @@ export function PauseOverlay({
   actBackToClub,
   actEndGame,
 }: Props) {
-  // Anyone expected but off the channel is who we're waiting on. Derived
-  // here (not passed in) so the roster and the "someone's missing" gate
-  // share a single source of truth.
+  // Anyone expected but off the channel is who we're waiting on, which is what
+  // draws the roster. Whether the game is paused at all is not asked here — the
+  // boundary decided that before rendering this.
   const someoneMissing = expected.some((m) => !presentUserIds.has(m.user_id))
-  if (!someoneMissing && !manuallyPausedBy) return null
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
