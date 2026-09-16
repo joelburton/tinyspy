@@ -112,7 +112,7 @@
 }
 
 /* Positioning context for the identity dot below. (The shared in-flight dim and
- * attention wash bring their own; this is for the dot, which is always available
+ * attention flash bring their own; this is for the dot, which is always available
  * on a decided tile.) */
 /* @@ */ .tile {
   position: relative;
@@ -150,7 +150,7 @@
 /* @@ */   --dot-border-width: max(1.5px, 1.2cqi);
   right: 7cqi;
   bottom: 7cqi;
-  /* Above the attention wash (which sits at 0 so it can lighten the tile under
+  /* Above the attention flash (which sits at 0 so it can lighten the tile under
    * its label) — a flashing tile shouldn't swallow the dot. */
   z-index: 1;
 }

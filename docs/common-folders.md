@@ -221,7 +221,7 @@ and re-classifying is a move up the file:
 | `Soon` | should change, and nothing is blocking it |
 | `Someday` | deliberately not now. Probably yes, eventually |
 | `Maybe` | an idea. May never happen |
-| `board-marks` | the marks a board wears for a beat: a move's wash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
+| `board-marks` | the marks a board wears for a beat: a move's attention flash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
 
 - **All four headings are always present, empty or not.** The skeleton exists
   so that adding the first item is one line rather than a guess at the

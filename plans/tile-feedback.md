@@ -72,7 +72,7 @@ ordering rule.
 | **board frame, flash** | your turn just started | brief |
 | **board frame, steady gray** | you are viewing history | while viewing |
 | **ink color** | dark on light = untouched · white on color = decided | permanent |
-| **motion, side to side** | **no** — not a winning move: wrong, near, refused. Never on a good verdict | one shake, AFTER the attention wash has finished |
+| **motion, side to side** | **no** — not a winning move: wrong, near, refused. Never on a good verdict | one shake, AFTER the attention flash has finished |
 | **motion**, other | never alone — pairs with attention or invalid | brief |
 
 **Width and color are separate channels on the same border**, which is what
@@ -268,7 +268,7 @@ chrome-disabled look that game pieces must not have.
 
 ### Yellow means LOOK HERE, and the default is to show it
 
-The wash says one thing: *pay attention, something happened here.* It is not a
+The attention flash says one thing: *pay attention, something happened here.* It is not a
 claim about what changed, about how long the change lasts, or about whether the
 board recorded anything — a state that will be wiped on the next turn earns the
 beat exactly as a permanent one does, because what the mark points at is the
@@ -297,8 +297,8 @@ ends up exempt, that will be a decision recorded here, per game.
 ### Attention is a judgment about what the viewer already knows
 
 Not "who acted". Two questions, asked of each viewer — and note that the
-DEFAULT above now outranks them for the attention wash specifically: assume the
-wash fires, and treat these two as the argument to make if a game wants an
+DEFAULT above now outranks them for the attention flash specifically: assume the
+flash fires, and treat these two as the argument to make if a game wants an
 exemption. They still decide the other marks outright, where there is no
 learnability case for firing every time.
 
@@ -611,11 +611,11 @@ shake is the emphasis. Where the pieces form a shape the verdict can be drawn
 around, the shake pairs with a ring; where the piece carries its own permanent
 state color, it rides that instead and brings no color of its own.
 
-**It follows the attention wash; the two never overlap.** The wash says WHERE to
+**It follows the attention flash; the two never overlap.** The flash says WHERE to
 look and is over almost immediately — just long enough to catch an eye that was
 somewhere else. The shake says what the answer was, and the answer is the
-piece's own color, which is under the wash until the wash is done. So a piece
-that is about to shake waits: wash, then shake, each doing one job with the
+piece's own color, which is under the flash until the flash is done. So a piece
+that is about to shake waits: flash, then shake, each doing one job with the
 board's real state visible underneath.
 
 Mechanically this costs one thing worth knowing: an element has a single
@@ -717,7 +717,7 @@ color**, and both channels we have already exist:
 | `--view-history-color` | documented as *"a neutral amber, NOT an outcome color"* |
 | `--mark-attention-tile-color` | a **translucent** warm-yellow overlay, composed as the first layer of `background` so it reads as *"itself, but lighter"* over any tile shade |
 
-`--mark-attention-tile-color` deserves note: it is exactly the translucent wash this doc
+`--mark-attention-tile-color` deserves note: it is exactly the translucent overlay this doc
 proposes as the answer to attention-versus-state, and it has been in the theme
 since scrabble needed it. The mechanism was solved before the vocabulary was.
 
@@ -833,7 +833,7 @@ should not buy the delay.
 a player actually has after pieces leave is not "which ones went" but "what can
 I do now" — so the mark belongs on what the departure EXPOSED. In stackdown
 that is the tiles a cleared word uncovers, which is a change in place and takes
-the ordinary attention wash, with no hold and no delay.
+the ordinary attention flash, with no hold and no delay.
 
 **Shape 2 needs no attention mark for its good case** and this is worth stating
 because it looks like an omission. connections' four tiles leave the grid and
@@ -923,7 +923,7 @@ adjudicated there. Nothing to race: a guess is a whole row of your own.
 wear the in-flight dim while the server answers. **The letters move
 immediately and the colors do not** — the swap is shown optimistically, its
 verdict withheld until the server answers. When the answer lands, the attention
-wash marks two kinds of cell: one whose letter changed (a teammate's swap
+flash marks two kinds of cell: one whose letter changed (a teammate's swap
 arriving on your board) and one that was yours and in flight whose color just
 resolved. There is no verdict mark, because the only refusal is a swap a
 teammate beat you to. Peers get milestone pills (`solved it`, `out of swaps`).
@@ -940,7 +940,7 @@ color waits.
 
 **Today.** Three beats on one tile. Clicking and submitting dims the tile (the
 in-flight mark, and only the guesser sees it, since only they have a guess in
-flight). When the server's row arrives the tile takes the attention wash for
+flight). When the server's row arrives the tile takes the attention flash for
 `ATTENTION_FLASH_MS` — **including for the guesser** — and under it the
 permanent green or red arrives, with the identity dot of whoever decided it in
 coop. `Correct` / `Incorrect` / `Not on the board` / `You already guessed that`
@@ -952,10 +952,10 @@ own three beats fire.
 row, so it cannot be contradicted — the model the race rule wants.
 
 **What we want** (proposals):
-- **Settled 2026-09-15: the guesser sees the wash**, which is what the code
+- **Settled 2026-09-15: the guesser sees the flash**, which is what the code
   already did — the roster row below claiming otherwise was stale and is
   corrected. It follows from the default above rather than from anything about
-  psychicnum: the wash fires on every move, the actor's included.
+  psychicnum: the flash fires on every move, the actor's included.
 
 ### connections · shape 2
 
@@ -966,7 +966,7 @@ dim on submit. The verdict fills the four tiles in its own tone and shakes them
 — and **only the guesser sees it**: it is raised where the pill is raised, it
 dies when the pill dies, and a teammate's guess kills it early because the board
 has moved on. A correct guess turns the four tiles into a full-width band that
-names the category, and **the band takes the attention wash when a TEAMMATE
+names the category, and **the band takes the attention flash when a TEAMMATE
 solved it**, never when you did. Peer pills carry `found category`, `was one
 away`, `guessed wrong`.
 
@@ -979,18 +979,18 @@ tiles.
   everyone**, in its outcome tone, with the shake. Those four are one shared
   move in coop, and "no" is news to the whole table — the player who learns it
   last is the one about to pick them again.
-- **Done 2026-09-15: the band wash reaches the player whose guess made it**, per
+- **Done 2026-09-15: the band flash reaches the player whose guess made it**, per
   the default above.
-- **Open: does a wrong or near guess want the WASH as well as the verdict?** By
-  the default it does, and the wash covering the verdict color is not an
-  argument against it — psychicnum's wash sits on its red and reveals it by
+- **Open: does a wrong or near guess want the FLASH as well as the verdict?** By
+  the default it does, and the flash covering the verdict color is not an
+  argument against it — psychicnum's flash sits on its red and reveals it by
   fading, which is the sequence rather than a collision.
 - Keep the good case's tiles unmarked: they become the band, which says more.
 
 ### codenamesduet · shape 1
 
 **Today.** The one turn-based game, and the one with no shared board marks at
-all: no in-flight dim, no attention wash, and **neither turn mark** — not the
+all: no in-flight dim, no attention flash, and **neither turn mark** — not the
 board dim while your partner is acting, not the frame flash when the turn
 becomes yours. A guess colors its tile by what it turns out to be (agent,
 neutral, assassin), from the server. The clue field's problems land in the pill,
@@ -1052,7 +1052,7 @@ overlapping tiles.
 **What we want** (proposals):
 - **Mark what the departure EXPOSED**, not what left. The tiles a cleared word
   uncovers are newly playable, which is the question a peer actually has, and it
-  is a change in place that the attention wash already serves. Cheaper and more
+  is a change in place that the attention flash already serves. Cheaper and more
   useful than holding the departing tiles.
 - **Settle the rejection asymmetry** — a teammate's rejected word marks their
   letters while your own gets no mark. One of the two is wrong.
@@ -1125,7 +1125,7 @@ visible.
   you did not choose, arriving in place, on a surface you are not looking at.
 - **The red refusal is a verdict, and its lifetime is wrong** — a timer, where
   the vocabulary says a verdict lives until your next action.
-- **A peer's played word probably wants the attention wash.** A word appearing
+- **A peer's played word probably wants the attention flash.** A word appearing
   somewhere on a 15×15 board while you are reading your rack is a change in
   place in all but name.
 
@@ -1268,7 +1268,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the wash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
+| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the flash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |

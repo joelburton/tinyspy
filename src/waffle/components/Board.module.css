@@ -97,9 +97,9 @@
   font-weight: 700;
   line-height: 1;
   /* Lifted into the tile's own stacking context, which the shared
-   * `.attentionFlash` requires: its wash is an absolutely-positioned overlay,
+   * `.attentionFlash` requires: its overlay is absolutely positioned,
    * and one of those sits above in-flow text by default — so without this the
-   * wash would tint the letter instead of lightening the tile under it. The
+   * flash would tint the letter instead of lightening the tile under it. The
    * in-flight dim deliberately paints above this, covering the letter too. */
   position: relative;
   z-index: 1;

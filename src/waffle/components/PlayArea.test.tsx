@@ -654,7 +654,7 @@ describe('waffle PlayArea — a swap in flight', () => {
 
     // The server's board is what ends it: the dim lifts, the letters stay put
     // (they were right all along), and the answered cells take the attention
-    // wash — the news is the verdict, which is the part I couldn't know.
+    // flash — the news is the verdict, which is the part I couldn't know.
     h.result = loaded(
       coopGame,
       [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],

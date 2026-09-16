@@ -58,7 +58,7 @@ Outside the folder, on the roster by Joel's word:
   not now (Joel).
 
 Listed and LEFT — importers, read as evidence when a finding needs them, not
-roster: the attention wash and your-turn frame rules in
+roster: the attention flash and your-turn frame rules in
 `game-page/playArea.module.css`; the games that call the hooks (waffle,
 connections, psychicnum, wordle, stackdown, scrabble, strands); `setgame/components/PlayArea.tsx` — which F-10 then converted, so it is edited
 but not roster (`cs-unmet`, setgame's own area will read it).
@@ -72,7 +72,7 @@ pieces are hot, and for how long?** — `useFlash` is a self-clearing set of ids
 behind one timer; `feedbackTiming` holds the two shared lifetimes, each twinned
 by hand with a token in `base.css`. **Did the turn just become mine?** —
 `useTurnStartFlash` fires on the rising edge, never on mount. The CSS half
-lives outside the folder: the tile wash `.attentionFlash` and the board ring
+lives outside the folder: the tile's `.attentionFlash` and the board ring
 `.yourTurnFlash` in `game-page/playArea.module.css`, the durations in
 `base.css`, the one yellow in the theme.
 
@@ -86,7 +86,7 @@ finding about unnamed lifetimes was written before:
 |---|---|---|
 | `useMoveAttention` (`useChangeCause` + `ATTENTION_FLASH_MS` inside) | waffle `Board`, connections `Board`, psychicnum `Board` | its own diff → the hot set → `.attentionFlash` per tile |
 | `useChangeCause` alone | setgame `PlayArea` | the cause, with setgame's own choreography on top |
-| `useFlash`, a NAMED beat | connections `BoardCol` ×2 (`ATTENTION_FLASH_MS`, `VERDICT_SHAKE_MS`), psychicnum `Board` (`VERDICT_SHAKE_MS`), stackdown `PlayArea` (`ATTENTION_FLASH_MS`) + `BoardCol` (`AMBIGUOUS_PICK_FLASH_MS`), strands `PlayArea` (`AMBIGUOUS_PICK_FLASH_MS`), setgame `PlayArea` (`ARRIVE_MS`, its own) | a wash, a head-shake, an input-problem ring, an arrival |
+| `useFlash`, a NAMED beat | connections `BoardCol` ×2 (`ATTENTION_FLASH_MS`, `VERDICT_SHAKE_MS`), psychicnum `Board` (`VERDICT_SHAKE_MS`), stackdown `PlayArea` (`ATTENTION_FLASH_MS`) + `BoardCol` (`AMBIGUOUS_PICK_FLASH_MS`), strands `PlayArea` (`AMBIGUOUS_PICK_FLASH_MS`), setgame `PlayArea` (`ARRIVE_MS`, its own) | an attention flash, a head-shake, an input-problem ring, an arrival |
 | `useFlash`, the DEFAULT | scrabble `BoardCol` ×3 | three verdict outlines on a beat nobody chose (F-3) |
 | `useTurnStartFlash` | waffle, wordle, connections, psychicnum `PlayArea` | a boolean threaded `PlayArea → BoardCol → Board` → `.yourTurnFlash` on the grid |
 | none — hand-rolled | boggle, spellingbee, stackdown, wordiply, letterboxed | a single tagged mark held in state and cleared by a ref'd timer (F-14) |
@@ -354,7 +354,7 @@ on the board root's `style`) write the tokens from the constants, so CSS reads
 what JS decided; (2) CSS is the home — the class comes off on `animationend`
 instead of a timer, and the constants go. (2) also closes a small real gap: a
 throttled background tab can fire the timer late, and while the class lingers
-the wash is at opacity 0 but `.tileFace.attentionFlash` still holds the dark
+the flash is at opacity 0 but `.tileFace.attentionFlash` still holds the dark
 ink on a tile that has handed its color back. (3) keep two and the comment.
 The your-turn pair is deliberately unequal (the class outlives the fade), which
 (1) keeps by computing and (2) makes moot.
@@ -364,7 +364,7 @@ The your-turn pair is deliberately unequal (the class outlives the fade), which
 fade durations and `publishMarkDurations()` writes them onto the document root
 at boot (main.tsx, beside `trackLayoutWidth`), so no stylesheet declares them.
 And the attention mark's ink stopped hanging off the class — it is now an
-animation on the same published duration as the wash, so both halves start and
+animation on the same published duration as the flash, so both halves start and
 end together and the class's removal time is no longer load-bearing. The
 `*_FLASH_MS` constants are composed as fade + 100ms slack and mean only "how
 long the class is held": early clips the animation, late now costs nothing.
@@ -372,7 +372,7 @@ long the class is held": early clips the animation, late now costs nothing.
 shows no mark rather than a piece stuck under solid yellow.
 
 Option (1) alone leaves two clocks and only one number, so a throttled timer
-still splits the wash from the ink; (2) makes the mark's removal depend on an
+still splits the flash from the ink; (2) makes the mark's removal depend on an
 event that a non-animating element, a future reduced-motion rule or jsdom never
 fires. A transition-based exit — the fourth option, weighed at the build — dies
 on the shorthand: `.tile` already sets `transition` on the same element as
@@ -588,7 +588,7 @@ mark's color and lifetime are shared now.
 **Landed.** The band's attention flash reaches the player whose guess made it,
 not just the teammates. A teammate's non-winning guess marks THEIR four tiles
 for everyone, in the outcome's own color, with the shake. The verdict fill lost
-its built-in shake — that is a channel of its own now, and it follows the wash.
+its built-in shake — that is a channel of its own now, and it follows the flash.
 Both oranges were darkened at their base so white ink reads on them (2.40:1,
 blessed below the floor). The verdict nonce moved from a ref to state, so the
 two raises cannot collide on a number.
@@ -762,13 +762,29 @@ so jsdom's lack of animation events should not bite — verify.
 
 ## Closing
 
-- [ ] **"wash" → "attention-flash" across the prose** (Joel, 2026-09-15: at the
-      close of this area). 54 prose hits — `playArea.module.css`, `docs/ui.md`,
-      the folder's `doc.md`, `tile-feedback.md` — all meaning the attention
-      flash. The `--outcomes-*-wash-color` token family (24 hits) is a DIFFERENT
-      thing, a pale tint behind text, and stays; that collision is the reason
-      the synonym has to go. Add the banned synonym to the vocabulary guard so
-      it cannot come back.
+- [x] **"wash" → "attention-flash" across the prose** (Joel, 2026-09-15: at the
+      close of this area). **DONE 2026-09-16.** The mark sense is gone from
+      `playArea.module.css`, `feedbackTiming.ts`, the folder's `doc.md`,
+      `tile-feedback.md`, the area file, the plan's §3 row, `common-folders.md`,
+      and five games (connections, psychicnum, waffle, scrabble, and the two
+      tests that narrated it). connections' `washedTiles` / `washTiles` became
+      `attentionTiles` / `flashAttention`, matching the name stackdown already
+      used — the synonym had reached identifiers, not only prose.
+
+      What STAYS is every other sense, which is most of the word's 254 hits:
+      the `--outcomes-*-wash-color` tier, a button's hover and press wash, a
+      translucent tint described as a wash, "washed out" meaning faded, and
+      wordle's row in this plan where "a wash" means the change broke even.
+      Joel, 2026-09-16: *"'wash' is what we use for a lighter-version of a
+      background."* That is the sense that owns the word, and the mark's use was
+      the squatter.
+
+      Guarded narrowly in `vocabularies.test.ts`, because a repo-wide ban would
+      be mostly allowlist: the two words adjacent (attention, then the banned
+      one) anywhere, and the banned one at all inside `common/board-marks/`. The
+      guard bites this file too, which is why the phrase is not written out here. Planted both — a line in the
+      folder's `todo.md` and a sentence in `docs/ui.md` — and both failed before
+      being taken back out.
 - [ ] the whole area re-read in one sitting after the last group
 - [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file

@@ -460,7 +460,7 @@
   border-radius: inherit;
   background: var(--mark-inFlight-dim-color);
   pointer-events: none;
-  /* Above content a game has lifted for the attention wash below (which sits at
+  /* Above content a game has lifted for the attention flash below (which sits at
    * 1), because the two can overlap: a realtime update can land a hair before
    * the caller's own request resolves. */
   z-index: 2;
@@ -541,7 +541,7 @@
  * modules is the bundler's business and this must not be a coin flip).
  *
  * The COLOR only. The head-shake that goes with a refusal is `.verdictShake`,
- * raised separately because it comes AFTER the attention wash — the wash says
+ * raised separately because it comes AFTER the attention flash — the flash says
  * where to look, and this color is what it hands the piece back. */
 /* @@ */ .tileFace.verdictFill {
 /* @@ */   --tile-slot-fill-color: var(--verdict-fill);
@@ -657,8 +657,8 @@
 
 /* Both at once, named in one declaration because an element has ONE animation
  * list and the cascade cannot add to it — a piece that is taking the attention
- * wash and shaking is a piece whose verdict arrived under the mark that pointed
- * at it. (The ink half of the wash is what the first animation carries; see
+ * flash and shaking is a piece whose verdict arrived under the mark that pointed
+ * at it. (The ink half of the flash is what the first animation carries; see
  * `.tileFace.attentionFlash` above.) */
 /* @@ */ .tileFace.attentionFlash.verdictShake {
 /* @@ */   animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out,
@@ -671,7 +671,7 @@
 /* @@ */   .verdictShake {
     animation: none;
   }
-  /* …but the wash's ink is not movement, so the pair keeps that half. */
+  /* …but the flash's ink is not movement, so the pair keeps that half. */
 /* @@ */   .tileFace.attentionFlash.verdictShake {
 /* @@ */     animation: attention-ink var(--mark-attention-flash-duration) step-end;
   }
@@ -750,8 +750,8 @@
  * surface back rather than blink off it.
  *
  * A game whose tile has CONTENT must lift that content to `z-index: 1` (as
- * waffle's letter does), or the wash tints it instead of lightening the tile
- * under it. The wash itself deliberately stays below.
+ * waffle's letter does), or the flash tints it instead of lightening the tile
+ * under it. The flash itself deliberately stays below.
  *
  * Reduced motion keeps this: the carrier is the color, and the movement is only
  * how it leaves. */
@@ -759,15 +759,15 @@
   position: relative;
 }
 
-/* INK FOLLOWS THE BACKGROUND IT SITS ON. While the wash is up the tile is yellow,
+/* INK FOLLOWS THE BACKGROUND IT SITS ON. While the flash is up the tile is yellow,
  * so its label takes the dark ink — a decided tile's white letters on this yellow
  * measure about 1.5:1, which is a word you cannot read on the one occasion the
  * board is pointing at it. Not a violation of "ink = tried vs untried": ink's job
  * is to be legible against whatever is behind it, and for this second that is the
- * wash rather than the state.
+ * flash rather than the state.
  *
- * An ANIMATION on the wash's own duration, rather than a token the class
- * overrides, because the ink has to return at the instant the wash finishes and
+ * An ANIMATION on the flash's own duration, rather than a token the class
+ * overrides, because the ink has to return at the instant the flash finishes and
  * at no other. The class cannot promise that: it comes off on a game's timer, and
  * a timer that fires late leaves dark ink on a tile that has its state color
  * back. Two animations, one duration — the halves of the mark cannot separate.
@@ -913,7 +913,7 @@
  * the tile's inner width, the factor ≈ width-per-char in em for bold
  * uppercase. See docs/ui.md → "Tile content: letter vs word". */
 /* @@ */ .tileWord {
-  /* Above the attention wash. `.attentionFlash` draws its yellow as an
+  /* Above the attention flash. `.attentionFlash` draws its yellow as an
    * absolutely-positioned overlay, and one of those paints over in-flow text by
    * default — so without this the flash HIDES the word it is pointing at. (The
    * in-flight dim deliberately still covers this, at a higher layer: that mark

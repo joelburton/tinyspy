@@ -87,10 +87,10 @@ type Props = {
   /** The verdict on my last guess, ringed in its pill's tone (BoardCol sets it,
    *  and clears it on the next tile click). Null while nothing is being judged. */
   verdict?: BoardVerdict | null
-  /** Tiles taking the attention wash — the beat that says an answer landed here.
+  /** Tiles taking the attention flash — the beat that says an answer landed here.
    *  Raised for every verdict, my own included. */
-  washedTiles?: ReadonlySet<string>
-  /** Tiles taking the head-shake, which starts once the wash has faded and the
+  attentionTiles?: ReadonlySet<string>
+  /** Tiles taking the head-shake, which starts once the flash has faded and the
    *  verdict color underneath is visible. */
   shakenTiles?: ReadonlySet<string>
   /** user_id → resolved color var, for the identity ring. */
@@ -169,7 +169,7 @@ export function Board({
   myTurnJustStarted = false,
   gameOver = null,
   moveCount,
-  washedTiles = NO_TILES,
+  attentionTiles = NO_TILES,
   shakenTiles = NO_TILES,
   viewing = false,
   highlightTiles = NO_TILES,
@@ -206,7 +206,7 @@ export function Board({
     // point at on a board nobody is reading. The band a player's OWN guess
     // produced is marked like anyone else's: it arrives somewhere they were not
     // looking (the top of the board, while they were reading tiles), and what
-    // the wash says is "your four went here", not "something happened".
+    // the flash says is "your four went here", not "something happened".
     quiet: viewing,
     changed: (before, now) => {
       const had = new Set(before.map((m) => m.rank))
@@ -318,9 +318,9 @@ export function Board({
                 // the border says "in the move" and the ring below says whose.
                 ownerId !== undefined && shared.selected,
                 ownerColor && styles.peerPick,
-                // The answer landing here — the wash first, then the head-shake
-                // over the verdict color the wash hands back.
-                washedTiles.has(tile) && shared.attentionFlash,
+                // The answer landing here — the attention flash first, then the
+                // head-shake over the verdict color the flash hands back.
+                attentionTiles.has(tile) && shared.attentionFlash,
                 shakenTiles.has(tile) && shared.verdictShake,
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's tone.

@@ -116,8 +116,8 @@ export function Board({
   })
 
   // NO — the head-shake, on the words that just came back WRONG. It waits for
-  // the wash to finish rather than riding it: the shake is a remark about the
-  // tile's own color, and that color is under the yellow until the wash is done.
+  // the flash to finish rather than riding it: the shake is a remark about the
+  // tile's own color, and that color is under the yellow until the flash is done.
   const [shaking, shakeWrong] = useFlash<string>(VERDICT_SHAKE_MS)
   // Keyed on the WORDS rather than on the set that holds them: `results` is a
   // fresh Map every render, so an effect that depended on it would cancel its own
@@ -190,7 +190,7 @@ export function Board({
                 selected === word && shared.selected,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
-                // NO — the head-shake, once the wash has handed the tile its
+                // NO — the head-shake, once the flash has handed the tile its
                 // red back. The red is the half that survives reduced motion,
                 // and a correct guess never shakes.
                 shaking.has(word) && shared.verdictShake,

@@ -93,7 +93,7 @@
   cursor: default;
 }
 /* Placed-but-not-committed (this-turn) tiles get the attention overlay (a warm-
-   yellow wash over the normal tile) so the player sees exactly what they're laying
+   yellow tint over the normal tile) so the player sees exactly what they're laying
    down before they commit the word. */
 /* @@ */ .tile.tentative {
   background: var(--scrabble-tile-attention);

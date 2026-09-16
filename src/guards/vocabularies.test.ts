@@ -678,3 +678,59 @@ describe('the z-index ladder has one home', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * Guard: the attention mark is called the ATTENTION FLASH.
+ *
+ * It was "the wash" in fifty-odd lines of prose, which collided with the word's
+ * real job — `--outcomes-*-wash-color` is a pale tint laid behind text, and a
+ * wash on a button is its hover background. One word, two things, and the tint
+ * sense is the one that owns it (Joel, 2026-09-16: *"'wash' is what we use for a
+ * lighter-version of a background"*). Swept 2026-09-16.
+ *
+ * Banned NARROWLY, in the two places the collision can recur, because a repo-wide
+ * ban on the word would be mostly allowlist:
+ *
+ *   - the collocation "attention wash" anywhere, which can only mean the mark;
+ *   - the word at all inside `common/board-marks/`, which has no business
+ *     discussing a tint.
+ *
+ * Scans prose as well as code: this is a naming rule, and naming lives in
+ * comments and docs before it reaches an identifier.
+ */
+describe('the attention flash is not called a wash', () => {
+  const ROOTS = [join(process.cwd(), 'src'), join(process.cwd(), 'docs'), join(process.cwd(), 'plans')]
+  const PROSE = ['.ts', '.tsx', '.css', '.md']
+  /** The superseded first draft, which nobody may read or edit. */
+  const SKIP = ['plans/css-system-outdated-dont-read.md', 'src/guards/vocabularies.test.ts']
+
+  const proseFiles = () =>
+    ROOTS.flatMap((r) => walk(r, PROSE)).filter((f) => !SKIP.some((s) => rel(f).endsWith(s)))
+
+  it('nothing says "attention wash"', () => {
+    const offenders: string[] = []
+    for (const f of proseFiles()) {
+      const src = readFileSync(f, 'utf8')
+      for (const m of src.matchAll(/attention[\s-]+wash/gi)) offenders.push(`${rel(f)}  →  "${m[0]}"`)
+    }
+    expect(
+      offenders,
+      'The mark is the ATTENTION FLASH. "Wash" is the pale-tint sense — an ' +
+        "outcome's `-wash-color`, a button's hover background — and one word " +
+        'cannot be both.\n' + offenders.join('\n'),
+    ).toEqual([])
+  })
+
+  it('board-marks says nothing about a wash at all', () => {
+    const offenders: string[] = []
+    for (const f of walk(join(process.cwd(), 'src/common/board-marks'), PROSE)) {
+      const src = readFileSync(f, 'utf8')
+      for (const m of src.matchAll(/\bwash\w*/gi)) offenders.push(`${rel(f)}  →  "${m[0]}"`)
+    }
+    expect(
+      offenders,
+      'This folder describes marks, and its mark is the attention FLASH. The ' +
+        'tint sense has no reason to appear here.\n' + offenders.join('\n'),
+    ).toEqual([])
+  })
+})

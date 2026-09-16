@@ -111,7 +111,7 @@ export function Board({
   const coarse = useIsCoarsePointer()
   const dragFrom = useRef<number | null>(null)
 
-  // ATTENTION — the cells that just changed under the player, washed yellow for
+  // ATTENTION — the cells that just changed under the player, flashed yellow for
   // a beat before settling into their true state color. waffle is the case
   // plans/tile-feedback.md calls out as needing this: a swap substitutes letters
   // where they already sat and recolors them in place, so nothing about the
@@ -134,7 +134,7 @@ export function Board({
   //     letter diff left to notice; the news is the verdict, which is exactly
   //     what I could not have known.
   //
-  // The wash is set DURING the render that applies the change, so both land in
+  // The flash is set DURING the render that applies the change, so both land in
   // one commit: paint the color a frame early and the eye catches it first, and
   // the flash then reads as a second, unexplained event.
   const flashing = useMoveAttention({

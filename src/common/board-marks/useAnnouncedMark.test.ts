@@ -47,7 +47,7 @@ describe('useAnnouncedMark', () => {
 
     act(() => result.current[1]('SECOND'))
     expect(result.current[0]).toEqual({ value: 'SECOND', phase: 'pointing' })
-    // The first mark's clear-timer is cancelled, not inherited.
+    // The first mark's clear-timer is canceled, not inherited.
     act(() => vi.advanceTimersByTime(WORD_ANSWER_MS))
     expect(result.current[0]).not.toBeNull()
   })

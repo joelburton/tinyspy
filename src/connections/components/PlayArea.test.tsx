@@ -729,7 +729,7 @@ describe('connections PlayArea — attention', () => {
     rerender(<PlayArea {...ctx} />)
 
     // I chose the four tiles, but the band arrives at the TOP of the board while
-    // I am reading the tiles — so the wash says "your four went here".
+    // I am reading the tiles — so the flash says "your four went here".
     expect(bandFor('RED').className).toMatch(/attentionFlash/)
   })
 

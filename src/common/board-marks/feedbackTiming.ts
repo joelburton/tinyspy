@@ -11,7 +11,7 @@
  * CSS draws every mark and CSS times it: `publishMarkDurations` writes the two
  * durations below into the tokens the animations read, so the stylesheet has no
  * number of its own to drift from. That is what keeps the halves of one mark
- * together — the attention wash fading and the ink returning from under it are
+ * together — the attention flash fading and the ink returning from under it are
  * two animations on one duration, and no timer can separate them.
  *
  * The `*_FLASH_MS` values are for the timers that take a mark's CLASS off
@@ -21,7 +21,7 @@
  * the visible mark ends on its own.
  */
 
-/** The attention wash: solid for most of it, then a short tail fading out, so the
+/** The attention flash: solid for most of it, then a short tail fading out, so the
  *  eye is caught and then handed back the piece's true state color. Short — a
  *  board that sits colored is a board where loud has stopped meaning anything.
  *
@@ -62,7 +62,7 @@ export const AMBIGUOUS_PICK_FLASH_MS = 1000
  *  cannot be re-raised before the class is free again. */
 const CLASS_HOLD_SLACK_MS = 100
 
-/** A piece wearing the attention wash: "this changed, look here". */
+/** A piece wearing the attention flash: "this changed, look here". */
 export const ATTENTION_FLASH_MS = ATTENTION_FADE_MS + CLASS_HOLD_SLACK_MS
 
 /** The board frame at the moment the turn becomes yours. */

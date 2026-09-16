@@ -125,8 +125,8 @@
   letter-spacing: 0.02em;
 }
 
-/* Both lines sit ABOVE the attention wash, the same lift the shared `.tileWord`
- * takes: that wash is an absolutely-positioned overlay, and one of those paints
+/* Both lines sit ABOVE the attention flash, the same lift the shared `.tileWord`
+ * takes: that flash is an absolutely-positioned overlay, and one of those paints
  * over in-flow text by default — so without this the flash hides the band it is
  * pointing at. */
 .band strong,

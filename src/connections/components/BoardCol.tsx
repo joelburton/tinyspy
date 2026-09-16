@@ -205,20 +205,20 @@ export function BoardCol({
     setVerdictSeq(verdictSeq + 1)
     setVerdict({ tiles: new Set(tiles), tone: feedbackMsg.outcome, nonce: verdictSeq + 1, msgId })
   }
-  // The two beats a verdict gets on the board, in order: the attention wash says
+  // The two beats a verdict gets on the board, in order: the attention flash says
   // WHERE the answer landed, and once it has faded the head-shake says the answer
   // was no. Both are raised here, off whichever path set the verdict — my own
   // submit, or a teammate's row arriving — so they read the same either way.
-  const [washedTiles, washTiles] = useFlash<string>(ATTENTION_FLASH_MS)
+  const [attentionTiles, flashAttention] = useFlash<string>(ATTENTION_FLASH_MS)
   const [shakenTiles, shakeTiles] = useFlash<string>(VERDICT_SHAKE_MS)
   useEffect(() => {
     if (verdict === null) return
-    washTiles(verdict.tiles)
+    flashAttention(verdict.tiles)
     // Every verdict that can land ON TILES is a refusal — a correct guess takes
     // its four away and becomes a band — so the shake needs no tone test.
     const timer = setTimeout(() => shakeTiles(verdict.tiles), ATTENTION_FADE_MS)
     return () => clearTimeout(timer)
-  }, [verdict, washTiles, shakeTiles])
+  }, [verdict, flashAttention, shakeTiles])
 
   // Subscribes to the slot, so the ring re-derives when its message leaves.
   const top = useTopFeedbackMessage(localFeedbackSlot)
@@ -477,7 +477,7 @@ export function BoardCol({
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
         verdict={ringShown ? verdict : null}
-        washedTiles={washedTiles}
+        attentionTiles={attentionTiles}
         shakenTiles={shakenTiles}
         colorByUserId={colorByUserId}
         sharedBoard={sharedBoard}

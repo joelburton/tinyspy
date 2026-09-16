@@ -1,8 +1,8 @@
 # board-marks
 
-The marks a board wears for a beat and then takes off: the wash on the pieces a
-move just changed, the frame at the moment the turn becomes yours, and a
-general hot set a game lights for its own reasons. None of them is state — a
+The marks a board wears for a beat and then takes off: the attention flash on
+the pieces a move just changed, the frame at the moment the turn becomes yours,
+and a general hot set a game lights for its own reasons. None of them is state — a
 mark says "look here", never "this is how things are".
 
 ## Intro to area
@@ -70,14 +70,14 @@ something unmarked is made.
 
 | hook | callers | what it marks |
 |---|---|---|
-| `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
-| `useFlash` (a set of hot ids) | connections `BoardCol`, psychicnum `Board`, stackdown `PlayArea` + `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | a wash, a head-shake, an ambiguous letter, scrabble's three placement outlines |
+| `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the attention flash on pieces a move changed |
+| `useFlash` (a set of hot ids) | connections `BoardCol`, psychicnum `Board`, stackdown `PlayArea` + `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | an attention flash, a head-shake, an ambiguous letter, scrabble's three placement outlines |
 | `useMark` (one mark, with its reason) | boggle, spellingbee and stackdown `PlayArea` | a refused word's answer, on the tiles or letters it used |
 | `useAnnouncedMark` (one mark, in two phases) | stackdown and wordiply `PlayArea` | a teammate's word: the attention flash, then the outcome's color |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
 setgame is on the two pieces underneath instead: `useChangeCause`, keyed on the
-last claim's id, and `useFlash` for the arrivals. Its mark is not a wash for a
+last claim's id, and `useFlash` for the arrivals. Its mark is not a flash for a
 beat — a claim substitutes cards in place, so the departing cards are held on
 screen before the swap, the claimer sees dim where everyone else sees lit, and
 the two halves have lifetimes chosen against each other (`setgame/lib/flash.ts`).
@@ -121,7 +121,7 @@ does not have yet — setgame's hold-then-arrive is the one that is, and its two
 numbers live with the choreography they time.
 
 **Both halves of the attention mark are animations on that one duration** — the
-wash fading off the piece, and the dark ink it needs while it is up. They begin
+flash fading off the piece, and the dark ink it needs while it is up. They begin
 together when the class lands and end together when the duration is spent, so
 there is no state in which a piece shows its own color under the mark's ink.
 Tying the ink to the class instead is what produced exactly that: a timer that
@@ -145,10 +145,10 @@ only after the beat, because the class leaves when the timer clears. The rule an
 its reason live beside `.verdictShake` in `game-page/playArea.module.css`, which
 is where someone adding a mark will be standing.
 
-The tile wash is drawn as an overlay rather than as a background, because a
+The tile's attention flash is drawn as an overlay rather than as a background, because a
 background cannot be faded and the fade is what makes the mark hand the tile
 back rather than blink off it. It is transparent until the animation raises it,
 so a piece is never stuck under solid yellow if a duration never arrives. That
-rule and the one about a game lifting its tile's content above the wash are
+rule and the one about a game lifting its tile's content above the flash are
 `game-page/playArea.module.css`'s; the color vocabulary the marks draw from is
 [docs/ui.md](../../../docs/ui.md)'s.
