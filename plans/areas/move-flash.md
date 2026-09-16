@@ -516,8 +516,14 @@ went dark is the board answering a different question than the one asked. A clic
 now claims its tile (`lib/spend.ts`), claims are spent before the fallback, and
 what is left still prefers the center, which is the game's own rule.
 
-**Owed.** No shake and no outcome color yet — deliberately, pending a look at
-this batch. `Wheel.module.css` and spellingbee's `Letters.module.css` now share
+A refused word head-shakes the whole wheel, as spellingbee's hive does and for
+the same reason: the refusal is about the word, and the letters are all legal
+tiles that did nothing wrong.
+
+**Owed.** No outcome color on the tiles — held back deliberately, since
+spellingbee's is the open question (a refused TETE colors two hexes) and the two
+games should answer it the same way. `Wheel.module.css` and spellingbee's
+`Letters.module.css` now share
 LESS than the fork ledger says they could: a hexagon can't be a bordered box, so
 the hive stays SVG. The ledger says so.
 

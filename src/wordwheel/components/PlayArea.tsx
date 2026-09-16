@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -269,6 +269,13 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.requiredWords, game?.bonusWords])
 
+  // A refused word shakes the wheel — the head-shake "no" every board gives a
+  // move that wasn't a winning one. A bumping nonce, because it is the WHOLE
+  // board that shakes and a board is always mounted: the nonce keys the wheel so
+  // each refusal remounts it and the animation plays again (a CSS animation
+  // restarts on a remount, not on a state change under it).
+  const [shakeNonce, setShakeNonce] = useState(0)
+
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
@@ -321,6 +328,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // Too short is a slip rather than a wrong move; a word you already found
       // is nothing happening.
       outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
+      // Any answer but an accept is a move that didn't win, which is the whole
+      // of what the shake says. The actor's alone: a peer is never told about
+      // somebody else's miss.
+      onAnswer: (_w, answer) => {
+        if (answer !== 'accepted') setShakeNonce((n) => n + 1)
+      },
       explainReject: (w) => {
         // Name the letter rather than the rule: "missing \"A\"" is both shorter
         // and more actionable than "missing center letter" (the quotes are
@@ -582,6 +595,7 @@ export function PlayArea(ctx: GamePageCtx) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
+        shakeNonce={shakeNonce}
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
         foundWordsScore={foundWordsScore}

@@ -50,6 +50,7 @@ export function BoardCol({
   foundWordsCount,
   requiredWordsCount,
   // ── Board to render ──
+  shakeNonce,
   outerLetters,
   centerLetter,
   letterCounts,
@@ -76,6 +77,9 @@ export function BoardCol({
   targetRankIdx: number | null
 
   // ── Board to render ──
+  /** Bumped by PlayArea on every refused word — keys the wheel, so it remounts
+   *  and replays the head-shake. */
+  shakeNonce: number
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
@@ -176,6 +180,7 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Wheel
+        shakeNonce={shakeNonce}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}

@@ -339,6 +339,21 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  it('shakes the wheel on a refusal, and holds still on an accept', async () => {
+    // The head-shake for a move that wasn't a winning one. It is the whole
+    // wheel, keyed so a second refusal remounts it and plays again.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const shaking = () =>
+      (document.querySelector('[data-wheel]')?.getAttribute('class') ?? '').includes('verdictShake')
+
+    await user.keyboard('bead{Enter}') // a required word
+    expect(shaking()).toBe(false)
+
+    await user.keyboard('bcdf{Enter}') // fits the wheel, but has no center E
+    expect(shaking()).toBe(true)
+  })
+
   it('blocks submitting a word that over-uses a tile (two e, one e-tile)', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)

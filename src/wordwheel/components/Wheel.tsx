@@ -1,6 +1,8 @@
 // cs-unmet
 
 import type { ReactNode } from 'react'
+import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
 import { spentTiles, type Claim } from '../lib/spend'
 import { TILE_POSITIONS } from '../lib/wheel'
 import { Tile } from './Tile'
@@ -23,6 +25,10 @@ type Props = {
   /** The tiles the player CLICKED, oldest first. They are spent before any
    *  fallback, so a clicked tile is always the one that goes dark. */
   claims: readonly Claim[]
+  /** Bumped on every refused word. It keys the wheel, so a refusal remounts it
+   *  and the head-shake plays again — a CSS animation restarts on a remount, not
+   *  on a state change under it. */
+  shakeNonce: number
   /** A control floated over the wheel's top-right (the Shuffle button). Rendered
    *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
    *  VISUAL wheel. Anchoring to the column instead would strand it at the
@@ -58,6 +64,7 @@ export function Wheel({
   onLetterClick,
   typedCounts,
   claims,
+  shakeNonce,
   floatingControl,
 }: Props) {
   const letters = [centerLetter, ...outerLetters]
@@ -77,7 +84,14 @@ export function Wheel({
   return (
     <div className={styles.board}>
       <div className={styles.floatAnchor}>
-        <div className={styles.grid} data-wheel>
+        {/* The whole wheel takes the head-shake, not a tile: wordwheel's
+            refusal is about the WORD, and its letters are all legal tiles that
+            did nothing wrong. */}
+        <div
+          key={shakeNonce}
+          className={cls(styles.grid, shakeNonce > 0 && shared.verdictShake)}
+          data-wheel
+        >
           {letters.map((letter, i) => (
             <Tile
               key={`${letter}-${i}`}

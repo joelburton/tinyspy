@@ -367,7 +367,11 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
   tiles kiss each other (`OUTER_R = RING_R·sin(π/8)`) and each touches the center
   (`CENTER_R = RING_R − OUTER_R`), making the center ≈1.6× an outer tile.
 - **`Wheel.tsx`** lays the tiles out on a 300×300 square sized in `--u`, so the whole
-  board scales with the column. **`Tile.tsx`** is two round boxes, not an SVG
+  board scales with the column. A refused word makes the whole wheel head-shake (the
+  shared `.verdictShake`, keyed by a nonce so a second refusal remounts the wheel and
+  replays it) — the whole board rather than a tile, because the refusal is about the
+  WORD and its letters are all legal tiles that did nothing wrong. The actor's alone,
+  and a peer is never told about somebody else's miss. **`Tile.tsx`** is two round boxes, not an SVG
   `<circle>`: a mustard **seat** placed by its own center, and the **face** that sits
   in it. Only the face is the piece. The nine seats are tangent by construction, so
   their color merges into one continuous flower — that is the board's TRAY, like
