@@ -51,19 +51,19 @@ describe('historySnapshot — historyLitTiles (only on a valid word)', () => {
   })
 })
 
-describe('historySnapshot — description (kind-aware)', () => {
+describe('historySnapshot — historyLabel (kind-aware)', () => {
   it('a valid word reads "Cleared WORD"', () => {
-    expect(historySnapshot(log, 0).description).toBe('Cleared LEMON')
+    expect(historySnapshot(log, 0).historyLabel).toBe('Cleared LEMON')
   })
   it('a rejected word reads "Entered WORD — not a word"', () => {
-    expect(historySnapshot(log, 1).description).toBe('Entered ZZZZZ — not a word')
+    expect(historySnapshot(log, 1).historyLabel).toBe('Entered ZZZZZ — not a word')
   })
   it('a hint shows its clue text', () => {
-    expect(historySnapshot(log, 2).description).toBe('Hint: a citrus fruit')
+    expect(historySnapshot(log, 2).historyLabel).toBe('Hint: a citrus fruit')
   })
   it('a reveal names the peeked word', () => {
     const reveal: Submission[] = [{ kind: 'reveal', word: 'lemon', tile_ids: null, valid: null }]
-    expect(historySnapshot(reveal, 0).description).toBe('Revealed LEMON')
+    expect(historySnapshot(reveal, 0).historyLabel).toBe('Revealed LEMON')
   })
 })
 
@@ -89,6 +89,6 @@ describe('historySnapshot — edge cases', () => {
     // Every valid word is before index 99, so all their tiles are off.
     expect(snap.offBoard).toEqual(new Set([10, 11, 12, 13, 14, 20, 21, 22, 23, 24]))
     expect(snap.historyLitTiles).toEqual(new Set())
-    expect(snap.description).toBe('This turn')
+    expect(snap.historyLabel).toBe('This turn')
   })
 })

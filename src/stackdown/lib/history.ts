@@ -59,18 +59,18 @@ export interface HistorySnapshot {
    *  empty). These tiles are still present in `offBoard`'s complement — the whole
    *  point of the strictly-before boundary. */
   historyLitTiles: Set<number>
-  /** A short, name-free description of what the turn did, keyed off its kind and
+  /** A short, name-free historyLabel of what the turn did, keyed off its kind and
    *  verdict. The log row already shows *who* played it, so the actor is omitted. */
-  description: string
+  historyLabel: string
 }
 
 /**
- * Reconstruct the board + description for the turn at `index` within the
+ * Reconstruct the board + historyLabel for the turn at `index` within the
  * submissions visible to the caller (the same chronological list the log shows —
  * coop = everyone's, compete = the caller's own, so the mode split is free).
  *
  * An out-of-range `index` (shouldn't happen — the caller only ever passes a real
- * row's position) yields an empty green set and a neutral description; the
+ * row's position) yields an empty green set and a neutral historyLabel; the
  * `offBoard` is still well-defined (every valid word before it).
  */
 export function historySnapshot(submissions: ReadonlyArray<Submission>, index: number): HistorySnapshot {
@@ -87,7 +87,7 @@ export function historySnapshot(submissions: ReadonlyArray<Submission>, index: n
   const historyLitTiles =
     isValidWord && turn.tile_ids ? new Set(turn.tile_ids) : new Set<number>()
 
-  return { offBoard, historyLitTiles, description: describe(turn) }
+  return { offBoard, historyLitTiles, historyLabel: describe(turn) }
 }
 
 /**

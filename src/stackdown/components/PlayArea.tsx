@@ -141,8 +141,7 @@ export function PlayArea({
   // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
   // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the viewing
   // frame + banner and freezes input, and any keystroke / board click / ✕ exits.
-  const { historyId: historyId, isViewingHistory, showHistory, exitHistory } =
-    useHistoryViewer()
+  const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
 
   // ─── The local feedback slot (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched
@@ -684,16 +683,16 @@ export function PlayArea({
   // `historyId` indexes `logWords` — the same chronological list the GameTurnLog log
   // shows — so coop replays the shared board and compete the caller's own, for free.
   // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
-  const snap = historyId !== null ? historySnapshot(logWords, historyId) : null
+  const historySnap = historyId !== null ? historySnapshot(logWords, historyId) : null
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         tiles={game.tiles}
-        offBoard={snap ? snap.offBoard : offBoard}
-        historyLitTiles={snap ? snap.historyLitTiles : NO_TILES}
+        offBoard={historySnap ? historySnap.offBoard : offBoard}
+        historyLitTiles={historySnap ? historySnap.historyLitTiles : NO_TILES}
         readOnly={isViewingHistory || !canPlay}
-        historyLabel={snap ? snap.description : null}
+        historyLabel={historySnap ? historySnap.historyLabel : null}
         onExitHistory={exitHistory}
         currentWord={currentWord}
         appendTile={appendTile}
@@ -706,9 +705,9 @@ export function PlayArea({
         clearFlash={clearFlash}
         // The marks a live board wears. All three are empty while viewing a past
         // turn: that board is a record, and nothing is happening on it.
-        attentionTiles={snap ? NO_TILES : attentionTiles}
-        boardAnswer={snap ? null : boardAnswer}
-        heldTiles={snap ? NO_TILES : heldTileIds}
+        attentionTiles={historySnap ? NO_TILES : attentionTiles}
+        boardAnswer={historySnap ? null : boardAnswer}
+        heldTiles={historySnap ? NO_TILES : heldTileIds}
         refusedWord={refusedWord !== null}
       />
 

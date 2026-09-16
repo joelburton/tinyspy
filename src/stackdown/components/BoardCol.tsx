@@ -59,61 +59,61 @@ export function BoardCol({
   refusedWord,
 }: {
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  /** The full tile set (fixed geometry). */
+  // The full tile set (fixed geometry).
   tiles: Tile[]
-  /** Tiles NOT to paint — the live board's removed+picked-up tiles, OR a snapshot's
-   *  off-board set while viewing a past turn. PlayArea picks which. */
+  // Tiles NOT to paint — the live board's removed+picked-up tiles, OR a snapshot's
+  // off-board set while viewing a past turn. PlayArea picks which.
   offBoard: Set<number>
-  /** Tiles to ring green — a viewed turn's played word; empty (NO_TILES) when live. */
+  // Tiles to ring green — a viewed turn's played word; empty (NO_TILES) when live.
   historyLitTiles: ReadonlySet<number>
-  /** Board inert + input frozen: `viewing || !canPlay`. When NOT viewing this is
-   *  exactly "can't play right now", which is why the key handler can gate on it. */
+  // Board inert + input frozen: `viewing || !canPlay`. When NOT viewing this is
+  // exactly "can't play right now", which is why the key handler can gate on it.
   readOnly: boolean
 
   // ── History viewer (its overlay lives in the below-board region) ──
-  /** The viewed turn's description while inspecting history (drives the banner + the
-   *  viewing frame), or null when live. */
+  // The viewed turn's label (it drives the banner and the viewing frame), or null
+  // when live.
   historyLabel: string | null
-  /** Return to the live board (a board/banner click, the ✕, or any keystroke). */
+  // Return to the live board (a board/banner click, the ✕, or any keystroke).
   onExitHistory: () => void
 
   // ── Word-building (the buffer stays in useGame; this column drives it) ──
-  /** The word being built (tile ids in selection order). */
+  // The word being built (tile ids in selection order).
   currentWord: number[]
-  /** Pick a tile onto the word; returns the new word (or null if it couldn't). */
+  // Pick a tile onto the word; returns the new word (or null if it couldn't).
   appendTile: (tileId: number) => number[] | null
-  /** Return a slot's tile and every tile after it. */
+  // Return a slot's tile and every tile after it.
   retractTo: (index: number) => void
-  /** Emit the completed 5-tile word up — PlayArea owns the RPC + commit/clear.
-   *  Only ever called on a deliberate submit (the button or Enter); picking the
-   *  fifth tile no longer fires it. */
+  // Emit the completed 5-tile word up — PlayArea owns the RPC + commit/clear.
+  // Only ever called on a deliberate submit (the button or Enter); picking the
+  // fifth tile no longer fires it.
   onSubmitWord: (tileIds: number[]) => void
 
   // ── Below-board own-move feedback (the slot is PlayArea's) ──
-  /** PlayArea's below-board slot. This column shows its input-engine results
-   *  into it (no matching tile / an ambiguous letter) and draws it in its own
-   *  reserved row; a tile click, ⌫ or any key is the player's next move, so
-   *  it dismisses a gesture-cleared message. */
+  // PlayArea's below-board slot. This column shows its input-engine results
+  // into it (no matching tile / an ambiguous letter) and draws it in its own
+  // reserved row; a tile click, ⌫ or any key is the player's next move, so
+  // it dismisses a gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
 
   // ── Word-slot flash (own-accepted / coop peer word — timer owned by PlayArea) ──
-  /** The word-slot flash (own-accepted / peer word), owned by PlayArea's timer. */
+  // The word-slot flash (own-accepted / peer word), owned by PlayArea's timer.
   flash: WordFlash | null
-  /** Drop any lingering word flash when a new word starts. */
+  // Drop any lingering word flash when a new word starts.
   clearFlash: () => void
 
   // ── The live board's marks (PlayArea sequences them) ──
-  /** Tiles taking the attention flash — a teammate's word before its answer
-   *  shows, and my own refused tiles as they land back. */
+  // Tiles taking the attention flash — a teammate's word before its answer
+  // shows, and my own refused tiles as they land back.
   attentionTiles: ReadonlySet<number>
-  /** A teammate's answer, once the attention flash has handed their tiles back:
-   *  those tiles wear the outcome's own color, and a refusal shakes. */
+  // A teammate's answer, once the attention flash has handed their tiles back:
+  // those tiles wear the outcome's own color, and a refusal shakes.
   boardAnswer: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
-  /** Tiles the server has taken but the board is still showing, so the answer
-   *  can be read before they go. Drawn, and inert. */
+  // Tiles the server has taken but the board is still showing, so the answer
+  // can be read before they go. Drawn, and inert.
   heldTiles: ReadonlySet<number>
-  /** My own word was just refused: the slots are wearing the answer, so they are
-   *  not a place to take tiles back from yet. */
+  // My own word was just refused: the slots are wearing the answer, so they are
+  // not a place to take tiles back from yet.
   refusedWord: boolean
 }) {
   const isViewingHistory = historyLabel != null
@@ -229,7 +229,7 @@ export function BoardCol({
         tiles={tiles}
         offBoard={offBoard}
         active={!readOnly}
-        flashTiles={isViewingHistory ? NO_TILES : flashIds}
+        ambiguousTiles={isViewingHistory ? NO_TILES : flashIds}
         historyLitTiles={historyLitTiles}
         isViewingHistory={isViewingHistory}
         onTileClick={onTileClick}

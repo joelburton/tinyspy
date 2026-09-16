@@ -58,7 +58,7 @@ export function Board({
   tiles,
   offBoard,
   active,
-  flashTiles,
+  ambiguousTiles,
   historyLitTiles = NO_TILES,
   isViewingHistory = false,
   onTileClick,
@@ -69,21 +69,21 @@ export function Board({
   tiles: Tile[]
   offBoard: Set<number>
   active: boolean
-  /** Tile ids to outline in red (a typed letter matched more than one). */
-  flashTiles: ReadonlySet<number>
+  // Tile ids to outline in red (a typed letter matched more than one).
+  ambiguousTiles: ReadonlySet<number>
   // The word a viewed past turn played — ringed green. Omitted / empty while live.
   historyLitTiles?: ReadonlySet<number>
-  /** Turn-history: draw the shared "viewing a past turn" frame around the whole
-   *  board (the same marker scrabble uses). Off during live play. */
+  // Draw the shared "viewing a past turn" frame around the whole board. Off
+  // during live play.
   isViewingHistory?: boolean
   onTileClick: (tileId: number) => void
-  /** Tiles taking the attention flash — "something happened here". */
+  // Tiles taking the attention flash — "something happened here".
   attention?: ReadonlySet<number>
-  /** A teammate's answer on their tiles, once the attention flash has faded:
-   *  the outcome's own fill, and a refusal shakes. */
+  // A teammate's answer on their tiles, once the attention flash has faded:
+  // the outcome's own fill, and a refusal shakes.
   answer?: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
-  /** Tiles the server has taken that are still being shown while their answer
-   *  is read. They are drawn like any other tile and take no clicks. */
+  // Tiles the server has taken that are still being shown while their answer
+  // is read. They are drawn like any other tile and take no clicks.
   held?: ReadonlySet<number>
 }) {
   const present = useMemo(
@@ -116,7 +116,7 @@ export function Board({
             key={t.id}
             className={cls(
               styles.tile,
-              flashTiles.has(t.id) && styles.flash,
+              ambiguousTiles.has(t.id) && styles.flash,
               historyLitTiles.has(t.id) && styles.historyTile,
               // The answer landing here: the attention flash first, then the
               // outcome's color, and a refusal shakes once the color shows.

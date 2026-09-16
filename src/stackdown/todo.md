@@ -11,6 +11,32 @@
   beside it already answers `hidden` for it.
 
 ## Soon
+
+- **"Blank this while viewing history" is decided three times at the call
+  site.** `PlayArea` hands `BoardCol` three LIVE marks already emptied for the
+  viewer:
+
+  ```tsx
+  attentionTiles={historySnap ? NO_TILES : attentionTiles}
+  boardAnswer={historySnap ? null : boardAnswer}
+  heldTiles={historySnap ? NO_TILES : heldTileIds}
+  ```
+
+  None of the three is about history — they are a teammate's attention flash,
+  their played word wearing its outcome, and tiles the server has taken that are
+  still drawn so the answer can be read. What the ternary says is that history
+  WINS over them, since a live mark on a historical board would be a lie.
+
+  The catch is that `BoardCol` already knows: eleven lines into its body it
+  derives `const isViewingHistory = historyLabel != null`. So a FOURTH live mark
+  added later has to remember the ternary, and nothing catches it if it does not
+  — the mark simply paints over a past board. Either the column blanks them (one
+  decision, but it then silently ignores props it was handed) or the caller keeps
+  doing it explicitly and something has to make that rule visible. Found
+  2026-09-16 by Joel, reading the history-names sweep. **Check scrabble and
+  connections for the same block before deciding** — this may be one shape, not
+  one game's.
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 8.5rem`, where that last term stands for

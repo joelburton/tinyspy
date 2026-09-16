@@ -524,7 +524,24 @@ there is the PERSON), `viewport`, `viewBox`, `DefinitionView`, `is_current_view`
 
 The four games whose names already turned out to be lying go first.
 
-- [ ] **stackdown** — `green` was the history ring (fixed); read the rest
+- [x] **stackdown** — read 2026-09-16. Five things, and only one was findable
+      by any pattern:
+      - **`snap`** → `historySnap`. The snapshot local says nothing; it is the
+        same name in every game, so expect it in all ten rows.
+      - **`HistorySnapshot.description`** → `historyLabel`, so the field and the
+        prop it feeds match end to end (the highlight batch matched the lit-tile
+        fields and left this one).
+      - **`flashTiles` was a collision I made.** The highlight batch renamed
+        `Board`'s live-flash prop `flashTiles` — which is already the name of the
+        `useFlash` TRIGGER eleven lines above the call site in `BoardCol`, so one
+        word meant a set and a function in one file. The prop is `ambiguousTiles`
+        now, which is what those tiles are (`AMBIGUOUS_PICK_FLASH_MS`).
+      - `const { historyId: historyId, … }` — a self-alias the rename left.
+      - the `/**`-on-props pass: 22 members across `Board.tsx` and
+        `BoardCol.tsx`, and two docstrings still opened `Turn-history:` where
+        the name now says it.
+      Clean: `GameTurnLog`, `InfoCol`, the stylesheets, and the backstop greps
+      (every remaining `viewed` / `viewing` in the game is prose).
 - [ ] **scrabble** — `viewTurn`, `viewedPlay` known; `lib/play.ts` is its
       `lib/history`
 - [ ] **codenamesduet** — `viewedClue` known
