@@ -138,8 +138,25 @@ export function BoardCol({
    *  decided, so it stops being in flight whatever this component still remembers.
    *  Derived rather than cleared, so there is no path that can leave a dim stuck on
    *  a tile forever (which is exactly what the first version did — the error branch
-   *  cleared it and the success branch never did). */
+   *  cleared it and the success branch never did).
+   *
+   *  `results` is the board being DISPLAYED, which while viewing a past turn is a
+   *  snapshot that cannot contain a word guessed after it — so this reads as "in
+   *  flight" for a decided word, and the gate at the `<Board>` call below is what
+   *  keeps that off a historical board. */
   const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
+
+  // A RESTART empties the guesses, which means the release condition above can
+  // never be met again: the last word submitted before the restart is not in the
+  // new (empty) results, so its tile would sit dim for the rest of the game. The
+  // log SHRINKING is what says the board was reset — only a restart shrinks it —
+  // so the memory is dropped there, the same signal connections reads for its
+  // verdict mark.
+  const [seenMoveCount, setSeenMoveCount] = useState(moveCount)
+  if (moveCount !== seenMoveCount) {
+    setSeenMoveCount(moveCount)
+    if (moveCount < seenMoveCount) setSubmittedWord(null)
+  }
 
   // ─── Board shuffle (a fresh visual scan, local only) ────
   // A counter the Shuffle button bumps; the display order is derived from it. Keyed
@@ -256,7 +273,9 @@ export function BoardCol({
         myTurnJustStarted={myTurnJustStarted}
         moveCount={moveCount}
         // The word with the server, if any: its tile dims until the answer lands.
-        inFlightWord={inFlightWord}
+        // Never while viewing a past turn — that board is not the one the guess
+        // is in flight on, the same reason `selected` is dropped above.
+        inFlightWord={viewing ? null : inFlightWord}
         onPick={isStillPlaying && isMyTurn && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}

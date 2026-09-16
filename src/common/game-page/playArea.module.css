@@ -608,11 +608,43 @@
   80%      { transform: translateX(3px); }
 }
 
+/* NO — the head-shake, on a piece whose own state says the same thing.
+ *
+ * Side to side is what a person does to say no, which is why this movement means
+ * "not a winning move" and never anything else: a piece taking a GOOD verdict
+ * does not shake. The two forms above bring their own outline or fill; this is
+ * the movement on its own, for a board where the answer is already arriving as
+ * the piece's permanent state color and a second color would be a third copy of
+ * it. Motion still never carries the message alone — the state color is the
+ * half that survives reduced motion.
+ *
+ * Same beat as the two forms above deliberately: one shake, one meaning, one
+ * duration. Replaying it needs a REMOUNT, like theirs, on any board where the
+ * same piece can be refused twice. */
+/* @@ */ .verdictShake {
+/* @@ */   animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out;
+}
+
+/* Both at once, named in one declaration because an element has ONE animation
+ * list and the cascade cannot add to it — a piece that is taking the attention
+ * wash and shaking is a piece whose verdict arrived under the mark that pointed
+ * at it. (The ink half of the wash is what the first animation carries; see
+ * `.tileFace.attentionFlash` above.) */
+/* @@ */ .tileFace.attentionFlash.verdictShake {
+/* @@ */   animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out,
+/* @@ */     attention-ink var(--mark-attention-flash-duration) step-end;
+}
+
 /* The color survives; the movement doesn't. */
 @media (prefers-reduced-motion: reduce) {
   .verdictRing,
+/* @@ */   .verdictShake,
 /* @@ */   .tileFace.verdictFill {
     animation: none;
+  }
+  /* …but the wash's ink is not movement, so the pair keeps that half. */
+/* @@ */   .tileFace.attentionFlash.verdictShake {
+/* @@ */     animation: attention-ink var(--mark-attention-flash-duration) step-end;
   }
 }
 
@@ -745,8 +777,13 @@
   animation: attention-flash var(--mark-attention-flash-duration) ease-out forwards;
 }
 
+/* The mark is a BRIGHT FLASH, so nearly all of its life is spent at full
+ * strength and the fade is only the hand-back — enough that the yellow leaves
+ * rather than blinking off, and no more. The split is a proportion of the
+ * duration, not a time, so retuning the duration keeps the shape: at 350ms this
+ * is 300ms solid and a 50ms tail. */
 /* @@ */ @keyframes attention-flash {
-  0%, 70% { opacity: 1; }
+  0%, 85% { opacity: 1; }
   100%    { opacity: 0; }
 }
 

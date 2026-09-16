@@ -20,6 +20,12 @@ framework. Games carry a **tf level**; see
 session and the place to record finishing one. The channels and rules below are
 settled and live in shared code; what remains is applying them game by game.
 
+**What each game does TODAY, and what it should do**, is written out per game in
+[What each game does today](#what-each-game-does-today-and-what-it-should-do) —
+a behavior inventory to audit the rules against, with the four shapes a board
+change takes and the rule about verdicts a peer can overturn. Its per-game
+proposals are proposals; each one is settled at that game's own pass.
+
 Once the audit is done and the games have been
 brought into line, this folds into [ui.md](../docs/ui.md) as part of the visual language
 and this file goes away.
@@ -66,7 +72,8 @@ ordering rule.
 | **board frame, flash** | your turn just started | brief |
 | **board frame, steady gray** | you are viewing history | while viewing |
 | **ink color** | dark on light = untouched · white on color = decided | permanent |
-| **motion** | never alone — pairs with attention or invalid | brief |
+| **motion, side to side** | **no** — not a winning move: wrong, near, refused. Never on a good verdict | one shake, AFTER the attention wash has finished |
+| **motion**, other | never alone — pairs with attention or invalid | brief |
 
 **Width and color are separate channels on the same border**, which is what
 lets "selected *and* just rejected" render without deciding which wins.
@@ -544,6 +551,33 @@ almost always right:
 Its one hard constraint is unchanged: `prefers-reduced-motion` must leave a
 message behind, so motion never carries a meaning alone.
 
+### Side to side means NO
+
+Shaking a piece left and right is what a person does with their head to say no,
+and the app spends the movement on nothing else. It marks **not a winning
+move** — wrong, one away, refused, already tried — and **a piece taking a good
+verdict never shakes.** That is what keeps the gesture readable: a player who
+learns it once can act on it in peripheral vision, before reading a word of the
+pill.
+
+It is the movement half of a verdict the piece is already showing in color, so
+reduced motion costs nothing — the red or the orange is the message and the
+shake is the emphasis. Where the pieces form a shape the verdict can be drawn
+around, the shake pairs with a ring; where the piece carries its own permanent
+state color, it rides that instead and brings no color of its own.
+
+**It follows the attention wash; the two never overlap.** The wash says WHERE to
+look and is over almost immediately — just long enough to catch an eye that was
+somewhere else. The shake says what the answer was, and the answer is the
+piece's own color, which is under the wash until the wash is done. So a piece
+that is about to shake waits: wash, then shake, each doing one job with the
+board's real state visible underneath.
+
+Mechanically this costs one thing worth knowing: an element has a single
+animation list, so a piece wearing two marks names both animations in one
+declaration, and a mark that outlives another must come FIRST in that list —
+animations are matched by position, and a name that changes index restarts.
+
 ### Motion is never the only carrier
 
 `prefers-reduced-motion` must always leave a message behind, so motion always
@@ -700,6 +734,435 @@ tile flashing yellow says *this changed*, and a board frame flashing yellow says
 *state* color, which does not collide — that is a fill, this is a flash and a
 frame.
 
+## What each game does today, and what it should do
+
+Sixteen games, each with a paragraph of what its board and its pill actually do
+right now, and a bullet list of what they should do instead. It exists to be
+**audited**: the rules above are general, and a general rule is easy to agree
+with and hard to check. Written out per game, a rule either describes the board
+or it doesn't.
+
+**The "what we want" bullets are proposals, not decisions.** They are derived
+from the rules above; nothing here has been ruled on, and a game's own tf pass
+is where each one is settled or dropped.
+
+Read the entries against three facts that hold everywhere, so they are not
+repeated sixteen times:
+
+- **Solo is coop with nobody else in it.** Every peer mark and every peer pill
+  simply never fires; nothing else differs.
+- **Coop shares the board; compete usually does not.** In compete each player
+  works their own copy of the same puzzle and RLS hides the others' moves until
+  terminal, so nothing changes under you and the whole attention channel is
+  idle. **setgame and scrabble are the exceptions** — their compete boards are
+  genuinely contended, one board that everyone acts on, which is where in-place
+  marks matter MOST. bananagrams is the other end: its board is private even
+  from its own opponents.
+- **The pill is per-viewer and the board is shared.** A pill can say something
+  only you need to hear; a mark on a shared board is seen by everyone who has
+  that board open, and the audience rule is therefore a rule about what the
+  mark MEANS, not about who receives it.
+
+### The four shapes a board change takes
+
+A game's shape decides whether a change announces itself, which is the whole of
+what the attention channel is for. Four shapes, and the fourth is the one this
+document had not named:
+
+| shape | what happens when a move resolves | announces itself? | games |
+|---|---|---|---|
+| **1 · fills in place** | the piece stays; its state arrives on it | no — the piece looks the same until you look at it | psychicnum · waffle · wordle · crosswords · codenamesduet · wordiply |
+| **2 · pieces move** | the pieces travel somewhere, or the board reorganizes around them | yes — the motion and the destination both say what happened | connections |
+| **3 · pieces are replaced** | pieces leave and others arrive in the same slots | no, and worse than 1 — the board looks busy while saying nothing | setgame |
+| **4 · pieces leave** | pieces are consumed and the board closes up behind them | partly — you see that something went, never what or why | stackdown · strands · letterboxed · scrabble (the rack) |
+
+**3 and 4 are one mechanism, not two.** Both are pieces LEAVING; setgame also
+has pieces arriving, which is the only difference. So the `leaving` mark
+setgame already owns is the general answer for shape 4 — but the *hold* it
+pairs with is not. setgame holds the departing cards for `DEPART_MS` because
+the hold is what stops the claimer seeing their replacements early, which is a
+fairness constraint no other game has. A shape-4 game with nothing arriving
+should not buy the delay.
+
+**For shape 4 there is usually a better mark than the departure.** The question
+a player actually has after pieces leave is not "which ones went" but "what can
+I do now" — so the mark belongs on what the departure EXPOSED. In stackdown
+that is the tiles a cleared word uncovers, which is a change in place and takes
+the ordinary attention wash, with no hold and no delay.
+
+**Shape 2 needs no attention mark for its good case** and this is worth stating
+because it looks like an omission. connections' four tiles leave the grid and
+become a band that names the category and lists them: the motion says where to
+look and the band says what happened, so a green flash would be a third copy of
+news already delivered twice.
+
+### Never show a verdict a peer can overturn
+
+**The rule.** A verdict may go on the board only when the server has confirmed
+it. Anything a peer's move could still contradict belongs in the pill.
+
+The asymmetry is what makes this workable: **a pill can be replaced and a board
+mark cannot.** The pill is a stream of messages with ranks — a later message
+supersedes an earlier one, the player sees the correction as a correction, and
+nothing about it claims permanence. A tile that turns green and then turns back
+has told a lie in the one channel the game uses for truth.
+
+**waffle is the worked case, and it is already right.** A swap shows
+immediately — the letters move under your hands, because your own input should
+never wait on a round trip — but the COLORS are withheld until the server
+answers. The move is optimistic; the verdict is not. That split is the rule in
+one board.
+
+**The bee family shows the other half of it.** boggle, spellingbee, wordwheel
+and wordiply hold the whole legal list in the FE, so they score a word locally
+and show `+N` the instant you press Enter, committing in the background. That
+is allowed **because the verdict lands in the pill**: when the commit loses a
+race — a teammate banked the same word a moment earlier — the server's own
+sentence replaces the optimistic one and the player reads `CAT — already
+found`. Nothing on the board ever claimed anything.
+
+**Where it could break.** A game with the answer in the FE and a shared board is
+one decision away from painting a local verdict onto a tile. Two boards are
+close to it today and neither has crossed the line: scrabble places just-played
+tiles optimistically but takes its scores from the server's event, and stackdown
+holds its cleared tiles removed only AFTER the RPC has answered. Both are worth
+re-checking at their tf passes, because both look like the safe version of a
+thing that would be wrong.
+
+**The unanswered question this leaves.** The vocabulary has no *provisional*
+channel — no way for a board to say "this looks right, pending". Today the
+answer is to say nothing on the board and let the pill carry it, which is
+probably correct and is certainly cheap. It should stay the answer until some
+game has a case it genuinely cannot serve.
+
+### wordle · shape 1
+
+**Today.** A guess lands as a whole new row: the five tiles take their green /
+yellow / gray from the server's answer, permanently, and the on-screen keyboard
+takes the same colors. An invalid guess rings the active row and shakes it,
+keyed on a nonce so refusing the same word twice shakes twice, with `Not enough
+letters` or the server's sentence in the pill. The submitted row wears the
+in-flight dim while it is with the server. In coop everyone plays one board, so
+a teammate's guess appends a row you did not write, announced by a peer pill
+(`guessed CRANE`) and by a milestone pill when someone solves it; the turn marks
+(the board dims when it is not your turn, the frame flashes when it becomes
+yours) carry the opt-in turn-by-turn variant.
+
+**Trust + race.** The target is hidden server-side and every guess is
+adjudicated there. Nothing to race: a guess is a whole row of your own.
+
+**What we want** (proposals):
+- Nothing. This is the plan's worked case for "a change appended into empty
+  space announces itself", and the board is already quiet where it should be.
+
+### waffle · shape 1
+
+**Today.** Selecting a tile takes the selection border; the two tiles of a swap
+wear the in-flight dim while the server answers. **The letters move
+immediately and the colors do not** — the swap is shown optimistically, its
+verdict withheld until the server answers. When the answer lands, the attention
+wash marks two kinds of cell: one whose letter changed (a teammate's swap
+arriving on your board) and one that was yours and in flight whose color just
+resolved. There is no verdict mark, because the only refusal is a swap a
+teammate beat you to. Peers get milestone pills (`solved it`, `out of swaps`).
+
+**Trust + race.** Solution hidden server-side; the FE knows nothing. Coop shares
+one board, so two players can swap overlapping cells — which is exactly why the
+color waits.
+
+**What we want** (proposals):
+- Nothing. waffle is the reference for the race rule and for self-attention
+  ("not for the move, for the color").
+
+### psychicnum · shape 1
+
+**Today.** Three beats on one tile. Clicking and submitting dims the tile (the
+in-flight mark, and only the guesser sees it, since only they have a guess in
+flight). When the server's row arrives the tile takes the attention wash for
+`ATTENTION_FLASH_MS` — **including for the guesser** — and under it the
+permanent green or red arrives, with the identity dot of whoever decided it in
+coop. `Correct` / `Incorrect` / `Not on the board` / `You already guessed that`
+land in the pill; a peer pill says someone guessed a word. In compete RLS scopes
+the results to your own guesses, so nothing ever changes under you and only your
+own three beats fire.
+
+**Trust + race.** Secrets hidden server-side. The green comes from the server's
+row, so it cannot be contradicted — the model the race rule wants.
+
+**What we want** (proposals):
+- **Settle the self-attention question**, because the roster below says
+  psychicnum's is "deliberately off" and the code marks the guesser like
+  everybody else. The behavior looks right by waffle's reasoning — you know
+  where you clicked and not what it will say, and the answer arrives in that
+  tile — in which case the roster row is stale and the rule to write down is
+  that **in shape 1 the actor's mark is about the verdict's arrival, not the
+  change's location**.
+
+### connections · shape 2
+
+**Today.** Tiles carry no state color of their own, which leaves their
+background free. Picking one takes the selection border, and in coop a
+teammate's pick takes an inset ring in their color; the four wear the in-flight
+dim on submit. The verdict fills the four tiles in its own tone and shakes them
+— and **only the guesser sees it**: it is raised where the pill is raised, it
+dies when the pill dies, and a teammate's guess kills it early because the board
+has moved on. A correct guess turns the four tiles into a full-width band that
+names the category, and **the band takes the attention wash when a TEAMMATE
+solved it**, never when you did. Peer pills carry `found category`, `was one
+away`, `guessed wrong`.
+
+**Trust + race.** The categories ship to the FE (FE-knows) and the server still
+adjudicates. Coop shares the board, so two players can submit overlapping
+tiles.
+
+**What we want** (proposals):
+- **Decide whether a teammate's refused guess marks the four tiles for
+  everyone.** In coop those four tiles are one shared move — a teammate's pick
+  already wears their ring, so the guess was visible while it was being built,
+  and the refusal currently is not. This is the gap between "all players get the
+  red shake" and what the code does.
+- Keep the good case unmarked: the band is the mark.
+
+### codenamesduet · shape 1
+
+**Today.** The one turn-based game, and the one with no shared board marks at
+all: no in-flight dim, no attention wash, and **neither turn mark** — not the
+board dim while your partner is acting, not the frame flash when the turn
+becomes yours. A guess colors its tile by what it turns out to be (agent,
+neutral, assassin), from the server. The clue field's problems land in the pill,
+and a peer status pill says what your partner is doing. There is no compete
+mode, and no solo.
+
+**Trust + race.** Both keycards are FE-readable and simply not rendered; the
+server adjudicates. Two seats alternating means nothing races.
+
+**What we want** (proposals):
+- **The turn marks, first.** A turn-based two-seat game is the strongest case
+  in the roster for "the board looks identical the instant it becomes yours",
+  and it is the only game that has neither half of the answer.
+- **The in-flight dim on the guessed tile**, for the same reason every other
+  game has it.
+- **Attention on the tile your partner just guessed** — a keycard is twenty-five
+  tiles and the change is a fill in place, which is the definition of shape 1.
+
+### setgame · shape 3
+
+**Today.** The richest set of marks anywhere, and the only shape-3 board. A
+claim substitutes three cards in place, so every claim is marked: the departing
+three are held on screen for `DEPART_MS` and lit, the replacements light as they
+land for `ARRIVE_MS`, and **the claimer sees their own three dimmed instead** —
+they know what they picked, and the dim doubles as "I heard you, the server
+hasn't answered yet". Both clear at the same instant, deliberately, so the
+claimer cannot see their replacements early. `Not a set` lands in the pill; a
+peer pill says someone found a set. **Compete is contended** — one table,
+everyone claiming — so this is the one board whose marks matter more in compete
+than in coop.
+
+**Trust + race.** No solution to hide; the server validates each claim. Two
+players can claim overlapping cards, and one of them loses.
+
+**What we want** (proposals):
+- Its three `--setgame-*` colors fold into the shared `--mark-attention-*`
+  vocabulary, and its selection becomes a border rather than a `box-shadow`
+  ring — both its own tf pass.
+- Keep the choreography exactly as it is. The hold is a fairness constraint,
+  not a flourish.
+
+### stackdown · shape 4
+
+**Today.** A typed letter that matches more than one exposed tile rings the
+candidates red for 900ms — a UI problem, not a verdict, though it wears the
+verdict's red today. An accepted word clears its tiles (held removed locally
+only after the server has said yes) and the board collapses. **The word itself
+flashes green in the entry row** for 1.5s — for your own word and, in coop, for
+a teammate's, which is how a peer learns what was played. **Nothing marks the
+board**: a peer sees tiles vanish and the stack close up, with the word in a
+strip below it. A rejected word flashes red in the same strip — but a
+teammate's rejection flashes their letters and your own invalid word gets the
+pill alone.
+
+**Trust + race.** Solution hidden server-side; the server validates the word and
+the tile positions. Coop shares one stack, so two players can build words from
+overlapping tiles.
+
+**What we want** (proposals):
+- **Mark what the departure EXPOSED**, not what left. The tiles a cleared word
+  uncovers are newly playable, which is the question a peer actually has, and it
+  is a change in place that the attention wash already serves. Cheaper and more
+  useful than holding the departing tiles.
+- **Settle the rejection asymmetry** — a teammate's rejected word marks their
+  letters while your own gets no mark. One of the two is wrong.
+- The ambiguous-letter mark leaves the outcome red for the UI-problem channel.
+
+### strands · shape 4
+
+**Today.** Found theme words lock their cells: the letters take the theme mark
+and the spangram takes its own, permanently, and a disc in the turn log carries
+the same two kinds. The ambiguous-letter mark (a typed letter matching several
+cells) rings the candidates for 1000ms — the same UI-problem shape stackdown
+has, at a different number. Every verdict lands in the pill: `theme`,
+`spangram`, `valid word`, `hint earned`, `already found`, `too short`, `not a
+word`. In coop the board is shared, so a teammate's find locks cells anywhere on
+it, **with no mark of any kind**.
+
+**Trust + race.** Solution hidden server-side. Coop shares the board; two
+players can trace the same word.
+
+**What we want** (proposals):
+- **Attention on the cells a teammate's find just locked.** Seven or eight cells
+  changing state in the middle of a grid you are tracing is the clearest
+  unmarked in-place change in the roster.
+- One lifetime for the ambiguous-letter mark, shared with stackdown's, named in
+  `feedbackTiming` rather than typed per game.
+
+### letterboxed · shape 4
+
+**Today.** Letters are marked covered as the chain uses them, permanently; the
+chain itself is drawn as a line between letters, and the current word's letters
+take their own marks. Verdicts are pill-only (`not a word`, the sides rule, the
+chain rule). In coop the chain is shared, so a teammate's word covers letters
+and extends the line **with nothing to announce it**.
+
+**Trust + race.** The seeded pair and the playable list ship to the FE behind a
+display gate; the server validates each word. Coop shares one chain.
+
+**What we want** (proposals):
+- **Attention on the letters a teammate's word just covered**, and on the line
+  it added. The line is a motion-shaped change drawn instantly, which is
+  precisely the case the "an arrival animation says WHAT happened" rule is
+  about — it should probably draw rather than appear.
+
+### scrabble · shape 1 and 4
+
+**Today.** Three transient outlines, all on `useFlash` at about a second: green
+on the cells you just played, yellow on the rack slots you just drew, red on
+the cells of a word the server refused. Just-played tiles are placed
+optimistically and read as committed until the refetch brings them in. Two
+warnings exist for the race specifically — `Board changed` and `Pre-play
+cleared: conflict` — when a peer's move invalidates tiles you had staged. Peer
+pills carry the move and its score. The board is shared in both modes, and
+compete seats an AI opponent.
+
+**Trust + race.** No fixed answer; the server validates each move and owns the
+score. The board is contended in every mode, and pre-play makes the race
+visible.
+
+**What we want** (proposals):
+- **The green on your own played cells is news you already have** — you placed
+  those tiles and the score is in the pill. The audience rule says drop it.
+- **The yellow on newly drawn rack slots is attention-shaped and correct**: tiles
+  you did not choose, arriving in place, on a surface you are not looking at.
+- **The red refusal is a verdict, and its lifetime is wrong** — a timer, where
+  the vocabulary says a verdict lives until your next action.
+- **A peer's played word probably wants the attention wash.** A word appearing
+  somewhere on a 15×15 board while you are reading your rack is a change in
+  place in all but name.
+
+### bananagrams · shape 1
+
+**Today.** Compete-only, and the one private board: nobody else's move ever
+changes it. Check marks the cells of words it rejects and the hand flashes on an
+error; the pill carries the whole verdict (`Every word checks out, and the grid
+is one piece`, or what failed). Peers exist only as the race — their progress is
+in the opponent strip, never on your board.
+
+**Trust + race.** No fixed answer; the server validates on demand. Nothing can
+race, because the board is yours alone.
+
+**What we want** (proposals):
+- **No attention channel at all**, and that is a decision worth recording rather
+  than an omission: nothing arrives on this board that the player did not put
+  there.
+- The invalid marks want a stated lifetime — until the cells change, presumably,
+  rather than until something clears them.
+
+### crosswords · shape 1
+
+**Today.** The one board with per-cell realtime: teammates type into the same
+grid, cell by cell. A peer's cursor wears a frame in their color, and **a cell a
+teammate just filled draws its letter in that teammate's color for a few
+seconds** — an identity-colored mark doing an attention job, invented here and
+nowhere else in the roster. Check marks wrong cells and revealed cells with
+their own marks. Verdicts and check results land in the pill; explain-a-clue has
+its own companion panel.
+
+**Trust + race.** Solution hidden server-side. Coop shares the grid with
+per-cell writes, which is the tightest contention in the roster — two people can
+be typing adjacent cells.
+
+**What we want** (proposals):
+- **Rule on the recent-fill mark.** It reads well and it is the only place the
+  app answers "who just did this" and "this just changed" in one channel. Either
+  it becomes a named shared channel, or it becomes attention plus the identity
+  the peer cursor already carries.
+- Whatever is decided, its lifetime joins `feedbackTiming` — "a few seconds" is
+  a hand-tuned number today.
+
+### boggle · shape 1 (nothing changes on the board)
+
+**Today.** The dice never change. A traced or typed word is scored locally
+against the shipped list and shown in the pill as `+N` (or `wow! +N`)
+immediately, committing in the background; a rejection says why. Finds
+accumulate in the word list, where a newly found word carries a brief
+recently-found mark. In coop the found list is shared, so a teammate's find
+appears in the list and in a peer pill. Compete gives each player their own list
+over the same dice.
+
+**Trust + race.** Trusting-commit: the FE holds the full legal list. A coop race
+for the same word is resolved by the server, and the correction replaces the
+optimistic pill.
+
+**What we want** (proposals):
+- **Nothing on the board.** A game whose board never changes has no attention
+  case; the list is the surface where things arrive, and it already marks them.
+- Keep the optimistic pill exactly as it is — it is the pattern the race rule
+  points every other game at.
+
+### spellingbee · shape 1 (nothing changes on the board)
+
+**Today.** Same as boggle's shape: the hexes never change state, and a letter
+flashes for 260ms as you type or click it — input feedback, not a verdict.
+Verdicts are pill-only, optimistic `+N` / `pangram +N`, with the server's
+sentence replacing it when a commit loses. Rank milestones raise a peer pill;
+coop shares one found list, compete gives each player their own.
+
+**Trust + race.** Trusting-commit. Same race, same resolution as boggle.
+
+**What we want** (proposals):
+- **Nothing on the board**, for the same reason.
+- The 260ms letter flash is the input channel and should be named as such, so it
+  is never read as a verdict beat.
+
+### wordwheel · shape 1 (nothing changes on the board)
+
+**Today.** A spellingbee fork, and the marks are the same: a 260ms tile flash on
+input, verdicts in the pill, finds in the shared list, rank milestones as peer
+pills. The wheel is a multiset, so a letter can be used more than once — which
+the input flash has to survive.
+
+**Trust + race.** Trusting-commit, like spellingbee.
+
+**What we want** (proposals):
+- **Nothing on the board**, and whatever spellingbee settles about the input
+  flash applies here unchanged — these two should never diverge.
+
+### wordiply · shape 1
+
+**Today.** Five guess rows ARE the record — there is no word list. During play a
+guess shows only its LENGTH, never its quality, which is the game: the verdict
+is withheld by design until the end. The verdict slot carries the comparison
+when it comes. Peer pills announce a peer's word and its length. Coop shares the
+five rows; compete gives each player their own.
+
+**Trust + race.** Scores and the best word are FE-readable and simply not
+rendered; the server validates. Nothing meaningful races.
+
+**What we want** (proposals):
+- **Attention on a teammate's guess row landing**, in coop — a row filling in
+  while you are thinking is an in-place change on a five-row board.
+- Nothing else: withholding the verdict is this game's whole design, and the
+  race rule agrees with it for free.
+
 ## Roster — which games are converted
 
 ### tf levels
@@ -734,7 +1197,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
+| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **(That is not what the code does — nothing filters the actor out, so the guesser sees the wash too. The contradiction is unresolved; see this game's entry above.)** **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |

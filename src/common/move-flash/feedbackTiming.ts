@@ -23,12 +23,20 @@
 
 /** The attention wash: solid for most of it, then a short tail fading out, so the
  *  eye is caught and then handed back the piece's true state color. Short — a
- *  board that sits colored is a board where loud has stopped meaning anything. */
-const ATTENTION_FADE_MS = 400
+ *  board that sits colored is a board where loud has stopped meaning anything.
+ *
+ *  Exported because it is also the moment the piece's own color becomes visible,
+ *  which is when a mark that comments on that color can start. */
+export const ATTENTION_FADE_MS = 250
 
 /** The board frame at the moment the turn becomes yours — a fade-out rather than
  *  a blink: the message is "it just became yours", not "something is wrong". */
 const YOUR_TURN_FADE_MS = 2000
+
+/** The head-shake: "not a winning move". A piece taking a good verdict never
+ *  wears it, and it never carries the message alone — the piece's own state color
+ *  is the half that survives reduced motion. */
+export const VERDICT_SHAKE_MS = 400
 
 /** How long a mark's class outlives the animation it started. Enough that an
  *  ordinary timer cannot fire early and clip the fade, small enough that a mark
@@ -53,4 +61,5 @@ export function publishMarkDurations(): void {
   const root = document.documentElement.style
   root.setProperty('--mark-attention-flash-duration', `${ATTENTION_FADE_MS}ms`)
   root.setProperty('--mark-yourTurn-flash-duration', `${YOUR_TURN_FADE_MS}ms`)
+  root.setProperty('--mark-verdict-shake-duration', `${VERDICT_SHAKE_MS}ms`)
 }

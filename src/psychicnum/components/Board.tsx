@@ -1,11 +1,13 @@
 // cs-unmet
 
-import { type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useMoveAttention } from '@/common/move-flash/useMoveAttention'
+import { useFlash } from '@/common/move-flash/useFlash'
+import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/move-flash/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -113,6 +115,23 @@ export function Board({
     changed: (before, now) => new Set([...now.keys()].filter((w) => !before.has(w))),
   })
 
+  // NO — the head-shake, on the words that just came back WRONG. It waits for
+  // the wash to finish rather than riding it: the shake is a remark about the
+  // tile's own color, and that color is under the yellow until the wash is done.
+  const [shaking, shakeWrong] = useFlash<string>(VERDICT_SHAKE_MS)
+  // Keyed on the WORDS rather than on the set that holds them: `results` is a
+  // fresh Map every render, so an effect that depended on it would cancel its own
+  // timer whenever anything re-rendered inside the wait.
+  const wrongKey = [...flashing]
+    .filter((w) => results.get(w) === false)
+    .sort()
+    .join(',')
+  useEffect(() => {
+    if (wrongKey === '') return
+    const timer = setTimeout(() => shakeWrong(wrongKey.split(',')), ATTENTION_FADE_MS)
+    return () => clearTimeout(timer)
+  }, [wrongKey, shakeWrong])
+
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)
   return (
@@ -171,6 +190,10 @@ export function Board({
                 selected === word && shared.selected,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
+                // NO — the head-shake, once the wash has handed the tile its
+                // red back. The red is the half that survives reduced motion,
+                // and a correct guess never shakes.
+                shaking.has(word) && shared.verdictShake,
                 // Turn-history: this tile is the guess the viewed turn decided.
                 highlightWord === word && styles.viewed,
               )}
