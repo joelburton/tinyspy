@@ -107,7 +107,7 @@ scope, without naming stackdown.
 
 ### F-move-flash-3 · `unnamed-lifetimes` · Every `useFlash` caller spends a number the vocabulary has no name for
 
-`feedbackTiming.ts` says a lifetime is a property of the vocabulary, not of a
+**HALF WORKED 2026-09-15.** `feedbackTiming.ts` says a lifetime is a property of the vocabulary, not of a
 game, and names two: attention (700) and your-turn (1200). The three `useFlash`
 callers use 900 (stackdown's ambiguous letter), 1000 (strands' ambiguous
 letter — the same mark, a different number) and the hook's default of 1000
@@ -125,6 +125,22 @@ scrabble's verdict outlines take the same or their own) and drop the default
 from `useFlash` so a caller must say which beat it means; or leave the numbers
 per game and let each game's tf pass name them. The first is this area's job
 by the file's own rule.
+
+
+**The ambiguous-letter mark is named and shared**: `AMBIGUOUS_PICK_FLASH_MS`
+(1000) in `feedbackTiming.ts`, read by stackdown and strands, which had typed
+900 and 1000 for the same mark. Its docstring says why it is longer than the
+attention flash — that one announces an event, this one asks for an action —
+and that it is not published to CSS, the mark being a ring with nothing to
+animate. Joel ruled the same day on its color: the mark takes the ERROR red — the
+outcome vocabulary's member that never means a judgment, and darker than the
+lost red — with the ring-versus-fill channel saying it a second time. stackdown
+had the lost red and strands the chrome fault red; both read one token now
+(recorded in tile-feedback.md's UI-problem section).
+
+**Still open:** scrabble's three verdict outlines, which take `useFlash`'s
+default rather than a named beat, and the default itself — a duration nobody
+chose, sitting in the hook's signature.
 
 ### F-move-flash-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
 

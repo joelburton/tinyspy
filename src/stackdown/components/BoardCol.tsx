@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
 import { useFlash } from '@/common/move-flash/useFlash'
+import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -120,7 +121,7 @@ export function BoardCol({
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback, so
   // the state lives here (unlike the word-slot flash, which a teammate can trigger).
-  const [flashIds, flashTiles] = useFlash<number>(900)
+  const [flashIds, flashTiles] = useFlash<number>(AMBIGUOUS_PICK_FLASH_MS)
 
   // ─── Tile click → extend the word ─────────────────────────────
   // Filling the fifth slot deliberately does NOT submit: the word sits there

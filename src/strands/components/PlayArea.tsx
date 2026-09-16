@@ -15,6 +15,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useFlash } from '@/common/move-flash/useFlash'
+import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -229,7 +230,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // feedback owned here (nothing else can trigger it) — the same shape
   // stackdown's ambiguous-tile flash uses. The set is only ever iterated, never
   // `.has()`-tested, so holding tuples in it is fine (identity would be, too).
-  const [ambiguous, flashAmbiguous] = useFlash<Coord>(1000)
+  const [ambiguous, flashAmbiguous] = useFlash<Coord>(AMBIGUOUS_PICK_FLASH_MS)
 
   /**
    * The turn-history viewer. Exit-on-click is built into the shared hook; the

@@ -128,13 +128,15 @@
 }
 
 /* A typed letter that matched several cells — "click the one you meant". The
- * system-error red, at the viewed-turn ring's weight so it reads as emphatically
- * as the other rings; solid rather than the hint's dashes, because this is one
- * moment's answer to one keystroke, not a standing state. Fades itself out via
- * the column's flash timer (~1s). */
+ * ERROR red, the outcome vocabulary's member that never means a judgment
+ * (docs/outcomes.md), because nothing here has been judged; stackdown's mark for
+ * the same situation is the same color. At the viewed-turn ring's weight so it
+ * reads as emphatically as the other rings, and solid rather than the hint's
+ * dashes, because this is one moment's answer to one keystroke, not a standing
+ * state. Cleared by `AMBIGUOUS_PICK_FLASH_MS`. */
 /* @@ */ .discAmbiguous {
   fill: none;
-  stroke: var(--chrome-fault-color);
+  stroke: var(--outcomes-error-ink-color);
   stroke-width: 0.1;
 }
 

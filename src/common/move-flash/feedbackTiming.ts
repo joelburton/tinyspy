@@ -38,6 +38,17 @@ const YOUR_TURN_FADE_MS = 2000
  *  is the half that survives reduced motion. */
 export const VERDICT_SHAKE_MS = 400
 
+/** "Several of these match what you typed — click the one you meant." The mark
+ *  that says it is a ring on the candidates, and this is how long it stays.
+ *
+ *  Longer than the attention flash on purpose: that one announces an event and
+ *  is over before you could act on it, while this one asks for an action and has
+ *  to survive the reach for the mouse.
+ *
+ *  Not published to CSS — the mark is a border and a ring with nothing to
+ *  animate, so this timer is the only clock it has. */
+export const AMBIGUOUS_PICK_FLASH_MS = 1000
+
 /** How long a mark's class outlives the animation it started. Enough that an
  *  ordinary timer cannot fire early and clip the fade, small enough that a mark
  *  cannot be re-raised before the class is free again. */

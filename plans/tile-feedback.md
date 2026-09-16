@@ -499,28 +499,40 @@ Every path also has to leave the board in the same state afterwards: connections
 clears its selection on all three verdicts, including the one it refused locally,
 so "what happens after an answer" is one rule rather than three.
 
-### A UI PROBLEM is not a verdict, and must not wear outcome colors
+### A UI PROBLEM is not a verdict — and the CHANNEL is what says so
 
-**Not designed yet — captured so it isn't solved by accident.** Some boards need
-to point at pieces for a reason that has nothing to do with how anyone is playing:
-stackdown and strands both ring duplicate tiles to say *you can't just type this
-letter, because there are two of them — you'll have to click*. Nothing has been
-judged. Nobody did anything wrong. It is a statement about the INPUT, and it is
-true before you act and stays true after.
+Some boards point at pieces for a reason that has nothing to do with how anyone
+is playing: stackdown and strands both ring duplicate tiles to say *you can't
+just type this letter, because there are two of them — you'll have to click*.
+Nothing has been judged. Nobody did anything wrong. It is a statement about the
+INPUT.
 
-Both games draw it today as a red border, which is wrong twice over: red is an
-outcome color and this is not an outcome, and if anything the message is closer
-to a caution than to a failure. The rules it will have to follow, when those games
-convert:
+**It wears the ERROR red, and is kept apart from judgments twice over** (Joel,
+2026-09-15). The earlier ruling here was that the mark needed a color outside
+the outcome families altogether. It does not, because two things already
+separate it:
 
-- **Not an outcome color.** It needs a color of its own, outside the won / lost /
-  near / warning families, precisely so it can never be read as a judgment of a
-  move (see [ui.md → The color system](../docs/ui.md#the-color-system), which reserves the
-  question).
-- **Never a fill.** A filled tile reads as a verdict, and that is the one thing
+- **The color is `error`**, the one member of the outcome vocabulary that never
+  means a judgment — [outcomes.md](../docs/outcomes.md) says so in as many
+  words. It is also darker than the lost red, so the two do not read alike even
+  side by side.
+- **The channel is a ring.** A judgment takes the piece's BACKGROUND; this is an
+  outline around the candidates — cursor-shaped, the shape of "I don't know
+  which one you meant". A player never meets a red ring and a red fill meaning
+  the same thing, because a verdict is never a ring.
+
+stackdown drew it in the lost red and strands in the chrome fault red; both now
+take `--outcomes-error-ink-color`, so one mark is one color.
+
+What still holds:
+
+- **Never a fill.** A filled piece reads as a verdict, and that is the one thing
   this must not say. An edge or a ring, leaving the piece itself untouched.
-- **Its lifetime is the CONDITION, not an action.** It lasts exactly as long as
-  the ambiguity does — unlike every verdict, which ends at your next move.
+- **One lifetime, named once.** `AMBIGUOUS_PICK_FLASH_MS` in
+  `common/move-flash/feedbackTiming.ts`, which stackdown and strands both read —
+  they had typed 900 and 1000 for the same mark. It is longer than the attention
+  flash deliberately: that one announces an event, this one asks for an action
+  and has to survive the reach for the mouse.
 
 Expect more cases than these two: any board that has to say "this input won't work
 here" wants the same mark.
@@ -1236,7 +1248,7 @@ the background. Pick the next one up from the "forces" column.
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
-| stackdown | tf0 | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP — and **the verdict flash only fires for half the players**: a teammate's rejected word flashes their letters red, your OWN invalid word gets the pill alone. Decide whether that is right (the tiles do come straight back, which is its own answer) when the game converts. **Chrome borrows to settle:** both its tile border and its filled entry slot are painted with the action BUTTON's blue (`Board.module.css:85`, `WordEntry.module.css:31`) |
+| stackdown | tf0 | — | **Worked 2026-09-15, short of a full tf2 pass.** An answer is now the same two colors wherever you are sitting: the entry slots became tiles (the shared `--tile-slot-*` trio at the ramp's middle, which also retired the filled slot's button-blue borrow), so a verdict there is a fill and white ink rather than a ring of its own — `won` joined the shared tones for it. Your own refused word answers in the SLOTS and shakes, its five tiles coming back marked when the beat ends; a teammate's word is marked on THEIR tiles instead of squatting in your entry row, attention flash then the answer, with an accepted word's tiles held on the board and inert while it is read. The letter was drawn as a bare text node and the attention flash painted straight over it; it is lifted now. The asymmetry recorded here — a teammate's rejection marked while your own got the pill alone — is closed: both are marked. The ambiguous-letter mark now takes the **error** red (see the UI-problem section: `error` never means a judgment, and a judgment is a fill where this is a ring) and its lifetime is the shared `AMBIGUOUS_PICK_FLASH_MS`. **Still owed:** the board's own `.tile` is bespoke rather than the shared face, its hover/press stand-in was written fast for the dark-mode spike, and the tile border's button-blue borrow is unsettled |
 | strands | tf0 | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
 | letterboxed | tf0 | — | a board whose primary mark is a LINE between cells, not a tile fill |
 | scrabble | tf0 | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
