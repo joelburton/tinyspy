@@ -1,4 +1,4 @@
-// cs-met-pause-suspend
+// cs-blessed-pause-suspend
 
 /**
  * Tests for PauseBoundary. The component's job is small but its

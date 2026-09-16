@@ -1,4 +1,4 @@
-// cs-met-pause-suspend
+// cs-blessed-pause-suspend
 
 import { describe, expect, it } from 'vitest'
 import { computePause } from './pause'

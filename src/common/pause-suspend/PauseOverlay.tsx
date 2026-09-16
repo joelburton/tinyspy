@@ -1,4 +1,4 @@
-// cs-met-pause-suspend
+// cs-blessed-pause-suspend
 
 import type { Member } from '../members/member'
 import { Dot } from '../members/Dot'
@@ -51,7 +51,8 @@ type Props = {
  *     Resume clears only the manual pause; a presence pause outlives it.
  *
  * The roster it draws is the WHOLE team and not just the missing, so a waiting
- * player sees who is already here alongside who we are still waiting on. Names stay black wherever the overlay writes one — the disc alone carries
+ * player sees who is already here alongside who we are still waiting on. Names
+ * stay black wherever the overlay writes one — the disc alone carries
  * identity, the same grammar as the header's `PageHeaderPlayersStrip`
  * (docs/ui.md → "Player identity = a colored disc").
  *

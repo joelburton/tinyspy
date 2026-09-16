@@ -1,4 +1,4 @@
-// cs-met-pause-suspend
+// cs-blessed-pause-suspend
 
 import type { Member } from '../members/member'
 

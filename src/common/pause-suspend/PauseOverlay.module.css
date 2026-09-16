@@ -1,4 +1,4 @@
-/* cs-met-pause-suspend */
+/* cs-blessed-pause-suspend */
 
 /* Pause-state banner. Rendered standalone in the slot where
  * PlayArea would otherwise sit (PauseBoundary conditional-renders
@@ -6,9 +6,9 @@
  * Header and chat above/below stay visible.
  *
  * No absolute positioning, no backdrop dim — there's nothing
- * behind it to dim. Just a centered banner with a softly-tinted
- * surround to make the "paused" framing visually distinct from
- * "active play surface."
+ * behind it to dim. Just a centered banner in a bordered, rounded
+ * white box, so the "paused" framing reads apart from the play
+ * surface it replaced.
  */
 
 /* @@ */ .overlay {

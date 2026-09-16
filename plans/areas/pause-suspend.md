@@ -4,17 +4,17 @@ The folders it reads: `pause-suspend`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, the closing re-read done 2026-09-16.** Roster agreed (Joel:
-*"audit the area"*) and stamped `cs-met-pause-suspend`; every file read. The
-audit's thirteen findings are all worked. The re-read — every roster file end
-to end, then every file the area touched outside the folder, with the
-effect-name grep and a grep of each worked finding's fault class over the
-siblings — found **seven more, F-14 to F-20, none worked**. The `doc.md`
-harvest is done. Then the blessing, which is Joel's.
+**Status: CLOSED 2026-09-16, blessed** (Joel: *"bless the files in this area,
+then close the area and commit"*). Roster agreed (Joel: *"audit the area"*);
+every file read. The audit's thirteen findings are all worked. The re-read —
+every roster file end to end, then every file the area touched outside the
+folder, with the effect-name grep and a grep of each worked finding's fault
+class over the siblings — found **seven more, F-14 to F-20, all worked** one
+at a time on Joel's word. The `doc.md` harvest is done.
 
 ## The roster
 
-`src/common/pause-suspend/` — every file `cs-met-pause-suspend`:
+`src/common/pause-suspend/` — every file `cs-blessed-pause-suspend`:
 
 - `pause.ts` — `computePause`, the pure rule: given who is on the channel and
   who is expected, is the game paused (a boolean since F-14)
@@ -556,6 +556,10 @@ sentence, the fault styling and the `[db]` log.
 Options: (1) the header says "a bordered white banner" and the line wraps;
 (2) leave. Recommend (1).
 
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). The stylesheet header says
+a bordered, rounded white box; the docstring line wraps with its neighbors.
+No pixel moved.
+
 ## What checked out
 
 - The unmount contract is real and tested: the mount-counter spec proves the
@@ -625,6 +629,7 @@ proof.
       effect-name grep over every file touched (2026-09-16; F-14 to F-20 are
       what it found, and they are open)
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-      — the three notes are placed; waits on F-14 to F-20
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — the three notes are placed, F-14 to F-20 worked
+- [x] every file on the roster blessed, or its stamp says why not — seven files
+      `cs-blessed-pause-suspend`, set 2026-09-16 on Joel's word
