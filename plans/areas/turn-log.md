@@ -491,6 +491,54 @@ either: boggle's PlayArea, its spec and `RankBar`'s all already say a tile is
 `onExit` (the component's name carries the word), and `history.historyFrame` at
 the call sites is fine — *"history.historyFrame is great."*
 
+### The meaning-based sweep — F-19's unfinished half
+
+**Why a per-game read and not a sweep.** The rename above was built from
+spellings, so anything spelled otherwise survived. One of the three misses had
+NO clue in its name at all: stackdown's history ring was called `green`. Nothing
+in `green`, `highlight`, `snap` or `renderBoard` tells a grep what it is about,
+and no cross-game list of identifiers can find them. What finds them is starting
+at the hook and following what comes out of it — and that path is per game
+(`historyId` → that game's snapshot builder → its own props → its own board and
+stylesheet). The two greps (`view`, `highlight`) stay useful as a BACKSTOP after
+each read; used as the method they are what produced the incomplete rename.
+
+**What "read end to end" means**, so every row below means the same thing:
+
+1. the `useHistoryViewer` call in `PlayArea`, and every local derived from what
+   it returns;
+2. every prop those values travel through — `BoardCol`, `InfoCol`, `Board`,
+   `GameTurnLog` — **including ones whose names give no hint**;
+3. that game's `lib/history.ts` (scrabble: `lib/play.ts`) — every export, and
+   every field of its `HistorySnapshot`;
+4. the classes its stylesheets apply while viewing;
+5. then `view` and `highlight` grepped over that game only, to catch what the
+   read missed.
+
+Folded into the same pass, since the files are open: the `/**`-on-props fix
+(a member of a declaration takes `//`), and any prop docstring still opening
+`Turn-history:` where the name now says it.
+
+**Must NOT move**, the opposite trap: `viewerFinished` (codenamesduet — "viewer"
+there is the PERSON), `viewport`, `viewBox`, `DefinitionView`, `is_current_view`.
+
+The four games whose names already turned out to be lying go first.
+
+- [ ] **stackdown** — `green` was the history ring (fixed); read the rest
+- [ ] **scrabble** — `viewTurn`, `viewedPlay` known; `lib/play.ts` is its
+      `lib/history`
+- [ ] **codenamesduet** — `viewedClue` known
+- [ ] **strands** — `.discViewed` known; `hintCoords` is NOT history and stays
+- [ ] **connections**
+- [ ] **wordle**
+- [ ] **waffle**
+- [ ] **psychicnum**
+- [ ] **setgame**
+- [ ] **letterboxed**
+
+The known four are listed as each row's starting content deliberately, and are
+NOT fixed ahead of the read — a read graded against a list finds the list.
+
 **How it was done, since a repeat would want the same care:** the identifier
 renames ran through a comment-aware pass so prose could be reviewed separately
 — but the pass treats a string literal as code, and it clobbered twelve of them
