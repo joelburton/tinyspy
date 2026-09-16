@@ -2,6 +2,9 @@
 
 import { beforeAll, describe, expect, it } from 'vitest'
 import { gametypes } from '@/gametypes'
+// The global `fetch` fails any test that reaches the network; this test IS the
+// one that reaches it, so it asks for the real one by name (see test-setup.ts).
+import { fetchTheRealStack } from '@/test-setup'
 
 /**
  * Every registered game reaches its tables / RPCs through PostgREST via
@@ -31,7 +34,7 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 const schemas = [...new Set([...gametypes.map((g) => g.schema), 'common'])]
 
 async function probe(schema: string): Promise<{ code?: string; message?: string }> {
-  const res = await fetch(`${url}/rest/v1/__exposure_probe__?select=x`, {
+  const res = await fetchTheRealStack(`${url}/rest/v1/__exposure_probe__?select=x`, {
     headers: { apikey: key!, 'Accept-Profile': schema },
   })
   return (await res.json()) as { code?: string; message?: string }
@@ -45,7 +48,7 @@ describe('PostgREST schema exposure (e2e)', () => {
   beforeAll(async () => {
     if (!url || !key) return
     try {
-      await fetch(`${url}/rest/v1/`, { headers: { apikey: key } })
+      await fetchTheRealStack(`${url}/rest/v1/`, { headers: { apikey: key } })
       stackUp = true
     } catch {
       stackUp = false

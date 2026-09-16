@@ -507,6 +507,15 @@ npm run test:e2e       # Playwright realtime smoke tests — see above
 need a live stack (a Supabase service container / browsers), and `test:edge`
 needs Deno set up, so those stay local for now.
 
+**Vitest is stack-free, and `src/test-setup.ts` holds it to that.** The global
+`fetch` is replaced by one that records the request and throws, and an
+`afterEach` fails the test that made it. It records as well as throwing because
+throwing alone proves nothing: app code catches its own transport failures by
+design, so a leaked lookup renders its error state and the test passes — which
+is how two of them sat there reaching the local stack on every run. A test that
+MEANS to reach the stack imports `fetchTheRealStack` from the same file, as
+`schemaExposure.e2e` does.
+
 Single-file pgTAP run, for tightening one test:
 
 ```bash

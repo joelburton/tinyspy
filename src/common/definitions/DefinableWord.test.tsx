@@ -8,7 +8,19 @@
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// The host looks the clicked word up through the `common-define` Edge Function.
+// What comes back is `DefinitionView`'s business, tested there; what's pinned
+// below is only that the click opens the card, so the lookup is stubbed rather
+// than left to reach the network.
+vi.mock('../supabase/dbResult', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../supabase/dbResult')>()),
+  runEdgeFn: vi.fn().mockResolvedValue({
+    type: 'ok',
+    data: { result: 'not-a-word', word: 'acre' },
+  }),
+}))
 
 import { DefinableWord } from './DefinableWord'
 import { closeDefinition } from './definitionStore'

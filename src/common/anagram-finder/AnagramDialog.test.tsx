@@ -14,6 +14,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 
+// Clicking a result opens the shared definition popover, which looks the word
+// up through the `common-define` Edge Function. Only THAT is stubbed — `runRpc`
+// stays real so the anagram assertions below still travel through the mocked
+// `db` above. Which definition comes back doesn't matter here; that the popover
+// asks nothing of the network does.
+vi.mock('../supabase/dbResult', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../supabase/dbResult')>()),
+  runEdgeFn: vi.fn().mockResolvedValue({
+    type: 'ok',
+    data: { result: 'not-a-word', word: 'acre' },
+  }),
+}))
+
 import { AnagramDialog } from './AnagramDialog'
 import { DefinitionHost } from '../definitions/DefinitionHost'
 import { errorUnder } from '../fields/errorUnder'
