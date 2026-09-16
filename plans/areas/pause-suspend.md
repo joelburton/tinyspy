@@ -487,6 +487,11 @@ accumulator. F-3 removed the sister claim ("the timer keeps a single anchor")
 from `PauseBoundary`'s docstring and did not grep the class. Options: (1) the
 parenthetical reads "(members, presence, the clock)"; (2) leave. Recommend (1).
 
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). One word: the parenthetical
+names the clock. A grep of `docs/` and `src/common/` for "accumulator" now hits
+only sentences that name the design the clock rejected — `common.md`'s own
+clock section and `timer/doc.md`.
+
 ### F-pause-suspend-17 · `naming-three-state` · `docs/naming.md` describes a club three-state that uses both words wrongly
 
 `docs/naming.md` → Clubs: *"See `common.md` for the full club model —
