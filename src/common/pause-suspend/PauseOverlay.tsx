@@ -99,8 +99,10 @@ export function PauseOverlay({
         )}
         {manuallyPausedBy && (
           <strong>
-            {/* `show="both"` because this is a sentence, not a pill: dropping the
-                name on a phone would leave "● paused the game." */}
+            {/* `show="both"`, against DotActor's default: this banner is the
+                whole message and has 32rem to itself, so no name can overflow
+                it — and "who stopped my game" is worth the width on a phone
+                too. */}
             <DotActor actor={manuallyPausedBy} show="both" /> paused the game.
           </strong>
         )}

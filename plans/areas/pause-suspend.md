@@ -7,8 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
 findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6,
-F-7 and F-8. The three that remain each carry a decision and are presented one
-at a time: F-9, F-11, F-13.
+F-7, F-8 and F-9. The two that remain each carry a decision and are presented
+one at a time: F-11, F-13.
 
 ## The roster
 
@@ -293,6 +293,19 @@ banner reads like every other actor sentence on a phone; (2) keep `both` and
 write the reason it differs; (3) leave. A UX change, so it is Joel's call —
 recommend (1) for consistency, with the "Someone paused" pseudo-member
 (`useCommonGame`) as the case to check first, since its disc has no color.
+
+**WORKED 2026-09-16 as option (2), Joel's call** (*"do 2"*): the pixels are
+unchanged and the comment stops arguing with the codenamesduet ruling. It now
+says why this one sentence overrides `DotActor`'s `auto` — the banner IS the
+whole message, it has 32rem to itself so no username can overflow it, and who
+stopped the game is worth the width on a phone too. The ruling that a leading
+actor takes the default still stands for a line in a stack; this is the
+recorded exception, and the reason is at the call.
+
+Read in passing, and it cost nothing either way: a spectating club member who
+pauses resolves to the pseudo-member `{ username: 'Someone', color: '' }`,
+whose disc falls back to body text — so that line names nobody on a desktop
+either.
 
 ### F-pause-suspend-10 · `todo-premise` · The Soon says no e2e drives the suspend question; one does, in seven places
 
