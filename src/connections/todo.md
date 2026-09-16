@@ -25,6 +25,14 @@
 
 ## Soon
 
+- **An eliminated racer still pauses the game for the survivors.** The
+  presence-pause roster is the game's players minus conceders, and a fourth
+  mistake eliminates without setting `conceded`, so closing an eliminated tab
+  stops everyone still racing. Decide with the SQL open: either elimination
+  sets `conceded` too (then `_maybe_finish_compete` and the club-list outcome
+  words need re-reading, since "conceded" currently means walked away), or the
+  roster rule grows a second exclusion, or the caveat is accepted and written
+  as a rule in `docs/games/connections.md`.
 - **`revealedHints` can move back into `<HintList>`.** It was lifted into
   `PlayArea` so the restart handler could clear it; a restart now unmounts the
   whole play surface, so local state is cleared wherever it lives

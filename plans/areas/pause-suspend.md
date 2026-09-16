@@ -523,6 +523,12 @@ in `src/connections/todo.md` (Soon — an eliminated player should stop counting
 the way a conceder does, or the caveat is accepted and written as a rule) and
 the doc sentence points there; (2) leave. Recommend (1).
 
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). `src/connections/todo.md`
+→ Soon holds the item with its three possible answers; the doc sentence keeps
+its true claim and points at the todo. The "planned fix" the old sentence
+promised was never written anywhere a reader could find it, so nothing moved —
+the item is written fresh from the SQL.
+
 ### F-pause-suspend-19 · `copy-in-touched-docs` · The banned word in two docs the area touched
 
 F-3 turned "copy" into "text" across the roster and `states.md` and did not

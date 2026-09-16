@@ -650,7 +650,7 @@ Pause is common machinery — the presence/manual trigger sources, the overlay, 
 
 **Clean-by-unmount.** connections's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed, and reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule: selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the explicit Clear button and the post-submit clear after a **correct** guess resolves (a wrong / one-away guess keeps the selection for tweak-and-resubmit).
 
-**One caveat in connections compete:** an eliminated player is still in `members`, so leaving their tab drops their Presence and pauses the game for survivors. Annoying but tolerable for v1 — see `deferred.md` / the next-session pickup memory for the planned fix.
+**One caveat in connections compete:** an eliminated player is still in `members`, so leaving their tab drops their Presence and pauses the game for survivors. Tolerable so far; whether elimination should count as bowing out is an open item in `src/connections/todo.md`.
 
 ### Timer
 
