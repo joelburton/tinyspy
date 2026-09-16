@@ -39,8 +39,8 @@ const YOUR_TURN_FADE_MS = 2000
 export const VERDICT_SHAKE_MS = 400
 
 /** How long a word's ANSWER stays up — the accepted or refused word wearing its
- *  outcome, on whatever surface that game shows a word on: stackdown's entry
- *  slots and a teammate's tiles, wordiply's guess row.
+ *  outcome, on whatever surface that game shows a word on: an entry slot, a
+ *  guess row, the board tiles the word used.
  *
  *  Longer than the marks that only point at something, because this one is read:
  *  the player checks the word as well as the color. */

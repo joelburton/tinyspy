@@ -9,7 +9,7 @@ describe('useFlash', () => {
   afterEach(() => vi.useRealTimers())
 
   it('starts empty', () => {
-    const { result } = renderHook(() => useFlash())
+    const { result } = renderHook(() => useFlash(1000))
     expect([...result.current[0]]).toEqual([])
   })
 

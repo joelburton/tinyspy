@@ -10,6 +10,11 @@ const EMPTY: ReadonlySet<never> = new Set()
  * they clear themselves after `durationMs`. Returns the current hot set (for
  * `.has()` membership checks) plus the trigger.
  *
+ * `durationMs` is required and comes from `feedbackTiming` — a mark's lifetime
+ * is part of what the mark MEANS, so a caller says which beat it is raising and
+ * never a number of its own. (There was a default of 1000 here, which is a
+ * decision nobody made wearing a hook signature's clothes.)
+ *
  * Each call owns its own timer, so two marks on one board don't interfere, and
  * calling `flash` again before it clears restarts the countdown and replaces
  * the contents.
@@ -25,7 +30,7 @@ const EMPTY: ReadonlySet<never> = new Set()
  * self-clearing state.
  */
 export function useFlash<T = number>(
-  durationMs = 1000,
+  durationMs: number,
 ): [ReadonlySet<T>, (items: Iterable<T>) => void, () => void] {
   const [flashed, setFlashed] = useState<ReadonlySet<T>>(() => new Set<T>())
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)

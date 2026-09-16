@@ -5,6 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useFlash } from '@/common/move-flash/useFlash'
+import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -260,12 +261,19 @@ export function BoardCol({
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.
   const [optimistic, setOptimistic] = useState<Placement[]>([])
-  // Brief outlines (all self-clearing after ~1s via useFlash): green on the
-  // cells just played, yellow on the rack slots just drawn (from a play or an
-  // exchange), red on the new cells of a rejected (not-in-dictionary) word.
-  const [greenFlash, flashGreen] = useFlash<number>()
-  const [yellowFlash, flashYellow] = useFlash<number>()
-  const [redFlash, flashRed] = useFlash<number>()
+  // Three brief outlines, each on the beat the vocabulary gives its KIND
+  // (feedbackTiming): the rack slots just drawn are news arriving in place that
+  // the player did not choose, so they take the attention beat; the cells just
+  // played and the cells of a refused word are both a word's ANSWER on the
+  // board, which is read rather than glanced at and stays accordingly.
+  //
+  // All three ran on a shared default of 1000 before, a number nobody picked.
+  // WHETHER these are the right marks at all is scrabble's own tile-feedback
+  // pass to say — the green one marks the player's own move, which the audience
+  // rule says needs no mark, since the pill already answers.
+  const [greenFlash, flashGreen] = useFlash<number>(WORD_ANSWER_MS)
+  const [yellowFlash, flashYellow] = useFlash<number>(ATTENTION_FLASH_MS)
+  const [redFlash, flashRed] = useFlash<number>(WORD_ANSWER_MS)
 
   // ─── Derived ───────────────────────────────────────────────────
   const mode = game.mode

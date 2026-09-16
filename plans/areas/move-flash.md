@@ -161,6 +161,18 @@ three are now the only unnamed ones in the app, so dropping the default costs
 exactly three call sites, and the file that would hold their name already holds
 four beats it didn't.
 
+**WORKED 2026-09-15.** `useFlash`'s `durationMs` is required — a mark's lifetime
+is part of what the mark means, so a caller says which beat it raises and never a
+number of its own. scrabble's three took vocabulary beats rather than a name of
+their own: the rack slots just drawn are news arriving in place the player did
+not choose, so `ATTENTION_FLASH_MS`; the cells just played and the cells of a
+refused word are both a word's ANSWER on the board, so `WORD_ANSWER_MS`. That
+retunes a game this sprint has not audited — yellow much shorter, the other two
+half again longer — and Joel took that deliberately (2026-09-15): *consistency
+first, and if it is wrong scrabble's own area changes it.* WHETHER those three
+marks should exist at all is still scrabble's to say; the note below is
+unchanged.
+
 ### F-move-flash-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
 
 **WORKED 2026-09-15**, as option (2). waffle, connections and psychicnum each carry the same nine lines: a
@@ -640,8 +652,8 @@ the hive stays SVG. The ledger says so.
   arriving in place); the green on the cells just played is the player's own
   move, which the audience rule says needs no mark (the verdict is the pill's);
   the red on a refused word is a verdict, whose lifetime the vocabulary says is
-  "until the next action", not a timer. Not this area's to decide; the area's
-  F-3 gives them named beats to choose from when it is.
+  "until the next action", not a timer. Not this area's to decide — F-3 gave all
+  three a named beat, which says how long each stays, not whether it belongs.
 - `.attentionFlash` in `playArea.module.css` cites "as waffle's letter does" —
   a game named in shared CSS. `game-page` is closed; left for the concern split
   its `todo.md` holds.
