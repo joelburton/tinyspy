@@ -2,7 +2,8 @@
 
 import type { Member } from '@/common/members/member'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
@@ -85,7 +86,7 @@ export function GameTurnLog({
     (p) => who.showsEveryone || who.picked === (p.user_id ?? aiId(p.seat)),
   )
 
-  const outcomeFor = (kind: PlayRow['kind']): TurnOutcome =>
+  const outcomeFor = (kind: PlayRow['kind']): Outcome =>
     kind === 'word' ? 'won' : kind === 'forfeit' ? 'lost' : 'neutral'
 
   return (

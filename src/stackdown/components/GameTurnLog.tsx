@@ -4,7 +4,8 @@ import type { Member } from '@/common/members/member'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
@@ -82,7 +83,7 @@ export function GameTurnLog({
     >
       {shown.map((s, i) => {
         const isRequest = s.kind === 'hint' || s.kind === 'reveal'
-        const outcome: TurnOutcome = isRequest
+        const outcome: Outcome = isRequest
           ? 'near' // amber bar — a logged cheat request
           : s.valid
             ? 'won'

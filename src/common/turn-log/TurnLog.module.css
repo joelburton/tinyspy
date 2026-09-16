@@ -132,6 +132,15 @@
 /* @@ */ .barInner_near {
   background: var(--outcomes-near-bar-color);
 }
+/* @@ */ .barInner_warning {
+  background: var(--outcomes-warning-bar-color);
+}
+/* @@ */ .barInner_noted {
+  background: var(--outcomes-noted-bar-color);
+}
+/* @@ */ .barInner_error {
+  background: var(--outcomes-error-bar-color);
+}
 /* @@ */ .barInner_neutral {
   background: var(--outcomes-neutral-bar-color);
 }

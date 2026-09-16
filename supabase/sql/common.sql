@@ -1471,7 +1471,12 @@ begin
      set play_state = 'playing',
          is_terminal = false,
          ended_at = null,
-         status = reset_game.status
+         status = reset_game.status,
+         -- The frontend keys its play surface on this, so every client drops
+         -- the state of the run that just ended: a half-typed word, an
+         -- optimistic row, a mark mid-beat, the refs inside shared hooks. It
+         -- only goes up, and nothing reads its value — only that it changed.
+         restarts = common.games.restarts + 1
    where id = target_game;
 
   if not found then

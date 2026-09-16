@@ -421,7 +421,21 @@ export function GamePage({
         >
           <PlayAreaErrorBoundary>
             <Suspense fallback={<Loading />}>
+              {/* KEYED ON THE RUN. A restart bumps `common.games.restarts`, so
+                  React unmounts this surface and mounts a fresh one — and every
+                  piece of the finished run's local state goes with it: a
+                  half-typed word, an optimistic row, a mark mid-beat, a history
+                  viewer, and the refs inside shared hooks that no game's own
+                  code can reach.
+
+                  The alternative was each game noticing its own rows vanish and
+                  clearing what it remembered, which every game wrote separately,
+                  several got wrong, and none could reach into a shared hook.
+                  Nothing else on the row works as the key: a mid-game restart
+                  leaves `play_state`, `ended_at` and `status` exactly as they
+                  were. */}
               <PlayArea
+                key={commonGame.restarts}
                 session={session}
                 gameId={gameId}
                 brand={manifest.name}

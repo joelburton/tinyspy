@@ -2,26 +2,31 @@
 
 ## Bugs
 
-- **Delete `TurnOutcome`; a turn-log row takes an `Outcome`.** There is no
-  difference between the two (Joel) — any outcome can be a turn's outcome — so
-  the hand-cut four in `TurnLog.tsx` (`'won' | 'lost' | 'near' | 'neutral'`) is
-  a second name for a list that already exists, and a narrower one. It is also
-  load-bearing in the wrong direction: see the next item. `TurnLog.module.css`
-  has bar classes for the same four and needs the other three, so the type and
-  the stylesheet move together.
+- **Every `near` in the repo wants checking; most of them mean `warning`.**
+  Ruled 2026-09-15: `near` means *this was almost right* — connections' one-away
+  guess is the case it exists for. A hint, a spoiler, a word the dictionary does
+  not know: none of those is a near-miss, and the word for them is `warning`
+  ("not a verdict on your play", which [docs/outcomes.md](../../../docs/outcomes.md)
+  defines to cover exactly this and which is the amber the Hint button already
+  wears). Every one of them was unsayable in a log until `TurnOutcome` was
+  deleted, so games took the nearest word that compiled.
 
-- **A hint row is logged as `near`, and `near` is the wrong word for it.**
-  `near` means the guess was close; asking for a hint is not a guess at all.
-  The right word is `warning` — "not a verdict on your play", which
-  [docs/outcomes.md](../../../docs/outcomes.md) defines to cover hints, and
-  which is the amber the Hint button already wears. `warning` was unsayable
-  while `TurnOutcome` existed, so three games took the nearest word that
-  compiled: **stackdown** (`hint` / `reveal` rows), **letterboxed** (`hint` /
-  `spoiler` rows) and **setgame** (any non-claim event). Each cites the last
-  one as precedent, so they move together. strands is the odd one out and puts
-  a spent hint on `neutral`, arguing in its docstring that a hint is banked
-  progress being spent rather than progress made — settle that at the same
-  time, because the two readings can't both be right.
+  Where they are, as of the ruling:
+
+  - **stackdown** — `hint` / `reveal` rows;
+  - **letterboxed** — `hint` / `spoiler` rows;
+  - **setgame** — any non-claim event (its comment cites stackdown as
+    precedent, so the three move together);
+  - **psychicnum** — a reveal row;
+  - **strands** — `hint_word`, and it is the odd one out: it puts a SPENT hint
+    on `neutral` and argues in its docstring that a hint is banked progress
+    being spent rather than progress made. Settle that with the others, because
+    the two readings cannot both be right.
+  - **connections** keeps its `near` everywhere — one-away is what the word is
+    for, and its pill, its log, its PDF and its board all say it.
+
+  wordiply's dictionary miss moved to `warning` when its row flash landed
+  (2026-09-15), which is the worked example.
 
 ## Soon
 

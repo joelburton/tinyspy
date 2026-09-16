@@ -667,6 +667,7 @@ export type Database = {
           last_active_at: string
           paused: boolean
           play_state: string
+          restarts: number
           setup: Json
           started_at: string
           status: Json | null
@@ -684,6 +685,7 @@ export type Database = {
           last_active_at?: string
           paused?: boolean
           play_state?: string
+          restarts?: number
           setup: Json
           started_at?: string
           status?: Json | null
@@ -701,6 +703,7 @@ export type Database = {
           last_active_at?: string
           paused?: boolean
           play_state?: string
+          restarts?: number
           setup?: Json
           started_at?: string
           status?: Json | null

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TurnOutcome } from '@/common/turn-log/TurnLog'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GuessRow } from '../hooks/useBoard'
 
 /**
@@ -13,7 +13,7 @@ import type { GuessRow } from '../hooks/useBoard'
  *   - **all agents** (≥1) → `won`;
  *   - **no guesses** (passed) → `neutral`.
  */
-export function turnOutcome(guesses: GuessRow[]): TurnOutcome {
+export function turnOutcome(guesses: GuessRow[]): Outcome {
   if (guesses.length === 0) return 'neutral'
   if (guesses.some((g) => g.result === 'A')) return 'lost'
   const hasAgent = guesses.some((g) => g.result === 'G')

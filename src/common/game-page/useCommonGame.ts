@@ -45,6 +45,11 @@ export type CommonGame = {
   // true alongside writing the terminal play_state, so consumers can gate on a
   // uniform boolean without knowing each gametype's vocabulary.
   is_terminal: boolean
+  // Which RUN of this board we are on — 0 until the first restart, then +1 per
+  // restart. The page keys the play surface on it, so a restart takes every
+  // piece of a game's local state with it rather than each game hunting its own
+  // leftovers. Nothing reads the VALUE; only that it changed.
+  restarts: number
   // Free-form per-gametype outcome detail. Each gametype writes its own shape;
   // the matching manifest's `labelFor` reads it back to render the club-page
   // listing row. Kept current by every state-transitioning RPC via
@@ -256,7 +261,7 @@ export function useCommonGame(
           commonDb
             .from('games')
             .select(
-              'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at, current_turn_user_id',
+              'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, restarts, status, started_at, ended_at, current_turn_user_id',
             )
             .eq('id', gameId),
         ),

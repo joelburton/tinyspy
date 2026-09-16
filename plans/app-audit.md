@@ -960,6 +960,20 @@ of them that same day while working its own findings — the pass catches what
 the area itself just wrote, which is the argument for doing it at the CLOSING
 re-read and not only at the opening.
 
+### A narrower `Outcome` type is a finding until proven otherwise
+
+Ruled 2026-09-15. **Any outcome is a valid outcome**, so a type admitting only
+some of them is presumed wrong until its reason is written down and holds. The
+cost is not hypothetical: `TurnOutcome` made `warning` unsayable in a turn log,
+so games logged a hint as `near` and their logs disagreed with their own pills
+about the same event — for months, in five games. It is deleted.
+
+An area meeting one asks whether the set is genuinely closed or is a ceiling
+nobody revisited, and the same goes for a MAP over outcomes: one covering the
+words a game happens to use today hands every other word to whichever branch it
+ends on. [docs/outcomes.md](../docs/outcomes.md) owns the rule and lists the
+three subsets that survive.
+
 ### Findings are numbered AND slugged
 
 Every finding in an area file gets an ID and a slug, written together as its

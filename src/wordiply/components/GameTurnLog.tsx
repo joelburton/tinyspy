@@ -5,6 +5,7 @@ import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogBar } from '@/common/turn-log/TurnLog'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Member } from '@/common/members/member'
@@ -42,8 +43,11 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  * Row anatomy, using the shared atoms:
  *   - **outcome bar** — `won` for an accepted guess; `lost` for a structural
  *     reject (a rules error, and in turn-by-turn coop it cost the caller their
- *     go); `near` (amber) for a dictionary miss, which is a near-miss rather
- *     than a wrong move — the list may be at fault, or it was a typo.
+ *     go); `warning` for a dictionary miss, which is not a bad move in this
+ *     game — you are hunting for the longest word you can think of, and a miss
+ *     is a miss (the list may be at fault, or it was a typo). It read `near`
+ *     until 2026-09-15; the guess row and the pill say the same word, so all
+ *     three had to agree on one outcome, and this is it.
  *   - **the word** — the row's headline, so it takes the slack-absorbing
  *     `turnLog.main` column. Definable only when it's a real word: looking up
  *     something the dictionary just rejected would be a dead end.
@@ -79,7 +83,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
       {shown.map((g) => (
         <tr key={g.id} className={turnLog.turnLogDivider}>
           <TurnLogBar
-            outcome={g.valid ? 'won' : g.reason === 'not_a_word' ? 'near' : 'lost'}
+            outcome={ANSWER_OUTCOME[g.valid ? 'accepted' : (g.reason ?? 'not_a_word')]}
           />
           <td className={turnLog.main}>
             {g.valid ? (

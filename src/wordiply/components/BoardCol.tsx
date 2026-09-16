@@ -9,6 +9,7 @@ import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
 import { GuessBoard } from './GuessBoard'
 import shared from '@/common/game-page/playArea.module.css'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */
@@ -37,9 +38,16 @@ export function BoardCol({
   lastWord,
   entryDisabled,
   isTerminal,
+  held,
+  flash,
 }: {
   base: string
   guesses: { word: string; length: number }[]
+  /** My own accepted word, drawn until the server's row lands — see
+   *  `<GuessBoard>`. */
+  held: { word: string; length: number } | null
+  /** The answer being shown on the row that word is in, for a beat. */
+  flash: { word: string; outcome: Outcome; attention: boolean } | null
   word: string
   onChange: Dispatch<SetStateAction<string>>
   onSubmit: () => void
@@ -86,7 +94,14 @@ export function BoardCol({
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <div className={styles.starterWord}>{base.toUpperCase()}</div>
 
-      <GuessBoard base={base} guesses={guesses} activeWord={word} showActive={!entryDisabled} />
+      <GuessBoard
+        base={base}
+        guesses={guesses}
+        activeWord={word}
+        showActive={!entryDisabled}
+        held={held}
+        flash={flash}
+      />
 
       <div className={styles.inputArea}>
         {isTerminal ? (

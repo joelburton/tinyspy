@@ -1,6 +1,7 @@
 // cs-unmet
 
-import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
@@ -32,7 +33,7 @@ type Props = {
 
 /**
  * How each submission paints its outcome bar, in the shared four-value
- * vocabulary (`TurnOutcome`). The mapping is the point:
+ * vocabulary (`Outcome`). The mapping is the point:
  *
  *   - **won** — a theme word or the spangram. The thing you came for.
  *   - **near** — a valid non-theme word. Real progress (it moves the hint bar)
@@ -42,7 +43,7 @@ type Props = {
  * A duplicate lands on `lost` rather than `neutral` because it EARNED NOTHING:
  * being generous about it in the log would misreport the hint economy.
  */
-const OUTCOME: Record<GuessResult, TurnOutcome> = {
+const OUTCOME: Record<GuessResult, Outcome> = {
   spangram: 'won',
   theme: 'won',
   hint_word: 'near',
@@ -62,7 +63,7 @@ const OUTCOME: Record<GuessResult, TurnOutcome> = {
  * scale, where an eye running the log still sorts finds from misses without a
  * fifth thing competing for attention.
  */
-const HINT_OUTCOME: TurnOutcome = 'neutral'
+const HINT_OUTCOME: Outcome = 'neutral'
 
 /**
  * The verdict as a GLYPH, before the word.

@@ -127,6 +127,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
           is_current_view: true,
           play_state: 'playing',
           is_terminal: false,
+          restarts: 0,
           status: null,
           started_at: '2026-09-10T00:00:00Z',
           ended_at: null,

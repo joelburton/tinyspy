@@ -1,6 +1,9 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
 
@@ -27,6 +30,8 @@ export function GuessBoard({
   guesses,
   activeWord,
   showActive,
+  held = null,
+  flash = null,
 }: {
   base: string
   guesses: CompletedGuess[]
@@ -34,16 +39,63 @@ export function GuessBoard({
   activeWord: string
   /** Whether the active (in-progress) row is shown (playing + budget left). */
   showActive: boolean
+  /** My own just-accepted word, drawn as the next landed row until the server's
+   *  own row takes its place. Without it the word vanishes for a round trip —
+   *  the engine clears the box on submit. */
+  held?: { word: string; length: number } | null
+  /** The answer on whichever row its word is in, for a beat: a teammate's word
+   *  is already a landed row, mine may still be the held one. */
+  flash?: { word: string; outcome: Outcome; attention: boolean } | null
 }) {
-  const activeIndex = showActive ? guesses.length : -1
+  // The answer marks the row its word is IN — a teammate's landed row, or my
+  // own held one.
+  const flashed = flash ? guesses.findIndex((g) => g.word === flash.word) : -1
+  const activeIndex = showActive ? guesses.length + (held ? 1 : 0) : -1
+  /** The marks a row wears while it is the answered one. */
+  const answerMarks = (a: NonNullable<typeof flash>) =>
+    cls(
+      a.attention && shared.attentionFlash,
+      !a.attention && styles.answered,
+      !a.attention && VERDICT_TONE[a.outcome],
+      // Side to side means "not a winning move", so only a win is spared it.
+      !a.attention && a.outcome !== 'won' && shared.verdictShake,
+    )
 
   return (
     <ol className={styles.board}>
       {Array.from({ length: MAX_GUESSES }, (_, i) => {
+        if (held && i === guesses.length) {
+          return (
+            <li
+              key={`answer-${held.word}`}
+              // The row keeps its own shape — the word left, the badge right —
+              // and only its colors change. The shared tone classes carry
+              // nothing but the two custom properties `.answered` reads, which
+              // is why a row can wear a verdict without being a `.tileFace`.
+              className={cls(
+                styles.row,
+                styles.done,
+                flash && flash.word === held.word && answerMarks(flash),
+              )}
+            >
+              <DimmedBaseWord word={held.word} base={base} className={styles.rowWord} />
+              <span className={styles.badge} aria-label={`${held.length} letters`}>
+                {held.length}
+              </span>
+            </li>
+          )
+        }
         const g = guesses[i]
         if (g) {
           return (
-            <li key={i} className={cls(styles.row, styles.done)}>
+            <li
+              key={i}
+              className={cls(
+                styles.row,
+                styles.done,
+                flash && i === flashed && answerMarks(flash),
+              )}
+            >
               <DimmedBaseWord word={g.word} base={base} className={styles.rowWord} />
               <span className={styles.badge} aria-label={`${g.length} letters`}>
                 {g.length}

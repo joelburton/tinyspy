@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -9,11 +9,14 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
+import { ATTENTION_FADE_MS, WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
 import type { WordiplySetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -157,6 +160,83 @@ export function PlayArea(ctx: GamePageCtx) {
   // (points = the word's LENGTH), the submit_guess RPC, and the reject reason.
   const legalSet = useMemo(() => new Set(game?.legalWords ?? []), [game?.legalWords])
 
+  /** The engine's four answers in the SERVER's vocabulary — it reports one
+   *  `not_legal` for two different things, and which one it was decides whether
+   *  a word was a miss or a rule broken. Everything that shows an answer goes
+   *  through here and then through `ANSWER_OUTCOME`, so the pill, the row and
+   *  the log cannot disagree about one word. */
+  const answerFor = useCallback(
+    (w: string, answer: 'accepted' | 'too_short' | 'not_legal' | 'already_found'): Answer =>
+      answer !== 'not_legal'
+        ? answer
+        : base !== '' && !w.includes(base.toLowerCase())
+          ? 'missing_base'
+          : 'not_a_word',
+    [base],
+  )
+
+  // ─── The answer, on the row the word was typed into ────────────
+  // The shared engine consumes the box the instant you submit — it has to, or a
+  // double-tap double-fires — so without this the word simply VANISHES for a
+  // round trip: gone from the active row, not yet arrived as a landed one.
+  //
+  // So the row holds the word while its answer shows. An accepted word stays
+  // (optimistically, since this game knows its own legal list) until the real
+  // row lands behind it; a refused one is shown for the beat and then goes,
+  // which is also how long its color is up.
+  /** My own word, drawn in the next row while its answer shows. The engine
+   *  clears the box on submit, so without this the word vanishes the instant it
+   *  is judged — and a refused word has no row of its own to be judged ON.
+   *
+   *  It is NOT the mark: the mark is timed for everyone. An ACCEPTED word
+   *  outlives its mark here, because it stays until the server's row lands
+   *  behind it; a refused one goes when the mark does, since nothing is coming
+   *  to replace it. */
+  const [held, setHeld] = useState<{ word: string; length: number } | null>(null)
+  /** The answer being shown on whichever row the word is in. Always timed, for
+   *  everyone: a mark that waits for your next move is a mark still claiming
+   *  something about a board you have moved on from. */
+  const [flash, setFlash] = useState<
+    { word: string; outcome: Outcome; attention: boolean } | null
+  >(null)
+  const answerTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const showAnswer = useCallback(
+    (w: string, outcome: Outcome, peer = false) => {
+      answerTimers.current.forEach(clearTimeout)
+      // A teammate's word lands in a row nobody was watching, so it gets both
+      // beats in the order every board uses: the attention flash says WHERE,
+      // and once it fades the answer's color says WHAT. My own word needs only
+      // the color — I am looking at the row I typed into.
+      // A teammate's word is already a row of its own; mine is not one yet —
+      // accepted, it is about to be, and refused, it never will be.
+      if (!peer) setHeld({ word: w, length: w.length })
+      setFlash({ word: w, outcome, attention: peer })
+      const lead = peer ? ATTENTION_FADE_MS : 0
+      answerTimers.current = [
+        ...(peer
+          ? [
+              setTimeout(
+                () => setFlash((f) => (f ? { ...f, attention: false } : null)),
+                ATTENTION_FADE_MS,
+              ),
+            ]
+          : []),
+        setTimeout(() => {
+          setFlash(null)
+          // A refused word's row goes with its mark; an accepted one waits for
+          // the server's row, which the check below hands over to.
+          if (outcome !== 'won') setHeld(null)
+        }, lead + WORD_ANSWER_MS),
+      ]
+    },
+    [],
+  )
+  useEffect(() => () => answerTimers.current.forEach(clearTimeout), [])
+
+  // …and my held row goes the moment the server's own row takes its place.
+  const landed = held !== null && boardRows.some((r) => r.word === held.word)
+  if (landed) setHeld(null)
+
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
@@ -188,10 +268,21 @@ export function PlayArea(ctx: GamePageCtx) {
           return null
         }
       },
+      // Every answer, on the row the word was typed into, in this game's own
+      // reading of them: a word the list does not know is not a bad move — you
+      // are hunting for the longest word you can think of, and a miss is a miss
+      // — and a word you already used is the same kind of nothing-happened. Too
+      // short and "must contain the stem" are RULES, and breaking one costs a
+      // turn like any other move.
+      onAnswer: (w, answer) => showAnswer(w, ANSWER_OUTCOME[answerFor(w, answer)]),
+      // …and the pill says the same, because it is the same table.
+      rejectOutcome: (w) => ANSWER_OUTCOME[answerFor(w, 'not_legal')],
       // Not in the legal set: either it doesn't contain the base, or it's not
       // a word. (Too-short is handled by minWordLength above.)
       explainReject: (w) =>
-        base && !w.includes(base.toLowerCase()) ? `must contain "${base.toUpperCase()}"` : 'not a word',
+        answerFor(w, 'not_legal') === 'missing_base'
+          ? `must contain "${base.toUpperCase()}"`
+          : 'not a word',
       // Record the rejection too — in wordiply a rejected guess is a TURN (see
       // the guesses table header). We hand the server `fe_legal: false` and it
       // re-derives WHICH guard applies, since it owns the structural rules; a
@@ -369,6 +460,8 @@ export function PlayArea(ctx: GamePageCtx) {
       const member = players.find((p) => p.user_id === r.user_id)
       // No verb: the dot names who, the word is the news, the count is its
       // length. "played" earned no room in the header's ~26 phone characters.
+      // …and their word lands on the shared board, so the row says so too.
+      showAnswer(r.word, 'won', true)
       return FeedbackMessage.peer(member, 'won', `${r.word.toUpperCase()} (${r.length})`)
     },
     globalFeedbackSlot,
@@ -470,6 +563,8 @@ export function PlayArea(ctx: GamePageCtx) {
         word={word}
         onChange={setWord}
         onSubmit={submit}
+        held={held}
+        flash={flash}
         // The slot the keyboard area draws: a rejection, "you're out", whose
         // turn it is, the verdict — so the frozen keyboard always has its
         // explanation beside it, matching every other game's below-board

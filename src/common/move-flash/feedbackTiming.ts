@@ -38,6 +38,14 @@ const YOUR_TURN_FADE_MS = 2000
  *  is the half that survives reduced motion. */
 export const VERDICT_SHAKE_MS = 400
 
+/** How long a word's ANSWER stays up — the accepted or refused word wearing its
+ *  outcome, on whatever surface that game shows a word on: stackdown's entry
+ *  slots and a teammate's tiles, wordiply's guess row.
+ *
+ *  Longer than the marks that only point at something, because this one is read:
+ *  the player checks the word as well as the color. */
+export const WORD_ANSWER_MS = 1500
+
 /** "Several of these match what you typed — click the one you meant." The mark
  *  that says it is a ring on the candidates, and this is how long it stays.
  *

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { showFaultModal } from '@/common/faults/faultStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 
 /**
@@ -101,6 +102,34 @@ export type WordSubmitConfig = {
    * it is exactly what the reminder exists to prevent.
    */
   recordReject?: (word: string, reason: 'too_short' | 'not_legal') => void
+
+  /**
+   * What the engine decided, for a surface that shows it somewhere other than
+   * the pill — wordiply marks the guess row the word was typed into.
+   *
+   * Presentational and nothing else: unlike `recordReject` it fires for EVERY
+   * answer including the already-found one, because a board showing an answer
+   * has to show that one too; and it writes nothing anywhere, so a game is free
+   * to color a reason differently from the pill (wordiply's dictionary miss is
+   * a `warning` there and a `lost` in the pill, which is a disagreement worth
+   * fixing but not this callback's business).
+   */
+  onAnswer?: (
+    word: string,
+    answer: 'accepted' | 'too_short' | 'not_legal' | 'already_found',
+  ) => void
+
+  /**
+   * The outcome the pill wears for a word the lookup refused. `warning` by
+   * default — in a word hunt a word the list does not know is not a bad MOVE.
+   *
+   * A game whose refusal covers a RULE as well says so here: wordiply's list
+   * misses both "not a word" and "does not contain the stem", and the second is
+   * a rule broken, which is `lost`. The server draws the same line (its
+   * `missing_base` versus `not_a_word`), so this is what keeps the pill, the
+   * board and the turn log saying one thing about one event.
+   */
+  rejectOutcome?: (word: string) => Outcome
   /**
    * Optional: say nothing when a word is ACCEPTED.
    *
@@ -203,7 +232,10 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      slot.show(FeedbackMessage.result('warning', line(w, 'too short')))
+      // `lost`: a length rule is a rule, and breaking one is a wrong move —
+      // which in the games that charge for a turn actually costs you one.
+      slot.show(FeedbackMessage.result('lost', line(w, 'too short')))
+      c.onAnswer?.(w, 'too_short')
       c.recordReject?.(w, 'too_short')
       return
     }
@@ -220,11 +252,21 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
       )
     if (alreadyFound) {
       slot.show(FeedbackMessage.result('warning', line(w, 'already found', entry?.isBonus)))
+      c.onAnswer?.(w, 'already_found')
       return
     }
 
     if (!entry) {
-      slot.show(FeedbackMessage.result('lost', line(w, c.explainReject(w))))
+      // `warning` unless the game says otherwise: in a word hunt a word the list
+      // does not know is not a bad MOVE — you are thinking of words and this one
+      // was not there, and the list may be at fault or it may have been a typo.
+      // `lost` is for breaking a rule, which `rejectOutcome` is how a game says
+      // its lookup also catches. (docs/outcomes.md; the same reading that keeps
+      // `near` for "almost right" and nothing else.)
+      slot.show(
+        FeedbackMessage.result(c.rejectOutcome?.(w) ?? 'warning', line(w, c.explainReject(w))),
+      )
+      c.onAnswer?.(w, 'not_legal')
       // One reason for both misses the lookup can't tell apart (not in the
       // list vs doesn't fit the board); the SERVER re-derives which, since it
       // owns the structural rules and this hook doesn't know them.
@@ -237,6 +279,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // spellingbee-only flag; boggle entries never set it). The bonus dot rides
     // right after the word.
     pendingRef.current.add(w)
+    c.onAnswer?.(w, 'accepted')
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
     if (!c.hideAccepted) slot.show(FeedbackMessage.result('won', line(w, body, entry.isBonus)))
 

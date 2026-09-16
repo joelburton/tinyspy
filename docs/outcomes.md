@@ -94,13 +94,16 @@ Each row can carry a colored left bar naming that turn's outcome, and it is
 same word.
 
 ```ts
-export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
+outcome: Outcome
 ```
 
-The bar's prop is narrower than the vocabulary today: `TurnOutcome` is a
-four-value alias declared in `TurnLog.tsx`, and `TurnLog.module.css` carries
-bar classes for those four only. Nothing about a turn makes it so — any outcome
-can be a turn's outcome. What is owed here is in
+**Any outcome, and there is no turn-log outcome type.** The bar took a
+hand-cut four until 2026-09-15 (`won` / `lost` / `near` / `neutral`), which was
+a second name for a list that already exists and a narrower one — and it was
+load-bearing in the wrong direction: `warning` being unsayable in a log is why
+several games logged a hint as `near`, so their logs and their pills said
+different words about the same turn. `TurnLog.module.css` carries a bar class
+per outcome. Which games still owe that correction is in
 [`src/common/turn-log/todo.md`](../src/common/turn-log/todo.md).
 
 ### Boards and tiles
@@ -133,6 +136,39 @@ sprawling:
   ([envelopes.md](envelopes.md) → What makes a race legitimate).
 - **A successful result never reads as `error`.** A real failure carries a
   severity instead, and `error` is the appearance most of them default to.
+
+## One event, one outcome — and who decides it
+
+Every event a player can see reaches them on up to three surfaces: the **tile
+feedback** on the board (where a game has any), the **pill** (almost always),
+and the **turn log**. All three must say the same word about the same event.
+They kept drifting because each was deriving the outcome for itself — the same
+refused word red in the pill, amber in the log, and unmarked on the board.
+
+Three rules, in order of authority.
+
+**1 · The server is right.** Where an answer carries an outcome — in an
+envelope, or on a row the log reads — that IS the outcome, and no surface may
+re-decide it. A frontend that maps the server's answer onto its own idea of the
+outcome is a frontend that will disagree with the log showing the same row.
+
+**2 · Where the frontend decides, it decides ONCE.** A move the frontend judges
+alone (a trusting-commit word, a locally-refused guess), or a server answer that
+carries no outcome, is classified in exactly one place — one table, one
+function — and every surface reads it. wordiply is the worked example:
+`lib/answer.ts` maps its five answers to outcomes, and the pill, the guess row
+and the turn log all index that table.
+
+**3 · So audit a game by asking the same question three times.** For each event
+a game can produce: what does the pill say, what does the log row say, what does
+the board do? A game passes when one derivation answers all three.
+
+**Where the frontend and the server both classify, they must share a
+vocabulary.** wordiply's engine reports one refusal for "not a word" and "does
+not contain the stem" while the server distinguishes them — so the frontend
+splits its own answer into the server's words (`not_a_word` / `missing_base`)
+before reading the table. Otherwise the log, which reads the server's reason, is
+answering a different question from the pill.
 
 ## The colors
 
@@ -168,6 +204,36 @@ have. `midnight.css` does not do this — there both carry a base and a
 separately-chosen ink like everyone else. It is a fact about one theme's
 values, not about the vocabulary.
 
+## A narrower Outcome type is almost always a mistake
+
+**Any outcome is a valid outcome.** A type that admits only some of them says
+the opposite, and the cost is paid twice: the day a game's answer legitimately
+becomes one of the missing words, the type has to change before the game can say
+it — and until someone notices, the value is squeezed into the nearest word that
+compiles. That is exactly what `TurnOutcome` did, and it is why it no longer
+exists: `warning` was unsayable in a log, so several games logged a hint as
+`near` and their logs disagreed with their own pills.
+
+So when an audit meets one, the question is not "is this list right today?" but
+**"is this a genuinely closed set, or a ceiling nobody revisited?"**
+
+**`TerminalOutcome`** (`won` / `lost` / `neutral`) is the one that answers it
+cleanly, and its reason is written where it is declared: a finished game has
+been won, been lost, or was stopped with neither happening. `near` and `warning`
+judge a MOVE, and once the game is over there are no more moves. The terminal
+section is where it gets its full hearing.
+
+The other two narrowings are **open questions**, each filed in the folder that
+has to answer it: connections' `GuessOutcome`, and the info action row's
+`Exclude<Outcome, 'error'>`. That second one was written down here with the
+reason "error is never an outcome", which contradicts this file two screens up:
+`error` is a full member, a game may answer with it, and if one did it would
+take an error pill and an error bar in the log like any other word.
+
+`Extract`/`Exclude` rather than a hand-written union, always: a subset spelled
+out by hand is a second vocabulary that drifts, where a derived one breaks
+loudly when the parent changes.
+
 ## Adding one
 
 Don't, casually. Seven words that mean seven different things is close to the
@@ -180,4 +246,9 @@ If one is genuinely needed:
 2. Give it all seven `--outcomes-*` roles in **both** themes — the grid is a
    rectangle and a guard says so, so this is not optional and not "the ones
    something reads today".
-3. Say here what it means and how it differs from the nearest existing word.
+3. Give it a tone class in `common/game-page/playArea.module.css` and name it in
+   `VERDICT_TONE` — that map is total, so this one will not compile until you
+   do. Same for the turn log's bar class. Both are deliberate gates: a new word
+   that reaches a board or a log before anyone has decided what it looks like
+   gets whatever color the nearest branch happened to end on.
+4. Say here what it means and how it differs from the nearest existing word.

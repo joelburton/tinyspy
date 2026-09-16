@@ -26,7 +26,11 @@ import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFlash } from '@/common/move-flash/useFlash'
-import { ATTENTION_FADE_MS, ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import {
+  ATTENTION_FADE_MS,
+  ATTENTION_FLASH_MS,
+  WORD_ANSWER_MS,
+} from '@/common/move-flash/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
@@ -42,12 +46,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
 const NO_TILES: ReadonlySet<number> = new Set()
-
-/** How long an answer stays up — the word in this player's slots, and a
- *  teammate's word on the board. One number for both, because they are the same
- *  event seen from two seats and a player moving between games should read the
- *  same beat. */
-export const WORD_ANSWER_MS = 1500
 
 /** What `stackdown.submit_word` puts in `data`. The structural fact travels even
  *  where the server also wrote the sentence: `result` decides whether the tiles

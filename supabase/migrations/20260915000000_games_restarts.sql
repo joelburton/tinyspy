@@ -1,0 +1,21 @@
+-- ─── common.games.restarts ────────────────────────────────────────────────
+-- Which RUN of this board the players are on: 0 for a fresh game, +1 every
+-- time `common.reset_game` wipes it.
+--
+-- It exists for the FRONTEND, and for one purpose: the play surface is keyed on
+-- it, so a restart unmounts the old surface and mounts a new one. Every piece
+-- of local state goes with it — a half-typed word, an optimistic row, a mark
+-- still on screen, a history viewer, and the refs inside shared hooks that no
+-- game's own code can reach.
+--
+-- The alternative was a per-game "did my rows just shrink?" check, which each
+-- game wrote separately, each got subtly wrong, and none of which could clear
+-- state living inside a shared hook. Every feature added since has found a new
+-- corner of it.
+--
+-- Nothing on `common.games` could serve instead: a MID-GAME restart leaves
+-- `play_state` at 'playing', `ended_at` null and `status` byte-identical, so a
+-- client watching that row sees nothing change. Hence a counter of its own,
+-- which only ever goes up.
+alter table common.games
+  add column if not exists restarts int not null default 0;

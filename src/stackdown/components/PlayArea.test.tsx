@@ -28,9 +28,9 @@ import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, SubmissionRow } from '../hooks/useGame'
 import type { Tile } from '../lib/board'
-import { ATTENTION_FADE_MS } from '@/common/move-flash/feedbackTiming'
+import { ATTENTION_FADE_MS, WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
 import { db } from '../db'
-import { PlayArea, WORD_ANSWER_MS } from './PlayArea'
+import { PlayArea } from './PlayArea'
 
 // The mocked useGame's full return shape — a mutable holder set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.

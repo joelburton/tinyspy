@@ -7,8 +7,8 @@ import {
   TurnLog,
   TurnLogBar,
   TurnLogNumber,
-  type TurnOutcome,
 } from '@/common/turn-log/TurnLog'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
@@ -127,7 +127,7 @@ export function GameTurnLog({
  * retreats: in turn-by-turn co-op an undo costs the undoer their turn and is
  * usually made for the next player, so red would misdescribe it.
  */
-function barFor(e: EventRow): TurnOutcome {
+function barFor(e: EventRow): Outcome {
   if (e.kind === 'played') return 'won'
   if (e.kind === 'hint' || e.kind === 'spoiler') return 'near'
   return 'neutral'

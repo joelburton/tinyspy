@@ -185,25 +185,25 @@ describe('useWordSubmit', () => {
     expect(compete.commit).toHaveBeenCalledTimes(1)
   })
 
-  it('rejects a too-short word with a warning and no commit', async () => {
+  it('rejects a too-short word as LOST — a rule is a rule — and does not commit', async () => {
     const cfg = makeCfg({ minWordLength: 4 })
     const { type, submit } = setup(cfg)
 
     type('ab')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('warning')
+    expect(shown(cfg)?.outcome).toBe('lost')
     expect(shown(cfg)?.text).toMatch(/too short/i)
   })
 
-  it('rejects a non-legal word via explainReject (wrapped as WORD — reason)', async () => {
+  it('rejects a non-legal word as a WARNING — a miss is not a bad move', async () => {
     const cfg = makeCfg({ explainReject: () => 'not on board' })
     const { type, submit } = setup(cfg)
 
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('lost')
+    expect(shown(cfg)?.outcome).toBe('warning')
     expect(shown(cfg)?.text).toBe('QQQQ — not on board')
   })
 

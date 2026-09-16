@@ -48,6 +48,17 @@ confirm broadcasts to the room so every peer navigates too.
 
 ## Details
 
+**A restart mounts a NEW play surface.** `common.games.restarts` counts the runs
+of a board — `common.reset_game` bumps it — and the page keys the game's
+`<PlayArea>` on it. So a restart unmounts the finished run and mounts a fresh
+one, and every piece of local state goes with it: a half-typed word, an
+optimistic row, a mark mid-beat, a history viewer, and the refs inside shared
+hooks that no game's own code can reach. A game therefore writes NOTHING to
+handle a restart; the alternative was each game noticing its own rows vanish and
+clearing what it remembered, which several got wrong and none could reach a
+shared hook with. Nothing else on the row can serve as the key — a mid-game
+restart leaves `play_state`, `ended_at` and `status` exactly as they were.
+
 **The three components, and the tree the last of them renders.** `App` matches
 the route and renders `GamePageGate` with the URL's two parts and the session,
 and nothing else. The gate resolves the gametype and asks whether the game

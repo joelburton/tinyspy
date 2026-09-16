@@ -37,6 +37,35 @@
   border: 2px dashed var(--field-strong-edge-color);
 }
 
+/* THE ANSWER, worn by the row the word was typed into: the outcome's own fill
+ * and white ink, the same two colors a piece wears anywhere else. The row keeps
+ * its shape — word left, length right — and changes only its colors. The tone
+ * classes beside this one are the shared vocabulary's and set nothing but the
+ * two custom properties read here, which is why a row can wear a verdict
+ * without being a `.tileFace`.
+ *
+ * The three colors INSIDE the row are re-set rather than inherited, because
+ * each is a token of its own: the word's ink, the dimmed base portion, and the
+ * teal length. Re-setting a token is how a state class restyles a piece
+ * everywhere else in the app; the scope is this one row. */
+/* @@ */ .answered {
+/* @@ */   --page-text-color: var(--verdict-ink);
+/* @@ */   --wordiply-base-dim: var(--wordiply-base-dim-answered);
+/* @@ */   --wordiply-accent: var(--verdict-ink);
+  background: var(--verdict-fill);
+  border-color: var(--verdict-fill);
+  color: var(--verdict-ink);
+}
+
+/* Both of a row's pieces sit ABOVE the attention flash, which is an overlay
+ * drawn inside the row — without the lift it would paint over the very word it
+ * is pointing at (common/game-page/playArea.module.css). */
+/* @@ */ .rowWord,
+/* @@ */ .badge {
+  position: relative;
+  z-index: 1;
+}
+
 /* @@ */ .rowWord {
   flex: 1;
   min-width: 0;

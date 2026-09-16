@@ -12,6 +12,12 @@
  *   --wordiply-base-dim     The dimmed color of the BASE inside a guess
  *                           (DimmedBaseWord) — present but understated so
  *                           the player's added letters stand out.
+ *   --wordiply-base-dim-answered
+ *                           …and the same thing on a row wearing its answer,
+ *                           where the ink is the outcome's white: the base is
+ *                           that ink, thinned. Only resolves where
+ *                           `--verdict-ink` does — inside a row wearing a tone
+ *                           class.
  *   --wordiply-row          The resting background of a completed guess row.
  *   --wordiply-row-empty    A future (unfilled) guess row — fainter.
  *
@@ -21,6 +27,7 @@
 /* @@ */ :root {
 /* @@ */   --wordiply-accent:      #2f9e8f;
 /* @@ */   --wordiply-base-dim:    var(--page-text-muted-color);
+/* @@ */   --wordiply-base-dim-answered: color-mix(in oklab, var(--verdict-ink) 60%, transparent);
 /* @@ */   --wordiply-row:         var(--default-bg-color);
 /* @@ */   --wordiply-row-empty:   var(--field-fill-color);
 }

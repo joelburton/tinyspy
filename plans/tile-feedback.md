@@ -841,6 +841,23 @@ become a band that names the category and lists them: the motion says where to
 look and the band says what happened, so a green flash would be a third copy of
 news already delivered twice.
 
+### One event, one outcome — audit all three surfaces together
+
+Ruled 2026-09-15, and it is [outcomes.md](../docs/outcomes.md)'s to own; here
+because it is a question to ask of every board this pass opens.
+
+**The server is right.** Where an answer carries an outcome, that is the
+outcome, and no surface re-decides it. **Where the frontend decides, it decides
+once** — one table, one function — and the pill, the board and the turn log all
+read it. **So audit a game by asking the same question three times:** for each
+event it can produce, what does the pill say, what does the log row say, and
+what does the board do? It passes when one derivation answers all three.
+
+wordiply is the worked example and was the case that produced the rule: a
+refused word was red in the pill, amber in the log and unmarked on the board,
+because three places each decided for themselves. Its `lib/answer.ts` is the
+one table now.
+
 ### Never show a verdict a peer can overturn
 
 **The rule.** A verdict may go on the board only when the server has confirmed

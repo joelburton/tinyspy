@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
+import type { Outcome } from '../outcomes/outcomes'
 import infoPanel from '../info-sheet/infoPanel.module.css'
 import styles from './TurnLog.module.css'
 import history from './historyViewer.module.css'
@@ -9,8 +10,6 @@ import history from './historyViewer.module.css'
 /** The outcome a row's left bar paints — the outcome families, by name, shared
  *  across games: `won` (a correct move), `lost` (a wrong one), `near` (one away),
  *  `neutral` (a move nothing can adjudicate). */
-export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
-
 /**
  * The shared **turn log**: a game's per-turn history (one entry per turn — which
  * is per guess for most games, but a codenamesduet turn can span several guesses). A
@@ -126,7 +125,11 @@ export function TurnLogBar({
   outcome,
   rowSpan,
 }: {
-  outcome: TurnOutcome
+  /** ANY outcome. There is no turn-log outcome type and there must not be one:
+   *  a map covering only the words one game happened to use is what forces the
+   *  next game to squeeze its answer into somebody else's three, which is how a
+   *  log ends up disagreeing with the pill about the same event. */
+  outcome: Outcome
   rowSpan?: number
 }) {
   return (
