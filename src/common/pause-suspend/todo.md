@@ -28,8 +28,12 @@
     `'confirm'` by default). The multiplayer case stops looking for the
     question's text and asserts the service was asked with the suspend words
     and `sendSuspend` ran after; add the answer-no case. The solo case asserts
-    the service was NOT asked. No e2e drives this question (checked for
-    "Suspend this game?"), and no floating-panel behavior changes.
+    the service was NOT asked. `e2e/suspend-dialog.e2e.ts` drives this question
+    end to end and must stay green UNCHANGED: it asserts "Suspend this game?"
+    visible, hidden and absent, cancels with Esc, confirms with Enter, and reads
+    "Keep playing" out of the dialog's Tab ring, solo and multiplayer.
+    `askConfirmation` renders the same `ConfirmationBlockingModal`, so every one
+    of those handles survives the move. No floating-panel behavior changes.
 
 ## Someday
 

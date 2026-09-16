@@ -9,71 +9,54 @@ import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
-  /** The full presence-pause roster — every player we're waiting on
-   *  (conceders already excluded upstream). Listed vertically, each
-   *  with an identity disc: filled color when present, a hollow gray
-   *  "away" ring when absent. */
+  // The roster to draw — every player we are waiting on (conceders already
+  // excluded upstream), one per row with an identity disc: filled color when
+  // present, a hollow gray "away" ring when absent.
   expected: Member[]
-  /** User ids currently on the game's realtime channel. Anyone in
-   *  `expected` but not here is drawn as an away ring. */
+  // User ids currently on the game's realtime channel. Anyone in `expected` but
+  // not here is drawn as an away ring.
   presentUserIds: Set<string>
-  /** Set when a player clicked the Pause button. Drives the
-   *  "X paused the game" copy line. null when the pause has no
-   *  manual source (e.g. presence-only). */
+  // Set when a player pressed Pause, which is what draws the "X paused the
+  // game" line. null when the pause is presence-only.
   manuallyPausedBy?: Member | null
-  /** Resume handler — rendered as a Resume button when
-   *  `manuallyPausedBy` is set. Any connected player can call
-   *  it; there's no privileged "original pauser" check. */
+  // Releases a manual pause, drawn as the Resume button beside it. Any
+  // connected player may press it — there is no privileged "original pauser".
   onResume?: () => void
-  /** Leave for the club, shelving the game — the reliable escape when a
-   *  presence-pause won't clear (both players walked away, presence timed out).
-   *  `GamePage`'s `act-back-to-club`, the same one every other surface places,
-   *  so leaving from here is the same act it is anywhere else: a solo game
-   *  shelves at once, a game with peers asks first. It goes through PostgREST,
-   *  so it works even if Realtime is wedged. */
+  // Leave for the club, shelving the game — the reliable escape when a presence
+  // pause will not clear (the automatic recovery is `useRealtimeReconnect`, and
+  // its docstring is where that deadlock is written down). `GamePage`'s
+  // `act-back-to-club`, the same one every other surface places, so leaving
+  // from here is the act it is anywhere else: a solo game shelves at once, a
+  // game with peers asks first. It goes through PostgREST, so it works even if
+  // Realtime is wedged.
   actBackToClub?: BoundAction
-  /** End the game now — the other escape from a stuck pause. Bound by
-   *  `GamePage`, which sits above the boundary that unmounts the play area, so
-   *  the binding survives the pause that the game's own one does not. It hides
-   *  itself unless paused, so this places it without asking. */
+  // End the game now — the other escape from a stuck pause. Bound by
+  // `GamePage`, above the boundary that unmounts the play area, so this binding
+  // survives the pause that the game's own does not. It hides itself unless
+  // paused, so this places it without asking.
   actEndGame?: BoundAction
 }
 
 /**
- * Banner + dim overlay rendered when a game is paused. Composes
- * its copy from the two possible pause sources:
+ * The banner that stands in for the board while a game is paused: who we are
+ * waiting on, or who pressed Pause, and the ways out. Rendered only by
+ * `PauseBoundary`, in the slot the play surface left.
  *
- *   - **presence-only** (someone in `expected` is absent, !manuallyPausedBy):
- *     "Waiting for everyone to connect…" over the roster list — which
- *     covers a player who disconnected AND one who's been invited but
- *     hasn't joined the game yet.
- *   - **manual-only** (everyone present, manuallyPausedBy set):
- *     "Bea paused the game" + Resume button
- *   - **both** (both populated): stack both messages; Resume
- *     button still shown (clicking Resume only clears the
- *     manual pause; presence-pause stays until everyone's back)
+ * What it says comes from the two pause sources, which can both be true:
  *
- * The roster (shown whenever anyone's absent) lists the WHOLE expected
- * team, not just the missing — so a waiting player sees who's already
- * here (their color dot) alongside who we're still waiting on (a hollow
- * gray ring).
+ *   - somebody in `expected` is off the channel — "Waiting for everyone to
+ *     connect…" over the roster, which covers a player who dropped AND one who
+ *     was invited and has not arrived yet;
+ *   - `manuallyPausedBy` is set — "Bea paused the game", with Resume beside it.
+ *     Resume clears only the manual pause; a presence pause outlives it.
  *
- * Names stay black wherever the overlay writes one — the roster's rows and the
- * "X paused the game" line alike. The disc alone carries identity, the same
- * grammar as the club-page `PageHeaderPlayersStrip` (docs/ui.md → "Player
- * identity = a colored disc").
+ * The roster lists the WHOLE expected team and not just the missing, so a
+ * waiting player sees who is already here alongside who we are still waiting
+ * on. Names stay black wherever the overlay writes one — the disc alone carries
+ * identity, the same grammar as the header's `PageHeaderPlayersStrip`
+ * (docs/ui.md → "Player identity = a colored disc").
  *
- * Paused ≠ suspended. Paused is the transient gameplay-pause
- * state — same UX as a video player's pause: clock stops, no
- * moves accepted, overlay shows. Resolves automatically when
- * the missing peer reconnects (for presence-pause) or when
- * anyone clicks Resume (for manual-pause). Game stays
- * is_current_view=true in common.games. Suspended (club-level)
- * is about whether the game's common.games row still has
- * is_current_view=true for this club (it stops being the
- * current game when a new one starts and vacates the prior);
- * that concept surfaces in the ClubPage's "Suspended games"
- * section.
+ * Paused is not suspended; docs/states.md → paused defines both words.
  */
 export function PauseOverlay({
   expected,

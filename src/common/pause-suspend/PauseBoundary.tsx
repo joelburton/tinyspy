@@ -6,67 +6,38 @@ import type { Member } from '../members/member'
 import { PauseOverlay } from './PauseOverlay'
 
 type Props = {
-  /** Whether the game is currently paused. Union of all pause
-   *  sources (presence-disconnect, manual-pause). The boundary
-   *  doesn't care about source — only the boolean. */
+  // Whether the game is currently paused — the union of every pause source
+  // (presence, manual). The boundary does not care which; only the boolean.
   paused: boolean
-  /** The full presence-pause roster — every player we're waiting on
-   *  (conceders already excluded upstream). PauseOverlay lists them
-   *  all, splitting present from absent via `presentUserIds`. */
+  // The roster the overlay draws, and the ids currently on the channel that
+  // split it into present and away. See `PauseOverlay`, which is handed both.
   expected: Member[]
-  /** User ids currently connected on the game's realtime channel.
-   *  A member in `expected` but not here renders as a hollow gray
-   *  "away" ring; one that's present renders as their color dot. */
   presentUserIds: Set<string>
-  /** The member who clicked the manual Pause button, if the pause
-   *  has a manual source. PauseOverlay branches its copy on this. */
+  // Who pressed Pause, and the handler that releases it. Both pass straight
+  // through to `PauseOverlay`; its Props say what they draw.
   manuallyPausedBy?: Member | null
-  /** Resume handler for the manual-pause case. Any connected
-   *  player can call it — no privileged "original pauser" check. */
   onResume?: () => void
-  /** Back to club, bound by `GamePage` — one of the two escape hatches shown
-   *  on the overlay whenever paused, and the reliable way out of a wedged
-   *  presence-pause. See PauseOverlay + the deadlock note. */
+  // The two escapes from a pause that will not clear, bound by `GamePage` —
+  // which is above this boundary, so the bindings survive the unmount below.
+  // `act-end-game` hides itself unless paused, so passing it always is right.
   actBackToClub?: BoundAction
-  /** End game, bound by `GamePage` — which is above this boundary, so it keeps
-   *  the binding while the play area below is unmounted. It hides itself unless
-   *  paused, so passing it always is right. */
   actEndGame?: BoundAction
-  /** The play surface. Rendered only when `paused === false`. */
+  // The play surface. Rendered only when `paused === false`.
   children: ReactNode
 }
 
 /**
- * Common wrapper that renders either children or a `PauseOverlay`,
- * based on a single `paused` flag.
+ * Renders either the play surface or the pause banner, from one `paused` flag —
+ * wrap a game's play area in it and pass the flag `useCommonGame` computes.
  *
- * **Paused state semantics — conditional render:**
- * - `paused === false`: children render. The overlay is absent.
- * - `paused === true`: children are NOT rendered (unmount). The
- *   overlay renders standalone.
- *
- * **Why unmount, not visibility:hidden:** the unmount drops
- * children's local state and effects, which is exactly the
- * behavior we want. Per-game PlayArea state — pending inputs,
- * shared selections, transient banners — resets cleanly on
- * resume, no per-game cleanup ceremony needed. Realtime
- * channels in PlayArea's per-gametype `useGame` tear down and
- * reconnect on resume; the brief resubscribe gap is covered by
- * the on-SUBSCRIBED refetch.
- *
- * Cross-cutting state (the common.games row, members, presence,
- * the timer) lives in `useCommonGame` ABOVE this boundary — see
- * `GamePage`. That state is preserved across pause cycles, so the
- * timer keeps a single anchor, presence keeps tracking, and the
- * common channel doesn't churn.
- *
- * The "should this survive a pause?" question gives us a sensible
- * design rule for new game state: persist via DB or via state
- * above the boundary (useCommonGame). State inside PlayArea is
- * always pause-transient.
- *
- * See `docs/games/connections.md` → "Pause on disconnect" for the broader
- * pattern.
+ * Paused children are UNMOUNTED, not hidden, and that is the contract callers
+ * depend on: per-game state inside the play area (pending input, tile
+ * selections, transient banners) goes away with it and rebuilds clean on
+ * resume, so no game writes pause cleanup of its own. The realtime channel in
+ * the game's `useGame` tears down and resubscribes with it; the gap is covered
+ * by the on-SUBSCRIBED refetch. Anything that must survive a pause therefore
+ * belongs above this boundary or in the database — `doc.md` → Details, and
+ * docs/states.md → paused for the wider pattern.
  */
 export function PauseBoundary({
   paused,

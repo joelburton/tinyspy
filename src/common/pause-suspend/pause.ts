@@ -3,35 +3,26 @@
 import type { Member } from '../members/member'
 
 /**
- * Pure derivation: given the set of currently-connected user_ids
- * (from a realtime channel's presence state) and the players
- * expected to be present, is the game paused?
+ * Answers "is this game paused because somebody is missing, and who?" — the
+ * presence half of a pause, which `useCommonGame` then unions with the manual
+ * one.
  *
- * Expected means THIS GAME's roster, not the club's — a club of
- * five can be running a two-player game, so the club list would
- * report three people missing forever. `useCommonGame` passes
- * `common.game_players` for the game, minus anyone who conceded;
- * why a conceder stops counting is argued at that call site.
+ * Pass the user ids realtime reports as connected on the game's channel, and
+ * the players expected on it. Who is expected is the CALLER's call, and it is
+ * this game's roster rather than the club's: a club of five can be playing a
+ * two-player game, and the club list would report three people missing forever.
+ * Back comes `paused`, and `missing` in roster order — the order the overlay
+ * reads names in.
  *
- * "Paused" is the transient gameplay-pause state — same UX as
- * a video player's pause: clock stops, no moves accepted, an
- * overlay shows. Triggers: someone disconnected (presence) OR
- * someone clicked the Pause button (manual). Distinct from
- * "suspended" (the club-level "this game isn't the active
- * one" concept).
+ * Two edge cases the test pins, both of which show up in front of players: an
+ * empty roster is NOT everyone missing (a fresh mount has no roster for a tick,
+ * and would otherwise flash the overlay), and an id on the channel that is on
+ * no roster is nobody (it can make the game neither more nor less paused).
  *
- * This is a pure function rather than a hook because the
- * presence tracker has to live on the same realtime channel as
- * the game's other listeners (postgres_changes, broadcast) —
- * supabase-js requires all `.on()` calls to happen before
- * `.subscribe()`, so one hook owns the channel and attaches
- * every handler synchronously. That hook derives `presentUserIds`
- * via this helper.
- *
- * Both words — paused, suspended — are defined once in
- * docs/states.md → paused, which also holds the wider pattern: the
- * two trigger sources, the overlay and its two escapes, and why a
- * paused game and a suspended one can never be the same game.
+ * Paused is the transient gameplay stop — the clock stops, no moves are taken,
+ * the overlay stands in for the board. It is not "suspended", which is about
+ * whether the club is still looking at this game at all; docs/states.md →
+ * paused defines both words and is the only place that does.
  */
 export function computePause(
   presentUserIds: Set<string>,

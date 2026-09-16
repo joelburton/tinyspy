@@ -14,14 +14,13 @@
  *   - paused=false: children render, overlay is absent
  *   - paused=true: children are NOT rendered, overlay renders
  *   - paused toggle remounts children (mount-counter assertion)
- *   - presence-only pause: roster list in overlay (absent peer shown)
+ *   - presence-only pause: the roster list, with the absent peer named
  *   - manual pause: "X paused the game" + Resume button
  *   - the End-game escape: placed from a bound action, and absent when that
  *     action says it is hidden
  *
- * Not covered: the precise PauseOverlay copy variants (those
- * belong with PauseOverlay's own future tests). Here we treat the
- * overlay as a black box and just confirm it's present/absent.
+ * The overlay is otherwise a black box here: its text is read only far enough
+ * to tell the two pause sources apart, never asserted line by line.
  */
 
 import { useEffect, useRef } from 'react'
@@ -55,7 +54,7 @@ function MountCounterChild({ onMount }: { onMount: () => void }) {
   // argument-mutation the react-hooks immutability rule correctly forbids; a
   // fresh mount after an unmount gets a fresh `counted` ref, so it fires again.
   const counted = useRef(false)
-  useEffect(() => {
+  useEffect(function countRealMounts() {
     if (counted.current) return
     counted.current = true
     onMount()
@@ -113,7 +112,7 @@ describe('PauseBoundary', () => {
     expect(onMount).toHaveBeenCalledTimes(2)
   })
 
-  it('shows the missing peer name in the presence-pause copy', () => {
+  it('shows the missing peer name in the presence-pause text', () => {
     render(
       <PauseBoundary paused={true} expected={[BEA]} presentUserIds={NONE_PRESENT}>
         <div>play</div>
@@ -125,7 +124,7 @@ describe('PauseBoundary', () => {
     expect(screen.getByText('bea')).toBeInTheDocument()
   })
 
-  it('renders manual-pause copy + Resume button when manuallyPausedBy is set', async () => {
+  it('renders the manual-pause text + Resume button when manuallyPausedBy is set', async () => {
     const user = userEvent.setup()
     const onResume = vi.fn()
     render(
@@ -145,12 +144,10 @@ describe('PauseBoundary', () => {
     expect(onResume).toHaveBeenCalledTimes(1)
   })
 
-  /**
-   * The escape from a wedged presence-pause. It is a bound action rather than a
-   * callback because the overlay REPLACES the play area — the game's own
-   * `act-end-game` goes off the binding stack with it — so `GamePage`, which is
-   * above this boundary, binds a second one and hides it unless paused.
-   */
+  // The escape from a wedged presence-pause. It is a bound action rather than a
+  // callback because the overlay REPLACES the play area — the game's own
+  // `act-end-game` goes off the binding stack with it — so `GamePage`, which is
+  // above this boundary, binds a second one and hides it unless paused.
   it('places End game on the overlay, and fires the action it was given', async () => {
     const user = userEvent.setup()
     const actEndGame = boundActionFixture('act-end-game')

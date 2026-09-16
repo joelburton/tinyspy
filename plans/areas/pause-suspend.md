@@ -4,10 +4,11 @@ The folders it reads: `pause-suspend`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED 2026-09-16.** Roster agreed (Joel: *"audit the area"*) and
-stamped `cs-met-pause-suspend`; every file read. Thirteen findings, none
-worked. The prose ones (F-1 to F-5, F-10, F-12) are the next ask; the rest
-each carry a decision.
+**Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
+the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
+findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked. The six that
+remain each carry a decision and are presented one at a time: F-6, F-7, F-8,
+F-9, F-11, F-13.
 
 ## The roster
 
@@ -24,7 +25,8 @@ each carry a decision.
 - `PauseOverlay.module.css`
 - `SuspendConfirmationBlockingModal.tsx` — the suspend question, rendered by
   hand (the `todo.md` Soon)
-- `doc.md` (a two-sentence lede, intro owed) · `todo.md` (one Soon)
+- `doc.md` (lede + intro + Details, written in the prose pass) · `todo.md`
+  (one Soon)
 
 Evidence, read and left:
 
@@ -39,8 +41,8 @@ Evidence, read and left:
   uses), `members/ActorMention.tsx` (`DotActor` and what `show` means),
   `actions/ActionButton.tsx`, `buttons/StandardButton.tsx`,
   `actions/boundAction.fixture.ts`, `floating-panels/ConfirmationBlockingModal.tsx`.
-- `realtime/useRealtimeReconnect.ts` — "the deadlock note" the boundary's
-  prop points at without naming.
+- `realtime/useRealtimeReconnect.ts` — "the deadlock note", which the overlay's
+  `actBackToClub` note now names (F-3).
 - `docs/states.md` → paused, Suspended vs terminal, Leaving the game page;
   `docs/ui.md` → the no-reflow rule (the overlay is its canonical example),
   Confirm modals, Back to club, `<PauseButton>`; `docs/common.md` → the
@@ -91,6 +93,18 @@ and the suspend modal beside it). Most of this is written — in
 `computePause`'s docstring, `PauseBoundary`'s, and `states.md` → paused — so
 it moves rather than being rewritten.
 
+**WORKED 2026-09-16.** The lede says in plain words what the folder is for.
+The intro is five narrative paragraphs: why a missing player has to stop the
+game at all (nobody watches who is not playing, so somebody gone means the call
+has stalled) with the tea-break beside it, then the rule, the gate and the
+banner in the order a reader meets them, and suspend as the different word it
+is. `## Details` took the five sharp things — why `computePause` is a function
+and not a hook, who decides the roster plus the game-over short-circuit, the
+"should this survive a pause?" rule, why the escapes are `GamePage`'s bindings,
+and the render tree with the suspend question drawn as the boundary's sibling.
+`common/pause-suspend` is off `INTROS_OWED`, and the guard bit when the intro
+landed before the row came off.
+
 ### F-pause-suspend-2 · `paused-vs-suspended-thrice` · The paused ≠ suspended paragraph is written three times, and one copy is stale
 
 `pause.ts` (lines 16–21 and 31–34), `PauseOverlay.tsx` (lines 66–76) and
@@ -101,6 +115,11 @@ is no such section — the club list draws a per-row flag (`current` /
 `suspended` / `completed`), and `ClubPage.tsx` itself cites `states.md` → "no
 special 'suspended' category". One home: the docstrings say the word and
 point at `states.md`.
+
+**WORKED 2026-09-16.** `states.md` is the only definition now. `pause.ts` keeps
+one sentence of the distinction and points there; `PauseOverlay`'s eleven-line
+version is a clause. The "ClubPage's 'Suspended games' section" went with it —
+there is no such section to describe.
 
 ### F-pause-suspend-3 · `stale-claims` · Seven claims that describe something the repo no longer has
 
@@ -130,6 +149,23 @@ And the word: "copy" for a message's text in `PauseOverlay` (lede, the
 header, and `states.md`'s "The overlay copy adapts". The folder is open, so
 these become "text".
 
+**WORKED 2026-09-16, and the grep found an eighth.** `docs/common.md` → "the
+game waits for invitees" wrote the same dead sentence `states.md` did
+("Waiting for Bea…"); it turned up by grepping the wrong WORDS repo-wide rather
+than by reading the roster, and both now say what the overlay says — "Waiting
+for everyone to connect…" over the whole roster, the invitee a hollow ring. The
+timer anchor and the connections heading are gone from `PauseBoundary`'s
+docstring, which points at `states.md` → paused instead; the deadlock note is
+named once, as `useRealtimeReconnect`, in the overlay's `actBackToClub` note
+rather than twice by hint; the overlay's lede stopped claiming a dim; the
+boundary's test header no longer promises a PauseOverlay test file that was
+never planned and says instead that it reads the overlay's text only far enough
+to tell the two sources apart; and `naming.md`'s row keeps its point (one name,
+no per-game variant) without claiming every game imports it. "copy" → "text" in
+the boundary, the overlay, the test header, two spec names and `states.md`.
+`docs/games/connections.md`'s table also stopped writing pre-reorg paths as its
+link TEXTS, which was this area's to harvest.
+
 ### F-pause-suspend-4 · `prop-markers` · Both Props blocks wear `/**` on every prop
 
 `PauseBoundary.tsx` (seven props) and `PauseOverlay.tsx` (six). The rule is
@@ -138,6 +174,11 @@ already has it right. The `expected` / `presentUserIds` / `manuallyPausedBy` /
 `onResume` notes are also written TWICE, once per file, nearly verbatim —
 the boundary passes them straight through, so its copy can be one line
 pointing at the overlay's.
+
+**WORKED 2026-09-16.** Both Props blocks are `//`. The boundary's notes group
+the props it hands straight through — the roster pair, the manual-pause pair,
+the two escapes — and point at `PauseOverlay`, whose Props say what each one
+draws, so the pair of near-verbatim copies is one copy.
 
 ### F-pause-suspend-5 · `docstring-for-the-caller` · `computePause`'s docstring is a design essay; `PauseBoundary`'s carries the rule for new game state
 
@@ -150,6 +191,18 @@ the test pins (an empty roster is not paused; an unknown id is nobody).
 `PauseBoundary`'s docstring keeps the unmount contract (that IS the
 component) and loses the "design rule for new game state" paragraph and the
 `useCommonGame` tour to `doc.md` → Details.
+
+**WORKED 2026-09-16.** `computePause`'s docstring is four short paragraphs: what
+it answers, the two inputs (with "expected" as the caller's call, and why the
+club's list is the wrong one) and the two outputs, the two edge cases the test
+pins, and the word. Why it is a function rather than a hook moved to `doc.md` →
+Details, and the pointer at a comment in another folder is gone — who counts as
+expected is `doc.md`'s to say. `PauseBoundary`'s keeps the unmount contract and
+what follows from it for a caller, and lost the new-game-state rule and the
+`useCommonGame` tour to the same section. The suspend wrapper was read in the
+same pass: its third paragraph re-listed the shared modal's behavior — scrim,
+trapped Tab, Enter, Esc — and is a clause pointing at the component that owns
+it.
 
 ### F-pause-suspend-6 · `overlay-second-guesses-boundary` · `PauseOverlay` returns null on a condition the boundary already decided
 
@@ -211,6 +264,13 @@ included. The fix's SHAPE survives it (`askConfirmation` renders the same
 paragraph is wrong and has to name the e2e as what must stay green. Corrected
 in the prose pass; it is the second false absence in two areas.
 
+**WORKED 2026-09-16.** Re-verified against the file rather than taken from the
+audit: the todo's Tests paragraph now names `e2e/suspend-dialog.e2e.ts` as what
+must stay green UNCHANGED, and says what it holds — "Suspend this game?"
+visible, hidden and absent, Esc cancels, Enter confirms, "Keep playing" read
+out of the dialog's Tab ring, solo and multiplayer — with the reason the handles
+survive (`askConfirmation` renders the same `ConfirmationBlockingModal`).
+
 ### F-pause-suspend-11 · `suspend-question-by-hand` · The one question not asked through `askConfirmation`
 
 The `todo.md` Soon, recorded here so the area works it and the file leaves
@@ -227,6 +287,10 @@ green (F-10). `GamePage` is blessed; closed is not locked.
 `PauseBoundary.test.tsx` line 58: `useEffect(() => {` under a comment about
 StrictMode double-invocation. The convention's own test is "deserves a
 header comment, deserves a name": `countRealMounts`.
+
+**WORKED 2026-09-16.** `countRealMounts`. The same file's note above the
+End-game spec also lost its `/**` for `//`: it sits on a call, not a
+declaration, which is how the blessed `timer` tests write a spec note.
 
 ### F-pause-suspend-13 · `explainer-under-manual-pause` · The overlay's explanatory line describes presence rules under a manual pause
 

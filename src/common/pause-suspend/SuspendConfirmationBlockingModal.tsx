@@ -15,18 +15,17 @@ type Props = {
 }
 
 /**
- * Confirm modal shown when a member clicks Back-to-club on a
- * non-terminal MULTIPLAYER game. Per docs/states.md → "Leaving the
- * game page — terminal vs non-terminal": suspending isn't dangerous
- * by itself, but it drags every viewing peer back to the club page —
- * that surprise is what earns the confirm. GamePage therefore skips
- * this dialog entirely for a SOLO game (nobody to surprise) and for
- * a terminal game (direct navigation, no broadcast).
+ * The question asked when a member presses Back-to-club on a MULTIPLAYER game
+ * that is still going. Suspending is not dangerous by itself — the game shelves
+ * into the club list, resumable — but it drags every viewing peer back to the
+ * club page, and that surprise is what earns a confirm. `GamePage` renders it
+ * while its own flag is up, and skips it for a solo game (nobody to surprise)
+ * and for a finished one (a plain navigation, no broadcast); docs/states.md →
+ * "Leaving the game page — terminal vs non-terminal" holds that split.
  *
- * A thin wrapper over the shared `<ConfirmationBlockingModal>`, which supplies
- * the modal behavior: its family's dark scrim (no background board actions),
- * Tab kept inside the panel, autoFocused confirm (Enter), Esc-to-cancel, and
- * the action dispatcher standing down inside `[data-floating-panel]`.
+ * Pass the game's title, which the words name, and the two answers. Everything
+ * a modal does — the scrim, the trapped Tab, Enter and Esc — comes from the
+ * shared `<ConfirmationBlockingModal>` this renders.
  */
 export function SuspendConfirmationBlockingModal({ title, onSuspend, onCancel }: Props) {
   return (
