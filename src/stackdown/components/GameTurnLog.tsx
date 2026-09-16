@@ -46,8 +46,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   /** Every submission the viewer can see. Coop: the whole shared game. Compete:
    *  the viewer's own during play, and (once terminal, when RLS opens) everyone's. */
@@ -60,9 +60,9 @@ export function GameTurnLog({
   /** The turn currently open in the board viewer (highlights its row), or null.
    *  Identified by log POSITION, not seq — stackdown's seq is per-user (see
    *  lib/history). */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a turn in the board viewer (click any row — words, misses, cheats). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }) {
   const who = useTurnLogPlayerPicker<SubmissionRow>({
     players,
@@ -103,8 +103,8 @@ export function GameTurnLog({
             {who.boardIsShown ? (
               <TurnLogNumber
                 n={i + 1}
-                viewing={viewingIndex === i}
-                onSelect={() => onSelectTurn(i)}
+                isOpenInHistory={historyId === i}
+                onShowHistory={() => onShowHistory(i)}
               />
             ) : (
               <td className={turnLog.meta}>#{i + 1}</td>

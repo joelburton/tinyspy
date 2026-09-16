@@ -26,10 +26,10 @@ type Props = {
   /** Frozen at terminal (and while a peer's turn is pending in a turn game). */
   disabled?: boolean
   /** Replaying a past turn: the board wears the shared history frame. */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** The cells the viewed turn traced — ringed, so a rejected word's route is
    *  visible even though it changed nothing. */
-  highlight?: Coord[]
+  historyLitTiles?: Coord[]
   /** Cells a typed letter matched when it matched MORE THAN ONE — ringed red for
    *  a beat, meaning "several of these; click the one you meant". Empty at rest;
    *  the flash timer lives in the column that feeds this. */
@@ -66,8 +66,8 @@ export function Board({
   hintCoords,
   onTileClick,
   disabled,
-  viewing,
-  highlight = [],
+  isViewingHistory,
+  historyLitTiles = [],
   ambiguous = [],
 }: Props) {
   const traceKeys = new Set(trace.map(coordKey))
@@ -87,7 +87,7 @@ export function Board({
     path.map(([r, c]) => `${cx(c)},${cy(r)}`).join(' ')
 
   return (
-    <div className={cls(styles.board, viewing && history.frame)} data-board>
+    <div className={cls(styles.board, isViewingHistory && history.historyFrame)} data-board>
       {/* The drawing layer: lines first, then discs, so a disc always covers the
           line ends. aria-hidden — it carries no information the letters don't. */}
       <svg
@@ -154,7 +154,7 @@ export function Board({
 
         {/* The viewed turn's route. Same ring vocabulary as a hint — "these
             cells, no claim about order" — in the history blue. */}
-        {highlight.map((c) => (
+        {historyLitTiles.map((c) => (
           <circle
             key={`v${coordKey(c)}`}
             className={styles.discViewed}

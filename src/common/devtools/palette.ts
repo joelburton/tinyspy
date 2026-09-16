@@ -62,7 +62,7 @@
  * ── What is NOT here ──────────────────────────────────────────────────────
  *
  * Single tokens that aren't part of a family (`--chrome-fault-color`,
- * `--view-history-color`, the mark dims), and per-game brand palettes, which
+ * `--history-color`, the mark dims), and per-game brand palettes, which
  * live in that game's own `theme.css` and are complete by the game's rules
  * rather than by ours. Adding them would make this page a token dump; it is a
  * page about families.

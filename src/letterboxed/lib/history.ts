@@ -29,7 +29,7 @@ import type { EventRow } from '../hooks/useGame'
  * exactly the list the turn log is displaying, so a row's position in it IS its
  * index here.
  */
-export function chainAt(events: readonly EventRow[], index: number): string[] {
+export function historyChainAt(events: readonly EventRow[], index: number): string[] {
   const chain: string[] = []
   for (let i = 0; i <= index && i < events.length; i++) {
     const e = events[i]
@@ -41,7 +41,7 @@ export function chainAt(events: readonly EventRow[], index: number): string[] {
 }
 
 /** The one-line "what this move was" for the viewer's banner. */
-export function describeAt(events: readonly EventRow[], index: number): string | null {
+export function historyLabelAt(events: readonly EventRow[], index: number): string | null {
   const e = events[index]
   if (!e) return null
   const word = e.word?.toUpperCase() ?? ''

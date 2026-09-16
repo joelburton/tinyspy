@@ -23,7 +23,7 @@ import styles from './InfoCol.module.css'
  * disclosure → turn log. codenamesduet has NO opponent strip (peer status rides the
  * GamePage header pill) and its finished-player banners sit right under the state
  * line they explain. Every command arrives as a bound action this column places; the
- * one callback up is `onSelectTurn`. PlayArea owns the RPCs + coordination. Prop names match the other
+ * one callback up is `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other
  * games' columns for the same idea (see docs/playarea.md).
  */
 export function InfoCol({
@@ -51,8 +51,8 @@ export function InfoCol({
   players,
   selfId,
   gameOver,
-  viewingSeq,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   /** The terminal message when the game is over (drives the action row), else null. */
@@ -108,8 +108,8 @@ export function InfoCol({
   selfId: string
   gameOver: boolean
   /** The turn currently open in the board viewer (by turn_number), or null. */
-  viewingSeq: number | null
-  onSelectTurn: (turnNumber: number) => void
+  historyId: number | null
+  onShowHistory: (turnNumber: number) => void
 }) {
   return (
     <div className={shared.infoCol}>
@@ -215,8 +215,8 @@ export function InfoCol({
         selfId={selfId}
         currentTurn={turnNumber}
         gameOver={gameOver}
-        viewingSeq={viewingSeq}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

@@ -23,7 +23,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
-import { chainAt, describeAt } from '../lib/history'
+import { historyChainAt, historyLabelAt } from '../lib/history'
 import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -153,12 +153,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // BoardCol freezes the entry's capture while viewing, so the viewer's own
   // any-key action has the keys to itself: any keystroke returns to the live
   // board instead of typing behind the banner (the hook binds
-  // `act-exit-viewer`; docs/keyboard-shortcuts.md → the viewer contract).
+  // `act-exit-history`; docs/keyboard-shortcuts.md → the viewer contract).
   const {
-    viewingId: viewingIndex,
-    viewing,
-    select: selectTurn,
-    exitViewing,
+    historyId: historyId,
+    isViewingHistory,
+    showHistory,
+    exitHistory,
   } = useHistoryViewer<number>()
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -692,9 +692,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The chain the BOARD shows: a past move's while viewing, the live one
   // otherwise. Folding rather than reconstructing — see lib/history.ts.
-  const shownChain = viewing && viewingIndex !== null ? chainAt(boardRows, viewingIndex) : chain
-  const viewingDescription =
-    viewing && viewingIndex !== null ? describeAt(boardRows, viewingIndex) : null
+  const shownChain = isViewingHistory && historyId !== null ? historyChainAt(boardRows, historyId) : chain
+  const historyLabel =
+    isViewingHistory && historyId !== null ? historyLabelAt(boardRows, historyId) : null
 
   // TWO different gates, and conflating them is a bug: a full chain freezes the
   // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
@@ -716,8 +716,8 @@ export function PlayArea(ctx: GamePageCtx) {
         sides={sides}
         chain={shownChain}
         liveChain={chain}
-        viewingDescription={viewingDescription}
-        onExitViewing={exitViewing}
+        historyLabel={historyLabel}
+        onExitHistory={exitHistory}
         draft={draft}
         onDraftChange={editDraft}
         refused={refused}
@@ -760,8 +760,8 @@ export function PlayArea(ctx: GamePageCtx) {
           actRestart={actRestart}
           actNewGame={actNewGame}
           actBackToClub={menu.actBackToClub}
-          viewingIndex={viewingIndex}
-          onSelectTurn={selectTurn}
+          historyId={historyId}
+          onShowHistory={showHistory}
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is

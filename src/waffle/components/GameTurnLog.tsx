@@ -19,9 +19,9 @@ type Props = {
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
   /** The swap currently open in the board viewer (by log position), or null. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a swap in the board viewer (click a row). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }
 
 /**
@@ -54,8 +54,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   const who = useTurnLogPlayerPicker<SwapRow>({
     players,
@@ -91,8 +91,8 @@ export function GameTurnLog({
             {who.boardIsShown ? (
               <TurnLogNumber
                 n={s.seq}
-                viewing={viewingIndex === i}
-                onSelect={() => onSelectTurn(i)}
+                isOpenInHistory={historyId === i}
+                onShowHistory={() => onShowHistory(i)}
               />
             ) : (
               <td className={turnLog.meta}>#{s.seq}</td>

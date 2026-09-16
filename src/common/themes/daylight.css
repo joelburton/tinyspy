@@ -713,9 +713,9 @@
 
      The BANNER is the page's own ink at 10% — a wash rather than a
      color of its own. */
-/* @@ */   --view-history-color:         #4a7bab;
-/* @@ */   --view-sharePreview-color:    #ffd21a;
-/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
+/* @@ */   --history-color:         #4a7bab;
+/* @@ */   --peer-preview-color:    #ffd21a;
+/* @@ */   --history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      App furniture that isn't a button, a field or a game surface.

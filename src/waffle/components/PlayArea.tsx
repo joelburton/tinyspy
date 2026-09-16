@@ -25,7 +25,7 @@ import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import { computeColors } from '../lib/colors'
 import { solvedWords, swapCells, unjudgeCells } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
@@ -61,7 +61,7 @@ type SwapAnswer = {
  *
  *   - **`<BoardCol>`** — the square Board + the below-board feedback slot. Takes
  *     the board to render (live OR a historical snapshot) + `readOnly`; emits a swap
- *     up (`onSwap`) and "back to live" (`onExitViewing`).
+ *     up (`onSwap`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the swap-state readout, OpponentStrip, action row, setup
  *     disclosure, terminal answer reveal, and the coop swap log. Named callbacks up.
  *
@@ -117,8 +117,8 @@ export function PlayArea({
   // is open on the board, or null = live. When set, PlayArea feeds BoardCol that
   // swap's historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
   // and freezes input. Only coop can reach it (compete renders no swap log). Any key
-  // returns to live: the hook binds `act-exit-viewer` itself, so nothing is wired here.
-  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing } =
+  // returns to live: the hook binds `act-exit-history` itself, so nothing is wired here.
+  const { historyId: historyId, isViewingHistory, showHistory, exitHistory } =
     useHistoryViewer()
 
   // Mobile: below --mobile the board fills the screen and the whole info column
@@ -550,8 +550,8 @@ export function PlayArea({
     ? swaps.filter((sw) => sw.user_id === session.user.id)
     : swaps
   const snap =
-    viewingIndex !== null
-      ? turnSnapshot(game.scramble, game.solution, replaySwaps, viewingIndex)
+    historyId !== null
+      ? historySnapshot(game.scramble, game.solution, replaySwaps, historyId)
       : null
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
@@ -610,7 +610,7 @@ export function PlayArea({
   // The board is inert whenever I can't act OR I'm peeking at history. `!isMyTurn`
   // folds in turn-order (coop only): a waiting player's board freezes. Always true
   // for free-for-all / solo.
-  const readOnly = isTerminal || !isPlayer || selfDone || viewing || !isMyTurn
+  const readOnly = isTerminal || !isPlayer || selfDone || isViewingHistory || !isMyTurn
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -626,9 +626,9 @@ export function PlayArea({
         board={board}
         colors={colors}
         readOnly={readOnly}
-        highlight={snap?.highlight}
-        viewingDescription={snap ? snap.description : null}
-        onExitViewing={exitViewing}
+        historyLitTiles={snap?.historyLitTiles}
+        historyLabel={snap ? snap.description : null}
+        onExitHistory={exitHistory}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}
         notMyTurn={waiting}
@@ -674,8 +674,8 @@ export function PlayArea({
         setupRows={summaryRows}
         answerWords={answerWords}
         swaps={swaps}
-        viewingIndex={viewingIndex}
-        onSelectTurn={setViewingIndex}
+        historyId={historyId}
+        onShowHistory={showHistory}
       />
       </InfoSheet>
 

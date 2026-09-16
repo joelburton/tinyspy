@@ -66,8 +66,8 @@ type Props = {
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
   // ── Turn-history viewer ──
-  viewingIndex: number | null
-  onSelectTurn: (index: number) => void
+  historyId: number | null
+  onShowHistory: (index: number) => void
 }
 
 /**
@@ -105,8 +105,8 @@ export function InfoCol({
   actNewGame,
   actReveal,
   actBackToClub,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   return (
     <div className={shared.infoCol}>
@@ -232,8 +232,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

@@ -28,7 +28,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -377,7 +377,7 @@ export function PlayArea({
   // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds
   // an any-key action that CONSUMES the press, so the key that brings the board
   // back doesn't also play on it.
-  const { viewing, viewingId, select: selectTurn, exitViewing } = useHistoryViewer<number>()
+  const { isViewingHistory, historyId, showHistory, exitHistory } = useHistoryViewer<number>()
 
   // End / Concede / Restart come from the shared `useStandardGameActions` as
   // bound actions — the menu row, the button and ⌥⌫ are all the same binding, so
@@ -588,8 +588,8 @@ export function PlayArea({
 
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
   // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
-  // a later realtime guess only grows the log past viewingId, so a past turn holds.
-  const snap = viewingId !== null ? turnSnapshot(guesses, viewingId) : null
+  // a later realtime guess only grows the log past historyId, so a past turn holds.
+  const snap = historyId !== null ? historySnapshot(guesses, historyId) : null
 
   // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
   // correct guesses are visible); compete = the caller's own count.
@@ -629,11 +629,11 @@ export function PlayArea({
         // author, so a dot per tile is a label that says "you" nine times). A
         // history snapshot carries the same rows, so it keeps its dots.
         decidedBy={game.mode === 'coop' && players.length > 1 ? decidedBy : null}
-        highlightWord={snap?.highlightWord ?? null}
+        historyLitWord={snap?.historyLitWord ?? null}
         // ── History viewer ──
-        viewing={viewing}
-        viewingDescription={snap?.description ?? null}
-        onExitViewing={exitViewing}
+        isViewingHistory={isViewingHistory}
+        historyLabel={snap?.description ?? null}
+        onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
         isStillPlaying={isStillPlaying}
@@ -689,8 +689,8 @@ export function PlayArea({
         // ── Turn-history log ──
         guesses={guesses}
         isTerminal={isTerminal}
-        viewingIndex={viewingId}
-        onSelectTurn={selectTurn}
+        historyId={historyId}
+        onShowHistory={showHistory}
         />
       </InfoSheet>
 

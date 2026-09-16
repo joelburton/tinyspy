@@ -25,9 +25,9 @@ type Props = {
   isTerminal: boolean
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a turn in the board viewer (click its `#N`). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }
 
 /**
@@ -64,8 +64,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   // Whose guesses to show. The control, its default, the aggregate label, the row
   // filter, the `#N`-handle gate and the honest empty line all come from the
@@ -100,7 +100,7 @@ export function GameTurnLog({
         <tr key={`${g.user_id}-${g.seq}`} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={g.is_correct ? 'won' : 'neutral'} />
           {boardIsShown ? (
-            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
           ) : (
             <td className={turnLog.meta}>#{i + 1}</td>
           )}

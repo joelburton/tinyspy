@@ -27,7 +27,7 @@ The viewer is the other half, and it is one piece of state: which past turn, if
 any, is open on the board. Clicking a turn's `#N` opens it, and three things
 close it again: a keystroke and a click anywhere that isn't another `#N`, both
 built into the hook so a game adopting the viewer wires neither, and the
-banner's ✕, which is the game's own button calling the hook's `exitViewing`.
+banner's ✕, which is the game's own button calling the hook's `exitHistory`.
 What a past board should look like stays the game's business (each one has a
 `lib/history.ts`); what it wears while you are looking at it is this folder's: a
 blue frame around the board, a matching ring on the open `#N`, and an opaque
@@ -90,7 +90,7 @@ GameTurnLog                           the GAME's file, one per log game
           └── TurnLogActor            the who cell, wrapping <ActorDot> (members/)
 
 PlayArea                              holds useHistoryViewer — the one flag
-├── BoardCol → Board                  wears historyViewer `.frame` while viewing
-│   └── the banner                    drawn by the GAME, in this folder's classes
-└── InfoCol → GameTurnLog             `viewing` + `onSelect` back to the hook
+├── BoardCol → Board                  wears `.historyFrame` while viewing history
+│   └── HistoryBanner                 the game gives it a label and exitHistory
+└── InfoCol → GameTurnLog             historyId + onShowHistory back to the hook
 ```

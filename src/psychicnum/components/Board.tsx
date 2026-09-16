@@ -29,10 +29,10 @@ type Props = {
   onPick?: (word: string) => void
   /** Turn-history: render read-only under the blue viewer frame (a past turn's
    *  board). Off during live play. */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** Turn-history: the word the viewed turn's guess decided — ring its tile
    *  history-blue (just OUTSIDE the tile, clear of its green/red fill). Null / omitted when live. */
-  highlightWord?: string | null
+  historyLitWord?: string | null
   /** WHO decided each tile — its guesser's identity dot, in the bottom-right
    *  corner. Null outside coop: in compete you only ever see your own guesses, so
    *  a dot would be decoration.
@@ -86,8 +86,8 @@ export function Board({
   results,
   selected,
   onPick,
-  viewing = false,
-  highlightWord = null,
+  isViewingHistory = false,
+  historyLitWord = null,
   decidedBy = null,
   inFlightWord = null,
   gameOver = null,
@@ -111,7 +111,7 @@ export function Board({
     moveCount,
     // Quiet while reading a past turn: that board's guess is already ringed, and
     // a live guess landing behind the viewer is not something to point at.
-    quiet: viewing,
+    quiet: isViewingHistory,
     changed: (before, now) => new Set([...now.keys()].filter((w) => !before.has(w))),
   })
 
@@ -145,21 +145,21 @@ export function Board({
       // computed in CSS from the --max-tile-* caps. See Board.module.css.
       style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
-      {/* While viewing a past turn the shared history-blue `.frame` rings the board AND
+      {/* While viewing a past turn the shared history-blue `.historyFrame` rings the board AND
           makes it click-through (pointer-events: none) so a click anywhere returns
           to the live board (useHistoryViewer's document listener). */}
       <div
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          viewing && history.frame,
+          isViewingHistory && history.historyFrame,
           notMyTurn && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns: the viewer owns it while
           // open, being the state you chose and the one you can leave.
-          gameOver !== null && !viewing && shared.gameOverFrame,
-          gameOver === 'won' && !viewing && shared.gameOverWon,
-          gameOver === 'lost' && !viewing && shared.gameOverLost,
+          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
+          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
+          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
@@ -195,7 +195,7 @@ export function Board({
                 // and a correct guess never shakes.
                 shaking.has(word) && shared.verdictShake,
                 // Turn-history: this tile is the guess the viewed turn decided.
-                highlightWord === word && styles.viewed,
+                historyLitWord === word && styles.historyTile,
               )}
               disabled={guessed || !onPick}
               aria-pressed={selected === word || undefined}

@@ -433,7 +433,7 @@ Mirrors the other game folders:
   LIVE colors; this exists only so the turn-history viewer can color a *historical*
   board on the FE (see below).
 - `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given the
-  `scramble` + the swap log, `turnSnapshot(index)` reconstructs the board *after*
+  `scramble` + the swap log, `historySnapshot(index)` reconstructs the board *after*
   that swap (each swap is a reversible transposition), colors it via `lib/colors`,
   and rings the two moved cells. **Coop only** — compete writes no swap log.
   Clicking a `GameTurnLog` row opens that swap on the board (the shared "viewing"

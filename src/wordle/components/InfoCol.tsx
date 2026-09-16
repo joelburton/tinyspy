@@ -22,7 +22,7 @@ import styles from './InfoCol.module.css'
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * OpponentStrip (compete) → action row → help → setup disclosure → terminal answer
  * reveal → the turn log. Every COMMAND arrives as a bound action this column
- * places; `onSelectTurn` stays a callback, being coordination rather than a
+ * places; `onShowHistory` stays a callback, being coordination rather than a
  * command. PlayArea owns the RPCs + the history
  * coordination. Prop names match the other games' columns for the same idea (docs/
  * playarea.md).
@@ -58,8 +58,8 @@ export function InfoCol({
   // ── Turn log ──
   guesses,
   mode,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -130,9 +130,9 @@ export function InfoCol({
   guesses: GuessRow[]
   mode: 'coop' | 'compete'
   /** Turn-history: the open turn (by log position), or null when live. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a turn on the board viewer (click its `#N`). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }) {
   // Both exits, error-toned (red), placed together and each hiding itself in the
   // mode that isn't its own: compete CONCEDES (drop out of the race →
@@ -260,8 +260,8 @@ export function InfoCol({
         selfId={selfId}
         mode={mode}
         isTerminal={isTerminal}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

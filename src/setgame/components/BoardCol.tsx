@@ -11,6 +11,7 @@ import type { FlashKind } from '../lib/flash'
 import { Board } from './Board'
 import { Counts } from './Counts'
 import { countsFor } from '../lib/readouts'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -39,8 +40,8 @@ type Props = {
   // ── Turn-history viewer ──
   /** The viewed turn's one-line description (drives the banner over the
    *  pill slot), or null when live. */
-  viewingDescription: string | null
-  onExitViewing: () => void
+  historyLabel: string | null
+  onExitHistory: () => void
 }
 
 /**
@@ -78,10 +79,10 @@ export function BoardCol({
   actHint,
   onCardClick,
   localFeedbackSlot,
-  viewingDescription,
-  onExitViewing,
+  historyLabel,
+  onExitHistory,
 }: Props) {
-  const viewing = viewingDescription !== null
+  const isViewingHistory = historyLabel !== null
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <MobileStatusBar>
@@ -107,23 +108,8 @@ export function BoardCol({
           inset: 0` and needs a positioning context; conditional so a `position`
           this row doesn't otherwise want isn't sitting on it during play (the
           same call connections / psychicnum make). */}
-      <div className={cls(styles.pillSlot, viewing && history.bannerHost)}>
-        {viewing && (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            <span className={history.bannerLabel}>{viewingDescription}</span>
-            <button
-              type="button"
-              className={history.bannerExit}
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitViewing()
-              }}
-              aria-label="Exit viewing"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+      <div className={cls(styles.pillSlot, isViewingHistory && history.historyBannerHost)}>
+        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
         <FeedbackPill slot={localFeedbackSlot} />
       </div>
     </div>

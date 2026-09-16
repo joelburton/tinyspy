@@ -52,8 +52,8 @@ export function InfoCol({
   setupRows,
   guesses,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -120,8 +120,8 @@ export function InfoCol({
    *  RLS-hidden rows (during play) from a genuinely empty log (at terminal). */
   isTerminal: boolean
   /** The turn currently open in the board viewer (by log position), or null. */
-  viewingIndex: number | null
-  onSelectTurn: (index: number) => void
+  historyId: number | null
+  onShowHistory: (index: number) => void
 }) {
 
   // The exit — error-toned (red), and BOTH are placed: compete's CONCEDE (drop
@@ -261,8 +261,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

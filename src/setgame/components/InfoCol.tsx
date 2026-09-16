@@ -45,8 +45,8 @@ type Props = {
   actHint: BoundAction
   hintsUsed: number
   // ── Turn log ──
-  viewingIndex: number | null
-  onSelectTurn: (index: number | null) => void
+  historyId: number | null
+  onShowHistory: (index: number | null) => void
   // ── Actions ──
   /** End the game for the whole table — coop's exit; it hides itself in a race. */
   actEndGame: BoundAction
@@ -94,8 +94,8 @@ export function InfoCol({
   concededIds,
   actHint,
   hintsUsed,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
   actEndGame,
   actConcede,
   actRestart,
@@ -194,8 +194,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

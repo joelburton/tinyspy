@@ -16,7 +16,7 @@
  *                   same height as a tile row and sharing the one grid gap. It
  *                   wears the shared `.tileFace`; only the span + the two lines
  *                   are here.
- *   - .viewedTile* — the turn-history highlight (outcome tint + the viewer ring).
+ *   - .historyTile* — the turn-history highlight (outcome tint + the viewer ring).
  *   - .moveArea / .inputButton / .mistakesInline — the commit controls below the
  *     board (the mistakes readout + Clear/Submit, right-justified; they live in
  *     the shared `.moveAreaOrLocalFeedback` swap box). See docs/code-conventions.md
@@ -151,21 +151,21 @@
  *     two ringed tiles collide.
  * A guessed tile stays on the grid in the strictly-before snapshot even for a
  * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
-/* @@ */ .viewedTile {
-  outline: 3px solid var(--view-history-color);
+/* @@ */ .historyTile {
+  outline: 3px solid var(--history-color);
   outline-offset: 0;
 }
-/* @@ */ .viewedTile_won {
+/* @@ */ .historyTile_won {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-won-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-/* @@ */ .viewedTile_near {
+/* @@ */ .historyTile_near {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-near-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-near-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
-/* @@ */ .viewedTile_lost {
+/* @@ */ .historyTile_lost {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-lost-ink-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);

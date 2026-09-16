@@ -6,7 +6,7 @@
  * at the END of any past turn plus which cells that turn decided — so PlayArea can
  * hand `<Board>` a historical board the same way it hands it the live one.
  *
- * ADD-style replay (like scrabble's `boardUpToSeq` / waffle's `boardAfter`, unlike
+ * ADD-style replay (like scrabble's `historyBoard` / waffle's `historyBoardAfter`, unlike
  * stackdown's removal): a guess only ever ADDS a reveal, so a past board is the
  * fixed words with every guess up to that turn folded onto them. The reveal alphabet
  * is codenamesduet's denormalized board state — the GLOBAL `revealed_as` ('G' agent
@@ -21,7 +21,7 @@
  *
  * **The boundary is INCLUSIVE**: viewing turn N shows the board AFTER turn N's
  * guesses, with those cells ringed — "this is what turn N did" (a green/neutral
- * reveal IS the event, so we show it, then highlight it). Matches waffle/scrabble;
+ * reveal IS the event, so we show it, then light it). Matches waffle/scrabble;
  * contrast stackdown's strictly-before boundary (its cleared tiles vanish, so it
  * shows the pre-move, fuller board).
  *
@@ -30,36 +30,36 @@
  */
 import type { GuessRow, WordRow } from '../hooks/useBoard'
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** The 25 board words with reveal state as of the END of the viewed turn — feed
    *  straight to `<Board words>`. */
   words: WordRow[]
   /** The board positions this turn's guesses decided — ring these in the history
    *  blue ("added this turn"). Empty for a passed (guess-less) turn. */
-  highlight: Set<number>
+  historyLitTiles: Set<number>
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   description: string
 }
 
 /**
- * Reconstruct the board + highlight + description for `turnNumber`. Folds every
+ * Reconstruct the board + lit tiles + description for `turnNumber`. Folds every
  * guess with `turn_number <= turnNumber` onto the fixed words (INCLUSIVE), and
- * collects this turn's own guessed positions as the highlight.
+ * collects this turn's own guessed positions as the lit tiles.
  */
-export function turnSnapshot(
+export function historySnapshot(
   words: WordRow[],
   guesses: ReadonlyArray<GuessRow>,
   clue: { word: string; count: number } | null,
   turnNumber: number,
-): TurnSnapshot {
+): HistorySnapshot {
   const revealedAs = new Map<number, 'G' | 'A'>()
   const neutralA = new Set<number>()
   const neutralB = new Set<number>()
-  const highlight = new Set<number>()
+  const historyLitTiles = new Set<number>()
 
   for (const g of guesses) {
     if (g.turn_number > turnNumber) continue
-    if (g.turn_number === turnNumber) highlight.add(g.position)
+    if (g.turn_number === turnNumber) historyLitTiles.add(g.position)
     // A green / assassin reveal is GLOBAL + permanent; a neutral marks only the
     // guesser's own seat (the Duet per-direction rule — the partner can still
     // contact the word as their agent).
@@ -76,7 +76,7 @@ export function turnSnapshot(
     neutral_b: neutralB.has(w.position),
   }))
 
-  return { words: snapWords, highlight, description: describe(clue, guesses, turnNumber) }
+  return { words: snapWords, historyLitTiles, description: describe(clue, guesses, turnNumber) }
 }
 
 /** "#3: 2 BREAD → STEEL, COFFEE" — the clue given that turn, then the words guessed

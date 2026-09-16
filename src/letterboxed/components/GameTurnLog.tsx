@@ -46,8 +46,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   events: EventRow[]
   players: GamePlayer[]
@@ -55,9 +55,9 @@ export function GameTurnLog({
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The move open in the board viewer, or null when live. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a move on the board (click its `#N`). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }) {
   const who = useTurnLogPlayerPicker<EventRow>({
     players,
@@ -93,7 +93,7 @@ export function GameTurnLog({
               otherwise a click would replay someone else's chain onto your
               board. */}
           {boardIsShown ? (
-            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
           ) : (
             <td className={turnLog.meta}>#{i + 1}</td>
           )}

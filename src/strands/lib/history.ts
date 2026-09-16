@@ -16,15 +16,15 @@ export type HistoryRow =
   }
   | { kind: 'hint'; word: null; path: Coord[]; result: null }
 
-export type TurnSnapshot = {
+export type HistorySnapshot = {
   /** The theme words found as of the viewed turn — feed to `<Board found>`. */
   found: FoundPath[]
   /** The cells the viewed submission traced, ringed on the board. Empty on a
    *  hint turn: a hint traced nothing, and its cells go to `hintCoords`. */
-  highlight: Coord[]
+  historyLitTiles: Coord[]
   /**
    * A hint turn's revealed cells, or null on a guess turn. Kept SEPARATE from
-   * `highlight` so the board can re-draw the hint with its own vocabulary —
+   * `historyLitTiles` so the board can re-draw the hint with its own vocabulary —
    * rings, deliberately unconnected — rather than as a traced route. That
    * distinction is the whole reason a hint's coords are stored: replaying it as
    * a trace would show an order the hint never gave you.
@@ -65,7 +65,7 @@ const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
  * addresses a turn by POSITION. The caller guarantees that by only offering the
  * handle when the log's filter is a no-op (the shared picker's `boardIsShown`).
  */
-export function snapshotAt(rows: readonly HistoryRow[], index: number): TurnSnapshot {
+export function historySnapshot(rows: readonly HistoryRow[], index: number): HistorySnapshot {
   const upTo = rows.slice(0, index + 1)
   const viewed = rows[index]
   const isHint = viewed?.kind === 'hint'
@@ -74,8 +74,8 @@ export function snapshotAt(rows: readonly HistoryRow[], index: number): TurnSnap
     found: upTo
       .filter((r) => r.result === 'theme' || r.result === 'spangram')
       .map((r) => ({ path: r.path, isSpangram: r.result === 'spangram' })),
-    // A hint's cells go to `hintCoords`, never `highlight` — see TurnSnapshot.
-    highlight: isHint ? [] : (viewed?.path ?? []),
+    // A hint's cells go to `hintCoords`, never `historyLitTiles` — see HistorySnapshot.
+    historyLitTiles: isHint ? [] : (viewed?.path ?? []),
     hintCoords: isHint ? viewed.path : null,
     description: !viewed
       ? ''

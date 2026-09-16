@@ -195,7 +195,7 @@ describe('the dispatcher — the watchers', () => {
   it('lets a CONSUMING wildcard take the key outright', async () => {
     // Leaving the history viewer must not also play a move on the board you
     // have only just got back.
-    const { runs, view } = setup(['act-type-letter', {}], ['act-exit-viewer', {}])
+    const { runs, view } = setup(['act-type-letter', {}], ['act-exit-history', {}])
     await press({ key: 'q' })
     expect(runs[1]).toHaveBeenCalledTimes(1)
     expect(runs[0]).not.toHaveBeenCalled()
@@ -207,7 +207,7 @@ describe('the dispatcher — the watchers', () => {
     // board's keys to a column inside it, so the inner one would win on
     // position. It must not: while a past turn is open the next keystroke means
     // "back to the live board", whoever else is listening.
-    const { runs, view } = setup(['act-exit-viewer', {}], ['act-type-letter', {}])
+    const { runs, view } = setup(['act-exit-history', {}], ['act-type-letter', {}])
     await press({ key: 'q' })
     expect(runs[0]).toHaveBeenCalledTimes(1)
     expect(runs[1]).not.toHaveBeenCalled()

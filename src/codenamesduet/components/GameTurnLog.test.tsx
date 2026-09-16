@@ -92,8 +92,8 @@ function renderLog(props: {
       selfId="ada"
       currentTurn={props.currentTurn ?? 99}
       gameOver={props.gameOver ?? false}
-      viewingSeq={null}
-      onSelectTurn={() => {}}
+      historyId={null}
+      onShowHistory={() => {}}
     />,
   )
 }

@@ -13,6 +13,7 @@ import { EntryRow } from '@/common/word-entry/EntryRow'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
 import { Board } from './Board'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -47,7 +48,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * gesture with its result arriving via realtime (no deep entangled state) — the
  * `submit_guess` RPC itself, kept beside the entry it commits. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it **the board to render**
- * (the live `results` OR a historical snapshot) + `viewing`, which is what makes the
+ * (the live `results` OR a historical snapshot) + `isViewingHistory`, which is what makes the
  * turn-history viewer a drop-in. The local feedback slot is PlayArea's (its
  * standing conditions and InfoCol's Hint / Spoiler / End also show into it);
  * this column shows the guess results and draws it. See docs/playarea.md.
@@ -58,11 +59,11 @@ export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   words,
   results,
-  highlightWord,
+  historyLitWord,
   // ── History viewer (its overlay lives in the below-board region) ──
-  viewing,
-  viewingDescription,
-  onExitViewing,
+  isViewingHistory,
+  historyLabel,
+  onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   isStillPlaying,
@@ -87,15 +88,15 @@ export function BoardCol({
   /** Guessed words → was-it-a-secret — the live map OR a snapshot's (PlayArea picks). */
   results: ReadonlyMap<string, boolean>
   /** Turn-history: the word the viewed turn decided — ring its tile (null live). */
-  highlightWord: string | null
+  historyLitWord: string | null
 
   // ── History viewer ──
-  viewing: boolean
+  isViewingHistory: boolean
   /** The viewed turn's description while inspecting history (drives the banner), or
    *  null when live. */
-  viewingDescription: string | null
+  historyLabel: string | null
   /** Return to the live board (the banner click / ✕). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
@@ -174,7 +175,7 @@ export function BoardCol({
   // same binding, and it is documented as live even on a finished board.
   //
   // While a past turn is open the keystroke never gets here — the viewer's
-  // `act-exit-viewer` consumes it, which is what "a key in the viewer means back
+  // `act-exit-history` consumes it, which is what "a key in the viewer means back
   // to live" is. The BUTTON still shuffles there.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
@@ -260,7 +261,7 @@ export function BoardCol({
       <Board
         words={shuffledWords}
         results={results}
-        selected={viewing ? null : selected}
+        selected={isViewingHistory ? null : selected}
         decidedBy={decidedBy}
         gameOver={gameOver}
         notMyTurn={notMyTurn}
@@ -269,10 +270,10 @@ export function BoardCol({
         // The word with the server, if any: its tile dims until the answer lands.
         // Never while viewing a past turn — that board is not the one the guess
         // is in flight on, the same reason `selected` is dropped above.
-        inFlightWord={viewing ? null : inFlightWord}
-        onPick={isStillPlaying && isMyTurn && !viewing ? handleEntryChange : undefined}
-        viewing={viewing}
-        highlightWord={highlightWord}
+        inFlightWord={isViewingHistory ? null : inFlightWord}
+        onPick={isStillPlaying && isMyTurn && !isViewingHistory ? handleEntryChange : undefined}
+        isViewingHistory={isViewingHistory}
+        historyLitWord={historyLitWord}
         // Shuffle floats over the board's top-right — purely visual (a fresh scan
         // of the SAME board), not a turn action, so it lives on the board, not in
         // the info-column action row. Always present, even at terminal. Passed
@@ -294,26 +295,11 @@ export function BoardCol({
           note, an own-move result — and the history banner overlays it all
           while a past turn is open. */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
-          {/* Turn-viewer banner — while inspecting a past turn it overlays this slot
-              (the entry / pill stays mounted underneath, its capture frozen). Opaque
-              surface + blue border = the shared "viewing history" marker; the
-              description names the turn. Click anywhere / the ✕ exits. */}
-          {viewing && viewingDescription && (
-            <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{viewingDescription}</span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onExitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
+        <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
+          {/* The shared banner overlays this slot while a past turn is open — the
+              entry / pill stays mounted underneath, its capture frozen. */}
+          {isViewingHistory && historyLabel && (
+            <HistoryBanner label={historyLabel} onExit={onExitHistory} />
           )}
           {/* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
               Submit + the capture keyboard). `bigEntry` bumps the entry font
@@ -326,10 +312,10 @@ export function BoardCol({
             busy={submitting}
             // Disabled while viewing history (capture is a hard no-op so typing
             // behind the banner never accumulates, and the viewer's
-            // `act-exit-viewer` consumes the keystroke), when it's not my turn,
+            // `act-exit-history` consumes the keystroke), when it's not my turn,
             // and once I'm done (out of guesses, conceded, the game over) —
             // the entry stays, inert, under whatever the slot shows.
-            disabled={viewing || !isMyTurn || !isStillPlaying}
+            disabled={isViewingHistory || !isMyTurn || !isStillPlaying}
             onAnyKey={localFeedbackSlot.dismiss}
             recall={lastGuess}
             className={styles.bigEntry}

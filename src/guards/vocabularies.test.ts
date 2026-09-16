@@ -125,7 +125,7 @@ type Vocabulary = {
    * write. Delete a value when it converts; delete the row when the file is
    * clean.
    *
-   * BY VALUE, not by file, and the homepage is why. It converted `.frame`'s
+   * BY VALUE, not by file, and the homepage is why. It converted `.historyFrame`'s
    * gap to `--spacer-2` and stayed on the list, because a second value on the
    * same page (F7's `0.45em`) is still open — so under a file-level list the
    * conversion we had just made was unprotected: writing `1rem` back would

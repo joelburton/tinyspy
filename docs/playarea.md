@@ -598,13 +598,14 @@ looks identical everywhere:
 - **The framed board.** While viewing, the board wears the shared
   `historyViewer.module.css → .frame` (a "viewing" outline in the history blue +
   banner, input frozen to the eye — it stays mounted underneath, so an in-progress
-  entry survives) and the open turn's `#N` wears `.viewedNumber` (the matching ring).
-  `.frame` also sets `pointer-events: none`, so a board click falls through to the
+  entry survives) and the open turn's `#N` wears `.historyNumber` (the matching ring).
+  `.historyFrame` also sets `pointer-events: none`, so a board click falls through to the
   exit handler — a viewed board is a read-only snapshot.
-- **Three exits, all shared.** A keystroke (the hook binds `act-exit-viewer`, whose
+- **Three exits, all shared.** A keystroke (the hook binds `act-exit-history`, whose
   any-key wildcard consumes the press) and a click anywhere (except another `#N`
   handle, which switches turns) are intrinsic to the hook — a game wires neither.
-  The third is the banner **✕**, which the game draws and points at `exitViewing`.
+  The third is the banner **✕**, which `<HistoryBanner>` draws and the game points
+  at `exitHistory`.
 - **On a phone, opening a turn leaves the info page.** `select` clears the info-sheet
   flag (`setInfoSheetOpen(false)`) as well as setting the viewed turn, because below
   the breakpoint the `#N` handle lives in the turn log — which is *on* the off-canvas
@@ -756,7 +757,7 @@ own engine-hook + views shape — see below). The shared turn-history viewer
 (`useHistoryViewer` + a per-game replay helper) ships in the **ten** games whose
 board can replay a past turn — stackdown, connections, psychicnum, codenamesduet,
 wordle, waffle, strands, letterboxed, setgame (each via its own `lib/history.ts`)
-and scrabble (via `boardUpToSeq` in `lib/play.ts`); spellingbee + boggle are
+and scrabble (via `historyBoard` in `lib/play.ts`); spellingbee + boggle are
 decomposed but have **no** viewer (a `WordList` isn't chronological).
 
 **Read [What building it taught us](#what-building-it-taught-us) before extracting
@@ -781,8 +782,8 @@ layout exception — see below):
 |---|---|---|
 | **`Board`** | pure presentation of a board state | state **down**, clicks **up**. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
-| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onSelectTurn`, …). Near-zero internal state. |
-| **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `viewingSeq`) | wires `BoardCol` ↔ `InfoCol`. |
+| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onShowHistory`, …). Near-zero internal state. |
+| **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `historyId`) | wires `BoardCol` ↔ `InfoCol`. |
 
 ### The load-bearing contract
 
@@ -833,7 +834,7 @@ adding a viewer to a new game:
   Invalid / hint / reveal turns carry no tiles → snapshot = removed-by-valid `< N`, no
   green, a kind-aware description. `lib/history.ts`, pure + unit-tested.
 - **scrabble** — keyed by the stable **`seq`** (game-wide ordinal, not log position);
-  the snapshot is `boardUpToSeq` in `lib/play.ts`. Its fat `BoardCol` runs `boardUpToSeq`
+  the snapshot is `historyBoard` in `lib/play.ts`. Its fat `BoardCol` runs `historyBoard`
   itself (the raw `plays` already live there for the live board) rather than being handed
   a ready board.
 - **connections** — keyed by **log position**; the first **mutating** board (a correct
@@ -842,7 +843,7 @@ adding a viewer to a new game:
   column added to its two-`<tr>` log.
 - **wordle** — keyed by **log position**; **inclusive / add-style**: the snapshot
   (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed in the
-  history blue (`Board` gains `viewing` + `highlightRow`). Twist: the log has a
+  history blue (`Board` gains `isViewingHistory` + `highlightRow`). Twist: the log has a
   **"whose board" picker**, so the `#N` handle is a live control ONLY when the log shows
   the board that replays (coop team / my own — the picker's `boardIsShown`); an
   opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
@@ -861,7 +862,7 @@ adding a viewer to a new game:
   that game, with nothing testing that the two agree. `highlight` = the viewed
   event's own cards, which for a hint row is one, two or three of them.
 - **letterboxed** — keyed by **log position**; **inclusive** fold over the event
-  stream (`chainAt` in `lib/history.ts`: played pushes, undone pops, cleared
+  stream (`historyChainAt` in `lib/history.ts`: played pushes, undone pops, cleared
   empties, help rows change nothing) — the log records retreats precisely so this
   replay works, since a chain is a stack that can shrink, not a board that
   accumulates. Like wordle, the log has a "whose board" picker in compete, so the
@@ -869,9 +870,9 @@ adding a viewer to a new game:
   (`boardIsShown`). **The only game whose frame wraps more than the board**: the
   chain strip and the board are two views of one state (the strip lists the
   words, the board shows which letters they covered), so `BoardCol` groups them
-  in a `.snapshot` box and puts `.frame` on that. Framing just the board left the
+  in a `.snapshot` box and puts `.historyFrame` on that. Framing just the board left the
   strip live while the board rolled back — the two then showed a combination that
-  never existed. One box rather than two also avoids stacking `.frame`'s 3px-offset
+  never existed. One box rather than two also avoids stacking `.historyFrame`'s 3px-offset
   outlines a few pixels apart. Row COUNT for the strip still comes from the LIVE
   chain (`chainRowsStyle`), or reviewing an early turn would shrink the strip,
   hand the space to the board via `--avail-h`, and move the column.
@@ -904,7 +905,7 @@ already knew. Drift here causes real head-scratching.
   in the destructure and leave the type block bare.
 - **One vocabulary across all games.** For the same idea, use the same prop name
   everywhere: `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
-  `viewingDescription`, `onExitViewing`, `onSelectTurn`, `players`, `selfId`,
+  `historyLabel`, `onExitHistory`, `onShowHistory`, `players`, `selfId`,
   `playerStates`, `concededIds`, `myConceded`, `setup`, `solution`, `onEndGame`,
   `onConcede`, `onBackToClub`, … When a new game needs a prop that an earlier column
   already has under some name, REUSE that name; only diverge when the meaning truly
@@ -921,15 +922,15 @@ already knew. Drift here causes real head-scratching.
     swaps / conceded); the different name flags the different meaning. Don't "unify"
     these — the split is the point.
   - **Deliberate, documented divergences** (same idea, different name because the
-    meaning genuinely differs): `viewingIndex` (log position — stackdown/waffle) vs
-    `viewingSeq` (stable turn `seq` — scrabble, which `boardUpToSeq` indexes by);
+    meaning genuinely differs): `historyId` (log position — stackdown/waffle) vs
+    `historyId` (stable turn `seq` — scrabble, which `historyBoard` indexes by);
     `greenTiles`/`green` (a viewed turn's played-word ring, colored green — stackdown)
     vs `highlight` (a viewed swap's neutral cell ring — waffle). Both aliases of the
-    shared history hook's neutral `viewingId`.
+    shared history hook's neutral `historyId`.
   - **Snapshot ownership is NOT uniform, on purpose.** stackdown/waffle compute the
     historical board in PlayArea and hand a ready board *down* (the load-bearing
-    contract); scrabble's fat BoardCol takes the raw `plays` + `viewingSeq` and runs
-    `boardUpToSeq` itself, because the raw play data already lives there for the live
+    contract); scrabble's fat BoardCol takes the raw `plays` + `historyId` and runs
+    `historyBoard` itself, because the raw play data already lives there for the live
     board (same exception that makes it own its RPCs). Documented in its header.
 - **A real object only for a genuinely cohesive cluster** that always travels
   together to one child (e.g. the OpponentStrip's inputs) — never to hit a number.
@@ -1010,19 +1011,19 @@ extracting `InfoCol`/`BoardCol` for the next game.
   where a whole-row "viewing" outline draws a broken box and a per-row hover lights
   only half the turn —
   a single small handle stays crisp regardless of row count. The "viewing" marker is
-  `historyViewer.module.css → .viewedNumber`. A history log therefore
+  `historyViewer.module.css → .historyNumber`. A history log therefore
   needs a `#N` cell to hang the handle on (a future history game without one must add
   it). The handle is a **`<span>`, not a `<button>`** — a focused button re-fires its
   click on Space, so pressing Space to leave the viewer would re-select the turn; a
-  span takes no keystroke, so Space falls through to the viewer's `act-exit-viewer`.
+  span takes no keystroke, so Space falls through to the viewer's `act-exit-history`.
 
 - **Exiting the viewer is intrinsic to `useHistoryViewer` — no per-game wiring.**
-  Three exits, all shared: (1) a **keystroke** — the hook binds `act-exit-viewer`,
+  Three exits, all shared: (1) a **keystroke** — the hook binds `act-exit-history`,
   whose any-key wildcard consumes the press while a turn is open; (2) a **click
   anywhere** — a document-level listener *inside the hook* that exits on any click
   except one on a `#N` handle (`[data-turn-number]`, which selects that turn); (3)
-  the banner **✕**. For the click path to also cover the board, the shared
-  `historyViewer.module.css → .frame` sets `pointer-events: none` (a framed board is
+  the banner **✕** (the shared `<HistoryBanner>`). For the click path to also cover
+  the board, `historyViewer.module.css → .frame` sets `pointer-events: none` (a framed board is
   a read-only snapshot), so a board click falls through to the document listener.
   Verified in a real browser (`e2e/codenamesduet-history.e2e.ts` exercises Space, a
   board click, and an info-column click).
@@ -1030,7 +1031,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 ## Resolved along the way
 
 - **`useHistoryViewer`** (rule of three): once turn-history reached three games the
-  coordination itself (the `viewingId` + "am I viewing" flags + the enter/exit
+  coordination itself (the `historyId` + "am I viewing" flags + the enter/exit
   affordances) lifted into `src/common/turn-log/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
   `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See

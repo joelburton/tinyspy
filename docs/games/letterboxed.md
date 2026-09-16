@@ -626,7 +626,7 @@ compete "All", defaulting to you; a rival's rows fill in at terminal).
 **log position**. The snapshot
 ([`lib/history.ts`](../../src/letterboxed/lib/history.ts)) is a **fold**, which
 is the payoff of the events table being append-only: a chain isn't a board that
-accumulates, it's a stack that can also shrink, so `chainAt` just runs the four
+accumulates, it's a stack that can also shrink, so `historyChainAt` just runs the four
 rules forward — `played` push, `undone` pop, `cleared` empty, help nothing. The
 boundary is **inclusive** (viewing move N shows the chain *after* it — the only
 reading that makes an `undone` row show anything at all, since its whole content

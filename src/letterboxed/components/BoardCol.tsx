@@ -13,6 +13,7 @@ import {
   MOBILE_ROW_BUDGET_REM,
   estimateChainRows,
 } from '../lib/chainRows'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import history from '@/common/turn-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -44,8 +45,8 @@ export function BoardCol({
   sides,
   chain,
   liveChain,
-  viewingDescription,
-  onExitViewing,
+  historyLabel,
+  onExitHistory,
   draft,
   onDraftChange,
   refused,
@@ -69,8 +70,8 @@ export function BoardCol({
   // ── Turn-history viewer ──
   /** The viewed move's one-line description (drives the banner + the frame), or
    *  null when live. */
-  viewingDescription: string | null
-  onExitViewing: () => void
+  historyLabel: string | null
+  onExitHistory: () => void
   // ── Entry ──
   /** The word this player just had refused, with its replay nonce — the board
    *  shakes its letters. Handed on only while it still describes what is in the
@@ -178,7 +179,7 @@ export function BoardCol({
           the line between them. Framing only the board (the earlier shape) left
           the strip live while the board rolled back, so the two disagreed and
           showed a combination that never existed. One box also beats two here
-          on looks — `.frame` is an outline with a 3px offset, so adjacent
+          on looks — `.historyFrame` is an outline with a 3px offset, so adjacent
           frames would put two outlines a few pixels apart with the column
           gap between them.
 
@@ -186,10 +187,10 @@ export function BoardCol({
           changes no spacing: the strip↔board gap is this gap, and the
           wrapper↔entry gap is still the column's.
 
-          `.frame` also makes the whole region click-through, so a click on
+          `.historyFrame` also makes the whole region click-through, so a click on
           either falls to useHistoryViewer's click-anywhere-to-exit. */}
       <div
-        className={cls(styles.snapshot, viewingDescription !== null && history.frame)}
+        className={cls(styles.snapshot, historyLabel !== null && history.historyFrame)}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
             letter the next word must start with. On a phone the info column is
@@ -203,15 +204,15 @@ export function BoardCol({
         <ChainStrip
           chain={chain}
           onRemoveLast={onRemoveLast}
-          disabled={!chainEditable || viewingDescription !== null}
+          disabled={!chainEditable || historyLabel !== null}
         />
 
         <Board
           sides={sides}
           chain={chain}
-          word={viewingDescription !== null ? '' : word}
+          word={historyLabel !== null ? '' : word}
           onPick={onPick}
-          disabled={entryDisabled || viewingDescription !== null}
+          disabled={entryDisabled || historyLabel !== null}
           shakeNonce={refused && refused.word === word ? refused.nonce : null}
         />
       </div>
@@ -229,13 +230,11 @@ export function BoardCol({
           // The banner is `inset: 0`, so its host must be positioned — but only
           // while viewing, so a `position` this box doesn't otherwise want
           // isn't sitting on it during play (historyViewer.module.css says so).
-          viewingDescription !== null && history.bannerHost,
+          historyLabel !== null && history.historyBannerHost,
         )}
       >
-        {viewingDescription !== null && (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            {viewingDescription}
-          </div>
+        {historyLabel !== null && (
+          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
         )}
         <EntryRow
           value={word}
@@ -247,9 +246,9 @@ export function BoardCol({
           children={<TypedWord word={word} seedLength={seed.length} />}
           localFeedbackSlot={localFeedbackSlot}
           // Also hard-off while a past move is open: freezing capture lets the
-          // viewer's `act-exit-viewer` consume the keystroke (back to live)
+          // viewer's `act-exit-history` consume the keystroke (back to live)
           // instead of editing the live draft behind the banner.
-          disabled={entryDisabled || viewingDescription !== null}
+          disabled={entryDisabled || historyLabel !== null}
           busy={busy}
           onAnyKey={localFeedbackSlot.dismiss}
           charFor={charFor}

@@ -90,12 +90,12 @@ test.describe('codenamesduet turn-history viewer', () => {
 
     // ── Exit path A — a keystroke returns to live. Space specifically: the handle is
     // a <span> (not a focusable button), so Space isn't captured as a re-click and
-    // falls through to the viewer's any-key `act-exit-viewer`.
+    // falls through to the viewer's any-key `act-exit-history`.
     await pageBob.keyboard.press('Space')
     await expect(banner).toBeHidden({ timeout: 10000 })
 
     // ── Exit path B — clicking the BOARD returns to live. The framed board is
-    // click-through (`.frame` → pointer-events: none), so the click falls to the
+    // click-through (`.historyFrame` → pointer-events: none), so the click falls to the
     // document listener. This is the shared mechanism every history game now uses.
     await handle.click()
     await expect(banner).toBeVisible({ timeout: 10000 })

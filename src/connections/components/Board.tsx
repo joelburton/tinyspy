@@ -18,10 +18,10 @@ const COLS = 4
 /** Turn-history: a guessed tile's tint class by the viewed turn's outcome. Keyed
  *  by the OUTCOME, like everything else the guess touches — the classes it names
  *  were already built from `--outcomes-*` tokens. */
-const VIEWED_TINT: Record<GuessOutcome, string> = {
-  won: styles.viewedTile_won,
-  near: styles.viewedTile_near,
-  lost: styles.viewedTile_lost,
+const HISTORY_LIT_TINT: Record<GuessOutcome, string> = {
+  won: styles.historyTile_won,
+  near: styles.historyTile_near,
+  lost: styles.historyTile_lost,
 }
 
 /** Empty highlight set — a stable reference so a live render never rings a tile. */
@@ -116,14 +116,14 @@ type Props = {
    *  guesses, so a restart drops this instead of advancing it and the re-dealt
    *  board says nothing (plans/tile-feedback.md → Read the cause). */
   moveCount: number
-  /** Turn-history: render read-only under the shared viewer frame (a past turn's
-   *  board). Off during live play. */
-  viewing?: boolean
-  /** Turn-history: the four tiles the viewed turn guessed — ring them + tint them the
-   *  outcome color (`highlightOutcome`). Empty / omitted when live. */
-  highlightTiles?: ReadonlySet<string>
-  /** Turn-history: the viewed turn's verdict — the tint for `highlightTiles`. */
-  highlightOutcome?: GuessOutcome
+  // Render read-only under the shared viewer frame (a past turn's board). Off
+  // during live play.
+  isViewingHistory?: boolean
+  // The four tiles the viewed turn guessed — ringed and tinted `historyLitOutcome`.
+  // Empty / omitted when live.
+  historyLitTiles?: ReadonlySet<string>
+  // The viewed turn's verdict — the tint for `historyLitTiles`.
+  historyLitOutcome?: GuessOutcome
   /** A control floated over the board's top-right (the Shuffle button). Rendered
    *  INSIDE the board root — the root is the `position: relative` anchor — so it
    *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -171,9 +171,9 @@ export function Board({
   moveCount,
   attentionTiles = NO_TILES,
   shakenTiles = NO_TILES,
-  viewing = false,
-  highlightTiles = NO_TILES,
-  highlightOutcome = 'lost',
+  isViewingHistory = false,
+  historyLitTiles = NO_TILES,
+  historyLitOutcome = 'lost',
   floatingControl,
 }: Props) {
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)
@@ -207,7 +207,7 @@ export function Board({
     // produced is marked like anyone else's: it arrives somewhere they were not
     // looking (the top of the board, while they were reading tiles), and what
     // the flash says is "your four went here", not "something happened".
-    quiet: viewing,
+    quiet: isViewingHistory,
     changed: (before, now) => {
       const had = new Set(before.map((m) => m.rank))
       return new Set(now.map((m) => m.rank).filter((r) => !had.has(r)))
@@ -269,15 +269,15 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          viewing && history.frame,
+          isViewingHistory && history.historyFrame,
           notMyTurn && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns rather than nest: while
           // the viewer is open it owns the outline, being the state you chose and
           // the one you can leave.
-          gameOver !== null && !viewing && shared.gameOverFrame,
-          gameOver === 'won' && !viewing && shared.gameOverWon,
-          gameOver === 'lost' && !viewing && shared.gameOverLost,
+          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
+          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
+          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}
@@ -295,7 +295,7 @@ export function Board({
           const isVerdict = verdict?.tiles.has(tile) ?? false
           // Turn-history: this tile is one of the four the viewed turn guessed —
           // tint it the outcome color + ring it in the history blue.
-          const isViewed = highlightTiles.has(tile)
+          const isHistoryLit = historyLitTiles.has(tile)
           return (
             <button
               // Keyed on the verdict's nonce while it is wearing one, so that
@@ -329,8 +329,8 @@ export function Board({
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && VERDICT_TONE[verdict.tone],
-                isViewed && VIEWED_TINT[highlightOutcome],
-                isViewed && styles.viewedTile,
+                isHistoryLit && HISTORY_LIT_TINT[historyLitOutcome],
+                isHistoryLit && styles.historyTile,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => onToggle(tile)}

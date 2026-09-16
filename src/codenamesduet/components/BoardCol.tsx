@@ -17,6 +17,7 @@ import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import { Board } from './Board'
 import { CluePanel, type SuggestState } from './CluePanel'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -59,7 +60,7 @@ type GuessAnswer =
  * reveal arrives via realtime), but keeping the `pendingPos` + in-flight guard beside
  * the board it gates is the natural home — while `CluePanel` keeps the clue RPCs.
  * Like the other games' BoardCol it does NOT own the game state: PlayArea hands it
- * **the board to render** (live OR a historical snapshot) + `viewing`, which is what
+ * **the board to render** (live OR a historical snapshot) + `isViewingHistory`, which is what
  * makes the turn-history viewer a drop-in. Not-oks show into PlayArea's local
  * slot (the slot InfoCol's End shows into too), and the AI-suggestion dialog
  * state lives in PlayArea (it must mount high in the tree). See docs/playarea.md.
@@ -74,11 +75,11 @@ export function BoardCol({
   mySeat,
   gameOver,
   readOnly,
-  highlight,
+  historyLitTiles,
   // ── History viewer (its overlay lives in the below-board region) ──
-  viewing,
-  viewingDescription,
-  onExitViewing,
+  isViewingHistory,
+  historyLabel,
+  onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   localFeedbackSlot,
@@ -109,18 +110,18 @@ export function BoardCol({
   gameOver: boolean
   /** The board-gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
    *  from the phase (`!derivePhase().cellsClickable`); this column ORs in
-   *  `viewing` before handing the leaf `<Board>` its `cellsClickable`. */
+   *  `isViewingHistory` before handing the leaf `<Board>` its `cellsClickable`. */
   readOnly: boolean
   /** Turn-history: the positions the viewed turn decided — ring them (undefined live). */
-  highlight: ReadonlySet<number> | undefined
+  historyLitTiles: ReadonlySet<number> | undefined
 
   // ── History viewer ──
-  viewing: boolean
+  isViewingHistory: boolean
   /** The viewed turn's description while inspecting history (drives the banner), or
    *  null when live. */
-  viewingDescription: string | null
+  historyLabel: string | null
   /** Return to the live board (the banner click / ✕). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
@@ -143,7 +144,7 @@ export function BoardCol({
 }) {
   // Phase-clickability, the positive of the `readOnly` gate. Reintroduced (rather
   // than flipping every internal use) so the leaf `<Board>`'s `cellsClickable`
-  // prop + the `viewing` interplay below stay byte-identical — the prop-name
+  // prop + the `isViewingHistory` interplay below stay byte-identical — the prop-name
   // unification can't change behavior.
   const cellsClickable = !readOnly
 
@@ -220,11 +221,11 @@ export function BoardCol({
         peerKey={peerKey}
         mySeat={mySeat}
         gameOver={gameOver}
-        cellsClickable={cellsClickable && !viewing}
+        cellsClickable={cellsClickable && !isViewingHistory}
         pendingPos={pendingPos}
         onGuess={handleGuess}
-        viewing={viewing}
-        highlight={highlight}
+        isViewingHistory={isViewingHistory}
+        historyLitTiles={historyLitTiles}
       />
       {/* The below-board slot — codenamesduet's move-input zone
           (docs/playarea.md → Board sizing). Two states, in the same
@@ -236,28 +237,12 @@ export function BoardCol({
               split; turn-state changes go to the header);
             - else → the CluePanel (clue form / clue display + Pass / waiting). */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
-          {/* Turn-viewer banner — while inspecting a past turn it overlays this
-              below-board slot (the CluePanel / pill stays mounted underneath, so an
-              in-progress clue survives). Opaque surface + the history-blue border =
-              the shared
-              "viewing history" marker; the description names the turn. Click anywhere
-              (intrinsic to the viewer) / the ✕ returns to live. */}
-          {viewing && viewingDescription && (
-            <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{viewingDescription}</span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onExitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
+        <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
+          {/* The shared banner overlays this below-board slot while a past turn is
+              open — the CluePanel / pill stays mounted underneath, so an in-progress
+              clue survives. */}
+          {isViewingHistory && historyLabel && (
+            <HistoryBanner label={historyLabel} onExit={onExitHistory} />
           )}
           {top !== null ? (
             <div className={shared.localFeedback}>

@@ -10,7 +10,7 @@
  *      canonical copy.
  */
 import { describe, expect, it } from 'vitest'
-import { turnSnapshot } from './history'
+import { historySnapshot } from './history'
 import type { Board } from './board'
 import type { GuessRow } from '../hooks/useGame'
 
@@ -41,33 +41,33 @@ const GUESSES: GuessRow[] = [
   g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', matched: true, matched_category_rank: 1 }),
 ]
 
-describe('turnSnapshot', () => {
+describe('historySnapshot', () => {
   it('shows bands matched STRICTLY BEFORE the turn — the viewed turn stays on the grid', () => {
     // Turn 0 (the first correct): no earlier matches, so no bands — and FRUIT's tiles
     // are still on the grid (all 16), ready to be ringed.
-    const s0 = turnSnapshot(GUESSES, BOARD, 0)
+    const s0 = historySnapshot(GUESSES, BOARD, 0)
     expect(s0.matched).toHaveLength(0)
     expect(s0.tiles).toHaveLength(16)
     expect(s0.tiles).toContain('apple')
 
     // Turn 2 (the second correct): FRUIT (turn 0) is banded, but METALS (this turn)
     // is NOT yet — its tiles are still on the grid.
-    const s2 = turnSnapshot(GUESSES, BOARD, 2)
+    const s2 = historySnapshot(GUESSES, BOARD, 2)
     expect(s2.matched.map((m) => m.name)).toEqual(['FRUIT'])
     expect(s2.tiles).not.toContain('apple') // banded before this turn
     expect(s2.tiles).toContain('iron') // this turn's tile, still on the grid
   })
 
   it('highlights exactly the four tiles the viewed turn guessed', () => {
-    expect([...turnSnapshot(GUESSES, BOARD, 1).highlightTiles].sort()).toEqual(
+    expect([...historySnapshot(GUESSES, BOARD, 1).historyLitTiles].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
-    expect(turnSnapshot(GUESSES, BOARD, 1).outcome).toBe('lost')
+    expect(historySnapshot(GUESSES, BOARD, 1).outcome).toBe('lost')
   })
 
   it('describes a correct turn by its category, the others by the canonical copy', () => {
-    expect(turnSnapshot(GUESSES, BOARD, 0).description).toBe('Matched FRUIT')
-    expect(turnSnapshot(GUESSES, BOARD, 1).description).toBe('Not a match')
-    expect(turnSnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).description).toBe('One away!')
+    expect(historySnapshot(GUESSES, BOARD, 0).description).toBe('Matched FRUIT')
+    expect(historySnapshot(GUESSES, BOARD, 1).description).toBe('Not a match')
+    expect(historySnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).description).toBe('One away!')
   })
 })

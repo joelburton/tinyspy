@@ -25,37 +25,37 @@
 import type { GuessRow } from '../hooks/useGame'
 
 /** The board row shape `<Board rows>` renders — a guess + its g/y/x colors. */
-export interface SnapshotRow {
+export interface HistorySnapshotRow {
   guess: string
   colors: string
 }
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** The guess rows as of the END of the viewed turn — feed straight to
    *  `<Board rows>` (each is `{ guess, colors }`). */
-  rows: SnapshotRow[]
+  rows: HistorySnapshotRow[]
   /** The board row this turn added — ring it in the history blue (it already wears its
    *  g/y/x tile colors). Equal to `index` (the last row in `rows`). */
-  highlightRow: number
+  historyLitBoardRow: number
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   description: string
 }
 
 /**
- * Reconstruct the rows + highlight + description for the turn at `index`. Takes the
+ * Reconstruct the rows + lit board row + description for the turn at `index`. Takes the
  * first `index + 1` guesses (INCLUSIVE) as the board's rows and rings the last one.
  */
-export function turnSnapshot(
+export function historySnapshot(
   guesses: ReadonlyArray<GuessRow>,
   index: number,
-): TurnSnapshot {
+): HistorySnapshot {
   const rows = guesses
     .slice(0, index + 1)
     .map((g) => ({ guess: g.guess, colors: g.colors }))
   const turn = guesses[index]
   return {
     rows,
-    highlightRow: index,
+    historyLitBoardRow: index,
     description: turn ? `Guess ${index + 1}: ${turn.guess.toUpperCase()}` : `Guess ${index + 1}`,
   }
 }

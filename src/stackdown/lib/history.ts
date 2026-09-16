@@ -5,7 +5,7 @@
  * position of a turn within it, reconstruct what the board looked like *at the
  * moment that turn was about to be played*, plus how to describe the turn.
  *
- * This is the removal-based twin of scrabble's `boardUpToSeq`. scrabble *adds*
+ * This is the removal-based twin of scrabble's `historyBoard`. scrabble *adds*
  * tiles each turn, so its replay folds placements onto an empty grid; stackdown
  * *removes* tiles (an accepted word clears its tiles off the stack), so the
  * replay is the reverse — start from the full board and take away the tiles that
@@ -49,7 +49,7 @@ export interface Submission {
   valid: boolean | null
 }
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** Tiles gone from the board as of the START of this turn — the union of
    *  `tile_ids` from every VALID word at a position strictly before `index`. Feed
    *  straight to `<Board offBoard>`. */
@@ -58,7 +58,7 @@ export interface TurnSnapshot {
    *  valid word (a hint / reveal / rejected attempt cleared nothing, so this is
    *  empty). These tiles are still present in `offBoard`'s complement — the whole
    *  point of the strictly-before boundary. */
-  greenTiles: Set<number>
+  historyLitTiles: Set<number>
   /** A short, name-free description of what the turn did, keyed off its kind and
    *  verdict. The log row already shows *who* played it, so the actor is omitted. */
   description: string
@@ -73,7 +73,7 @@ export interface TurnSnapshot {
  * row's position) yields an empty green set and a neutral description; the
  * `offBoard` is still well-defined (every valid word before it).
  */
-export function turnSnapshot(submissions: ReadonlyArray<Submission>, index: number): TurnSnapshot {
+export function historySnapshot(submissions: ReadonlyArray<Submission>, index: number): HistorySnapshot {
   const offBoard = new Set<number>()
   for (let i = 0; i < index && i < submissions.length; i++) {
     const s = submissions[i]
@@ -84,10 +84,10 @@ export function turnSnapshot(submissions: ReadonlyArray<Submission>, index: numb
 
   const turn = submissions[index]
   const isValidWord = !!turn && turn.kind === 'word' && turn.valid === true
-  const greenTiles =
+  const historyLitTiles =
     isValidWord && turn.tile_ids ? new Set(turn.tile_ids) : new Set<number>()
 
-  return { offBoard, greenTiles, description: describe(turn) }
+  return { offBoard, historyLitTiles, description: describe(turn) }
 }
 
 /**

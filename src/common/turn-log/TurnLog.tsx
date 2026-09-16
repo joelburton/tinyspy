@@ -121,7 +121,7 @@ export function TurnLogBar({
 /**
  * The turn-log **"#N" handle** — the shared turn-history control. Clicking it opens
  * that turn on the board viewer; when that turn is the one being viewed, the number
- * wears the history blue ring (mirroring the board `.frame`). It lives in the muted
+ * wears the history blue ring (mirroring the board `.historyFrame`). It lives in the muted
  * `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
  *
  * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
@@ -133,30 +133,30 @@ export function TurnLogBar({
  * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
  * on Space — so pressing Space to leave the viewer (the shared "any key exits")
  * would instead re-select the turn. A span with an `onClick` isn't focusable, so it
- * takes no keystroke and Space falls through to `act-exit-viewer`. The
+ * takes no keystroke and Space falls through to `act-exit-history`. The
  * `data-turn-number` marker is how `useHistoryViewer`'s click-anywhere-to-exit
  * listener tells "the user is selecting a turn" from "the user clicked away".
  */
 export function TurnLogNumber({
   n,
-  viewing,
-  onSelect,
+  isOpenInHistory,
+  onShowHistory,
 }: {
   // The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
   // codenamesduet's `turn_number`, stackdown/waffle's 1-based log position).
   n: number
   // Is this the turn currently open in the board viewer? Rings the number blue.
-  viewing: boolean
+  isOpenInHistory: boolean
   // Open this turn on the board viewer.
-  onSelect: () => void
+  onShowHistory: () => void
 }) {
   return (
     <td className={styles.meta}>
       <span
-        className={cls(styles.turnNumber, viewing && history.viewedNumber)}
+        className={cls(styles.turnNumber, isOpenInHistory && history.historyNumber)}
         title="Click to view this turn on the board"
         data-turn-number
-        onClick={onSelect}
+        onClick={onShowHistory}
       >
         #{n}
       </span>

@@ -10,11 +10,11 @@ export type HistoryRow = {
   board_after: Card[]
 }
 
-export type TurnSnapshot = {
+export type HistorySnapshot = {
   /** The board to render — the table as it was just after this event. */
   board: Card[]
   /** The cards this event was about, ringed on that board. */
-  highlight: Card[]
+  historyLitCards: Card[]
   /** The banner line: what that turn was. */
   description: string
 }
@@ -37,18 +37,18 @@ export type TurnSnapshot = {
  * table where that was" is the natural question afterwards — and for the cards
  * you were shown by a hint, "what else was I looking at?".
  *
- * The highlight is the event's own cards. On a CLAIM those cards are no longer
+ * The lit cards are the event's own. On a CLAIM those cards are no longer
  * on `board_after` — they left with the claim — so the ring is drawn on the
  * slots they occupied being empty rather than around them. That is honest: it
  * shows the table the moment after, which is what `board_after` means.
  */
-export function turnSnapshot(rows: readonly HistoryRow[], index: number): TurnSnapshot | null {
+export function historySnapshot(rows: readonly HistoryRow[], index: number): HistorySnapshot | null {
   const row = rows[index]
   if (!row) return null
 
   return {
     board: row.board_after,
-    highlight: row.cards,
+    historyLitCards: row.cards,
     description:
       row.kind === 'claim'
         ? `Turn ${index + 1} — set claimed`

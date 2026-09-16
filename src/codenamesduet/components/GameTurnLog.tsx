@@ -32,9 +32,9 @@ type Props = {
   gameOver: boolean
   /** Turn-history: the turn currently open in the board viewer (by `turn_number`),
    *  or null when live. That turn's `#N` handle wears the shared viewing ring. */
-  viewingSeq: number | null
+  historyId: number | null
   /** Open a turn in the board viewer — click (or Enter/Space) any of its rows. */
-  onSelectTurn: (turnNumber: number) => void
+  onShowHistory: (turnNumber: number) => void
 }
 
 /**
@@ -79,8 +79,8 @@ export function GameTurnLog({
   selfId,
   currentTurn,
   gameOver,
-  viewingSeq,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   const who = useTurnLogPlayerPicker({
     players,
@@ -155,8 +155,8 @@ export function GameTurnLog({
               <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
               <TurnLogNumber
                 n={t}
-                viewing={viewingSeq === t}
-                onSelect={() => onSelectTurn(t)}
+                isOpenInHistory={historyId === t}
+                onShowHistory={() => onShowHistory(t)}
               />
               <td className={turnLog.main}>
                 <span className={styles.clueWord}>

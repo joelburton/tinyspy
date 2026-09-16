@@ -23,7 +23,7 @@ import shared from '@/common/game-page/playArea.module.css'
  * between coop and compete: `isCompete` picks the OpponentStrip, and the two exits
  * hide themselves. Every command arrives as a bound action this column simply
  * places — what it does, whether it applies right now and which key also fires it
- * are the action's own business; the plain callbacks left (`onSelectTurn`,
+ * are the action's own business; the plain callbacks left (`onShowHistory`,
  * `onRevealHint`) are coordination rather than commands. Prop names match the
  * other games' columns for the same idea (docs/playarea.md).
  */
@@ -58,8 +58,8 @@ export function InfoCol({
   actBackToClub,
   setupRows,
   guesses,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -128,8 +128,8 @@ export function InfoCol({
   // ── Turn-history log (GameTurnLog) ──
   guesses: GuessRow[]
   /** The turn currently open in the board viewer (by log position), or null. */
-  viewingIndex: number | null
-  onSelectTurn: (index: number) => void
+  historyId: number | null
+  onShowHistory: (index: number) => void
 }) {
   // Both exits are placed and each hides itself in the mode that isn't its own
   // (compete CONCEDES — drop out of the race; coop ENDS — a mutual "we're done"),
@@ -256,8 +256,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={over !== null}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

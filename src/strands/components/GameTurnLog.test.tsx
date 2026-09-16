@@ -41,7 +41,7 @@ const hint = (): EventRow => ({
   result: null, created_at: '2026-01-01',
 })
 
-function renderLog(events: EventRow[], onSelectTurn = vi.fn()) {
+function renderLog(events: EventRow[], onShowHistory = vi.fn()) {
   render(
     <GameTurnLog
       events={events}
@@ -49,11 +49,11 @@ function renderLog(events: EventRow[], onSelectTurn = vi.fn()) {
       selfId={ADA}
       mode="coop"
       isTerminal={false}
-      viewingIndex={null}
-      onSelectTurn={onSelectTurn}
+      historyId={null}
+      onShowHistory={onShowHistory}
     />,
   )
-  return { onSelectTurn }
+  return { onShowHistory }
 }
 
 describe('GameTurnLog — a spent hint', () => {
@@ -80,10 +80,10 @@ describe('GameTurnLog — a spent hint', () => {
 
   it('is a live history handle, like every other turn', () => {
     // A hint turn is worth replaying — that is what its stored coords are FOR.
-    const { onSelectTurn } = renderLog([guess('APPLE', 'theme'), hint()])
+    const { onShowHistory } = renderLog([guess('APPLE', 'theme'), hint()])
     const rows = screen.getAllByRole('row')
     within(rows[1]).getByText('#2').click()
-    expect(onSelectTurn).toHaveBeenCalledWith(1)
+    expect(onShowHistory).toHaveBeenCalledWith(1)
   })
 
   it('still counts as a turn for the empty state', () => {

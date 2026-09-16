@@ -38,10 +38,10 @@ type Props = {
    *  click-through (so a board click falls to the document exit listener).
    *  While viewing, PlayArea also hands historical `rows` + `active={false}` +
    *  no `pending`, and rows never flip (they're already-final history). */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** Turn-history: ring this row (the guess the viewed turn added), or -1 = none.
    *  The row keeps its g/y/x tile colors; the ring just marks which one. */
-  highlightRow?: number
+  historyLitBoardRow?: number
   /** Bumped by `<BoardCol>` on every soft reject — the active row shakes and
    *  rings amber. The pill says WHAT was wrong; this says WHERE. Keyed into the
    *  row so a repeat rejection replays the shake rather than doing nothing. */
@@ -83,8 +83,8 @@ export function Board({
   maxGuesses,
   active,
   brand,
-  viewing = false,
-  highlightRow = -1,
+  isViewingHistory = false,
+  historyLitBoardRow = -1,
   rejectNonce = 0,
   rejectTone = 'lost',
   gameOver = null,
@@ -108,7 +108,7 @@ export function Board({
   // snapshot and is often shorter than the live board. Letting the baseline drop
   // to a snapshot's length would flip half the board on the way back to live.
   const [flipBaseline, setFlipBaseline] = useState(rows.length)
-  if (!viewing && rows.length < flipBaseline) setFlipBaseline(rows.length)
+  if (!isViewingHistory && rows.length < flipBaseline) setFlipBaseline(rows.length)
 
   return (
     <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
@@ -116,14 +116,14 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          viewing && history.frame,
+          isViewingHistory && history.historyFrame,
           notMyTurn && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns rather than nest: the
           // viewer owns it while open, being the state you chose and can leave.
-          gameOver !== null && !viewing && shared.gameOverFrame,
-          gameOver === 'won' && !viewing && shared.gameOverWon,
-          gameOver === 'lost' && !viewing && shared.gameOverLost,
+          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
+          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
+          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
         role="grid"
         aria-label={`${brand} board`}
@@ -135,7 +135,7 @@ export function Board({
           // The pending (in-flight) word sits in the first empty slot.
           const isPending = !submitted && !!pending && r === rows.length
           // Historical rows never flip — they're already-final, not fresh guesses.
-          const flipping = !viewing && !!submitted && r >= flipBaseline
+          const flipping = !isViewingHistory && !!submitted && r >= flipBaseline
           return (
             <div
               // The nonce rides in the KEY of the active row: a CSS animation
@@ -144,7 +144,7 @@ export function Board({
               key={isActive ? `${r}-${rejectNonce}` : r}
               className={cls(
                 styles.row,
-                r === highlightRow && styles.viewedRow,
+                r === historyLitBoardRow && styles.historyRow,
                 // The rejected word is still sitting in the active typing row —
                 // it was never accepted, so it never became a submitted one.
                 rejectNonce > 0 && isActive && shared.verdictRing,

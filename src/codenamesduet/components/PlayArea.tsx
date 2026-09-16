@@ -31,7 +31,7 @@ import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
 import { type SuggestState } from './CluePanel'
@@ -318,12 +318,12 @@ export function PlayArea({
   // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol
   // decomposition; see docs/playarea.md.
   // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
-  // the effect deps honest: `exitViewing` is a stable useCallback, so the effect
-  // below re-arms only when `viewing` flips.
-  const { viewing, viewingId, select: selectTurn, exitViewing } =
+  // the effect deps honest: `exitHistory` is a stable useCallback, so the effect
+  // below re-arms only when `isViewingHistory` flips.
+  const { isViewingHistory, historyId, showHistory, exitHistory } =
     useHistoryViewer<number>()
   // A bare keystroke (nothing focused) returns to the live board — the shared
-  // "type anywhere to exit" — the hook binds `act-exit-viewer` itself, and the
+  // "type anywhere to exit" — the hook binds `act-exit-history` itself, and the
   // dispatcher never offers an action a keystroke aimed at a focused field, so
   // typing a clue can't kick you out of the viewer.
 
@@ -538,21 +538,21 @@ export function PlayArea({
     })
 
   // Turn-history: when a past turn is open in the viewer, `snap` is that turn's
-  // board (else null = live). `turnSnapshot` folds the guess log up to the viewed
+  // board (else null = live). `historySnapshot` folds the guess log up to the viewed
   // turn onto the fixed words and rings that turn's own cells; the turn's clue
   // feeds the banner label. Snapshots are stable — a later realtime guess only
-  // grows turns > viewingId, so viewing a past turn never shifts under you.
+  // grows turns > historyId, so viewing a past turn never shifts under you.
   const viewedClue =
-    viewingId !== null
-      ? clues.find((c) => c.turn_number === viewingId) ?? null
+    historyId !== null
+      ? clues.find((c) => c.turn_number === historyId) ?? null
       : null
   const snap =
-    viewingId !== null
-      ? turnSnapshot(
+    historyId !== null
+      ? historySnapshot(
           words,
           guesses,
           viewedClue ? { word: viewedClue.word, count: viewedClue.count } : null,
-          viewingId,
+          historyId,
         )
       : null
 
@@ -590,11 +590,11 @@ export function PlayArea({
         mySeat={mySeat}
         gameOver={gameOver}
         readOnly={!cellsClickable}
-        highlight={snap?.highlight}
+        historyLitTiles={snap?.historyLitTiles}
         // ── History viewer ──
-        viewing={viewing}
-        viewingDescription={snap?.description ?? null}
-        onExitViewing={exitViewing}
+        isViewingHistory={isViewingHistory}
+        historyLabel={snap?.description ?? null}
+        onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) — and the slot its
         //    not-oks, the clue panel's, and the verdict show into ──
         gameId={gameId}
@@ -638,8 +638,8 @@ export function PlayArea({
         players={players}
         selfId={session.user.id}
         gameOver={gameOver}
-        viewingSeq={viewingId}
-        onSelectTurn={selectTurn}
+        historyId={historyId}
+        onShowHistory={showHistory}
         />
       </InfoSheet>
 

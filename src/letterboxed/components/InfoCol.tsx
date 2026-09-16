@@ -63,8 +63,8 @@ export function InfoCol({
   actNewGame,
   actBackToClub,
   // ── Turn-history viewer ──
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Terminal & turn state ──
   /** The terminal message when the game is over (drives the action row), else null. */
@@ -118,8 +118,8 @@ export function InfoCol({
   actBackToClub: BoundAction
   // ── Turn-history viewer ──
   /** The move open on the board, or null when live. */
-  viewingIndex: number | null
-  onSelectTurn: (index: number) => void
+  historyId: number | null
+  onShowHistory: (index: number) => void
 }) {
   return (
     <div className={shared.infoCol}>
@@ -247,8 +247,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

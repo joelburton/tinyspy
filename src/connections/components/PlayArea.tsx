@@ -32,7 +32,7 @@ import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -198,9 +198,9 @@ export function PlayArea({
   // Click a turn-log #N to replay that turn (the bands matched before it + this
   // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
   // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
-  // banner ✕, or any key — the hook binds `act-exit-viewer` itself, and the
+  // banner ✕, or any key — the hook binds `act-exit-history` itself, and the
   // board's own commands hide while a turn is open so the key reaches it).
-  const { viewing, viewingId, select: selectTurn, exitViewing } =
+  const { isViewingHistory, historyId, showHistory, exitHistory } =
     useHistoryViewer<number>()
 
   // ─── Coop peer events (group feedback) ─────────────────
@@ -585,8 +585,8 @@ export function PlayArea({
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
   // the outcome color). Keyed by log position; a later realtime guess only grows the
-  // log past viewingId, so a past turn holds.
-  const snap = viewingId !== null ? turnSnapshot(guesses, game.board, viewingId) : null
+  // log past historyId, so a past turn holds.
+  const snap = historyId !== null ? historySnapshot(guesses, game.board, historyId) : null
 
   // tile → user_id mapping. In coop this carries every peer's
   // contribution; in compete it only ever has the caller's tiles
@@ -619,7 +619,7 @@ export function PlayArea({
         unmatched={unmatched}
         solutionShown={solutionShown}
         snap={snap}
-        viewing={viewing}
+        isViewingHistory={isViewingHistory}
         showInput={showInput}
         isMyTurn={isMyTurn}
         notMyTurn={waiting}
@@ -630,7 +630,7 @@ export function PlayArea({
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
         gameOver={over ? over.outcome : locallyDone ? 'neutral' : null}
-        onExitViewing={exitViewing}
+        onExitHistory={exitHistory}
         // ── Tile selection (state in useGame; rendered + committed here) ──
         ownerByTile={ownerByTile}
         toggleTile={toggleTile}
@@ -690,8 +690,8 @@ export function PlayArea({
         tileCount={game.board.tileOrder.length}
         // ── Turn-history log ──
         guesses={guesses}
-        viewingIndex={viewingId}
-        onSelectTurn={selectTurn}
+        historyId={historyId}
+        onShowHistory={showHistory}
       />
       </InfoSheet>
 

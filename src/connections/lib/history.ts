@@ -28,7 +28,7 @@ import type { Board, Category } from './board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { GuessOutcome } from './evaluate'
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's own
    *  tiles, if correct, are still on the grid). Feed straight to `<Board matched>`. */
   matched: MatchedCategory[]
@@ -36,8 +36,8 @@ export interface TurnSnapshot {
    *  matched tiles. Feed straight to `<Board tiles>`. */
   tiles: string[]
   /** The four tiles this turn guessed — ring + tint them in the outcome color. */
-  highlightTiles: Set<string>
-  /** This turn's verdict — drives the highlight color. An outcome, so the color
+  historyLitTiles: Set<string>
+  /** This turn's verdict — drives the lit tiles' color. An outcome, so the color
    *  comes from the shared vocabulary rather than a mapping written here. */
   outcome: GuessOutcome
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
@@ -45,15 +45,15 @@ export interface TurnSnapshot {
 }
 
 /**
- * Reconstruct the board + highlight + description for the turn at `index`. Folds
+ * Reconstruct the board + lit tiles + description for the turn at `index`. Folds
  * every CORRECT guess at a position `< index` into the matched bands (strictly
- * before), and marks this turn's own 4 tiles as the highlight.
+ * before), and marks this turn's own 4 tiles as the lit ones.
  */
-export function turnSnapshot(
+export function historySnapshot(
   guesses: ReadonlyArray<GuessRow>,
   board: Board,
   index: number,
-): TurnSnapshot {
+): HistorySnapshot {
   const categoryByRank = new Map<number, Category>(board.categories.map((c) => [c.rank, c]))
   const matched: MatchedCategory[] = []
   const matchedTiles = new Set<string>()
@@ -70,7 +70,7 @@ export function turnSnapshot(
   return {
     matched,
     tiles,
-    highlightTiles: new Set(turn?.tiles ?? []),
+    historyLitTiles: new Set(turn?.tiles ?? []),
     outcome: turn?.outcome ?? 'lost',
     description: describe(turn, board),
   }

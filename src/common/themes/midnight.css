@@ -436,9 +436,9 @@
      History stays clearly blue for the reason daylight gives — it is
      the only thing separating "you can leave this" from "this game is
      finished" — but lightens to carry on the dark page. */
-/* @@ */   --view-history-color:         #7fb0dd;
-/* @@ */   --view-sharePreview-color:    #ffd21a;
-/* @@ */   --view-history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
+/* @@ */   --history-color:         #7fb0dd;
+/* @@ */   --peer-preview-color:    #ffd21a;
+/* @@ */   --history-banner-color:  color-mix(in oklab, var(--page-text-color) 10%, var(--default-bg-color));
 
   /* ══ CHROME ═════════════════════════════════════════════════════
      Every blue lightens to the tier that reads on dark; each stays its

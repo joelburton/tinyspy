@@ -359,7 +359,7 @@ src/codenamesduet/
                           PlayArea loads via the three hooks, derives phase, and owns the
                           cross-column bits: the below-board local feedback slot (both
                           columns show into it), the header's turn status (`useTurnStatus`),
-                          and the turn-history `viewing` state keyed by `turn_number`.
+                          and the turn-history `isViewingHistory` state keyed by `turn_number`.
                           The info column runs the shared readouts in the canonical order
                           (`.infoState` = "{green}/15 agents · n/cap turns spent", then the
                           finished-player banners, `.infoActions` = End, `.infoHelp` =
@@ -382,7 +382,7 @@ src/codenamesduet/
     BoardCol.module.css
     InfoCol.tsx           The info column: the shared readouts (state / finished banners /
                           End / help / setup) above the GameTurnLog. Near-zero state —
-                          arranges shared pieces + emits `onSelectTurn` / `onEndGame` up.
+                          arranges shared pieces + emits `onShowHistory` / `onEndGame` up.
     InfoCol.module.css
     StateLine.tsx         The core live-state readout — "3/15 agents · 3/9 turns spent"
                           ("sudden death" replaces the turn counter once the budget

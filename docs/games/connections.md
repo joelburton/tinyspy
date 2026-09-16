@@ -490,7 +490,7 @@ src/connections/
                           into `BoardCol` (bands + tile grid + Shuffle + the Clear/Submit input
                           engine) + `InfoCol` (the readouts + TurnLog); PlayArea is the thin
                           coordinator — `useGame`, the guess RPC, and the turn-history
-                          `viewingIndex`. The tile SELECTION stays in `useGame` (broadcast-coupled
+                          `historyId`. The tile SELECTION stays in `useGame` (broadcast-coupled
                           in coop) and passes down to BoardCol.
                           **Feedback splits local vs group** (like psychicnum; see ui.md +
                           deferred.md → Feedback channels): my OWN guess result shows

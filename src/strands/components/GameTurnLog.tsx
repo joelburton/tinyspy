@@ -26,9 +26,9 @@ type Props = {
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The turn open in the board viewer (by log position), or null when live. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a turn on the board. */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }
 
 /**
@@ -134,8 +134,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   // The whose-turns dropdown, its default, the aggregate label, the row filter
   // and the honest empty line all come from the shared hook — every turn-log
@@ -181,7 +181,7 @@ export function GameTurnLog({
         <tr key={row.id} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
           {boardIsShown ? (
-            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
           ) : (
             <td className={turnLog.meta}>#{i + 1}</td>
           )}

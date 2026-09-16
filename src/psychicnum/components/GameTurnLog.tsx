@@ -21,9 +21,9 @@ type Props = {
   isTerminal: boolean
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared history-blue ring. */
-  viewingIndex: number | null
+  historyId: number | null
   /** Open a turn in the board viewer (click its `#N`). */
-  onSelectTurn: (index: number) => void
+  onShowHistory: (index: number) => void
 }
 
 /**
@@ -61,8 +61,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: Props) {
   const who = useTurnLogPlayerPicker<GuessRow>({
     players,
@@ -90,7 +90,7 @@ export function GameTurnLog({
   // which keeps the column's width and the row's shape identical either way.
   const turnNumber = (i: number) =>
     who.boardIsShown ? (
-      <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+      <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
     ) : (
       <td className={turnLog.meta}>#{i + 1}</td>
     )

@@ -652,7 +652,7 @@ commit wins").
 ✕ / click / any-key / opponent-move exits are all common mechanics, documented in
 [playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer).
 scrabble's snapshot semantics: the board swaps to the **replayed historical state**
-(`boardUpToSeq` in `lib/play.ts` — a pure fold of every word play's `placements`
+(`historyBoard` in `lib/play.ts` — a pure fold of every word play's `placements`
 with `seq ≤ target`; no per-turn snapshot stored, since the board *is* the
 accumulation of placements). The tiles *that turn placed* take the warm-yellow
 **attention** face (`--scrabble-tile-attention`, the same overlay a just-placed tile
@@ -670,7 +670,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   (`evaluatePlay`), used both for the live preview and to build the commit payload
   (no SQL re-implementation — see [§6](#6-where-validation-lives)). Vitest-heavy:
   in-line/contiguous/connected/center-first; main + cross-word extraction;
-  premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`boardUpToSeq`** (the
+  premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`historyBoard`** (the
   turn-viewer replay): word plays fold in, pass/exchange add nothing, blanks keep
   their declared letter.
 - **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer +
@@ -721,8 +721,8 @@ board rotation) — never shared, never persisted, doesn't pause.
   the "PlayArea does the RPC" contract — the `play_word` / `exchange` RPCs
   themselves, because their commit is inseparable from that input state [the
   `lastActionRef` race + the version-reset effect]; PlayArea just hands it `game` +
-  `gameId`. Also takes the board to show — live, a `boardUpToSeq` history snapshot,
-  OR a coop teammate's shared move — the `ViewTarget` union it switches on; and owns
+  `gameId`. Also takes the board to show — live, a `historyBoard` history snapshot,
+  OR a coop teammate's shared move — the `HistoryTarget` union it switches on; and owns
   the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
   button + the GameTurnLog), `PlayArea` (the thin coordinator: `useGame`, the shared
   below-board feedback slot [both columns show into it], the coop `useSharedMove`
@@ -749,7 +749,7 @@ deliberate **twin of the turn-history viewer**: the shared `historyViewer` chrom
 (framed board + a banner `● moth showing: +18 BERRY`, input frozen) and the same
 exits (click / keystroke / ✕ / a new committed move). The one difference from history
 is the board content — the live board + the sharer's *tentative* tiles, vs history's
-committed *past* board — so both ride one `useHistoryViewer` via the `ViewTarget`
+committed *past* board — so both ride one `useHistoryViewer` via the `HistoryTarget`
 union (`{kind:'turn'} | {kind:'shared'}`), and `BoardCol` switches on `kind`.
 
 It's **ephemeral** — a stable Broadcast channel (`useSharedMove`), never stored; a
@@ -759,8 +759,8 @@ just the placements (+ `sharerId` / `words` / `score` for the banner) overlaid o
 receiver's live board; a **stale** broadcast — its `baseVersion` no longer matches the
 receiver's board, i.e. a real move landed in between — is dropped, so it never renders
 a move that no longer fits. The preview wears its **own** color token
-(`--view-sharePreview-color`, a yellow of its own — tinkerable independently of the
-history blue, via a `--viewer-accent` override on the `.sharePreview` column). Coop
+(`--peer-preview-color`, a yellow of its own — tinkerable independently of the
+history blue, via a `--history-accent` override on the `.peerPreview` column). Coop
 only — compete has private racks and no shared board, so the button and channel are
 absent. Verified cross-client in `e2e/scrabble-show-move.e2e.ts` (two contexts:
 Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).

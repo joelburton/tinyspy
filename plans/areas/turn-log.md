@@ -9,8 +9,9 @@ area"*) and stamped `cs-met-turn-log`; every file read, and the docs and
 games around it read as evidence. Seventeen findings; **the prose pass — F-1
 to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
 F-4 turned up: every file in the repo that called the shared history marker
-yellow. **F-9 is worked** (2026-09-16), the area's one real bug. The remaining
-eleven wait for a decision each.
+yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
+bug, the banner component, and the history vocabulary. Ten findings wait for a
+decision each, F-18 among them.
 
 ## The roster
 
@@ -19,6 +20,8 @@ eleven wait for a decision each.
 - `TurnLog.tsx` — three components: `TurnLog`, the panel (heading row, the
   scroll box, a `<table>` whose rows are the game's); `TurnLogBar`, the outcome
   bar cell; `TurnLogNumber`, the `#N` handle that opens a turn on the board
+- `HistoryBanner.tsx` — the viewer's banner: the label, the ✕, and the whole
+  strip as a click-to-exit target (written by F-14) · `HistoryBanner.test.tsx`
 - `TurnLog.test.tsx` — the panel's one behavior: it snaps to the newest entry
   when the log grows and leaves a scrolled-up box alone otherwise (written by
   F-9)
@@ -337,6 +340,33 @@ this folder's, and the per-game ruling was about a sweep of games' files, not
 about this area giving them a component. If (2) or (3), the deferred count is
 still corrected.
 
+**WORKED 2026-09-16, option (1).** Joel: *"your proposal is 'make the history
+banner a component'. yes, absolutely."* `HistoryBanner.tsx` takes `label` +
+`onExit`; ten `BoardCol.tsx` converted. `label` is a **ReactNode**, not a
+string — scrabble's banner names a teammate with a `<Dot>` and comes out
+pixel-identical with its expression moved across verbatim. What stays the
+game's: its own label text, the host box, the `bannerHost` conditional, and
+when to show it. Three games' `historyViewer.module.css` import went with the
+markup (waffle, stackdown, wordle read nothing else from it).
+
+**One visible change, on Joel's ruling**: letterboxed had no ✕ and let its label
+wrap. It has a ✕ now and truncates — *"letterboxed should get an 'x' and it
+should NEVER have allowed wrapping, so ellipsis-truncating is better."*
+
+**The recorded prediction was wrong twice.** "The seven `*-history.e2e.ts` click
+through by text (✕) — they should hold, and they are the proof": there are SIX
+such files, and **none of them clicks the ✕** — they exercise the keystroke and
+the click-away only. So the ✕ had no test at all while it was written out nine
+times. `HistoryBanner.test.tsx` is new and covers it (the label renders as
+given, the strip exits, the ✕ exits exactly once — verified by planting, which
+fails the last when `stopPropagation` goes).
+
+**`docs/deferred.md` is rewritten rather than closed.** The item was "the ✕ is
+hand-written in eight games"; that condition is gone, and what remains is a
+one-file look question — `<CloseButton>` is a `StandardButton` with a hover wash
+and an `em` box, where the banner's exit is a bare glyph, so swapping it changes
+how the ✕ reads in ten games and wants a look rather than a sweep.
+
 ### F-turn-log-15 · `three-components-one-file` · `TurnLog.tsx` exports three components; `TurnLogActor` has a file of its own
 
 The `todo.md` Soon. `TurnLog`, `TurnLogBar`, `TurnLogNumber` share a file;
@@ -369,6 +399,107 @@ and strands are the others the todo lists, strands with its own argument for
 now — this folder's bar is what draws the word, and the ruling is made;
 strands' `neutral` case decided in the same pass; (2) each game at its own
 area; (3) leave. Recommend (1).
+
+### F-turn-log-18 · `viewing-and-description-both-passed` · Two props for one fact, in two games
+
+psychicnum and codenamesduet take BOTH `isViewingHistory` and `historyLabel`
+from their PlayArea, and their banner is guarded `isViewingHistory &&
+historyLabel &&`. The two cannot disagree: both derive from `historyId` — the
+flag is `historyId !== null`, and the label is `snap?.description ?? null` where
+`snap` is non-null exactly when `historyId` is. Neither `describe` can return an
+empty string (psychicnum falls back to `'This turn'`, codenamesduet always
+builds `#N: …`), so the second term of the guard is dead. Found by Joel reading
+the converted banner, 2026-09-16.
+
+stackdown and letterboxed already show the shape that makes it impossible:
+one prop, `historyLabel: string | null`, and `const isViewingHistory =
+historyLabel != null` inside the column. Options: (1) the two games take one
+prop, like the other two; (2) leave. Recommend (1) — the invariant becomes true
+by construction instead of re-checked at the banner.
+
+### F-turn-log-19 · `history-names-say-history` · Nothing about the viewer said "history"
+
+Joel, 2026-09-16, reading the converted files: *"a player is always 'viewing' a
+board; the thing this describes is 'history viewing'"* and *"stuff like
+'selectTurn', 'select', 'viewingId' are *bad*. things about history should make
+that BRIGHTLY OBVIOUS."*
+
+The hook's five members were copied into ten games under eight spellings —
+`viewingId` / `viewingIndex` / `viewingSeq` / `viewTarget` for one value,
+`select` / `selectTurn` / `setViewingIndex` for one function — and two games
+(setgame, strands) kept the object where eight destructured, which made
+codenamesduet's *"destructured to match the other games"* false as well.
+
+**WORKED 2026-09-16**, to one rule of Joel's: **nothing about history or the
+peer preview carries a name without `history` or `preview` in it.** The
+vocabulary is now in `docs/naming.md` — `historyId`, `historyIdRef`,
+`isViewingHistory`, `showHistory`, `exitHistory`, `historyLabel`, and
+`onShowHistory` / `onExitHistory` as the props. What that reached:
+
+- the hook and its interface; `act-exit-viewer` → **`act-exit-history`**
+  (registry, dispatcher spec, e2e, six games' comments, `playarea.md`)
+- `TurnLogNumber`'s per-row pair → `isOpenInHistory` / `onShowHistory`
+- ten games' PlayArea / BoardCol / InfoCol / GameTurnLog / Board, their specs,
+  and scrabble's `useSharedMove`
+- the snapshot builders, which a PlayArea called with no hint of what they were
+  about: `turnSnapshot` and strands' `snapshotAt` → `historySnapshot`,
+  `TurnSnapshot` → `HistorySnapshot`, letterboxed's `chainAt` / `describeAt` →
+  `historyChainAt` / `historyLabelAt`, wordle's `SnapshotRow` →
+  `HistorySnapshotRow`, waffle's `boardAfter` → `historyBoardAfter`, and
+  **scrabble's `boardUpToSeq` in `lib/play.ts` → `historyBoard`** — the one that
+  lives in no file named history and was the easiest to read as ordinary play
+- the CSS: `.frame` → `.historyFrame`, `.viewedNumber` → `.historyNumber`, the
+  four banner classes → `.historyBanner*`, `.sharePreview` → `.peerPreview`, and
+  eight games' own `.viewedTile` / `.viewedCell` / `.viewedRow` / `.viewed` →
+  `.historyTile` / `.historyCell` / `.historyRow`
+- the tokens: `--view-history-color` → `--history-color`,
+  `--view-history-banner-color` → `--history-banner-color`,
+  `--view-sharePreview-color` → `--peer-preview-color`, and `--viewer-accent`
+  → `--history-accent` (the one that named neither)
+
+**scrabble keeps one local distinction**, which the rule allows: its hook value
+is a union, so it aliases `historyId` to `historyTarget` and its shared-move
+branch is `peerPreview` (was `viewShared`). The derived `historyId` it hands the
+log is the open turn's `seq`.
+
+**The `highlight*` family, 2026-09-16, after Joel read a converted props block.**
+Seven games passed the viewed turn's marks under names that said nothing —
+`highlightTiles` / `highlightOutcome` (connections), `highlight` (codenamesduet,
+waffle, strands, setgame), `highlightWord` (psychicnum), `highlightRow` (wordle)
+— with the docstring opening `Turn-history:` because the name would not. Two
+more spelled the same idea differently and so escaped the first list:
+**stackdown's `green`** (its history ring, named for its color) and **scrabble's
+`viewingCells`**. They are all `historyLit*` now:
+
+- `historyLitTiles` (connections, codenamesduet, waffle, strands, stackdown,
+  scrabble), `historyLitCards` (setgame — its pieces are a real `Card` type, and
+  the tiles rename waits for setgame's own area), `historyLitWord` (psychicnum),
+  `historyLitOutcome` (connections' tint), and **`historyLitBoardRow`** (wordle
+  — Joel's catch: a bare `Row` reads as a turn-log row)
+- connections' locals `isViewed` / `VIEWED_TINT` → `isHistoryLit` /
+  `HISTORY_LIT_TINT`; codenamesduet's `NO_CELLS` → `NO_TILES`
+- **stackdown's `highlight` is the LIVE flash** and stays live: it is `flashTiles`
+  now, which is what it was, and it no longer collides with the seven above
+
+**`Lit` over `Highlight`, Joel's call:** *"'highlight' is both a verb and a noun,
+and therefore doesn't communicate well"* — `historyHighlightTiles` could be read
+as an instruction, `historyLitTiles` can only be a list. It is not a new word
+either: boggle's PlayArea, its spec and `RankBar`'s all already say a tile is
+"lit".
+
+**Two things Joel ruled out of it:** `HistoryBanner`'s own props stay `label` /
+`onExit` (the component's name carries the word), and `history.historyFrame` at
+the call sites is fine — *"history.historyFrame is great."*
+
+**How it was done, since a repeat would want the same care:** the identifier
+renames ran through a comment-aware pass so prose could be reviewed separately
+— but the pass treats a string literal as code, and it clobbered twelve of them
+(four `it(…)` titles, two `aria-label` lookups, a `FeedbackMessage.note` text
+and four e2e screenshot paths), all restored by hand. `cssClasses.test.ts`
+caught the one call site the class rename missed (`HistoryBanner` imports the
+sheet as `styles`, not `history`). And `git ls-files` skips UNTRACKED files, so
+the three files this area had just written were silently absent from every
+sweep until `git add -N`.
 
 ## What checked out
 

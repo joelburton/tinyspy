@@ -9,7 +9,7 @@
 /* A swap is opened on the board viewer by clicking its "#N" handle (the shared
  * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and
  * the "currently viewing" history-color ring lives on that handle
- * (common/turn-log/historyViewer.module.css → .viewedNumber). */
+ * (common/turn-log/historyViewer.module.css → .historyNumber). */
 
 /* The move cell's content: "A (A1) ↔ B (C2)". `inline-flex` (not `flex`) so it
  * lays its pieces on one baseline-aligned row WITHOUT turning the host `<td>`

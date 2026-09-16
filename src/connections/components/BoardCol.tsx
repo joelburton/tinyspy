@@ -24,8 +24,9 @@ import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } fro
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
-import type { TurnSnapshot } from '../lib/history'
+import type { HistorySnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -52,7 +53,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * realtime channel), so PlayArea passes the selection primitives (`ownerByTile` /
  * `toggleTile` / `sendClear` / `unionTiles`) DOWN and this column renders + commits
  * them. Like the other games' BoardCol it does NOT own the game state: PlayArea hands
- * it **the board to render** (live OR a `snap` snapshot) + `viewing`, which is what
+ * it **the board to render** (live OR a `snap` snapshot) + `isViewingHistory`, which is what
  * makes the turn-history viewer a drop-in. Own-guess results show into PlayArea's
  * local slot, the same slot InfoCol's End / Concede and PlayArea's standing
  * conditions show into. See docs/playarea.md.
@@ -77,13 +78,13 @@ export function BoardCol({
   unmatched,
   solutionShown,
   snap,
-  viewing,
+  isViewingHistory,
   showInput,
   isMyTurn,
   notMyTurn,
   myTurnJustStarted,
   gameOver,
-  onExitViewing,
+  onExitHistory,
   // ── Tile selection (state owned by useGame; this renders + commits it) ──
   ownerByTile,
   toggleTile,
@@ -114,8 +115,8 @@ export function BoardCol({
    *  tiles come back when it's off — see the `tiles` prop below. */
   solutionShown: boolean
   /** The viewed turn's snapshot, or null when live — PlayArea reconstructs it. */
-  snap: TurnSnapshot | null
-  viewing: boolean
+  snap: HistorySnapshot | null
+  isViewingHistory: boolean
   /** May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
    *  Participant-level (terminal / eliminated / conceded) — NOT turn-aware. */
   showInput: boolean
@@ -133,7 +134,7 @@ export function BoardCol({
   /** The tone of the game-over frame, or null while the board is live. */
   gameOver: TerminalOutcome | null
   /** Return to the live board (the banner click / ✕). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Tile selection ──
   /** tile → user_id (the inverted selections map) — the per-tile mine/peer treatment. */
@@ -268,7 +269,7 @@ export function BoardCol({
       //
       // Their own client shows this as their own verdict, from their own answer,
       // a beat earlier; this is the same mark reaching everyone else.
-      const marks = !viewing && newestGuess !== null && newestGuess.outcome !== 'won'
+      const marks = !isViewingHistory && newestGuess !== null && newestGuess.outcome !== 'won'
       setVerdictSeq(verdictSeq + 1)
       setVerdict(
         marks
@@ -404,7 +405,7 @@ export function BoardCol({
   // leaves it gray rather than firing a no-op.
   const actSubmit = useBoundAction('act-submit', {
     describe: () => {
-      if (!showInput || !isMyTurn || viewing) return 'hidden'
+      if (!showInput || !isMyTurn || isViewingHistory) return 'hidden'
       if (submitting) return { state: 'disabled', label: 'Submitting…' }
       return unionTiles.length === 4 ? 'active' : 'disabled'
     },
@@ -415,7 +416,7 @@ export function BoardCol({
   // too. Its ⌫ comes with the action.
   const actClearSelection = useBoundAction('act-clear-selection', {
     describe: () => {
-      if (!showInput || !isMyTurn || viewing) return 'hidden'
+      if (!showInput || !isMyTurn || isViewingHistory) return 'hidden'
       return unionTiles.length === 0 ? 'disabled' : 'active'
     },
     run: sendClear,
@@ -426,7 +427,7 @@ export function BoardCol({
   // view is not acting on the board.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => {
-      if (!showInput || viewing) return 'hidden'
+      if (!showInput || isViewingHistory) return 'hidden'
       return displayedTiles.length === 0 ? 'disabled' : 'active'
     },
     run: handleShuffle,
@@ -466,14 +467,14 @@ export function BoardCol({
         // in here as well as on the click guard: a tile that hovers, lifts and
         // shows a pointer while silently swallowing the click is a promise the
         // board can't keep, and the dim beside it would be saying the opposite.
-        interactive={showInput && isMyTurn && !viewing}
+        interactive={showInput && isMyTurn && !isViewingHistory}
         // Nobody is building a move on a board that can't take one, so the
         // selection is not drawn on one: not in the history viewer (a past turn
         // is a record), and not once this player is finished — the game over,
         // eliminated, or conceded. The selection state itself is ephemeral
         // broadcast chatter that outlives all three, and a frozen board wearing
         // black selection borders reads as a move still in progress.
-        ownerByTile={viewing || !showInput ? NO_OWNERS : ownerByTile}
+        ownerByTile={isViewingHistory || !showInput ? NO_OWNERS : ownerByTile}
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
         verdict={ringShown ? verdict : null}
@@ -487,15 +488,15 @@ export function BoardCol({
         // ATTENTION's cause, read off the log rather than off the board: how many
         // guesses the server has recorded, and whether the newest was mine.
         moveCount={guesses.length}
-        viewing={viewing}
-        highlightTiles={snap?.highlightTiles}
-        highlightOutcome={snap?.outcome}
+        isViewingHistory={isViewingHistory}
+        historyLitTiles={snap?.historyLitTiles}
+        historyLitOutcome={snap?.outcome}
         // Shuffle floats over the board's top-right — a fresh visual scan of the
         // SAME tiles (not a turn action). Only while the grid is shown. Passed
         // into Board so it anchors to the visual board, not the column.
         floatingControl={
           showInput &&
-          !viewing && (
+          !isViewingHistory && (
             <ShuffleButton
               action={actShuffle}
               tooltip="Shuffle tiles"
@@ -511,23 +512,8 @@ export function BoardCol({
           flex:1 board never shifts. While viewing a past turn the history
           banner overlays it. */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
-          {viewing && snap && (
-            <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{snap.description}</span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onExitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+        <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
+          {isViewingHistory && snap && <HistoryBanner label={snap.description} onExit={onExitHistory} />}
           {/* One slot, one pill: whatever ranks highest in it. A tap on a
               gesture-cleared result dismisses it, and the ring above leaves
               with it — the two are one message, so they end together. */}

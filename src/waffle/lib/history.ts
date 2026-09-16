@@ -6,7 +6,7 @@
  * past swap, plus its colors and a description — so the PlayArea can hand `Board`
  * a historical board the same way it hands it the live one.
  *
- * This is the ADD-style replay (like scrabble's `boardUpToSeq`, unlike stackdown's
+ * This is the ADD-style replay (like scrabble's `historyBoard`, unlike stackdown's
  * removal): each swap is a reversible transposition of two cells, so a past board is
  * just `scramble` with the swaps up to that point applied. Colors aren't stored per
  * swap — they're a pure function of `(board, solution)`, recomputed here via the TS
@@ -37,14 +37,14 @@ import { coord } from './waffle'
 import { computeColors } from './colors'
 import type { SwapRow } from '../hooks/useGame'
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** The 25-char board AFTER the viewed swap. Feed straight to `<Board board>`. */
   board: string
   /** Its 25-char g/y/x colors, or null if the solution isn't available (shouldn't
    *  happen in coop — the grid then renders letters without color). */
   colors: string | null
   /** The two cells the viewed swap moved — ring these on the board. */
-  highlight: Set<number>
+  historyLitTiles: Set<number>
   /** A short, name-free description of the swap (the log row already shows who). */
   description: string
 }
@@ -54,7 +54,7 @@ export interface TurnSnapshot {
  * (INCLUSIVE). Each swap exchanges the letters at its two cells — a pure transposition,
  * so replaying forward from the scramble reconstructs the exact state.
  */
-export function boardAfter(
+export function historyBoardAfter(
   scramble: string,
   swaps: ReadonlyArray<SwapRow>,
   index: number,
@@ -71,21 +71,21 @@ export function boardAfter(
  * Reconstruct the board + colors + description for the swap at `index` in a
  * single player's swap log (see the module note — never a mixed list). An out-of-range `index` (shouldn't happen — the caller passes a real
  * row's position) clamps naturally: past the end applies every swap (the final
- * board), and there's no `swaps[index]`, so the highlight is empty and the
+ * board), and there's no `swaps[index]`, so no tile is lit and the
  * description neutral.
  */
-export function turnSnapshot(
+export function historySnapshot(
   scramble: string,
   solution: string | null,
   swaps: ReadonlyArray<SwapRow>,
   index: number,
-): TurnSnapshot {
-  const board = boardAfter(scramble, swaps, index)
+): HistorySnapshot {
+  const board = historyBoardAfter(scramble, swaps, index)
   const swap = swaps[index]
   return {
     board,
     colors: solution ? computeColors(board, solution) : null,
-    highlight: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
+    historyLitTiles: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
     description: describe(swap),
   }
 }

@@ -46,9 +46,9 @@ type Props = {
   disabled?: boolean
   /** Turn-history: draw the gray-blue "viewing a past turn" frame + suppress the
    *  attention flash (the ringed cells mark what the viewed swap did instead). */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** Turn-history: the cells the viewed swap moved — ring them. */
-  highlight?: ReadonlySet<number>
+  historyLitTiles?: ReadonlySet<number>
   /** Swap the letters of two filled cells. */
   onSwap: (a: number, b: number) => void
   /** The swap in flight, or null. Its two cells take the shared in-flight dim —
@@ -94,8 +94,8 @@ export function Board({
   board,
   colors,
   disabled,
-  viewing = false,
-  highlight,
+  isViewingHistory = false,
+  historyLitTiles,
   onSwap,
   pendingSwap = null,
   notMyTurn = false,
@@ -144,7 +144,7 @@ export function Board({
     // Quiet while viewing a past turn — the ringed cells already mark what that
     // swap did, and a move landing live behind the viewer is not something to
     // point at on a board they are not looking at.
-    quiet: viewing,
+    quiet: isViewingHistory,
     changed: changedCells,
   })
 
@@ -186,14 +186,14 @@ export function Board({
       <div
         className={cls(
           styles.grid,
-          viewing && history.frame,
+          isViewingHistory && history.historyFrame,
           notMyTurn && shared.dimNotYourTurn,
           // Both frames are outlines, so they take turns rather than nest: while
           // the viewer is open it owns the outline, because that is the state you
           // chose and the one you can leave.
-          gameOver !== null && !viewing && shared.gameOverFrame,
-          gameOver === 'won' && !viewing && shared.gameOverWon,
-          gameOver === 'lost' && !viewing && shared.gameOverLost,
+          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
+          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
+          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
           myTurnJustStarted && shared.yourTurnFlash,
         )}
         role="grid"
@@ -217,7 +217,7 @@ export function Board({
                 pendingSwap?.includes(pos) && styles.inFlight,
                 pendingSwap?.includes(pos) && shared.dimInFlight,
                 flashing.has(pos) && shared.attentionFlash,
-                highlight?.has(pos) && styles.viewedTile,
+                historyLitTiles?.has(pos) && styles.historyTile,
               )}
               aria-label={`${letter.toUpperCase()} (${color})`}
               aria-pressed={selected === pos}

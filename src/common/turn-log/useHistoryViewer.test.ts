@@ -5,7 +5,7 @@
  * turn-log game shares (scrabble, stackdown, waffle, connections, …). The
  * subtle, intrinsic-to-the-hook behavior is the document-level
  * click-anywhere-to-exit that EXCLUDES the turn-# handles (so you can switch
- * turns without leaving the viewer), plus the any-key `act-exit-viewer`. Those
+ * turns without leaving the viewer), plus the any-key `act-exit-history`. Those
  * are wired once here, so a regression hits every consumer at once.
  */
 
@@ -22,44 +22,44 @@ afterEach(() => {
 describe('useHistoryViewer', () => {
   it('starts live (nothing being viewed)', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    expect(result.current.viewingId).toBeNull()
-    expect(result.current.viewing).toBe(false)
+    expect(result.current.historyId).toBeNull()
+    expect(result.current.isViewingHistory).toBe(false)
   })
 
-  it('select opens a turn; exitViewing returns to live', () => {
+  it('select opens a turn; exitHistory returns to live', () => {
     const { result } = renderHook(() => useHistoryViewer())
 
-    act(() => result.current.select(3))
-    expect(result.current.viewingId).toBe(3)
-    expect(result.current.viewing).toBe(true)
+    act(() => result.current.showHistory(3))
+    expect(result.current.historyId).toBe(3)
+    expect(result.current.isViewingHistory).toBe(true)
 
-    act(() => result.current.exitViewing())
-    expect(result.current.viewingId).toBeNull()
-    expect(result.current.viewing).toBe(false)
+    act(() => result.current.exitHistory())
+    expect(result.current.historyId).toBeNull()
+    expect(result.current.isViewingHistory).toBe(false)
   })
 
-  it('keeps viewingIdRef in sync with viewingId', () => {
+  it('keeps historyIdRef in sync with historyId', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    expect(result.current.viewingIdRef.current).toBeNull()
+    expect(result.current.historyIdRef.current).toBeNull()
 
-    act(() => result.current.select(5))
-    expect(result.current.viewingIdRef.current).toBe(5)
+    act(() => result.current.showHistory(5))
+    expect(result.current.historyIdRef.current).toBe(5)
   })
 
   it('a click anywhere returns to live while viewing', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.select(2))
+    act(() => result.current.showHistory(2))
 
     const elsewhere = document.createElement('div')
     document.body.appendChild(elsewhere)
     act(() => elsewhere.click())
 
-    expect(result.current.viewingId).toBeNull()
+    expect(result.current.historyId).toBeNull()
   })
 
   it('a click on a turn-# handle does NOT exit (so you can switch turns)', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.select(2))
+    act(() => result.current.showHistory(2))
 
     // The shared <TurnLogNumber> marks its handles with data-turn-number.
     const handle = document.createElement('button')
@@ -69,7 +69,7 @@ describe('useHistoryViewer', () => {
     document.body.appendChild(handle)
     act(() => inner.click())
 
-    expect(result.current.viewingId).toBe(2)
+    expect(result.current.historyId).toBe(2)
   })
 
   it('does not arm the document listener when live (a stray click is a no-op)', () => {
@@ -77,14 +77,14 @@ describe('useHistoryViewer', () => {
     const elsewhere = document.createElement('div')
     document.body.appendChild(elsewhere)
     act(() => elsewhere.click())
-    expect(result.current.viewingId).toBeNull() // still live, no crash
+    expect(result.current.historyId).toBeNull() // still live, no crash
   })
 })
 
 /** "Any key returns to live", reached the way a game reaches it: a real window
- *  keydown, the app-root dispatcher, `act-exit-viewer`. A game wires nothing,
+ *  keydown, the app-root dispatcher, `act-exit-history`. A game wires nothing,
  *  so this path is the only thing holding the behavior up. */
-describe('useHistoryViewer — act-exit-viewer', () => {
+describe('useHistoryViewer — act-exit-history', () => {
   /** Awaited: an action's run settles a microtask after the key. */
   async function press(init: KeyboardEventInit = {}) {
     await act(async () => {
@@ -97,10 +97,10 @@ describe('useHistoryViewer — act-exit-viewer', () => {
       useActionDispatcher()
       return useHistoryViewer()
     })
-    act(() => result.current.select(1))
+    act(() => result.current.showHistory(1))
 
     await press()
-    expect(result.current.viewingId).toBeNull()
+    expect(result.current.historyId).toBeNull()
   })
 
   it('is hidden when live, so a key is left for the board', () => {
@@ -109,10 +109,10 @@ describe('useHistoryViewer — act-exit-viewer', () => {
       return useHistoryViewer()
     })
 
-    const exit = () => liveBindings().find((b) => b.id === 'act-exit-viewer')
+    const exit = () => liveBindings().find((b) => b.id === 'act-exit-history')
     expect(exit()?.describe('button').state).toBe('hidden')
 
-    act(() => result.current.select(1))
+    act(() => result.current.showHistory(1))
     expect(exit()?.describe('button').state).toBe('active')
   })
 })

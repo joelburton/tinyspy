@@ -8,8 +8,8 @@ import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
-/** Empty highlight set — a stable reference so a live render never rings a cell. */
-const NO_CELLS: ReadonlySet<number> = new Set()
+/** Empty lit-tile set — a stable reference so a live render never rings a tile. */
+const NO_TILES: ReadonlySet<number> = new Set()
 
 /**
  * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
@@ -51,10 +51,10 @@ type Props = {
   /** Turn-history: render read-only under the viewer frame (a past turn's
    *  board). `words` is then the historical snapshot; PlayArea gates clicks off and
    *  the board column catches a click to exit. Off during live play. */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** Turn-history: the board positions the viewed turn decided — ring each one in
    *  the history blue ("added this turn"). Empty / omitted when live. */
-  highlight?: ReadonlySet<number>
+  historyLitTiles?: ReadonlySet<number>
 }
 
 /**
@@ -80,8 +80,8 @@ export function Board({
   cellsClickable,
   pendingPos,
   onGuess,
-  viewing = false,
-  highlight = NO_CELLS,
+  isViewingHistory = false,
+  historyLitTiles = NO_TILES,
 }: Props) {
   // .board wrapper + .grid mirror psychicnum/connections (the shared "board"
   // shape — the single place a future framed board would live); the tiles
@@ -93,7 +93,7 @@ export function Board({
     // measures this element's height across below-board states (it must not
     // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
     <div className={styles.board} data-board>
-      {/* While viewing a past turn the history `.frame` rings the board AND
+      {/* While viewing a past turn the history `.historyFrame` rings the board AND
           makes it click-through (pointer-events: none), so a click anywhere on the
           board falls through to the viewer's document click-to-exit — no per-game
           handler needed. */}
@@ -101,7 +101,7 @@ export function Board({
         className={cls(
           shared.hugRectWidth,
           styles.grid,
-          viewing && history.frame,
+          isViewingHistory && history.historyFrame,
         )}
       >
         {words.map((w) => {
@@ -133,7 +133,7 @@ export function Board({
           // Clickable unless globally revealed or *I* already neutraled it. A
           // partner-only neutral stays clickable (it may be my agent). Never while
           // viewing a past turn (the board is read-only then).
-          const clickable = cellsClickable && !revealed && !iNeutraled && !viewing
+          const clickable = cellsClickable && !revealed && !iNeutraled && !isViewingHistory
           const isPending = pendingPos === w.position
 
           return (
@@ -147,7 +147,7 @@ export function Board({
                 bgCls,
                 isPending && styles.tilePending,
                 // Turn-history: this cell was decided on the turn being viewed.
-                highlight.has(w.position) && styles.viewedCell,
+                historyLitTiles.has(w.position) && styles.historyCell,
               )}
               disabled={!clickable || isPending}
               onClick={() => clickable && onGuess(w.position)}

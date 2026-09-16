@@ -13,11 +13,11 @@ import { MoveRow } from '@/common/word-entry/MoveRow'
 import { exposedIds, type Tile } from '../lib/board'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** Empty highlight set — reused so a live render passes a stable empty green set. */
+/** Empty tile set — reused so a live render passes a stable empty one. */
 const NO_TILES: ReadonlySet<number> = new Set()
 
 /**
@@ -42,10 +42,10 @@ const NO_TILES: ReadonlySet<number> = new Set()
 export function BoardCol({
   tiles,
   offBoard,
-  greenTiles,
+  historyLitTiles,
   readOnly,
-  viewingDescription,
-  onExitViewing,
+  historyLabel,
+  onExitHistory,
   currentWord,
   appendTile,
   retractTo,
@@ -65,7 +65,7 @@ export function BoardCol({
    *  off-board set while viewing a past turn. PlayArea picks which. */
   offBoard: Set<number>
   /** Tiles to ring green — a viewed turn's played word; empty (NO_TILES) when live. */
-  greenTiles: ReadonlySet<number>
+  historyLitTiles: ReadonlySet<number>
   /** Board inert + input frozen: `viewing || !canPlay`. When NOT viewing this is
    *  exactly "can't play right now", which is why the key handler can gate on it. */
   readOnly: boolean
@@ -73,9 +73,9 @@ export function BoardCol({
   // ── History viewer (its overlay lives in the below-board region) ──
   /** The viewed turn's description while inspecting history (drives the banner + the
    *  viewing frame), or null when live. */
-  viewingDescription: string | null
+  historyLabel: string | null
   /** Return to the live board (a board/banner click, the ✕, or any keystroke). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Word-building (the buffer stays in useGame; this column drives it) ──
   /** The word being built (tile ids in selection order). */
@@ -116,7 +116,7 @@ export function BoardCol({
    *  not a place to take tiles back from yet. */
   refusedWord: boolean
 }) {
-  const viewing = viewingDescription != null
+  const isViewingHistory = historyLabel != null
 
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback, so
@@ -222,16 +222,16 @@ export function BoardCol({
 
   return (
     // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
-    // listener + the click-through `.frame`), so the board column needs no click
+    // listener + the click-through `.historyFrame`), so the board column needs no click
     // handler — a click anywhere returns to live.
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <Board
         tiles={tiles}
         offBoard={offBoard}
         active={!readOnly}
-        highlight={viewing ? NO_TILES : flashIds}
-        green={greenTiles}
-        viewing={viewing}
+        flashTiles={isViewingHistory ? NO_TILES : flashIds}
+        historyLitTiles={historyLitTiles}
+        isViewingHistory={isViewingHistory}
         onTileClick={onTileClick}
         attention={attentionTiles}
         answer={boardAnswer}
@@ -239,28 +239,10 @@ export function BoardCol({
       />
 
       <div className={styles.belowBoard}>
-        {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
-            below-board region (the WordEntry + feedback stay mounted underneath, so
-            the built-up word survives). Opaque surface + the history-blue border =
-            the shared
-            "viewing history" marker (common/turn-log/historyViewer.module.css).
-            Click anywhere to exit; the ✕ far right also exits. */}
-        {viewing && (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            <span className={history.bannerLabel}>{viewingDescription}</span>
-            <button
-              type="button"
-              className={history.bannerExit}
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitViewing()
-              }}
-              aria-label="Exit viewing"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        {/* The shared banner overlays the whole below-board region while a past
+            turn is open — the WordEntry + feedback stay mounted underneath, so the
+            built-up word survives the trip. */}
+        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
         {/* The shared move row (docs/playarea.md → Text entry) around the five
             slots. stackdown can't use <EntryRow> — its "entry" is a grid of
             picked-up TILES, so EntryRow's capture keyboard, arrow-history and

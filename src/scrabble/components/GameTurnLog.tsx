@@ -48,8 +48,8 @@ export function GameTurnLog({
   aiMemberOfSeat,
   selfId,
   mode,
-  viewingSeq,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   plays: PlayRow[]
   players: Member[]
@@ -60,9 +60,9 @@ export function GameTurnLog({
   selfId: string
   mode: 'coop' | 'compete'
   /** The turn currently open in the board viewer (highlights its row), or null. */
-  viewingSeq: number | null
+  historyId: number | null
   /** Open a turn in the board viewer (click a row). */
-  onSelectTurn: (seq: number) => void
+  onShowHistory: (seq: number) => void
 }) {
   const who = useTurnLogPlayerPicker({
     // Humans and bots in one roster — the hook orders them (you first, then by
@@ -104,8 +104,8 @@ export function GameTurnLog({
               turn on the board viewer and rings itself while it's open. */}
           <TurnLogNumber
             n={p.seq}
-            viewing={viewingSeq === p.seq}
-            onSelect={() => onSelectTurn(p.seq)}
+            isOpenInHistory={historyId === p.seq}
+            onShowHistory={() => onShowHistory(p.seq)}
           />
           <td className={turnLog.main}>
             {p.kind === 'word' && (

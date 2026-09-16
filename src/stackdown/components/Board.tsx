@@ -40,7 +40,7 @@ function depthColor(depth: number): string {
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
 
-/** Shared empty highlight set — the live board rings no tiles green. */
+/** Shared empty tile set — the live board rings nothing. */
 const NO_TILES: ReadonlySet<number> = new Set()
 
 /**
@@ -58,9 +58,9 @@ export function Board({
   tiles,
   offBoard,
   active,
-  highlight,
-  green = NO_TILES,
-  viewing = false,
+  flashTiles,
+  historyLitTiles = NO_TILES,
+  isViewingHistory = false,
   onTileClick,
   attention = NO_TILES,
   answer = null,
@@ -70,13 +70,12 @@ export function Board({
   offBoard: Set<number>
   active: boolean
   /** Tile ids to outline in red (a typed letter matched more than one). */
-  highlight: ReadonlySet<number>
-  /** Tile ids to ring green — the word a viewed past turn played (turn-history).
-   *  Omitted / empty during live play. */
-  green?: ReadonlySet<number>
+  flashTiles: ReadonlySet<number>
+  // The word a viewed past turn played — ringed green. Omitted / empty while live.
+  historyLitTiles?: ReadonlySet<number>
   /** Turn-history: draw the shared "viewing a past turn" frame around the whole
    *  board (the same marker scrabble uses). Off during live play. */
-  viewing?: boolean
+  isViewingHistory?: boolean
   onTileClick: (tileId: number) => void
   /** Tiles taking the attention flash — "something happened here". */
   attention?: ReadonlySet<number>
@@ -105,7 +104,7 @@ export function Board({
   const pct = (px: number) => `${(px / natural) * 100}%`
 
   return (
-    <div className={cls(styles.canvas, viewing && history.frame)}>
+    <div className={cls(styles.canvas, isViewingHistory && history.historyFrame)}>
       {present.map((t) => {
         const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)
@@ -117,8 +116,8 @@ export function Board({
             key={t.id}
             className={cls(
               styles.tile,
-              highlight.has(t.id) && styles.flash,
-              green.has(t.id) && styles.viewed,
+              flashTiles.has(t.id) && styles.flash,
+              historyLitTiles.has(t.id) && styles.historyTile,
               // The answer landing here: the attention flash first, then the
               // outcome's color, and a refusal shakes once the color shows.
               attention.has(t.id) && shared.attentionFlash,

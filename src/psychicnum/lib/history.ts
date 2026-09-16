@@ -11,7 +11,7 @@
  * up to that turn folded into the same `word → is_correct` map the live board uses.
  * A word is guessable only once (the server rejects re-guesses), so the fold never
  * overwrites. Hint / reveal turns mark no tile (they're free helpers), so they leave
- * the map unchanged and highlight nothing.
+ * the map unchanged and light nothing.
  *
  * **Keyed by log position, not a stored id.** psychicnum's `guesses` has no per-turn
  * ordinal the FE indexes by; the log renders "#N" = its `guessed_at`-sorted position,
@@ -26,34 +26,34 @@
  */
 import type { GuessRow } from '../hooks/useGame'
 
-export interface TurnSnapshot {
+export interface HistorySnapshot {
   /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
    *  straight to `<Board results>`. */
   results: Map<string, boolean>
   /** The board word this turn's guess decided — ring it history-blue (it already
    *  wears its green/red outcome color). Null for a hint / reveal turn (no tile). */
-  highlightWord: string | null
+  historyLitWord: string | null
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   description: string
 }
 
 /**
- * Reconstruct the results + highlight + description for the turn at `index`. Folds
+ * Reconstruct the results + lit word + description for the turn at `index`. Folds
  * every guess (kind `'guess'`) up to and including `index` into the results map
- * (INCLUSIVE), and picks that turn's own guessed word as the highlight.
+ * (INCLUSIVE), and picks that turn's own guessed word as the lit one.
  */
-export function turnSnapshot(
+export function historySnapshot(
   guesses: ReadonlyArray<GuessRow>,
   index: number,
-): TurnSnapshot {
+): HistorySnapshot {
   const results = new Map<string, boolean>()
   for (let i = 0; i <= index && i < guesses.length; i++) {
     const g = guesses[i]
     if (g.kind === 'guess') results.set(g.word, g.is_correct)
   }
   const turn = guesses[index]
-  const highlightWord = turn && turn.kind === 'guess' ? turn.word : null
-  return { results, highlightWord, description: describe(turn) }
+  const historyLitWord = turn && turn.kind === 'guess' ? turn.word : null
+  return { results, historyLitWord, description: describe(turn) }
 }
 
 /** The kind-aware turn label. A guess reads as its outcome; a reveal names the answer

@@ -22,7 +22,7 @@ import shared from '@/common/game-page/playArea.module.css'
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
  * disclosure → swap log. Every command is a BOUND ACTION the PlayArea handed down
  * (`actEndGame`, `actConcede`, …), so this column places buttons and decides
- * nothing about them; the history-viewer selection (`onSelectTurn`) is the one
+ * nothing about them; the history-viewer selection (`onShowHistory`) is the one
  * callback. Prop names match the other games' columns for the same idea (see
  * docs/playarea.md).
  */
@@ -55,8 +55,8 @@ export function InfoCol({
   setupRows,
   answerWords,
   swaps,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -125,8 +125,8 @@ export function InfoCol({
   // ── Turn-history log (GameTurnLog — both modes) ──
   swaps: SwapRow[]
   /** The swap currently open in the board viewer (by log position), or null. */
-  viewingIndex: number | null
-  onSelectTurn: (index: number) => void
+  historyId: number | null
+  onShowHistory: (index: number) => void
 }) {
 
   // The End / Concede button — error-toned (red), shared by the "playing" and the
@@ -270,8 +270,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={over !== null}
-        viewingIndex={viewingIndex}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

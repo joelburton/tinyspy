@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, it, expect } from 'vitest'
-import { turnSnapshot } from './history'
+import { historySnapshot } from './history'
 import type { GuessRow } from '../hooks/useGame'
 
 /** A guess row, defaulting the fields the snapshot ignores. */
@@ -13,7 +13,7 @@ const g = (guess: string, colors: string, is_correct = false): GuessRow => ({
   is_correct,
 })
 
-describe('wordle turnSnapshot', () => {
+describe('wordle historySnapshot', () => {
   const guesses = [
     g('slate', 'xxgyx'),
     g('crane', 'yxxxg'),
@@ -22,26 +22,26 @@ describe('wordle turnSnapshot', () => {
 
   it('includes the guess rows up to and including the viewed turn (inclusive)', () => {
     // Turn 0 → just the first row.
-    expect(turnSnapshot(guesses, 0).rows).toEqual([{ guess: 'slate', colors: 'xxgyx' }])
+    expect(historySnapshot(guesses, 0).rows).toEqual([{ guess: 'slate', colors: 'xxgyx' }])
     // Turn 1 → the first two rows.
-    expect(turnSnapshot(guesses, 1).rows).toEqual([
+    expect(historySnapshot(guesses, 1).rows).toEqual([
       { guess: 'slate', colors: 'xxgyx' },
       { guess: 'crane', colors: 'yxxxg' },
     ])
   })
 
   it('rings the viewed turn — the last included row', () => {
-    expect(turnSnapshot(guesses, 0).highlightRow).toBe(0)
-    expect(turnSnapshot(guesses, 2).highlightRow).toBe(2)
+    expect(historySnapshot(guesses, 0).historyLitBoardRow).toBe(0)
+    expect(historySnapshot(guesses, 2).historyLitBoardRow).toBe(2)
   })
 
   it('describes the turn by its 1-based number + upper-cased guess', () => {
-    expect(turnSnapshot(guesses, 0).description).toBe('Guess 1: SLATE')
-    expect(turnSnapshot(guesses, 2).description).toBe('Guess 3: POINT')
+    expect(historySnapshot(guesses, 0).description).toBe('Guess 1: SLATE')
+    expect(historySnapshot(guesses, 2).description).toBe('Guess 3: POINT')
   })
 
   it('is defensive about an out-of-range index (no crash, empty label)', () => {
-    const snap = turnSnapshot(guesses, 9)
+    const snap = historySnapshot(guesses, 9)
     expect(snap.rows).toHaveLength(3) // slice clamps to what exists
     expect(snap.description).toBe('Guess 10')
   })

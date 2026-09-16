@@ -19,13 +19,14 @@ import { useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDrag
 import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
-import { boardUpToSeq, evaluatePlay, type Placement } from '../lib/play'
+import { historyBoard, evaluatePlay, type Placement } from '../lib/play'
 import type { SharedMovePayload } from '../hooks/useSharedMove'
 import type { ScrabbleGame, PlayerRow, PlayRow } from '../hooks/useGame'
 import { Board, type Cursor, type Tentative } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
@@ -55,9 +56,9 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  *     on the live board), received over Broadcast (see useSharedMove).
  * Both wear the same viewer chrome (frame + banner + frozen input) and the same
  * exits (click / keystroke / ✕ / a new move) — so they ride one `useHistoryViewer`
- * as `useHistoryViewer<ViewTarget>`, and this switches on `kind` to render.
+ * as `useHistoryViewer<HistoryTarget>`, and this switches on `kind` to render.
  */
-export type ViewTarget =
+export type HistoryTarget =
   | { kind: 'turn'; seq: number }
   | { kind: 'shared'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
@@ -150,13 +151,13 @@ function nextRackOrder(
  * reason (the raw play data already lives here):
  *   - **It reconstructs the viewed board itself.** stackdown/waffle compute the
  *     historical snapshot in PlayArea and hand a ready-to-render board *down*;
- *     scrabble takes the raw `plays` + `viewingSeq` and runs `boardUpToSeq` (and
+ *     scrabble takes the raw `plays` + `historyId` and runs `historyBoard` (and
  *     builds the banner via `turnSummary`) in here, since `plays` is already the
  *     input the live board reads.
  *   - **It keys the viewer by `seq`, not log position.** The shared history hook
- *     returns a neutral `viewingId`; scrabble aliases it to `viewingSeq` (a stable
- *     turn number `boardUpToSeq` indexes by), where stackdown/waffle alias it to
- *     `viewingIndex` (an array position). Same hook, deliberately different key.
+ *     returns a neutral `historyId`; scrabble aliases it to `historyId` (a stable
+ *     turn number `historyBoard` indexes by), where stackdown/waffle alias it to
+ *     `historyId` (an array position). Same hook, deliberately different key.
  */
 /**
  * What the three move RPCs answer. Every one of them keeps `version`, and
@@ -186,10 +187,10 @@ export function BoardCol({
   myConceded,
   localFeedbackSlot,
   plays,
-  viewTarget,
-  viewing,
-  viewTargetRef,
-  onExitViewing,
+  historyTarget,
+  isViewingHistory,
+  historyTargetRef,
+  onExitHistory,
   nameOf,
   memberColorOf,
   canShare,
@@ -225,13 +226,13 @@ export function BoardCol({
   plays: PlayRow[]
   /** The read-only overlay open on the board (a past turn OR a teammate's shared
    *  move), or null when live. */
-  viewTarget: ViewTarget | null
-  /** viewTarget !== null. */
-  viewing: boolean
-  /** A ref to viewTarget, read by the once-registered board-drag pointerdown. */
-  viewTargetRef: RefObject<ViewTarget | null>
+  historyTarget: HistoryTarget | null
+  /** historyTarget !== null. */
+  isViewingHistory: boolean
+  /** A ref to historyTarget, read by the once-registered board-drag pointerdown. */
+  historyTargetRef: RefObject<HistoryTarget | null>
   /** Return to the live board (a board interaction / a keystroke / a new move). */
-  onExitViewing: () => void
+  onExitHistory: () => void
   /** Username for a user id — for the viewer banners. */
   nameOf: (id: string | null) => string
   /** Identity-disc color NAME for a user id — for the share banner's disc. */
@@ -322,7 +323,7 @@ export function BoardCol({
   const actingRackRef = useRef(actingRack)
   const canPlaceRef = useRef(canPlace)
   const orderRef = useRef(order)
-  // (viewingSeqRef is owned by useHistoryViewer, passed down — synced there.)
+  // (historyTargetRef is owned by useHistoryViewer, passed down — synced there.)
   useEffect(() => {
     boardRef.current = board
     stagedRef.current = staged
@@ -351,7 +352,7 @@ export function BoardCol({
     if (prevVersion.current === game.version) return
     prevVersion.current = game.version
     setSelected(new Set())
-    onExitViewing() // a new move landed — drop back to the live board
+    onExitHistory() // a new move landed — drop back to the live board
     setOptimistic([]) // the server board now holds any just-played tiles
     // Leave the cursor where it is — the next word is usually nearby.
 
@@ -385,7 +386,7 @@ export function BoardCol({
       flashYellow(Array.from({ length: n }, (_, i) => rackLen - n + i))
     }
     pendingDrawRef.current = 0
-  }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitViewing])
+  }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitHistory])
 
   // Apply an accepted AI suggestion (docs/scrabble-ai.md S5): fill the staging
   // state with the suggested placements — the SAME state a hand-placed move
@@ -400,7 +401,7 @@ export function BoardCol({
   const applySuggestedMove = useCallback(
     (placements: Placement[]) => {
       if (!canPlaceRef.current) return
-      onExitViewing() // staging happens on the live board, never under a viewer overlay
+      onExitHistory() // staging happens on the live board, never under a viewer overlay
       const used = new Set<number>()
       const next: Staged[] = []
       for (const p of placements) {
@@ -417,7 +418,7 @@ export function BoardCol({
       localFeedbackSlot.dismiss()
       setStaged(next) // replaces any hand-staged tiles — the player asked for this move
     },
-    [onExitViewing, localFeedbackSlot],
+    [onExitHistory, localFeedbackSlot],
   )
   useEffect(() => {
     registerSuggestionApplier(applySuggestedMove)
@@ -515,8 +516,8 @@ export function BoardCol({
     (x: number, y: number, e: React.PointerEvent) => {
       // While a read-only overlay is open (a past turn or a teammate's shared
       // move) the board is read-only; a click exits to live rather than placing.
-      if (viewTargetRef.current != null) {
-        onExitViewing()
+      if (historyTargetRef.current != null) {
+        onExitHistory()
         return
       }
       if (!canPlaceRef.current) return
@@ -524,9 +525,9 @@ export function BoardCol({
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
-    // onExitViewing + viewTargetRef are stable (from useHistoryViewer), so listing
+    // onExitHistory + historyTargetRef are stable (from useHistoryViewer), so listing
     // them keeps this handler's single-registration without churn.
-    [stagedAt, start, localFeedbackSlot, onExitViewing, viewTargetRef],
+    [stagedAt, start, localFeedbackSlot, onExitHistory, historyTargetRef],
   )
 
   const onRackPointerDown = useCallback(
@@ -845,39 +846,39 @@ export function BoardCol({
   })
 
   // Board viewer: two read-only overlays share the chrome (frame + banner + frozen
-  // input + suppressed live overlays), picked by `viewTarget.kind`:
+  // input + suppressed live overlays), picked by `historyTarget.kind`:
   //   - a past TURN — the replayed historical board, that turn's played cells
-  //     outlined (via boardUpToSeq); or
+  //     outlined (via historyBoard); or
   //   - a teammate's SHARED move — the live board with their staged tiles laid on
   //     as tentative, those cells outlined.
-  const viewTurn = viewTarget?.kind === 'turn' ? viewTarget : null
-  const viewShared = viewTarget?.kind === 'shared' ? viewTarget : null
+  const viewTurn = historyTarget?.kind === 'turn' ? historyTarget : null
+  const peerPreview = historyTarget?.kind === 'shared' ? historyTarget : null
   const viewedPlay: PlayRow | null = viewTurn
     ? (plays.find((p) => p.seq === viewTurn.seq) ?? null)
     : null
-  const renderBoard = viewTurn ? boardUpToSeq(plays, viewTurn.seq) : board
+  const renderBoard = viewTurn ? historyBoard(plays, viewTurn.seq) : board
   // A shared move's tiles, as a tentative map over the live board (stable ref when
   // not sharing, like NO_TENT, so the Board doesn't churn).
   const sharedTent = useMemo(() => {
-    if (!viewShared) return NO_TENT
+    if (!peerPreview) return NO_TENT
     const m = new Map<number, Tentative>()
-    for (const p of viewShared.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
+    for (const p of peerPreview.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
     return m
-  }, [viewShared])
-  const viewingCells = viewTurn
+  }, [peerPreview])
+  const historyLitTiles = viewTurn
     ? viewedPlay?.kind === 'word'
       ? new Set((viewedPlay.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
       : NO_CELLS
-    : viewShared
-      ? new Set(viewShared.placements.map((pl) => cellIndex(pl.x, pl.y)))
+    : peerPreview
+      ? new Set(peerPreview.placements.map((pl) => cellIndex(pl.x, pl.y)))
       : NO_CELLS
 
   return (
     <>
-      {/* `.sharePreview` on the column recolors the frame + banner via the
-          cascading `--viewer-accent` var, so a teammate's shared move reads
-          distinctly from a history replay (theme.css → --view-sharePreview-color). */}
-      <div className={cls(shared.boardCol, styles.boardCol, viewShared && history.sharePreview)}>
+      {/* `.peerPreview` on the column recolors the frame + banner via the
+          cascading `--history-accent` var, so a teammate's shared move reads
+          distinctly from a history replay (theme.css → --peer-preview-color). */}
+      <div className={cls(shared.boardCol, styles.boardCol, peerPreview && history.peerPreview)}>
         {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
             the live turn/score + bag readout, above the board. It's a fixed-height
             row, and the square board sizes off `--avail-h` — so PlayArea.module.css
@@ -886,50 +887,40 @@ export function BoardCol({
         <MobileStatusBar>{mobileStatus}</MobileStatusBar>
         <Board
           board={renderBoard}
-          tentative={viewTurn ? NO_TENT : viewShared ? sharedTent : tentativeMap}
+          tentative={viewTurn ? NO_TENT : peerPreview ? sharedTent : tentativeMap}
           cursor={cursor}
-          hover={viewing ? null : hover}
-          greenCells={viewing ? NO_CELLS : greenFlash}
-          redCells={viewing ? NO_CELLS : redFlash}
+          hover={isViewingHistory ? null : hover}
+          greenCells={isViewingHistory ? NO_CELLS : greenFlash}
+          redCells={isViewingHistory ? NO_CELLS : redFlash}
           dragSource={drag && drag.source.kind === 'board' ? { x: drag.source.x, y: drag.source.y } : null}
           dragging={!!drag}
-          viewing={viewing}
-          viewingCells={viewingCells}
+          isViewingHistory={isViewingHistory}
+          historyLitTiles={historyLitTiles}
           onCellPointerDown={onCellPointerDown}
         />
 
         <div className={styles.belowBoard}>
-          {/* Viewer banner — overlays the input area (the rack stays mounted
-              underneath, so `staged` is preserved). Click anywhere to exit; the ✕
-              at the far right also exits. Either a past turn's summary, or a
-              teammate's shared move ("● moth showing: +18 BERRY"). */}
-          {viewing && (viewedPlay || viewShared) && (
-            <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>
-                {viewShared ? (
+          {/* The shared banner overlays the input area while viewing — the rack
+              stays mounted underneath, so `staged` is preserved. Its label is
+              either a past turn's summary or a teammate's shared move, which is
+              why this one is markup and not a string. */}
+          {isViewingHistory && (viewedPlay || peerPreview) && (
+            <HistoryBanner
+              onExit={onExitHistory}
+              label={
+                peerPreview ? (
                   <>
-                    <Dot color={memberColorOf(viewShared.sharerId)} />{' '}
-                    {nameOf(viewShared.sharerId)} showing:{' '}
-                    {viewShared.words.length > 0
-                      ? `+${viewShared.score} ${viewShared.words.map((w) => w.toUpperCase()).join(', ')}`
-                      : `${viewShared.placements.length} tile${viewShared.placements.length === 1 ? '' : 's'}`}
+                    <Dot color={memberColorOf(peerPreview.sharerId)} />{' '}
+                    {nameOf(peerPreview.sharerId)} showing:{' '}
+                    {peerPreview.words.length > 0
+                      ? `+${peerPreview.score} ${peerPreview.words.map((w) => w.toUpperCase()).join(', ')}`
+                      : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
                   </>
                 ) : (
                   turnSummary(viewedPlay!, nameOf)
-                )}
-              </span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onExitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
+                )
+              }
+            />
           )}
           {self ? (
             <div className={styles.moveArea}>

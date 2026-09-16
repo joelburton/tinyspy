@@ -7,10 +7,10 @@
  *      NOT any later turn's guesses.
  *   2. The per-seat neutral rule — a neutral sets only the guesser's own
  *      `neutral_a` / `neutral_b`, never the global `revealed_as`.
- *   3. The highlight — exactly the positions guessed DURING the viewed turn.
+ *   3. `historyLitTiles` — exactly the positions guessed DURING the viewed turn.
  */
 import { describe, expect, it } from 'vitest'
-import { turnSnapshot } from './history'
+import { historySnapshot } from './history'
 import type { GuessRow, WordRow } from '../hooks/useBoard'
 
 // A tiny fixed board — positions 0..4 with placeholder words. Reveal state starts
@@ -32,7 +32,7 @@ function guess(o: Partial<GuessRow>): GuessRow {
 
 const at = (words: WordRow[], pos: number) => words.find((w) => w.position === pos)!
 
-describe('turnSnapshot', () => {
+describe('historySnapshot', () => {
   // Turn 1: B contacts ALPHA (green). Turn 2: A neutrals BRAVO. Turn 3: B hits
   // the assassin on CIDER.
   const guesses: GuessRow[] = [
@@ -42,7 +42,7 @@ describe('turnSnapshot', () => {
   ]
 
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
-    const snap = turnSnapshot(WORDS, guesses, { word: 'x', count: 1 }, 2)
+    const snap = historySnapshot(WORDS, guesses, { word: 'x', count: 1 }, 2)
     // Turn 1's green is in; turn 2's own neutral is in (inclusive); turn 3's
     // assassin is NOT yet.
     expect(at(snap.words, 0).revealed_as).toBe('G')
@@ -51,25 +51,25 @@ describe('turnSnapshot', () => {
   })
 
   it('keeps a neutral per-seat — never global, only the guesser side', () => {
-    const snap = turnSnapshot(WORDS, guesses, null, 2)
+    const snap = historySnapshot(WORDS, guesses, null, 2)
     const bravo = at(snap.words, 1)
     expect(bravo.revealed_as).toBeNull() // a neutral is not a global reveal
     expect(bravo.neutral_a).toBe(true) // seat A guessed it as a bystander
     expect(bravo.neutral_b).toBe(false) // …seat B's direction stays open
   })
 
-  it('highlights exactly the positions decided during the viewed turn', () => {
-    expect([...turnSnapshot(WORDS, guesses, null, 1).highlight]).toEqual([0])
-    expect([...turnSnapshot(WORDS, guesses, null, 2).highlight]).toEqual([1])
+  it('lights exactly the positions decided during the viewed turn', () => {
+    expect([...historySnapshot(WORDS, guesses, null, 1).historyLitTiles]).toEqual([0])
+    expect([...historySnapshot(WORDS, guesses, null, 2).historyLitTiles]).toEqual([1])
     // Nothing decided on a turn with no guesses in the log.
-    expect(turnSnapshot(WORDS, guesses, null, 9).highlight.size).toBe(0)
+    expect(historySnapshot(WORDS, guesses, null, 9).historyLitTiles.size).toBe(0)
   })
 
   it('describes the turn name-free: clue then guessed words, or "passed"', () => {
-    expect(turnSnapshot(WORDS, guesses, { word: 'bread', count: 2 }, 1).description).toBe(
+    expect(historySnapshot(WORDS, guesses, { word: 'bread', count: 2 }, 1).description).toBe(
       '#1: 2 BREAD → ALPHA',
     )
-    expect(turnSnapshot(WORDS, guesses, { word: 'wait', count: 1 }, 5).description).toBe(
+    expect(historySnapshot(WORDS, guesses, { word: 'wait', count: 1 }, 5).description).toBe(
       '#5: 1 WAIT — passed',
     )
   })

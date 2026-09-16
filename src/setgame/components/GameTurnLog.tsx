@@ -39,8 +39,8 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingIndex,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   /** Every event the viewer can see — claims and hints, oldest first. */
   events: EventRow[]
@@ -50,8 +50,8 @@ export function GameTurnLog({
   isTerminal: boolean
   /** The event currently open in the board viewer (highlights its row), or
    *  null. Identified by log POSITION — see lib/history.ts. */
-  viewingIndex: number | null
-  onSelectTurn: (index: number | null) => void
+  historyId: number | null
+  onShowHistory: (index: number | null) => void
 }) {
   const picker = useTurnLogPlayerPicker<EventRow>({
     players,
@@ -95,8 +95,8 @@ export function GameTurnLog({
             <TurnLogBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
             <TurnLogNumber
               n={index + 1}
-              viewing={viewingIndex === index}
-              onSelect={() => onSelectTurn(index)}
+              isOpenInHistory={historyId === index}
+              onShowHistory={() => onShowHistory(index)}
             />
             <td className={styles.cards}>
               {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}

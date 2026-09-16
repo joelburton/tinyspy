@@ -192,7 +192,7 @@
  * muted number it replaces (inherits the `.meta` font/color) so the log reads
  * unchanged until hovered. The tight negative margin keeps the number sitting where
  * the bare text did, so adopting the handle shifts no layout. The `outline` channel
- * is left to the "viewing" marker (historyViewer `.viewedNumber`). */
+ * is left to the "viewing" marker (historyViewer `.historyNumber`). */
 /* @@ */ .turnNumber {
   display: inline-block;
   padding: 1px 5px;

@@ -169,8 +169,8 @@
  * the channel is free while viewing: you cannot select, and nothing can be in
  * flight); `position: relative` + a z-index lift it so the ring paints over
  * neighboring tiles rather than under. */
-/* @@ */ .viewedTile {
-  outline: 3px solid var(--view-history-color);
+/* @@ */ .historyTile {
+  outline: 3px solid var(--history-color);
   outline-offset: 2px;
   position: relative;
   z-index: 1;

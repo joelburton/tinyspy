@@ -28,7 +28,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
 import { clickTile, typeLetter, type Trace } from '../lib/trace'
 import { hintShortfallText } from '../lib/hintCopy'
-import { snapshotAt } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
 import { useGame } from '../hooks/useGame'
 import { db } from '../db'
@@ -312,8 +312,8 @@ export function PlayArea(ctx: GamePageCtx) {
       if (busy) return
       // A click while replaying returns to live rather than starting a trace on
       // a board that isn't the current one.
-      if (viewer.viewing) {
-        viewer.exitViewing()
+      if (viewer.isViewingHistory) {
+        viewer.exitHistory()
         return
       }
       localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
@@ -409,7 +409,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // board is not the player's to touch — and while a past turn is open, which is
   // the viewer's key rather than the board's.
   useBoundAction('act-extend-trace', {
-    describe: () => (isTerminal || busy || !isMyTurn || viewer.viewing ? 'disabled' : 'active'),
+    describe: () => (isTerminal || busy || !isMyTurn || viewer.isViewingHistory ? 'disabled' : 'active'),
     run: (key) => {
       if (!game || !key) return
       const r = typeLetter(trace, key, game.board, consumed)
@@ -484,7 +484,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const showing = (me?.active_hint_coords ?? null) !== null
       const points = me?.hint_points ?? 0
       const cost = game?.hint_cost ?? 0
-      if (isTerminal || isLocallyDone || busy || viewer.viewing || showing) {
+      if (isTerminal || isLocallyDone || busy || viewer.isViewingHistory || showing) {
         return { state: 'disabled', tooltip: showing ? 'A hint is already showing' : undefined }
       }
       return points >= cost
@@ -814,7 +814,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The replayed board, or null when live. A one-liner because strands' board
   // only accumulates — see lib/history.
-  const snap = viewer.viewingId !== null ? snapshotAt(historyRows, viewer.viewingId) : null
+  const snap = viewer.historyId !== null ? historySnapshot(historyRows, viewer.historyId) : null
   // The words nobody found, drawn as gray lines — ONLY while this viewer is
   // asking for them. `game.solution` arrives at terminal (is_terminal lifts the
   // shield), so mid-game this is empty by construction; after that it's empty
@@ -843,13 +843,13 @@ export function PlayArea(ctx: GamePageCtx) {
         // The missed-word reveal is a TERMINAL artifact — drawing it on a
         // historic snapshot would mix the endgame's gray lines into a board
         // that hadn't reached it.
-        missed={viewer.viewing ? [] : missed}
-        trace={viewer.viewing ? EMPTY_TRACE : trace}
+        missed={viewer.isViewingHistory ? [] : missed}
+        trace={viewer.isViewingHistory ? EMPTY_TRACE : trace}
         // While replaying, a HINT turn re-rings the cells it revealed (that's why
         // the coords are logged); every other turn shows no ring at all. Live,
         // it's my own unspent hint. Either way the board draws it as rings with
         // no connecting line — a hint never gave you the order.
-        hintCoords={viewer.viewing ? snap?.hintCoords ?? null : me?.active_hint_coords ?? null}
+        hintCoords={viewer.isViewingHistory ? snap?.hintCoords ?? null : me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
         // `waiting` folds in turn-order (coop only): a waiting player's board
         // is inert, and the slot below says why.
@@ -858,10 +858,10 @@ export function PlayArea(ctx: GamePageCtx) {
         // turn-gated (a team decision, not a move), so waiting must not dim
         // it — but replaying history must, or a click meant to exit the viewer
         // would irreversibly spend a hint.
-        viewing={viewer.viewing}
-        highlight={snap?.highlight ?? []}
-        viewingDescription={snap?.description ?? ''}
-        onExitViewing={viewer.exitViewing}
+        isViewingHistory={viewer.isViewingHistory}
+        historyLitTiles={snap?.historyLitTiles ?? []}
+        historyLabel={snap?.description ?? ''}
+        onExitHistory={viewer.exitHistory}
         // The word being traced. Shares its slot with the feedback pill — you
         // are either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
@@ -900,8 +900,8 @@ export function PlayArea(ctx: GamePageCtx) {
           actNewGame={actNewGame}
           actReveal={actReveal}
           actBackToClub={menu.actBackToClub}
-          viewingIndex={viewer.viewingId}
-          onSelectTurn={viewer.select}
+          historyId={viewer.historyId}
+          onShowHistory={viewer.showHistory}
         />
       </InfoSheet>
 

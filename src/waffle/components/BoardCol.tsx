@@ -6,8 +6,8 @@ import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
 /**
@@ -24,9 +24,9 @@ export function BoardCol({
   board,
   colors,
   readOnly,
-  highlight,
-  viewingDescription,
-  onExitViewing,
+  historyLitTiles,
+  historyLabel,
+  onExitHistory,
   onSwap,
   pendingSwap,
   notMyTurn,
@@ -50,14 +50,14 @@ export function BoardCol({
   /** Board inert (terminal / not a player / locally done / viewing a past swap). */
   readOnly: boolean
   /** Turn-history: the two cells the viewed swap moved — ring them (undefined live). */
-  highlight: ReadonlySet<number> | undefined
+  historyLitTiles: ReadonlySet<number> | undefined
 
   // ── History viewer (its overlay lives in the below-board region) ──
   /** The viewed swap's description while inspecting history (drives the banner + the
    *  gray-blue frame), or null when live. */
-  viewingDescription: string | null
+  historyLabel: string | null
   /** Return to the live board (a board/banner click, or the ✕). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Move ──
   /** Swap the letters of two filled cells — the one committed action up. */
@@ -82,11 +82,11 @@ export function BoardCol({
    *  the verdict. Drawn in the reserved-height slot under the board. */
   localFeedbackSlot: FeedbackSlot
 }) {
-  const viewing = viewingDescription !== null
+  const isViewingHistory = historyLabel !== null
 
   return (
     // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
-    // listener + the click-through `.frame`), so the board column needs no click
+    // listener + the click-through `.historyFrame`), so the board column needs no click
     // handler — a click anywhere returns to live.
     <div className={shared.boardCol}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
@@ -99,8 +99,8 @@ export function BoardCol({
         board={board}
         colors={colors}
         disabled={readOnly}
-        viewing={viewing}
-        highlight={highlight}
+        isViewingHistory={isViewingHistory}
+        historyLitTiles={historyLitTiles}
         onSwap={onSwap}
         pendingSwap={pendingSwap}
         notMyTurn={notMyTurn}
@@ -110,26 +110,9 @@ export function BoardCol({
       />
 
       <div className={styles.belowBoard}>
-        {/* Turn-viewer banner — while inspecting a past swap it overlays the
-            below-board region with the swap's description. Opaque surface + gray-blue
-            border = the shared "viewing history" marker (matching the board frame +
-            viewed-row outline). Click anywhere / the ✕ returns to live. */}
-        {viewing && (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            <span className={history.bannerLabel}>{viewingDescription}</span>
-            <button
-              type="button"
-              className={history.bannerExit}
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitViewing()
-              }}
-              aria-label="Exit viewing"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        {/* While inspecting a past swap the shared banner overlays this region,
+            naming the swap. */}
+        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
         {/* No below-board move controls: waffle's input is swapping tiles on the
             board itself, so `.moveArea` is empty. */}
         <div className={styles.moveArea} />

@@ -156,9 +156,9 @@
 }
 
 /* Turn-history: the tile the VIEWED past turn guessed — the shared history BLUE
- * (`--view-history-color`), the same signal the board frame + viewed log #N wear.
+ * (`--history-color`), the same signal the board frame + viewed log #N wear.
  *
- * OUTSIDE the tile, like every other history ring in the app (the board `.frame`
+ * OUTSIDE the tile, like every other history ring in the app (the board `.historyFrame`
  * and the log's `#N` handle both use a positive offset). It was inset until
  * 2026-08-20, drawn over the tile's own fill — and this ring only ever lands on a
  * DECIDED tile, since a past turn's guess is by definition guessed. That put blue
@@ -176,7 +176,7 @@
  *
  * Two neighbors to know about:
  *   - The next TILE is never a problem: the grid gap is 0.5rem (8px) and only one
- *     tile is ever `.viewed`, so this ring stops 3px short of it.
+ *     tile is ever `.historyTile`, so this ring stops 3px short of it.
  *   - The BOARD FRAME is. It is an outline on `.grid` at `outline-offset: 3px`,
  *     width 4px — the 3–7px band just outside the grid — and `.grid` has no
  *     padding, so edge tiles sit flush against it. This ring occupies 2–5px, so on
@@ -190,7 +190,7 @@
  * (This is the board's only tile-level ring now. The terminal answer key used to
  * add a second one in a neon green of its own; revealing a secret simply turns it
  * green today — the reveal is a state change, not a mark. See PlayArea.) */
-/* @@ */ .viewed {
-  outline: 3px solid var(--view-history-color);
+/* @@ */ .historyTile {
+  outline: 3px solid var(--history-color);
   outline-offset: 2px;
 }

@@ -39,7 +39,7 @@ const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): turn/score
  * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
  * command arrives as a bound action this column places; the one callback up is
- * `onSelectTurn`. PlayArea owns the RPCs + coordination. Prop names match the other games' columns for the
+ * `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other games' columns for the
  * same idea (docs/playarea.md).
  */
 export function InfoCol({
@@ -73,8 +73,8 @@ export function InfoCol({
   winnerSeat,
   aiMemberOfSeat,
   plays,
-  viewingSeq,
-  onSelectTurn,
+  historyId,
+  onShowHistory,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -148,8 +148,8 @@ export function InfoCol({
   // ── Turn-history log (Moves) ──
   plays: PlayRow[]
   /** The play currently open in the board viewer (by seq), or null. */
-  viewingSeq: number | null
-  onSelectTurn: (seq: number) => void
+  historyId: number | null
+  onShowHistory: (seq: number) => void
 }) {
   // ── The score strip's roster: every SEAT, human and AI, in seat order ──
   // AI seats aren't in `common.game_players`, so they're synthesized as Members
@@ -339,8 +339,8 @@ export function InfoCol({
         aiMemberOfSeat={aiMemberOfSeat}
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
-        viewingSeq={viewingSeq}
-        onSelectTurn={onSelectTurn}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

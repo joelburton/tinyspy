@@ -20,7 +20,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { db } from '../db'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
@@ -42,7 +42,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
+/** Empty tile set — while live, the board rings nothing (the green ring is the viewer's). */
 const NO_TILES: ReadonlySet<number> = new Set()
 
 /** What `stackdown.submit_word` puts in `data`. The structural fact travels even
@@ -66,16 +66,16 @@ type HintAnswer = { result: 'hint'; hint: string }
  * shared two-column scaffold (docs/playarea.md → PlayArea layout).
  * PlayArea is the **coordinator**: it holds the game data (`useGame`), the server
  * mutations (submit / reveal / hint / end / concede RPCs), and the cross-column
- * coordination state (the turn-history `viewingIndex`, the local + word-slot
+ * coordination state (the turn-history `historyId`, the local + word-slot
  * feedback), and wires two presentational columns:
  *
  *   - **`<BoardCol>`** — the stacked-tile board + the live input engine (tile
  *     clicks / keyboard word-building) + the below-board region. Takes the board to
  *     render (live OR a historical snapshot) + `readOnly`; emits the completed word
- *     up (`onSubmitWord`) and "back to live" (`onExitViewing`).
+ *     up (`onSubmitWord`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
  *     disclosure, terminal words reveal, and the GameTurnLog log. Every command
- *     arrives as a bound action it places; the one callback up is `onSelectTurn`.
+ *     arrives as a bound action it places; the one callback up is `onShowHistory`.
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
  * show*. That's what makes turn-history a drop-in (see docs/playarea.md).
@@ -141,7 +141,7 @@ export function PlayArea({
   // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
   // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the viewing
   // frame + banner and freezes input, and any keystroke / board click / ✕ exits.
-  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing } =
+  const { historyId: historyId, isViewingHistory, showHistory, exitHistory } =
     useHistoryViewer()
 
   // ─── The local feedback slot (the below-board pill) ──────────────
@@ -681,20 +681,20 @@ export function PlayArea({
     : submissions
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
-  // `viewingIndex` indexes `logWords` — the same chronological list the GameTurnLog log
+  // `historyId` indexes `logWords` — the same chronological list the GameTurnLog log
   // shows — so coop replays the shared board and compete the caller's own, for free.
-  // Works at terminal too (reviewing the finished stack). (`viewing` is from the hook.)
-  const snap = viewingIndex !== null ? turnSnapshot(logWords, viewingIndex) : null
+  // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
+  const snap = historyId !== null ? historySnapshot(logWords, historyId) : null
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         tiles={game.tiles}
         offBoard={snap ? snap.offBoard : offBoard}
-        greenTiles={snap ? snap.greenTiles : NO_TILES}
-        readOnly={viewing || !canPlay}
-        viewingDescription={snap ? snap.description : null}
-        onExitViewing={exitViewing}
+        historyLitTiles={snap ? snap.historyLitTiles : NO_TILES}
+        readOnly={isViewingHistory || !canPlay}
+        historyLabel={snap ? snap.description : null}
+        onExitHistory={exitHistory}
         currentWord={currentWord}
         appendTile={appendTile}
         retractTo={retractTo}
@@ -741,8 +741,8 @@ export function PlayArea({
         solution={solutionShown ? game.solution : null}
         actReveal={actReveal}
         submissions={logWords}
-        viewingIndex={viewingIndex}
-        onSelectTurn={setViewingIndex}
+        historyId={historyId}
+        onShowHistory={showHistory}
         />
       </InfoSheet>
 

@@ -46,8 +46,8 @@ export function Board({
   redCells,
   dragSource,
   dragging,
-  viewing = false,
-  viewingCells,
+  isViewingHistory = false,
+  historyLitTiles,
   onCellPointerDown,
 }: {
   board: Cell[]
@@ -61,10 +61,10 @@ export function Board({
   dragSource: XY | null
   dragging: boolean
   /** Turn-viewer: the board is a historical replay — green frame, no cursor. */
-  viewing?: boolean
+  isViewingHistory?: boolean
   /** Turn-viewer: cells the viewed turn placed — outlined green (the "good
    *  words of this turn"). */
-  viewingCells?: Set<number>
+  historyLitTiles?: Set<number>
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
 }) {
   const cells = []
@@ -113,7 +113,7 @@ export function Board({
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
                     redCells.has(idx) && styles.flashReject,
-                    viewingCells?.has(idx) && styles.viewedTile,
+                    historyLitTiles?.has(idx) && styles.historyTile,
                   )}
                 >
                   <span className={styles.letter}>{glyph}</span>
@@ -122,7 +122,7 @@ export function Board({
               )
             })()}
           {!committed && !tent && (idx === CENTER ? '★' : PREMIUM_LABEL[premium])}
-          {cursorHere && !viewing && (
+          {cursorHere && !isViewingHistory && (
             <span
               className={cls(
                 gridCursor.cursor,
@@ -138,7 +138,7 @@ export function Board({
   // data-board is the e2e layout hook (the stable board-root selector every
   // game's mobile e2e uses); the cells keep their data-cell/-x/-y hooks.
   return (
-    <div data-board className={cls(styles.board, viewing && history.frame)}>
+    <div data-board className={cls(styles.board, isViewingHistory && history.historyFrame)}>
       {cells}
     </div>
   )

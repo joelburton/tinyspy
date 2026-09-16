@@ -433,7 +433,7 @@ pill.
   **strictly before** it — so the viewed turn's own word is still ON the board (ringed
   green) and the stack is *fuller* than live — plus a kind-aware description ("entered
   EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
-  scrabble's `boardUpToSeq`; keyed by **log position** (the `#N` the log shows), not
+  scrabble's `historyBoard`; keyed by **log position** (the `#N` the log shows), not
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
   across a shared coop log. Clicking a `GameTurnLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +
@@ -499,7 +499,7 @@ pill.
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
   as bound actions, help, setup, the asked-for words reveal, and the GameTurnLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
-  + the history `viewingIndex`; in compete it filters the log to the caller's own so
+  + the history `historyId`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
   word-difficulty band + timer — the board is dealt at random from the chosen
   band's pool), `Help`.

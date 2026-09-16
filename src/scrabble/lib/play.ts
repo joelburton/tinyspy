@@ -230,7 +230,7 @@ export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvalua
  * placement carries its declared `letter` + `blank` flag). `plays` need not be
  * sorted (we filter, not slice).
  */
-export function boardUpToSeq(
+export function historyBoard(
   plays: ReadonlyArray<{ seq: number; kind: string; placements: Placement[] | null }>,
   seq: number,
 ): Cell[] {

@@ -26,7 +26,7 @@ import type { RankedMove } from '../lib/rank'
 import { useGame, type PlayRow } from '../hooks/useGame'
 import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
-import { BoardCol, type ViewTarget } from './BoardCol'
+import { BoardCol, type HistoryTarget } from './BoardCol'
 import { InfoCol, type SuggestState } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
@@ -43,7 +43,7 @@ const AI_DISC_COLORS = ['brown', 'purple', 'pink']
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
- * `ViewTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
+ * `HistoryTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
  * coop "show a move" Broadcast transport (`useSharedMove`), the below-board feedback
  * slot (born here because InfoCol's End/Concede show into it too), and the
  * terminal message; it wires two columns:
@@ -122,13 +122,18 @@ export function PlayArea({
   )
 
   // Board-viewer coordination (shared hook): which read-only overlay is open — a
-  // past turn OR a teammate's shared move (the `ViewTarget` union). Cross-column:
+  // past turn OR a teammate's shared move (the `HistoryTarget` union). Cross-column:
   // BoardCol renders it, InfoCol's Moves log selects a turn, a broadcast opens a
   // shared move. A new committed move (the version effect in BoardCol) exits either.
-  const { viewingId: viewTarget, viewingIdRef: viewTargetRef, viewing, select, exitViewing } =
-    useHistoryViewer<ViewTarget>()
+  const {
+    historyId: historyTarget,
+    historyIdRef: historyTargetRef,
+    isViewingHistory,
+    showHistory,
+    exitHistory,
+  } = useHistoryViewer<HistoryTarget>()
   // Only a TURN is highlighted in the Moves log (`#N`) — a shared move has no row.
-  const viewingSeq = viewTarget?.kind === 'turn' ? viewTarget.seq : null
+  const historyId = historyTarget?.kind === 'turn' ? historyTarget.seq : null
 
   // Show-a-move transport (coop only): a teammate's broadcast opens a read-only
   // preview of their staged tiles. Ignore a stale one (their board version no
@@ -140,9 +145,15 @@ export function PlayArea({
     onReceive: useCallback(
       (p: SharedMovePayload) => {
         if (!game || p.baseVersion !== game.version) return
-        select({ kind: 'shared', placements: p.placements, sharerId: p.sharerId, words: p.words, score: p.score })
+        showHistory({
+          kind: 'shared',
+          placements: p.placements,
+          sharerId: p.sharerId,
+          words: p.words,
+          score: p.score,
+        })
       },
-      [game, select],
+      [game, showHistory],
     ),
   })
 
@@ -601,10 +612,10 @@ type Suggested =
         myConceded={myConceded}
         localFeedbackSlot={localFeedbackSlot}
         plays={plays}
-        viewTarget={viewTarget}
-        viewing={viewing}
-        viewTargetRef={viewTargetRef}
-        onExitViewing={exitViewing}
+        historyTarget={historyTarget}
+        isViewingHistory={isViewingHistory}
+        historyTargetRef={historyTargetRef}
+        onExitHistory={exitHistory}
         nameOf={nameOf}
         memberColorOf={memberColorOf}
         canShare={canShare}
@@ -642,8 +653,8 @@ type Suggested =
           winnerSeat={(status?.winner_seat as number | null | undefined) ?? null}
           aiMemberOfSeat={aiMemberOfSeat}
           plays={plays}
-          viewingSeq={viewingSeq}
-          onSelectTurn={(seq: number) => select({ kind: 'turn', seq })}
+          historyId={historyId}
+          onShowHistory={(seq: number) => showHistory({ kind: 'turn', seq })}
         />
       </InfoSheet>
 

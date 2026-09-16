@@ -10,11 +10,11 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { db } from '../db'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
-import type { SnapshotRow, TurnSnapshot } from '../lib/history'
+import type { HistorySnapshotRow, HistorySnapshot } from '../lib/history'
 import { Board } from './Board'
 import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -77,7 +77,7 @@ export function BoardCol({
   maxGuesses,
   brand,
   // ── History viewer (its banner lives in the below-board region) ──
-  onExitViewing,
+  onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   readOnly,
@@ -91,18 +91,18 @@ export function BoardCol({
   /** The LIVE board rows (the viewer's own / the coop team board) — drives the
    *  keyboard letter-coloring, the in-flight `pendingWord` check, and the grid when
    *  not viewing history. */
-  rows: SnapshotRow[]
+  rows: HistorySnapshotRow[]
   /** The open history turn's snapshot (its rows + ringed row + banner label), or null
-   *  when live. Non-null exactly when viewing, so this column derives `viewing` from
+   *  when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
    *  it. */
-  snap: TurnSnapshot | null
+  snap: HistorySnapshot | null
   maxGuesses: number
   /** Brand name (manifest) for the grid's screen-reader label. */
   brand: string
 
   // ── History viewer ──
   /** Return to the live board (the banner click / ✕). */
-  onExitViewing: () => void
+  onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
@@ -141,7 +141,7 @@ export function BoardCol({
   const [pending, setPending] = useState<string | null>(null)
 
   // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `snap` only then).
-  const viewing = snap !== null
+  const isViewingHistory = snap !== null
 
   // Replay-board resets the live rows. A `pending` left over from the finished
   // run would then resurrect (its row is no longer in `rows`, so the "landed"
@@ -307,10 +307,10 @@ export function BoardCol({
     // Hard-off when the player can't act (loading / terminal / out of guesses /
     // mid-submit) OR while viewing history — no dispatch AND no dismissal.
     // Freezing capture while viewing lets a keystroke fall through to
-    // `act-exit-viewer` (return to live) instead of typing behind the banner.
+    // `act-exit-history` (return to live) instead of typing behind the banner.
     // (A stray key could never remove the verdict anyway: it leaves only by
     // its owner.)
-    disabled: !canGuess || viewing,
+    disabled: !canGuess || isViewingHistory,
     maxLength: 5, // a guess is one 5-letter word
   })
 
@@ -321,10 +321,10 @@ export function BoardCol({
         current={current}
         pending={snap ? '' : pendingWord}
         maxGuesses={maxGuesses}
-        active={!viewing && canGuess}
+        active={!isViewingHistory && canGuess}
         brand={brand}
-        viewing={viewing}
-        highlightRow={snap ? snap.highlightRow : -1}
+        isViewingHistory={isViewingHistory}
+        historyLitBoardRow={snap ? snap.historyLitBoardRow : -1}
         rejectNonce={rejectNonce}
         rejectTone={rejectTone}
         gameOver={gameOver}
@@ -338,27 +338,11 @@ export function BoardCol({
           slot's top message comes and goes — a soft reject, "you're out", the
           whose-turn note, the verdict, whichever ranks highest. */}
       <div className={styles.belowBoard}>
-        {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
-            below-board region (the feedback slot + the keyboard stay mounted underneath,
-            their capture frozen). Opaque surface + the history-blue border = the shared
-            "viewing history" marker; the description names the turn. Clicking anywhere / the ✕
-            exits (the banner covers the keyboard so a stray key can't type). */}
-        {viewing && snap && (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            <span className={history.bannerLabel}>{snap.description}</span>
-            <button
-              type="button"
-              className={history.bannerExit}
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitViewing()
-              }}
-              aria-label="Exit viewing"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        {/* The shared banner overlays the whole below-board region while a past turn
+            is open — the feedback slot + the keyboard stay mounted underneath, their
+            capture frozen, and the banner covers the keyboard so a stray key can't
+            type. */}
+        {isViewingHistory && snap && <HistoryBanner label={snap.description} onExit={onExitHistory} />}
         <div className={shared.localFeedback}>
           <FeedbackPill slot={localFeedbackSlot} />
         </div>

@@ -55,8 +55,8 @@ function renderLog(mode: 'coop' | 'compete' = 'compete') {
       aiMemberOfSeat={(seat) => (seat === 2 ? AI[0] : undefined)}
       selfId="u1"
       mode={mode}
-      viewingSeq={null}
-      onSelectTurn={() => {}}
+      historyId={null}
+      onShowHistory={() => {}}
     />,
   )
 }
@@ -109,8 +109,8 @@ describe('scrabble GameTurnLog — the whose-moves picker', () => {
         aiMemberOfSeat={() => AI[0]}
         selfId="u1"
         mode="compete"
-        viewingSeq={null}
-        onSelectTurn={() => {}}
+        historyId={null}
+        onShowHistory={() => {}}
       />,
     )
     await pickFilter('bea')

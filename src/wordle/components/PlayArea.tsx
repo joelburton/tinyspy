@@ -25,7 +25,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { turnSnapshot } from '../lib/history'
+import { historySnapshot } from '../lib/history'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
 import { BoardCol } from './BoardCol'
@@ -110,7 +110,7 @@ export function PlayArea({
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
   // BoardCol freezes its capture while viewing, so the viewer's own any-key
   // action (bound by the hook) has the keys to itself.
-  const { viewing, viewingId, select: selectTurn, exitViewing } =
+  const { isViewingHistory, historyId, showHistory, exitHistory } =
     useHistoryViewer<number>()
 
   // ─── Coop-win celebration ──────────────────────────────
@@ -452,9 +452,9 @@ export function PlayArea({
   // Turn-history: when a past turn is open, `snap` is that turn's board (the guess rows
   // up to it, the last one ringed); else null = live. `myGuesses` is exactly the board
   // BoardCol shows (coop team / compete self), and the log only hangs its #N handles on
-  // THAT board — so `viewingId` indexes `myGuesses` 1:1. Stable: a later realtime guess
-  // only grows the log past `viewingId`, so a past turn holds.
-  const snap = viewing && viewingId !== null ? turnSnapshot(myGuesses, viewingId) : null
+  // THAT board — so `historyId` indexes `myGuesses` 1:1. Stable: a later realtime guess
+  // only grows the log past `historyId`, so a past turn holds.
+  const snap = isViewingHistory && historyId !== null ? historySnapshot(myGuesses, historyId) : null
 
   // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
   // state. `readOnly` (glossary): the board is inert when there's no self row, the
@@ -485,7 +485,7 @@ export function PlayArea({
         maxGuesses={game.max_guesses}
         brand={brand}
         // ── History viewer ──
-        onExitViewing={exitViewing}
+        onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
         readOnly={readOnly}
@@ -533,8 +533,8 @@ export function PlayArea({
         // ── Turn log ──
         guesses={guesses}
         mode={game.mode}
-        viewingIndex={viewingId}
-        onSelectTurn={selectTurn}
+        historyId={historyId}
+        onShowHistory={showHistory}
         />
       </InfoSheet>
 

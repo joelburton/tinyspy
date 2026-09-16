@@ -358,7 +358,7 @@ export const ACTIONS = {
     repeat: true,
     consumes: false,
   },
-  'act-exit-viewer': {
+  'act-exit-history': {
     label: 'Back to the live board',
     keys: [{ pattern: 'any', label: 'any key' }],
   },

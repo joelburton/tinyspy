@@ -170,8 +170,8 @@ subscription silently kills the *whole* subscription. The registry test
 
 A spent hint is a log row, and it lives in `events` rather than a
 `strands.hints` sibling for one concrete reason: **the history viewer addresses
-a turn by POSITION in the displayed rows** (`snapshotAt(rows, index)`,
-`viewingIndex === i`). Two tables would mean merging two streams by timestamp on
+a turn by POSITION in the displayed rows** (`historySnapshot(rows, index)`,
+`historyId === i`). Two tables would mean merging two streams by timestamp on
 every render and then indexing into the merge, with cross-table ordering ties
 left nondeterministic — plus a second publication entry, a second policy, and a
 second delete in `replay_board`. One table keeps the log a single sequence.
@@ -187,7 +187,7 @@ it can't quietly stop being true.
 **A hint row stores its coords and not its word.** The coords are what let the
 viewer re-ring a past hint exactly as it looked; the word is withheld because a
 hint has never said it, and the log is the one place that would outlive the
-on-board ring being retired. They go to `TurnSnapshot.hintCoords`, kept separate
+on-board ring being retired. They go to `HistorySnapshot.hintCoords`, kept separate
 from `highlight` so the board draws them as *rings with no connecting line* —
 replaying a hint as a traced route would show an order the hint never gave.
 

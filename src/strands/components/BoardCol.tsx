@@ -10,6 +10,7 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import { EntryBox } from '@/common/word-entry/EntryBox'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
+import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import history from '@/common/turn-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -24,12 +25,12 @@ type Props = {
   onTileClick: (at: Coord) => void
   disabled: boolean
   /** Replaying a past turn. */
-  viewing: boolean
+  isViewingHistory: boolean
   /** The viewed turn's traced cells, ringed. */
-  highlight: Coord[]
+  historyLitTiles: Coord[]
   /** What the banner says about the viewed turn. */
-  viewingDescription: string
-  onExitViewing: () => void
+  historyLabel: string
+  onExitHistory: () => void
   /** The word being traced, as text. Empty when nothing is selected. */
   echo: string
   /** Take back the last traced cell — ⌫ and the button, one binding. */
@@ -72,10 +73,10 @@ export function BoardCol({
   hintCoords,
   onTileClick,
   disabled,
-  viewing,
-  highlight,
-  viewingDescription,
-  onExitViewing,
+  isViewingHistory,
+  historyLitTiles,
+  historyLabel,
+  onExitHistory,
   echo,
   actDelete,
   actSubmit,
@@ -97,8 +98,8 @@ export function BoardCol({
         hintCoords={hintCoords}
         onTileClick={onTileClick}
         disabled={disabled}
-        viewing={viewing}
-        highlight={highlight}
+        isViewingHistory={isViewingHistory}
+        historyLitTiles={historyLitTiles}
         ambiguous={ambiguous}
       />
 
@@ -113,22 +114,9 @@ export function BoardCol({
           rather than permanent so a `position` this row doesn't otherwise want
           isn't sitting on it during play — the same call codenamesduet /
           connections / psychicnum make. */}
-      <div className={cls(styles.echoSlot, viewing && history.bannerHost)}>
-        {viewing ? (
-          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-            <span className={history.bannerLabel}>{viewingDescription}</span>
-            <button
-              type="button"
-              className={history.bannerExit}
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitViewing()
-              }}
-              aria-label="Exit viewing"
-            >
-              ✕
-            </button>
-          </div>
+      <div className={cls(styles.echoSlot, isViewingHistory && history.historyBannerHost)}>
+        {isViewingHistory ? (
+          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
         ) : top !== null ? (
           <FeedbackPill slot={localFeedbackSlot} />
         ) : (
