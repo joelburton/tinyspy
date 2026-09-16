@@ -8,8 +8,8 @@ import { boardReady } from './helpers/ready'
 /**
  * Turn-history viewer for wordle — the feature added on the (still monolithic)
  * PlayArea. Clicking a turn-log #N replays that turn on the board: the guess rows up
- * to that turn shown, that turn's row ringed history-yellow (over its g/y/x colors),
- * the board wearing the yellow frame, and a description banner over the below-board
+ * to that turn shown, that turn's row ringed in the history blue (over its g/y/x
+ * colors), the board wearing the viewing frame, and a description banner over the below-board
  * region (covering the keyboard). These are real layout/overlay properties jsdom
  * can't see, so this is a browser check — and it pins the shared exit paths
  * (keystroke / a board click / any click) + the no-reflow invariant.
@@ -58,7 +58,7 @@ test.describe('wordle turn-history viewer', () => {
     await handles.first().click()
     await expect(banner).toContainText(`Guess 1: ${words[0]}`)
 
-    // Visual capture — the yellow board frame, the ringed guess row, the banner.
+    // Visual capture — the board frame, the ringed guess row, the banner.
     await page.screenshot({
       path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/wordle-history-viewing.png',
       fullPage: true,

@@ -7,33 +7,20 @@ import infoPanel from '../info-sheet/infoPanel.module.css'
 import styles from './TurnLog.module.css'
 import history from './historyViewer.module.css'
 
-/** The outcome a row's left bar paints — the outcome families, by name, shared
- *  across games: `won` (a correct move), `lost` (a wrong one), `near` (one away),
- *  `neutral` (a move nothing can adjudicate). */
 /**
- * The shared **turn log**: a game's per-turn history (one entry per turn — which
- * is per guess for most games, but a codenamesduet turn can span several guesses). A
- * heading over an evident, fixed-height, bordered scroll box that auto-snaps to
- * the newest row like a chat panel.
+ * The shared **turn log** — a game's account of what happened, one entry per turn
+ * (which is per guess for most games, but a codenamesduet turn can span several).
+ * Reach for it when a game's readout is chronological; `<WordList>` is the
+ * alphabetical counterpart. A heading over an evident, fixed-height, bordered
+ * scroll box that auto-snaps to the newest row like a chat panel.
  *
- * It's a **`<table>`** so each game's row pieces line up in columns *across*
- * rows. But the **row anatomy is the game's** — how many `<tr>`s a turn is, how
- * many cells, what spans — because that genuinely differs game to game (a one-row
- * three-column guess, a two-row clue-then-guesses turn, a row with an inline
- * mini-board…). So `<TurnLog>` makes **no** assumption about rows: its children
- * are the `<tr>`s the game renders. The only shared contract is "a turn-log item
- * is a `<tr>` inside this table."
+ * **The panel owns no row.** Its children ARE the `<tr>`s the game renders, built
+ * from this folder's atoms (`<TurnLogBar>`, `<TurnLogNumber>`, `<TurnLogActor>`)
+ * and the sizing/emphasis classes in `TurnLog.module.css`. The only shared
+ * contract is "a turn-log item is a `<tr>` inside this table" — doc.md says why.
  *
- * What IS shared is *vocabulary a game composes into its own rows*, so logs look
- * consistent without imposing structure:
- *   - **`<TurnLogBar>`** — the colored outcome-bar cell (optional; most games
- *     include it, but a game's row needn't).
- *   - the content classes in `TurnLog.module.css` (`.primary` / `.meta` /
- *     `.who` / `.actor` / `.dot`), and `.turnLogDivider` for the between-turns
- *     line.
- *
- * Distinct from a **word list** (`<WordList>`, spellingbee/boggle), which is
- * alphabetical, not chronological. See docs/ui.md → "Turn log".
+ * `useTurnLogPlayerPicker` supplies `headerAction`, `empty` and `emptyText`
+ * together; its docstring has the call.
  */
 export function TurnLog({
   heading,
@@ -45,27 +32,20 @@ export function TurnLog({
   children,
 }: {
   heading: string
-  /** Control rendered right-aligned on the heading row — in practice always the
-   *  `useTurnLogPlayerPicker` dropdown.
-   *
-   *  ⚠️ OPTIONAL IN NAME ONLY, and it should stop being optional. Every one of
-   *  the eleven `<TurnLog>` call sites passes it (verified 2026-08-21), so the
-   *  bare-`<h3>` branch below has no callers. It was written to let games adopt
-   *  the picker one at a time; the last one landed and nobody removed the ramp.
-   *  Make it required and delete the branch — the section-header pattern pass
-   *  is the moment to do it (todo.md). */
+  // Control rendered right-aligned on the heading row — in practice always the
+  // `useTurnLogPlayerPicker` dropdown.
   headerAction?: ReactNode
-  /** True when there are no rows — renders the muted empty state instead. */
+  // True when there are no rows — renders the muted empty state instead.
   empty: boolean
   emptyText?: string
-  /** Changes whenever the rows change (e.g. the rows array, or its length);
-   *  drives the scroll-to-latest effect. */
+  // Changes whenever the rows change (e.g. the rows array, or its length);
+  // drives the scroll-to-latest effect.
   scrollKey: unknown
-  /** Optional extra class merged onto the root. The panel already fills its
-   *  flex parent (`flex: 1` on `.turnLog`); this is only for a rare per-game
-   *  override (a different width/flex). */
+  // Optional extra class merged onto the root. The panel already fills its flex
+  // parent (`flex: 1` on `.turnLog`); this is only for a per-game override (a
+  // different width/flex).
   className?: string
-  /** The game's `<tr>` rows (it owns their structure — see the component note). */
+  // The game's `<tr>` rows (it owns their structure — see the component note).
   children: ReactNode
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
@@ -83,13 +63,7 @@ export function TurnLog({
 
   return (
     <section className={cls(styles.turnLog, className)}>
-      {/* Heading + a right-aligned control on one line.
-          ⚠️ DEAD BRANCH: all eleven call sites pass `headerAction`, so the
-          `<h3>`-alone arm never runs. Delete it (and make the prop required)
-          at the section-header pattern pass — see the prop's docstring. Note
-          the branch wouldn't be needed even with an empty right-hand slot:
-          `space-between` with one child puts the heading on the left, exactly
-          where a bare `<h3>` sits. */}
+      {/* Heading + a right-aligned control on one line. */}
       {headerAction ? (
         <div className={infoPanel.headerRow}>
           <h3 className={infoPanel.heading}>{heading}</h3>
@@ -125,10 +99,10 @@ export function TurnLogBar({
   outcome,
   rowSpan,
 }: {
-  /** ANY outcome. There is no turn-log outcome type and there must not be one:
-   *  a map covering only the words one game happened to use is what forces the
-   *  next game to squeeze its answer into somebody else's three, which is how a
-   *  log ends up disagreeing with the pill about the same event. */
+  // ANY outcome. There is no turn-log outcome type and there must not be one: a
+  // map covering only the words one game happened to use is what forces the next
+  // game to squeeze its answer into somebody else's three, which is how a log
+  // ends up disagreeing with the pill about the same event.
   outcome: Outcome
   rowSpan?: number
 }) {
@@ -144,34 +118,33 @@ export function TurnLogBar({
 /**
  * The turn-log **"#N" handle** — the shared turn-history control. Clicking it opens
  * that turn on the board viewer; when that turn is the one being viewed, the number
- * wears a yellow outline (mirroring the board `.frame`). It lives in the muted
+ * wears the history blue ring (mirroring the board `.frame`). It lives in the muted
  * `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
  *
  * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
  * (codenamesduet's clue + guess rows). A whole-row "viewing" outline then draws a
  * broken box across those rows, and a per-row hover lights only half the turn. A
  * single small handle stays crisp no matter how many rows a turn spans — so every
- * history game hangs its click + outline here, and they all read identically. See
- * docs/playarea.md.
+ * history game hangs its click + outline here, and they all read identically.
  *
  * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
  * on Space — so pressing Space to leave the viewer (the shared "any key exits")
  * would instead re-select the turn. A span with an `onClick` isn't focusable, so it
- * takes no keystroke and Space falls through to the game's exit-on-key handler. The
- * `data-turn-number` marker lets a click-anywhere-to-exit handler tell "the user is
- * selecting a turn" from "the user clicked away" (see codenamesduet's PlayArea).
+ * takes no keystroke and Space falls through to `act-exit-viewer`. The
+ * `data-turn-number` marker is how `useHistoryViewer`'s click-anywhere-to-exit
+ * listener tells "the user is selecting a turn" from "the user clicked away".
  */
 export function TurnLogNumber({
   n,
   viewing,
   onSelect,
 }: {
-  /** The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
-   *  codenamesduet's `turn_number`, stackdown/waffle's 1-based log position). */
+  // The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
+  // codenamesduet's `turn_number`, stackdown/waffle's 1-based log position).
   n: number
-  /** Is this the turn currently open in the board viewer? Rings the number yellow. */
+  // Is this the turn currently open in the board viewer? Rings the number blue.
   viewing: boolean
-  /** Open this turn on the board viewer. */
+  // Open this turn on the board viewer.
   onSelect: () => void
 }) {
   return (

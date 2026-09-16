@@ -101,7 +101,7 @@ export function GameTurnLog({
         <tr key={p.seq} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={outcomeFor(p.kind)} />
           {/* Turn number — the play's 1-based seq; the shared handle opens that
-              turn on the board viewer and rings itself yellow while it's open. */}
+              turn on the board viewer and rings itself while it's open. */}
           <TurnLogNumber
             n={p.seq}
             viewing={viewingSeq === p.seq}

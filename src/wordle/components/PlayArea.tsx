@@ -106,7 +106,7 @@ export function PlayArea({
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn's board (the guess rows up to that turn,
-  // with that turn's row ringed history-yellow). Keyed by log position. Exit is
+  // with that turn's row ringed in the history blue). Keyed by log position. Exit is
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
   // BoardCol freezes its capture while viewing, so the viewer's own any-key
   // action (bound by the hook) has the keys to itself.

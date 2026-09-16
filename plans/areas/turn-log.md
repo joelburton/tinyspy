@@ -6,8 +6,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN, audited 2026-09-16.** Roster agreed (Joel: *"audit this
 area"*) and stamped `cs-met-turn-log`; every file read, and the docs and
-games around it read as evidence. Seventeen findings, none worked. The prose
-ones — F-1 to F-5 — are the prose pass; the rest wait for a decision each.
+games around it read as evidence. Seventeen findings; **the prose pass — F-1
+to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
+F-4 turned up: every file in the repo that called the shared history marker
+yellow. The remaining twelve wait for a decision each.
 
 ## The roster
 
@@ -29,7 +31,8 @@ ones — F-1 to F-5 — are the prose pass; the rest wait for a decision each.
 - `useTurnLogPlayerPicker.tsx` — the "whose turns?" dropdown, its default, the
   row filter, `boardIsShown`, the honest empty line
 - `useTurnLogPlayerPicker.test.tsx`
-- `doc.md` (a lede; no intro, no Details) · `todo.md` (one Bug, three Soons)
+- `doc.md` (lede + intro + Details, written in the prose pass) · `todo.md`
+  (one Bug, three Soons)
 
 Evidence, read and left:
 
@@ -89,6 +92,23 @@ who mounts what, the games' nodes marked. Most of it is written, in
 `TurnLog.tsx`, the two stylesheet headers, the two hooks and `playarea.md`;
 it moves rather than being rewritten, and the archaeology stays behind.
 
+**WORKED 2026-09-16.** The lede names both halves. The intro is four narrative
+paragraphs: why a log has to look the same in every game while no two games
+have the same turn, so the panel owns no row and supplies the frame plus a
+vocabulary; the viewer as one flag with three exits nobody wires; and the
+`boardIsShown` question between them. `## Details` took six — why a `<table>`
+and what it costs, what stays the game's on the viewer's side of the seam, why
+`boardIsShown` is false more often than it looks, why the picker's six results
+travel together, the input that is frozen to the eye and alive underneath (the
+Note), and the render tree, drawn with the game's own two files in it because
+that is the shape no single file shows. `common/turn-log` is off `INTROS_OWED`.
+
+**Three things this finding listed did NOT move**, deliberately: why `#N` is a
+`<span>`, the bar's `::before` spacer, and the `.main`/`.who` sizing model. Each
+already has one home a reader reaches first — `TurnLogNumber`'s docstring and
+the two stylesheet headers — and copying them into `doc.md` is the tour
+`docs/common-folders.md` forbids.
+
 ### F-turn-log-2 · `orphaned-turnoutcome-docstring` · A deleted type's docstring sits on top of the component's
 
 `TurnLog.tsx` lines 10–12: *"The outcome a row's left bar paints — the outcome
@@ -97,6 +117,8 @@ families, by name, shared across games: `won` … `lost` … `near` … `neutral
 it lists are the three-short list that story is about). Its declaration went;
 the `/**` block stayed, stacked directly over `TurnLog`'s own docstring, so a
 hover shows the first one. Delete it.
+
+**WORKED 2026-09-16.** Deleted.
 
 ### F-turn-log-3 · `stale-claims` · Eight claims in the folder that describe something the repo no longer has
 
@@ -130,6 +152,14 @@ hover shows the first one. Delete it.
   word; the comment keeps the rule (opening a turn leaves the info page,
   unconditionally) and loses the story.
 
+**WORKED 2026-09-16.** All eight, as written. A ninth turned up while editing:
+`.turnLogBox` carried TWO comment blocks, the first claiming the 2px border is
+this rule's and the second (correct) saying the frame is `infoPanel.box` — one
+block now. The `headerAction` ⚠️ went from both the prop and the JSX, with its
+one durable observation moved into the `todo.md` entry that owns the question
+(`space-between` with one child already puts the heading where a bare `<h3>`
+sits, so the arm buys nothing even for a caller with an empty slot).
+
 ### F-turn-log-4 · `playarea-md-stale` · The doc this folder points at is wrong about the viewer's color, its wiring, its paths and its games
 
 `docs/playarea.md` → Turn-history viewer and What building it taught us:
@@ -161,6 +191,26 @@ hover shows the first one. Delete it.
 Nobody's folder owns `playarea.md`; the turn-log and viewer sections are this
 area's to correct because they describe this folder.
 
+**WORKED 2026-09-16.** Every bullet. Two more pre-reorg paths sat in the same
+sections (`common/turn-log/…` without the `src/` the rest of the doc writes),
+and psychicnum's per-game bullet said "a yellow ring" for the same token.
+
+**And the sweep the first bullet implies.** The claim is not playarea.md's
+alone: `--view-history-color` is `#4a7bab` and every history marker in the app
+reads it, so "yellow" was wrong in twenty-odd places. Fixed in the same commit
+(areas are coverage, not a fence — a verified wrong sentence is not another
+area's to keep): codenamesduet (6 files), stackdown (5), wordle (5), strands
+(2), scrabble (3 — and `docs/games/scrabble.md`, which named a
+`--scrabble-viewer` token that no longer exists), letterboxed (2); five files
+under `docs/games/`, and the four `*-history.e2e.ts`. Two neighbors were wrong
+about more than the color and were rewritten to what the code does now:
+codenamesduet's log names a `viewedRow` class it has never had, and
+`docs/mobile.md` said waffle's picked-up tile wears `--view-history-color` at
+4px when it wears the shared `.tile.selected` mark. Left alone, correctly:
+waffle's turn-start flash and spellingbee's center letter really are yellow,
+and `historyViewer.module.css`'s paragraph on why the frame must NOT be yellow
+is the one place the word belongs.
+
 ### F-turn-log-5 · `prop-markers` · `/**` on members throughout
 
 `TurnLog`'s inline props type (six members), `TurnLogBar` (one),
@@ -170,6 +220,14 @@ per member. The rule is `//` on a member of a declaration; the component's
 own docstring is the `/**`. `useTurnLogPlayerPicker`'s `boardIsShown` note is
 twelve lines and the best explanation of the seam in the repo — it moves to
 `doc.md` → Details and the member keeps two lines.
+
+**WORKED 2026-09-16.** All twenty-six members, and `boardIsShown` moved as
+described. Three docstrings were over the hover budget once their members
+stopped carrying the load, so they were cut to what a caller needs: `TurnLog`
+(24 → 14 lines, the row-vocabulary list now a clause pointing at `doc.md`),
+`useHistoryViewer` (26 → 16, the per-game seam compressed to the two wiring
+lines and a pointer), and `useTurnLogPlayerPicker` (30 → 17, the "You" label
+archaeology and the six-things paragraph moved to `doc.md`).
 
 ### F-turn-log-6 · `header-action-required` · `headerAction` is optional in name only, with a ⚠️ in two places saying so
 

@@ -31,7 +31,7 @@ type Props = {
    *  longer "in progress," so it reads "(no guesses)", not "(clue given)". */
   gameOver: boolean
   /** Turn-history: the turn currently open in the board viewer (by `turn_number`),
-   *  or null when live. That turn's two rows wear the shared yellow `viewedRow`. */
+   *  or null when live. That turn's `#N` handle wears the shared viewing ring. */
   viewingSeq: number | null
   /** Open a turn in the board viewer — click (or Enter/Space) any of its rows. */
   onSelectTurn: (turnNumber: number) => void
@@ -67,8 +67,8 @@ type Props = {
  * tiny); the shared `<TurnLog>` snaps to the latest row.
  *
  * **Turn-history:** the turn's `#N` handle (the shared `<TurnLogNumber>`) opens that
- * turn on the board (PlayArea's `useHistoryViewer`) and rings itself yellow while
- * open. The click + marker live on the number, not the row, precisely because a
+ * turn on the board (PlayArea's `useHistoryViewer`) and rings itself in the history
+ * blue while open. The click + marker live on the number, not the row, precisely because a
  * codenamesduet turn is TWO `<tr>`s — a whole-turn outline would draw a broken box
  * and a per-row hover would light only half of it (see `<TurnLogNumber>`).
  */

@@ -13,65 +13,37 @@ const ALL = 'all'
 const TEAM = 'team'
 
 export type TurnLogPlayerPicker<R extends ActorRow> = {
-  /** The `<select>`, for `<TurnLog headerAction>`. */
+  // The `<select>`, for `<TurnLog headerAction>`.
   picker: React.ReactNode
-  /** Rows narrowed to the current selection. */
+  // Rows narrowed to the current selection.
   filter: (rows: readonly R[]) => R[]
-  /** What's selected: a user id, or `'team'` / `'all'`. */
+  // What's selected: a user id, or `'team'` / `'all'`.
   picked: string
-  /** True while an aggregate view (`Team` / `All`) is selected. */
+  // True while an aggregate view (`Team` / `All`) is selected.
   showsEveryone: boolean
-  /**
-   * True when the rows on show are the SAME sequence the board is replaying.
-   * Only games with a turn-history viewer care: they make `#N` a live handle
-   * when this is true and a plain number otherwise.
-   *
-   * Note this is FALSE whenever a single player is picked out of a shared,
-   * multi-player coop game. The viewer indexes the log by position, so a
-   * filtered list's row 3 isn't the board's turn 3 — offering the handle there
-   * would replay the wrong turn. Coop's default `Team` keeps it live, which is
-   * the common case, and a SOLO game is always live (its filter is a no-op).
-   *
-   * Games whose viewer addresses a turn by a stable id — scrabble by `seq`,
-   * codenamesduet by `turn_number` — can't be misaddressed by filtering, so they
-   * ignore this and leave the handle live throughout.
-   */
+  // True when the rows on show are the SAME sequence the board is replaying. A
+  // game that addresses a turn by log position makes `#N` a live handle only
+  // while this holds — doc.md → Details says why it can be false.
   boardIsShown: boolean
-  /**
-   * The empty-state line, which has to stay HONEST. In compete, RLS hides an
-   * opponent's rows until the game ends — so an empty opponent log mid-game
-   * means "hidden", not "they haven't played". At terminal their rows reveal
-   * and empty really is empty.
-   */
+  // The empty-state line, which has to stay HONEST: in compete an empty opponent
+  // log mid-game means "hidden", not "they haven't played".
   emptyText: string
 }
 
 /**
- * The "whose turns am I looking at?" dropdown for a `<TurnLog>`, plus the
- * filtering and the honesty rules that travel with it.
- *
- * **One vocabulary, every turn-log game** (settled 2026-08-02):
+ * The "whose turns am I looking at?" dropdown for a `<TurnLog>`, plus the filtering
+ * and the honesty rules that travel with it. One vocabulary, every turn-log game:
  *
  *   solo     →  [ your handle ]
  *   co-op    →  [ Team, …every player by handle ]
  *   compete  →  [ All,  …every player by handle ]
  *
- * The aggregate comes first, and is the default everywhere EXCEPT compete —
- * there each player has their own board, so your own log is the thing you came
- * to read (`competeSharesOneGame` opts scrabble back out of that). The
- * per-player entries are for the times you want one thread out of the whole:
- * "what did Leah actually play?", or "just my own moves" in a game like scrabble
- * where the shared log interleaves everyone.
- *
- * **Players are named by handle, including you.** An earlier version labeled
- * the viewer "You", which made your own row read as a different KIND of thing
- * from everyone else's; a list of handles is one list. You're still ordered
- * first, and still the default in compete.
- *
- * Six things travel together here, and re-deriving any of them per game is how
- * they drift: the control, its default selection, the aggregate label (which
- * differs by mode), the row filter, whether `#N` may be a live history handle,
- * and the empty-state wording.
+ * The aggregate comes first and is the default everywhere EXCEPT compete — there
+ * each player has their own board, so your own log is the thing you came to read
+ * (`competeSharesOneGame` opts scrabble back out of that). The per-player entries
+ * are for pulling one thread out of the whole: "what did Leah actually play?".
+ * Everyone is named by handle, you included. doc.md → Details says why all six
+ * results travel together rather than being re-derived per game.
  *
  *     const who = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
  *     const shown = who.filter(rows)
@@ -89,19 +61,15 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
-  /** Distinguishes an RLS-hidden opponent log from a genuinely empty one. */
+  // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
   isTerminal: boolean
-  /**
-   * True when compete is still ONE shared game. scrabble's race is turn-based on
-   * a single public board, so `All` is literally what you're looking at and the
-   * picker defaults there; the per-player entries are the extra ("just my own
-   * plays"). Every other compete game gives each player their own private board,
-   * where your own log is the thing you came to read — hence the default.
-   */
+  // True when compete is still ONE shared game. scrabble's race is turn-based on a
+  // single public board, so `All` is literally what you're looking at and the picker
+  // defaults there; the per-player entries are the extra ("just my own plays").
   competeSharesOneGame?: boolean
-  /** Override for a game whose rows aren't "turns" (wordle says "guesses"). */
+  // Override for a game whose rows aren't "turns" (wordle says "guesses").
   label?: string
-  /** The empty line when nothing is HIDDEN — the honest-hidden case overrides it. */
+  // The empty line when nothing is HIDDEN — the honest-hidden case overrides it.
   emptyLabel?: string
 }): TurnLogPlayerPicker<R> {
   const ordered = orderSelfFirst(players, selfId)

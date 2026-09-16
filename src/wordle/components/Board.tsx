@@ -34,7 +34,7 @@ type Props = {
    *  screen-reader label — kept out of this chunk's source so the brand
    *  lives only in the manifest. */
   brand: string
-  /** Turn-history: wear the shared yellow viewing frame and make the board
+  /** Turn-history: wear the shared viewing frame and make the board
    *  click-through (so a board click falls to the document exit listener).
    *  While viewing, PlayArea also hands historical `rows` + `active={false}` +
    *  no `pending`, and rows never flip (they're already-final history). */

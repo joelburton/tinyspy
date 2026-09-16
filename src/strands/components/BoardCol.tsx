@@ -105,7 +105,7 @@ export function BoardCol({
       {/* While replaying, the banner takes the echo/pill slot: what you want
           there is "which turn am I looking at", and the slot is already the
           fixed-height row that answers "what just happened". Opaque surface +
-          yellow border is the shared viewing marker, matching the board frame
+          history-blue border is the shared viewing marker, matching the board frame
           and the log's ringed `#N`. */}
       {/* `bannerHost` only WHILE VIEWING — the banner is `position: absolute;
           inset: 0` and needs a positioning context, and without one it filled

@@ -9,7 +9,7 @@ import { signIn } from './helpers/session'
  * PlayArea ahead of the BoardCol/InfoCol decomposition (docs/playarea.md).
  *
  * Clicking a turn-log row replays that turn's board: the reveal state after that
- * turn's guesses, the whole board wearing the yellow history frame, the turn's own
+ * turn's guesses, the whole board wearing the history frame, the turn's own
  * cells ringed, and a description banner overlaying the below-board slot. These are
  * real layout/overlay properties jsdom can't see (`getBoundingClientRect` is all
  * zeros there) — so, like the sibling `codenamesduet.e2e.ts` layout guard, this is a
@@ -80,7 +80,7 @@ test.describe('codenamesduet turn-history viewer', () => {
     const viewingHeight = await boardHeight(pageBob)
     expect(Math.abs(viewingHeight - liveHeight)).toBeLessThan(1)
 
-    // Visual capture — the full page, so the yellow board frame (an outline OUTSIDE
+    // Visual capture — the full page, so the board frame (an outline OUTSIDE
     // the board box), the ringed just-guessed cell, the banner, and the highlighted
     // log row all show.
     await pageBob.screenshot({

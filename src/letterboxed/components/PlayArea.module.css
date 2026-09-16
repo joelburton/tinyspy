@@ -66,7 +66,7 @@
 
 /* The chain strip + the board, as one unit — what the turn-history viewer
  * frames (BoardCol explains why they're a pair). Purely a grouping box: it
- * exists so ONE yellow outline can wrap both, and it must be invisible to the
+ * exists so ONE viewing outline can wrap both, and it must be invisible to the
  * layout otherwise.
  *
  * `gap: inherit` rather than a repeated `0.75rem`: the value belongs to the

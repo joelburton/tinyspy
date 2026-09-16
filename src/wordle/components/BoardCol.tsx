@@ -340,8 +340,8 @@ export function BoardCol({
       <div className={styles.belowBoard}>
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the feedback slot + the keyboard stay mounted underneath,
-            their capture frozen). Opaque surface + yellow border = the shared "viewing
-            history" marker; the description names the turn. Clicking anywhere / the ✕
+            their capture frozen). Opaque surface + the history-blue border = the shared
+            "viewing history" marker; the description names the turn. Clicking anywhere / the ✕
             exits (the banner covers the keyboard so a stray key can't type). */}
         {viewing && snap && (
           <div className={history.banner} onClick={onExitViewing} title="Click to exit">

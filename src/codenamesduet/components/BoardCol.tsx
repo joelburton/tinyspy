@@ -239,7 +239,8 @@ export function BoardCol({
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this
               below-board slot (the CluePanel / pill stays mounted underneath, so an
-              in-progress clue survives). Opaque surface + yellow border = the shared
+              in-progress clue survives). Opaque surface + the history-blue border =
+              the shared
               "viewing history" marker; the description names the turn. Click anywhere
               (intrinsic to the viewer) / the ✕ returns to live. */}
           {viewing && viewingDescription && (

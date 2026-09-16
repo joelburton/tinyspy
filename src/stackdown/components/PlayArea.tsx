@@ -139,7 +139,7 @@ export function PlayArea({
   // The shared coordination state (docs/playarea.md): which log
   // row is open on the board. Identified by the row's POSITION in the log, not its
   // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
-  // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the yellow
+  // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the viewing
   // frame + banner and freezes input, and any keystroke / board click / ✕ exits.
   const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing } =
     useHistoryViewer()
@@ -699,7 +699,7 @@ export function PlayArea({
         appendTile={appendTile}
         retractTo={retractTo}
         onSubmitWord={submit}
-        // While viewing a past turn, BoardCol's yellow overlay banner covers the
+        // While viewing a past turn, BoardCol's overlay banner covers the
         // slot's region with the turn's description.
         localFeedbackSlot={localFeedbackSlot}
         flash={flash}

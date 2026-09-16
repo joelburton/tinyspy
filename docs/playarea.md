@@ -334,8 +334,8 @@ box fits where it sits.)
 
 ## Turn log
 
-The shared **`<TurnLog>`** (`common/components/game/lists/TurnLog.tsx`) is a game's per-turn
-history — one **item** per turn (= per guess for most games; a TinySpy turn can
+The shared **`<TurnLog>`** (`src/common/turn-log/TurnLog.tsx`) is a game's per-turn
+history — one **item** per turn (= per guess for most games; a codenamesduet turn can
 span a clue + several guesses, so an item is a "turn", never a "guess" in the
 shared vocabulary). It's the chronological counterpart to the alphabetical
 `<WordList>` (spellingbee/boggle); a game has whichever fits.
@@ -347,9 +347,8 @@ clue-then-guesses turn, a row with an inline mini-board. So a game renders its
 **own `<tr>`s** inside `<TurnLog>` (its children *are* the rows). The only shared
 contract is *"a turn-log item is a `<tr>` in this table."* Even the column count
 isn't shared — psychicnum's one-guess row and a future five-column stat row are
-both valid. (Trying to parameterize one row shape into a shared `<TurnLogItem>`
-was overfitting — it grows a prop per game-shape; the game-owns-its-rows rule is in
-[Turn log](#turn-log) above. `<TurnLogItem>` was retired for this reason.)
+both valid. (Parameterizing one row shape into a shared row component is
+overfitting — it grows a prop per game-shape.)
 
 What *is* shared is **vocabulary a game composes into its own rows**, so logs look
 consistent without imposing structure:
@@ -469,15 +468,6 @@ Two games bend the defaults, both documented at their call site:
   actor column already names — since a duet turn is one clue plus the guesses that
   answered it.
 
-**`<TurnLogItem>` has been deleted.** It was a thin legacy single-row wrapper
-(one `<tr>` = `<TurnLogBar>` + `.turnLogDivider` + the game's cells) kept only for
-games not yet converted; **waffle** was the last caller, and converting it to its
-own `<tr>` (a single-row swap entry: bar + `#N` + the move in `.main` + the
-swapper in `.who`) left no callers, so the wrapper is gone. A new game renders its
-own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
-`HistoryPanel` predecessor this whole system replaced was already **deleted** —
-scrabble's framed `GameTurnLog` is separate and unaffected.)
-
 ## Word list
 
 The shared **`<WordList>`** (`common/components/game/lists/WordList.tsx`) is the
@@ -593,10 +583,11 @@ someone else got there a second earlier. Compete-post-terminal only (coop's
 ## Turn-history viewer
 
 Every game whose board can replay past turns (scrabble, stackdown, connections,
-psychicnum, codenamesduet, wordle, waffle, strands) lets you **click a past turn to
-see the board as it was then**. The affordance is shared and looks identical everywhere:
+psychicnum, codenamesduet, wordle, waffle, strands, letterboxed, setgame) lets you
+**click a past turn to see the board as it was then**. The affordance is shared and
+looks identical everywhere:
 
-- **The `#N` handle** (`<TurnLogNumber>` in `common/turn-log/TurnLog.tsx`) — each
+- **The `#N` handle** (`<TurnLogNumber>` in `src/common/turn-log/TurnLog.tsx`) — each
   turn's number cell is the click target; clicking it opens that turn on the board.
   **Not** the whole row: several games render a turn as multiple `<tr>`s
   (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
@@ -605,14 +596,15 @@ see the board as it was then**. The affordance is shared and looks identical eve
   exit), and it carries `data-turn-number` so the click-to-exit handler can tell
   "select a turn" from "click away."
 - **The framed board.** While viewing, the board wears the shared
-  `historyViewer.module.css → .frame` (a yellow "viewing" outline + banner, input
-  frozen) and the open turn's `#N` wears `.viewedNumber` (the matching yellow ring).
+  `historyViewer.module.css → .frame` (a "viewing" outline in the history blue +
+  banner, input frozen to the eye — it stays mounted underneath, so an in-progress
+  entry survives) and the open turn's `#N` wears `.viewedNumber` (the matching ring).
   `.frame` also sets `pointer-events: none`, so a board click falls through to the
   exit handler — a viewed board is a read-only snapshot.
-- **Three exits, all shared:** a keystroke, a click anywhere (except another `#N`
-  handle, which switches turns), or the banner **✕**. Two are intrinsic to the hook;
-  only the keystroke path is wired per game (it must cooperate with the game's own
-  key handler).
+- **Three exits, all shared.** A keystroke (the hook binds `act-exit-viewer`, whose
+  any-key wildcard consumes the press) and a click anywhere (except another `#N`
+  handle, which switches turns) are intrinsic to the hook — a game wires neither.
+  The third is the banner **✕**, which the game draws and points at `exitViewing`.
 - **On a phone, opening a turn leaves the info page.** `select` clears the info-sheet
   flag (`setInfoSheetOpen(false)`) as well as setting the viewed turn, because below
   the breakpoint the `#N` handle lives in the turn log — which is *on* the off-canvas
@@ -625,7 +617,7 @@ see the board as it was then**. The affordance is shared and looks identical eve
   only give the two a way to disagree.
 
 The coordination — which turn is open + the enter/exit affordances — is the shared
-**`useHistoryViewer`** hook (`common/hooks/game/useHistoryViewer.ts`); the `PlayArea`
+**`useHistoryViewer`** hook (`src/common/turn-log/useHistoryViewer.ts`); the `PlayArea`
 holds it as its one cross-column "am I viewing" state. What stays **per-game** is how
 a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
 board shape and even the boundary differ: an ADD-style board shows the turn's own
@@ -849,13 +841,13 @@ adding a viewer to a new game:
   viewed turn's four tiles stay on the grid, tinted by outcome + ringed. Needed a `#N`
   column added to its two-`<tr>` log.
 - **wordle** — keyed by **log position**; **inclusive / add-style**: the snapshot
-  (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed
-  history-yellow (`Board` gains `viewing` + `highlightRow`). Twist: the log has a
+  (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed in the
+  history blue (`Board` gains `viewing` + `highlightRow`). Twist: the log has a
   **"whose board" picker**, so the `#N` handle is a live control ONLY when the log shows
-  the board that replays (coop team / my own — `boardIsShown = teamView || picked ===
-  selfId`); an opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
+  the board that replays (coop team / my own — the picker's `boardIsShown`); an
+  opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
 - **psychicnum** — keyed by **log position**; add-style; the guessed tile shows its
-  green/red outcome color + a yellow ring.
+  green/red outcome color + a ring in the history blue.
 - **codenamesduet** — keyed by **`turn_number`** (game-wide ordinal, like scrabble's
   `seq`, not log position); the snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
@@ -1012,12 +1004,13 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **The turn-viewer affordance is the "#N handle", shared across all history games.**
   A turn is opened on the board viewer by clicking its **`#N` number** (the shared
-  `<TurnLogNumber>` in `common/turn-log/TurnLog.tsx`), which rings *itself* yellow
-  while that turn is open — NOT by clicking the whole row. Why: several games render a
-  turn as multiple `<tr>`s (codenamesduet's clue + guess rows), where a whole-row
-  "viewing" outline draws a broken box and a per-row hover lights only half the turn —
-  a single small handle stays crisp regardless of row count. The yellow "viewing"
-  marker is `historyViewer.module.css → .viewedNumber`. A history log therefore
+  `<TurnLogNumber>` in `src/common/turn-log/TurnLog.tsx`), which rings *itself* in
+  the history blue while that turn is open — NOT by clicking the whole row. Why:
+  several games render a turn as multiple `<tr>`s (codenamesduet's clue + guess rows),
+  where a whole-row "viewing" outline draws a broken box and a per-row hover lights
+  only half the turn —
+  a single small handle stays crisp regardless of row count. The "viewing" marker is
+  `historyViewer.module.css → .viewedNumber`. A history log therefore
   needs a `#N` cell to hang the handle on (a future history game without one must add
   it). The handle is a **`<span>`, not a `<button>`** — a focused button re-fires its
   click on Space, so pressing Space to leave the viewer would re-select the turn; a
@@ -1038,7 +1031,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **`useHistoryViewer`** (rule of three): once turn-history reached three games the
   coordination itself (the `viewingId` + "am I viewing" flags + the enter/exit
-  affordances) lifted into `common/turn-log/useHistoryViewer.ts`, pulling that growth
+  affordances) lifted into `src/common/turn-log/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
   `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See
   the hook's own docstring.

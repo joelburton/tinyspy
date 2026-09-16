@@ -179,7 +179,7 @@ export function BoardCol({
           the strip live while the board rolled back, so the two disagreed and
           showed a combination that never existed. One box also beats two here
           on looks — `.frame` is an outline with a 3px offset, so adjacent
-          frames would put two yellow lines a few pixels apart with the column
+          frames would put two outlines a few pixels apart with the column
           gap between them.
 
           The wrapper re-declares the column's own flex + gap so inserting it

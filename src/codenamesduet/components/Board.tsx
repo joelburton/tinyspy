@@ -48,12 +48,12 @@ type Props = {
   /** Fire a guess on the given board position. PlayArea owns the submit_guess
    *  RPC + the own-action error flash; this component just reports the click. */
   onGuess: (position: number) => void
-  /** Turn-history: render read-only under the yellow viewer frame (a past turn's
+  /** Turn-history: render read-only under the viewer frame (a past turn's
    *  board). `words` is then the historical snapshot; PlayArea gates clicks off and
    *  the board column catches a click to exit. Off during live play. */
   viewing?: boolean
-  /** Turn-history: the board positions the viewed turn decided — ring each one
-   *  history-yellow ("added this turn"). Empty / omitted when live. */
+  /** Turn-history: the board positions the viewed turn decided — ring each one in
+   *  the history blue ("added this turn"). Empty / omitted when live. */
   highlight?: ReadonlySet<number>
 }
 
@@ -93,7 +93,7 @@ export function Board({
     // measures this element's height across below-board states (it must not
     // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
     <div className={styles.board} data-board>
-      {/* While viewing a past turn the yellow history `.frame` rings the board AND
+      {/* While viewing a past turn the history `.frame` rings the board AND
           makes it click-through (pointer-events: none), so a click anywhere on the
           board falls through to the viewer's document click-to-exit — no per-game
           handler needed. */}

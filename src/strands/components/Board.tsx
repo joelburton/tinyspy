@@ -25,7 +25,7 @@ type Props = {
   onTileClick: (at: Coord) => void
   /** Frozen at terminal (and while a peer's turn is pending in a turn game). */
   disabled?: boolean
-  /** Replaying a past turn: the board wears the shared yellow history frame. */
+  /** Replaying a past turn: the board wears the shared history frame. */
   viewing?: boolean
   /** The cells the viewed turn traced — ringed, so a rejected word's route is
    *  visible even though it changed nothing. */
@@ -153,7 +153,7 @@ export function Board({
         )}
 
         {/* The viewed turn's route. Same ring vocabulary as a hint — "these
-            cells, no claim about order" — in the history yellow. */}
+            cells, no claim about order" — in the history blue. */}
         {highlight.map((c) => (
           <circle
             key={`v${coordKey(c)}`}

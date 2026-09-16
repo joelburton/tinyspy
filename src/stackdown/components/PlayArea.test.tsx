@@ -322,7 +322,7 @@ describe('stackdown PlayArea — turn-history viewer', () => {
       ),
     )
 
-    // Viewing turn 0: the yellow viewer banner shows the description, and CLEAR's
+    // Viewing turn 0: the viewer banner shows the description, and CLEAR's
     // tiles are back on the historical board (nothing was cleared before it).
     expect(screen.getByText('Cleared CLEAR')).toBeInTheDocument()
     expect(screen.getByText('L')).toBeInTheDocument()

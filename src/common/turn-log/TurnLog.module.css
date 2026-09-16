@@ -7,11 +7,11 @@
  * flat (no card border): a game's turn carries its outcome as a colored LEFT BAR
  * (<TurnLogBar>, inset so the bars read as individual segments) and the
  * `.turnLogDivider` line between turns; no vertical borders between cells. See
- * TurnLog.tsx and docs/ui.md → "Turn log".
+ * TurnLog.tsx and docs/playarea.md → "Turn log".
  *
  * Class vocabulary: the STRUCTURE is `turnLog`-prefixed (.turnLog / .turnLogBox /
  * .turnLogTable …) so the source reads as one system; the small COMPOSABLE
- * content classes (.primary / .meta / .actor / .dot / .who) keep bare names —
+ * content classes (.primary / .meta / .other / .main / .who) keep bare names —
  * consumers read them as `turnLog.primary`, already namespaced by the import
  * alias. */
 
@@ -33,11 +33,9 @@
  * same pair. This module styles only the box's interior and the row vocabulary
  * below it.) */
 
-/* The scroll box: an EVIDENT bordered frame (2px medium-gray, not a hairline) so
- * players read it as a contained, scrollable region. Fixed height (`flex: 1` +
- * `min-height: 0`) — the same whether empty or full — the table scrolls inside. */
-/* The log's interior: it scrolls vertically. The frame (flex sizing + the 2px
- * border) is the shared `infoPanel.box`, composed alongside this. */
+/* The log's interior: it scrolls vertically. The frame — flex sizing, and the 2px
+ * medium-gray border that makes the box read as a contained, scrollable region — is
+ * the shared `infoPanel.box`, composed alongside this. */
 /* @@ */ .turnLogBox {
   overflow-y: auto;
 }
@@ -194,7 +192,7 @@
  * muted number it replaces (inherits the `.meta` font/color) so the log reads
  * unchanged until hovered. The tight negative margin keeps the number sitting where
  * the bare text did, so adopting the handle shifts no layout. The `outline` channel
- * is left to the yellow "viewing" marker (historyViewer `.viewedNumber`). */
+ * is left to the "viewing" marker (historyViewer `.viewedNumber`). */
 /* @@ */ .turnNumber {
   display: inline-block;
   padding: 1px 5px;

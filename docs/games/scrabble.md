@@ -654,14 +654,14 @@ commit wins").
 scrabble's snapshot semantics: the board swaps to the **replayed historical state**
 (`boardUpToSeq` in `lib/play.ts` — a pure fold of every word play's `placements`
 with `seq ≤ target`; no per-turn snapshot stored, since the board *is* the
-accumulation of placements). The tiles *that turn placed* take the **placed-tile
-yellow** face plus a **success-green outline** (only word turns light up, not a
-pass); the same `--scrabble-viewer` (= `--scrabble-tile-tentative`) yellow rings the
-board, the selected log row, and the banner (a terse "#12 Bea: +54 JUKEBOX";
-non-word turns read "#5 Bea passed" / "exchanged N") — yellow not green, since it's
-a neutral "looking at history" marker and green would wrongly imply the whole turn
-succeeded (a pass didn't). The rack stays mounted *underneath* the banner, so your
-`staged` pre-play is preserved and restored on exit. Local view-only state (like the
+accumulation of placements). The tiles *that turn placed* take the warm-yellow
+**attention** face (`--scrabble-tile-attention`, the same overlay a just-placed tile
+wears) plus a **success-green outline** (only word turns light up, not a pass); the
+shared history blue rings the board, the open turn's `#N` handle, and the banner (a
+terse "#12 Bea: +54 JUKEBOX"; non-word turns read "#5 Bea passed" / "exchanged N") —
+not green, since it's a neutral "looking at history" marker and green would wrongly
+imply the whole turn succeeded (a pass didn't). The rack stays mounted *underneath*
+the banner, so your `staged` pre-play is preserved and restored on exit. Local view-only state (like the
 board rotation) — never shared, never persisted, doesn't pause.
 
 - **`lib/board.ts`** — premium grid, tile values, distribution constants. Pure;
@@ -759,8 +759,8 @@ just the placements (+ `sharerId` / `words` / `score` for the banner) overlaid o
 receiver's live board; a **stale** broadcast — its `baseVersion` no longer matches the
 receiver's board, i.e. a real move landed in between — is dropped, so it never renders
 a move that no longer fits. The preview wears its **own** color token
-(`--view-sharePreview-color`, initialized to the history yellow but tinkerable
-independently, via a `--viewer-accent` override on the `.sharePreview` column). Coop
+(`--view-sharePreview-color`, a yellow of its own — tinkerable independently of the
+history blue, via a `--viewer-accent` override on the `.sharePreview` column). Coop
 only — compete has private racks and no shared board, so the button and channel are
 absent. Verified cross-client in `e2e/scrabble-show-move.e2e.ts` (two contexts:
 Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).

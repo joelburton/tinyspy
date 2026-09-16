@@ -6,49 +6,41 @@ import { useBoundAction } from '../actions/useBoundAction'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
-  /** The turn currently open on the board (a game-wide `seq`, or a log index),
-   *  or null = live. Wire to the turn log's highlight. */
+  // The turn currently open on the board (a game-wide `seq`, or a log index), or
+  // null = live. Wire to the turn log's highlight.
   viewingId: Id | null
-  /** A ref tracking `viewingId`, for stable-closure handlers that must read the
-   *  current value WITHOUT re-subscribing (e.g. scrabble's board-drag pointerdown,
-   *  registered once). Most games don't need it. */
+  // A ref tracking `viewingId`, for stable-closure handlers that must read the
+  // current value WITHOUT re-subscribing (e.g. scrabble's board-drag pointerdown,
+  // registered once). Most games don't need it.
   viewingIdRef: RefObject<Id | null>
-  /** `viewingId !== null` — "am I viewing a past turn?" Gates the board's readOnly /
-   *  viewing frame and the "click to exit" wiring. */
+  // `viewingId !== null` — "am I viewing a past turn?" Gates the board's readOnly /
+  // viewing frame and the "click to exit" wiring.
   viewing: boolean
-  /** Open a turn in the viewer — wire straight to the log's `onSelectTurn`. On a
-   *  phone this also leaves the info page for the board, since that's where the
-   *  turn you just asked for is drawn. */
+  // Open a turn in the viewer — wire straight to the log's `onSelectTurn`. On a
+  // phone this also leaves the info page for the board, since that's where the turn
+  // you just asked for is drawn.
   select: (id: Id) => void
-  /** Return to the live board (a board click, the banner ✕, a new move landing). */
+  // Return to the live board (a board click, the banner ✕, a new move landing).
   exitViewing: () => void
 }
 
 /**
- * The turn-history viewer's coordination — the one cross-column state the feature
- * adds (which past turn, if any, is open on the board) plus the affordances to
- * enter/leave it. Shared by every game whose board can replay past turns (scrabble,
- * stackdown, waffle, …); extracted once turn-history reached three games (the rule
- * of three — see docs/playarea.md).
- *
- * What stays per-game (deliberately NOT here): how a snapshot is COMPUTED from the
- * viewed id (each game's `lib/history` — the board shape differs per game, and it's
- * derived after the loading guard where the log/plays live), and how a turn is
- * IDENTIFIED (scrabble keys by a game-wide `seq`; stackdown/waffle by log position —
- * hence the `Id` generic). The game keeps its one-liner
- * `const snap = viewing ? gameSnapshot(viewingId) : null`.
+ * The turn-history viewer's coordination — which past turn, if any, is open on the
+ * board, plus the affordances that enter and leave it. Call it in the `PlayArea` of
+ * a game whose board can replay past turns; `Id` is how that game names a turn
+ * (scrabble's game-wide `seq`, stackdown's log position).
  *
  * Wiring per game:
- *   - board renders `snapshot ?? live` and applies the shared `.frame` while
- *     `viewing` (which also makes it click-through — see below)
+ *   - the board renders `snapshot ?? live` and applies the shared `.frame` while
+ *     `viewing`; computing that snapshot stays the game's (its `lib/history`), as
+ *     does the banner that names the turn
  *   - the turn log hangs a `<TurnLogNumber>` on each turn: `onSelect={() =>
  *     select(id)}`, `viewing={viewingId === id}`
- *   - a bare keystroke returns to live: nothing to wire — the viewer binds
- *     `act-exit-viewer`, whose any-key wildcard consumes the press while a turn
- *     is open.
  *
- * Exit-on-CLICK is NOT wired per game — it's built in here: a click anywhere returns
- * to live (skipping the `#N` handles). Games needn't add a board-click handler.
+ * Two of the three exits need no wiring at all: a keystroke (the hook binds
+ * `act-exit-viewer`, whose any-key wildcard consumes the press while a turn is open)
+ * and a click anywhere that isn't another `#N` handle. The third is the banner's ✕,
+ * which the game draws and points at `exitViewing`. doc.md carries the seam.
  */
 export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   const [viewingId, setViewingId] = useState<Id | null>(null)
@@ -80,13 +72,9 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     return () => document.removeEventListener('click', onDocClick)
   }, [viewingId])
 
-  // Opening a turn means "show me the board as it was" — so on a phone, GO to the
-  // board. The `#N` handle lives in the turn log, which below the breakpoint is on
-  // the off-canvas info page, so without this the viewer opened behind the page you
-  // were standing on: you'd see nothing, and the tap on "Switch views" that would
-  // have shown you counted as click-anywhere-to-exit, dropping you back to live.
-  // The feature was unusable on a phone rather than broken, which is why it read as
-  // "probably works".
+  // Opening a turn means "show me the board as it was", so opening one LEAVES the
+  // info page: below the breakpoint the `#N` handle is on the off-canvas info page
+  // and the board it replays is on the other one (docs/playarea.md tells the story).
   //
   // Unconditional, not mobile-gated: the flag is already false on desktop (the info
   // column is inline there, and useInfoSheet clears it when crossing the

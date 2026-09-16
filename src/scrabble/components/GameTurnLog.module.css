@@ -7,7 +7,7 @@
 
 /* A turn is opened on the board viewer by clicking its "#N" handle (the shared
  * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and
- * the "currently viewing" yellow ring lives on that handle
+ * the "currently viewing" ring lives on that handle
  * (common/turn-log/historyViewer.module.css → .viewedNumber). */
 
 /* @@ */ .score {

@@ -41,7 +41,9 @@
   convention itself is the cross-cutting half.
 
 - `<TurnLog>`'s `headerAction` is optional in name only — every call site
-  passes it, so the bare-`<h3>` arm is dead. Make it required.
+  passes it, so the bare-`<h3>` arm is dead. Make it required. The arm would not
+  be needed even for a caller with an empty right-hand slot: `space-between`
+  with one child puts the heading on the left, exactly where a bare `<h3>` sits.
 - **`TurnLog.tsx` exports more than one component**, so "the filename is the
   component" is false in it: `TurnLog`, `TurnLogBar`, `TurnLogNumber`. The
   three look like a real family rather than an accident, which is why this

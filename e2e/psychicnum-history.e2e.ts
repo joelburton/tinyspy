@@ -7,8 +7,8 @@ import { signIn } from './helpers/session'
 /**
  * Turn-history viewer for psychicnum — the feature added on the (still monolithic)
  * PlayArea. Clicking a turn-log #N replays that turn on the board: the tiles decided
- * up to that turn colored, that turn's guessed tile ringed history-yellow (over its
- * green/red outcome color), the board wearing the yellow frame, and a description
+ * up to that turn colored, that turn's guessed tile ringed in the history blue (over
+ * its green/red outcome color), the board wearing the viewing frame, and a description
  * banner over the below-board slot. These are real layout/overlay properties jsdom
  * can't see, so this is a browser check — and it pins the shared exit paths
  * (keystroke / a board click / any click) + the no-reflow invariant.
@@ -49,7 +49,7 @@ test.describe('psychicnum turn-history viewer', () => {
     await expect(banner).toBeVisible({ timeout: 10000 })
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)
 
-    // Visual capture — the yellow board frame, the ringed guessed tile, the banner.
+    // Visual capture — the board frame, the ringed guessed tile, the banner.
     await page.screenshot({
       path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/psychic-history-viewing.png',
       fullPage: true,

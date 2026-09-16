@@ -17,7 +17,7 @@
  * team board), where log position and board row line up 1:1 — see PlayArea.
  *
  * **The boundary is INCLUSIVE**: viewing the turn at `index` shows the board AFTER
- * that guess landed, with that guess's row ringed history-yellow — "this is the row
+ * that guess landed, with that guess's row ringed in the history blue — "this is the row
  * this turn added" (the reveal IS the event). Matches psychicnum/waffle/scrabble.
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
@@ -34,7 +34,7 @@ export interface TurnSnapshot {
   /** The guess rows as of the END of the viewed turn — feed straight to
    *  `<Board rows>` (each is `{ guess, colors }`). */
   rows: SnapshotRow[]
-  /** The board row this turn added — ring it history-yellow (it already wears its
+  /** The board row this turn added — ring it in the history blue (it already wears its
    *  g/y/x tile colors). Equal to `index` (the last row in `rows`). */
   highlightRow: number
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */

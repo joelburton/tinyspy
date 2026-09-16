@@ -72,7 +72,7 @@ export function BoardCol({
 
   // ── History viewer (its overlay lives in the below-board region) ──
   /** The viewed turn's description while inspecting history (drives the banner + the
-   *  yellow frame), or null when live. */
+   *  viewing frame), or null when live. */
   viewingDescription: string | null
   /** Return to the live board (a board/banner click, the ✕, or any keystroke). */
   onExitViewing: () => void
@@ -241,7 +241,8 @@ export function BoardCol({
       <div className={styles.belowBoard}>
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the WordEntry + feedback stay mounted underneath, so
-            the built-up word survives). Opaque surface + yellow border = the shared
+            the built-up word survives). Opaque surface + the history-blue border =
+            the shared
             "viewing history" marker (common/turn-log/historyViewer.module.css).
             Click anywhere to exit; the ✕ far right also exits. */}
         {viewing && (

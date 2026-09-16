@@ -713,10 +713,10 @@ tap one tile to pick it up, a second to swap, the same again to cancel — so to
 needs no new model; the *drag* path (HTML5 DnD, a desktop mouse affordance) is
 turned **off on a coarse pointer** (`draggable={!disabled && !coarse}`) so a phone
 gets the tap model cleanly (no long-press drag-ghost). (2) The picked-up tile's
-ring was a faint brown (`--waffle-select-ring`) — too subtle; it's now the app's
-**attention yellow** (`--view-history-color`, thicker at 4px), which the
-`outline-offset` gap keeps legible even on a yellow feedback tile. That's a
-visibility fix, so it applies on desktop too. Guarded by
+ring was a faint brown (`--waffle-select-ring`) — too subtle; it now wears the shared
+**selection mark** (`.tile.selected` — a thick black edge, eaten inward so the grid
+doesn't move), which stays legible over any feedback color. That's a visibility fix,
+so it applies on desktop too. Guarded by
 [`waffle-mobile.e2e.ts`](../e2e/waffle-mobile.e2e.ts) (tall + short: board fills,
 no scroll, sheet works; drag off on touch; a tap-swap commits).
 

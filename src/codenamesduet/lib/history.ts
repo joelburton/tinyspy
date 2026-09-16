@@ -34,8 +34,8 @@ export interface TurnSnapshot {
   /** The 25 board words with reveal state as of the END of the viewed turn — feed
    *  straight to `<Board words>`. */
   words: WordRow[]
-  /** The board positions this turn's guesses decided — ring these history-yellow
-   *  ("added this turn"). Empty for a passed (guess-less) turn. */
+  /** The board positions this turn's guesses decided — ring these in the history
+   *  blue ("added this turn"). Empty for a passed (guess-less) turn. */
   highlight: Set<number>
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   description: string

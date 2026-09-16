@@ -72,13 +72,11 @@
 /* The positioning context `.banner` anchors to — it's `inset: 0`, so its parent
  * must be positioned or the overlay escapes to the nearest one that is.
  *
- * TWO shapes of host exist, both fine. Games whose whole below-board region is
- * already `position: relative` (stackdown, waffle, wordle, scrabble) need nothing
- * from here. The rest (codenamesduet, connections, psychicnum) put the banner
+ * TWO shapes of host exist, both fine. A game whose whole below-board region is
+ * already `position: relative` needs nothing from here. A game that puts the banner
  * inside the narrower `shared.moveAreaOrLocalFeedback` swap box, which isn't
- * positioned by default — they wear this class conditionally, only while viewing,
- * so a `position` they don't otherwise want doesn't sit on the box during play.
- * All three had a byte-identical private one-liner for it. */
+ * positioned by default, wears this class conditionally — only while viewing, so a
+ * `position` it doesn't otherwise want doesn't sit on the box during play. */
 /* @@ */ .bannerHost {
   position: relative;
 }

@@ -74,7 +74,7 @@ export function Board({
   /** Tile ids to ring green — the word a viewed past turn played (turn-history).
    *  Omitted / empty during live play. */
   green?: ReadonlySet<number>
-  /** Turn-history: draw the yellow "viewing a past turn" frame around the whole
+  /** Turn-history: draw the shared "viewing a past turn" frame around the whole
    *  board (the same marker scrabble uses). Off during live play. */
   viewing?: boolean
   onTileClick: (tileId: number) => void
