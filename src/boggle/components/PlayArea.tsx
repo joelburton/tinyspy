@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -25,6 +25,7 @@ import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr, tracePathStr, traceCellsStr } from '../lib/boardTrace'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
+import { useMark } from '@/common/move-flash/useMark'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
@@ -168,19 +169,7 @@ export function PlayArea(ctx: GamePageCtx) {
   /** The tiles a refused word used, wearing its answer. Board-cell indices —
    *  BoardCol turns them into view positions, since the player may have rotated
    *  the board under them. */
-  const [answered, setAnswered] = useState<{ cells: number[]; outcome: Outcome } | null>(null)
-  const answerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const showAnswer = useCallback((cells: number[], outcome: Outcome) => {
-    setAnswered({ cells, outcome })
-    if (answerTimer.current) clearTimeout(answerTimer.current)
-    answerTimer.current = setTimeout(() => {
-      setAnswered(null)
-      answerTimer.current = null
-    }, WORD_ANSWER_MS)
-  }, [])
-  useEffect(() => () => {
-    if (answerTimer.current) clearTimeout(answerTimer.current)
-  }, [])
+  const [answered, showAnswer] = useMark<{ cells: number[]; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
@@ -234,7 +223,7 @@ export function PlayArea(ctx: GamePageCtx) {
         if (answer === 'accepted' || !game) return
         const cells = tracePathStr(game.board, w)
         if (cells === null) return
-        showAnswer(cells, ANSWER_OUTCOME[answer])
+        showAnswer({ cells, outcome: ANSWER_OUTCOME[answer] })
       },
     })
 

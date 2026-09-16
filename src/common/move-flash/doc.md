@@ -42,11 +42,16 @@ poor one — you notice things that appear far better than things that stop — 
 `useTurnStartFlash` fires a frame around the board on the rising edge, and
 never on mount.
 
-The third is the general case: a set of pieces that should be hot for a moment
-for a reason this folder has no opinion about. `useFlash` is that set — a game
-hands it ids, they go hot, and they clear themselves. It is what marks an
-ambiguous letter in the word a player typed, or outlines the cells of a word
-the server just refused, neither of which is about a move at all.
+The third is the general case: something that should be up for a moment for a
+reason this folder has no opinion about. It comes in two shapes, and the
+difference is what the board needs to know. `useFlash` holds a SET of ids —
+which pieces are hot — and marks an ambiguous letter in the word a player typed,
+or outlines the cells of a word the server just refused. `useMark` holds ONE
+mark with a reason attached, where null means the board is saying nothing: a
+refused word's tiles and the outcome they wear are one fact, not a set of hot
+ids. Neither is about a move at all. A mark whose lifetime is "until the next
+action" is neither shape — it has no clock, and the action that ends it is what
+clears it.
 
 What this folder decides is which pieces are hot and for how long; the drawing
 is CSS, in `game-page/playArea.module.css`. The durations are not written twice:
@@ -64,7 +69,8 @@ something unmarked is made.
 | hook | callers | what it marks |
 |---|---|---|
 | `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
-| `useFlash` | stackdown `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | an ambiguous letter, or scrabble's green / yellow / red placement outlines |
+| `useFlash` (a set of hot ids) | connections `BoardCol`, psychicnum `Board`, stackdown `PlayArea` + `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | a wash, a head-shake, an ambiguous letter, scrabble's three placement outlines |
+| `useMark` (one mark, with its reason) | boggle, spellingbee and stackdown `PlayArea` | a refused word's answer, on the tiles or letters it used |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
 setgame is on the two pieces underneath instead: `useChangeCause`, keyed on the
@@ -96,14 +102,20 @@ whose `byMove` is false, because a game may have to act on it. The first render
 seeds too, which is why opening a finished game — a full move log, a board
 arrived at long ago — says nothing at all.
 
-**The two named lifetimes live in `feedbackTiming.ts`**, because how long news
+**Every mark's lifetime lives in `feedbackTiming.ts`**, because how long news
 stays up is a property of the vocabulary rather than of a game: a player who
 learns the beat in one game should read it in the next. It is the only home for
-them: `publishMarkDurations` writes them onto the document root at startup and
-the stylesheet reads the tokens, so CSS holds no number of its own. What a game
-times is only the mark's CLASS, on the fade plus a little slack — early would
-clip the animation, late now costs nothing, because the visible mark ends by
-itself. `useFlash`'s callers pass their own durations.
+them: `publishMarkDurations` writes the animated ones onto the document root at
+startup and the stylesheet reads the tokens, so CSS holds no number of its own.
+What a game times is only the mark's CLASS, on the fade plus a little slack —
+early would clip the animation, late now costs nothing, because the visible mark
+ends by itself.
+
+Neither `useFlash` nor `useMark` has a default duration: a caller says which beat
+it is raising, because a mark's lifetime is part of what the mark means. Passing
+a number of your own is therefore a claim that the mark is a kind the vocabulary
+does not have yet — setgame's hold-then-arrive is the one that is, and its two
+numbers live with the choreography they time.
 
 **Both halves of the attention mark are animations on that one duration** — the
 wash fading off the piece, and the dark ink it needs while it is up. They begin

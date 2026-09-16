@@ -34,6 +34,8 @@ heavily refactored since, so choices made there may want improving.
 
 - `feedbackTiming.ts`
 - `useFlash.ts` · `useFlash.test.ts`
+- `useMark.ts` · `useMark.test.ts` — WRITTEN by this area (F-14),
+  `cs-audited-move-flash`
 - `useChangeCause.ts` — renamed from `useMoveCausedChange.ts` (F-10), and its
   `useChangeCause.test.ts`, WRITTEN by this area
 - `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
@@ -421,13 +423,26 @@ than a set of ids, and the two-stage version (attention first, then the answer)
 is the sequence the vocabulary specifies, written out by hand three times.
 
 Options, when it comes up: (1) `useMark<T>(durationMs)` — the tagged twin of
-`useFlash`, returning `[mark, show, clear]`, which covers boggle, spellingbee and
-letterboxed as they stand; (2) that plus a two-beat form for the attention→answer
-sequence stackdown and wordiply write out, which is the part most likely to drift
-between games; (3) leave it, and let each game's own audit decide. Recommend (2)
-— the sequence is exactly the kind of thing tile-feedback.md specifies once and
-five games should not each re-derive — but (1) first, since it is the half that
-is provably identical five times.
+`useFlash`, returning `[mark, show, clear]`; (2) that plus a two-beat form for
+the attention→answer sequence stackdown and wordiply write out; (3) leave it, and
+let each game's own audit decide.
+
+**RE-VERIFIED AT THE PRESENTATION, and the finding as filed was wrong about its
+own membership.** The five are not one pattern. THREE are exact copies — boggle,
+spellingbee and stackdown's word flash, the same fourteen lines. letterboxed's
+refused word has NO CLOCK: it is cleared by the next keystroke, which is the
+vocabulary's "until the next action" verdict lifetime, and a duration-based hook
+would be wrong for it. stackdown's peer mark and wordiply's are a two-beat
+SEQUENCE — two marks with a delay, not one mark.
+
+**WORKED 2026-09-15**, as option (1). `useMark<T>(durationMs)` holds one mark
+with its reason attached, null meaning the board is saying nothing; `useFlash`
+keeps the other shape, a set of hot ids, and the two sit beside each other with
+the difference stated in both docstrings. The three exact copies converted and
+lost forty lines between them. The two-beat sequence was deliberately left: it is
+two `useMark`s with a delay, and whether the delay wants a name is easier to see
+once both games are written that way than it was from two hand-rolled copies.
+letterboxed is not this hook's shape and was not touched.
 
 ### F-move-flash-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
 

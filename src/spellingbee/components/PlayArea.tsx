@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -21,6 +21,7 @@ import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
+import { useMark } from '@/common/move-flash/useMark'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -275,19 +276,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   /** The letters the refused word used, wearing its answer. The word itself is
    *  gone by then — the entry clears on submit — so they are captured here. */
-  const [answered, setAnswered] = useState<{ letters: Set<string>; outcome: Outcome } | null>(null)
-  const answerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const showAnswer = useCallback((word: string, outcome: Outcome) => {
-    setAnswered({ letters: new Set(word.toUpperCase()), outcome })
-    if (answerTimer.current) clearTimeout(answerTimer.current)
-    answerTimer.current = setTimeout(() => {
-      setAnswered(null)
-      answerTimer.current = null
-    }, WORD_ANSWER_MS)
-  }, [])
-  useEffect(() => () => {
-    if (answerTimer.current) clearTimeout(answerTimer.current)
-  }, [])
+  const [answered, showAnswer] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit } =
@@ -342,7 +331,7 @@ export function PlayArea(ctx: GamePageCtx) {
       onAnswer: (w, answer) => {
         if (answer === 'accepted') return
         setShakeNonce((n) => n + 1)
-        showAnswer(w, ANSWER_OUTCOME[answer])
+        showAnswer({ letters: new Set(w.toUpperCase()), outcome: ANSWER_OUTCOME[answer] })
       },
       explainReject: (w) => {
         for (const ch of w) {

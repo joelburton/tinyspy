@@ -26,6 +26,7 @@ import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFlash } from '@/common/move-flash/useFlash'
+import { useMark } from '@/common/move-flash/useMark'
 import {
   ATTENTION_FADE_MS,
   ATTENTION_FLASH_MS,
@@ -174,27 +175,7 @@ export function PlayArea({
   // TEAMMATE's played word (green if valid, red if rejected), driven by
   // usePeerFeedback. Because a teammate can trigger it, the state lives here and is
   // passed down to BoardCol (which renders it via WordEntry).
-  const [flash, setFlash] = useState<WordFlash | null>(null)
-  const flashWordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const showFlash = useCallback((letters: string[], tone: 'won' | 'lost') => {
-    setFlash({ letters, tone })
-    if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
-    flashWordTimer.current = setTimeout(() => {
-      setFlash(null)
-      flashWordTimer.current = null
-    }, WORD_ANSWER_MS)
-  }, [])
-  const clearFlash = useCallback(() => {
-    if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
-    flashWordTimer.current = null
-    setFlash(null)
-  }, [])
-  useEffect(
-    () => () => {
-      if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
-    },
-    [],
-  )
+  const [flash, showFlash, clearFlash] = useMark<WordFlash>(WORD_ANSWER_MS)
   // ─── A teammate's word, marked where it happened ───────────────
   // On the BOARD, on their tiles — not in this player's entry row, which is
   // their own workspace. Two beats in the order every board uses: the attention
@@ -291,7 +272,7 @@ export function PlayArea({
         // own-accepted signal; no message needed — and the move dismisses the
         // last result).
         localFeedbackSlot.dismiss()
-        showFlash([...res.data.word.toUpperCase()], 'won')
+        showFlash({ letters: [...res.data.word.toUpperCase()], tone: 'won' })
         return
       } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
         // NOT A WORD — an `ok`, because the rules were applied and no tile
