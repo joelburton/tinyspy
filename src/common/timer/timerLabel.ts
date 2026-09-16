@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-timer
 
 import type { TimerMode } from '../manifest/gameManifest'
 

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-timer
 
 import { describe, it, expect } from 'vitest'
 import { timerLabel } from './timerLabel'
