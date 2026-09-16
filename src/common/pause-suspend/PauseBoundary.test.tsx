@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-pause-suspend
 
 /**
  * Tests for PauseBoundary. The component's job is small but its
