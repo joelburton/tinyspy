@@ -78,7 +78,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
       headerAction={who.picker}
       empty={shown.length === 0}
       emptyText={who.emptyText}
-      scrollKey={shown}
+      entryCount={shown.length}
     >
       {shown.map((g) => (
         <tr key={g.id} className={turnLog.turnLogDivider}>

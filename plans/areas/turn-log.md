@@ -9,7 +9,8 @@ area"*) and stamped `cs-met-turn-log`; every file read, and the docs and
 games around it read as evidence. Seventeen findings; **the prose pass — F-1
 to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
 F-4 turned up: every file in the repo that called the shared history marker
-yellow. The remaining twelve wait for a decision each.
+yellow. **F-9 is worked** (2026-09-16), the area's one real bug. The remaining
+eleven wait for a decision each.
 
 ## The roster
 
@@ -18,6 +19,9 @@ yellow. The remaining twelve wait for a decision each.
 - `TurnLog.tsx` — three components: `TurnLog`, the panel (heading row, the
   scroll box, a `<table>` whose rows are the game's); `TurnLogBar`, the outcome
   bar cell; `TurnLogNumber`, the `#N` handle that opens a turn on the board
+- `TurnLog.test.tsx` — the panel's one behavior: it snaps to the newest entry
+  when the log grows and leaves a scrolled-up box alone otherwise (written by
+  F-9)
 - `TurnLog.module.css` — the panel, the bar, the row vocabulary a game composes
   (`.main` / `.other` / `.primary` / `.meta` / `.who`, the divider, the
   multi-row hug)
@@ -265,6 +269,28 @@ rows changed" means and the six sites pass `shown.length`; (2) the picker
 memoizes `filter`'s result; (3) leave. Recommend (1). One thing to know: with
 a count, switching the picker between two players with equal row counts will
 not snap — which is arguably right, since nothing new arrived.
+
+**WORKED 2026-09-16, option (1), and the prop is `entryCount: number`.** Joel
+took the fix and improved the name: "entry" is the folder's own word
+(`.entryHead` / `.entryCont`), and the recommended `rowCount` would have been
+literally wrong at connections, whose one entry is two `<tr>`s. Ten sites pass
+`shown.length`; codenamesduet keeps `clues.length + sortedGuesses.length` and
+carries a comment saying why its number is bigger than its entry count — an
+entry there is a TURN, and guesses land inside a turn that already exists (they
+grow its second `<tr>` rather than adding an entry), so counting turns alone
+would miss the snap.
+
+**The "no runtime spec" line under Predicted test breaks is no longer true.**
+`TurnLog.test.tsx` is new and pins three cases: a re-render that adds no entry
+leaves `scrollTop` where the player put it, an entry arriving snaps, and a
+count that moves by more than one entry snaps too (codenamesduet's). Verified
+by planting — swapping the dep for a fresh object each render fails the first
+case and only the first. jsdom does no layout, so the snap is observable as
+`scrollTop` being put back to 0.
+
+**What a player will feel:** in a game with a clock, scrolling back up the turn
+log stays where you left it instead of being yanked to the bottom on the next
+tick.
 
 ### F-turn-log-10 · `native-title-tooltip` · The `#N` handle uses the native `title`
 

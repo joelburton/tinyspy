@@ -76,7 +76,7 @@ export function GameTurnLog({
       headerAction={who.picker}
       empty={shown.length === 0}
       emptyText={who.emptyText}
-      scrollKey={shown.length}
+      entryCount={shown.length}
     >
       {shown.map((s, i) => {
         const swapper = playerFor(s.user_id)

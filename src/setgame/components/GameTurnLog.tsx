@@ -74,7 +74,7 @@ export function GameTurnLog({
       headerAction={picker.picker}
       empty={shown.length === 0}
       emptyText={picker.emptyText}
-      scrollKey={shown.length}
+      entryCount={shown.length}
     >
       {shown.map((event) => {
         // Numbered over the FULL log, not the filtered view: the number is the

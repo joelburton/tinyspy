@@ -84,7 +84,7 @@ export function GameTurnLog({
       headerAction={who.picker}
       empty={shown.length === 0}
       emptyText={who.emptyText}
-      scrollKey={shown}
+      entryCount={shown.length}
     >
       {shown.map((e, i) => (
         <tr key={e.id} className={turnLog.turnLogDivider}>

@@ -27,7 +27,7 @@ export function TurnLog({
   headerAction,
   empty,
   emptyText = 'Nothing yet.',
-  scrollKey,
+  entryCount,
   className,
   children,
 }: {
@@ -38,9 +38,11 @@ export function TurnLog({
   // True when there are no rows — renders the muted empty state instead.
   empty: boolean
   emptyText?: string
-  // Changes whenever the rows change (e.g. the rows array, or its length);
-  // drives the scroll-to-latest effect.
-  scrollKey: unknown
+  // How many entries the log is showing — the panel re-scrolls to the newest row
+  // whenever it changes. A NUMBER on purpose: a rows array would be a fresh object
+  // every render, so the log would snap back on each one (a clock alone re-renders
+  // the play area once a second).
+  entryCount: number
   // Optional extra class merged onto the root. The panel already fills its flex
   // parent (`flex: 1` on `.turnLog`); this is only for a per-game override (a
   // different width/flex).
@@ -50,15 +52,16 @@ export function TurnLog({
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
 
-  // Snap the box to the latest row whenever the rows change — same UX as
-  // ChatBody. Simple: doesn't preserve a manual scroll-up (rarely felt, since
-  // the player is usually watching their own action land).
+  // Snap the box to the latest row whenever the log grows — same UX as ChatBody.
+  // Simple: doesn't preserve a manual scroll-up (rarely felt, since the player is
+  // usually watching their own action land). A render that adds no entry leaves the
+  // scroll where the player put it.
   useEffect(
     function scrollToLatest() {
       const el = boxRef.current
       if (el) el.scrollTop = el.scrollHeight
     },
-    [scrollKey],
+    [entryCount],
   )
 
   return (

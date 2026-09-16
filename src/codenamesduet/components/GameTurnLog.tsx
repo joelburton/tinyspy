@@ -130,7 +130,10 @@ export function GameTurnLog({
       headerAction={who.picker}
       empty={shownTurns.length === 0}
       emptyText={who.emptyText}
-      scrollKey={clues.length + sortedGuesses.length}
+      // Bigger than the entry count on purpose: an entry here is a TURN, and guesses
+      // land inside a turn that already exists (they grow its second row rather than
+      // adding one), so counting turns alone would miss the snap.
+      entryCount={clues.length + sortedGuesses.length}
     >
       {shownTurns.map((t) => {
         const clue = clues.find((c) => c.turn_number === t)
