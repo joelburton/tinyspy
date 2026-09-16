@@ -781,8 +781,8 @@ kind.
 `failureMessage`, and isn't in its short justified allowlist. It exists because
 five games shipped briefly showing `no-guesses-left|` as a red pill: their SQL
 had been converted to keys while their own call sites still handed the raw
-string straight to a pill, which defeats the copy table, the fault styling and
-the `[db]` log at once — and nothing failed. Writing the guard immediately found
+string straight to a pill, which defeats the envelope's own sentence, the fault
+styling and the `[db]` log at once — and nothing failed. Writing the guard immediately found
 **nine more sites** a hand-grep had missed, all spelled `error?.message`.
 
 Two hard rules for anything that *sets, holds, renders, or types* one of those messages:

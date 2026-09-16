@@ -67,7 +67,7 @@ Each manifest declares two fields connecting these pieces:
 
 - **Discoverability** — both modes are visible as separate start rows; the choice is the first click, not a buried radio.
 - **Saved defaults** — `common.clubs_gametypes.default_setup` is per `(club, gametype)`. Variants get independent defaults (coop remembers 7 guesses, compete remembers 5) for free.
-- **labelFor / Help copy** — coop "we won together" vs compete "you won the race" gets distinct copy per-manifest without `if (mode === 'coop')` inside the function bodies.
+- **labelFor / Help text** — coop "we won together" vs compete "you won the race" gets distinct text per manifest without `if (mode === 'coop')` inside the function bodies.
 - **Per-club opt-out** — `clubs_gametypes` is per (club, gametype); a club could disable compete without disabling coop.
 
 **Solo-club handling.** A compete manifest declares `numberOfPlayers: [2, max]`, so a 1-player solo club is not enrolled in it at creation, and if enrolled later its start row is dimmed (`playerCountFits` on the ClubPage). The corresponding create_game RPC also enforces the floor server-side — `compete mode requires at least 2 players` is raised P0001 if anyone bypasses the FE gate. A coop manifest's `[1, max]` allows solo play, with the countdown timer (if set) doing the "lose if time runs out" job a compete opponent would otherwise do. **The one exception is `scrabble_compete`, which declares `[1, 4]`:** a lone player can start it to race scrabble's autonomous AI opponent, which fills the empty seat (see [scrabble.md §12](games/scrabble.md)).

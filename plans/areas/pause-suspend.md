@@ -537,6 +537,13 @@ section (*"labelFor / Help copy … gets distinct copy per-manifest"*) and
 `docs/code-conventions.md` → the `error.message` guard (*"defeats the copy
 table"*). Options: (1) "text" in both; (2) leave. Recommend (1).
 
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). `common.md` says "Help
+text" and "distinct text per manifest". `code-conventions.md`'s sentence
+turned out to name a mechanism as well as the word — "the copy table" was the
+frontend's error-text table, deleted when the envelope sprint finished — so it
+now says what a raw `error.message` read defeats today: the envelope's own
+sentence, the fault styling and the `[db]` log.
+
 ### F-pause-suspend-20 · `overlay-prose-nits` · Two nits in the overlay's own prose
 
 - `PauseOverlay.module.css`'s header: *"a softly-tinted surround to make the
