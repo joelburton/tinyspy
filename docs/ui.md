@@ -280,7 +280,7 @@ answers `'confirm'`, `'alternative'` (where the question offers a second way to
 say yes) or `null`, and the one `<ConfirmationHost>` in `App.tsx` draws whatever
 is pending. Components await it exactly as an action's shared run does, which is
 what keeps a second way to say yes available to every caller rather than to
-some of them; the suspend question below is the one still rendered by hand.
+some of them.
 
 The standing questions — every one the registry carries (New game, Restart,
 End game, Concede, Reveal grid) plus Suspend, which is the page's own:
@@ -1203,7 +1203,7 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 - **Timed / untimed setup choice.** Every game's setup form has a `<SetupTimerSection>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
 - **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void; brand: string }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
 - **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
-- **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Non-terminal games show the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`.
+- **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Asks first only when there are peers to surprise — the three shapes are under [Confirm modals](#confirm-modals--never-windowconfirm). Owned by `<GamePage>`.
 
 A new gametype that wants to omit one of these isn't building "a new gametype" — it's stepping outside the frame, and that's a CLAUDE.md-priors conversation, not a manifest field to toggle.
 

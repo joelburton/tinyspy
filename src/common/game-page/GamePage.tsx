@@ -77,7 +77,7 @@ type Props = GameShellProps & {
 /**
  * The shell every game page wears: the header, the pause boundary with the play
  * surface inside it, and the panels that outlive a pause — chat, the scratchpad,
- * help, the suspend confirm.
+ * help.
  *
  * The last of the game route's three components — `GamePageGate` asked whether
  * the game exists, `GamePageLoader` joined its room and waited for its state,

@@ -471,6 +471,11 @@ help, the ui.md paragraph drops its last clause, the bullet says "asks first
 when there are peers" and points at the Suspend bullet; (2) leave. Recommend
 (1); it is the F-11 sweep finishing.
 
+**WORKED 2026-09-16, as option (1)** (Joel: *"1"*). The docstring lists three
+panels; the ui.md paragraph ends at "some of them"; the consistency bullet says
+it asks first only when there are peers to surprise and links the Confirm
+modals section, where the three shapes are already written.
+
 ### F-pause-suspend-16 · `timer-accumulator` · `docs/common.md` names a pause-accumulator the clock does not have
 
 `docs/common.md` → "Should this survive a pause?": *"State that must survive a
