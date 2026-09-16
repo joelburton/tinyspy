@@ -150,7 +150,6 @@ const GAME_ROW = {
   play_state: 'playing',
   is_terminal: false,
   status: null,
-  total_idle_seconds: 0,
   started_at: '2026-01-01T00:00:00Z',
   ended_at: null,
 }

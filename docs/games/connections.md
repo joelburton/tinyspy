@@ -654,7 +654,7 @@ Pause is common machinery — the presence/manual trigger sources, the overlay, 
 
 ### Timer
 
-The additive server-authoritative tick model (`common.timers.ticks`, `tick_timer`, `useGameTimer`, the idempotent `submit_timeout`) is common machinery, documented once in [common.md → Idle accounting](../common.md#idle-accounting-timer-state-preservation). connections's specifics:
+The additive server-authoritative tick model (`common.timers.ticks`, `tick_timer`, `useGameTimer`, the idempotent `submit_timeout`) is common machinery, documented once in [common.md → The game clock](../common.md#the-game-clock). connections's specifics:
 
 - The timer is a **per-game setup choice** (the shared `<SetupTimerSection>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: no timer** (`DEFAULT_CONNECTIONS_SETUP` seeds `timer: { kind: 'none' }`; the 10-minute countdown is only the pgTAP helper's default — see Tests below).
 - On countdown expiry the FE fires `connections.submit_timeout`, flipping play_state to the mode-appropriate terminal value — `lost` in coop, `lost_compete` in compete.

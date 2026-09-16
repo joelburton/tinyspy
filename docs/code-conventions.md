@@ -967,7 +967,9 @@ The one exception: if the *callback's* most natural name genuinely differs from 
 
 This sits next to a pattern already in the codebase: the inner helper `async function load() { … }` inside the subscription effects in `useCommonGame` and the per-game `useGame` hooks. We already pick named function expressions over `const load = async () => {…}` for inner helpers because the name reads as a label. The convention now extends to the top-level useEffect callback by the same logic.
 
-**Scope of this rule:** `useEffect`, `useCallback`, `useMemo` (and their custom-hook analogues, if any appear). Not `.then(…)` chains, `setTimeout`, event-handler JSX props (`onClick={() => …}`), or `.map`/`.filter`/`.reduce` callbacks — those tend to be short and the call site already labels them by context. The rule is deliberately narrow; if it earns its keep here, we can revisit widening it later.
+**Scope of this rule:** the test is the body, not the call shape (Joel, 2026-09-16: *"if they're non-trivial, a name is useful"*). `useEffect`, `useCallback` and `useMemo` are where it bites most often, because a hook callback has no surrounding const to carry a name — but a `.then(…)` that branches four ways on an envelope is no more scannable than an effect that does, and it takes a name too (`GamePage`'s `logHowTheTimeoutLanded`, `useGameTimer`'s `applyTickAnswer`). What decides is "When NOT to bother" above: if it deserves a header comment, it deserves a name.
+
+In practice that still leaves most `setTimeout`, JSX event props (`onClick={() => …}`) and `.map`/`.filter`/`.reduce` callbacks unnamed, since they fit in a glance and the call site labels them by context. That is the triviality test doing its job, not an exemption — a long one earns a name like anything else.
 
 ## Edge Functions
 

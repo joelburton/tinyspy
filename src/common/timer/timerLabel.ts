@@ -23,8 +23,9 @@ export function timerLabel(t: TimerMode): string {
 }
 
 /**
- * Format seconds as "M:SS" — the common timer display in the
- * BoardScreen header. Used by both countup and countdown modes.
+ * A number of seconds as "M:SS" — the running clock in `GamePage`'s header
+ * whichever way it counts, the countdown length in the setup box, and the
+ * countdown arm of `timerLabel` above.
  */
 export function formatTimerSeconds(seconds: number): string {
   const m = Math.floor(seconds / 60)

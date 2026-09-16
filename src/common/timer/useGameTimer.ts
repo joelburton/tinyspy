@@ -3,51 +3,10 @@
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { readRows, runRpc } from '../supabase/dbResult'
-import { isEnvironmental } from '../supabase/dbEnvelope'
+import { isEnvironmental, reportUnhandled } from '../supabase/dbEnvelope'
 import { showFaultModal } from '../faults/faultStore'
 import type { TimerMode } from '../manifest/gameManifest'
-import { reportUnhandled } from '../supabase/dbEnvelope'
 
-/**
- * Per-game timer hook. Returns a display-ready elapsed/remaining
- * value and an `expired` flag for countdown mode.
- *
- * **Additive tick model (server-authoritative count).** The clock is
- * a single integer — `common.timers.ticks`, the number of whole
- * seconds of *active play*. Every actively-playing client calls
- * `common.tick_timer` once a second; the server advances the shared
- * count by at most 1 per real second (its conditional dedupes across
- * players — see the RPC). This hook just reflects that count:
- * countdown shows `max(0, seconds - ticks)`, countup shows `ticks`.
- *
- * **Pause and idle need no bookkeeping.** When the game is paused, or
- * the game isn't running (terminal / still loading), we simply stop
- * calling `tick_timer` — so the count stops. There is no wall-clock
- * subtraction, no pause-duration accumulator, no idle accumulator:
- * a second with no tick is, by construction, a second that didn't
- * count. (This replaced the old `now - startedAt - pause - idle`
- * arithmetic and the `idle_since`/`total_idle_seconds` columns.)
- *
- * **Why the server clock is the authority.** `tick_timer` gates on
- * the database's `now()`, so a client's wall-clock skew or a
- * throttled background-tab `setInterval` can only *trigger* the
- * attempt — it can't move the count. Accuracy is ±~1s around a
- * pause, which is fine for friendly word games.
- *
- * The same `tick_timer` call that advances the clock returns the
- * current value, so driving and reading are one round-trip. Locally
- * `ticks` merges forward-only against small backward values (an
- * out-of-order response can't rewind the display) — but a LARGE
- * backward jump is accepted: that's not reordering, it's
- * `common.reset_game` zeroing the shared clock (replay-board), and
- * the display must follow it back to a fresh countdown/countup.
- *
- * Returns:
- *   - `displaySeconds` — countup: `ticks`; countdown:
- *     `max(0, seconds - ticks)`; none: always 0.
- *   - `expired` — true once a countdown reaches 0 (fires the
- *     timeout-loss RPC). Always false for countup / none.
- */
 /** What `common.tick_timer` puts in `data`. Nullable because its other `ok` —
  *  PA004, the game is gone — arrives through a raise, and
  *  `common.raised_envelope` builds `data: null`. */
@@ -64,6 +23,20 @@ function mergeTicks(prev: number, server: number): number {
   return server < prev - 2 ? server : Math.max(prev, server)
 }
 
+/**
+ * The game clock: the number to show, and whether a countdown has run out.
+ *
+ * While the game is running, unpaused and timed, this calls `common.tick_timer`
+ * once a second — one round-trip that both advances the shared count and
+ * returns it. A second nobody ticks is a second that does not count, which is
+ * the whole of pause and idle; `doc.md` has the model.
+ *
+ *  - `displaySeconds` — countup: the count; countdown: `max(0, seconds - count)`;
+ *    none: always 0.
+ *  - `expired` — a LEVEL, not an edge: true for as long as a countdown sits at
+ *    0, false for countup and none. The hook fires nothing. The timeout-loss
+ *    RPC is `GamePage`'s `fireTimeoutOnExpiry`, on the rising edge.
+ */
 export function useGameTimer({
   gameId,
   mode,
@@ -73,9 +46,9 @@ export function useGameTimer({
   gameId: string
   mode: TimerMode
   paused: boolean
-  /** The game is live (loaded + not terminal). The driver only runs
-   *  while true — a terminal game freezes the clock at its final
-   *  value, and a still-loading game doesn't tick yet. */
+  // The game is live (loaded + not terminal). The driver only runs while true —
+  // a terminal game freezes the clock at its final value, and a still-loading
+  // game doesn't tick yet.
   running: boolean
 }): { displaySeconds: number; expired: boolean } {
   const [ticks, setTicks] = useState(0)
@@ -83,7 +56,7 @@ export function useGameTimer({
   // Initial read, so a (re)mount or late-join shows the right value
   // immediately rather than flashing 0 before the driver's first
   // round-trip lands.
-  useEffect(() => {
+  useEffect(function seedFromTimersRow() {
     let canceled = false
     // `presentFaults: false` for the same reason the driver opts out, and the
     // two must agree: a seed read and a tick fail together — same network, same
@@ -94,7 +67,7 @@ export function useGameTimer({
     // so this is 0 or 1 of them.
     void readRows(commonDb.from('timers').select('ticks').eq('game_id', gameId), {
       presentFaults: false,
-    }).then((res) => {
+    }).then(function applySeedAnswer(res) {
       if (canceled) return
       if (res.type === 'not-ok' && isEnvironmental(res.dbcode)) {
         // Nothing reached us. The driver's first tick supplies the count a
@@ -119,7 +92,7 @@ export function useGameTimer({
   // server to advance the shared clock once a second and read back
   // the authoritative count. Stopping (pause / terminal / untimed)
   // is the whole pause+idle mechanism — no ticks accrue.
-  useEffect(() => {
+  useEffect(function driveTheClock() {
     if (!running || paused || mode.kind === 'none') return
     let canceled = false
     const drive = () => {
@@ -128,7 +101,7 @@ export function useGameTimer({
       // persists would otherwise be a modal a second.
       void runRpc<Ticked>(commonDb.rpc('tick_timer', { target_game: gameId }), {
         presentFaults: false,
-      }).then((res) => {
+      }).then(function applyTickAnswer(res) {
         if (canceled) return
         if (res.type === 'not-ok' && isEnvironmental(res.dbcode)) {
           // Our server did not answer. Silent: the clock only advances because

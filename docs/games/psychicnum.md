@@ -337,7 +337,7 @@ The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src
 
 ## Timer (server-authoritative ticks)
 
-Standard `<SetupTimerSection>` + `useGameTimer` setup — see [`common.md → Idle accounting`](../common.md#idle-accounting-timer-state-preservation) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost` (coop) / `lost_compete` (compete).
+Standard `<SetupTimerSection>` + `useGameTimer` setup — see [`common.md → The game clock`](../common.md#the-game-clock) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost` (coop) / `lost_compete` (compete).
 
 ## Pause-on-disconnect
 

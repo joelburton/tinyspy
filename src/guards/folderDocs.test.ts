@@ -82,7 +82,6 @@ const INTROS_OWED: string[] = [
   'common/info-sheet',
   'common/pause-suspend', 'common/pdf', 'common/reveal',
   'common/terminal',
-  'common/timer',
   'common/turn-log', 'common/word-entry',
   'common/word-list',
   'shared/bee-games', 'shared/board-cursor', 'shared/dict-trie',

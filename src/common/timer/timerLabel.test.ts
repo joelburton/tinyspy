@@ -5,13 +5,16 @@ import { formatTimerSeconds, timerLabel } from './timerLabel'
 
 /**
  * How a configured timer reads once it is printed — `none`, `count-up`, or
- * `2:30 countdown`.
+ * `2:30 countdown` — and the M:SS both it and the header's clock are formatted
+ * in.
  *
- * Three of the four cases just pin the three arms of `TimerMode`. **The one
- * worth having is `0:05`**: a countdown under a minute is where an unpadded
- * seconds field would show, and `padStart(2, '0')` is exactly the sort of line
- * that looks like it could go. Nobody would catch `0:5` until a game was played
- * on a short countdown and its recap printed.
+ * Most of these just pin the arms of `TimerMode`. **The one worth having is
+ * `0:05`**: a countdown under a minute is where an unpadded seconds field would
+ * show, and `padStart(2, '0')` is exactly the sort of line that looks like it
+ * could go. Nobody would catch `0:5` until a game was played on a short
+ * countdown and its recap printed. It is asserted twice on purpose — through
+ * `formatTimerSeconds` directly and through the `countdown` arm that calls it —
+ * so a label that stopped sharing the formatter fails here rather than drifting.
  *
  * Asserting `'none'` is likewise not a restatement of the code. The value is
  * always printed after a "Timer:" label — by `setupRows.ts`'s `timerRow()` for

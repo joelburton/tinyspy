@@ -206,8 +206,9 @@ would be the roster's first survival win. As a concede, everything composes
 with existing machinery: the survivor plays on and still has to finish,
 all-flags-fallen = all-conceded = collective loss, and the Quit-vs-Lost
 verdict vocabulary already fits. (Cost note: this is real work — today's
-timer is one game-level countdown anchored at `started_at`; a player clock
-needs per-turn elapsed accounting and server-side flag-fall detection. The
+timer is one game-level count that every player advances by at most a tick a
+second; a player clock needs a per-player tick, per-turn elapsed accounting and
+server-side flag-fall detection. The
 cheap interim is for scrabble compete's setup to stop offering a countdown
 at all.)
 

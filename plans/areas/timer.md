@@ -14,11 +14,14 @@ untouched.
 
 `src/common/timer/` — every file `cs-met-timer`:
 
-- `useGameTimer.ts` — the clock hook, and `formatTimerSeconds` beside it
+- `useGameTimer.ts` — the clock hook (`formatTimerSeconds` sat beside it until
+  F-3 moved it)
 - `useGameTimer.test.ts`
-- `timerLabel.ts` — the recap's "none · count-up · 2:30 countdown"
+- `timerLabel.ts` — the timer's words: the recap's "none · count-up · 2:30
+  countdown", and M:SS
 - `timerLabel.test.ts`
-- `doc.md` (one-sentence lede, on `INTROS_OWED`) · `todo.md` (empty)
+- `doc.md` (lede + `## Intro to area` + `## Details`, written at F-1) ·
+  `todo.md` (empty)
 
 Evidence, read and left:
 
@@ -32,7 +35,8 @@ Evidence, read and left:
   importers of `formatTimerSeconds` (`GamePage.tsx`, `setup-form/SetupTimerSection.tsx`)
   and the two of `timerLabel` (`setup-form/setupRows.ts`, `SetupTimerSection.tsx`);
   `gamePageCtx.ts`'s `timer` slot; `manifest/gameManifest.ts`'s `TimerMode`.
-- `docs/common.md` → "Idle accounting" and the RPC table's two timer rows;
+- `docs/common.md` → the game-clock section (headed "Idle accounting" when the
+  area opened, renamed at F-6) and the RPC table's two timer rows;
   `docs/win-lose.md` → "Clock fairness"; `docs/deferred.md`'s heartbeat item.
 
 ## What the folder is, in one paragraph
@@ -67,6 +71,16 @@ this is already written — in `useGameTimer`'s docstring (F-2) and in
 `docs/common.md`'s "Idle accounting" section — so it moves rather than being
 rewritten.
 
+**WORKED 2026-09-16.** The lede names both halves (the integer and the words).
+The intro is four narrative paragraphs: why an accumulator was never going to
+hold (a crashed tab cannot record the gap it opened), the tick model that
+replaces it, what falls out of it (nothing to maintain, ±1s around a pause),
+and the derivation plus who consumes what. `## Details` takes the five sharp
+things — `expired` is a level and why `GamePage` owns the edge, the merge rule,
+the poll's four treatments, the SQL half, and M:SS written once after F-3.
+`common/timer` is off `INTROS_OWED`; plant-verified by renaming the heading,
+which fails `folderDocs.test.ts` with "0 sections, want exactly 1".
+
 ### F-timer-2 · `orphaned-essay` · The hook's docstring is attached to the wrong declaration, and three of its claims are wrong
 
 Forty lines of `/** … */` at the top of `useGameTimer.ts`, immediately followed
@@ -88,6 +102,17 @@ Three things are wrong today:
 
 Also for the marker pass: `running`'s `/** */` on a prop of the inline params
 type takes `//`.
+
+**WORKED 2026-09-16.** The orphaned block is gone, its three design paragraphs
+into `doc.md`'s intro and its fourth (the merge rule) dropped as a second copy
+of `mergeTicks`'s own docstring, which says it better. `useGameTimer` has a
+docstring of its own now — twelve lines, a hover: what it does, the one
+round-trip, the two returned fields, and `expired` labeled a LEVEL with the
+edge named as `GamePage`'s `fireTimeoutOnExpiry`. The archaeology sentence is
+deleted rather than moved. The "BoardScreen header" claim traveled with
+`formatTimerSeconds` under F-3 and is now fixed where it landed, in
+`timerLabel.ts`: it names `GamePage`'s header, the setup box and the countdown
+arm beside it. `running`'s marker is `//`.
 
 ### F-timer-3 · `two-mss-formatters` · M:SS is written twice in a two-file folder, and the formatter lives in the hook's file
 
@@ -122,10 +147,22 @@ header comment, which is the convention's own test for "deserves a name"
 (code-conventions.md → the hook-callback rule). `seedFromTimersRow` and
 `driveTheClock`, or near it. The inner `drive` is a named const already.
 
+**WORKED 2026-09-16**, with those two names — **and the two `.then` callbacks
+too**, `applySeedAnswer` and `applyTickAnswer`, which is the area's own
+vocabulary ("this call decides per answer, and the branches below are that
+decision"). The convention's rule had excluded promise chains by shape and said
+so, so this was asked: Joel, *"if they're non-trivial, a name is useful"*. That
+widened the rule for everyone, and code-conventions.md → the hook-callback rule
+now says the test is the body rather than the call shape. The cleanups stay
+arrows. The effect-name grep over every file the area touched is clean.
+
 ### F-timer-5 · `split-import` · `dbEnvelope` is imported on two lines
 
 Line 6 takes `isEnvironmental`, line 9 takes `reportUnhandled`, both from
 `'../supabase/dbEnvelope'`, with two other imports between them. One line.
+
+**WORKED 2026-09-16.** `import { isEnvironmental, reportUnhandled } from
+'../supabase/dbEnvelope'`.
 
 ### F-timer-6 · `stale-docs` · Four claims in `docs/` describe a clock the repo no longer has
 
@@ -151,6 +188,23 @@ Line 6 takes `isEnvironmental`, line 9 takes `reportUnhandled`, both from
 Fixed in passing where they stand: `common.md` and `win-lose.md` are docs, and
 the rule is current state.
 
+**WORKED 2026-09-16, and the re-read found a fifth.** `common.md`'s heading is
+now "The game clock" — the old one named the accumulator's problem — with every
+link to it retargeted (`common.md`'s own RPC row, and the timer sections of
+psychicnum, codenamesduet and connections). The known-leak paragraph is gone;
+what replaces it is a pointer to `src/common/timer/doc.md` for the FE half, and
+the "robust by construction" sentence keeps the contrast without the archaeology
+("the failure an accumulator cannot avoid"). The `require_valid_timer` row says
+what it raises: five faults, PN035–PN039, naming the column `timer`, and why
+they are faults. `win-lose.md`'s cost note no longer says "anchored at
+`started_at`" and now gives the real reason a player clock is work — a
+per-player tick, not a per-game one.
+
+**The fifth:** `docs/states.md` carried the same "This replaced the old
+subtractive `idle_since`/`total_idle_seconds` accumulator" sentence, a third
+copy of the archaeology the docstring and `common.md` each had. Dropped; the
+pointer-flip half of that sentence is true and stays, without the "now".
+
 ### F-timer-7 · `envelope-literal-seven-times` · The hook's test spells the full `ticked` envelope seven times
 
 Seven `rpcMock.mockResolvedValue({ data: { type: 'ok', data: { result:
@@ -160,6 +214,15 @@ existing `notOk(code)` one makes every spec read as what it pins. Also
 `timerLabel.test.ts`'s docstring counts "Three of the four cases" over a file
 with three specs — the count rots; say which case is the one worth having and
 drop the tally.
+
+**HALF WORKED 2026-09-16 — the prose half.** `timerLabel.test.ts`'s docstring
+drops the tally ("Most of these just pin the arms of `TimerMode`"), covers the
+formatter that moved in under F-3, and says what the doubled `0:05` assertion is
+for: `padStart` is pinned through `formatTimerSeconds` directly AND through the
+countdown arm that calls it, so a label that stopped sharing the formatter fails
+here rather than drifting. **Still owed: the `ticked(n)` helper** in
+`useGameTimer.test.ts` — seven 200-character envelope literals differing only in
+N. That is a code change, not prose.
 
 ### F-timer-8 · `expired-is-a-level` · `expired` is a level and every consumer wants an edge or a fact
 
@@ -191,6 +254,12 @@ move rather than go; (2) add `justExpired`; (3) hand back the edge and let
   pin it, plant-verified. `timerLabel`'s docstring ("two places print it") is
   true again without being touched. bananagrams' files keep `cs-unmet`; this
   folder's were not read.
+- **A stale fixture field in `game-page`, found by the prose pass's sweep.**
+  `useCommonGame.test.ts`'s `GAME_ROW` set `total_idle_seconds: 0` — a column
+  the accumulator took with it; nothing in the schema has it. Recorded rather
+  than deleted, because subtracting from another area's blessed fixture is
+  Joel's call; he made it (*"do it"*) and it is gone. The suite is green without
+  it, which is the proof nothing read it.
 - **`tick_timer` has no pgTAP of its own.** The functions that touch
   `common.timers` in `supabase/tests/` are the replay tests (the zeroing) and
   codenamesduet's create test (the seed row). The conditional that IS the
