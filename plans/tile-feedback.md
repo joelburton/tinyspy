@@ -266,10 +266,43 @@ our tiles are composites, so the overlays do most of the work.
 indistinguishable from fading toward the background, which is exactly the
 chrome-disabled look that game pieces must not have.
 
+### Yellow means LOOK HERE, and the default is to show it
+
+The wash says one thing: *pay attention, something happened here.* It is not a
+claim about what changed, about how long the change lasts, or about whether the
+board recorded anything — a state that will be wiped on the next turn earns the
+beat exactly as a permanent one does, because what the mark points at is the
+EVENT, not its consequences.
+
+Two questions about who gets it are genuinely open:
+
+- **(a) Does the actor see it, or only everyone else?** The actor knows where
+  they clicked, so the location is not news to them — but the ANSWER is, and it
+  arrives in the piece they are already watching.
+- **(b) Does every game need it, or only the games where the location is a
+  surprise?** connections broadcasts a guess while it is being built — each
+  teammate's picks wear their color — so by the time the answer lands, nobody
+  needs help finding those four tiles. psychicnum broadcasts nothing.
+
+**Assume YES to both until we decide otherwise** (Joel, 2026-09-15). A player
+learns a UI by consistency: "yellow means look here" is a rule you can pick up
+in one game and carry into the next, and it stays a rule only if it fires every
+time something happens — including on your own move, and including where you
+could have worked out the location yourself. A mark that appears only in the
+cases someone judged non-obvious is a mark nobody learns.
+
+So a game is not exempt because its board makes the location predictable; if it
+ends up exempt, that will be a decision recorded here, per game.
+
 ### Attention is a judgment about what the viewer already knows
 
-Not "who acted". Two questions, asked of each viewer, and a mark is owed only
-when both answers are no:
+Not "who acted". Two questions, asked of each viewer — and note that the
+DEFAULT above now outranks them for the attention wash specifically: assume the
+wash fires, and treat these two as the argument to make if a game wants an
+exemption. They still decide the other marks outright, where there is no
+learnability case for firing every time.
+
+A mark is owed when both answers are no:
 
 - **Will this change announce itself to them?**
 - **Do they already know what it is going to say?**
@@ -890,13 +923,10 @@ own three beats fire.
 row, so it cannot be contradicted — the model the race rule wants.
 
 **What we want** (proposals):
-- **Settle the self-attention question**, because the roster below says
-  psychicnum's is "deliberately off" and the code marks the guesser like
-  everybody else. The behavior looks right by waffle's reasoning — you know
-  where you clicked and not what it will say, and the answer arrives in that
-  tile — in which case the roster row is stale and the rule to write down is
-  that **in shape 1 the actor's mark is about the verdict's arrival, not the
-  change's location**.
+- **Settled 2026-09-15: the guesser sees the wash**, which is what the code
+  already did — the roster row below claiming otherwise was stale and is
+  corrected. It follows from the default above rather than from anything about
+  psychicnum: the wash fires on every move, the actor's included.
 
 ### connections · shape 2
 
@@ -916,12 +946,17 @@ adjudicates. Coop shares the board, so two players can submit overlapping
 tiles.
 
 **What we want** (proposals):
-- **Decide whether a teammate's refused guess marks the four tiles for
-  everyone.** In coop those four tiles are one shared move — a teammate's pick
-  already wears their ring, so the guess was visible while it was being built,
-  and the refusal currently is not. This is the gap between "all players get the
-  red shake" and what the code does.
-- Keep the good case unmarked: the band is the mark.
+- **Done 2026-09-15: a teammate's non-winning guess marks their four tiles for
+  everyone**, in its outcome tone, with the shake. Those four are one shared
+  move in coop, and "no" is news to the whole table — the player who learns it
+  last is the one about to pick them again.
+- **Done 2026-09-15: the band wash reaches the player whose guess made it**, per
+  the default above.
+- **Open: does a wrong or near guess want the WASH as well as the verdict?** By
+  the default it does, and the wash covering the verdict color is not an
+  argument against it — psychicnum's wash sits on its red and reveals it by
+  fading, which is the sequence rather than a collision.
+- Keep the good case's tiles unmarked: they become the band, which says more.
 
 ### codenamesduet · shape 1
 
@@ -1197,7 +1232,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **(That is not what the code does — nothing filters the actor out, so the guesser sees the wash too. The contradiction is unresolved; see this game's entry above.)** **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
+| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the wash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
@@ -1492,27 +1527,35 @@ contrast floor, and the obvious fix — dark ink on the light ones — would hav
 raised every number and destroyed the signal. **Before changing a color for
 contrast, ask what the ink is already carrying.**
 
-### The floor has one BLESSED exception: white on the outcome green
+### The floor has BLESSED exceptions, and they are listed here
 
-Ruled 2026-08-20, at psychicnum's pass, and recorded here so it is not
-re-derived at every game that borrows the pair. **White ink on
-`--outcome-won-fill-color` (`#66bb6a`) measures 2.36:1 and stays.** Judged on
-screen and it reads fine; the number is below the 3:1 floor below and that is
-accepted.
+Each was judged on screen, ruled, and written down so it is not re-derived at
+every game that borrows the pair. All of them sit below the 3:1 floor below, and
+all of them read fine to a person looking at a board.
 
-The pairing is not psychicnum's alone — connections wears the same two tokens
-(`PlayArea.module.css:157-159`), and any game putting white on the outcome green
-inherits this ruling rather than re-opening it. For contrast, the neighboring
-values, so nobody re-measures:
-
-| fill | white ink | dark ink |
+| fill | white ink | ruled |
 |---|---|---|
-| `--outcome-won-fill-color` `#66bb6a` | **2.36:1** — blessed | 7.36:1 |
-| `--outcome-lost-fill-color` `#ef5350` | 3.49:1 | 4.99:1 |
+| `--outcomes-won-fill-color` `#66bb6a` | **2.36:1** | 2026-08-20, at psychicnum's pass |
+| `--outcomes-near-fill-color` `#d99c41` | **2.40:1** | 2026-09-15 |
+| `--outcomes-warning-fill-color` `#e59622` | **2.40:1** | 2026-09-15 |
+| wordle's yellow | **2.57:1** | recognition beats the last half point — see below |
+| — for scale: `--outcomes-lost-fill-color` `#ef5350` | 3.49:1 | clears it |
 
-What this does **not** license: it is one blessed pair, not a general permission
-to ignore the floor. The rule below still holds everywhere else, and the reason
-it holds is unchanged.
+**The green** is not psychicnum's alone: connections wears the same two tokens,
+and any game putting white on the outcome green inherits the ruling rather than
+re-opening it.
+
+**The gold and the orange** were darkened at their BASE to earn even 2.4 — white
+on the amber 300 they used to be measured 1.73:1. They stop there rather than
+clearing the floor because a gold dark enough to carry white is not gold any
+more, which is the same reason wordle's yellow sits where it does. What made
+them worth darkening at all is that **flipping the ink to white is what a
+verdict does** — it is the one treatment every verdict shares, and a tone that
+cannot take white breaks the pattern rather than joining it.
+
+What this does **not** license: these are blessed pairs, not a general
+permission to ignore the floor. The rule below still holds everywhere else, and
+the reason it holds is unchanged.
 
 ### A state color that carries white ink has a floor, and it constrains the palette
 

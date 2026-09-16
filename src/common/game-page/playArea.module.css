@@ -538,11 +538,14 @@
  *
  * Qualified with `.tileFace` so it beats a game's own state class (which sets
  * `--tile-slot-fill-color` from another stylesheet at the same specificity — order between
- * modules is the bundler's business and this must not be a coin flip). */
+ * modules is the bundler's business and this must not be a coin flip).
+ *
+ * The COLOR only. The head-shake that goes with a refusal is `.verdictShake`,
+ * raised separately because it comes AFTER the attention wash — the wash says
+ * where to look, and this color is what it hands the piece back. */
 /* @@ */ .tileFace.verdictFill {
 /* @@ */   --tile-slot-fill-color: var(--verdict-fill);
 /* @@ */   --tile-slot-ink-color: var(--verdict-ink);
-  animation: verdict-shake 0.4s ease-in-out;
 }
 
 /* Each tone carries both forms: `--verdict-tone` for a ring around a group (the
@@ -557,20 +560,28 @@
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
-/* A caution — "you can't do that", "you already tried that". Orange, and dark
- * ink: white on this one measures about 2:1. */
+/* A caution — "you can't do that", "you already tried that". Orange.
+ *
+ * WHITE ink, like every other verdict — flipping the ink is what a verdict does,
+ * and the orange was darkened at its base until white read. It measures 2.40:1,
+ * under the 3:1 floor and blessed there (2026-09-15) alongside the outcome green
+ * and wordle's yellow; judged on screen rather than on the number. */
 /* @@ */ .verdictWarning {
 /* @@ */   --verdict-tone: var(--outcomes-warning-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-warning-fill-color);
-/* @@ */   --verdict-ink: var(--ink-onLight-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
-/* A near miss — "one away". Gold, and dark ink for the same reason wordle's
- * yellow keeps it: a gold dark enough to carry white text isn't gold any more. */
+/* A near miss — "one away". Gold.
+ *
+ * WHITE ink, like every other verdict. The gold was darkened at its base until
+ * white read: 2.40:1, under the 3:1 floor and blessed there (2026-09-15). It
+ * stops at 2.4 rather than clearing the floor for the reason wordle's yellow
+ * keeps dark ink — a gold dark enough to carry white is not gold any more. */
 /* @@ */ .verdictNear {
 /* @@ */   --verdict-tone: var(--outcomes-near-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-near-fill-color);
-/* @@ */   --verdict-ink: var(--ink-onLight-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* The three below complete the vocabulary: a tile can now wear ANY outcome its
@@ -638,8 +649,7 @@
 /* The color survives; the movement doesn't. */
 @media (prefers-reduced-motion: reduce) {
   .verdictRing,
-/* @@ */   .verdictShake,
-/* @@ */   .tileFace.verdictFill {
+/* @@ */   .verdictShake {
     animation: none;
   }
   /* …but the wash's ink is not movement, so the pair keeps that half. */

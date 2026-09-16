@@ -329,8 +329,8 @@
      can part the two without every consumer moving. */
 /* @@ */   --outcomes-won-base-color:      #66bb6a;  /* green 400 */
 /* @@ */   --outcomes-lost-base-color:     #ef5350;  /* red 400 */
-/* @@ */   --outcomes-near-base-color:     #ffb74d;  /* amber 300 — gold */
-/* @@ */   --outcomes-warning-base-color:  #ffa726;  /* orange 400 */
+/* @@ */   --outcomes-near-base-color:     #d99c41;  /* gold, 85% of amber 300 — see the white-ink note below */
+/* @@ */   --outcomes-warning-base-color:  #e59622;  /* orange, 90% of orange 400 — see the white-ink note below */
 /* @@ */   --outcomes-neutral-base-color:  #bdbdbd;  /* gray 400 */
   /* THE TWO NEW FAMILIES SIT AT INK WEIGHT, not at the 400 the other
      five anchor on, and the palette page is where that gets settled.
@@ -345,6 +345,15 @@
 
 /* @@ */   --outcomes-won-fill-color:      var(--outcomes-won-base-color);
 /* @@ */   --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
+  /* Both gold and orange were darkened at the BASE, so that every
+     tier derived from them moves together: a verdict flips its ink to white
+     everywhere, and white on the old amber 300 measured 1.73:1. Each was taken
+     down its OWN color rather than swapped for a darker tier of the Material
+     ramp, because these two share a hue (36°) and are told apart by saturation
+     — pick tiers and they converge into one orange. Gold now measures 2.40:1
+     and orange 2.40:1, deliberately short of the 3:1 floor and blessed there
+     (2026-09-15, judged on screen): at 3 the gold stops being gold, and 2.4 is
+     the level of the white-on-outcome-green blessed before it. */
 /* @@ */   --outcomes-near-fill-color:     var(--outcomes-near-base-color);
 /* @@ */   --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
 /* @@ */   --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
@@ -361,8 +370,8 @@
      legible as the deliberate outlier. */
 /* @@ */   --outcomes-won-ink-color:       #2e7d32;  /* green 800 — base −0.195 L */
 /* @@ */   --outcomes-lost-ink-color:      #c62828;  /* red 800   — base −0.115 L */
-/* @@ */   --outcomes-near-ink-color:      #f9a825;  /* yellow 800 gold — base −0.037 L */
-/* @@ */   --outcomes-warning-ink-color:   #ef6c00;  /* orange 800 — base −0.117 L */
+/* @@ */   --outcomes-near-ink-color:      #cf8f10;  /* gold — base −0.039 L */
+/* @@ */   --outcomes-warning-ink-color:   #ef6c00;  /* orange 800 — base −0.056 L */
 /* @@ */   --outcomes-neutral-ink-color:   #616161;  /* gray 700  — base −0.305 L */
   /* The two provisional families step nowhere, because their base IS
      the ink. Written as var(base) rather than as a repeated hex so the

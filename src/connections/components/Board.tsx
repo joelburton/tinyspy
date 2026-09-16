@@ -87,6 +87,12 @@ type Props = {
   /** The verdict on my last guess, ringed in its pill's tone (BoardCol sets it,
    *  and clears it on the next tile click). Null while nothing is being judged. */
   verdict?: BoardVerdict | null
+  /** Tiles taking the attention wash — the beat that says an answer landed here.
+   *  Raised for every verdict, my own included. */
+  washedTiles?: ReadonlySet<string>
+  /** Tiles taking the head-shake, which starts once the wash has faded and the
+   *  verdict color underneath is visible. */
+  shakenTiles?: ReadonlySet<string>
   /** user_id → resolved color var, for the identity ring. */
   colorByUserId: ReadonlyMap<string, string>
   /** Is this board SHARED — a coop game with somebody else in it? Identity is
@@ -110,11 +116,6 @@ type Props = {
    *  guesses, so a restart drops this instead of advancing it and the re-dealt
    *  board says nothing (plans/tile-feedback.md → Read the cause). */
   moveCount?: number
-  /** Was the newest guess mine? Then no flash: I picked those four tiles and the
-   *  commit slot already told me they were right. The mark is for the teammates
-   *  who were reading another corner. (Compete never flashes at all — the log is
-   *  RLS-scoped to the caller, so every guess in it is mine.) */
-  lastMoveMine?: boolean
   /** Turn-history: render read-only under the shared viewer frame (a past turn's
    *  board). Off during live play. */
   viewing?: boolean
@@ -168,7 +169,8 @@ export function Board({
   myTurnJustStarted = false,
   gameOver = null,
   moveCount = 0,
-  lastMoveMine = false,
+  washedTiles = NO_TILES,
+  shakenTiles = NO_TILES,
   viewing = false,
   highlightTiles = NO_TILES,
   highlightOutcome = 'lost',
@@ -199,12 +201,13 @@ export function Board({
     content: sortedMatched,
     contentKey: rankKey,
     moveCount,
-    // `lastMoveMine` is the audience rule: my own correct guess is answered in
-    // the commit slot, on four tiles I chose myself. Quiet while viewing a past
-    // turn, too — the ringed tiles there are already the mark, and a live band
-    // landing behind the viewer is not something to point at on a board nobody
-    // is reading.
-    quiet: viewing || lastMoveMine,
+    // Quiet only while viewing a past turn — the ringed tiles there are already
+    // the mark, and a live band landing behind the viewer is not something to
+    // point at on a board nobody is reading. The band a player's OWN guess
+    // produced is marked like anyone else's: it arrives somewhere they were not
+    // looking (the top of the board, while they were reading tiles), and what
+    // the wash says is "your four went here", not "something happened".
+    quiet: viewing,
     changed: (before, now) => {
       const had = new Set(before.map((m) => m.rank))
       return new Set(now.map((m) => m.rank).filter((r) => !had.has(r)))
@@ -315,6 +318,10 @@ export function Board({
                 // the border says "in the move" and the ring below says whose.
                 ownerId !== undefined && shared.selected,
                 ownerColor && styles.peerPick,
+                // The answer landing here — the wash first, then the head-shake
+                // over the verdict color the wash hands back.
+                washedTiles.has(tile) && shared.attentionFlash,
+                shakenTiles.has(tile) && shared.verdictShake,
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's tone.
                 // The background is free to take it: a connections tile carries

@@ -583,16 +583,32 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       expect(tile('a').className).toMatch(/verdictFill/)
     })
 
-    it('goes when a teammate guesses', async () => {
+    it('hands the mark to a teammate’s wrong guess — their four, not mine', async () => {
       const ctx = makeCtx({ players: twoMembers })
       const { rerender } = await guessWrongly(ctx)
 
-      // moth guesses. The board has moved on — their correct guess could even
-      // take these four tiles away — so a mark still sitting here would be
-      // describing a position that no longer exists.
+      // moth guesses wrongly on four DIFFERENT tiles. The board has moved on, so
+      // my mark goes — and theirs takes its place, because "no" is news to the
+      // whole table.
       h.result = loaded({
         game: game('coop'),
-        guesses: [wrongGuess('g2', 'u2')],
+        guesses: [{ ...wrongGuess('g2', 'u2'), tiles: ['c', 'd', 'f', 'g'] }],
+        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        unionTiles: ['a', 'b', 'e', 'i'],
+      })
+      rerender(<PlayArea {...ctx} />)
+
+      expect(tile('a').className).not.toMatch(/verdictFill/)
+      expect(tile('c').className).toMatch(/verdictFill/)
+    })
+
+    it('goes when a teammate’s guess is RIGHT — the band says it instead', async () => {
+      const ctx = makeCtx({ players: twoMembers })
+      const { rerender } = await guessWrongly(ctx)
+
+      h.result = loaded({
+        game: game('coop'),
+        guesses: [{ ...wrongGuess('g2', 'u2'), outcome: 'won' as const, matched: true }],
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
@@ -723,7 +739,8 @@ describe('connections PlayArea — attention', () => {
     expect(bandFor('RED').className).toMatch(/attentionFlash/)
   })
 
-  it('stays quiet for my own', () => {
+
+  it('flashes my own band too — the band lands where I was not looking', () => {
     h.result = loaded({ game: game('coop') })
     const ctx = makeCtx({ players: twoMembers })
     const { rerender } = render(<PlayArea {...ctx} />)
@@ -735,8 +752,9 @@ describe('connections PlayArea — attention', () => {
     })
     rerender(<PlayArea {...ctx} />)
 
-    // I chose those four tiles and the commit slot already answered me.
-    expect(bandFor('RED').className).not.toMatch(/attentionFlash/)
+    // I chose the four tiles, but the band arrives at the TOP of the board while
+    // I am reading the tiles — so the wash says "your four went here".
+    expect(bandFor('RED').className).toMatch(/attentionFlash/)
   })
 
   it('says nothing when the answer is revealed', async () => {

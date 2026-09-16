@@ -1,8 +1,14 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cls } from '@/common/utils/cls'
+import { useFlash } from '@/common/move-flash/useFlash'
+import {
+  ATTENTION_FADE_MS,
+  ATTENTION_FLASH_MS,
+  VERDICT_SHAKE_MS,
+} from '@/common/move-flash/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
@@ -181,23 +187,45 @@ export function BoardCol({
   // still in the slot — so a tap on the pill takes the ring with it without
   // this column being told. See plans/tile-feedback.md → Every mark has a
   // lifetime.
-  const [verdict, setVerdict] = useState<(BoardVerdict & { msgId: string }) | null>(null)
+  // `msgId` is the local message this mark belongs to, and `null` means the mark
+  // is about somebody ELSE's guess — there is no sentence of mine for it to
+  // outlive, so it lives by the board rule below instead.
+  const [verdict, setVerdict] = useState<(BoardVerdict & { msgId: string | null }) | null>(null)
   // Bumped per verdict so the ring's shake replays on a repeat (Board keys the
-  // ringed tiles on it). A ref, not state: it is read while setting state and
-  // never rendered on its own.
-  const verdictSeq = useRef(0)
+  // ringed tiles on it). State rather than a ref because one of the two places
+  // that raises a mark runs during render, where a ref may not be touched — and
+  // both raises take their number from here, so a peer's mark and my own can
+  // never collide on one and swallow a shake.
+  const [verdictSeq, setVerdictSeq] = useState(0)
 
   /** Show a message into the slot and ring these tiles in its outcome,
    *  replaying the shake — one message, two places. */
   function showWithVerdict(tiles: string[], feedbackMsg: FeedbackMessage) {
     const msgId = localFeedbackSlot.show(feedbackMsg)
-    verdictSeq.current += 1
-    setVerdict({ tiles: new Set(tiles), tone: feedbackMsg.outcome, nonce: verdictSeq.current, msgId })
+    setVerdictSeq(verdictSeq + 1)
+    setVerdict({ tiles: new Set(tiles), tone: feedbackMsg.outcome, nonce: verdictSeq + 1, msgId })
   }
+  // The two beats a verdict gets on the board, in order: the attention wash says
+  // WHERE the answer landed, and once it has faded the head-shake says the answer
+  // was no. Both are raised here, off whichever path set the verdict — my own
+  // submit, or a teammate's row arriving — so they read the same either way.
+  const [washedTiles, washTiles] = useFlash<string>(ATTENTION_FLASH_MS)
+  const [shakenTiles, shakeTiles] = useFlash<string>(VERDICT_SHAKE_MS)
+  useEffect(() => {
+    if (verdict === null) return
+    washTiles(verdict.tiles)
+    // Every verdict that can land ON TILES is a refusal — a correct guess takes
+    // its four away and becomes a band — so the shake needs no tone test.
+    const timer = setTimeout(() => shakeTiles(verdict.tiles), ATTENTION_FADE_MS)
+    return () => clearTimeout(timer)
+  }, [verdict, washTiles, shakeTiles])
+
   // Subscribes to the slot, so the ring re-derives when its message leaves.
   const top = useTopFeedbackMessage(localFeedbackSlot)
   const ringShown =
-    verdict !== null && localFeedbackSlot.peek().some((entry) => entry.id === verdict.msgId)
+    verdict !== null &&
+    (verdict.msgId === null ||
+      localFeedbackSlot.peek().some((entry) => entry.id === verdict.msgId))
 
   // ─── When the verdict mark expires ──────────────────────────────────────
   //
@@ -237,7 +265,29 @@ export function BoardCol({
     const shrank = guesses.length < seenGuess.count
     const foreign = newestGuess !== null && newestGuess.user_id !== selfId
     setSeenGuess({ count: guesses.length, id: newestGuess?.id ?? null })
-    if (shrank || foreign) setVerdict(null)
+    if (shrank) setVerdict(null)
+    else if (foreign) {
+      // A TEAMMATE'S guess that did not win: mark THEIR four tiles for everyone,
+      // because "no" is news to the whole table — those four are now the four
+      // nobody should try again, and the player who learns it last is the one
+      // about to pick them. A correct guess needs no mark: its band arrives and
+      // says the same thing in more detail.
+      //
+      // Their own client shows this as their own verdict, from their own answer,
+      // a beat earlier; this is the same mark reaching everyone else.
+      const marks = !viewing && newestGuess !== null && newestGuess.outcome !== 'won'
+      setVerdictSeq(verdictSeq + 1)
+      setVerdict(
+        marks
+          ? {
+              tiles: new Set(newestGuess.tiles),
+              tone: newestGuess.outcome,
+              nonce: verdictSeq + 1,
+              msgId: null,
+            }
+          : null,
+      )
+    }
   }
 
   const displayedTiles = localOrder
@@ -434,6 +484,8 @@ export function BoardCol({
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
         verdict={ringShown ? verdict : null}
+        washedTiles={washedTiles}
+        shakenTiles={shakenTiles}
         colorByUserId={colorByUserId}
         sharedBoard={sharedBoard}
         notMyTurn={notMyTurn}
@@ -442,7 +494,6 @@ export function BoardCol({
         // ATTENTION's cause, read off the log rather than off the board: how many
         // guesses the server has recorded, and whether the newest was mine.
         moveCount={guesses.length}
-        lastMoveMine={guesses.length > 0 && guesses[guesses.length - 1].user_id === selfId}
         viewing={viewing}
         highlightTiles={snap?.highlightTiles}
         highlightOutcome={snap?.outcome}

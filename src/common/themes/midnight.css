@@ -198,14 +198,23 @@
      unchanged except for terminalFrame's lightness (below). */
 /* @@ */   --outcomes-won-base-color:      #66bb6a;
 /* @@ */   --outcomes-lost-base-color:     #ef5350;
-/* @@ */   --outcomes-near-base-color:     #ffb74d;
-/* @@ */   --outcomes-warning-base-color:  #ffa726;
+/* @@ */   --outcomes-near-base-color:     #d99c41;
+/* @@ */   --outcomes-warning-base-color:  #e59622;
 /* @@ */   --outcomes-neutral-base-color:  #9e9e9e;
 /* @@ */   --outcomes-noted-base-color:    #42a5f5;
 /* @@ */   --outcomes-error-base-color:    #e53935;
 
 /* @@ */   --outcomes-won-fill-color:      var(--outcomes-won-base-color);
 /* @@ */   --outcomes-lost-fill-color:     var(--outcomes-lost-base-color);
+  /* Both gold and orange were darkened at the BASE, so that every
+     tier derived from them moves together: a verdict flips its ink to white
+     everywhere, and white on the old amber 300 measured 1.73:1. Each was taken
+     down its OWN color rather than swapped for a darker tier of the Material
+     ramp, because these two share a hue (36°) and are told apart by saturation
+     — pick tiers and they converge into one orange. Gold now measures 2.40:1
+     and orange 2.40:1, deliberately short of the 3:1 floor and blessed there
+     (2026-09-15, judged on screen): at 3 the gold stops being gold, and 2.4 is
+     the level of the white-on-outcome-green blessed before it. */
 /* @@ */   --outcomes-near-fill-color:     var(--outcomes-near-base-color);
 /* @@ */   --outcomes-warning-fill-color:  var(--outcomes-warning-base-color);
 /* @@ */   --outcomes-neutral-fill-color:  var(--outcomes-neutral-base-color);
