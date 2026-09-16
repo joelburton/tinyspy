@@ -1,7 +1,7 @@
 // cs-met-timer
 
 import { describe, it, expect } from 'vitest'
-import { timerLabel } from './timerLabel'
+import { formatTimerSeconds, timerLabel } from './timerLabel'
 
 /**
  * How a configured timer reads once it is printed — `none`, `count-up`, or
@@ -33,5 +33,15 @@ describe('timerLabel', () => {
     expect(timerLabel({ kind: 'countdown', seconds: 65 })).toBe('1:05 countdown')
     expect(timerLabel({ kind: 'countdown', seconds: 5 })).toBe('0:05 countdown')
     expect(timerLabel({ kind: 'countdown', seconds: 600 })).toBe('10:00 countdown')
+  })
+})
+
+describe('formatTimerSeconds', () => {
+  it('formats as M:SS with zero-padded seconds', () => {
+    expect(formatTimerSeconds(0)).toBe('0:00')
+    expect(formatTimerSeconds(9)).toBe('0:09')
+    expect(formatTimerSeconds(60)).toBe('1:00')
+    expect(formatTimerSeconds(125)).toBe('2:05')
+    expect(formatTimerSeconds(600)).toBe('10:00')
   })
 })

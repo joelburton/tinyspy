@@ -30,7 +30,7 @@ vi.mock('../supabase/db', () => ({
 }))
 
 import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
-import { useGameTimer, formatTimerSeconds } from './useGameTimer'
+import { useGameTimer } from './useGameTimer'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -201,15 +201,5 @@ describe('useGameTimer', () => {
     })
     expect(result.current.displaySeconds).toBe(59) // followed the reset down
     expect(result.current.expired).toBe(false) // a fresh countdown, not a re-loss
-  })
-})
-
-describe('formatTimerSeconds', () => {
-  it('formats as M:SS with zero-padded seconds', () => {
-    expect(formatTimerSeconds(0)).toBe('0:00')
-    expect(formatTimerSeconds(9)).toBe('0:09')
-    expect(formatTimerSeconds(60)).toBe('1:00')
-    expect(formatTimerSeconds(125)).toBe('2:05')
-    expect(formatTimerSeconds(600)).toBe('10:00')
   })
 })

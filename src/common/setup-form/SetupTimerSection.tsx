@@ -1,8 +1,7 @@
 // cs-blessed-setup-form
 
 import { useState, type ReactNode } from 'react'
-import { formatTimerSeconds } from '../timer/useGameTimer'
-import { timerLabel } from '../timer/timerLabel'
+import { formatTimerSeconds, timerLabel } from '../timer/timerLabel'
 import { RadioRow } from '../fields/RadioRow'
 import type { FormErrors } from '../forms/formState'
 import { SetupSection } from './SetupSection'

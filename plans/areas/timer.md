@@ -102,6 +102,19 @@ move; (2) call it from `timerLabel` and leave it where it is; (3) leave both.
 Recommend (1): the split by file is then the split by job, which is what the
 one-paragraph summary above already had to say.
 
+**WORKED 2026-09-16**, as option (1). `formatTimerSeconds` now lives in
+`timerLabel.ts` and the countdown arm is `` `${formatTimerSeconds(t.seconds)}
+countdown` `` — six duplicated lines gone, and the two files are the hook and
+the words. `GamePage.tsx`'s import retargets; `SetupTimerSection.tsx`'s two
+become `import { formatTimerSeconds, timerLabel } from '../timer/timerLabel'`,
+so neither printer reaches through the polling hook's module any more. The
+`describe('formatTimerSeconds')` block moved to `timerLabel.test.ts` with the
+function. Plant-verified: padding the seconds field to 1 fails BOTH the
+formatter's own spec and `timerLabel`'s `1:05 countdown` case, which is the
+proof the label really routes through the shared formatter. The predicted breaks
+below all held; the docstring the function carried with it still says
+"BoardScreen header", which is F-2's third bullet and still owed.
+
 ### F-timer-4 · `unnamed-effects` · Both effects are bare arrows
 
 The seed read (line 86) and the driver (line 122) are each a dozen lines with a

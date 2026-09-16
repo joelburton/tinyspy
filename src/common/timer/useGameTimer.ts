@@ -171,13 +171,3 @@ export function useGameTimer({
 
   return { displaySeconds, expired }
 }
-
-/**
- * Format seconds as "M:SS" — the common timer display in the
- * BoardScreen header. Used by both countup and countdown modes.
- */
-export function formatTimerSeconds(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}

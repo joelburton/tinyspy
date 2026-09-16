@@ -18,10 +18,16 @@ import type { TimerMode } from '../manifest/gameManifest'
  */
 export function timerLabel(t: TimerMode): string {
   if (t.kind === 'countup') return 'count-up'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
+  if (t.kind === 'countdown') return `${formatTimerSeconds(t.seconds)} countdown`
   return 'none'
+}
+
+/**
+ * Format seconds as "M:SS" — the common timer display in the
+ * BoardScreen header. Used by both countup and countdown modes.
+ */
+export function formatTimerSeconds(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
