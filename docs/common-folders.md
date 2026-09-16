@@ -221,6 +221,7 @@ and re-classifying is a move up the file:
 | `Soon` | should change, and nothing is blocking it |
 | `Someday` | deliberately not now. Probably yes, eventually |
 | `Maybe` | an idea. May never happen |
+| `board-marks` | the marks a board wears for a beat: a move's wash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
 
 - **All four headings are always present, empty or not.** The skeleton exists
   so that adding the first item is one line rather than a guess at the
@@ -275,7 +276,6 @@ area is audited. No sweep.
 | `members` | who someone is, their color, and the disc that shows it |
 | `menu` | the one menu, its store, and what a game puts in it |
 | `mobile` | the desktop-versus-mobile machinery: the breakpoint, the device hooks, the viewport |
-| `move-flash` | the marks a board wears for a beat: a move's wash, the your-turn frame, a game's own hot set |
 | `outcomes` | the outcome vocabulary — won · lost · near · warning · neutral · noted |
 | `page-header` | the top strip and the marks in it |
 | `pause-suspend` | pausing, presence-pause, suspend |

@@ -1,4 +1,4 @@
-// cs-audited-move-flash
+// cs-audited-board-marks
 
 /**
  * How long the vocabulary's transient marks stay on screen, and the single home

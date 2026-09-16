@@ -25,13 +25,13 @@ import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useFlash } from '@/common/move-flash/useFlash'
-import { useMark } from '@/common/move-flash/useMark'
+import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import {
   ATTENTION_FADE_MS,
   ATTENTION_FLASH_MS,
   WORD_ANSWER_MS,
-} from '@/common/move-flash/feedbackTiming'
+} from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'

@@ -3,12 +3,12 @@
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import { useFlash } from '@/common/move-flash/useFlash'
+import { useFlash } from '@/common/board-marks/useFlash'
 import {
   ATTENTION_FADE_MS,
   ATTENTION_FLASH_MS,
   VERDICT_SHAKE_MS,
-} from '@/common/move-flash/feedbackTiming'
+} from '@/common/board-marks/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'

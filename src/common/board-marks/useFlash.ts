@@ -1,4 +1,4 @@
-// cs-audited-move-flash
+// cs-audited-board-marks
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -21,7 +21,7 @@ const EMPTY: ReadonlySet<never> = new Set()
  *
  * `flash` starts a timer, so it's called from an event handler or an effect,
  * never during render. A mark that must land in the same commit as the change
- * it points at holds its own set instead (common/move-flash/doc.md). `clear`
+ * it points at holds its own set instead (common/board-marks/doc.md). `clear`
  * only empties the set, so it is safe during render — for the caller whose
  * board changes out from under a mark that is still lit.
  *

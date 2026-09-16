@@ -1,4 +1,4 @@
-// cs-audited-move-flash
+// cs-audited-board-marks
 
 import type { Card } from './cards'
 

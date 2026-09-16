@@ -2,8 +2,8 @@
 
 import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
-import { useFlash } from '@/common/move-flash/useFlash'
-import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/move-flash/feedbackTiming'
+import { useFlash } from '@/common/board-marks/useFlash'
+import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'

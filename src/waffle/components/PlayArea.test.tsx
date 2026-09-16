@@ -676,7 +676,7 @@ describe('waffle PlayArea — a swap in flight', () => {
   // twenty changes and lights the whole grid up at the one moment nothing has
   // happened. The flash reads the CAUSE instead — the swap log, which `restart`
   // deletes — so a re-dealt board says nothing. Same rule setgame learned the
-  // hard way; see common/move-flash/useChangeCause.
+  // hard way; see common/board-marks/useChangeCause.
   it('says nothing when the board is re-dealt rather than played', async () => {
     rpc.mockResolvedValue(okEnvelope)
     h.result = loaded(

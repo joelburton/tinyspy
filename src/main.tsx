@@ -28,7 +28,7 @@ import './common/core-css/utilities.css'             // tiny utilities: muted, e
 import App from './App'
 import { loadTheme } from './common/themes/loadTheme'
 import { trackLayoutWidth } from './common/mobile/layoutWidth'
-import { publishMarkDurations } from './common/move-flash/feedbackTiming'
+import { publishMarkDurations } from './common/board-marks/feedbackTiming'
 import { reloadOnStaleChunk } from './common/boot/reloadOnStaleChunk'
 import { onUncaughtRender, showPanic } from './common/boot/panic'
 

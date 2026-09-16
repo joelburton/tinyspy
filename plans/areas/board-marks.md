@@ -1,6 +1,7 @@
-# Area: move-flash
+# Area: board-marks
 
-The folders it reads: `move-flash`, plus setgame's own flash machinery and the
+The folders it reads: `board-marks` (named `move-flash` until F-12), plus
+setgame's own flash machinery and the
 flash timings in `core-css/base.css` (both agreed 2026-09-15 — the area is where
 flashing gets centralized, so what a game hand-rolled and what the shared
 stylesheet times are in scope). The process is
@@ -9,7 +10,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: AUDITED 2026-09-15; the prose pass done 2026-09-15; the findings
 RE-READ 2026-09-15** after the game work recorded below. Roster agreed and
-stamped `cs-met-move-flash`; every file read.
+stamped `cs-met-board-marks`; every file read.
 
 **F-1, F-2, F-4, F-5, F-8, F-9, F-10, F-11 and F-13 are WORKED** — the doc.md
 intro and the three docstrings, the stale path, the two clocks, the
@@ -30,23 +31,23 @@ heavily refactored since, so choices made there may want improving.
 
 ## The roster
 
-`src/common/move-flash/` — every file `cs-met-move-flash`:
+`src/common/board-marks/` — every file `cs-met-board-marks`:
 
 - `feedbackTiming.ts`
 - `useFlash.ts` · `useFlash.test.ts`
 - `useMark.ts` · `useMark.test.ts` — WRITTEN by this area (F-14),
-  `cs-audited-move-flash`
+  `cs-audited-board-marks`
 - `useChangeCause.ts` — renamed from `useMoveCausedChange.ts` (F-10), and its
   `useChangeCause.test.ts`, WRITTEN by this area
 - `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
-  (F-4), `cs-audited-move-flash`
+  (F-4), `cs-audited-board-marks`
 - `useTurnStartFlash.ts`
 - `doc.md` (one-sentence lede, no intro) · `todo.md` (empty)
 
 Outside the folder, on the roster by Joel's word:
 
 - `src/setgame/lib/flash.ts` · `flash.test.ts` — setgame's own claim flash
-  (`claimTransition`, `DEPART_MS` / `ARRIVE_MS`, `FlashKind`), `cs-met-move-flash`.
+  (`claimTransition`, `DEPART_MS` / `ARRIVE_MS`, `FlashKind`), `cs-met-board-marks`.
   The audit may centralize what it does.
 - `src/common/core-css/base.css` — ONLY its flash rules (the two
   `--mark-*-flash-duration` tokens and their comment). Its stamp stays
@@ -90,7 +91,7 @@ finding about unnamed lifetimes was written before:
 
 ## Findings
 
-### F-move-flash-1 · `intro-owed` · `doc.md` is one sentence, and the sentence undersells the folder
+### F-board-marks-1 · `intro-owed` · `doc.md` is one sentence, and the sentence undersells the folder
 
 **WORKED 2026-09-15.** "Flashing the board pieces a move changed." Two of the four hooks are not
 about a move's pieces at all: `useFlash` marks an ambiguous letter or a
@@ -107,7 +108,7 @@ today sits in `useMoveCausedChange`'s docstring is most of the intro already
 written — it moves, it is not rewritten. See F-12 for whether the lede's
 name-vs-contents gap is a rename.
 
-### F-move-flash-2 · `useflash-archaeology` · `useFlash`'s docstring is mostly how it used to be
+### F-board-marks-2 · `useflash-archaeology` · `useFlash`'s docstring is mostly how it used to be
 
 **WORKED 2026-09-15.** Of its three paragraphs, the second is "Replaces the copy-pasted … that
 scrabble had three of … and stackdown had one of" — how the code came to be,
@@ -119,7 +120,7 @@ not interfere; a second `flash` restarts the clock and replaces the contents.
 The "not a fit for a single tagged value" line can stay as one sentence of
 scope, without naming stackdown.
 
-### F-move-flash-3 · `unnamed-lifetimes` · Every `useFlash` caller spends a number the vocabulary has no name for
+### F-board-marks-3 · `unnamed-lifetimes` · Every `useFlash` caller spends a number the vocabulary has no name for
 
 **HALF WORKED 2026-09-15.** `feedbackTiming.ts` says a lifetime is a property of the vocabulary, not of a
 game, and names two: attention (700) and your-turn (1200). The three `useFlash`
@@ -175,7 +176,7 @@ first, and if it is wrong scrabble's own area changes it.* WHETHER those three
 marks should exist at all is still scrabble's to say; the note below is
 unchanged.
 
-### F-move-flash-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
+### F-board-marks-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
 
 **WORKED 2026-09-15**, as option (2). waffle, connections and psychicnum each carry the same nine lines: a
 `useState<ReadonlySet>` seeded with a module-level empty set, a render-time
@@ -219,7 +220,7 @@ that an empty set means quiet, and that the timer is its own — the three rules
 worth sharing in the first place. It also dissolves F-8 for the common case:
 the confusingly-named return value is no longer something a game handles.
 
-### F-move-flash-5 · `cause-docstring` · `useMoveCausedChange`'s docstring is the folder's design essay, and two of its claims have rotted
+### F-board-marks-5 · `cause-docstring` · `useMoveCausedChange`'s docstring is the folder's design essay, and two of its claims have rotted
 
 **WORKED 2026-09-15.** Fifty-five lines. A caller needs the contract: what the three parameters are,
 what it returns and when, the two requirements on the data path, and that the
@@ -234,7 +235,7 @@ holds, but not for the reason stated); and "setgame … folds into this hook whe
 it converts" is a plan in a docstring (feedback: a filed issue is not a
 docstring) — it is F-10's, and the docstring says only what is true.
 
-### F-move-flash-6 · `movecount-default` · Two boards default `moveCount` to 0, which silently turns the mark off
+### F-board-marks-6 · `movecount-default` · Two boards default `moveCount` to 0, which silently turns the mark off
 
 connections' and psychicnum's `Board` declare `moveCount?: number` with a
 default of 0. A caller that forgets the prop gets a board that never flashes —
@@ -250,7 +251,7 @@ thing missing was the type agreeing with it. Nothing else moved: every call site
 was already passing it, which is exactly why a default that disables the feature
 could sit there unnoticed.
 
-### F-move-flash-7 · `cause-hook-untested` · Two of the three hooks have no test of their own
+### F-board-marks-7 · `cause-hook-untested` · Two of the three hooks have no test of their own
 
 `useFlash` has a four-case unit test. `useMoveCausedChange` is covered only
 end-to-end by waffle's `PlayArea.test.tsx` (a teammate's swap flashes; a
@@ -266,7 +267,7 @@ A file per unit: `useMoveCausedChange.test.ts`, `useTurnStartFlash.test.ts`.
 was written with the hook. `useTurnStartFlash` is still the only file in the
 folder with no test of its own.
 
-### F-move-flash-8 · `cause-hook-name` · The name asks a yes/no question and the hook answers with content
+### F-board-marks-8 · `cause-hook-name` · The name asks a yes/no question and the hook answers with content
 
 **WORKED 2026-09-15**, by F-10's rename. `useMoveCausedChange(content, key, moves)` reads as "did a move cause a
 change?" — a boolean — and returns the content as it was BEFORE the move, or
@@ -276,7 +277,7 @@ return what the hook does not. Options: rename to what it returns
 type document it; or let F-4 option (2) absorb it. Decide with F-4, since that
 finding may change what the hook is.
 
-### F-move-flash-9 · `turn-flash-docstring` · Rationale and implementation notes in `useTurnStartFlash`'s docstring
+### F-board-marks-9 · `turn-flash-docstring` · Rationale and implementation notes in `useTurnStartFlash`'s docstring
 
 **WORKED 2026-09-15.** "You notice things that appear far better than things that stop" is the design
 reason (intro material); "React's endorsed … shape, and the house rule against
@@ -286,7 +287,7 @@ contract and stay. "Both mirroring `useCelebration`'s" — that hook has three
 rules, of which these mirror the first two; say "the same never-on-mount and
 rising-edge rules as `useCelebration`" or drop the cross-claim.
 
-### F-move-flash-10 · `setgame-hand-rolled-cause` · setgame's cause check IS `useMoveCausedChange` keyed on an id, and it has not converted
+### F-board-marks-10 · `setgame-hand-rolled-cause` · setgame's cause check IS `useMoveCausedChange` keyed on an id, and it has not converted
 
 **WORKED 2026-09-15**, after the finding's premise turned out to be wrong. `PlayArea`'s `seen` / `claimId` block does what the hook does — content key +
 monotone marker, the marker dropping on `replay_board` because the events are
@@ -332,7 +333,7 @@ only empties the set — it leaves any pending timer alone, since that timer
 empties an already-empty set and a later `flash` cancels it first. Existing
 callers destructure two elements and were not touched.
 
-### F-move-flash-11 · `two-clocks` · Each lifetime is written twice, and a comment holds them together
+### F-board-marks-11 · `two-clocks` · Each lifetime is written twice, and a comment holds them together
 
 **WORKED 2026-09-15**, by a route none of the three options named. `ATTENTION_FLASH_MS = 700` and `--mark-attention-flash-duration: 0.7s`;
 `YOUR_TURN_FLASH_MS = 1200` and `--mark-yourTurn-flash-duration: 1.1s`. The JS
@@ -375,7 +376,7 @@ never had the ink coupling, so nothing else about it changed; the deliberate
 No game changed. All three attention callers put `.attentionFlash` on the
 shared `.tileFace`, which is where both animations live.
 
-### F-move-flash-12 · `folder-name` · `move-flash` names one of the folder's three jobs
+### F-board-marks-12 · `folder-name` · `move-flash` named one of the folder's jobs
 
 The folder holds the move-caused attention mark, a general transient set used
 for input-problem and verdict marks, and the turn-start ring. The name and the
@@ -393,13 +394,28 @@ has one. Two of the folder's six files have "flash" in their name and four
 don't. The address argument for (1) is unchanged; the honesty argument for (2)
 has grown.
 
-### F-move-flash-13 · `stale-path` · `tile-feedback.md` points at `common/hooks/game/useMoveCausedChange`
+**WORKED 2026-09-16**, as option (2), renamed to **`board-marks`**. Not `marks`,
+which Joel ruled too vague for a folder (2026-09-16): a bare plural with no scope.
+`mark` itself is the word the repo already spends — the `--mark-*` token family,
+ui.md's row, tile-feedback.md's vocabulary, and this folder's own lede — so
+building on it adds no synonym, and `board-` is what tells it from the feedback
+pill, the turn log and the header. `board-feedback` was ruled out on sight:
+`common/feedback/` is the pill system and a closed area, and two folders named
+feedback is the exact collision this sprint spends its time removing.
+
+The sweep: the folder, its area file, the import path in fifteen files, the
+`cs-*-move-flash` stamps, the finding slugs, `docs/common-folders.md`'s row
+(which also moved to where the table's alphabetical order puts it) and the plan's
+§3 row. What stays under the old name is this sprint's commit messages, which is
+the one cost that can't be swept and is worth less than the name.
+
+### F-board-marks-13 · `stale-path` · `tile-feedback.md` points at `common/hooks/game/useMoveCausedChange`
 
 **WORKED 2026-09-15.** That folder went in the 2026-09-04 restructure. The plan is the design
 reference this area is told to read, so the pointer is fixed in passing:
-`common/move-flash/useMoveCausedChange`.
+`common/board-marks/useMoveCausedChange`.
 
-### F-move-flash-14 · `tagged-mark-hand-rolled` · Five games hand-roll the same self-clearing mark, because `useFlash` holds a set
+### F-board-marks-14 · `tagged-mark-hand-rolled` · Five games hand-roll the same self-clearing mark, because `useFlash` holds a set
 
 **FOUND 2026-09-15, in the re-read after the board work.** `useFlash` holds a SET
 of ids, and its docstring declines the other shape outright: *"a single nullable
@@ -444,7 +460,7 @@ two `useMark`s with a delay, and whether the delay wants a name is easier to see
 once both games are written that way than it was from two hand-rolled copies.
 letterboxed is not this hook's shape and was not touched.
 
-### F-move-flash-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
+### F-board-marks-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
 
 **FOUND 2026-09-15, in the re-read.** A CSS animation runs once per mount, so a
 mark that must fire twice in a row needs the element remounted or the class

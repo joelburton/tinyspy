@@ -299,7 +299,7 @@
      `--mark-attention-flash-duration` and
      `--mark-yourTurn-flash-duration`, both READ here and declared
      nowhere in CSS. They are published onto the document root at
-     startup from common/move-flash/feedbackTiming.ts, which is the
+     startup from common/board-marks/feedbackTiming.ts, which is the
      one home for the numbers and carries the reasoning for each: a
      mark's class comes off on a JS timer, so a duration written in
      both languages is one design decision with two votes. */

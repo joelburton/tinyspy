@@ -1,4 +1,4 @@
-# move-flash
+# board-marks
 
 The marks a board wears for a beat and then takes off: the wash on the pieces a
 move just changed, the frame at the moment the turn becomes yours, and a

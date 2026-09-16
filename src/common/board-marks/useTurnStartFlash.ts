@@ -1,4 +1,4 @@
-// cs-audited-move-flash
+// cs-audited-board-marks
 
 import { useEffect, useState } from 'react'
 import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
@@ -19,7 +19,7 @@ import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
  * In a free-for-all game `myTurn` is permanently true, so this never fires —
  * no caller-side gate needed.
  *
- * Why the turn arriving needs a mark of its own: common/move-flash/doc.md.
+ * Why the turn arriving needs a mark of its own: common/board-marks/doc.md.
  */
 export function useTurnStartFlash(myTurn: boolean): boolean {
   const [flashing, setFlashing] = useState(false)

@@ -352,7 +352,7 @@ Two requirements make it work, and both are worth checking in a new game:
   `Promise.all`, so within a render a board that has moved always comes with the
   row that moved it.
 
-The shared piece is `common/move-flash/useChangeCause`: hand it the content,
+The shared piece is `common/board-marks/useChangeCause`: hand it the content,
 a key for "changed", and the server's move marker, and it hands back the previous
 content only when a move caused the change. setgame implements the same rule by
 hand (it has its own hold-then-arrive choreography around it) and folds in when
@@ -529,7 +529,7 @@ What still holds:
 - **Never a fill.** A filled piece reads as a verdict, and that is the one thing
   this must not say. An edge or a ring, leaving the piece itself untouched.
 - **One lifetime, named once.** `AMBIGUOUS_PICK_FLASH_MS` in
-  `common/move-flash/feedbackTiming.ts`, which stackdown and strands both read —
+  `common/board-marks/feedbackTiming.ts`, which stackdown and strands both read —
   they had typed 900 and 1000 for the same mark. It is longer than the attention
   flash deliberately: that one announces an event, this one asks for an action
   and has to survive the reach for the mouse.

@@ -1,4 +1,4 @@
-// cs-audited-move-flash
+// cs-audited-board-marks
 
 import { useState } from 'react'
 
@@ -44,7 +44,7 @@ export type ChangeCause<T> =
  * on the answer itself — setgame holds the departing cards on screen before it
  * swaps them, and resets the board it is showing when the change was not a move.
  *
- * Why an attention mark is gated on the cause at all: common/move-flash/doc.md.
+ * Why an attention mark is gated on the cause at all: common/board-marks/doc.md.
  */
 export function useChangeCause<T>(
   content: T,
