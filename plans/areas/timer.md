@@ -233,11 +233,40 @@ read it (`waffle`, `wordle`, `connections`, `psychicnum`, `stackdown`) use
 it as a fact about a terminal game ("did the clock end this?"). Both are served
 by the level as it is; recording this so the question is asked once: whether
 the hook should hand back the edge (`justExpired`, true for one render) so the
-ref and the comment leave `GamePage`. Options: (1) leave it — `GamePage`'s
+ref and the comment leave `GamePage`. Options: (1) leave it — ~~`GamePage`'s
 edge also gates on `paused`, which the hook does not know, so the ref would
-move rather than go; (2) add `justExpired`; (3) hand back the edge and let
+move rather than go~~ **this reason was wrong, see below**; (2) add
+`justExpired`; (3) hand back the edge and let
 `GamePage` gate it. Recommend (1) and close: the hook's job is the number, and
 `game-page` is closed with that comment blessed.
+
+**WORKED 2026-09-16 as option (1) — leave it — on Joel's word, after the
+re-verify overturned the reason.** The hook DOES know `paused`:
+`useCommonGame.ts` computes one boolean and passes it both into `useGameTimer`
+and out to `GamePage`, so the recorded rationale was flatly wrong and the
+recommendation had to be re-argued.
+
+The real reason the ref cannot leave is that **a hook cannot produce a
+one-render edge safely.** The obvious shape computes it during render —
+`const justExpired = expired && !prevRef.current; prevRef.current = expired` —
+and StrictMode (`main.tsx`) double-invokes render: pass one returns true and
+sets the ref, pass two computes false, and pass two is the result React keeps.
+The timeout would silently never fire in development and fire in production.
+`GamePage`'s ref is mutated inside an EFFECT, which runs once per commit, which
+is why it works. The safe version of (2) is `useState` plus an effect to raise
+the flag and a second render to lower it — the ref moves into the hook and
+grows, while the `ended_at` check and the race logging stay in `GamePage`
+regardless.
+
+A fourth option was raised at the presentation and declined with the rest: an
+`onExpired` callback, the only shape that yields an edge without a render-phase
+ref. It is the only one that actually deletes something — but the hook would
+start calling things, and "the hook fires nothing" is the sentence its docstring
+now leads with.
+
+And the level is what the five games want: `waffle`, `wordle`, `connections`,
+`psychicnum` and `stackdown` read `timerExpired` into `buildOver` as a fact
+about an already-terminal game, which survives a reload where an edge does not.
 
 ## Notes
 
