@@ -1279,7 +1279,7 @@ the background. Pick the next one up from the "forces" column.
 | bananagrams | tf0 | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
 | crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
-| spellingbee | tf0 | — | hexes: not squares, packed edge to edge, and `.hexFlash`'s replay-on-repeat lifetime |
+| spellingbee | tf0 | — | hexes: not squares, packed edge to edge. Its press, hover and selected edge are the shared ones now, and a refused word answers on the board (the hive head-shakes, the word's letters take the outcome's fill) — but that was a pass through the MARKS, not the framework |
 | wordwheel | tf0 | — | same hexes, same questions |
 | wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
 
@@ -1536,9 +1536,6 @@ blinking in and out as a teammate changed their mind.
   tile": remove it.
 - **letterboxed draws lines, not tiles** (`.path`, `.ghostPath` at differing
   opacity). A board whose primary mark is an overlay between cells.
-- **spellingbee's `.hexFlash`** is a tap-feedback overlay keyed by a bumping
-  nonce so re-tapping the same tile replays it — the one existing example of
-  "replay this mark on repeat" that our lifetimes don't describe.
 - **strands' most recently tapped letter** is not hover and not state — it is
   the position channel above, reached by tap.
 - **strands documents a touch trap** worth promoting to a rule: a touchscreen

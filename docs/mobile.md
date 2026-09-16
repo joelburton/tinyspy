@@ -677,12 +677,15 @@ is unaffected: the rem width matches what five columns used to be on a normal
 info column, so a desktop board shows the same column count it always did.
 
 - **spellingbee** — board is the 7-hex honeycomb (SVG, scales with the column via
-  `--u`); the recipe fits it on a phone unchanged. Added **click feedback on a
-  hive tile**: a one-shot hex-shaped white flash (`.hexFlash`, keyed by a bumping
-  nonce so re-tapping the SAME tile replays it) on top of the `:active` press —
-  and `-webkit-tap-highlight-color: transparent` on the `<g>`, since the browser's
-  default tap-highlight paints a gray box over the hex's square bounding box that
-  both looks wrong and hid our flash. Guarded by
+  `--u`); the recipe fits it on a phone unchanged. Tap feedback on a hive tile is
+  the shared piece press — the hex sinks and darkens, the same gesture every
+  other board's tiles give. (It was a white flash overlay on top of that press,
+  written when the press was a bare `scale(0.9)` and easy to miss on a fast tap;
+  a hex now rests with a shadow and rises on hover, so the press reads on its
+  own, and white at 0.7 over a pale hex read as the tile blanking rather than
+  taking a tap.) `-webkit-tap-highlight-color: transparent` stays on the `<svg>`:
+  the browser's default tap-highlight paints a gray box over the hex's square
+  bounding box, which both looks wrong and covers the press. Guarded by
   [`spellingbee-mobile.e2e.ts`](../e2e/spellingbee-mobile.e2e.ts).
 - **boggle** — the square tile grid fills the phone (`mobileFill`'s `--avail-w`;
   `--avail-h` already reserves the below-board input row). Its touch story is

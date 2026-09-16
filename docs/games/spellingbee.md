@@ -392,19 +392,45 @@ src/spellingbee/
                           real): a legal word gets the optimistic pill + the submit_word call
                           carrying points / is_pangram / is_bonus; a non-legal one is rejected
                           with the right reason and no RPC.
-    Letters.tsx           The 7-hex honeycomb, rendered as .board > .grid (the board-column
-                          convention — no tray; the hexes carry their own shape). Render
-                          order: center → top → upper-right → lower-right → bottom →
-                          lower-left → upper-left. Position via nth-child rules in
-                          Letters.module.css.
-    Letters.module.css    `clip-path: polygon(...)` flat-top hexes, absolute positioning,
-                          per-position nth-child rules — the ~/spellingbee-ws §7 layout, but
-                          RE-BASED to the flower's own top-left so .grid hugs its real
-                          256×267 box and sits FLUSH at the top of the column (the source's
-                          320×320 square left a ~37-unit blank band up top). Scales via `--u`
-                          (set on .boardCol); hex shapes + relative positions unchanged.
+    Letters.tsx           The 7-hex honeycomb, one inline <svg> rendered as .board > .grid
+                          (the board-column convention — no tray; the hexes carry their own
+                          shape). Render order: center → top → upper-right → lower-right →
+                          bottom → lower-left → upper-left, positioned from lib/honeycomb.ts.
+                          Takes the set of letters the typed word is USING, and passes each
+                          hex its own flag.
+    Letters.module.css    Flat-top hexes as SVG <polygon>s (a real fill + stroke — a
+                          clip-path div takes no border), positioned in the flower's own
+                          coordinate units — the ~/spellingbee-ws §7 layout RE-BASED to the
+                          flower's top-left so .grid hugs its real 256×267 box and sits FLUSH
+                          at the top of the column (the source's 320×320 square left a
+                          ~37-unit blank band up top). Scales via `--u` (set on .boardCol).
+                          A hex wears the shared PIECE gesture: it rests with a shadow, rises
+                          on hover while the shadow falls away, and presses back down by
+                          0.96 — the same treatment every other board's tiles get. Both
+                          halves are in coordinate units, since an SVG transform length and
+                          a filter length are user units, so the depth scales with the board;
+                          the two drop-shadow filters are in theme.css, which explains the
+                          arithmetic. (Hover used to DIM the hex, which is the one thing
+                          hover means nowhere else in the app.)
+                          A hex whose letter is in the typed word takes the app's SELECTED
+                          edge — black, thicker. That also answers the pangram hunter's
+                          question outright: the unmarked hexes are the letters still
+                          missing from the word. Both edge widths are the SHARED tile
+                          tokens in real pixels: `vector-effect: non-scaling-stroke` opts
+                          the stroke out of the board's scale, so the hive's borders are
+                          the same 2px / 4px as every other board's at any board size.
+                          A REFUSED word answers on the board: the whole hive head-shakes
+                          (the shared `.verdictShake`, keyed by a nonce so a second
+                          refusal remounts the hive and replays it), and the letters the
+                          word used take that outcome's fill with white ink for a beat.
+                          The actor's alone — a peer is never told about somebody else's
+                          miss — and with no attention flash, since you know what you
+                          just typed. lib/answer.ts is the one table the pill and the
+                          hexes both read, so they cannot disagree about a word.
     Letter.tsx            Single hex. onMouseDown preventDefault so a click doesn't steal
-                          focus from the keyboard-handler attachment point.
+                          focus from the keyboard-handler attachment point. Takes its own
+                          `used` flag and, when a refused word used its letter, that
+                          word's outcome.
     TypedWord.tsx         The current typed word, rendered as the children INSIDE the shared
                           <EntryBox> (which owns the box + blinking caret + placeholder).
                           One <span> per character so illegal letters (not in the puzzle's

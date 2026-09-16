@@ -32,6 +32,27 @@
    * --outcome-* colors.) */
 /* @@ */   --spellingbee-accent-edge:   #a86b00;
 
+  /* DEPTH, in the hive's own coordinate units. A `<polygon>` takes no
+   * box-shadow, so the hex wears its depth as a `drop-shadow` filter instead —
+   * and a filter length on an SVG element is in USER units, not CSS pixels. The
+   * hive is 320 units capped at 30rem, so one unit is 1.5px at full size: these
+   * read as roughly `0 2px 2px` and `0 4px 4px` there, and scale down with the
+   * board (a hive on a phone doesn't wear a desktop's shadow).
+   *
+   * They are TIGHTER than the shared `--tile-shadow` pair, and cast straight
+   * down. Light comes from above, so a tile has no shadow above it — on a box
+   * that reads as a soft halo and is easy to miss, but a hexagon's point puts
+   * the top of the blur right where the eye is, and the piece looks lit from
+   * below. The rule is blur ≤ offset: the shadow then reaches the tile's own
+   * edge and stops.
+   *
+   * (letterboxed had the same problem and took the other way out — its letters
+   * left the SVG and became boxes, where the shared tokens just work. A hexagon
+   * can't: a clip-path div takes no border, which is why these are polygons in
+   * the first place.) */
+/* @@ */   --spellingbee-hex-shadow:       drop-shadow(0 1.3px 1.3px rgb(0 0 0 / 30%));
+/* @@ */   --spellingbee-hex-hover-shadow: drop-shadow(0 2.7px 2.7px rgb(0 0 0 / 32%));
+
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
    * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /

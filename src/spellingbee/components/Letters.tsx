@@ -1,6 +1,9 @@
 // cs-unmet
 
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { cls } from '@/common/utils/cls'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import shared from '@/common/game-page/playArea.module.css'
 import { HEX_POSITIONS } from '../lib/honeycomb'
 import { Letter } from './Letter'
 import styles from './Letters.module.css'
@@ -14,6 +17,15 @@ type Props = {
   /** Called when any letter is clicked. The caller appends the
    *  letter to the typed word. */
   onLetterClick: (letter: string) => void
+  /** The letters the word being typed is using, uppercase — those hexes wear the
+   *  selected edge. */
+  usedLetters: Set<string>
+  /** Bumped on every refused word. It keys the hive, so a refusal remounts it
+   *  and the head-shake plays again — a CSS animation restarts on a remount,
+   *  not on a state change under it. */
+  shakeNonce: number
+  /** The letters a refused word used, wearing its answer. */
+  answered: { letters: Set<string>; outcome: Outcome } | null
   /** A control floated over the hive's top-right (the Shuffle button). Rendered
    *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
    *  VISUAL hive. Anchoring to the column instead would strand it at the
@@ -34,19 +46,30 @@ type Props = {
  * hex vertices) lives in `lib/honeycomb.ts`, shared with the PDF export.
  *
  * Clicking a letter doesn't validate — it just appends the character to the typed
- * word (server validates on submit).
+ * word (server validates on submit). A hex whose letter is in that word wears the
+ * selected edge, which is also how a pangram hunter sees the three letters they
+ * have not used yet.
  */
 
-export function Letters({ outerLetters, centerLetter, onLetterClick, floatingControl }: Props) {
+export function Letters({
+  outerLetters,
+  centerLetter,
+  onLetterClick,
+  usedLetters,
+  shakeNonce,
+  answered,
+  floatingControl,
+}: Props) {
   const letters = [centerLetter, ...outerLetters]
-  // Which tile to flash on click + a bumping nonce so re-tapping the same tile
-  // replays the flash (see Letter.tsx). Purely visual — doesn't gate the click.
-  const [flash, setFlash] = useState<{ i: number; n: number } | null>(null)
   return (
     <div className={styles.board}>
       <div className={styles.floatAnchor}>
+        {/* The whole hive takes the head-shake, not a hex: spellingbee's
+            refusal is about the WORD, and its letters are all legal tiles that
+            did nothing wrong. */}
         <svg
-          className={styles.grid}
+          key={shakeNonce}
+          className={cls(styles.grid, shakeNonce > 0 && shared.verdictShake)}
           viewBox="0 0 256 267"
           data-hive
         >
@@ -56,11 +79,11 @@ export function Letters({ outerLetters, centerLetter, onLetterClick, floatingCon
               letter={letter}
               isCenter={i === 0}
               pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
-              flashNonce={flash?.i === i ? flash.n : 0}
-              onClick={() => {
-                setFlash((f) => ({ i, n: (f?.n ?? 0) + 1 }))
-                onLetterClick(letter)
-              }}
+              used={usedLetters.has(letter.toUpperCase())}
+              answer={
+                answered?.letters.has(letter.toUpperCase()) ? answered.outcome : undefined
+              }
+              onClick={() => onLetterClick(letter)}
             />
           ))}
         </svg>

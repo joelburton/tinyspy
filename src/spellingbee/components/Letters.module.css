@@ -58,56 +58,57 @@
    *
    * `-webkit-tap-highlight-color` moved along with it (inherited, so it reaches
    * the hexes from here): it kills the gray box the browser paints over the
-   * hex's square BOUNDING box, which both looks wrong on a hexagon and hides
-   * our own hex-shaped flash. */
+   * hex's square BOUNDING box, which both looks wrong on a hexagon and covers
+   * the press the hex gives instead. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* One hex = a clickable group (button semantics live in Letter.tsx via
- * role/tabindex/keydown). Hover dims the whole hex; press scales it about its OWN
- * center — transform-box/-origin, since an SVG transform is otherwise about the
- * viewBox origin. */
+/* One hex = a clickable group (the click lives on the group in Letter.tsx; a
+ * hex is pointer-only, with no button costume).
+ *
+ * It rests with a shadow, rises on hover while the shadow falls away, and
+ * presses back down — the shared piece gesture every other board's tiles wear
+ * (common/game-page/playArea.module.css → `.tile`). Hover used to DIM the hex
+ * instead, which is the one thing hover never means anywhere else in the app.
+ *
+ * Both halves are in the hive's coordinate units, not pixels: an SVG transform
+ * length and a filter length are user units, so the lift and the shadow scale
+ * with the board the way the hexes do. 1.3 units is the shared 2px lift at the
+ * board's full size; see the two shadow tokens in theme.css. (The BORDERS go the
+ * other way — `.hexShape` opts its stroke out of the scale, so it can be the
+ * app's real 2px. A blurred shadow tolerates being proportional; a hairline
+ * doesn't.)
+ *
+ * Transforms are about the hex's OWN center — transform-box/-origin, since an
+ * SVG transform is otherwise about the viewBox origin. */
 /* @@ */ .hex {
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
+  filter: var(--spellingbee-hex-shadow);
   transition: transform 80ms ease, filter 80ms ease;
 }
 /* @@ */ .hex:hover {
-  filter: brightness(0.96);
+  transform: translateY(-1.3px);
+  filter: var(--spellingbee-hex-hover-shadow);
 }
+/* Pressed: back down, slightly smaller, slightly darker — 0.96, the same shrink
+ * every other board presses by. (It was 0.9, which on a hex this size read as
+ * the tile jumping away from the finger rather than taking the press.) */
 /* @@ */ .hex:active {
-  transform: scale(0.9);
+  transform: translateY(0) scale(0.96);
+  filter: var(--spellingbee-hex-shadow) brightness(0.92);
 }
 /* @@ */ .hex:focus {
   outline: none;
 }
 
-/* Click/tap feedback: a brief bright overlay on the tapped hex (in addition to
- * the `:active` press, which is too quick to notice on a fast tap). Driven from
- * Letter.tsx — the overlay is keyed by a bumping nonce so re-tapping the SAME
- * tile replays it. Base opacity 0 so it's invisible between taps; the one-shot
- * animation fades from bright to that 0 (no `forwards` needed, since it ends at
- * the base). */
-/* @@ */ .hexFlash {
-  fill: var(--ink-onDark-color);
-  opacity: 0;
-  pointer-events: none;
-  animation: hexFlash 260ms ease-out;
-}
-/* @@ */ @keyframes hexFlash {
-  from {
-    opacity: 0.7;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
+/* Reduced motion: the movement goes, the depth stays. */
 @media (prefers-reduced-motion: reduce) {
-/* @@ */   .hexFlash {
-    animation: none;
+/* @@ */   .hex:hover,
+/* @@ */   .hex:active {
+    transform: none;
   }
 }
 
@@ -118,15 +119,58 @@
 /* @@ */ .hexShape {
   fill: var(--spellingbee-hex);
   stroke: var(--tile-2-edge-color);
-  stroke-width: 1.5;
+  /* The SHARED tile edge widths, in real pixels — the same 2px every other
+   * board's tiles wear, and the same 4px when one is selected.
+   *
+   * `non-scaling-stroke` is what makes that possible. A stroke-width is normally
+   * in user units, so it scales with the board like everything else in here: 4
+   * units came out at 6px on a full-size hive, half again as thick as the tiles
+   * on every other board, which is exactly how it looked. The vector-effect
+   * draws the stroke as if the coordinate system had no scale, so these are CSS
+   * pixels and the hive's borders match the app's at any board size. (The hex
+   * SHAPE still scales — only the stroke opts out.) */
+  vector-effect: non-scaling-stroke;
+  stroke-width: var(--tile-edge-width);
   stroke-linejoin: round;
-  transition: fill 80ms ease;
+  transition: fill 80ms ease, stroke 80ms ease, stroke-width 80ms ease;
 }
 /* @@ */ .center .hexShape {
   fill: var(--spellingbee-accent);
   stroke: var(--spellingbee-accent-edge);
 }
 
+/* A letter the typed word is USING, in the app's ordinary SELECTED channel: the
+ * black edge, thicker (boggle's tiles, letterboxed's letters, every board's
+ * `.tile.selected`). Here it does a second job the others don't — hunting a
+ * pangram is exactly the question "which of the seven have I not used yet?", and
+ * this answers it without counting the word.
+ *
+ * After `.center` in the file, and the same specificity, so a used center hex
+ * takes the black edge rather than keeping its amber one. An SVG stroke is
+ * centered on the edge and nothing here is laid out, so the extra width costs no
+ * position: the outer hexes' strokes paint past the viewBox, which `.grid` lets
+ * through. */
+/* @@ */ .used .hexShape {
+  stroke: var(--tile-selected-edge-color);
+  stroke-width: var(--tile-selected-edge-width);
+}
+
+
+/* THE ANSWER on a refused word's letters: the outcome's own fill and white ink,
+ * the same two colors a piece wears anywhere. The tone classes beside this one
+ * are the shared vocabulary's and set nothing but the two custom properties read
+ * here, which is why a hex can take one without being a `.tileFace`.
+ *
+ * After `.used`, since a word being refused has just left the entry box: its
+ * letters stop being selected at the same moment they start wearing this, and
+ * the answer is what should win if the two ever overlap. */
+/* @@ */ .answered .hexShape {
+  fill: var(--verdict-fill);
+  stroke: var(--verdict-fill);
+}
+/* @@ */ .answered .hexText {
+  fill: var(--verdict-ink);
+}
 
 /* @@ */ .hexText {
   fill: var(--spellingbee-hex-text);

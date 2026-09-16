@@ -10,6 +10,7 @@ import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
@@ -48,6 +49,8 @@ export function BoardCol({
   foundWordsCount,
   requiredWordsCount,
   // ── Board to render ──
+  shakeNonce,
+  answered,
   outerLetters,
   centerLetter,
   allowedLetters,
@@ -74,6 +77,13 @@ export function BoardCol({
   targetRankIdx: number | null
 
   // ── Board to render ──
+  /** Bumped by PlayArea on every refused word — keys the hive, so it remounts
+   *  and replays the head-shake. */
+  shakeNonce: number
+  /** The letters a refused word used, wearing its answer — those hexes take the
+   *  outcome's fill and white ink. Null when nothing was just refused, which is
+   *  nearly always. */
+  answered: { letters: Set<string>; outcome: Outcome } | null
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
@@ -106,6 +116,10 @@ export function BoardCol({
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
+
+  // The hexes the typed word is using. A Set of its letters is the whole of it:
+  // a hive letter can be typed more than once and there is nothing to count.
+  const usedLetters = useMemo(() => new Set(word.toUpperCase()), [word])
 
   const handleLetterClick = useCallback(
     (letter: string) => {
@@ -142,9 +156,12 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Letters
+        shakeNonce={shakeNonce}
+        answered={answered}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}
+        usedLetters={usedLetters}
         // Shuffle floats over the hive's top-right — a fresh visual scan of the
         // SAME board, not a turn action. Always clickable, even when locked (a
         // harmless rearrange). Passed into Letters so it anchors to the visual

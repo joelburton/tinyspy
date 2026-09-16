@@ -211,6 +211,38 @@ describe('spellingbee PlayArea — render smoke', () => {
  * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
  * submit_timeout → 'lost_compete' + outcome 'timeout'.
  */
+describe('spellingbee PlayArea — the hexes the word is using', () => {
+  /** The letters whose hexes wear the selected edge, in draw order. */
+  const usedHexes = () =>
+    [...document.querySelectorAll('[data-hex]')]
+      .filter((t) => (t.getAttribute('class') ?? '').includes('_used_'))
+      .map((t) => t.getAttribute('data-hex'))
+
+  it('marks a letter as it is typed, and gives it back on Delete', async () => {
+    // Letters are cabdfg around a center e. The marks are what a pangram hunter
+    // reads: the unmarked hexes are the letters still missing from the word.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(usedHexes()).toEqual([])
+
+    await user.keyboard('bed')
+    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+
+    await user.keyboard('{Backspace}')
+    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E']))
+  })
+
+  it('marks the center hex too, and clears every mark on submit', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bee')
+    expect(usedHexes()).toContain('E') // the center letter, black-edged like the rest
+
+    await user.keyboard('{Enter}')
+    expect(usedHexes()).toEqual([])
+  })
+})
+
 describe('spellingbee PlayArea — compete terminal verdicts', () => {
   const competeCtx = (playState: string, outcome: string) =>
     makeCtx({
@@ -354,6 +386,28 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     await user.keyboard('zzzz{Enter}') // z is not a puzzle letter
     expect(screen.getByText(/bad letters/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('answers a refusal on the board: the hive shakes, the letters go red', async () => {
+    // The head-shake for a move that wasn't a winning one, and the outcome's own
+    // fill on the letters the word used — one table (lib/answer.ts) decides
+    // which color, and the pill reads the same one.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const shaking = () =>
+      (document.querySelector('[data-hive]')?.getAttribute('class') ?? '').includes('verdictShake')
+    const answered = () =>
+      [...document.querySelectorAll('[data-hex]')]
+        .filter((t) => (t.getAttribute('class') ?? '').includes('_answered_'))
+        .map((t) => t.getAttribute('data-hex'))
+
+    await user.keyboard('bead{Enter}') // a required word: nothing is refused
+    expect(shaking()).toBe(false)
+    expect(answered()).toEqual([])
+
+    await user.keyboard('bcdf{Enter}') // real letters, but no center E
+    expect(shaking()).toBe(true)
+    expect(new Set(answered())).toEqual(new Set(['B', 'C', 'D', 'F']))
   })
 
   it('names the missing center letter', async () => {

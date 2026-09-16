@@ -459,6 +459,37 @@ borders flickering on and off — a player has no way to know why.)
 
 **Owed.** Nothing recorded yet.
 
+### spellingbee
+
+**Landed.** The hive wears the shared piece gesture — a resting shadow, a lift on
+hover with the shadow falling away, a 0.96 press. Hover had been a DIM, which is
+the one thing hover means nowhere else in the app, and the press shrank by 0.9,
+far enough to read as the hex jumping away from the finger. The lift and the shadow are in
+the flower's coordinate units, because an SVG transform length and a filter
+length are user units — so the depth scales with the board. The shadows are
+tighter than the shared pair and cast straight down: blur ≤ offset, so nothing
+falls above a piece that is meant to be lit from above. The BORDERS go the other
+way and opt out of the scale (`vector-effect: non-scaling-stroke`), which lets
+them be the shared 2px / 4px exactly; as user units the selected edge came out at
+6px, half again as thick as the tiles on every other board. A letter the typed word is using takes the app's selected edge, black
+and thicker — which also answers the pangram hunter's question, since the
+unmarked hexes are the letters still missing. A refused word now answers on the
+board too: the hive head-shakes and the letters the word used take the outcome's
+fill and white ink, off one table (`lib/answer.ts`) that the pill reads as well.
+The white click-flash overlay is gone — it was written when the press was a bare
+`scale(0.9)` and easy to miss, and white at 0.7 over a pale hex read as the tile
+blanking; the press does that job now.
+
+**Owed.** The outcome color on the letters is KEPT FOR NOW and revisited at
+spellingbee's own audit (Joel, 2026-09-15): a refused TETE colors two hexes, and
+a hive letter standing for every use of it in the word may just be the wrong
+thing to color. The hive has seven tiles and a word has as many letters as it
+likes, which is the mismatch underneath it.
+
+wordwheel is spellingbee's fork and still has all
+of this in its old form — the same white flash, the same dim-on-hover, the same
+0.9 press — but it is its own area and gets its own turn.
+
 ### What this work changed for every game
 
 - **A restart mounts a new play surface** (`common.games.restarts` + the page's

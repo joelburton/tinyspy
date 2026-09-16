@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -19,6 +19,9 @@ import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-h
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -263,6 +266,29 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.requiredWords, game?.bonusWords])
 
+  // A refused word shakes the hive — the head-shake "no" every board gives a
+  // move that wasn't a winning one. A bumping nonce, because it is the WHOLE
+  // board that shakes and a board is always mounted: the nonce keys the hive so
+  // each refusal remounts it and the animation plays again (a CSS animation
+  // restarts on a remount, not on a state change under it).
+  const [shakeNonce, setShakeNonce] = useState(0)
+
+  /** The letters the refused word used, wearing its answer. The word itself is
+   *  gone by then — the entry clears on submit — so they are captured here. */
+  const [answered, setAnswered] = useState<{ letters: Set<string>; outcome: Outcome } | null>(null)
+  const answerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showAnswer = useCallback((word: string, outcome: Outcome) => {
+    setAnswered({ letters: new Set(word.toUpperCase()), outcome })
+    if (answerTimer.current) clearTimeout(answerTimer.current)
+    answerTimer.current = setTimeout(() => {
+      setAnswered(null)
+      answerTimer.current = null
+    }, WORD_ANSWER_MS)
+  }, [])
+  useEffect(() => () => {
+    if (answerTimer.current) clearTimeout(answerTimer.current)
+  }, [])
+
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
@@ -306,13 +332,18 @@ export function PlayArea(ctx: GamePageCtx) {
       // A miss at/above min length: name why (a letter off the board, or the
       // center letter missing) else it's simply not a word. The hook wraps the
       // reason as `WORD — reason`.
-      // What each refusal means HERE. Required, and no engine decides it: a word
-      // the list does not know is a WRONG MOVE in this game — the letters are in
-      // front of you and the list is the ordinary one. (wordiply reads the same
-      // event as a `warning`, because it is asking you to try strange words.)
-      // Too short is a slip rather than a wrong move; a word you already found
-      // is nothing happening.
-      outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
+      // What each refusal means HERE, read by the pill and by the hexes below —
+      // one table, so they cannot say different things about one word.
+      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
+      // A refused word answers ON the board: the hive shakes its head, and the
+      // hexes the word used take that answer's fill and white ink. The actor's
+      // alone, and no attention flash with it — you know what you just typed,
+      // and a peer is never told about somebody else's miss.
+      onAnswer: (w, answer) => {
+        if (answer === 'accepted') return
+        setShakeNonce((n) => n + 1)
+        showAnswer(w, ANSWER_OUTCOME[answer])
+      },
       explainReject: (w) => {
         for (const ch of w) {
           if (!allowedLetters.has(ch)) return 'bad letters'
@@ -575,6 +606,8 @@ export function PlayArea(ctx: GamePageCtx) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
+        shakeNonce={shakeNonce}
+        answered={answered}
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
         foundWordsScore={foundWordsScore}
