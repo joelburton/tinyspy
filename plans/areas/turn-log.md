@@ -4,31 +4,334 @@ The folders it reads: `turn-log`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: NOT OPENED.**
+**Status: OPEN, audited 2026-09-16.** Roster agreed (Joel: *"audit this
+area"*) and stamped `cs-met-turn-log`; every file read, and the docs and
+games around it read as evidence. Seventeen findings, none worked. The prose
+ones — F-1 to F-5 — are the prose pass; the rest wait for a decision each.
 
 ## The roster
 
-*(agreed with Joel when the area opens — list the files and STOP)*
+`src/common/turn-log/` — every file `cs-met-turn-log`:
+
+- `TurnLog.tsx` — three components: `TurnLog`, the panel (heading row, the
+  scroll box, a `<table>` whose rows are the game's); `TurnLogBar`, the outcome
+  bar cell; `TurnLogNumber`, the `#N` handle that opens a turn on the board
+- `TurnLog.module.css` — the panel, the bar, the row vocabulary a game composes
+  (`.main` / `.other` / `.primary` / `.meta` / `.who`, the divider, the
+  multi-row hug)
+- `TurnLogActor.tsx` — the "who" cell: the `.who` `<td>` around `ActorDot`
+- `useHistoryViewer.ts` — which past turn is open, `select` / `exitViewing`,
+  click-anywhere-to-exit, and the `act-exit-viewer` binding
+- `useHistoryViewer.test.ts`
+- `historyViewer.module.css` — the viewing look: the board `.frame`, the
+  `.viewedNumber` ring, the `.banner` over the input area and its label and ✕,
+  `.bannerHost`, scrabble's `.sharePreview` recolor
+- `useTurnLogPlayerPicker.tsx` — the "whose turns?" dropdown, its default, the
+  row filter, `boardIsShown`, the honest empty line
+- `useTurnLogPlayerPicker.test.tsx`
+- `doc.md` (a lede; no intro, no Details) · `todo.md` (one Bug, three Soons)
+
+Evidence, read and left:
+
+- The eleven games' `GameTurnLog.tsx` (every game but bananagrams, boggle,
+  crosswords, spellingbee, wordwheel), which compose rows from this folder's
+  atoms — psychicnum's single-row and codenamesduet's two-row turn read in
+  full; the ten `PlayArea.tsx` that hold `useHistoryViewer` (every log game
+  but wordiply) and the nine `BoardCol.tsx` that draw the banner by hand.
+- `docs/playarea.md` → Turn log, Whose turns?, Turn-history viewer, Per-game
+  history-viewer specifics, What building it taught us; `docs/ui.md` → the
+  `handle` button kind, "Styled tooltips, not the native `title`";
+  `docs/outcomes.md` → the `TurnOutcome` story; `docs/deferred.md` → the
+  hand-written banner ✕; `docs/mobile.md`, `naming.md`, `code-conventions.md`,
+  `pdf.md` each once.
+- `info-sheet/infoPanel.module.css` (`.heading`, `.headerRow`, `.box` — the
+  panel wears them), `lists/FilterSelect.tsx`, `members/ActorMention.tsx`,
+  `members/memberList.ts`, `actions/useBoundAction.ts`,
+  `core-css/patterns/empty-state.css`, `themes/daylight.css` (the five tokens
+  the two stylesheets read all resolve), `core-css/base.css` → the z ladder.
+- `e2e/codenamesduet-history.e2e.ts` and the six other `*-history.e2e.ts`
+  that click a `[data-turn-number]` handle.
+- `src/guards/vocabularies.test.ts` names both stylesheets in its `pending`
+  allowlists (a guard is not roster).
+
+## What the folder is, in one paragraph
+
+Two things and the seam between them. **The log** is a panel — heading, a
+"whose turns?" dropdown, an evident scroll box, a `<table>` — that owns no row:
+each game renders its own `<tr>`s from a small vocabulary this folder supplies
+(an outcome bar cell, a `#N` cell, a who cell, sizing and emphasis classes, a
+divider, a two-row hug), so eleven logs look alike without sharing a row shape.
+**The viewer** is one piece of state — which past turn is open on the board —
+with three ways out that every game gets for free: a keystroke (the hook binds
+the any-key `act-exit-viewer`), a click anywhere but another `#N`, and the
+banner's ✕. What a past board LOOKS like is each game's `lib/history.ts`; what
+it wears while viewing is this folder's stylesheet — a blue frame on the board,
+a blue ring on the open `#N`, an opaque banner over the input area. **The
+seam** is `boardIsShown`: the picker knows whether the rows on show are the
+sequence the board replays, and the games that address a turn by log position
+turn `#N` into a plain number when they are not.
 
 ## Findings
 
-*(`F-turn-log-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN)*
+### F-turn-log-1 · `intro-owed` · `doc.md` is one lede, and the design is spread over four docstrings and a 300-line doc
+
+The `## Intro to area` owed: what a turn log is for (the game's own account
+of what happened, in order, with who and how it went), why the panel owns no
+row and what it supplies instead, the viewer as one flag plus three exits, and
+the `boardIsShown` seam. `## Details`: why a `<table>` (columns line up
+across rows a flex stack cannot); why `#N` is a `<span>` (ui.md's `handle`
+kind — a focused button re-fires on Space, the viewer's exit key); why the bar
+is a positioned span with a `::before` spacer (an empty cell collapses);
+`.main` takes the slack and `.who` never does; the six things the picker
+carries together and why re-deriving any one drifts; what stays per game
+(snapshot computation, turn identity, the banner's host); the render tree —
+who mounts what, the games' nodes marked. Most of it is written, in
+`TurnLog.tsx`, the two stylesheet headers, the two hooks and `playarea.md`;
+it moves rather than being rewritten, and the archaeology stays behind.
+
+### F-turn-log-2 · `orphaned-turnoutcome-docstring` · A deleted type's docstring sits on top of the component's
+
+`TurnLog.tsx` lines 10–12: *"The outcome a row's left bar paints — the outcome
+families, by name, shared across games: `won` … `lost` … `near` … `neutral`"*
+— the docstring of `TurnOutcome`, the type `outcomes` deleted (the four words
+it lists are the three-short list that story is about). Its declaration went;
+the `/**` block stayed, stacked directly over `TurnLog`'s own docstring, so a
+hover shows the first one. Delete it.
+
+### F-turn-log-3 · `stale-claims` · Eight claims in the folder that describe something the repo no longer has
+
+- `TurnLog.tsx` docstring and `TurnLog.module.css` header: *"See docs/ui.md →
+  'Turn log'"* — `ui.md` has no such section; the section is `docs/playarea.md`
+  → Turn log.
+- Both again: the content classes *"`.primary` / `.meta` / `.who` / `.actor` /
+  `.dot`"* — no `.actor` or `.dot` rule exists and nothing reads one; the
+  cluster moved to `ActorDot`, which the stylesheet's own later comment says.
+- `TurnLogNumber`'s docstring: the `data-turn-number` marker *"lets a
+  click-anywhere-to-exit handler tell … (see codenamesduet's PlayArea)"* — the
+  handler is `useHistoryViewer`'s, and codenamesduet's PlayArea has no such
+  code.
+- `historyViewer.module.css` → `.bannerHost`: *"The rest (codenamesduet,
+  connections, psychicnum) put the banner inside the narrower … swap box"* —
+  six games wear it now (letterboxed, strands and setgame joined), and *"All
+  three had a byte-identical private one-liner"* is the archaeology that dated
+  it.
+- `TurnLogActor`'s docstring: *"(psychicnum had already wrapped it locally as
+  `whoCell`)"* — archaeology, and confusing, because psychicnum's log STILL
+  names a local `whoCell` helper, which now wraps this component.
+- `headerAction`'s docstring: *"verified 2026-08-21"* and *"the section-header
+  pattern pass is the moment to do it"* — a dated census and a cite to a pass
+  that is this area (F-6 works it).
+- `useHistoryViewer`'s docstring: *"extracted once turn-history reached three
+  games (the rule of three — see docs/playarea.md)"* — archaeology; the doc's
+  "Resolved along the way" bullet is the copy that may keep it.
+- `useHistoryViewer.ts` → `select`: the seven-line story of the phone bug
+  ("the feature was unusable on a phone rather than broken, which is why it
+  read as 'probably works'") — the same paragraph is in `playarea.md` word for
+  word; the comment keeps the rule (opening a turn leaves the info page,
+  unconditionally) and loses the story.
+
+### F-turn-log-4 · `playarea-md-stale` · The doc this folder points at is wrong about the viewer's color, its wiring, its paths and its games
+
+`docs/playarea.md` → Turn-history viewer and What building it taught us:
+
+- **"yellow"**, four times, for the viewing frame and the `#N` ring ("a yellow
+  'viewing' outline", "the matching yellow ring", "rings itself yellow",
+  "history-yellow"). The frame is `--view-history-color`, the muted blue, and
+  the stylesheet's header spends a paragraph on why it must NOT be yellow.
+  `e2e/codenamesduet-history.e2e.ts`'s header says "the yellow history frame"
+  too (not roster; noted for its game).
+- *"Two are intrinsic to the hook; only the keystroke path is wired per game
+  (it must cooperate with the game's own key handler)"* — all three are the
+  hook's since `act-exit-viewer`; the same doc's "Resolved" bullet and the
+  hook's docstring both say so.
+- Two pre-reorg paths written as fact: `common/components/game/lists/TurnLog.tsx`
+  (→ Turn log) and `common/hooks/game/useHistoryViewer.ts` (→ Turn-history
+  viewer).
+- *"a TinySpy turn can span a clue + several guesses"* — the brand; prose says
+  the codename.
+- The section's opening list of viewer games names eight and omits letterboxed
+  and setgame; ten PlayAreas hold the hook, and the decomposition section 170
+  lines later counts ten correctly.
+- wordle: *"`boardIsShown = teamView || picked === selfId`"* — no `teamView`
+  exists in wordle; the picker computes `boardIsShown` for every game.
+- Two archaeology paragraphs (`<TurnLogItem>` deleted, `HistoryPanel`
+  deleted) under Whose turns?, and one self-cite ("the game-owns-its-rows rule
+  is in Turn log above", linked to its own heading, written inside Turn log).
+
+Nobody's folder owns `playarea.md`; the turn-log and viewer sections are this
+area's to correct because they describe this folder.
+
+### F-turn-log-5 · `prop-markers` · `/**` on members throughout
+
+`TurnLog`'s inline props type (six members), `TurnLogBar` (one),
+`TurnLogNumber` (three), the `HistoryViewer` interface (five), the
+`TurnLogPlayerPicker` type (six) and the picker's params (five) all wear `/**`
+per member. The rule is `//` on a member of a declaration; the component's
+own docstring is the `/**`. `useTurnLogPlayerPicker`'s `boardIsShown` note is
+twelve lines and the best explanation of the seam in the repo — it moves to
+`doc.md` → Details and the member keeps two lines.
+
+### F-turn-log-6 · `header-action-required` · `headerAction` is optional in name only, with a ⚠️ in two places saying so
+
+The `todo.md` Soon, re-verified: eleven `<TurnLog>` sites, eleven pass
+`headerAction`. The prop's docstring and a JSX comment both carry a ⚠️ block
+explaining the dead `<h3>`-alone arm. Options: (1) required; the arm and both
+warnings go; (2) leave. Recommend (1).
+
+### F-turn-log-7 · `empty-text-default-dead` · Two defaults for one line, and one of them is never read
+
+`<TurnLog emptyText = 'Nothing yet.'>` and the picker's `emptyLabel =
+'Nothing yet.'`. Every one of the eleven callers passes `emptyText={who.emptyText}`,
+so the panel's default never draws, and the honesty rule ("Hidden until game
+ends.") lives in the picker. Options: (1) `emptyText` required on the panel;
+the picker keeps the one default; (2) leave. Recommend (1): a default is a
+decision, and this one is made twice.
+
+### F-turn-log-8 · `classname-no-caller` · `className?` on the panel, "for a rare per-game override" no game makes
+
+No `<TurnLog>` site passes `className`. The docstring describes the override
+that would use it (a different width or flex) and none exists. Options:
+(1) drop the prop and the `cls` around the root; (2) leave. Recommend (1).
+
+### F-turn-log-9 · `scroll-key-fresh-array` · Six games snap the log to the bottom on every render
+
+`TurnLog` scrolls to the newest row in an effect keyed on `scrollKey`, and its
+docstring offers "the rows array, or its length". Six games pass
+`scrollKey={shown}` where `shown = who.filter(rows)`, and `filter` builds a
+NEW array every call (`[...rows]` or `.filter`), so the key changes on every
+render of the PlayArea — including the once-a-second render a configured clock
+causes. In a timed game, scrolling the log up lasts until the next tick. Four
+games pass `shown.length` and codenamesduet a sum, which do not have the bug.
+Options: (1) the prop becomes `rowCount: number`, so the type says what "the
+rows changed" means and the six sites pass `shown.length`; (2) the picker
+memoizes `filter`'s result; (3) leave. Recommend (1). One thing to know: with
+a count, switching the picker between two players with equal row counts will
+not snap — which is arguably right, since nothing new arrived.
+
+### F-turn-log-10 · `native-title-tooltip` · The `#N` handle uses the native `title`
+
+`TurnLogNumber` sets `title="Click to view this turn on the board"`. `ui.md` →
+"Styled tooltips, not the native `title`" rules it out. Options: (1) the
+tooltips folder's hook, if it can attach to a `<span>` handle the way it does
+to the header's marks; (2) drop the attribute — the hover tint already says
+"clickable", and the `#N` reads the same in every game; (3) leave. Recommend
+(1), to be confirmed with the tooltips API open; (2) if it cannot.
+
+### F-turn-log-11 · `color-black-literal` · `.turnNumber:hover { color: black }`
+
+A literal ink where the vocabulary has `--page-text-strong-color` (`#000000`).
+Options: (1) the token; (2) leave. Recommend (1).
+
+### F-turn-log-12 · `z-index-literal` · `.banner { z-index: 5 }` is not on the ladder
+
+The z ladder in `base.css` says a rung migrates when its component's area is
+audited. The banner overlays the below-board input inside the board column,
+so `5` works only because it competes with nothing above the column's own
+stacking. Options: (1) `var(--z-board)` — the banner is part of the play
+surface; (2) measure whether anything under it is positioned with a z-index
+at all and drop the declaration if not; (3) leave. Recommend (2) then (1):
+measure first.
+
+### F-turn-log-13 · `unnamed-effects` · Two bare-arrow effects in the hook, one under a nine-line header
+
+`useHistoryViewer.ts`: the click-anywhere effect (line 73) has the longest
+comment in the file and no name — `exitOnClickAway`; the ref-sync effect
+(line 60) has a two-line comment — `syncViewingIdRef`. Options: (1) name
+both; (2) name only the first. Recommend (1).
+
+### F-turn-log-14 · `banner-drawn-nine-times` · The viewing banner's markup is hand-written in nine games; this folder owns only its classes
+
+`.banner` + `.bannerLabel` + the ✕ in `.bannerExit` is drawn by nine
+`BoardCol.tsx` files (every viewer game but letterboxed), each with the ✕
+typed by hand — which `docs/deferred.md` already records as owed
+(`<CloseButton>`), counting EIGHT games; setgame joined since. Options:
+(1) `<HistoryBanner label onExit>` in this folder, the nine sites converted,
+the deferred item closed; (2) only the ✕, game by game, as the deferred item
+says (Joel, 2026-08-26: filed rather than swept, since each game has its own
+pass); (3) leave. Recommend (1): the banner is the viewer's, the viewer is
+this folder's, and the per-game ruling was about a sweep of games' files, not
+about this area giving them a component. If (2) or (3), the deferred count is
+still corrected.
+
+### F-turn-log-15 · `three-components-one-file` · `TurnLog.tsx` exports three components; `TurnLogActor` has a file of its own
+
+The `todo.md` Soon. `TurnLog`, `TurnLogBar`, `TurnLogNumber` share a file;
+the fourth atom, `TurnLogActor`, does not. The todo asks for a look before a
+split. Looked: all three earn their keep (eleven, eleven and ten readers), so
+the `PlayAreaMountLog` answer — one no longer needed — is not available.
+Options: (1) one file per component, matching `TurnLogActor`
+(`TurnLogBar.tsx`, `TurnLogNumber.tsx`); (2) keep the family and say so in
+`doc.md`; (3) the reverse — fold `TurnLogActor` in. Recommend (1): the repo's
+"filename is the component" rule, and the folder already does it once.
+
+### F-turn-log-16 · `stylesheet-name-eleven-importers` · `TurnLog.module.css` is read by eleven games and is named as one component's
+
+The `todo.md` Soon and `deferred.md`'s cross-cutting item. Every game's log
+imports it as `turnLog` and composes `turnLog.main` and friends — it is a
+shared sheet in every way but its name. Options: (1) rename to
+`turnLog.module.css` (eleven imports, the vocabularies guard's three
+allowlist rows, `outcomes.md` and `playarea.md` mentions); (2) `composes:` —
+a decision about the shape of the repo's CSS, which the deferred item says it
+is, so it waits there; (3) leave. Recommend (1); it is the convention the
+deferred item names, and it changes no pixel.
+
+### F-turn-log-17 · `near-for-help-rows` · Five games log a hint, a spoiler or a reveal as `near`
+
+The `todo.md` Bug, ruled 2026-09-15: `near` is "almost right"; a hint, a
+spoiler, a reveal or an unknown word is `warning`. psychicnum's hint and
+reveal rows read `outcome="near"` (confirmed); stackdown, letterboxed, setgame
+and strands are the others the todo lists, strands with its own argument for
+`neutral`. The bar tokens for `warning` exist. Options: (1) work the five
+now — this folder's bar is what draws the word, and the ruling is made;
+strands' `neutral` case decided in the same pass; (2) each game at its own
+area; (3) leave. Recommend (1).
+
+## What checked out
+
+- The `<span>`-not-`<button>` rule for `#N` is the same in `TurnLog.tsx`, the
+  stylesheet and `ui.md`'s `handle` kind, and the reason (Space is the exit)
+  holds against `useHistoryViewer`.
+- `viewingIdRef` has its one promised reader (scrabble's PlayArea);
+  `competeSharesOneGame` its two (scrabble, setgame); `boardIsShown` is read
+  by every position-keyed game; `.entryHead` / `.entryCont` by exactly the two
+  multi-row logs (codenamesduet, connections); `.sharePreview` by scrabble.
+- All eleven logs put `.turnLogDivider` on the turn-start row; all eleven pass
+  the picker as `headerAction` and its `emptyText`.
+- Every token the two stylesheets read resolves in `daylight.css`, and the
+  bar has a class per outcome word, `error` included.
+- The picker returning a ReactNode from a hook is deliberate and explained
+  (six things travel together); the tests pin the vocabulary, the late-roster
+  re-derivation and the honest empty line. 25 tests, green.
+- The mobile rule (opening a turn leaves the info page) is stated the same
+  way in the hook and in `playarea.md`.
 
 ## Notes
 
-*(things worth remembering about this area that are neither a finding nor
-owed work — a forward-fix made from another area, a question for the opening,
-a dependency listed and left. Anything durable goes to the folder's `doc.md`
-or `todo.md` instead; a note here never stands in for either)*
+- `docs/playarea.md` → Turn-history viewer says "the framed board … input
+  frozen" and the stylesheet says the input stays MOUNTED under the banner so
+  an in-progress entry survives. Both are true (frozen to the eye, alive
+  underneath); worth one sentence in `doc.md` so nobody "fixes" either.
+- "Owed: a screenshot of wordle's turn-log hover, which needs Playwright" is
+  written under a closed area's summary in the plan; it is a gallery item, not
+  this folder's, and stays where it is.
+- `docs/outcomes.md` tells the `TurnOutcome` story correctly and names
+  `TurnLog.module.css`; F-16's rename would touch it.
 
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+F-6, F-7, F-8 and F-9 change the panel's props: `tsc -b` fails at every
+`<TurnLog>` site that stops matching (eleven files), no runtime spec. F-13
+changes nothing observable. F-16 renames a file the vocabularies guard names
+three times (its `pending` rows) and that `outcomes.md` / `playarea.md` link
+— the link guard catches the docs, the stamp guard needs `git mv`. F-17
+changes the word five games' logs paint; any per-game spec asserting `near`
+on a help row moves with it. F-14 replaces markup the seven `*-history.e2e.ts`
+click through by text (✕) — they should hold, and they are the proof.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [ ] the whole area re-read in one sitting after the last group — with the
+      effect-name grep over every file touched
+- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
