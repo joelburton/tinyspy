@@ -52,13 +52,6 @@ type ReplayResult = { result: 'replayed' }
  *   - `localFeedbackSlot` is the game's own below-board slot, where a not-ok
  *      answer is shown as `FeedbackMessage.notOk(res)` — the server's words,
  *      in the outcome the envelope carries;
- *   - `onRestarted` is for a restart a game has to tell somebody ELSE about.
- *      It is not for clearing local state: the page keys the play surface on
- *      `common.games.restarts`, so a restart already unmounts the surface on
- *      every client and takes all of it with it (game-page/doc.md). Seven games
- *      used to re-hide an answer and leave the history view here, and every one
- *      of them only half-worked — this fires on the client that pressed
- *      Restart, and nobody else's board was cleaned at all.
  *
  * **New game is NOT here.** Creating the next game diverges per game — which
  * call makes it, and what setup it carries over — by more than the handful of
@@ -76,7 +69,6 @@ export function useStandardGameActions({
   selfSolved,
   offersEndForAll,
   localFeedbackSlot,
-  onRestarted,
 }: {
   db: GameRpcClient
   gameId: string
@@ -103,9 +95,6 @@ export function useStandardGameActions({
 
   // The game's below-board slot, where a not-ok answer is shown.
   localFeedbackSlot: FeedbackSlot
-  // Optional: something a restart must say to the OTHER clients — connections
-  // broadcasts a selection clear. Local state needs nothing here; see above.
-  onRestarted?: () => void
 }): StandardGameActions {
   // Stop the whole table. The body of coop's End, and — where a race offers it —
   // of Concede's second answer, so the two say the identical thing to the
@@ -200,9 +189,11 @@ export function useStandardGameActions({
         // page — a club member tidying the list while you had it open.
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data?.result === 'replayed') {
-        // The fresh board arrives by subscription; this is the game's own
-        // post-replay cleanup (wordle/waffle re-hide the answer).
-        onRestarted?.()
+        // Nothing to do. The fresh board arrives by subscription, and the local
+        // state of the run that just ended goes when the page remounts the play
+        // surface on the new `restarts` count — on every client, not just this
+        // one (common/game-page/doc.md). Eleven games used to clean up here, and
+        // every one of them only tidied the presser's board.
       } else {
         reportUnhandled('replay_board', res)
       }

@@ -371,6 +371,86 @@ reference this area is told to read, so the pointer is fixed in passing:
   `mark-*` row and its `--mark-attention-tile-color` row are true today.
 - `docs/playarea.md`'s "split flashes by their trigger" note is true today.
 
+## Games this area changed, and what is still owed in each
+
+Kept HERE rather than in `tile-feedback.md`'s roster, because more may land
+before those games get their own audits (Joel, 2026-09-15) — and because this
+work is not what the sprint usually does. Most of the audit is code quality,
+readability, duplication: invisible to a player. **These are changes a player
+feels**, which is why they are worth a record of their own.
+
+None of the five is at tf2. Each got the MARKS brought onto the shared
+vocabulary, not the full pass against the current framework, and the level is
+Joel's to set.
+
+### psychicnum
+
+**Landed.** The head-shake for a wrong guess, waiting for the attention flash to
+finish rather than riding it. Two stuck in-flight dims fixed: the history viewer
+swapped in a snapshot that could never contain the word just guessed, and a
+restart emptied the results the release condition reads. The ambiguous-pick
+mark's color and lifetime are shared now.
+
+**Owed.** Its proper tf2 pass, which the roster has wanted since 2026-08-20.
+
+### connections
+
+**Landed.** The band's attention flash reaches the player whose guess made it,
+not just the teammates. A teammate's non-winning guess marks THEIR four tiles
+for everyone, in the outcome's own color, with the shake. The verdict fill lost
+its built-in shake — that is a channel of its own now, and it follows the wash.
+Both oranges were darkened at their base so white ink reads on them (2.40:1,
+blessed below the floor). The verdict nonce moved from a ref to state, so the
+two raises cannot collide on a number.
+
+**Owed.** Whether a wrong or near guess wants the attention flash as well as the
+verdict; `revealedHints` moving back into `<HintList>`; `GuessOutcome`.
+
+### stackdown
+
+**Landed.** The entry slots became tiles, so an answer is the same fill and white
+ink there as anywhere; `won` joined the shared tones for it. A refused word
+answers in the slots and shakes, its tiles returning marked. A teammate's word is
+marked on THEIR tiles instead of squatting in this player's entry row, and an
+accepted word's tiles are held on the board, inert, while the answer is read. The
+letter was lifted above the flash, which had been painting over it.
+
+**Owed.** Its board's `.tile` is bespoke rather than the shared face; the
+hover/press stand-in written for the dark-mode spike; the tile border's
+button-blue borrow.
+
+### letterboxed
+
+**Landed.** The letters left the SVG and became tiles — the shared face, the
+shared shadows, the shared hover and press, and any mark the vocabulary grows
+next. A refused word shakes. A covered letter takes the chain green on its edge,
+and the previous word's ghost line is the accent washed rather than gray.
+
+**Owed.** Nothing recorded yet; it had no marks at all before today.
+
+### wordiply
+
+**Landed.** A submitted word no longer vanishes for a round trip — the row holds
+it while its answer shows, and wears that answer's color. A teammate's word gets
+the attention flash then the green. One table (`lib/answer.ts`) decides the
+outcome, and the pill, the row and the log all read it.
+
+**Owed.** Nothing recorded yet.
+
+### What this work changed for every game
+
+- **A restart mounts a new play surface** (`common.games.restarts` + the page's
+  key). Eleven per-game cleanups deleted, `onRestarted` gone from
+  `useStandardGameActions`. The contract is in `game-page/doc.md`.
+- **One event, one outcome** — the server decides where it answers, the frontend
+  decides once where it does not, and the pill, the board and the log always
+  agree. In `docs/outcomes.md`, and an audit rule in `app-audit.md`.
+- **`TurnOutcome` is deleted**; a turn-log bar takes any `Outcome`. The `near`
+  sweep it unblocked is in `turn-log/todo.md`.
+- The head-shake channel, the "yellow means look here" default, two blessed
+  contrast exceptions, `.verdictWon`, and the ambiguous-pick mark's one name and
+  one color — all in `tile-feedback.md`.
+
 ## Notes
 
 - **scrabble's three outlines, read against the vocabulary, for its tf pass

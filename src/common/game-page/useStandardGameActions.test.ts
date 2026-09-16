@@ -46,7 +46,6 @@ function setup(overrides: Overrides = {}) {
   // shown" and "as a notOk" without reaching into the rendered pill.
   const localFeedbackSlot = createFeedbackSlot('local')
   const shown = vi.spyOn(localFeedbackSlot, 'show')
-  const onRestarted = vi.fn()
   askConfirmation.mockResolvedValue(
     overrides.answer ?? (overrides.confirmed === false ? null : 'confirm'),
   )
@@ -59,10 +58,9 @@ function setup(overrides: Overrides = {}) {
       myConceded: overrides.myConceded ?? false,
       offersEndForAll: overrides.offersEndForAll,
       localFeedbackSlot,
-      onRestarted,
     }),
   )
-  return { result, rpc, shown, onRestarted }
+  return { result, rpc, shown }
 }
 
 beforeEach(() => {
@@ -269,14 +267,13 @@ describe('concede', () => {
 })
 
 describe('restart', () => {
-  it('asks, fires replay_board, then runs the game cleanup', async () => {
-    const { result, rpc, onRestarted } = setup()
+  it('asks, then fires replay_board', async () => {
+    const { result, rpc } = setup()
     rpc.mockResolvedValue(REPLAYED_OK)
     act(() => result.current.actRestart.run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
-    expect(onRestarted).toHaveBeenCalledTimes(1)
   })
 
   it('goes straight through at terminal — nothing left to interrupt', async () => {
@@ -288,12 +285,11 @@ describe('restart', () => {
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
   })
 
-  it('leaves the cleanup alone when the board was not replayed', async () => {
-    const { result, rpc, onRestarted, shown } = setup()
+  it('says why when the board was NOT replayed', async () => {
+    const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ALREADY_CONCEDED)
     act(() => result.current.actRestart.run())
     await flush()
-    expect(onRestarted).not.toHaveBeenCalled()
     expect(shown).toHaveBeenCalledTimes(1)
   })
 

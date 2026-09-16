@@ -243,8 +243,11 @@ export function PlayArea({
   // column and a menu row, one binding. Concede is compete's drop-out (a real
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
-  // and `onRestarted` broadcasts a selection clear — the one thing a restart
-  // still has to SAY rather than drop.
+  // A restart needs nothing from this game: the page unmounts the whole play
+  // surface when the run changes, and the shared selections live in `useGame`
+  // inside it — so every client, not just the one that pressed Restart, drops
+  // its own picks AND its picture of everyone else's. Nothing replays them
+  // either: selections are fire-and-forget Broadcast with no presence sync.
   // ─── The categories show only when I ask for them ─────
   // Never automatically. connections used to be one of the two games registered
   // hides_solution = false, so a loss (or, in compete, being eliminated) put the
@@ -280,16 +283,6 @@ export function PlayArea({
       mode: game?.mode === 'compete' ? 'compete' : 'coop',
       myConceded,
       localFeedbackSlot,
-      // The one thing a restart still has to SAY rather than clear: drop the
-      // half-built guess on every teammate's board too. Everything this used to
-      // do besides — leaving the history view, dismissing the last result,
-      // forgetting the spent hints and the reveal — is local state, and the page
-      // now unmounts the whole surface on every client when the run changes.
-      //
-      // The broadcast is arguably redundant for the same reason (each board
-      // drops its own selection as it remounts), but a message that arrives
-      // before the row does costs nothing and covers the order they land in.
-      onRestarted: sendClear,
     })
 
   // ─── New game — the NEXT unplayed puzzle ───────────────
