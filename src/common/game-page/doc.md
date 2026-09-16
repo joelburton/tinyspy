@@ -83,8 +83,7 @@ App                                  matches /g/<gametype>/<gameId>
             │     └── paused     →   PauseOverlay
             ├── Chat                 outside the boundary: still there mid-pause
             ├── GameScratchpadCompanion   opt-in per manifest, also outside
-            ├── Help                 the manifest's rules component, lazily loaded
-            └── SuspendConfirmationBlockingModal
+            └── Help                 the manifest's rules component, lazily loaded
 ```
 
 The page builds the play surface's wrappers itself, because they are the same

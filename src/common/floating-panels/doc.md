@@ -123,8 +123,7 @@ FloatingPanel                  the one shell: Rnd (react-rnd) + CloseButton (but
 └── BlockingModal              the card shell: FaultModal (faults) · CelebrationBlockingModal (terminal)
     │                          crosswords' four puzzle pickers · scrabble's blank picker
     ├── ConfirmationBlockingModal   a question — CancelButton + StandardButton (buttons)
-    │     ├── ConfirmationHost      at the app root (App), drawing whatever `askConfirmation` is asking
-    │     └── SuspendConfirmationBlockingModal (pause-suspend)
+    │     └── ConfirmationHost      at the app root (App), drawing whatever `askConfirmation` is asking
     └── AcknowledgeBlockingModal    a statement — one StandardButton
           └── useAcknowledge        the hook that mounts it; connections' and strands' play areas call it
 ```

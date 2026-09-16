@@ -30,11 +30,12 @@ import { PageHeader } from '../page-header/PageHeader'
 import { GameHeaderMenu } from './GameHeaderMenu'
 import { setGameMenuSections } from '../menu/gameMenuStore'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
-import { SuspendConfirmationBlockingModal } from '../pause-suspend/SuspendConfirmationBlockingModal'
+import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import { PlayAreaSlotLog } from './PlayAreaSlotLog'
 import { PlayAreaErrorBoundary } from './PlayAreaErrorBoundary'
 import { Loading } from '../loading/Loading'
 import styles from './GamePage.module.css'
+import { askConfirmation } from '../floating-panels/confirmationService'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 /**
@@ -142,9 +143,6 @@ export function GamePage({
   // Whether the per-game Help companion is mounted. Opened by `act-help`,
   // closed by its own ✕.
   const [helpOpen, setHelpOpen] = useState(false)
-  // Open/closed state for the suspend-confirm modal — `act-back-to-club`'s
-  // third shape (below): mid-game, with peers to warn.
-  const [confirmingSuspend, setConfirmingSuspend] = useState(false)
   // The GLOBAL feedback slot — the header's status slot draws its top
   // message in place of the players strip. One instance for the life of the
   // page; a PlayArea reaches it as `ctx.globalFeedbackSlot`.
@@ -196,12 +194,14 @@ export function GamePage({
   //     to warn that peers get dragged back to the club, and a solo game
   //     has no peers to surprise. (sendSuspend's broadcast lands on nobody;
   //     it shelves the game + navigates self.)
-  //   - MULTIPLAYER mid-game: the suspend-confirm modal.
-  const requestBackToClub = useCallback(() => {
+  //   - MULTIPLAYER mid-game: ask first, and suspend only on yes. `sendSuspend`
+  //     broadcasts + navigates self; peers navigate themselves on receipt, and
+  //     the last leaver clears is_current_view via cleanup.
+  const requestBackToClub = useCallback(async () => {
     if (gameOver) navigate(clubPath(clubHandle))
     else if (players.length <= 1) sendSuspend()
-    else setConfirmingSuspend(true)
-  }, [clubHandle, gameOver, players.length, sendSuspend])
+    else if ((await askConfirmation(suspendConfirm(commonGame.title))) === 'confirm') sendSuspend()
+  }, [clubHandle, commonGame.title, gameOver, players.length, sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBoundAction('act-back-to-club', {
@@ -500,16 +500,6 @@ export function GamePage({
         <Suspense fallback={null}>
           <HelpComponent onClose={() => setHelpOpen(false)} brand={manifest.name} />
         </Suspense>
-      )}
-
-      {confirmingSuspend && (
-        <SuspendConfirmationBlockingModal
-          title={commonGame.title}
-          onCancel={() => setConfirmingSuspend(false)}
-          // sendSuspend broadcasts + navigates self. Peers navigate themselves
-          // on receipt; the last leaver clears is_current_view via cleanup.
-          onSuspend={sendSuspend}
-        />
       )}
     </div>
   )

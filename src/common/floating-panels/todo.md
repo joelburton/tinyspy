@@ -2,6 +2,28 @@
 
 ## Bugs
 
+- **A pending question outlives the thing it was asked about.** `askConfirmation`
+  keeps its question in a module-level `pending`, and `<ConfirmationHost>` is a
+  root sibling of the routed content in `App.tsx`, so navigation does not unmount
+  it. `settleConfirmation` is called by the host's three buttons and nothing
+  else, so nothing drops a question whose subject is gone. Concretely: you press
+  Restart on a game page, and while "Restart this game?" is up a peer suspends
+  the game — their broadcast navigates your tab to the club page, and the
+  question is still there, over a page that has nothing to do with it.
+
+  The second half is worse than the stale dialog. `useBoundAction` reads its
+  handlers out of a ref AFTER the await, deliberately (the body that runs should
+  be the one from the moment of the answer, not the moment of the press), and a
+  ref survives the unmount — so pressing Restart there fires `replay_board` on
+  the game you just left, wiping a shelved board for everyone. The same shape
+  reaches End game, Concede, New game, the whole-grid reveal, and the suspend
+  question, which joined them when it moved to the service.
+
+  Two things to decide with these files open, and they are why this is not a
+  one-line fix: what "the asker went away" means — the component that asked
+  unmounting, or the route changing — and whether an answer should run through a
+  ref that outlived its component at all. Nothing is decided yet.
+
 ## Soon
 
 - **A test cannot find one panel among several, so an e2e sniffs react-rnd's

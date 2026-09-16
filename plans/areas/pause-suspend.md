@@ -7,9 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
 findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6,
-F-7, F-8, F-9 and F-13. **One is left: F-11**, moving the suspend question to
-`askConfirmation` — a build rather than a decision, since `todo.md` settled its
-shape, and it is what stands between this area and its closing re-read.
+F-7, F-8, F-9, F-11 and F-13 — **all thirteen**. What is left is the closing
+re-read and the `doc.md` harvest, then the blessing, which is Joel's.
 
 ## The roster
 
@@ -24,8 +23,8 @@ shape, and it is what stands between this area and its closing re-read.
 - `PauseOverlay.tsx` — the banner in the play surface's slot: the roster with
   present/away discs, "X paused the game", Resume, and the two escapes
 - `PauseOverlay.module.css`
-- `SuspendConfirmationBlockingModal.tsx` — the suspend question, rendered by
-  hand (the `todo.md` Soon)
+- `suspendConfirm.tsx` — the suspend question's words, built per game title
+  (written by F-11, replacing `SuspendConfirmationBlockingModal.tsx`)
 - `doc.md` (lede + intro + Details, written in the prose pass) · `todo.md`
   (one Soon)
 
@@ -67,9 +66,9 @@ resume for free; that is the contract its test defends. **The banner** —
 a hollow gray ring for away, "X paused the game" with Resume for a manual
 pause, and the two escapes from a pause that will not clear, Back to club and
 End game, both `GamePage`'s bindings because the overlay itself is unmounted
-the moment it is not needed. **The question** —
-`SuspendConfirmationBlockingModal` wraps the shared confirm with the suspend
-words, and is the one question in the app not asked through `askConfirmation`.
+the moment it is not needed. **The question** — `suspendConfirm(title)` is the words, and `GamePage` awaits
+them through `askConfirmation` like every other question in the app (F-11; it
+was a component rendered from a page flag when the area opened).
 `useCommonGame` decides who counts (players minus conceders), unions presence
 with the manual pause, and forces the flag false once the game has ended so
 the terminal result can render.
@@ -335,6 +334,45 @@ question is a FUNCTION of the title and lives in this folder replacing the
 wrapper file. `GamePage.test.tsx` already mocks `askConfirmation` and its
 suspend specs adapt; `e2e/suspend-dialog.e2e.ts` is the thing that must stay
 green (F-10). `GamePage` is blessed; closed is not locked.
+
+**WORKED 2026-09-16, on Joel's ruling — and the presentation of it got the
+framing backwards, which is the part worth keeping.** Offered as "make this one
+match the others", it drew the right objection: the wrapper's page-scoped render
+is the only one that DISCARDS its question when the game page goes away, and the
+four service-backed questions are the ones misbehaving. Traced and confirmed
+statically — `<ConfirmationHost>` is a root sibling of the routed content
+(`App.tsx`), `settleConfirmation` is called by its three buttons and nothing
+else, so a peer's suspend navigates your tab to the club page with "Restart this
+game?" still up; and `useBoundAction` reads its handlers from a ref AFTER the
+await, deliberately, so answering it fires `replay_board` on the game you just
+left. Joel: *"it still seems like there's no reason for f11 to not join the
+others in using askConfirmation. we've got a minor bug with askConfirmation, but
+we should change to that so they all act alike."*
+
+What landed: the multiplayer branch of `requestBackToClub` is
+`else if ((await askConfirmation(suspendConfirm(commonGame.title))) === 'confirm') sendSuspend()`,
+and the `confirmingSuspend` flag, its render and the wrapper file are gone
+(`git rm`, so the stamp guard reads the index). `suspendConfirm.tsx` holds the
+words — a `.tsx` and not a `.ts` because `message` is a `ReactNode` and the
+title is `<strong>`-wrapped. `GamePage.test.tsx` stops looking for the dialog's
+text and asserts the service was asked with `suspendConfirm('Secrets')`; a
+planted wrong title failed the spec, so that assertion tests the title rather
+than passing on a loose deep-equal. The answer-no case is new. Six prose homes
+named the wrapper and were retargeted: `docs/ui.md` (three), `docs/states.md`,
+`docs/common.md`, `docs/code-conventions.md`, and the render trees in
+`floating-panels/doc.md` and `game-page/doc.md` — plus
+`ConfirmationBlockingModal`'s docstring, which had named this file as its one
+exception and now says there is none.
+
+**The e2e is the proof and has NOT been run.** `e2e/suspend-dialog.e2e.ts`
+should hold unchanged; running it needs Joel's word.
+
+**FILED**, on Joel's word (*"file the todo in floating panels as a bug. i'm not
+going to answer questions about it now; we'll answer those when we get to that
+bug."*): `src/common/floating-panels/todo.md` → Bugs holds the trace, the
+`replay_board` half, and the two things that area has to decide — what "the
+asker went away" means, and whether an answer should run through a ref that
+outlived its component. Neither is decided, and neither blocks this area.
 
 ### F-pause-suspend-12 · `unnamed-effect-in-test` · `MountCounterChild`'s effect has a five-line header and no name
 

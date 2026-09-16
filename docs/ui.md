@@ -305,8 +305,9 @@ End game, Concede, Reveal grid) plus Suspend, which is the page's own:
   surprise. Three shapes (see
   [states.md → Leaving the game page](states.md#leaving-the-game-page--terminal-vs-non-terminal)):
   terminal → direct navigation, no dialog, no broadcast; solo mid-game →
-  suspend immediately, no dialog; multiplayer mid-game → the
-  `SuspendConfirmationBlockingModal` (a wrapper over ConfirmationBlockingModal).
+  suspend immediately, no dialog; multiplayer mid-game → the suspend question,
+  awaited through `askConfirmation` like every other question (`suspendConfirm`
+  in `common/pause-suspend/` holds its words, built per game title).
 
 No `window.confirm` remains anywhere. Every game action's question is asked by
 the registry through `askConfirmation` (`common/floating-panels/
@@ -496,7 +497,7 @@ Three categories:
 crosswords' puzzle pickers, which are blocking modals of their own), the
 profile form, claim-a-username, the
 get-magic-link and login-with-code forms, and the confirm dialogs
-(`ConfirmationBlockingModal`, `SuspendConfirmationBlockingModal`, `FaultModal` — nobody "fills them
+(`ConfirmationBlockingModal`, `FaultModal` — nobody "fills them
 out", but the panel owns the keyboard and its buttons need visible focus).
 
 These may use Tab between elements, native `<select>`s, focus rings, and take
@@ -1390,7 +1391,7 @@ Same principle, applied to components.
 
 **The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
 
-- `Chat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmationBlockingModal`, `SetupTimerSection`, `CurrentGameCard` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
+- `Chat`, `PauseBoundary`, `PauseOverlay`, `SetupTimerSection`, `CurrentGameCard` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage` are shell-level, game-agnostic.
 - **The account submenu** ([`useAccountMenuSection`](../src/common/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile**, **Add word** (editors only) and **Log out**.
   - **Inside the page's menu rather than a control of its own.** A fixed chip would cost the header permanently reserved width at every viewport, and that is exactly the width the mobile game header needs for feedback.

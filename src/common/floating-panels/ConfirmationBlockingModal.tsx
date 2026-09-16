@@ -36,9 +36,8 @@ type Props = {
  * game, suspending it, restarting it.
  *
  * **To ask a question, await `askConfirmation`.** That is the form every caller
- * uses; `<ConfirmationHost>` renders this with the words you passed, and these
- * props are what it forwards. The suspend question is the one still rendered
- * by hand (`SuspendConfirmationBlockingModal`).
+ * uses, with no exceptions; `<ConfirmationHost>` renders this with the words you
+ * passed, and these props are what it forwards.
  *
  * The shape is baked and takes no footer slot, unlike the `<BlockingModal>` it
  * renders into: a confirmation is always a question, a body, and the answers in

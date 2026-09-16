@@ -72,19 +72,23 @@ mounted, so it binds both and the overlay merely places them. Its `act-end-game`
 hides itself unless paused, which is what keeps it from ever being live alongside
 the game's own binding of that action.
 
-**The render tree.** The boundary and the modal are siblings under the shell,
-which is what lets the question outlive the pause:
+**The render tree.** Only the banner is drawn from this folder. The suspend
+question is not a component here at all — `suspendConfirm(title)` is words, and
+`<ConfirmationHost>` at the app root draws them, which is how every question in
+the app is asked:
 
 ```
 GamePage                              the shell, above the pause — stays mounted
-├── PauseBoundary                     one boolean: the play surface, or the banner
-│   ├── not paused →  the game's PlayArea, inside GamePage's own wrappers
-│   └── paused     →  PauseOverlay
-│                       ├── Dot              × the expected roster (members/)
-│                       ├── DotActor         "X paused the game" (members/)
-│                       ├── StandardButton   Resume (buttons/)
-│                       └── ActionButton × 2 back to club, end game — both
-│                                            bound by GamePage (actions/)
-└── SuspendConfirmationBlockingModal   beside the boundary, never inside it
-      └── ConfirmationBlockingModal    the shared confirm (floating-panels/)
+└── PauseBoundary                     one boolean: the play surface, or the banner
+    ├── not paused →  the game's PlayArea, inside GamePage's own wrappers
+    └── paused     →  PauseOverlay
+                        ├── Dot              × the players it lists (members/)
+                        ├── DotActor         "X paused the game" (members/)
+                        ├── StandardButton   Resume (buttons/)
+                        └── ActionButton × 2 back to club, end game — both
+                                             bound by GamePage (actions/)
+
+GamePage.requestBackToClub            multiplayer, mid-game:
+└── askConfirmation(suspendConfirm(title))    drawn by ConfirmationHost, at the
+                                              app root (floating-panels/)
 ```

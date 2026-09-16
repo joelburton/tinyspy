@@ -24,6 +24,7 @@ import type { Member } from '../members/member'
 import { liveBindings, type BoundAction } from '../actions/useBoundAction'
 import type { ActionId } from '../actions/registry'
 import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
+import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import type { CommonGame, useCommonGame } from './useCommonGame'
 
 const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor } = vi.hoisted(() => ({
@@ -305,20 +306,26 @@ describe('act-back-to-club', () => {
     await flush()
     expect(state.sendSuspend).toHaveBeenCalledTimes(1)
     expect(mockNavigate).not.toHaveBeenCalled()
-    expect(screen.queryByText('Suspend this game?')).toBeNull()
+    expect(askConfirmation).not.toHaveBeenCalled()
   })
 
-  it('opens the suspend question mid-game with peers, and suspends on yes', async () => {
+  it('asks the suspend question mid-game with peers, and suspends on yes', async () => {
     const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
     act(() => bound('act-back-to-club').run())
     await flush()
-    expect(screen.getByText('Suspend this game?')).toBeInTheDocument()
-    expect(state.sendSuspend).not.toHaveBeenCalled()
-
-    await act(async () => {
-      screen.getByRole('button', { name: 'Suspend' }).click()
-    })
+    // The words name the game, so the question is built per title rather than
+    // being a constant to compare against.
+    expect(askConfirmation).toHaveBeenCalledWith(suspendConfirm('Secrets'))
     expect(state.sendSuspend).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays in the game when the suspend question is answered no', async () => {
+    askConfirmation.mockResolvedValue(null)
+    const { state } = await mount(commonGameState({ players: [ADA, BEA] }))
+    act(() => bound('act-back-to-club').run())
+    await flush()
+    expect(state.sendSuspend).not.toHaveBeenCalled()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
 })
