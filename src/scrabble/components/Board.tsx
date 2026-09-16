@@ -47,24 +47,25 @@ export function Board({
   dragSource,
   dragging,
   isViewingHistory = false,
-  historyLitTiles,
+  historyLitCells,
   onCellPointerDown,
 }: {
   board: Cell[]
   tentative: Map<number, Tentative>
   cursor: Cursor
   hover: XY | null
-  /** Cell indices to outline green for a beat (a just-accepted word). */
+  // Cell indices to outline green for a beat (a just-accepted word).
   greenCells: ReadonlySet<number>
-  /** Cell indices to outline red for a beat (new tiles in a rejected word). */
+  // Cell indices to outline red for a beat (new tiles in a rejected word).
   redCells: ReadonlySet<number>
   dragSource: XY | null
   dragging: boolean
-  /** Turn-viewer: the board is a historical replay — green frame, no cursor. */
+  // The board is a historical replay — it wears the shared history frame (blue,
+  // see historyViewer.module.css) and takes no cursor.
   isViewingHistory?: boolean
-  /** Turn-viewer: cells the viewed turn placed — outlined green (the "good
-   *  words of this turn"). */
-  historyLitTiles?: Set<number>
+  // Cells the viewed turn placed — outlined green (the "good words of this
+  // turn"), over the warm attention face those cells already wear.
+  historyLitCells?: Set<number>
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
 }) {
   const cells = []
@@ -113,7 +114,7 @@ export function Board({
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
                     redCells.has(idx) && styles.flashReject,
-                    historyLitTiles?.has(idx) && styles.historyTile,
+                    historyLitCells?.has(idx) && styles.historyTile,
                   )}
                 >
                   <span className={styles.letter}>{glyph}</span>

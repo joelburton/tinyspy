@@ -18,6 +18,21 @@
 
 ## Soon
 
+- **One play is formatted for a reader in two places.** `BoardCol`'s
+  `historyLabelFor(play, nameOf)` builds the history banner's line ("#1 moth: +10
+  APPLE, BERRY" / "#5 moth passed" / "#5 moth exchanged 3 tiles"), and
+  `PlayArea`'s `moveText(play)` builds the same four branches for the print
+  moves table, minus the `#N` and the name. Its own comment says it mirrors the
+  other, and it is marked SPIKE. Two copies of one game's phrasing drift the
+  first time a `kind` is added or a wording is tuned — a forfeit already reads
+  "ended — N tiles unplayed" in both, by hand.
+
+  What makes it more than a tidy: the banner and the printed sheet are the two
+  places a player READS a turn back, so they are exactly the pair that should
+  not disagree. The shapes differ in what they prefix, so the fix is one
+  formatter with the prefix as a parameter, or a shared core the two wrap.
+  Found 2026-09-16 in the history-names sweep.
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 4.4rem` — and `- 6.1rem` in its other case —
@@ -83,9 +98,11 @@
   message type exists to separate, and no comment says why. Almost certainly
   `return gameEndedTerminalMessage(mode)`; if the divergence is wanted it
   needs a comment instead.
-- **Two raw `<button>`s take focus on click**, where every `StandardButton`
-  suppresses it: the AI suggestion rows (`InfoCol.tsx`) and the history banner's
-  ✕ (`BoardCol.tsx`). The suggestion row is the one that lingers — clicking it
+- **A raw `<button>` takes focus on click**, where every `StandardButton`
+  suppresses it: the AI suggestion rows (`InfoCol.tsx`). (The history banner's ✕
+  was the other one; it left this game on 2026-09-16 when the banner became the
+  shared `common/turn-log/HistoryBanner`, so it is one button in one place now.)
+  The suggestion row is the one that lingers — clicking it
   stages the move and the list stays up, so the row keeps focus and the next
   Enter re-activates it natively. Nothing on a play surface should hold focus
   (Joel, 2026-09-10); the fix belongs with this game's tab ring rather than to

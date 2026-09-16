@@ -146,7 +146,7 @@ export function PlayArea({
       (p: SharedMovePayload) => {
         if (!game || p.baseVersion !== game.version) return
         showHistory({
-          kind: 'shared',
+          kind: 'peerPreview',
           placements: p.placements,
           sharerId: p.sharerId,
           words: p.words,
@@ -680,7 +680,8 @@ function peerMoveText(p: PlayRow): string {
   return 'ended the game'
 }
 
-/** SPIKE: format one play for the print moves table (mirrors BoardCol's turnSummary). */
+/** SPIKE: format one play for the print moves table (a second copy of BoardCol's
+ *  `historyLabelFor`, minus the `#N` and the name — see todo.md). */
 function moveText(p: PlayRow): string {
   if (p.kind === 'word') {
     const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')

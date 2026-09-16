@@ -542,8 +542,44 @@ The four games whose names already turned out to be lying go first.
         the name now says it.
       Clean: `GameTurnLog`, `InfoCol`, the stylesheets, and the backstop greps
       (every remaining `viewed` / `viewing` in the game is prose).
-- [ ] **scrabble** — `viewTurn`, `viewedPlay` known; `lib/play.ts` is its
-      `lib/history`
+- [x] **scrabble** — read 2026-09-16. Six things:
+      - `viewTurn` → `historyTurn`, `viewedPlay` → `historyPlay` (the two known);
+        `sharedTent` → `peerPreviewTent`; `snap` does not appear here — scrabble
+        computes its board inline as `renderBoard`.
+      - **`kind: 'shared'`** — the union's peer-preview branch said neither
+        history nor preview. It is `kind: 'peerPreview'`, matching the
+        `.peerPreview` class and `--peer-preview-color` the batch already set.
+      - **`historyLitTiles` → `historyLitCells`, and this is the batch getting a
+        noun wrong.** scrabble's board squares ARE cells in its own vocabulary —
+        `greenCells`, `redCells`, `cellIndex`, `data-cell`, `NO_CELLS` — so the
+        batch's `Tiles` made the one prop in that family read as a different kind
+        of thing. A tile in scrabble is the lettered piece you place ON a cell.
+      - **A stale color claim, the same species as the yellow sweep:** `Board`'s
+        `isViewingHistory` said the replay wears a "green frame". It wears the
+        shared history frame, which is blue; green is the outline on the cells
+        that turn played.
+      - the `/**`-on-props pass: 18 members across `Board.tsx` and `BoardCol.tsx`.
+      - **The stackdown todo's question is confirmed here**: `hover`,
+        `greenCells` and `redCells` are three live marks blanked at the call site
+        on `isViewingHistory`, the same shape.
+      - **`turnSummary` → `historyLabelFor(play, nameOf)`.** One caller, and it
+        is the history banner's label; its docstring said "the turn-viewer banner
+        line" while its name said nothing. It is scrabble's stand-in for the
+        `historyLabel` every other game returns from its snapshot — built at the
+        banner because `plays` already lives in that column.
+      - `historyPlay` → **`historyPlayRow`** (Joel: the type is `PlayRow`, and
+        "play" alone reads as a verb — the same test that chose `Lit` over
+        `Highlight`).
+      Filed in scrabble's todo, found by the read: `PlayArea`'s `moveText` is a
+      SECOND copy of `historyLabelFor` for the print table, marked SPIKE in its
+      own comment — the banner and the printed sheet being the two places a
+      player reads a turn back.
+      Considered and LEFT: `renderBoard` (`historyTurn ? historyBoard(...) :
+      board`) is genuinely the live board when not viewing — the documented
+      "board to show" contract, like stackdown's `offBoard`. And the SENDER side
+      of show-a-move (`useSharedMove`, `shareMove`, `SharedMovePayload`,
+      `sharerId`) is a transport of its own, not the preview: the preview is what
+      the receiver draws.
 - [ ] **codenamesduet** — `viewedClue` known
 - [ ] **strands** — `.discViewed` known; `hintCoords` is NOT history and stays
 - [ ] **connections**

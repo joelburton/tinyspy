@@ -33,9 +33,10 @@
   — the mark simply paints over a past board. Either the column blanks them (one
   decision, but it then silently ignores props it was handed) or the caller keeps
   doing it explicitly and something has to make that rule visible. Found
-  2026-09-16 by Joel, reading the history-names sweep. **Check scrabble and
-  connections for the same block before deciding** — this may be one shape, not
-  one game's.
+  2026-09-16 by Joel, reading the history-names sweep. **scrabble has the same
+  block** (`hover`, `greenCells`, `redCells`, blanked on `isViewingHistory` at
+  the call site), so this is one shape and not one game's; connections still to
+  check. Decide it once.
 
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -

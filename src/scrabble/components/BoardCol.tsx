@@ -52,15 +52,15 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  * What read-only overlay is open on the board — the shared history viewer's id,
  * widened for scrabble to carry BOTH kinds of read-only board it can show:
  *   - **`turn`** — a past turn's committed board (the history viewer).
- *   - **`shared`** — a coop teammate's in-progress move (their staged tiles laid
- *     on the live board), received over Broadcast (see useSharedMove).
+ *   - **`peerPreview`** — a coop teammate's in-progress move (their staged tiles
+ *     laid on the live board), received over Broadcast (see useSharedMove).
  * Both wear the same viewer chrome (frame + banner + frozen input) and the same
  * exits (click / keystroke / ✕ / a new move) — so they ride one `useHistoryViewer`
  * as `useHistoryViewer<HistoryTarget>`, and this switches on `kind` to render.
  */
 export type HistoryTarget =
   | { kind: 'turn'; seq: number }
-  | { kind: 'shared'; placements: Placement[]; sharerId: string; words: string[]; score: number }
+  | { kind: 'peerPreview'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -77,10 +77,12 @@ function overRackAtPoint(x: number, y: number): boolean {
 const NO_CELLS: Set<number> = new Set()
 const NO_TENT: Map<number, Tentative> = new Map()
 
-/** The turn-viewer banner line for a play — terse so it fits even with a couple of
+/** The history banner's label for one play — terse so it fits even with a couple of
  *  long words: "#1 moth: +10 APPLE, BERRY" for a word, or the action ("#5 moth
- *  passed", "#5 moth exchanged 3 tiles") for the others. */
-function turnSummary(p: PlayRow, nameOf: (id: string | null) => string): string {
+ *  passed", "#5 moth exchanged 3 tiles") for the others. Every other game returns
+ *  this as its snapshot's `historyLabel`; scrabble builds it here because `plays`
+ *  already lives in this column. */
+function historyLabelFor(p: PlayRow, nameOf: (id: string | null) => string): string {
   const who = nameOf(p.user_id)
   const n = `#${p.seq}`
   if (p.kind === 'word') {
@@ -152,7 +154,7 @@ function nextRackOrder(
  *   - **It reconstructs the viewed board itself.** stackdown/waffle compute the
  *     historical snapshot in PlayArea and hand a ready-to-render board *down*;
  *     scrabble takes the raw `plays` + `historyId` and runs `historyBoard` (and
- *     builds the banner via `turnSummary`) in here, since `plays` is already the
+ *     builds the banner via `historyLabelFor`) in here, since `plays` is already the
  *     input the live board reads.
  *   - **It keys the viewer by `seq`, not log position.** The shared history hook
  *     returns a neutral `historyId`; scrabble aliases it to `historyId` (a stable
@@ -199,58 +201,58 @@ export function BoardCol({
   registerSuggestionApplier,
 }: {
   // ── Mobile-only status strip ──
-  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
-   *  above the board ONLY below the `--mobile` breakpoint — where the info
-   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
-   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
+  // above the board ONLY below the `--mobile` breakpoint — where the info
+  // column is off-canvas in the InfoSheet and would otherwise take a tap to
+  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
   mobileStatus: ReactNode
 
   // ── Game data (the turn machine reads board/version/rack/bag off this) ──
   game: ScrabbleGame
   gameId: string
-  /** My player row (rack in compete; null in coop where the rack is shared). undefined = I'm watching. */
+  // My player row (rack in compete; null in coop where the rack is shared). undefined = I'm watching.
   self: PlayerRow | undefined
-  /** Is it my turn (compete); always true in coop. Gates committing (canCommit). */
+  // Is it my turn (compete); always true in coop. Gates committing (canCommit).
   myTurn: boolean
   isTerminal: boolean
   myConceded: boolean
 
   // ── Below-board feedback (the slot is PlayArea's) ──
-  /** PlayArea's below-board slot. The turn machine shows its results into it
-   *  (played / rejected / no-tile / …), Controls draws it in the commit slot,
-   *  and a board or rack interaction or a keystroke dismisses a gesture-
-   *  cleared result. */
+  // PlayArea's below-board slot. The turn machine shows its results into it
+  // (played / rejected / no-tile / …), Controls draws it in the commit slot,
+  // and a board or rack interaction or a keystroke dismisses a gesture-
+  // cleared result.
   localFeedbackSlot: FeedbackSlot
 
   // ── Board viewer (state owned by PlayArea; this renders the snapshot) ──
   plays: PlayRow[]
-  /** The read-only overlay open on the board (a past turn OR a teammate's shared
-   *  move), or null when live. */
+  // The read-only overlay open on the board (a past turn OR a teammate's shared
+  // move), or null when live.
   historyTarget: HistoryTarget | null
-  /** historyTarget !== null. */
+  // historyTarget !== null.
   isViewingHistory: boolean
-  /** A ref to historyTarget, read by the once-registered board-drag pointerdown. */
+  // A ref to historyTarget, read by the once-registered board-drag pointerdown.
   historyTargetRef: RefObject<HistoryTarget | null>
-  /** Return to the live board (a board interaction / a keystroke / a new move). */
+  // Return to the live board (a board interaction / a keystroke / a new move).
   onExitHistory: () => void
-  /** Username for a user id — for the viewer banners. */
+  // Username for a user id — for the viewer banners.
   nameOf: (id: string | null) => string
-  /** Identity-disc color NAME for a user id — for the share banner's disc. */
+  // Identity-disc color NAME for a user id — for the share banner's disc.
   memberColorOf: (id: string) => string | undefined
 
   // ── Show-a-move (coop only — see useSharedMove) ──
-  /** Coop with ≥2 players — gates the Share button (there's a teammate to show). */
+  // Coop with ≥2 players — gates the Share button (there's a teammate to show).
   canShare: boolean
-  /** Broadcast my staged tiles to teammates for a read-only preview. */
+  // Broadcast my staged tiles to teammates for a read-only preview.
   shareMove: (payload: SharedMovePayload) => void
-  /** My user id — stamped on a broadcast as its `sharerId`. */
+  // My user id — stamped on a broadcast as its `sharerId`.
   selfId: string
 
   // ── Suggest-a-move (coop only — see docs/scrabble-ai.md S5) ──
-  /** Register (or, with null, unregister) the "stage this suggested move"
-   *  applier with PlayArea, which calls it from the InfoCol list's click —
-   *  staging lives here, the suggest state there (the menu.setGameSections
-   *  register shape). */
+  // Register (or, with null, unregister) the "stage this suggested move"
+  // applier with PlayArea, which calls it from the InfoCol list's click —
+  // staging lives here, the suggest state there (the menu.setGameSections
+  // register shape).
   registerSuggestionApplier: (fn: ((placements: Placement[]) => void) | null) => void
 }) {
   const [staged, setStaged] = useState<Staged[]>([])
@@ -849,25 +851,25 @@ export function BoardCol({
   // input + suppressed live overlays), picked by `historyTarget.kind`:
   //   - a past TURN — the replayed historical board, that turn's played cells
   //     outlined (via historyBoard); or
-  //   - a teammate's SHARED move — the live board with their staged tiles laid on
-  //     as tentative, those cells outlined.
-  const viewTurn = historyTarget?.kind === 'turn' ? historyTarget : null
-  const peerPreview = historyTarget?.kind === 'shared' ? historyTarget : null
-  const viewedPlay: PlayRow | null = viewTurn
-    ? (plays.find((p) => p.seq === viewTurn.seq) ?? null)
+  //   - a teammate's PEER PREVIEW — the live board with their staged tiles laid
+  //     on as tentative, those cells outlined.
+  const historyTurn = historyTarget?.kind === 'turn' ? historyTarget : null
+  const peerPreview = historyTarget?.kind === 'peerPreview' ? historyTarget : null
+  const historyPlayRow: PlayRow | null = historyTurn
+    ? (plays.find((p) => p.seq === historyTurn.seq) ?? null)
     : null
-  const renderBoard = viewTurn ? historyBoard(plays, viewTurn.seq) : board
-  // A shared move's tiles, as a tentative map over the live board (stable ref when
-  // not sharing, like NO_TENT, so the Board doesn't churn).
-  const sharedTent = useMemo(() => {
+  const renderBoard = historyTurn ? historyBoard(plays, historyTurn.seq) : board
+  // The previewed move's tiles, as a tentative map over the live board (stable ref
+  // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
+  const peerPreviewTent = useMemo(() => {
     if (!peerPreview) return NO_TENT
     const m = new Map<number, Tentative>()
     for (const p of peerPreview.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
     return m
   }, [peerPreview])
-  const historyLitTiles = viewTurn
-    ? viewedPlay?.kind === 'word'
-      ? new Set((viewedPlay.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
+  const historyLitCells = historyTurn
+    ? historyPlayRow?.kind === 'word'
+      ? new Set((historyPlayRow.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
       : NO_CELLS
     : peerPreview
       ? new Set(peerPreview.placements.map((pl) => cellIndex(pl.x, pl.y)))
@@ -887,7 +889,7 @@ export function BoardCol({
         <MobileStatusBar>{mobileStatus}</MobileStatusBar>
         <Board
           board={renderBoard}
-          tentative={viewTurn ? NO_TENT : peerPreview ? sharedTent : tentativeMap}
+          tentative={historyTurn ? NO_TENT : peerPreview ? peerPreviewTent : tentativeMap}
           cursor={cursor}
           hover={isViewingHistory ? null : hover}
           greenCells={isViewingHistory ? NO_CELLS : greenFlash}
@@ -895,7 +897,7 @@ export function BoardCol({
           dragSource={drag && drag.source.kind === 'board' ? { x: drag.source.x, y: drag.source.y } : null}
           dragging={!!drag}
           isViewingHistory={isViewingHistory}
-          historyLitTiles={historyLitTiles}
+          historyLitCells={historyLitCells}
           onCellPointerDown={onCellPointerDown}
         />
 
@@ -904,7 +906,7 @@ export function BoardCol({
               stays mounted underneath, so `staged` is preserved. Its label is
               either a past turn's summary or a teammate's shared move, which is
               why this one is markup and not a string. */}
-          {isViewingHistory && (viewedPlay || peerPreview) && (
+          {isViewingHistory && (historyPlayRow || peerPreview) && (
             <HistoryBanner
               onExit={onExitHistory}
               label={
@@ -917,7 +919,7 @@ export function BoardCol({
                       : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
                   </>
                 ) : (
-                  turnSummary(viewedPlay!, nameOf)
+                  historyLabelFor(historyPlayRow!, nameOf)
                 )
               }
             />
