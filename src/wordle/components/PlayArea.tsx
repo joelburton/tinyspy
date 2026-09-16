@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -152,7 +152,6 @@ export function PlayArea({
   const {
     revealed: answerShown,
     toggle: toggleAnswer,
-    reset: resetAnswer,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
@@ -291,14 +290,6 @@ export function PlayArea({
   // action; the verdict leaves by its own effect — and re-hide the answer so
   // the new run starts blind). New game + Reveal answer stay below — their
   // paths diverge (new game is a direct create_game).
-  const onRestarted = useCallback(() => {
-    exitViewing()
-    localFeedbackSlot.dismiss()
-    // The same word, hunted again — so forget my choice about the answer.
-    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
-    // the win-implied default, so solving the replayed word wouldn't show it.
-    resetAnswer()
-  }, [exitViewing, localFeedbackSlot, resetAnswer])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -309,7 +300,6 @@ export function PlayArea({
     // banked, so it goes gray and you leave via Back to club.
     selfSolved: solvedIds.includes(session.user.id),
     localFeedbackSlot,
-    onRestarted,
   })
 
   // Reveal the answer — a LOCAL display toggle: it shows the word to me alone,

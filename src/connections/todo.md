@@ -25,6 +25,12 @@
 
 ## Soon
 
+- **`revealedHints` can move back into `<HintList>`.** It was lifted into
+  `PlayArea` so the restart handler could clear it; a restart now unmounts the
+  whole play surface, so local state is cleared wherever it lives
+  (common/game-page/doc.md). The prop pair (`revealed` / `onReveal`) exists only
+  to serve the lift.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these

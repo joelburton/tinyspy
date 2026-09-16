@@ -274,7 +274,7 @@ export function PlayArea({
   // mid-sentence. Each of you looks when you're ready, and Hide covers it up
   // again. Not a shield either way: both key columns are readable
   // by every club member under the friends trust model.
-  const { revealed: peerKeyShown, toggle: togglePeerKey, hide: hidePeerKey } =
+  const { revealed: peerKeyShown, toggle: togglePeerKey } =
     useSolutionReveal()
 
   const {
@@ -352,7 +352,6 @@ export function PlayArea({
     mode: 'coop',
     myConceded: false,
     localFeedbackSlot,
-    onRestarted: hidePeerKey,
   })
 
   // ─── New game ───────────────────────────────────────────

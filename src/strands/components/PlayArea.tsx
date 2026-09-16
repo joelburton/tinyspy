@@ -514,7 +514,6 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     revealed: solutionShown,
     toggle: toggleSolution,
-    reset: resetSolution,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
@@ -555,7 +554,6 @@ export function PlayArea(ctx: GamePageCtx) {
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
     // the solve-implied default, so solving the replayed board wouldn't show
     // the words.
-    onRestarted: resetSolution,
   })
 
   /**

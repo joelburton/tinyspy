@@ -428,7 +428,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // answer the players never saw. It's precisely what the button exists to hand
   // over, and my asking for it doesn't hand it to anyone else. Terminal-only
   // (the gate below), so a player who dropped out can't spoil a live race.
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+  const { revealed: solutionShown, toggle: toggleSolution } =
     useSolutionReveal()
 
   // ─── End / Concede / Replay — the shared trio ──────────
@@ -439,10 +439,6 @@ export function PlayArea(ctx: GamePageCtx) {
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
     localFeedbackSlot,
-    // The same board and the same seeded pair, hunted again — so put the pair
-    // away. Nothing on the server remembers the reveal any more (it's local
-    // state), which is exactly why this is spelled out.
-    onRestarted: hideSolution,
   })
 
   // A plain function, rebuilt every render: the binding below reads it at click

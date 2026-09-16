@@ -370,7 +370,6 @@ export function PlayArea(ctx: GamePageCtx) {
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
     localFeedbackSlot,
-    onRestarted: () => setPicked([]),
   })
 
   // A plain function, rebuilt every render: the binding below reads it at click

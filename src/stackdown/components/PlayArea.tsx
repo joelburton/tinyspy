@@ -387,7 +387,6 @@ export function PlayArea({
   const {
     revealed: solutionShown,
     toggle: toggleSolution,
-    reset: resetSolution,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
@@ -400,15 +399,6 @@ export function PlayArea({
   // solution, everything the players did wiped. stackdown's own bits are the
   // replay sentence and the post-replay cleanup (leave the turn-history view,
   // dismiss the last result, re-hide a revealed solution).
-  const onRestarted = useCallback(() => {
-    exitViewing()
-    localFeedbackSlot.dismiss()
-    // The same stack and the same six words — so forget my choice about them.
-    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
-    // the solve-implied default, so clearing the replayed stack wouldn't show
-    // the list.
-    resetSolution()
-  }, [exitViewing, localFeedbackSlot, resetSolution])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -416,7 +406,6 @@ export function PlayArea({
     mode: isCompete ? 'compete' : 'coop',
     myConceded,
     localFeedbackSlot,
-    onRestarted,
   })
 
   // ─── The help ladder ─────────────────────────────────────────

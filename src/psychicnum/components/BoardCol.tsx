@@ -143,20 +143,14 @@ export function BoardCol({
    *  `results` is the board being DISPLAYED, which while viewing a past turn is a
    *  snapshot that cannot contain a word guessed after it — so this reads as "in
    *  flight" for a decided word, and the gate at the `<Board>` call below is what
-   *  keeps that off a historical board. */
+   *  keeps that off a historical board.
+   *
+   *  A RESTART would strand it the same way — the word is not in the new, empty
+   *  results — but nothing here handles that: the page unmounts this whole
+   *  surface when the run changes, so there is no memory left to strand
+   *  (common/game-page/doc.md). */
   const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
 
-  // A RESTART empties the guesses, which means the release condition above can
-  // never be met again: the last word submitted before the restart is not in the
-  // new (empty) results, so its tile would sit dim for the rest of the game. The
-  // log SHRINKING is what says the board was reset — only a restart shrinks it —
-  // so the memory is dropped there, the same signal connections reads for its
-  // verdict mark.
-  const [seenMoveCount, setSeenMoveCount] = useState(moveCount)
-  if (moveCount !== seenMoveCount) {
-    setSeenMoveCount(moveCount)
-    if (moveCount < seenMoveCount) setSubmittedWord(null)
-  }
 
   // ─── Board shuffle (a fresh visual scan, local only) ────
   // A counter the Shuffle button bumps; the display order is derived from it. Keyed

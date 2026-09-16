@@ -14,8 +14,9 @@ type Props = {
    *  Restart replays the SAME board, so a hint that outlived the reset would
    *  hand back a category name the player had already paid for — the rule
    *  `common.reset_game` states outright ("the same board, hunted blind
-   *  again"). Local state survives a restart, since the play surface doesn't
-   *  unmount; lifting it puts the set where the restart handler can clear it. */
+   *  again"). That is no longer why the set is lifted, though: a restart
+   *  unmounts the whole play surface (common/game-page/doc.md), so local state
+   *  goes with it wherever it lives. */
   revealed: ReadonlySet<CategoryRank>
   onReveal: (rank: CategoryRank) => void
 }

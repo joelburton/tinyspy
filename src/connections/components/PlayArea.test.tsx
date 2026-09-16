@@ -583,6 +583,9 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       expect(tile('a').className).toMatch(/verdictFill/)
     })
 
+    // A RESTART is not in here any more: the page unmounts this whole surface
+    // when the run changes, so there is no mark of this component's to clear.
+    // `common/game-page/GamePage.test.tsx` covers that, once, for every game.
     it('hands the mark to a teammate’s wrong guess — their four, not mine', async () => {
       const ctx = makeCtx({ players: twoMembers })
       const { rerender } = await guessWrongly(ctx)
@@ -617,33 +620,6 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       expect(tile('a').className).not.toMatch(/verdictFill/)
     })
 
-    it('goes on a restart, including a teammate’s', async () => {
-      const ctx = makeCtx({ players: twoMembers })
-      const { rerender } = await guessWrongly(ctx)
-
-      // My guess is recorded first (the realtime round trip) — the mark holds.
-      h.result = loaded({
-        game: game('coop'),
-        guesses: [wrongGuess('g1', 'u1')],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
-        unionTiles: ['a', 'b', 'e', 'i'],
-      })
-      rerender(<PlayArea {...ctx} />)
-      expect(tile('a').className).toMatch(/verdictFill/)
-
-      // Then somebody restarts. `replay_board` deletes every guess, so the log
-      // SHRINKS — which is the signal, rather than the local restart handler: a
-      // teammate's restart has to clear my board too, and only the log reaches me.
-      h.result = loaded({
-        game: game('coop'),
-        guesses: [],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
-        unionTiles: ['a', 'b', 'e', 'i'],
-      })
-      rerender(<PlayArea {...ctx} />)
-
-      expect(tile('a').className).not.toMatch(/verdictFill/)
-    })
   })
 
   it('draws no selection once the board is finished', () => {

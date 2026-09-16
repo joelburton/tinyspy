@@ -269,7 +269,6 @@ export function PlayArea({
   const {
     revealed: answerShown,
     toggle: toggleAnswer,
-    reset: resetAnswer,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({ isCompete: game?.mode === 'compete', playState, mine: iSolved }),
@@ -280,19 +279,6 @@ export function PlayArea({
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss the last result, re-hide a locally-revealed
   // answer). New game + Reveal answer stay below.
-  const onRestarted = useCallback(() => {
-    exitViewing()
-    localFeedbackSlot.dismiss()
-    // The same board, scrambled back — so forget my choice about the answer.
-    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
-    // the solve-implied default, so solving the replayed board wouldn't show it.
-    resetAnswer()
-    // Forget any optimistic swap too. It expires by comparing itself against the
-    // server's board + swap count, and a restart puts BOTH back to where a
-    // first-move swap was made — which would make a long-answered swap look
-    // live again on the fresh board.
-    setOptimisticSwap(null)
-  }, [exitViewing, localFeedbackSlot, resetAnswer])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -303,7 +289,6 @@ export function PlayArea({
     // banked, so it goes gray and you leave via Back to club.
     selfSolved: playerStates.find((p) => p.user_id === session.user.id)?.solved ?? false,
     localFeedbackSlot,
-    onRestarted,
   })
 
   // New game — a FRESH game (new id, new randomly-built board) with THIS

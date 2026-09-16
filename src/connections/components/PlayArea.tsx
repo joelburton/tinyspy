@@ -141,8 +141,9 @@ export function PlayArea({
   // not a window over the board). (The guess dispatch, the local tile shuffle, and
   // the wrong-guess shake all live in BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
-  // Which hint categories are revealed. Owned HERE rather than in <HintList> so
-  // the restart handler can clear it — see that component's `revealed` prop.
+  // Which hint categories are revealed. Owned HERE rather than in <HintList>,
+  // which was for a restart handler that no longer exists — a restart unmounts
+  // the surface now. The state could move back down; connections' todo has it.
   const [revealedHints, setRevealedHints] = useState<ReadonlySet<CategoryRank>>(() => new Set())
   const revealHint = useCallback((rank: CategoryRank) => {
     setRevealedHints((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
@@ -242,7 +243,8 @@ export function PlayArea({
   // column and a menu row, one binding. Concede is compete's drop-out (a real
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
-  // and `onRestarted` leaves the turn-history view + dismisses the last result.
+  // and `onRestarted` broadcasts a selection clear — the one thing a restart
+  // still has to SAY rather than drop.
   // ─── The categories show only when I ask for them ─────
   // Never automatically. connections used to be one of the two games registered
   // hides_solution = false, so a loss (or, in compete, being eliminated) put the
@@ -262,7 +264,6 @@ export function PlayArea({
   const {
     revealed: solutionShown,
     toggle: toggleSolution,
-    reset: resetSolution,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
@@ -279,26 +280,16 @@ export function PlayArea({
       mode: game?.mode === 'compete' ? 'compete' : 'coop',
       myConceded,
       localFeedbackSlot,
-      onRestarted: () => {
-        exitViewing()
-        localFeedbackSlot.dismiss()
-        // The same sixteen tiles again, so whatever was picked for the guess
-        // that is now gone must go with it — and this one BROADCASTS, so every
-        // teammate's board drops it too rather than starting the replay with a
-        // half-built move on it. (The verdict marks clear themselves off the
-        // shrinking guess log, which reaches peers the same way.)
-        sendClear()
-        // The same sixteen tiles again, so a hint spent on the first attempt
-        // must not carry into the second. (Fires only on the client that
-        // clicked Restart — the same limitation every onRestarted cleanup in
-        // the roster has; a peer's restart leaves their own list alone.)
-        setRevealedHints(new Set())
-        // The same four categories to find again — so forget my choice about
-        // them. `reset`, not `hide`: hiding would record an explicit "no" that
-        // outranks the solve-implied default, so matching all four on the
-        // replay wouldn't leave the bands up.
-        resetSolution()
-      },
+      // The one thing a restart still has to SAY rather than clear: drop the
+      // half-built guess on every teammate's board too. Everything this used to
+      // do besides — leaving the history view, dismissing the last result,
+      // forgetting the spent hints and the reveal — is local state, and the page
+      // now unmounts the whole surface on every client when the run changes.
+      //
+      // The broadcast is arguably redundant for the same reason (each board
+      // drops its own selection as it remounts), but a message that arrives
+      // before the row does costs nothing and covers the order they land in.
+      onRestarted: sendClear,
     })
 
   // ─── New game — the NEXT unplayed puzzle ───────────────

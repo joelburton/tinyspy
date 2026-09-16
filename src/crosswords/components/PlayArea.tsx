@@ -163,8 +163,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // hangs off the toggle rather than a flag. (Errors are tolerated silently,
   // like the old auto-fetch was: solution stays null and the control stays
   // live for a retry.)
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
-    useSolutionReveal()
+  const { revealed: solutionShown, toggle: toggleSolution } = useSolutionReveal()
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
   useEffect(() => {
     if (!solutionShown || solution) return
@@ -490,10 +489,6 @@ type Explained =
   // finished puzzle, so a solved crossword can be run back. crosswords' own
   // bit is the cleanup: put the author's answers away, so
   // the stale solution cache can't paint the grid the instant the fills go.
-  const onRestarted = useCallback(() => {
-    hideSolution()
-    localFeedbackSlot.dismiss()
-  }, [hideSolution, localFeedbackSlot])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -501,7 +496,6 @@ type Explained =
     mode,
     myConceded,
     localFeedbackSlot,
-    onRestarted,
   })
 
   // Show note — open the setter's note locally AND (in coop) broadcast so

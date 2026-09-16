@@ -15,6 +15,7 @@
  * mocked too: whether a question was asked is the assertion, and the modal is
  * `ConfirmationHost.test.tsx`'s.
  */
+import { useEffect } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -206,6 +207,33 @@ describe('GamePage — mounting', () => {
 })
 
 describe('act-end-game, bound for the pause overlay', () => {
+  it('mounts a NEW play surface when the game is restarted', async () => {
+    // The whole restart mechanism: a game's local state is cleared by the
+    // surface being replaced, not by the game cleaning up after itself. A
+    // PlayArea that counts its own mounts is the only way to see it.
+    let mounts = 0
+    const Counting = () => {
+      useEffect(() => {
+        mounts += 1
+      }, [])
+      return <div>play</div>
+    }
+    const { view } = await mount(commonGameState(), makeManifest({ PlayArea: Counting }))
+    expect(mounts).toBe(1)
+
+    // A row arriving with the same run does NOT remount it — only the run
+    // changing does, or every refetch would throw the board away.
+    mockUseCommonGame.mockReturnValue(commonGameState({ game: { title: 'Secrets II' } }))
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+    await act(async () => { await Promise.resolve() })
+    expect(mounts).toBe(1)
+
+    mockUseCommonGame.mockReturnValue(commonGameState({ game: { restarts: 1 } }))
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+    await act(async () => { await Promise.resolve() })
+    expect(mounts).toBe(2)
+  })
+
   it('is hidden while the game is playing — the PlayArea owns ⌥⌫ then', async () => {
     await mount()
     expect(bound('act-end-game').describe('button').state).toBe('hidden')

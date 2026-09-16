@@ -258,7 +258,6 @@ export function PlayArea({
   const {
     revealed: secretsShown,
     toggle: toggleSecrets,
-    reset: resetSecrets,
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
@@ -389,14 +388,6 @@ export function PlayArea({
   //
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
   //  server-side, so the same three secrets are hunted blind again.)
-  const onRestarted = useCallback(() => {
-    exitViewing()
-    localFeedbackSlot.dismiss()
-    // The same board and the same three secrets, hunted again — so un-ring
-    // them. Nothing on the server remembers the reveal any more, which is
-    // exactly why this is spelled out.
-    resetSecrets()
-  }, [exitViewing, localFeedbackSlot, resetSecrets])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -404,7 +395,6 @@ export function PlayArea({
     mode: mode ?? 'coop',
     myConceded,
     localFeedbackSlot,
-    onRestarted,
   })
 
   // New game — a FRESH game (new id, a new random board + secrets) with THIS

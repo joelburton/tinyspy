@@ -346,10 +346,6 @@ type Suggested =
   // the standard layout, not a generated puzzle, so there's no board to restore.
   // A replay re-deals — fresh bag, new racks, empty grid — keeping the setup,
   // roster, seats and any AI opponents. Hence the confirm's wording.
-  const onRestarted = useCallback(() => {
-    exitViewing()
-    localFeedbackSlot.dismiss()
-  }, [exitViewing, localFeedbackSlot])
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -357,7 +353,6 @@ type Suggested =
     mode: isCompete ? 'compete' : 'coop',
     myConceded,
     localFeedbackSlot,
-    onRestarted,
   })
 
   // Ask the AI for a move — coop only (in a race a suggested play would be a win

@@ -105,7 +105,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The two readouts that matter — the length score and the letter count — say how well
   // you did WITHOUT naming the word, so a table that wants to keep guessing at
   // it can. Local and reversible, so my looking doesn't end anyone else's think.
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+  const { revealed: solutionShown, toggle: toggleSolution } =
     useSolutionReveal()
 
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
@@ -332,9 +332,6 @@ export function PlayArea(ctx: GamePageCtx) {
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
     myConceded,
     localFeedbackSlot,
-    // The same base, extended again — so put the best word away. Nothing on the
-    // server remembers the reveal any more, which is why this is explicit.
-    onRestarted: hideSolution,
   })
 
   // Reveal the best possible word — a LOCAL display toggle: it shows the word to

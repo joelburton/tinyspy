@@ -231,26 +231,21 @@ export function BoardCol({
   //
   // The mark rings four particular tiles, so it is a claim about the board AS IT
   // WAS. It has no timer: it lives until the board stops being that board, and
-  // the guess log is where that shows up. Two events end it, neither of them
-  // something this player did:
+  // the guess log is where that shows up. What ends it is a TEAMMATE'S GUESS —
+  // the log grows a row somebody else wrote, the board has moved on, and a mark
+  // still sitting on it now claims to be about the move that just happened.
   //
-  //   • a RESTART — every guess is deleted, so the log SHRINKS. Only a restart
-  //     shrinks it, which is what makes the count a reliable signal.
-  //   • a TEAMMATE'S GUESS — the log grows a row somebody else wrote. The board
-  //     has moved on, and a mark still sitting on it now claims to be about the
-  //     move that just happened.
+  // MY OWN row growing the log is not that: it is the tail of the very action
+  // that set the mark, arriving a beat later over realtime. So the test asks WHO
+  // wrote the newest row, not just whether the log changed.
   //
-  // MY OWN row growing the log is neither of those: it is the tail of the very
-  // action that set the mark, arriving a beat later over realtime. So the test
-  // asks WHO wrote the newest row, not just whether the log changed.
+  // A RESTART used to be the other half of this — every guess deleted, so the
+  // log shrank — and is not handled here any more: the page unmounts this whole
+  // surface when the run changes, on every client (common/game-page/doc.md).
   //
-  // Two things this deliberately does NOT do:
-  //
-  //   • It does not wait for my own row to arrive as a signal that the guess is
-  //     done — a refused guess (PN300 / PN301) writes no row at all, so that
-  //     signal would never come for exactly the answers worth marking.
-  //   • It does not listen to `onRestarted`, which fires only on the client that
-  //     clicked Restart — everyone else's mark would be stranded.
+  // It deliberately does NOT wait for my own row to arrive as a signal that the
+  // guess is done: a refused guess (PN300 / PN301) writes no row at all, so that
+  // signal would never come for exactly the answers worth marking.
   //
   // Run during RENDER rather than in an effect, so the cleared mark and the
   // board that cleared it land in the same commit; there is no frame in which a
@@ -262,11 +257,9 @@ export function BoardCol({
     id: newestGuess?.id ?? null,
   })
   if (guesses.length !== seenGuess.count || (newestGuess?.id ?? null) !== seenGuess.id) {
-    const shrank = guesses.length < seenGuess.count
     const foreign = newestGuess !== null && newestGuess.user_id !== selfId
     setSeenGuess({ count: guesses.length, id: newestGuess?.id ?? null })
-    if (shrank) setVerdict(null)
-    else if (foreign) {
+    if (foreign) {
       // A TEAMMATE'S guess that did not win: mark THEIR four tiles for everyone,
       // because "no" is news to the whole table — those four are now the four
       // nobody should try again, and the player who learns it last is the one
