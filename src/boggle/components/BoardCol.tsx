@@ -90,8 +90,9 @@ export function BoardCol({
   n: number
   /** The tiles a refused word used, wearing its answer, in BOARD cell indices —
    *  this column turns them into the view the player is looking at. Null when
-   *  nothing was just refused, which is nearly always. */
-  answered: { cells: number[]; outcome: Outcome } | null
+   *  nothing was just refused, which is nearly always. `nonce` counts the raises;
+   *  the marked tiles are keyed by it so the head-shake replays (see below). */
+  answered: { cells: number[]; outcome: Outcome; nonce: number } | null
   /** Where the TYPED word's letters can sit, in board cells: `certain` is a
    *  letter with one candidate tile, `possible` a letter with several. Null when
    *  nothing is typed. Ignored while a tapped path exists — that one is the
@@ -156,7 +157,10 @@ export function BoardCol({
   )
 
   const answeredCells = useMemo(
-    () => (answered ? { cells: inView(answered.cells), outcome: answered.outcome } : null),
+    () =>
+      answered
+        ? { cells: inView(answered.cells), outcome: answered.outcome, nonce: answered.nonce }
+        : null,
     [answered, inView],
   )
   const typed = useMemo(
@@ -249,7 +253,18 @@ export function BoardCol({
             const step = path.findIndex((c) => c.y === y && c.x === x) // -1 if not on the path
             return (
               <div
-                key={`${y}-${x}`}
+                // A tile wearing an answer is keyed by the RAISE, not just by
+                // its place: the head-shake is a CSS animation, and an animation
+                // runs once per mount, so refusing the same word twice inside
+                // the answer's beat would leave the class where it was and shake
+                // nothing the second time. Changing the key remounts the tile
+                // and the shake starts over. (letterboxed's letters carry the
+                // same nonce in their keys, for the same reason.)
+                key={
+                  answeredCells?.cells.has(`${y}-${x}`)
+                    ? `${y}-${x}#${answeredCells.nonce}`
+                    : `${y}-${x}`
+                }
                 className={cls(
                   styles.tile,
                   // A refused word's tiles: the answer's own color, and the

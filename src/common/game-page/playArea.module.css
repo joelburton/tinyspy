@@ -640,8 +640,17 @@
  * half that survives reduced motion.
  *
  * Same beat as the two forms above deliberately: one shake, one meaning, one
- * duration. Replaying it needs a REMOUNT, like theirs, on any board where the
- * same piece can be refused twice. */
+ * duration.
+ *
+ * REPLAYING IT, on any board where the same piece can be refused twice: a CSS
+ * animation runs once per mount, so a mark whose class is simply present for a
+ * while shakes ONCE however many times it is raised. Give the element a key that
+ * changes on each raise — a counter bumped where the mark is raised — and React
+ * remounts it, which is the only thing that starts the animation again. Boards
+ * do this at whichever grain the mark has: per piece where a word's own tiles
+ * are marked (boggle, letterboxed), on the board itself where the whole board
+ * shakes (spellingbee, wordwheel). A mark held in a `useFlash` set gets it for
+ * free, but only after its own beat: the class leaves when the timer clears. */
 /* @@ */ .verdictShake {
 /* @@ */   animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out;
 }

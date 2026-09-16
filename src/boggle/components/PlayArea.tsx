@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -168,8 +168,15 @@ export function PlayArea(ctx: GamePageCtx) {
 
   /** The tiles a refused word used, wearing its answer. Board-cell indices —
    *  BoardCol turns them into view positions, since the player may have rotated
-   *  the board under them. */
-  const [answered, showAnswer] = useMark<{ cells: number[]; outcome: Outcome }>(WORD_ANSWER_MS)
+   *  the board under them.
+   *
+   *  `nonce` counts the RAISES, so the tiles can be keyed by it: a CSS animation
+   *  runs once per mount, and refusing the same word twice inside the answer's
+   *  beat leaves the shake's class exactly where it was. ArrowUp recalls the
+   *  last word and Enter re-submits it, so twice is a keystroke away. */
+  const [answered, showAnswer] =
+    useMark<{ cells: number[]; outcome: Outcome; nonce: number }>(WORD_ANSWER_MS)
+  const answerNonce = useRef(0)
 
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
@@ -223,7 +230,7 @@ export function PlayArea(ctx: GamePageCtx) {
         if (answer === 'accepted' || !game) return
         const cells = tracePathStr(game.board, w)
         if (cells === null) return
-        showAnswer({ cells, outcome: ANSWER_OUTCOME[answer] })
+        showAnswer({ cells, outcome: ANSWER_OUTCOME[answer], nonce: ++answerNonce.current })
       },
     })
 

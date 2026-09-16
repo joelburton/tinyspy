@@ -131,6 +131,17 @@ of its own rather than using it: its diff has to run during render to land in
 one commit with the change, so `useMoveAttention` takes the diff as a function
 and raises the set itself.
 
+**A mark that must fire twice in a row needs a key that changes.** A CSS
+animation runs once per mount, so a class that is simply present for a beat
+animates once however many times the mark is raised — refuse the same word twice
+inside its own beat and the second refusal moves nothing. What the boards do is
+bump a counter where the mark is raised and put it in the element's `key`, at
+whichever grain the mark has: on the pieces the word used, or on the board itself
+where the whole board shakes. A mark held in a `useFlash` set gets it free, but
+only after the beat, because the class leaves when the timer clears. The rule and
+its reason live beside `.verdictShake` in `game-page/playArea.module.css`, which
+is where someone adding a mark will be standing.
+
 The tile wash is drawn as an overlay rather than as a background, because a
 background cannot be faded and the fade is what makes the mark hand the tile
 back rather than blink off it. It is transparent until the animation raises it,

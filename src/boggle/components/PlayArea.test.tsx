@@ -423,6 +423,25 @@ describe('boggle PlayArea — trace as you type', () => {
       '/' + spans.map((c) => (c.className.includes('_unreachable_') ? '·' : ' ')).join('')
   }
 
+  it('replays the head-shake when the same word is refused twice', async () => {
+    // A CSS animation runs once per mount, and the mark's class never left
+    // between these two refusals — so the tile has to be REMOUNTED or the second
+    // refusal moves nothing. ArrowUp + Enter is how a player gets here.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const tileAt = (i: number) => document.querySelectorAll('[data-boggle-tile]')[i]!
+
+    await user.keyboard('abe{Enter}') // traceable, not a word: a(0) b(1) e(4)
+    const first = tileAt(0)
+    expect(first.className).toContain('verdictShake')
+
+    await user.keyboard('{ArrowUp}{Enter}') // the same word again, inside its beat
+    const second = tileAt(0)
+    expect(second.className).toContain('verdictShake')
+    // A different element: the key changed, so the animation starts over.
+    expect(second).not.toBe(first)
+  })
+
   it('keeps the prefix lit and dims the letter the board cannot follow', async () => {
     // a and c are both on the board but not neighbors, so the path stops after
     // the a: the a's tile holds its mark, and the c says why it went no further.

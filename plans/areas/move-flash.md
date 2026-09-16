@@ -464,12 +464,28 @@ refused twice"* — and then every board answers it differently:
 
 The shared CSS states the requirement and provides nothing to meet it, which is
 how four answers and one gap happen. Options: (1) fix boggle where it stands and
-leave the four idioms alone; (2) give the vocabulary the missing piece — a
-`useReplayNonce()` or a documented "key it by this" rule beside `.verdictShake`,
-so the requirement and its answer sit together; (3) fold it into F-14, since a
-tagged mark that carries its own nonce would make the replay automatic for every
-game that takes the hook. Recommend (3) with (1) done now regardless — boggle is
-a real miss and one line.
+leave the idioms alone, writing the rule down where the requirement already is;
+(2) `useMark` grows a raise counter; (3) a named `useReplayNonce()` hook.
+
+**RE-VERIFIED AT THE PRESENTATION: three mechanisms, not four.** spellingbee and
+wordwheel key the whole board; letterboxed keys each node; connections and
+psychicnum get it from `useFlash`'s timer dropping the class, which replays only
+AFTER the beat — structurally the same gap as boggle's with a 400ms window, but
+their marks are per-guess and per-word so re-raising an identical set inside the
+beat is not reachable. boggle's is: ArrowUp recalls the last word and Enter
+re-submits it.
+
+**WORKED 2026-09-16**, as option (1). boggle's mark carries a `nonce` counting
+the raises and its answered tiles are keyed by it, which is letterboxed's idiom
+exactly. The rule went where the requirement already was — beside `.verdictShake`
+in `game-page/playArea.module.css`, which is where someone adding a mark is
+standing — and once more in the folder's doc.md. The three idioms stayed: each is
+right for its board's grain (a piece, a node, a whole board), and collapsing them
+would fit worse. (2) helps only boards that hold a mark, which is the two that
+already worked; (3) buys a name for a hook whose body is shorter than its import.
+
+The boggle spec is planted-verified: with the old key restored it fails on the
+tile being the same DOM node across two refusals.
 
 ### What checked out
 
