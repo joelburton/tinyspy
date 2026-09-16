@@ -591,8 +591,18 @@
  * (Joel, 2026-08-29). Unreachable from a connections guess today — that is the
  * point: the gap is now a compile error rather than a silent fall-through.
  *
- * `won` gets no class at all, deliberately: those four tiles become a band on
- * the same render, so there is nothing left to mark. */
+ * `won` had no class for a while, and the reason was connections' rather than
+ * the vocabulary's: there, a correct guess's four tiles become a band on the
+ * same render, so nothing is left to mark. A game whose winning piece STAYS —
+ * stackdown's word sits in its slots for a beat before the tiles go — has
+ * something to mark, so the tone exists. White on this fill is the blessed
+ * 2.36:1 pair. */
+/* @@ */ .verdictWon {
+/* @@ */   --verdict-tone: var(--outcomes-won-ink-color);
+/* @@ */   --verdict-fill: var(--outcomes-won-fill-color);
+/* @@ */   --verdict-ink: var(--ink-onDark-color);
+}
+
 /* @@ */ .verdictError {
 /* @@ */   --verdict-tone: var(--outcomes-error-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-error-fill-color);

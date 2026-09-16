@@ -10,8 +10,12 @@
   justify-content: center;
 }
 
-/* One slot. Empty slots are a dashed placeholder; filled slots carry the
- * picked-up letter and are clickable to return the tile. */
+/* One slot, which is a TILE: same face as the tiles on the board above, because
+ * a letter is the same thing wherever it sits — picked up into a word or still
+ * in the stack. That is what lets a verdict here wear the same fill and white
+ * ink a verdict wears anywhere else, instead of a ring of its own. An EMPTY slot
+ * is not a tile: it is the dashed outline of one, so five of them still read as
+ * "spell a five-letter word here". */
 /* @@ */ .slot {
   width: 48px;
   height: 48px;
@@ -28,40 +32,39 @@
   color: var(--page-text-color);
 }
 
+/* A filled slot is a NORMAL tile — the shared `--tile-slot-*` trio, which the
+ * theme defaults to the middle of the warm ramp and its paired edge. Not the
+ * ramp's top: that shade means "exposed, on the board, clickable", and it is
+ * pale enough that a slot wearing it reads as an empty box rather than as a
+ * tile. A slot is not at a depth; it is a tile that has been picked up.
+ *
+ * It used to take the action button's blue, which is a control color on a game
+ * piece. */
 /* @@ */ .filled {
   border-style: solid;
-  border-color: var(--button-normal-primary-color);
-  background: var(--default-bg-color);
+  border-color: var(--tile-slot-edge-color);
+  background: var(--tile-slot-fill-color);
+  color: var(--tile-slot-ink-color);
+  box-shadow: var(--stackdown-tile-shadow);
   cursor: pointer;
 }
 
 /* @@ */ .filled:hover:not(:disabled) {
-  background: var(--page-surface-hover-color);
+  filter: brightness(1.04);
 }
 
-/* A flashed word — a thick colored ring for a beat (the PlayArea clears
- * it after ~1s, or when a new word is started). A box-shadow ring rather
- * than a wider border so the slot doesn't resize. The ring uses the STRONG
- * (dark, saturated) outcome greens/reds — not the pastel *-border shades —
- * so an accepted/rejected word reads emphatically at a glance.
- *   - good: an accepted word (the player's own, or a teammate's valid find)
- *   - bad:  a teammate's rejected word (their tiles bounced back) */
-/* @@ */ .won {
-  border-color: var(--outcomes-won-ink-color);
-  box-shadow: 0 0 0 3px var(--outcomes-won-ink-color);
-}
-
-/* @@ */ .lost {
-  border-color: var(--outcomes-lost-ink-color);
-  box-shadow: 0 0 0 3px var(--outcomes-lost-ink-color);
-}
-
-/* A flashed slot is `disabled` (not interactive during the flash), which the
- * global `button:disabled { opacity: 0.5 }` would fade to gray — washing the
- * letter out. Keep it at full opacity so the letters stay black under the
- * red/green ring; only the outline signals the result. (`.slot.good` /
- * `.slot.bad` out-specific `button:disabled`.) */
-.slot.good,
-/* @@ */ .slot.bad {
+/* THE VERDICT, worn exactly as a tile wears one: the answer's fill, white ink.
+ * The tone classes beside this one are the shared vocabulary's
+ * (`.verdictWon` / `.verdictLost` in common/game-page/playArea.module.css) and
+ * carry nothing but the two custom properties read here — which is why a slot
+ * can take them without being a `.tileFace` itself. The head-shake that goes
+ * with a refusal is the shared `.verdictShake`, added beside these. */
+/* @@ */ .verdict {
+  border-style: solid;
+  background: var(--verdict-fill);
+  border-color: var(--verdict-fill);
+  color: var(--verdict-ink);
+  /* A verdict slot is `disabled` (there is nothing to return while the answer is
+   * showing), and the global disabled fade would wash the answer out. */
   opacity: 1;
 }

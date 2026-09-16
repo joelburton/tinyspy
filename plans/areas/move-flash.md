@@ -385,6 +385,13 @@ so jsdom's lack of animation events should not bite — verify.
 
 ## Closing
 
+- [ ] **"wash" → "attention-flash" across the prose** (Joel, 2026-09-15: at the
+      close of this area). 54 prose hits — `playArea.module.css`, `docs/ui.md`,
+      the folder's `doc.md`, `tile-feedback.md` — all meaning the attention
+      flash. The `--outcomes-*-wash-color` token family (24 hits) is a DIFFERENT
+      thing, a pale tint behind text, and stays; that collision is the reason
+      the synonym has to go. Add the banned synonym to the vocabulary guard so
+      it cannot come back.
 - [ ] the whole area re-read in one sitting after the last group
 - [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file

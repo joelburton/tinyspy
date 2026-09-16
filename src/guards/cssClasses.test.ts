@@ -184,9 +184,6 @@ const DEAD_CLASS_PENDING: string[] = [
   // `.breakdown` + three siblings — the per-player breakdown they styled was
   // replaced (see that game's GameTurnLog). → the `setgame` area.
   'src/setgame/components/PlayArea.module.css',
-  // `.good` / `.bad` — the slots take their colors elsewhere now. → the
-  // `stackdown` area.
-  'src/stackdown/components/WordEntry.module.css',
 ]
 
 describe('a class name resolves — the module side', () => {

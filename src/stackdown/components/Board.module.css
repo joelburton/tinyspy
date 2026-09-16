@@ -76,6 +76,14 @@
 
 /* Covered (disabled) tiles fade back so the clickable frontier reads as
  * the bright layer. */
+/* The letter on a tile. Positioned so it sits ABOVE the shared attention flash,
+ * which is an overlay drawn inside the tile — the same lift the shared
+ * `.tileWord` takes for the same reason. */
+/* @@ */ .letter {
+  position: relative;
+  z-index: 1;
+}
+
 /* @@ */ .tile:disabled {
   opacity: 0.92;
 }

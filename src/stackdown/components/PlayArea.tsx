@@ -25,6 +25,8 @@ import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
+import { useFlash } from '@/common/move-flash/useFlash'
+import { ATTENTION_FADE_MS, ATTENTION_FLASH_MS } from '@/common/move-flash/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
@@ -40,6 +42,12 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
 const NO_TILES: ReadonlySet<number> = new Set()
+
+/** How long an answer stays up — the word in this player's slots, and a
+ *  teammate's word on the board. One number for both, because they are the same
+ *  event seen from two seats and a player moving between games should read the
+ *  same beat. */
+export const WORD_ANSWER_MS = 1500
 
 /** What `stackdown.submit_word` puts in `data`. The structural fact travels even
  *  where the server also wrote the sentence: `result` decides whether the tiles
@@ -176,7 +184,7 @@ export function PlayArea({
     flashWordTimer.current = setTimeout(() => {
       setFlash(null)
       flashWordTimer.current = null
-    }, 1500)
+    }, WORD_ANSWER_MS)
   }, [])
   const clearFlash = useCallback(() => {
     if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
@@ -189,11 +197,45 @@ export function PlayArea({
     },
     [],
   )
-  // Coop: a teammate's played word → flash it green (valid) / red (invalid).
-  const onPeerWord = useCallback(
-    (letters: string[], valid: boolean) => showFlash(letters, valid ? 'won' : 'lost'),
-    [showFlash],
-  )
+  // ─── A teammate's word, marked where it happened ───────────────
+  // On the BOARD, on their tiles — not in this player's entry row, which is
+  // their own workspace. Two beats in the order every board uses: the attention
+  // flash says WHERE, and once it has faded the answer's own color says WHAT.
+  //
+  // An accepted word's tiles are HELD on the board for the whole sequence
+  // instead of leaving the moment the row lands. Otherwise the news and the
+  // change are one event — the tiles you are being told about are already gone
+  // by the time you look. They are inert while held (`heldTileIds` below), so
+  // nobody can pick up a tile the server has already taken.
+  const [peerMark, setPeerMark] = useState<
+    { ids: number[]; tone: 'won' | 'lost'; answered: boolean } | null
+  >(null)
+  const peerMarkTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const markPeerWord = useCallback((tileIds: number[], valid: boolean) => {
+    if (tileIds.length === 0) return
+    peerMarkTimers.current.forEach(clearTimeout)
+    setPeerMark({ ids: tileIds, tone: valid ? 'won' : 'lost', answered: false })
+    peerMarkTimers.current = [
+      setTimeout(
+        () => setPeerMark((m) => (m ? { ...m, answered: true } : null)),
+        ATTENTION_FADE_MS,
+      ),
+      setTimeout(() => setPeerMark(null), ATTENTION_FADE_MS + WORD_ANSWER_MS),
+    ]
+  }, [])
+  useEffect(() => () => peerMarkTimers.current.forEach(clearTimeout), [])
+
+  // My own refused word's tiles, marked as they land back on the board — the
+  // answer was read in the slots, and this is where the letters went.
+  const [returnedTiles, flashReturned] = useFlash<number>(ATTENTION_FLASH_MS)
+
+  /** The word this player just had refused, still in the slots and wearing the
+   *  answer. Its tiles are off the board until the beat ends. */
+  const [refusedWord, setRefusedWord] = useState<number[] | null>(null)
+  const refusedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (refusedTimer.current) clearTimeout(refusedTimer.current)
+  }, [])
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -259,15 +301,25 @@ export function PlayArea({
         // wrote the sentence, and named the word in it, because by the time it
         // is read `clearWord` has taken the word off the screen — so the
         // sentence is half of what this case promises, and the branch says so.
-        clearWord()
+        // The answer shows in the SLOTS, where the eye already is, and the five
+        // tiles stay off the board while it does — coming back only once the
+        // beat ends, wearing the attention flash so the eye follows them home.
+        setRefusedWord(tileIds)
         localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
+        if (refusedTimer.current) clearTimeout(refusedTimer.current)
+        refusedTimer.current = setTimeout(() => {
+          clearWord()
+          flashReturned(tileIds)
+          setRefusedWord(null)
+          refusedTimer.current = null
+        }, WORD_ANSWER_MS)
         return
       } else {
         reportUnhandled('submit_word', res)
         return
       }
     },
-    [gameId, clearWord, commitWord, showFlash, localFeedbackSlot],
+    [gameId, clearWord, commitWord, showFlash, localFeedbackSlot, flashReturned],
   )
 
   // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -481,9 +533,33 @@ export function PlayArea({
   //
   // `removedTileIds` is per-viewer (coop shares every submission, compete shows
   // you your own), so "cleared" here means the board THIS viewer was working on.
-  const offBoard = useMemo(
-    () => (game ? offBoardIds(game.tiles, removedTileIds, currentWord, isTerminal) : new Set<number>()),
-    [game, isTerminal, removedTileIds, currentWord],
+  // A teammate's accepted word is HELD on the board for the length of its mark:
+  // the tiles the server has already taken stay drawn, and inert, until the
+  // answer has been read. Nothing else delays a removal.
+  const heldTileIds = useMemo(
+    () => (peerMark?.tone === 'won' ? new Set(peerMark.ids) : new Set<number>()),
+    [peerMark],
+  )
+  const offBoard = useMemo(() => {
+    if (!game) return new Set<number>()
+    const off = offBoardIds(game.tiles, removedTileIds, currentWord, isTerminal)
+    for (const id of heldTileIds) off.delete(id)
+    return off
+  }, [game, isTerminal, removedTileIds, currentWord, heldTileIds])
+
+  /** Tiles taking the attention flash: a teammate's word before its answer
+   *  shows, and my own refused tiles as they land back. */
+  const attentionTiles = useMemo(() => {
+    const ids = new Set<number>(returnedTiles)
+    if (peerMark && !peerMark.answered) for (const id of peerMark.ids) ids.add(id)
+    return ids
+  }, [returnedTiles, peerMark])
+
+  /** A teammate's answer, once the attention flash has handed the tiles back. */
+  const boardAnswer = useMemo(
+    () =>
+      peerMark?.answered ? { ids: new Set(peerMark.ids), tone: peerMark.tone } : null,
+    [peerMark],
   )
 
   // Feeds the print model only; `game?.mode` is null until loaded.
@@ -560,13 +636,12 @@ export function PlayArea({
       const member = players.find((p) => p.user_id === s.user_id)
       if (s.kind === 'hint') return FeedbackMessage.peer(member, 'warning', 'revealed a hint')
       if (s.kind === 'reveal') return FeedbackMessage.peer(member, 'warning', 'took a spoiler')
-      // kind === 'word': ALSO flash the letters green/red in the WordEntry ring
-      // (an ambient cue, not the message). Safe to fire here — the hook calls
-      // messageFor exactly once per NEW peer submission, mirroring the one
-      // message.
+      // kind === 'word': ALSO mark their tiles on the board (an ambient cue, not
+      // the message). Safe to fire here — the hook calls messageFor exactly once
+      // per NEW peer submission, mirroring the one message.
       const word = (s.word ?? '').toUpperCase()
       const valid = s.valid === true
-      onPeerWord([...word], valid)
+      markPeerWord(s.tile_ids ?? [], valid)
       // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
       // phone and ellipsises silently, and the outcome already says it failed.
       return valid
@@ -674,6 +749,12 @@ export function PlayArea({
         localFeedbackSlot={localFeedbackSlot}
         flash={flash}
         clearFlash={clearFlash}
+        // The marks a live board wears. All three are empty while viewing a past
+        // turn: that board is a record, and nothing is happening on it.
+        attentionTiles={snap ? NO_TILES : attentionTiles}
+        boardAnswer={snap ? null : boardAnswer}
+        heldTiles={snap ? NO_TILES : heldTileIds}
+        refusedWord={refusedWord !== null}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop.

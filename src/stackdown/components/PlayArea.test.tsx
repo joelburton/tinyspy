@@ -28,8 +28,9 @@ import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { StackdownGame, PlayerRow, SubmissionRow } from '../hooks/useGame'
 import type { Tile } from '../lib/board'
+import { ATTENTION_FADE_MS } from '@/common/move-flash/feedbackTiming'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import { PlayArea, WORD_ANSWER_MS } from './PlayArea'
 
 // The mocked useGame's full return shape — a mutable holder set per test before
 // render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
@@ -642,5 +643,104 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(await screen.findByText('Restart this game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Keep playing' }))
     expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * A teammate's accepted word, end to end on the board: their tiles take the
+ * attention flash, then the answer's color, and only then do they go.
+ *
+ * Fake timers, because the whole sequence is three beats on two clocks.
+ */
+describe('stackdown PlayArea — a teammate’s word on the board', () => {
+  /** Five tiles in a row on the upper layer, with one buried under the first of
+   *  them: clearing the five is what makes the sixth reachable. */
+  const stacked: Tile[] = [
+    { id: 1, x: 0, y: 0, z: 1, letter: 'C' },
+    { id: 2, x: 2, y: 0, z: 1, letter: 'L' },
+    { id: 3, x: 4, y: 0, z: 1, letter: 'E' },
+    { id: 4, x: 6, y: 0, z: 1, letter: 'A' },
+    { id: 5, x: 8, y: 0, z: 1, letter: 'R' },
+    { id: 6, x: 0, y: 0, z: 0, letter: 'Z' },
+  ]
+  const peerWord: SubmissionRow = {
+    user_id: 'u2',
+    seq: 1,
+    kind: 'word',
+    word: 'clear',
+    tile_ids: [1, 2, 3, 4, 5],
+    valid: true,
+    submitted_at: '2026-01-01T00:00:01Z',
+  }
+  const tileFor = (letter: string) => screen.getByText(letter).parentElement as HTMLElement
+
+  it('marks their tiles, holds them while the answer shows, then lets them go', () => {
+    vi.useFakeTimers()
+    try {
+      h.result = loaded(loadedGame({ mode: 'coop', tiles: stacked }), twoRows)
+      const ctx = makeCtx({ players: twoMembers })
+      const { rerender } = render(<PlayArea {...ctx} />)
+      // Z is buried under C, so it is not even drawn as reachable yet.
+      expect(tileFor('C').className).not.toMatch(/attentionFlash/)
+
+      // moth's word lands: the row arrives and its tiles are gone server-side.
+      h.result = {
+        ...loaded(loadedGame({ mode: 'coop', tiles: stacked }), twoRows),
+        submissions: [peerWord],
+        removedTileIds: new Set([1, 2, 3, 4, 5]),
+      }
+      act(() => rerender(<PlayArea {...ctx} />))
+
+      // Beat one: the tiles are still on the board, wearing the attention flash.
+      expect(tileFor('C').className).toMatch(/attentionFlash/)
+
+      // Beat three: the hold ends and the five leave.
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS + WORD_ANSWER_MS + 10))
+      expect(screen.queryByText('C')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('stackdown PlayArea — a teammate’s refused word', () => {
+  const row: Tile[] = [
+    { id: 1, x: 0, y: 0, z: 1, letter: 'C' },
+    { id: 2, x: 2, y: 0, z: 1, letter: 'L' },
+    { id: 3, x: 4, y: 0, z: 1, letter: 'E' },
+    { id: 4, x: 6, y: 0, z: 1, letter: 'A' },
+    { id: 5, x: 8, y: 0, z: 1, letter: 'R' },
+  ]
+
+  it('marks their tiles on the board: attention first, then the answer', () => {
+    vi.useFakeTimers()
+    try {
+      h.result = loaded(loadedGame({ mode: 'coop', tiles: row }), twoRows)
+      const ctx = makeCtx({ players: twoMembers })
+      const { rerender } = render(<PlayArea {...ctx} />)
+
+      // moth tried a word and was refused: the row lands, nothing was cleared.
+      h.result = {
+        ...loaded(loadedGame({ mode: 'coop', tiles: row }), twoRows),
+        submissions: [{
+          user_id: 'u2', seq: 1, kind: 'word', word: 'clear',
+          tile_ids: [1, 2, 3, 4, 5], valid: false,
+          submitted_at: '2026-01-01T00:00:01Z',
+        }],
+      }
+      act(() => rerender(<PlayArea {...ctx} />))
+      expect((screen.getByText('C').parentElement as HTMLElement).className).toMatch(
+        /attentionFlash/,
+      )
+
+      // Once the flash has faded, the answer: the tiles keep their place (nothing
+      // was cleared) and wear the refusal — which shakes.
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS + 10))
+      const tile = screen.getByText('C').parentElement as HTMLElement
+      expect(tile.className).toMatch(/verdictShake/)
+      expect(tile.getAttribute('style')).toMatch(/outcomes-lost-fill-color/)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

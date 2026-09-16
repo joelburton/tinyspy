@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
 import history from '@/common/turn-log/historyViewer.module.css'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 
 // Tile size is decoupled from grid spacing for readability (ported from
@@ -61,6 +62,9 @@ export function Board({
   green = NO_TILES,
   viewing = false,
   onTileClick,
+  attention = NO_TILES,
+  answer = null,
+  held = NO_TILES,
 }: {
   tiles: Tile[]
   offBoard: Set<number>
@@ -74,6 +78,14 @@ export function Board({
    *  board (the same marker scrabble uses). Off during live play. */
   viewing?: boolean
   onTileClick: (tileId: number) => void
+  /** Tiles taking the attention flash — "something happened here". */
+  attention?: ReadonlySet<number>
+  /** A teammate's answer on their tiles, once the attention flash has faded:
+   *  the outcome's own fill, and a refusal shakes. */
+  answer?: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
+  /** Tiles the server has taken that are still being shown while their answer
+   *  is read. They are drawn like any other tile and take no clicks. */
+  held?: ReadonlySet<number>
 }) {
   const present = useMemo(
     () => tiles.filter((t) => !offBoard.has(t.id)).sort((a, b) => a.z - b.z),
@@ -97,6 +109,8 @@ export function Board({
       {present.map((t) => {
         const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)
+        const isHeld = held.has(t.id)
+        const answered = answer?.ids.has(t.id) ?? false
         return (
           <button
             type="button"
@@ -105,8 +119,12 @@ export function Board({
               styles.tile,
               highlight.has(t.id) && styles.flash,
               green.has(t.id) && styles.viewed,
+              // The answer landing here: the attention flash first, then the
+              // outcome's color, and a refusal shakes once the color shows.
+              attention.has(t.id) && shared.attentionFlash,
+              answered && answer?.tone === 'lost' && shared.verdictShake,
             )}
-            disabled={!isExp || !active}
+            disabled={!isExp || !active || isHeld}
             onClick={() => onTileClick(t.id)}
             style={{
               left: pct(PAD + t.x * STEP),
@@ -114,13 +132,23 @@ export function Board({
               width: pct(TILE),
               height: pct(TILE),
               zIndex: t.z,
-              background: depthColor(depths.get(t.id) ?? 0),
+              // A tile wearing an answer takes that outcome's fill and its white
+              // ink, exactly as a word's slots do below the board — the same
+              // event, the same two colors, wherever you are sitting.
+              background: answered
+                ? `var(--outcomes-${answer?.tone === 'won' ? 'won' : 'lost'}-fill-color)`
+                : depthColor(depths.get(t.id) ?? 0),
+              ...(answered ? { color: 'var(--ink-onDark-color)' } : {}),
               cursor: isExp && active ? 'pointer' : 'default',
               justifyContent: align(corner.cx),
               alignItems: align(corner.cy),
             }}
           >
-            {t.letter}
+            {/* The letter is LIFTED above the attention flash: that mark is an
+                absolutely-positioned overlay, and one of those paints over
+                in-flow text — so without this the flash hides the letter it is
+                pointing at (common/game-page/playArea.module.css). */}
+            <span className={styles.letter}>{t.letter}</span>
           </button>
         )
       })}

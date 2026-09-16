@@ -52,6 +52,10 @@ export function BoardCol({
   localFeedbackSlot,
   flash,
   clearFlash,
+  attentionTiles,
+  boardAnswer,
+  heldTiles,
+  refusedWord,
 }: {
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   /** The full tile set (fixed geometry). */
@@ -96,6 +100,20 @@ export function BoardCol({
   flash: WordFlash | null
   /** Drop any lingering word flash when a new word starts. */
   clearFlash: () => void
+
+  // ── The live board's marks (PlayArea sequences them) ──
+  /** Tiles taking the attention flash — a teammate's word before its answer
+   *  shows, and my own refused tiles as they land back. */
+  attentionTiles: ReadonlySet<number>
+  /** A teammate's answer, once the attention flash has handed their tiles back:
+   *  those tiles wear the outcome's own color, and a refusal shakes. */
+  boardAnswer: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
+  /** Tiles the server has taken but the board is still showing, so the answer
+   *  can be read before they go. Drawn, and inert. */
+  heldTiles: ReadonlySet<number>
+  /** My own word was just refused: the slots are wearing the answer, so they are
+   *  not a place to take tiles back from yet. */
+  refusedWord: boolean
 }) {
   const viewing = viewingDescription != null
 
@@ -214,6 +232,9 @@ export function BoardCol({
         green={greenTiles}
         viewing={viewing}
         onTileClick={onTileClick}
+        attention={attentionTiles}
+        answer={boardAnswer}
+        held={heldTiles}
       />
 
       <div className={styles.belowBoard}>
@@ -253,9 +274,10 @@ export function BoardCol({
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}
-            active={!readOnly}
+            active={!readOnly && !refusedWord}
             onRetract={retractTo}
             flash={flash}
+            verdict={refusedWord ? 'lost' : null}
           />
         </MoveRow>
         {/* The LOCAL feedback area — reserves its own height (shared
