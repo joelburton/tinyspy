@@ -502,6 +502,12 @@ word `states.md` bans for a state, and "paused" is the transient stop this
 folder implements, not a shelf. Options: (1) the sentence ends at "lifecycle",
 or says "the current / suspended / completed flag"; (2) leave. Recommend (1).
 
+**WORKED 2026-09-16, as option (1), with one deviation said at the time**: the
+option as offered pointed at `common.md` for the flag, and `common.md` only
+derives "suspended" in passing — the three-way flag is written in `states.md` →
+Suspended vs terminal. So the sentence points at `common.md` for invariants and
+lifecycle, and at `states.md` for the flag.
+
 ### F-pause-suspend-18 · `connections-eliminated-pointer` · `docs/games/connections.md` files a pause defect in a memory file
 
 `docs/games/connections.md` → Pause, the compete caveat: *"an eliminated player

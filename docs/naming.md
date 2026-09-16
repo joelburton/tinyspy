@@ -106,7 +106,7 @@ Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<
 
 Solo clubs (handle `=<username>`) are single-member auto-created clubs that anchor solo play and per-user stats. They're structurally separate from regular (multi-member) clubs,
 
-See [`common.md`](common.md) for the full club model — invariants, lifecycle, three-state (active/paused/completed) semantics.
+See [`common.md`](common.md) for the full club model — invariants and lifecycle. The current / suspended / completed flag a club's game list draws is [`states.md`](states.md#suspended-vs-terminal--not-a-special-case)'s.
 
 ### member
 
