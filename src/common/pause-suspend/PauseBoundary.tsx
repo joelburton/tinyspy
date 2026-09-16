@@ -13,15 +13,16 @@ type Props = {
   // split it into present and away. See `PauseOverlay`, which is handed both.
   expected: Member[]
   presentUserIds: Set<string>
-  // Who pressed Pause, and the handler that releases it. Both pass straight
-  // through to `PauseOverlay`; its Props say what they draw.
-  manuallyPausedBy?: Member | null
-  onResume?: () => void
+  // Who pressed Pause — null when the pause is presence-only — and the handler
+  // that releases it. Both pass straight through to `PauseOverlay`; its Props
+  // say what they draw.
+  manuallyPausedBy: Member | null
+  onResume: () => void
   // The two escapes from a pause that will not clear, bound by `GamePage` —
   // which is above this boundary, so the bindings survive the unmount below.
   // `act-end-game` hides itself unless paused, so passing it always is right.
-  actBackToClub?: BoundAction
-  actEndGame?: BoundAction
+  actBackToClub: BoundAction
+  actEndGame: BoundAction
   // The play surface. Rendered only when `paused === false`.
   children: ReactNode
 }

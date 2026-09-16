@@ -18,10 +18,10 @@ type Props = {
   presentUserIds: Set<string>
   // Set when a player pressed Pause, which is what draws the "X paused the
   // game" line. null when the pause is presence-only.
-  manuallyPausedBy?: Member | null
+  manuallyPausedBy: Member | null
   // Releases a manual pause, drawn as the Resume button beside it. Any
   // connected player may press it — there is no privileged "original pauser".
-  onResume?: () => void
+  onResume: () => void
   // Leave for the club, shelving the game — the reliable escape when a presence
   // pause will not clear (the automatic recovery is `useRealtimeReconnect`, and
   // its docstring is where that deadlock is written down). `GamePage`'s
@@ -29,12 +29,12 @@ type Props = {
   // from here is the act it is anywhere else: a solo game shelves at once, a
   // game with peers asks first. It goes through PostgREST, so it works even if
   // Realtime is wedged.
-  actBackToClub?: BoundAction
+  actBackToClub: BoundAction
   // End the game now — the other escape from a stuck pause. Bound by
   // `GamePage`, above the boundary that unmounts the play area, so this binding
   // survives the pause that the game's own does not. It hides itself unless
   // paused, so this places it without asking.
-  actEndGame?: BoundAction
+  actEndGame: BoundAction
 }
 
 /**
@@ -109,21 +109,21 @@ export function PauseOverlay({
           The game waits until everyone's joined and connected, and any player
           can pause it. Your in-progress selections reset on every pause.
         </p>
-        {/* Actions: Resume (manual pause only), plus the always-available
-            escapes — the reliable out if presence never comes back. */}
-        {(onResume && manuallyPausedBy) || actBackToClub || actEndGame ? (
-          <div className={styles.actions}>
-            {onResume && manuallyPausedBy && (
-              <StandardButton show="label" label="Resume" weight="primary" onClick={onResume} />
-            )}
-            {/* Both escapes are the shell's own actions, placed the same way.
-                The button says "Back to club" and the confirm behind it is what
-                spells out that leaving shelves the game for everyone — which it
-                does better than a longer label could. */}
-            {actBackToClub && <ActionButton action={actBackToClub} show="both" />}
-            {actEndGame && <ActionButton action={actEndGame} show="both" />}
-          </div>
-        ) : null}
+        {/* Resume belongs to a manual pause only — a presence pause clears
+            when the player comes back, not because anyone pressed anything.
+            The two escapes are always here: they are the out if presence never
+            comes back. */}
+        <div className={styles.actions}>
+          {manuallyPausedBy && (
+            <StandardButton show="label" label="Resume" weight="primary" onClick={onResume} />
+          )}
+          {/* Both escapes are the shell's own actions, placed the same way.
+              The button says "Back to club" and the confirm behind it is what
+              spells out that leaving shelves the game for everyone — which it
+              does better than a longer label could. */}
+          <ActionButton action={actBackToClub} show="both" />
+          <ActionButton action={actEndGame} show="both" />
+        </div>
       </div>
     </div>
   )

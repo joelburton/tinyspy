@@ -6,9 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
-findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so is F-6.
-The five that remain each carry a decision and are presented one at a time:
-F-7, F-8, F-9, F-11, F-13.
+findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6
+and F-7. The four that remain each carry a decision and are presented one at a
+time: F-8, F-9, F-11, F-13.
 
 ## The roster
 
@@ -244,6 +244,18 @@ player ever reaches. Options: (1) required, and the tests pass what
 `vi.fn()` for `onResume`); (2) leave. Recommend (1): a default is a decision,
 and this one is "the overlay can be drawn without its escapes", which is not
 true anywhere.
+
+**WORKED 2026-09-16, as option (1).** Joel: *"it seems like a poor idea to make
+things optional just for a test."* All four are required on both components, and
+`manuallyPausedBy` is required-but-nullable — `Member | null` has the two states
+the fact has, where the `?` added a third that meant the same as `null`. The
+overlay lost both branches with them: the `.actions` ternary is a plain `<div>`,
+since the two escapes are always there now, and the Resume gate is
+`manuallyPausedBy &&` rather than `onResume && manuallyPausedBy`. Nine renders
+in `PauseBoundary.test.tsx` gained the four through an `escapes()` factory —
+a factory and not a shared const because the vitest config sets no `clearMocks`,
+so a module-scope `vi.fn()` would carry one spec's clicks into another's count.
+Every spec that asserts on one of the four still passes its own.
 
 ### F-pause-suspend-8 · `expected-prop-name` · `expected` says "expected what?"
 
