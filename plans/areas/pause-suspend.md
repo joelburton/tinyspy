@@ -4,11 +4,13 @@ The folders it reads: `pause-suspend`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
-the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
-findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6,
-F-7, F-8, F-9, F-11 and F-13 — **all thirteen**. What is left is the closing
-re-read and the `doc.md` harvest, then the blessing, which is Joel's.
+**Status: OPEN, the closing re-read done 2026-09-16.** Roster agreed (Joel:
+*"audit the area"*) and stamped `cs-met-pause-suspend`; every file read. The
+audit's thirteen findings are all worked. The re-read — every roster file end
+to end, then every file the area touched outside the folder, with the
+effect-name grep and a grep of each worked finding's fault class over the
+siblings — found **seven more, F-14 to F-20, none worked**. The `doc.md`
+harvest is done. Then the blessing, which is Joel's.
 
 ## The roster
 
@@ -404,6 +406,113 @@ The reset it described is a rule for whoever writes a game's state, and its home
 is `doc.md` → Details, not the banner. Nothing asserted any of that text, so no
 test moved.
 
+### F-pause-suspend-14 · `missing-has-no-reader` · `computePause` returns `missing`, and nothing reads it
+
+`computePause` answers `{ paused, missing }`. The one caller takes the flag
+alone — `useCommonGame`: *"`computePause` also answers WHO is absent; the
+overlay derives that itself from `activePlayers` + `presentUserIds`, so only the
+flag is taken"* — and the overlay draws the WHOLE roster with a present/away
+disc per row, so it has no use for a missing-only list. A grep of `src/` for
+`.missing` finds no reader outside `pause.ts` and its test. Yet the docstring
+says `missing` comes back *"in roster order — the order the overlay reads names
+in"*, the test header repeats it, and the order spec's comment quotes a banner
+that does not exist: *"Bea and Cade have gone offline" should render in roster
+order*. Both were written this area (F-5 rewrote the docstring around a reader
+it never checked for), so this is the re-read's own class: prose the day's
+fixes wrote.
+
+Options: (1) the function answers the question its caller asks —
+`computePause(presentUserIds, players): boolean`, one line
+(`players.length > 0 && players.some((m) => !presentUserIds.has(m.user_id))`),
+the docstring loses the `missing` paragraph, `useCommonGame` reads
+`const presencePaused = computePause(presentUserIds, activePlayers)`, and the
+test keeps its five cases on the flag and drops the order spec and the
+`missing` assertions; (2) keep the return shape and make the prose honest —
+"`missing` is returned for a caller that wants names; today only the flag is
+taken" — and fix the order spec's quoted banner; (3) leave. Recommend (1): a
+return value with no reader is a claim, and this one has been recruiting false
+sentences since it was written. If Joel would rather keep a list-shaped answer
+for a future reader, (2) is the honest version of it.
+
+### F-pause-suspend-15 · `suspend-question-still-a-panel` · Three sentences still describe the question as something the page renders
+
+F-11 retargeted six prose homes and missed three, two of them in files it
+touched:
+
+- `game-page/GamePage.tsx`, the component docstring: *"the panels that
+  outlive a pause — chat, the scratchpad, help, the suspend confirm"*. The
+  page renders no suspend confirm now; it awaits a question. Blessed file;
+  closed is not locked.
+- `docs/ui.md` → Confirm modals, the paragraph above the standing questions:
+  *"the suspend question below is the one still rendered by hand"* — directly
+  contradicted by the Suspend bullet six lines down, which F-11 wrote.
+- `docs/ui.md` → Consistency across games, the "Back-to-club +
+  suspend-confirm" bullet: *"Non-terminal games show the suspend-confirm modal
+  first; terminal is a single-click back"* — predates the area, but a solo
+  non-terminal game shows nothing, and the three shapes are written twice
+  elsewhere in the same doc.
+
+Options: (1) fix all three — the docstring lists chat, the scratchpad and
+help, the ui.md paragraph drops its last clause, the bullet says "asks first
+when there are peers" and points at the Suspend bullet; (2) leave. Recommend
+(1); it is the F-11 sweep finishing.
+
+### F-pause-suspend-16 · `timer-accumulator` · `docs/common.md` names a pause-accumulator the clock does not have
+
+`docs/common.md` → "Should this survive a pause?": *"State that must survive a
+pause goes either in the DB or in `useCommonGame` above the boundary (members,
+presence, the timer's pause-accumulator)."* The clock is a tick count in
+`common.timers` and pauses need no bookkeeping — the same doc says so 440 lines
+earlier, and `timer/doc.md` spends three paragraphs on why there is no
+accumulator. F-3 removed the sister claim ("the timer keeps a single anchor")
+from `PauseBoundary`'s docstring and did not grep the class. Options: (1) the
+parenthetical reads "(members, presence, the clock)"; (2) leave. Recommend (1).
+
+### F-pause-suspend-17 · `naming-three-state` · `docs/naming.md` describes a club three-state that uses both words wrongly
+
+`docs/naming.md` → Clubs: *"See `common.md` for the full club model —
+invariants, lifecycle, three-state (active/paused/completed) semantics."*
+`common.md` has no such three-state. The club list's per-row flag is current /
+suspended / completed (`states.md` → Suspended vs terminal), "active" is the
+word `states.md` bans for a state, and "paused" is the transient stop this
+folder implements, not a shelf. Options: (1) the sentence ends at "lifecycle",
+or says "the current / suspended / completed flag"; (2) leave. Recommend (1).
+
+### F-pause-suspend-18 · `connections-eliminated-pointer` · `docs/games/connections.md` files a pause defect in a memory file
+
+`docs/games/connections.md` → Pause, the compete caveat: *"an eliminated player
+is still in `members`, so leaving their tab drops their Presence and pauses the
+game for survivors. Annoying but tolerable for v1 — see `deferred.md` / the
+next-session pickup memory for the planned fix."* The claim holds — this area's
+roster rule drops CONCEDERS only, and `connections._maybe_finish_compete`
+eliminates on `mistake_count >= 4` without touching `conceded` — but the
+pointer is dead twice: `docs/deferred.md` has no such item, and a memory file is
+not a doc. Nothing durable holds the planned fix. Who counts as expected is
+this folder's rule and the exception is connections' to decide, so: (1) file it
+in `src/connections/todo.md` (Soon — an eliminated player should stop counting
+the way a conceder does, or the caveat is accepted and written as a rule) and
+the doc sentence points there; (2) leave. Recommend (1).
+
+### F-pause-suspend-19 · `copy-in-touched-docs` · The banned word in two docs the area touched
+
+F-3 turned "copy" into "text" across the roster and `states.md` and did not
+grep the two other docs the area edited: `docs/common.md` → the manifest
+section (*"labelFor / Help copy … gets distinct copy per-manifest"*) and
+`docs/code-conventions.md` → the `error.message` guard (*"defeats the copy
+table"*). Options: (1) "text" in both; (2) leave. Recommend (1).
+
+### F-pause-suspend-20 · `overlay-prose-nits` · Two nits in the overlay's own prose
+
+- `PauseOverlay.module.css`'s header: *"a softly-tinted surround to make the
+  'paused' framing visually distinct"* — `.overlay` paints
+  `--default-bg-color`, which is `#ffffff`, on a `#fafafa` page. The framing is
+  the border; nothing is tinted.
+- `PauseOverlay.tsx`'s docstring has one 140-character line where F-3's edit
+  joined two sentences ("…still waiting on. Names stay black…").
+
+Options: (1) the header says "a bordered white banner" and the line wraps;
+(2) leave. Recommend (1).
+
 ## What checked out
 
 - The unmount contract is real and tested: the mount-counter spec proves the
@@ -421,17 +530,40 @@ test moved.
 - No effect in the folder's source is a bare arrow (the only one is F-12, in
   a test).
 
+At the re-read:
+
+- **The effect-name grep** over every file the area touched finds two bare
+  arrows, both one-liners: `GamePage.tsx`'s cleanup-only
+  `useEffect(() => () => setGameMenuSections([]), [])` and a mount counter in
+  `GamePage.test.tsx`. Both are the convention's "when not to bother" case —
+  no header comment of their own, nothing to scan past — and are left.
+- **Every date the area wrote is a commit date**: fourteen `2026-09-16`s in
+  this file against eight commits of that day, and the one in
+  `code-conventions.md` (Joel's "if they're non-trivial" ruling) is
+  `670da79b`, 2026-09-16.
+- **The menu claim in two docs holds**: `game-page/doc.md` and `ui.md` say a
+  game's menu sections vanish on pause because the PlayArea's own effect
+  clears them on unmount — wordiply's `publishGameMenu` returns
+  `() => menu.setGameSections([])`, and the shell's own clear is only at page
+  unmount.
+- **"Keep playing"** is the cancel label of both the suspend question and
+  `NEW_GAME_CONFIRM`, and `e2e/new-game-shortcut.e2e.ts` clicks it for the
+  latter. Nothing is owed: F-11 moved the words unchanged, and the two
+  questions are never on screen together.
+- **`docs/mobile.md`'s header table is right** — pause + timer ride the info
+  page. The overlay's own absence from that doc is now `todo.md` → Soon.
+- The eight sibling greps for the worked findings' fault classes — the
+  deleted wrapper's name, the page flag, "rendered by hand", the dead banner
+  texts ("Bea to reconnect", "gone offline", "everyone's joined", "selections
+  reset"), "Pause on disconnect", "dim", "Suspended games", "copy" — are what
+  found F-14, F-15, F-19 and F-20; the rest came from reading.
+
 ## Notes
 
-- **`common.games.paused` is a column nothing on the FE reads or writes** —
-  `docs/common.md` says so ("exists for future presence-pause durability").
-  SQL is not this area's roster; recorded for whichever area reads
-  `common.sql`'s schema, so the question is asked with the file open.
-- **"Keep playing"** is the cancel label of both the suspend question and
-  `NEW_GAME_CONFIRM`; `e2e/new-game-shortcut.e2e.ts` clicks it for the latter.
-  Nothing wrong, worth knowing when F-11 moves the words.
-- `docs/mobile.md`'s readiness table lists pause + timer as mobile-ready in
-  the header; the overlay itself is not in the table.
+The three items that stood here at the audit are placed: `common.games.paused`
+is in `docs/deferred.md` → Common / architecture (no folder owns the common
+SQL); "Keep playing" checked out, above; the overlay's missing mobile pass is
+the folder's `todo.md` → Soon.
 
 ## Predicted test breaks
 
@@ -446,8 +578,10 @@ proof.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group — with the
-      effect-name grep over every file touched
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
+- [x] the whole area re-read in one sitting after the last group — with the
+      effect-name grep over every file touched (2026-09-16; F-14 to F-20 are
+      what it found, and they are open)
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
+      — the three notes are placed; waits on F-14 to F-20
 - [ ] every file on the roster blessed, or its stamp says why not

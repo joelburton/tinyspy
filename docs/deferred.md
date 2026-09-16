@@ -86,6 +86,14 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   confirmed it is not an envelope problem (the read reports correctly, and `dbFetch`
   raises the modal) but a MISSING UI STATE: the honest answer is "we don't know", and
   there is no screen for it. Filed 2026-08-29 while converting the call site.
+- **`common.games.paused` is a column nothing reads or writes.** [common.md](common.md)
+  records it as the second view-state column, kept "for future presence-pause
+  durability"; the pause itself is computed on the client from presence and the
+  manual-pause broadcast, and outside the migration that declares it the column
+  appears in no function, policy, test or FE read. Either the durability it
+  reserves is wanted — a pause that survives every tab closing — or the column
+  goes in a forward migration. No folder owns the common SQL, which is why it is
+  here. Recorded 2026-09-16.
 
 - ~~**Retire the `-bg` half of the outcome vocabulary with `color-mix`.**~~ Overtaken by the 2026-08-18 palette sweep (docs/ui.md → The color system), which renamed the tier `-wash` and deleted the three cells nobody read. What survives of the idea is one live question, recorded in the token: the feedback pill computes its tint as `fill 18% over the surface` while the `-wash` tier exists at a different value for the same job, so one of the two is redundant. Deciding which moves pixels.
 - **Member-color borders beyond dots — the `-edge` question.** The paired `--member-NAME-edge-color` tokens + the shared `<Dot>` shipped 2026-07-07 (docs/ui.md → Player identity = a colored disc). What's still open: raw member colors also sit directly on the page background in **tile-selection borders** (connections peers) and **crosswords peer-cursor frames** — a light-yellow player has the same contrast problem there that the dot ring solved. When those bite, decide whether the edge token is the answer for them too, or whether "legible against the body background" is a different shade from "legible against its own fill". The third case this used to name, **chat name labels**, is settled: no surface colors a name any more, so there is nothing there to make legible.

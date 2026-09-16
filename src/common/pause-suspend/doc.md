@@ -58,6 +58,12 @@ game sits paused, waiting, until everyone has joined, which is the point
 flag is also forced false once the game has ended, so a finished board shows its
 result instead of a banner.
 
+**The decision is made once, there.** `PauseBoundary` acts on the flag it is
+given and `PauseOverlay` draws whatever it is handed; neither asks again whether
+the game is paused — the overlay reads the roster only to split present from
+away. Resume releases the manual pause and nothing else: a presence pause
+outlives it and clears when the missing player is back.
+
 **New game state answers the question "should this survive a pause?"** Because
 the boundary unmounts, anything inside a `PlayArea` is pause-transient by
 construction, and state that is *meant* to vanish needs no wiring at all. State
