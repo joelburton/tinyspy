@@ -42,14 +42,18 @@ export function GuessBoard({
   /** My own just-accepted word, drawn as the next landed row until the server's
    *  own row takes its place. Without it the word vanishes for a round trip —
    *  the engine clears the box on submit. */
-  held?: { word: string; length: number } | null
+  held?: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer on whichever row its word is in, for a beat: a teammate's word
    *  is already a landed row, mine may still be the held one. */
   flash?: { word: string; outcome: Outcome; attention: boolean } | null
 }) {
-  // The answer marks the row its word is IN — a teammate's landed row, or my
-  // own held one.
-  const flashed = flash ? guesses.findIndex((g) => g.word === flash.word) : -1
+  // The answer marks the row its word is IN, and MY row wins: guessing a word
+  // again is answered where I just typed it, not on the row it landed in four
+  // turns ago. Only a teammate's word — which has no held row of mine — marks a
+  // landed one.
+  const onHeldRow = held !== null && flash !== null && flash.word === held.word
+  const flashed =
+    flash && !onHeldRow ? guesses.findIndex((g) => g.word === flash.word) : -1
   const activeIndex = showActive ? guesses.length + (held ? 1 : 0) : -1
   /** The marks a row wears while it is the answered one. */
   const answerMarks = (a: NonNullable<typeof flash>) =>

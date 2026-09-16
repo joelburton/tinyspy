@@ -45,7 +45,7 @@ export function BoardCol({
   guesses: { word: string; length: number }[]
   /** My own accepted word, drawn until the server's row lands — see
    *  `<GuessBoard>`. */
-  held: { word: string; length: number } | null
+  held: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer being shown on the row that word is in, for a beat. */
   flash: { word: string; outcome: Outcome; attention: boolean } | null
   word: string

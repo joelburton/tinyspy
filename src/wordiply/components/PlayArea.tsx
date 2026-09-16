@@ -192,7 +192,9 @@ export function PlayArea(ctx: GamePageCtx) {
    *  outlives its mark here, because it stays until the server's row lands
    *  behind it; a refused one goes when the mark does, since nothing is coming
    *  to replace it. */
-  const [held, setHeld] = useState<{ word: string; length: number } | null>(null)
+  const [held, setHeld] = useState<
+    { word: string; length: number; awaitingRow: boolean } | null
+  >(null)
   /** The answer being shown on whichever row the word is in. Always timed, for
    *  everyone: a mark that waits for your next move is a mark still claiming
    *  something about a board you have moved on from. */
@@ -209,7 +211,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // the color — I am looking at the row I typed into.
       // A teammate's word is already a row of its own; mine is not one yet —
       // accepted, it is about to be, and refused, it never will be.
-      if (!peer) setHeld({ word: w, length: w.length })
+      // `awaitingRow` is the difference between the two kinds of held row: an
+      // ACCEPTED word is standing in for a server row that is on its way, and
+      // steps aside when it lands. Anything else — refused, already used — has
+      // no row coming, so it stays put for the beat and is answered HERE, on
+      // the row it was just typed into.
+      if (!peer) setHeld({ word: w, length: w.length, awaitingRow: outcome === 'won' })
       setFlash({ word: w, outcome, attention: peer })
       const lead = peer ? ATTENTION_FADE_MS : 0
       answerTimers.current = [
@@ -233,9 +240,13 @@ export function PlayArea(ctx: GamePageCtx) {
   )
   useEffect(() => () => answerTimers.current.forEach(clearTimeout), [])
 
-  // …and my held row goes the moment the server's own row takes its place.
-  const landed = held !== null && boardRows.some((r) => r.word === held.word)
-  if (landed) setHeld(null)
+  // …and a held row that is WAITING for its server row goes the moment that row
+  // lands. A word already on the board is not waiting for anything — guessing it
+  // again is answered on the row you just typed it into, not on the one from
+  // four turns ago.
+  const takenOver =
+    held !== null && held.awaitingRow && boardRows.some((r) => r.word === held.word)
+  if (takenOver) setHeld(null)
 
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
