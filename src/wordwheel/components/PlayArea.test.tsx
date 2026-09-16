@@ -349,7 +349,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
   })
 
-  it('dims a wheel tile once its letter is in the word (tile-spend rule)', async () => {
+  it('marks a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     // `data-disabled` is the spent marker (it replaced aria-disabled — the tiles
@@ -366,6 +366,52 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     // Backspace re-enables the freed tile.
     await user.keyboard('{Backspace}') // removes 'e'
     expect(tile('E')).not.toHaveAttribute('data-disabled')
+  })
+
+  it('wears the selected border while spent, and gives it back', async () => {
+    // The mark is a border on the FACE, not a fill on the tile: a spent tile
+    // reads as "this one is in your word", the way a selected tile does on every
+    // other board.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const marked = () =>
+      [...document.querySelectorAll('[data-tile]')]
+        .filter((t) => (t.getAttribute('class') ?? '').includes('_used_'))
+        .map((t) => t.getAttribute('data-tile'))
+
+    expect(marked()).toEqual([])
+    await user.keyboard('be')
+    expect(new Set(marked())).toEqual(new Set(['B', 'E']))
+    await user.keyboard('{Backspace}')
+    expect(marked()).toEqual(['B'])
+  })
+
+  it('spends the tile you CLICKED, not its twin', async () => {
+    // Typing an 'e' spends the center, because nothing says which E was meant.
+    // Clicking the outer one does say, and the board has to answer the question
+    // that was actually asked.
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    render(<WithKeys {...makeCtx()} />)
+    const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
+    const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
+
+    await user.click(outerE())
+    expect(outerE()).toHaveAttribute('data-disabled', 'true')
+    expect(centerE()).not.toHaveAttribute('data-disabled')
+
+    // A second E, typed this time: the claim holds and the center takes the
+    // overflow.
+    await user.keyboard('e')
+    expect(outerE()).toHaveAttribute('data-disabled', 'true')
+    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+
+    // Backspace forgets the typed one first, then the click.
+    await user.keyboard('{Backspace}')
+    expect(centerE()).not.toHaveAttribute('data-disabled')
+    expect(outerE()).toHaveAttribute('data-disabled', 'true')
+    await user.keyboard('{Backspace}')
+    expect(outerE()).not.toHaveAttribute('data-disabled')
   })
 
   it('spends duplicate tiles one per occurrence, the center first', async () => {

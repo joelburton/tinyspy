@@ -2,23 +2,32 @@
 
 /**
  * The 9-circle wheel geometry — the single source shared by the on-screen board
- * (`Wheel` / `Tile`, drawn as SVG) and the PDF export (`printWordwheelPdf`, drawn as
- * jsPDF circles). Keeping it here means the two renderings can never drift.
+ * (`Wheel` / `Tile`, laid out as round boxes) and the PDF export
+ * (`printWordwheelPdf`, drawn as jsPDF circles). Keeping it here means the two
+ * renderings can never drift.
  *
  * Word wheel's board is one central tile (used in every word) ringed by eight outer
  * tiles — circles, not spellingbee's hexagons. The center tile is drawn LARGER (a
  * separate radius) and, on screen, filled a saturated red; the eight outer tiles sit
  * on a ring evenly spaced, clockwise from the top.
  *
- * Coordinates live in the wheel's own square unit box (the SVG viewBox); a renderer
- * scales that box to its target size — the SVG to `--u` on screen, the PDF to a fixed
- * tile width.
+ * Coordinates live in the wheel's own square unit box; a renderer scales that box
+ * to its target size — `--u` on screen, a fixed tile width in the PDF.
  */
 
 /** The wheel's coordinate box (a square SVG viewBox). Sized so the outer ring +
  *  each outer tile's radius leave a few units of margin for strokes / focus rings. */
 export const BOX_W = 300
 export const BOX_H = 300
+
+/**
+ * The ring around a tile, in the same units. It is wide enough that the rings of
+ * two touching tiles MERGE, which is what makes the nine circles read as one
+ * flower rather than nine coins — so it belongs with the tangency arithmetic
+ * below rather than in the stylesheet. (The PDF draws its own hairline: on paper
+ * the flower is line art, and a 14-unit band would be a blot.)
+ */
+export const RING_W = 14
 
 /** How many outer tiles ring the center. Word wheel has exactly eight. */
 const OUTER_COUNT = 8

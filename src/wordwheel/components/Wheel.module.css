@@ -10,9 +10,15 @@
  * PlayArea.module.css) so the whole wheel SCALES with the board — one unit = one
  * `--u`, and the below-board input row reads the board width from the same source.
  *
- * Each tile is an SVG <circle> — a real fill + stroke, so the tiles get a proper
- * BORDER. The letter is an SVG <text>. Only wordwheel uses this wheel, so it stays
- * local; the vector shapes are also shared with the PDF export. */
+ * Each tile is a round BOX — absolutely placed on the square by its own center,
+ * `border-radius: 50%`, with a real border and the shared tile shadow. It was an
+ * SVG <circle> until 2026-09-15, which cost the shared depth tokens (an SVG shape
+ * takes no box-shadow) and, worse, a stacking order: the nine tiles TOUCH by
+ * construction, and SVG paints in document order with no z-index, so a hovered
+ * tile could only ever rise BEHIND the tiles drawn after it. letterboxed made the
+ * same move for the same first reason. Only wordwheel uses this wheel, so it
+ * stays local; the GEOMETRY is shared with the PDF export, which still draws real
+ * circles. */
 
 /* The board wrapper: no tray (no border/background) — the tiles carry their own
  * shape — just the structural element between .boardCol and the .grid, centering
@@ -29,130 +35,140 @@
   position: relative;
 }
 
-/* The grid: the wheel's bounding box, 300 × 300 coordinate units, now the <svg>
- * itself. `--u` (one unit) is defined on .boardCol so the below-board input row
- * reads the board width from the same source. `overflow: visible` lets the
- * outermost tiles' strokes / focus rings paint past the viewBox edge. */
+/* The wheel's square, 300 × 300 coordinate units. `--u` (one unit) is defined on
+ * .boardCol so the below-board input row reads the board width from the same
+ * source. The tiles are placed inside it by their own centers, so it is the
+ * positioning context; `overflow: visible` lets a tile's shadow paint past the
+ * square's edge. */
 /* @@ */ .grid {
-  display: block;
+  position: relative;
   width: calc(300 * var(--u));
   height: calc(300 * var(--u));
   overflow: visible;
 
-  /* Touch behavior for the whole wheel — on the <svg>, not on the `.tile`
-   * groups, because `touch-action` is IGNORED on an SVG child (a `<g>`
-   * generates no CSS box, so the browser drops it silently). Without this,
-   * spelling a word by tapping tiles quickly loses letters to iOS Safari's
-   * double-tap-to-zoom. This game inherited its shape from spellingbee but not
-   * the rule; spellingbee had it in the ignored place, so neither wheel-shaped
-   * game was ever actually covered. */
+  /* Touch behavior for the whole wheel, declared once here and inherited by the
+   * tiles. Without it, spelling a word by tapping tiles quickly loses letters to
+   * iOS Safari's double-tap-to-zoom. (It lived here rather than on the tiles
+   * because `touch-action` is IGNORED on an SVG child — a `<g>` generates no CSS
+   * box. The tiles are boxes now and could take it themselves; one declaration
+   * still covers all nine.) */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* One tile = a clickable group (button semantics live in Tile.tsx via
- * role/tabindex/keydown). Hover dims the whole tile; press scales it about its OWN
- * center — transform-box/-origin, since an SVG transform is otherwise about the
- * viewBox origin. */
+/* A tile is TWO circles, and only the inner one is the piece.
+ *
+ * The outer circle is the mustard SEAT. Nine of them, tangent by construction,
+ * so their edges merge into one continuous flower — that is the board's shape,
+ * and it is a tray rather than a border: it stays put, like boggle's dice box.
+ * `--d` (its diameter) and `left`/`top` come inline from the geometry; the
+ * negative margins pull the box back onto the center point those name, leaving
+ * `transform` free for the face inside it.
+ *
+ * The seat carries the click, so the mustard is part of the hit area exactly as
+ * it was when the whole thing was one SVG circle. */
 /* @@ */ .tile {
+  position: absolute;
+  width: var(--d);
+  height: var(--d);
+  margin-left: calc(var(--d) / -2);
+  margin-top: calc(var(--d) / -2);
+  border-radius: 50%;
+  background: var(--wordwheel-seat);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
   cursor: pointer;
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 80ms ease, filter 80ms ease;
-  /* Suppress the mobile browser's default tap-highlight — it paints a gray box
-   * over the tile's (square) BOUNDING BOX, which both looks wrong on a circle and
-   * hides our own circular flash below. */
-  -webkit-tap-highlight-color: transparent;
-}
-/* @@ */ .tile:hover {
-  filter: brightness(0.96);
-}
-/* @@ */ .tile:active {
-  transform: scale(0.9);
-}
-/* @@ */ .tile:focus {
-  outline: none;
 }
 
-/* A used tile (its letter is already in the word) — inert. Word wheel uses each
- * tile once, so once you've used a letter its tile can't be clicked again.
- * `pointer-events: none` makes it fully non-interactive (no hover, no press, no
- * click). The visual cue is a DARKENED BACKGROUND only (see `.tileShape` below) —
- * the gold border + the letter stay put, so the tile reads as "spent" rather than
- * grayed out. The tile re-enables the moment the letter leaves the word. */
-/* @@ */ .tile.disabled {
+/* The FACE — the piece. It rests in its seat with a shadow, rises on hover while
+ * the shadow falls away, and presses back down: the shared piece gesture every
+ * other board's tiles wear (common/game-page/playArea.module.css → `.tile`).
+ * Hover used to DIM the whole tile instead, which is the one thing hover means
+ * nowhere else in the app.
+ *
+ * `--wheel-ring` is the seat showing around it — the geometry's `RING_W`, which
+ * is sized so touching seats MERGE, since that merge is what makes nine circles
+ * read as one flower rather than nine coins.
+ *
+ * The border is drawn TRANSPARENT at rest so a spent tile changes only its color
+ * and nothing moves — the same trick every other board's selected tile uses. */
+/* @@ */ .face {
+  --wheel-ring: calc(14 * var(--u));
+  width: calc(var(--d) - 2 * var(--wheel-ring));
+  height: calc(var(--d) - 2 * var(--wheel-ring));
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--wordwheel-tile);
+  border: var(--tile-selected-edge-width) solid transparent;
+  box-shadow: var(--tile-shadow);
+  color: var(--wordwheel-tile-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(34 * var(--u));
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 80ms ease,
+    border-color 80ms ease;
+}
+
+/* The center tile is used in every word, so it is the hub: bigger (its diameter
+ * comes inline from the geometry) and the saturated red, in the SAME seat as the
+ * outer tiles so all nine read as one set and only the fill says "center". White
+ * ink, where black would fight the red. */
+/* @@ */ .center .face {
+  background: var(--wordwheel-accent);
+  color: var(--wordwheel-center-text);
+  font-size: calc(40 * var(--u));
+}
+
+/* The piece rises while its shadow falls away — the gap between them IS the
+ * elevation, which is why neither half works alone. `z-index` is on the SEAT and
+ * is the part a wheel needs that a grid doesn't: the seats overlap, so a face
+ * lifting with no stacking order would rise UNDER its neighbors. */
+/* @@ */ .tile:not(.used):hover {
+  z-index: 1;
+}
+/* @@ */ .tile:not(.used):hover .face {
+  transform: translateY(-2px);
+  box-shadow: var(--tile-hover-shadow);
+}
+
+/* Pressed: back down into the seat, slightly smaller, slightly darker. */
+/* @@ */ .tile:not(.used):active .face {
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
+}
+
+/* Reduced motion: the movement goes, the shadows stay. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.used):hover .face,
+/* @@ */   .tile:not(.used):active .face {
+    transform: none;
+  }
+}
+
+/* A SPENT tile — its letter is already in the word. The wheel is a multiset, so
+ * each tile is worth one use; a spent one is inert, and `pointer-events: none`
+ * takes it out of hover and press as well as click.
+ *
+ * The face wears the app's ordinary SELECTED border: black, with the fill and the
+ * letter exactly where they were. That reads as "this tile is in your word"
+ * rather than as the tile being taken away, and it is the mark boggle's tiles and
+ * spellingbee's hexes use for the same thing. (It was a DARKENED FILL, which is
+ * the in-flight dim's channel — and two darkened reds are harder to tell apart
+ * than an edge that changed color.) The tile comes back the moment the letter
+ * leaves the word. */
+/* @@ */ .tile.used {
   cursor: default;
   pointer-events: none;
 }
-/* Darken only the fill (not the stroke): outer tiles → a darker tan, the center
- * → a darker red. The `.center.disabled` rule outspecifies both `.center .tileShape`
- * (which sets the resting red) and the plain `.disabled` rule, so a used center
- * gets the darker red rather than the outer tan. */
-/* @@ */ .tile.disabled .tileShape {
-  fill: var(--wordwheel-tile-used);
-}
-/* @@ */ .tile.center.disabled .tileShape {
-  fill: var(--wordwheel-accent-used);
-}
-
-/* Click/tap feedback: a brief bright overlay on the tapped tile (in addition to
- * the `:active` press, which is too quick to notice on a fast tap). Driven from
- * Tile.tsx — the overlay is keyed by a bumping nonce so re-tapping the SAME tile
- * replays it. Base opacity 0 so it's invisible between taps; the one-shot
- * animation fades from bright to that 0 (no `forwards` needed, since it ends at
- * the base). */
-/* @@ */ .tileFlash {
-  fill: var(--ink-onDark-color);
-  opacity: 0;
-  pointer-events: none;
-  animation: tileFlash 260ms ease-out;
-}
-/* @@ */ @keyframes tileFlash {
-  from {
-    opacity: 0.7;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-/* @@ */   .tileFlash {
-    animation: none;
-  }
-}
-
-/* The tile shape — the real fill + border. Outer tiles: warm tile-2 with its OWN
- * matching tile-family border (--tile-2-edge-color), so the border tracks the fill if
- * the shade changes; the center is the saturated red on the SAME border as the
- * outer tiles, so all nine tiles read as one set and only the fill says "center".
- * (A darker-red edge was tried and left commented out mid-tuning; the shared
- * border won, so its token is gone.) */
-/* @@ */ .tileShape {
-  fill: var(--wordwheel-tile);
-  stroke: var(--tile-5-edge-color);
-  stroke-width: 14;
-  transition: fill 80ms ease;
-}
-/* @@ */ .center .tileShape {
-  fill: var(--wordwheel-accent);
-  stroke: var(--tile-5-edge-color);
-  stroke-width: 14;
-}
-
-
-/* @@ */ .tileText {
-  fill: var(--wordwheel-tile-text);
-  font-size: 34px; /* wheel coordinate units (scaled by --u) */
-  font-weight: 800;
-  text-anchor: middle;
-  dominant-baseline: central;
-  user-select: none;
-  pointer-events: none; /* clicks land on the circle/group, not the glyph */
-}
-/* The center letter sits on the saturated-red fill — white reads cleanly where
- * black would fight the color; the center tile is also bigger, so bump the glyph. */
-/* @@ */ .center .tileText {
-  fill: var(--wordwheel-center-text);
-  font-size: 40px;
+/* @@ */ .tile.used .face {
+  border-color: var(--tile-selected-edge-color);
 }

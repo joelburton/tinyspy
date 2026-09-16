@@ -1280,7 +1280,7 @@ the background. Pick the next one up from the "forces" column.
 | crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
 | spellingbee | tf0 | — | hexes: not squares, packed edge to edge. Its press, hover and selected edge are the shared ones now, and a refused word answers on the board (the hive head-shakes, the word's letters take the outcome's fill) — but that was a pass through the MARKS, not the framework |
-| wordwheel | tf0 | — | same hexes, same questions |
+| wordwheel | tf0 | — | circles, packed edge to edge in a mustard tray. Its press, hover and spent-tile mark are the shared ones now, and its board left SVG for boxes — but that was a pass through the MARKS, not the framework |
 | wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
 
 ### The sanity check: a converted game should have LESS CSS
@@ -1368,7 +1368,7 @@ roll their own:
 |---|---|
 | boggle | `PlayArea.module.css` |
 | spellingbee | `Letters.module.css` (hexes) |
-| wordwheel | `Wheel.module.css` (hexes) |
+| wordwheel | `Wheel.module.css` (circles in a tray) |
 | stackdown | `Board.module.css` |
 | strands | `Board.module.css` |
 | setgame | `Card.module.css` |
@@ -1422,7 +1422,7 @@ needed for state and attention, which have nowhere else to go. Selection does.
 |---|---|
 | shared `.tile` | `box-shadow` ring **in the selected color** |
 | stackdown | `border-color` → accent |
-| spellingbee / wordwheel | `filter: brightness(0.96)` |
+| spellingbee / wordwheel | the shared lift + shadow (was `filter: brightness(0.96)`) |
 | strands | `opacity: 0.75` |
 | setgame | background gray |
 

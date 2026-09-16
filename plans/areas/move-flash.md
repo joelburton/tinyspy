@@ -490,6 +490,37 @@ wordwheel is spellingbee's fork and still has all
 of this in its old form — the same white flash, the same dim-on-hover, the same
 0.9 press — but it is its own area and gets its own turn.
 
+### wordwheel
+
+**Landed.** The wheel left SVG. Its nine tiles were `<circle>`s, which cost the
+shared depth tokens (an SVG shape takes no box-shadow) and, worse, a stacking
+order — SVG paints in document order with no `z-index`, and the wheel's tiles
+TOUCH, so a hovered tile could only ever rise BEHIND its neighbors. They are
+round boxes now, placed by their own centers off the same geometry the PDF still
+draws real circles from.
+
+That turned up what the board actually is: the mustard is a TRAY, not a border.
+Nine tangent seats merge into the flower, and the piece is the lighter circle
+inside one. So the seat stays put and the face carries the gesture — rests with
+the shared shadow, rises on hover while the shadow falls away, presses back down
+by 0.96. Hover had been a DIM, which is the one thing hover means nowhere else.
+
+A spent tile takes the app's selected border instead of a darkened fill. The dim
+was the in-flight channel doing a selected tile's job, and two darkened reds are
+harder to tell apart than an edge that changed color. Two tokens retired with it.
+
+And the mark lands on the tile the player CLICKED. The spend rule read counts off
+the word, which says how many of a letter are in use but not which tiles — fine
+for a typed letter, wrong for a clicked one, and clicking one E while its twin
+went dark is the board answering a different question than the one asked. A click
+now claims its tile (`lib/spend.ts`), claims are spent before the fallback, and
+what is left still prefers the center, which is the game's own rule.
+
+**Owed.** No shake and no outcome color yet — deliberately, pending a look at
+this batch. `Wheel.module.css` and spellingbee's `Letters.module.css` now share
+LESS than the fork ledger says they could: a hexagon can't be a bordered box, so
+the hive stays SVG. The ledger says so.
+
 ### What this work changed for every game
 
 - **A restart mounts a new play surface** (`common.games.restarts` + the page's

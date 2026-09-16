@@ -347,11 +347,11 @@ into three buckets:
   *what* to dim stays per-game), and `.checkRow` moved to the shared
   `setupForm.module.css` it shares with bananagrams.
   **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded** —
-  they're structurally parallel (`.board`, `.grid`, `.floatAnchor`, the tile
-  shape/text/flash trio, a keyframe), but folding them means picking one
-  vocabulary, and a honeycomb has hexes where a wheel has tiles. Renaming one to
-  match the other trades [ui.md's two-vocabularies rule](../ui.md) for ~40 lines
-  of dedup. See [deferred.md](../deferred.md) if that trade ever looks worth it.
+  they're structurally parallel (`.board`, `.grid`, `.floatAnchor`, the tile), but
+  folding them means picking one vocabulary, and a honeycomb has hexes where a
+  wheel has tiles. Renaming one to match the other trades [ui.md's
+  two-vocabularies rule](../ui.md) for ~40 lines of dedup. See
+  [deferred.md](../deferred.md) if that trade ever looks worth it.
 - **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
   copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
   `theme.css` (palette).
@@ -361,19 +361,33 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
 ### The wheel board — `Wheel` / `Tile` + `lib/wheel.ts`
 
 - **`lib/wheel.ts`** is the single geometry source, shared by the on-screen board and
-  the PDF export (so they can't drift). The wheel is nine SVG **circles** in a
+  the PDF export (so they can't drift). The wheel is nine **circles** in a
   300×300 unit box: a bigger center plus eight outer tiles on a ring. The radii are
   derived from two **tangency** conditions so the tiles **touch** — adjacent outer
   tiles kiss each other (`OUTER_R = RING_R·sin(π/8)`) and each touches the center
   (`CENTER_R = RING_R − OUTER_R`), making the center ≈1.6× an outer tile.
-- **`Wheel.tsx`** draws the SVG (`viewBox 0 0 300 300`), scaled by `--u` so the whole
-  board sizes with the column. **`Tile.tsx`** is one `<circle>` + `<text>`; the center
-  gets the red `--wordwheel-accent` fill + white glyph, the outer tiles the warm
-  `--wordwheel-tile` ramp. Clicking a tile appends its letter (no validation — the
-  shipped-list check happens on submit).
+- **`Wheel.tsx`** lays the tiles out on a 300×300 square sized in `--u`, so the whole
+  board scales with the column. **`Tile.tsx`** is two round boxes, not an SVG
+  `<circle>`: a mustard **seat** placed by its own center, and the **face** that sits
+  in it. Only the face is the piece. The nine seats are tangent by construction, so
+  their color merges into one continuous flower — that is the board's TRAY, like
+  boggle's dice box, and it stays put. The center face gets the red
+  `--wordwheel-accent` fill + white glyph, the outer faces the warm
+  `--wordwheel-tile` ramp; the seat carries the click, so the mustard is part of the
+  hit area. Clicking a tile appends its letter (no validation — the shipped-list
+  check happens on submit).
+  A face wears the shared **piece gesture**: it rests in its seat with
+  `--tile-shadow`, rises on hover while the shadow falls away, and presses back down
+  by 0.96. That is the reason these are boxes. An SVG shape takes no box-shadow, so
+  the depth would have to be a `drop-shadow` filter with every length divided by the
+  board's scale — and, worse, SVG paints in document order with no `z-index`, so a
+  lifting face in a wheel whose seats TOUCH could only ever rise *behind* its
+  neighbors. The seat's visible width is `RING_W`, from the geometry, because that
+  is what makes two touching seats merge.
 - **Theme tokens** (`theme.css`): `--wordwheel-accent` (moderately-saturated red, the
   center tile + the achieved RankBar tier), `--wordwheel-accent-edge`,
-  `--wordwheel-center-text` (white), `--wordwheel-tile` / `--wordwheel-tile-text`.
+  `--wordwheel-center-text` (white), `--wordwheel-tile` / `--wordwheel-tile-text`,
+  and `--wordwheel-seat` (the mustard the flower is made of).
 
 ### Tile-spend affordances
 
@@ -381,16 +395,27 @@ The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
 **counts** of the typed word (`BoardCol` computes `typedCounts: Map<letter, count>`;
 `PlayArea` computes the wheel's `letterCounts` the same way):
 
-- **Spent tiles** (`Wheel`/`Tile`): each occurrence of a letter in the current word
-  spends **one** of its tiles — **inert + dimmed** (`pointer-events: none`,
-  `opacity 0.4`, `aria-disabled`, `tabIndex -1`) — in the wheel's **spend order**:
-  the center first when it carries the letter (the game rule: the mandatory use
-  consumes the center), then outer duplicates in display order. `Wheel` computes
-  each tile's ordinal among same-letter tiles and dims tile *k* when the word holds
-  more than *k* occurrences; a tile re-enables the moment an occurrence leaves the
-  word (in reverse spend order — the center frees last). A shuffle can swap *which*
-  visual twin is dimmed — accepted: twins are identical and the dimmed count is
-  always right.
+- **Spent tiles** (`Wheel`/`Tile`, rule in `lib/spend.ts`): each occurrence of a
+  letter in the current word spends **one** of its tiles — **inert + marked**
+  (`pointer-events: none`, which takes it out of hover and press as well as click).
+  **A CLICK claims the tile it landed on**, and claims are spent first: clicking the
+  outer E and watching the center E take the mark is the board answering a different
+  question than the one you asked. Everything left over — typed letters, which name
+  no tile — falls to the wheel's **spend order**: the center first when it carries
+  the letter (the game rule: the mandatory use consumes the center), then outer
+  duplicates in display order. A tile comes back the moment an occurrence leaves the
+  word, and `trimClaims` forgets the most recent click first, which is the one
+  Backspace just took off (an emptied box drops them all). A claim is recorded as
+  letter + **ordinal**, not a tile index, so a shuffle can't leave it pointing at a
+  seat that now holds a different letter — a shuffle can still swap *which* visual
+  twin is marked, accepted: twins are identical and the marked count is always
+  right.
+  The mark is the app's ordinary **selected** border on the face: black, with the
+  fill and letter exactly where they were, which reads as "this tile is in your
+  word" — the same mark boggle's tiles and spellingbee's hexes wear for the same
+  thing. (The border is drawn transparent at rest, so marking one changes a color
+  and moves nothing.) It was a darkened FILL, which is the in-flight dim's channel,
+  and two darkened reds are harder to tell apart than an edge that changed color.
 - **Dimmed over-counts** (`TypedWord`): as the typed word renders
   character-by-character, a letter that is off the wheel **or exceeds its tile
   count** renders dimmed — with *k* tiles of a letter, occurrences 1..k stay legal
@@ -462,7 +487,10 @@ entry's `is_pangram` was already the authority everywhere.)
 - **`TypedWord.test.tsx`** — count-based dimming: off-wheel dims; on a single-tile
   wheel the 2nd occurrence dims; on a two-e/two-g wheel `BEE` and `EGGED` are fully
   legal and a third `E` dims.
-- **`PlayArea.test.tsx`** — tile-spend tests: typing a letter dims its tile
+- **`spend.test.ts`** — the claim rule: a typed letter spends the center, a clicked
+  one spends the tile clicked, a claim survives a second occurrence falling to the
+  center, and `trimClaims` drops the most recent click a Backspace removed.
+- **`PlayArea.test.tsx`** — tile-spend tests: typing a letter marks its tile
   (`aria-disabled`), an untyped tile stays enabled, backspacing re-enables it; on a
   wheel whose center is duplicated, one occurrence spends the **center first** (the
   outer twin stays clickable), the second spends the twin, and backspace frees the
@@ -503,17 +531,17 @@ border. See [docs/pdf.md](../pdf.md).
   (2026-07-31, the CSS audit's §2.1). The rest of the fork pair's CSS is shared
   with spellingbee (this doc, [Frontend](#frontend)) — but these two remain
   separate copies. They're
-  structurally parallel selector-for-selector (`.board`, `.grid`, `.floatAnchor`,
-  a tile shape / text / flash trio, one keyframe), so a fold is mechanically easy.
-  The reason not to: it means picking ONE vocabulary for the shared class names,
-  and a honeycomb has hexes where a wheel has tiles. That trades
-  [ui.md's two-vocabularies rule](../ui.md) — names track the game's own concepts —
-  for ~40 lines of dedup, and the geometry inside the rules (`clip-path` hexes with
-  per-position `nth-child` vs SVG circles) doesn't share anyway. **If it's ever
-  revisited**, the tractable middle is sharing only the interaction/flash layer
-  (hover/focus states, the flash overlay + its keyframe) under neutral names,
-  leaving each game's shape rules local. Don't fold the whole file just because the
-  skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
+  structurally parallel in their skeletons (`.board`, `.grid`, `.floatAnchor`, a
+  tile), so a fold looks mechanically easy. The reason not to: it means picking ONE
+  vocabulary for the shared class names, and a honeycomb has hexes where a wheel
+  has tiles. That trades [ui.md's two-vocabularies rule](../ui.md) — names track
+  the game's own concepts — for a few dozen lines of dedup, and the rules inside
+  don't share anyway. They share LESS than they used to: the hive is still SVG
+  polygons (a hexagon can't be a bordered box) where the wheel is round boxes, so
+  the hive's depth is a filter in user units and the wheel's is the shared
+  box-shadow. **If it's ever revisited**, the tractable middle is the interaction
+  layer under neutral names, leaving each game's shape rules local. Don't fold the
+  whole file just because the skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
   the fork and this doc owns the pair's shared-vs-not ledger.)*
 - **`s`-heavy seeds**: an `s` tile lets each word pluralize once — the classic
   wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`

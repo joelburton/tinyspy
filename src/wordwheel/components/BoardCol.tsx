@@ -10,6 +10,7 @@ import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
+import { trimClaims, type Claim } from '../lib/spend'
 import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
@@ -110,12 +111,31 @@ export function BoardCol({
   }, [outerLetters, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
+  // WHICH tile each use of a letter spends. A click claims the tile it landed
+  // on; everything else falls to the render order (see lib/spend.ts). The claims
+  // live here because this column owns both halves of a change — the click that
+  // makes one and the typing that can take it away.
+  const [claims, setClaims] = useState<Claim[]>([])
+
   const handleLetterClick = useCallback(
-    (letter: string) => {
+    (letter: string, ordinal: number) => {
       localFeedbackSlot.dismiss()
+      setClaims((c) => [...c, { letter, ordinal }])
       onChange((prev) => prev + letter.toUpperCase())
     },
     [localFeedbackSlot, onChange],
+  )
+
+  // Every OTHER way the word changes — a keystroke, a Backspace, the ArrowUp
+  // recall, the box clearing on submit — can only take claims away, never make
+  // one: the player named no tile. Trimming against the new word is the whole of
+  // it, and an empty box drops the lot.
+  const handleChange = useCallback(
+    (next: SetStateAction<string>) => {
+      setClaims((c) => trimClaims(c, typeof next === 'string' ? next : next(word)))
+      onChange(next)
+    },
+    [onChange, word],
   )
 
   // Per-letter counts of the typed word (lower-cased). Each tile is SPENT per
@@ -159,6 +179,7 @@ export function BoardCol({
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}
+        claims={claims}
         typedCounts={typedCounts}
         // Shuffle floats over the wheel's top-right — a fresh visual scan of the
         // SAME board, not a turn action. Always clickable, even when locked (a
@@ -182,7 +203,7 @@ export function BoardCol({
         <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}
-            onChange={onChange}
+            onChange={handleChange}
             onSubmit={onSubmit}
             placeholder="Type or click letters"
             disabled={isTerminal}

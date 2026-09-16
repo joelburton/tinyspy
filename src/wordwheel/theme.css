@@ -7,6 +7,10 @@
  * Word wheel's visual identity is the wheel: a saturated-red center tile (the
  * letter used in EVERY word) ringed by warm neutral outer tiles.
  *
+ *   --wordwheel-seat         The mustard the nine tiles sit in. Their seats are
+ *                            tangent, so the color merges into one flower — it is
+ *                            the board's TRAY, not a border on each tile, which is
+ *                            why nothing about it moves when a tile does.
  *   --wordwheel-tile         The resting outer-tile fill. Soft warm neutral
  *                            (the shared tile-2 ramp).
  *   --wordwheel-tile-text    Near-black glyph on the light outer tiles.
@@ -15,11 +19,6 @@
  *                            achieved-tier fill on the RankBar.
  *   --wordwheel-center-text  White glyph on the red center tile (black would
  *                            fight the saturated fill).
- *   --wordwheel-tile-used    A used (already-in-the-word) outer tile's darkened
- *                            FILL. We darken only the background — the gold border
- *                            + the letter stay put — so a used tile reads as
- *                            "spent" without dimming the whole tile.
- *   --wordwheel-accent-used  The center tile's darkened fill, same idea.
  *
  * Two-vocabularies rule (see docs/ui.md): tokens use semantic
  * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
@@ -27,6 +26,7 @@
  * walk every consumer.
  */
 /* @@ */ :root {
+/* @@ */   --wordwheel-seat:          var(--tile-5-edge-color); /* the tray the flower is made of */
 /* @@ */   --wordwheel-tile:          var(--tile-2-fill-color); /* the shared warm ramp */
 /* @@ */   --wordwheel-tile-text:     #1a1a1a;
 
@@ -34,10 +34,10 @@
 /* @@ */   --wordwheel-accent:        #d6494f;
 /* @@ */   --wordwheel-center-text:   #ffffff;
 
-  /* Used-tile fills: a couple of steps darker than the resting fills. Applied to
-   * the tile background only (not the border / letter) to mark a spent letter. */
-/* @@ */   --wordwheel-tile-used:     #d8c79c;
-/* @@ */   --wordwheel-accent-used:   #a83c41;
+  /* (A spent tile has no fill of its own any more: it keeps its resting color
+   * and takes the app's SELECTED border, the same black ring boggle's tiles and
+   * spellingbee's hexes wear for a letter that is in your word. The two darkened
+   * fills that used to say it are gone.) */
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
