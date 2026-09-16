@@ -7,12 +7,19 @@ stylesheet times are in scope). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED 2026-09-15; the prose pass done 2026-09-15.** Roster agreed
-and stamped `cs-met-move-flash`; every file read; thirteen findings, of which
-**F-1, F-2, F-4, F-5, F-8, F-9, F-10, F-11 and F-13 are WORKED** — the doc.md intro and the three
-docstrings, the stale path, the two clocks, the centralization, and setgame's
-conversion (which took the hook's name with it). The remaining four are
-decisions, one at a time. The doc.md still gets the closing harvest pass.
+**Status: AUDITED 2026-09-15; the prose pass done 2026-09-15; the findings
+RE-READ 2026-09-15** after the game work recorded below. Roster agreed and
+stamped `cs-met-move-flash`; every file read.
+
+**F-1, F-2, F-4, F-5, F-8, F-9, F-10, F-11 and F-13 are WORKED** — the doc.md
+intro and the three docstrings, the stale path, the two clocks, the
+centralization, and setgame's conversion (which took the hook's name with it).
+**F-3 and F-7 are half worked**, and their remainders re-verified. **F-6 and F-12
+stand as written**, F-12's premise stronger than when it was filed. **F-14 and
+F-15 are new**, found by the re-read: the board work put five games through the
+same hand-rolled mark state and four different replay mechanisms, which is the
+centralization F-4 did for one channel, still owed for two more. The doc.md gets
+the closing harvest pass.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -64,15 +71,20 @@ lives outside the folder: the tile wash `.attentionFlash` and the board ring
 `.yourTurnFlash` in `game-page/playArea.module.css`, the durations in
 `base.css`, the one yellow in the theme.
 
-Who calls what, as read 2026-09-15 (evidence for the findings; the harvest
-turns this into the doc.md's caller table):
+Who calls what, **re-read 2026-09-15 after the game work below** (evidence for
+the findings; the harvest turns this into the doc.md's caller table). The
+`useFlash` row is much longer than it was at the audit — five more callers
+arrived with the board work, and two of them spend a NAMED beat, which the
+finding about unnamed lifetimes was written before:
 
 | hook | callers | what the caller does with it |
 |---|---|---|
-| `useMoveCausedChange` + `ATTENTION_FLASH_MS` | waffle `Board`, connections `Board`, psychicnum `Board` | diff before/after during render → `setFlashing(set)` → `useEffect` timer clears it → `.attentionFlash` per tile |
-| `useFlash` | stackdown `BoardCol` (900), strands `PlayArea` (1000), scrabble `BoardCol` ×3 (default 1000) | an input-problem mark (the ambiguous letter) or a verdict outline (scrabble's green / yellow / red) — none of them a move's attention mark |
+| `useMoveAttention` (`useChangeCause` + `ATTENTION_FLASH_MS` inside) | waffle `Board`, connections `Board`, psychicnum `Board` | its own diff → the hot set → `.attentionFlash` per tile |
+| `useChangeCause` alone | setgame `PlayArea` | the cause, with setgame's own choreography on top |
+| `useFlash`, a NAMED beat | connections `BoardCol` ×2 (`ATTENTION_FLASH_MS`, `VERDICT_SHAKE_MS`), psychicnum `Board` (`VERDICT_SHAKE_MS`), stackdown `PlayArea` (`ATTENTION_FLASH_MS`) + `BoardCol` (`AMBIGUOUS_PICK_FLASH_MS`), strands `PlayArea` (`AMBIGUOUS_PICK_FLASH_MS`), setgame `PlayArea` (`ARRIVE_MS`, its own) | a wash, a head-shake, an input-problem ring, an arrival |
+| `useFlash`, the DEFAULT | scrabble `BoardCol` ×3 | three verdict outlines on a beat nobody chose (F-3) |
 | `useTurnStartFlash` | waffle, wordle, connections, psychicnum `PlayArea` | a boolean threaded `PlayArea → BoardCol → Board` → `.yourTurnFlash` on the grid |
-| none of the above | setgame `PlayArea` + `lib/flash.ts` | its own cause check keyed on the last claim's id, a hold-then-arrive choreography, its own two lifetimes, three mark kinds |
+| none — hand-rolled | boggle, spellingbee, stackdown, wordiply, letterboxed | a single tagged mark held in state and cleared by a ref'd timer (F-14) |
 
 ## Findings
 
@@ -141,6 +153,13 @@ had the lost red and strands the chrome fault red; both read one token now
 **Still open:** scrabble's three verdict outlines, which take `useFlash`'s
 default rather than a named beat, and the default itself — a duration nobody
 chose, sitting in the hook's signature.
+
+**RE-VERIFIED 2026-09-15**, and the argument got easier. Every `useFlash` call
+written since the audit names its beat from `feedbackTiming` — two of them
+`VERDICT_SHAKE_MS`, which did not exist when this finding was written. scrabble's
+three are now the only unnamed ones in the app, so dropping the default costs
+exactly three call sites, and the file that would hold their name already holds
+four beats it didn't.
 
 ### F-move-flash-4 · `attention-timer-thrice` · The attention mark's lifetime is hand-rolled in three games, and the shared hook cannot serve it
 
@@ -221,6 +240,11 @@ lists — a move; a re-deal (content changes, marker drops); a move landing on
 identical content (marker advances, content does not); a first render on a full
 log — are exactly a unit test, and one would pin the contract F-4 builds on.
 A file per unit: `useMoveCausedChange.test.ts`, `useTurnStartFlash.test.ts`.
+
+**HALF WORKED 2026-09-15.** The cause hook got its unit test under its new name
+(`useChangeCause.test.ts`) when F-10 renamed it, and `useMoveAttention.test.ts`
+was written with the hook. `useTurnStartFlash` is still the only file in the
+folder with no test of its own.
 
 ### F-move-flash-8 · `cause-hook-name` · The name asks a yes/no question and the hook answers with content
 
@@ -342,11 +366,77 @@ it is — `marks`, `transient-marks` — while the area is open and the sweep is
 cheap; (3) split: `useFlash` is not about a move and could live with the
 board chrome. Recommend (1) unless Joel wants the honest name now.
 
+**RE-READ 2026-09-15: the premise got stronger, not weaker.** Since the audit
+the folder has taken on the head-shake's beat and the refused-word answer's, and
+`feedbackTiming.ts` is now where a mark's lifetime is decided for every game that
+has one. Two of the folder's six files have "flash" in their name and four
+don't. The address argument for (1) is unchanged; the honesty argument for (2)
+has grown.
+
 ### F-move-flash-13 · `stale-path` · `tile-feedback.md` points at `common/hooks/game/useMoveCausedChange`
 
 **WORKED 2026-09-15.** That folder went in the 2026-09-04 restructure. The plan is the design
 reference this area is told to read, so the pointer is fixed in passing:
 `common/move-flash/useMoveCausedChange`.
+
+### F-move-flash-14 · `tagged-mark-hand-rolled` · Five games hand-roll the same self-clearing mark, because `useFlash` holds a set
+
+**FOUND 2026-09-15, in the re-read after the board work.** `useFlash` holds a SET
+of ids, and its docstring declines the other shape outright: *"a single nullable
+tagged value — one mark with a reason attached — is a different shape and keeps
+its own self-clearing state."* That was true of one game when it was written.
+Five games now keep that state, and they keep it the same way — a nullable object
+in `useState`, a timer in a `useRef`, a `show…` callback that clears the old
+timer and starts a new one, and an unmount effect:
+
+| game | what it holds | beat |
+|---|---|---|
+| boggle | `{ cells, outcome }` — a refused word's tiles | `WORD_ANSWER_MS` |
+| spellingbee | `{ letters, outcome }` — a refused word's letters | `WORD_ANSWER_MS` |
+| stackdown | a peer's mark, and its own | `ATTENTION_FADE_MS` + `WORD_ANSWER_MS` |
+| wordiply | `{ word, outcome, attention }` — a held row | a two-stage timer |
+| letterboxed | `{ word, nonce }` — the refused word | its own |
+
+This is F-4 again, one channel over: the folder has the transient-state hook and
+the folder's newest use case can't call it. The shape is a *tagged* mark rather
+than a set of ids, and the two-stage version (attention first, then the answer)
+is the sequence the vocabulary specifies, written out by hand three times.
+
+Options, when it comes up: (1) `useMark<T>(durationMs)` — the tagged twin of
+`useFlash`, returning `[mark, show, clear]`, which covers boggle, spellingbee and
+letterboxed as they stand; (2) that plus a two-beat form for the attention→answer
+sequence stackdown and wordiply write out, which is the part most likely to drift
+between games; (3) leave it, and let each game's own audit decide. Recommend (2)
+— the sequence is exactly the kind of thing tile-feedback.md specifies once and
+five games should not each re-derive — but (1) first, since it is the half that
+is provably identical five times.
+
+### F-move-flash-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
+
+**FOUND 2026-09-15, in the re-read.** A CSS animation runs once per mount, so a
+mark that must fire twice in a row needs the element remounted or the class
+removed and re-added. `.verdictShake`'s own comment in `playArea.module.css` says
+so — *"Replaying it needs a REMOUNT … on any board where the same piece can be
+refused twice"* — and then every board answers it differently:
+
+- **spellingbee, wordwheel**: a nonce keys the whole board element.
+- **letterboxed**: a nonce inside each node's `key` string, so only the letters
+  in the refused word remount.
+- **connections, psychicnum**: `useFlash(VERDICT_SHAKE_MS)`, whose timer drops
+  the class — the replay falls out of the mark clearing itself.
+- **boggle**: the class rides the presence of a held value, which does NOT
+  replay. Refuse the same word twice inside `WORD_ANSWER_MS` and the second
+  refusal shakes nothing. Its pill still answers, so it reads as the board
+  missing one, not as a bug.
+
+The shared CSS states the requirement and provides nothing to meet it, which is
+how four answers and one gap happen. Options: (1) fix boggle where it stands and
+leave the four idioms alone; (2) give the vocabulary the missing piece — a
+`useReplayNonce()` or a documented "key it by this" rule beside `.verdictShake`,
+so the requirement and its answer sit together; (3) fold it into F-14, since a
+tagged mark that carries its own nonce would make the replay automatic for every
+game that takes the hook. Recommend (3) with (1) done now regardless — boggle is
+a real miss and one line.
 
 ### What checked out
 
@@ -480,11 +570,12 @@ The white click-flash overlay is gone — it was written when the press was a ba
 `scale(0.9)` and easy to miss, and white at 0.7 over a pale hex read as the tile
 blanking; the press does that job now.
 
-**Owed.** The outcome color on the letters is KEPT FOR NOW and revisited at
-spellingbee's own audit (Joel, 2026-09-15): a refused TETE colors two hexes, and
-a hive letter standing for every use of it in the word may just be the wrong
-thing to color. The hive has seven tiles and a word has as many letters as it
-likes, which is the mismatch underneath it.
+**Owed.** The outcome color on the letters is KEPT, and wordwheel deliberately
+does NOT have it, so friends can play both and say whether coloring a letter tile
+helps at all (Joel, 2026-09-15). The doubt that started it: a refused TETE colors
+two hexes, because a hive letter stands for every use of it in the word — the
+hive has seven tiles and a word has as many letters as it likes, and that
+mismatch is the thing being tested. Whatever comes back decides it for both.
 
 wordwheel is spellingbee's fork and still has all
 of this in its old form — the same white flash, the same dim-on-hover, the same
@@ -520,9 +611,9 @@ A refused word head-shakes the whole wheel, as spellingbee's hive does and for
 the same reason: the refusal is about the word, and the letters are all legal
 tiles that did nothing wrong.
 
-**Owed.** No outcome color on the tiles — held back deliberately, since
-spellingbee's is the open question (a refused TETE colors two hexes) and the two
-games should answer it the same way. `Wheel.module.css` and spellingbee's
+**Owed.** No outcome color on the tiles, and that is the POINT: spellingbee has
+one and this doesn't, so the pair is an experiment friends get to settle (Joel,
+2026-09-15). Whatever comes back decides it for both. `Wheel.module.css` and spellingbee's
 `Letters.module.css` now share
 LESS than the fork ledger says they could: a hexagon can't be a bordered box, so
 the hive stays SVG. The ledger says so.
