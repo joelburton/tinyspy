@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 import { describe, expect, it } from 'vitest'
 import { claimTransition } from './flash'

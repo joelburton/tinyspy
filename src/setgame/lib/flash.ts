@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 import type { Card } from './cards'
 

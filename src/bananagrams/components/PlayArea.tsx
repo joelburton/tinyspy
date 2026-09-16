@@ -4,7 +4,6 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
-import { timerLabel } from '@/common/timer/timerLabel'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
@@ -13,7 +12,6 @@ import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { difficultyValue } from '@/common/setup-form/difficulty'
 import { IconExchange } from '@/common/icons/icons'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -509,7 +507,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const bunchCount = ctx.status?.bunch_remaining as number | undefined
   const bagCount = ctx.status?.bag_remaining as number | undefined
-  const setup = ctx.setup as unknown as BananagramsSetup
 
   // ─── Info-column chrome ─────────────────────────────────────────────────
   // bananagrams' info column is a DOCUMENTED EXCEPTION to the canonical v3
@@ -551,25 +548,12 @@ export function PlayArea(ctx: GamePageCtx) {
 
       {/* Setup — behind a disclosure (closed by default). */}
       <SetupDisclosure>
-          <li>Bunch: {setup.bunch_size} tiles</li>
-          <li>Starter hand: {setup.hand_size} tiles</li>
-          <li>
-            Word check:{' '}
-            {setup.word_check === 'off'
-              ? 'off'
-              : setup.word_check === 'strict'
-                ? 'every peel'
-                : 'at win'}
+        {summaryRows.map((r) => (
+          <li key={r.key}>
+            {r.label}: {r.value}
           </li>
-          {setup.word_check !== 'off' && (
-            <>
-              <li>Dictionary (2-letter): {difficultyValue(setup.dict_2)}</li>
-              <li>Dictionary (longer): {difficultyValue(setup.dict_3plus)}</li>
-            </>
-          )}
-          <li>Dumped tiles: {setup.dump_to_bag ? 'set aside (bag)' : 'return to the bunch'}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
-        </SetupDisclosure>
+        ))}
+      </SetupDisclosure>
     </>
   )
 

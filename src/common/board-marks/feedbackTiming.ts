@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 /**
  * How long the vocabulary's transient marks stay on screen, and the single home

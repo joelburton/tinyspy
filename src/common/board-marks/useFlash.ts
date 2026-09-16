@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 

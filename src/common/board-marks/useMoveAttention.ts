@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 import { useEffect, useState } from 'react'
 import { ATTENTION_FLASH_MS } from './feedbackTiming'

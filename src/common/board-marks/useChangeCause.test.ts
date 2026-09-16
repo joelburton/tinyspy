@@ -1,4 +1,4 @@
-// cs-audited-board-marks
+// cs-blessed-board-marks
 
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'

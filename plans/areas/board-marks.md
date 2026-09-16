@@ -8,11 +8,11 @@ stylesheet times are in scope). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED 2026-09-15; the prose pass done 2026-09-15; the findings
-RE-READ 2026-09-15** after the game work recorded below; **the CLOSING RE-READ
-done 2026-09-16** and the `doc.md` harvested the same day. Roster agreed, every
-file read, every file `cs-audited-board-marks`; **not blessed** — that stamp is
-Joel's.
+**Status: CLOSED 2026-09-16, blessed.** Audited 2026-09-15; the prose pass
+done 2026-09-15; the findings re-read 2026-09-15 after the game work recorded
+below; the closing re-read done 2026-09-16 and the `doc.md` harvested the same
+day. Blessed on Joel's words the same day — *"bless the files in this area and
+close the area"* — fifteen files `cs-blessed-board-marks`.
 
 **All fifteen findings are WORKED.** The closing re-read (its own section, below
 the findings) added seven more: one conversion with a decision in it (F-16,
@@ -961,5 +961,9 @@ F-15's planted boggle spec.
       two bee games' todos (F-22). The game section below stays by Joel's word
       as a record of what landed; every "Owed" line in it now also lives in
       `tile-feedback.md`'s roster or the game's `todo.md`.
-- [ ] every file on the roster blessed, or its stamp says why not — **JOEL'S.**
-      The roster is `cs-audited-board-marks` throughout; nothing is blessed.
+- [x] every file on the roster blessed, or its stamp says why not — **DONE
+      2026-09-16**, on Joel's words (*"bless the files in this area and close
+      the area"*): the folder's thirteen `.ts` files and setgame's `flash.ts` +
+      `flash.test.ts` read `cs-blessed-board-marks`. `base.css` keeps
+      `cs-audited-corecss` — only its flash lines were read here, and the file
+      is `core-css`'s.

@@ -213,6 +213,17 @@ describe('bananagrams PlayArea — render smoke', () => {
 describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
   const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
+  it('the setup disclosure shows the shared rows, the same ones the PDF prints', () => {
+    // Rendered from `setupRows`, not a hand-kept list — so the screen and the
+    // paper cannot disagree on which way `dump_to_bag` goes.
+    render(<PlayArea {...makeCtx({ setup: { ...SETUP, dump_to_bag: true, word_check: 'strict' } })} />)
+    const recap = screen.getByText('Setup options').parentElement as HTMLElement
+    expect(recap.textContent).toContain('Players: me')
+    expect(recap.textContent).toContain('Dumped tiles: to the bag (out of play)')
+    expect(recap.textContent).toContain('Word check: Every peel')
+    expect(recap.textContent).toContain('Timer: none')
+  })
+
   it('+ at terminal deals the next game with no question', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
