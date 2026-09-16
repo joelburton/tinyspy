@@ -70,9 +70,8 @@ describe('useTurnStartFlash', () => {
   it('is cut short when the turn leaves, and re-announced when it comes back', () => {
     // The transition sets `flashing` to whichever way the turn just went, so a
     // turn LEAVING takes the frame off at once rather than letting it finish —
-    // and coming back is a fresh arrival with a fresh clock. The area file
-    // recorded the opposite ("neither replays the ring nor restarts the timer");
-    // writing this test is what found that, 2026-09-16.
+    // you acted, so the announcement is spent — and coming back is a fresh
+    // arrival with a fresh clock.
     const { result, rerender } = renderHook(({ mine }) => useTurnStartFlash(mine), {
       initialProps: { mine: false },
     })

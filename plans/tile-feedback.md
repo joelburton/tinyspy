@@ -353,10 +353,11 @@ Two requirements make it work, and both are worth checking in a new game:
   row that moved it.
 
 The shared piece is `common/board-marks/useChangeCause`: hand it the content,
-a key for "changed", and the server's move marker, and it hands back the previous
-content only when a move caused the change. setgame implements the same rule by
-hand (it has its own hold-then-arrive choreography around it) and folds in when
-it converts.
+a key for "changed", and the server's move marker, and it answers whether a move
+caused the change (with the previous content, to diff), something else did, or
+nothing changed. Most boards take `useMoveAttention` over it, which adds the diff
+and the lifetime; setgame is on `useChangeCause` itself, keyed on the last
+claim's id, with its own hold-then-arrive choreography on the answer.
 
 ### Revealing the answer is a STATE CHANGE, not a mark
 
@@ -1035,8 +1036,9 @@ players can claim overlapping cards, and one of them loses.
 ### stackdown · shape 4
 
 **Today.** A typed letter that matches more than one exposed tile rings the
-candidates red for 900ms — a UI problem, not a verdict, though it wears the
-verdict's red today. An accepted word clears its tiles (held removed locally
+candidates for `AMBIGUOUS_PICK_FLASH_MS` in the error red — a UI problem, not a
+verdict, and it no longer wears the verdict's red (see the row below for the
+2026-09-15 work). An accepted word clears its tiles (held removed locally
 only after the server has said yes) and the board collapses. **The word itself
 flashes green in the entry row** for 1.5s — for your own word and, in coop, for
 a teammate's, which is how a peer learns what was played. **Nothing marks the
@@ -1063,8 +1065,9 @@ overlapping tiles.
 **Today.** Found theme words lock their cells: the letters take the theme mark
 and the spangram takes its own, permanently, and a disc in the turn log carries
 the same two kinds. The ambiguous-letter mark (a typed letter matching several
-cells) rings the candidates for 1000ms — the same UI-problem shape stackdown
-has, at a different number. Every verdict lands in the pill: `theme`,
+cells) rings the candidates for `AMBIGUOUS_PICK_FLASH_MS` in the error red — the
+same UI-problem mark stackdown has, on the same name and color since
+2026-09-15. Every verdict lands in the pill: `theme`,
 `spangram`, `valid word`, `hint earned`, `already found`, `too short`, `not a
 word`. In coop the board is shared, so a teammate's find locks cells anywhere on
 it, **with no mark of any kind**.
@@ -1076,8 +1079,9 @@ players can trace the same word.
 - **Attention on the cells a teammate's find just locked.** Seven or eight cells
   changing state in the middle of a grid you are tracing is the clearest
   unmarked in-place change in the roster.
-- One lifetime for the ambiguous-letter mark, shared with stackdown's, named in
-  `feedbackTiming` rather than typed per game.
+- ~~One lifetime for the ambiguous-letter mark, shared with stackdown's, named in
+  `feedbackTiming` rather than typed per game.~~ Done 2026-09-15:
+  `AMBIGUOUS_PICK_FLASH_MS`, and the error red with it.
 
 ### letterboxed · shape 4
 
@@ -1105,9 +1109,11 @@ board needs no peer-facing refusal mark at all, unlike stackdown's.
 
 ### scrabble · shape 1 and 4
 
-**Today.** Three transient outlines, all on `useFlash` at about a second: green
-on the cells you just played, yellow on the rack slots you just drew, red on
-the cells of a word the server refused. Just-played tiles are placed
+**Today.** Three transient outlines, all on `useFlash`, each on a named beat
+since 2026-09-15 (`WORD_ANSWER_MS` for the green and the red, the attention beat
+for the yellow — consistency first; whether the marks belong at all is this
+pass's question): green on the cells you just played, yellow on the rack slots
+you just drew, red on the cells of a word the server refused. Just-played tiles are placed
 optimistically and read as committed until the refetch brings them in. Two
 warnings exist for the race specifically — `Board changed` and `Pre-play
 cleared: conflict` — when a peer's move invalidates tiles you had staged. Peer

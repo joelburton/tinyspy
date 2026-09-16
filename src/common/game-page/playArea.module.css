@@ -525,12 +525,13 @@
  *
  * Replaying it needs a REMOUNT, because a CSS animation only restarts when the
  * element is new: refusing the same word twice must shake twice, so the caller
- * keys the element on a nonce (see wordle's BoardCol, connections' Board). */
+ * keys the element on a nonce (wordle's Board; the rule in full is beside
+ * `.verdictShake` below). */
 /* @@ */ .verdictRing {
   outline: 3px solid var(--verdict-tone);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
-  animation: verdict-shake 0.4s ease-in-out;
+  animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out;
 }
 
 /* The verdict ON A PIECE: the background takes the answer's tone, and the ink
@@ -809,8 +810,7 @@
 /* The mark is a BRIGHT FLASH, so nearly all of its life is spent at full
  * strength and the fade is only the hand-back — enough that the yellow leaves
  * rather than blinking off, and no more. The split is a proportion of the
- * duration, not a time, so retuning the duration keeps the shape: at 350ms this
- * is 300ms solid and a 50ms tail. */
+ * duration, not a time, so retuning the duration keeps the shape. */
 /* @@ */ @keyframes attention-flash {
   0%, 85% { opacity: 1; }
   100%    { opacity: 0; }

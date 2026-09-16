@@ -539,6 +539,53 @@ describe('stackdown PlayArea — the board keys', () => {
     )
   })
 
+  it('a refused word answers in the slots, holds its tiles off the board, then sends them home flashing', async () => {
+    vi.useFakeTimers()
+    try {
+      // NOT A WORD: an `ok` whose data says `invalid`, with the outcome and the
+      // sentence on the envelope — no tile moved, so nothing was cleared.
+      rpc.mockResolvedValue({
+        data: {
+          type: 'ok', data: { result: 'invalid' }, outcome: 'lost', severity: null,
+          message: 'CLEAR is not a word', field: null, meta: null, dbcode: null, detail: null,
+        },
+        error: null,
+      })
+      h.result = { ...loaded(loadedGame({ tiles: five }), [playerRow('u1')]), currentWord: [1, 2, 3, 4, 5] }
+      const ctx = makeCtx()
+      const { rerender } = render(<WithKeys {...ctx} />)
+      await press({ key: 'Enter', code: 'Enter' })
+      // Let the answer arrive: the mock resolves in microtasks, not on a timer.
+      await act(async () => {
+        for (let i = 0; i < 5; i++) await Promise.resolve()
+      })
+
+      // The answer, where the eye already is: the slots wear the refusal and
+      // shake. The word is still in them — its tiles are NOT back on the board.
+      const slotC = screen.getByText('C')
+      expect(slotC.className).toMatch(/verdictLost/)
+      expect(slotC.className).toMatch(/verdictShake/)
+      expect(h.result.clearWord).not.toHaveBeenCalled()
+
+      // Held for the whole answer beat, and not a moment less.
+      act(() => vi.advanceTimersByTime(WORD_ANSWER_MS - 1))
+      expect(h.result.clearWord).not.toHaveBeenCalled()
+      act(() => vi.advanceTimersByTime(1))
+      expect(h.result.clearWord).toHaveBeenCalledTimes(1)
+
+      // The word is cleared (the hook's answer, handed back as a refetch would),
+      // and the tiles land back on the board wearing the attention flash — the
+      // eye follows them home — with the slots' verdict gone.
+      h.result = { ...h.result, currentWord: [] }
+      act(() => rerender(<WithKeys {...ctx} />))
+      const tileC = screen.getByText('C').parentElement as HTMLElement
+      expect(tileC.className).toMatch(/attentionFlash/)
+      expect(screen.getByLabelText('Current word').innerHTML).not.toMatch(/verdictLost/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('the result clears on any key, even one nothing binds', async () => {
     h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
     render(<WithKeys {...makeCtx()} />)

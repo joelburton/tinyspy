@@ -17,7 +17,7 @@ import { useChangeCause, type ChangeCause } from './useChangeCause'
 function harness(initial: { board: string; moves: number }) {
   const answers: ChangeCause<string>[] = []
   const view = renderHook(
-    ({ board, moves }: { board: string; moves: number }) => {
+    function useRecordedAnswers({ board, moves }: { board: string; moves: number }) {
       const cause = useChangeCause(board, board, moves)
       if (cause) answers.push(cause)
       return cause

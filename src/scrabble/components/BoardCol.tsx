@@ -267,7 +267,6 @@ export function BoardCol({
   // played and the cells of a refused word are both a word's ANSWER on the
   // board, which is read rather than glanced at and stays accordingly.
   //
-  // All three ran on a shared default of 1000 before, a number nobody picked.
   // WHETHER these are the right marks at all is scrabble's own tile-feedback
   // pass to say — the green one marks the player's own move, which the audience
   // rule says needs no mark, since the pill already answers.

@@ -8,17 +8,18 @@
  * property of the vocabulary, not of a game — a player who learns the beat in one
  * game should read it in the next.
  *
- * CSS draws every mark and CSS times it: `publishMarkDurations` writes the two
- * durations below into the tokens the animations read, so the stylesheet has no
- * number of its own to drift from. That is what keeps the halves of one mark
- * together — the attention flash fading and the ink returning from under it are
- * two animations on one duration, and no timer can separate them.
+ * CSS draws every animated mark and CSS times it: `publishMarkDurations` writes
+ * the fade and shake durations below into the tokens the animations read, so the
+ * stylesheet has no number of its own to drift from. That is what keeps the
+ * halves of one mark together — the attention flash fading and the ink returning
+ * from under it are two animations on one duration, and no timer can separate
+ * them.
  *
- * The `*_FLASH_MS` values are for the timers that take a mark's CLASS off
- * afterward. They are the fade plus slack, deliberately: removing the class is
- * what lets the next mark start its animation, and a class removed EARLY cancels
- * the animation mid-fade, while one removed late costs nothing at all now that
- * the visible mark ends on its own.
+ * `ATTENTION_FLASH_MS` and `YOUR_TURN_FLASH_MS` are for the timers that take a
+ * mark's CLASS off afterward. They are the fade plus slack, deliberately:
+ * removing the class is what lets the next mark start its animation, and a class
+ * removed EARLY cancels the animation mid-fade, while one removed late costs
+ * nothing at all now that the visible mark ends on its own.
  */
 
 /** The attention flash: solid for most of it, then a short tail fading out, so the

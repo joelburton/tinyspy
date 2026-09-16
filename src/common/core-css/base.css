@@ -295,14 +295,13 @@
   --entryBox-font-size:  1.5rem;
 
   /* ── Feedback timings ──────────────────────────────────────────
-     How long the two transient marks last —
-     `--mark-attention-flash-duration` and
-     `--mark-yourTurn-flash-duration`, both READ here and declared
-     nowhere in CSS. They are published onto the document root at
-     startup from common/board-marks/feedbackTiming.ts, which is the
-     one home for the numbers and carries the reasoning for each: a
-     mark's class comes off on a JS timer, so a duration written in
-     both languages is one design decision with two votes. */
+     Not here. The `--mark-*-duration` tokens the transient marks
+     animate on are declared in no stylesheet: they are published
+     onto the document root at startup from
+     common/board-marks/feedbackTiming.ts, the one home for the
+     numbers, and read by the mark rules in
+     common/game-page/playArea.module.css. A duration written in both
+     languages is one design decision with two votes. */
 
   /* ── Depth on a GAME SURFACE ───────────────────────────────────
      Board tiles and the on-screen keyboard's keys. Ordinary buttons

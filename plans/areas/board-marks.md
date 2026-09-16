@@ -9,18 +9,15 @@ stylesheet times are in scope). The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: AUDITED 2026-09-15; the prose pass done 2026-09-15; the findings
-RE-READ 2026-09-15** after the game work recorded below. Roster agreed and
-stamped `cs-met-board-marks`; every file read.
+RE-READ 2026-09-15** after the game work recorded below; **the CLOSING RE-READ
+done 2026-09-16** and the `doc.md` harvested the same day. Roster agreed, every
+file read, every file `cs-audited-board-marks`; **not blessed** — that stamp is
+Joel's.
 
-**F-1, F-2, F-4, F-5, F-8, F-9, F-10, F-11 and F-13 are WORKED** — the doc.md
-intro and the three docstrings, the stale path, the two clocks, the
-centralization, and setgame's conversion (which took the hook's name with it).
-**F-3 and F-7 are half worked**, and their remainders re-verified. **F-6 and F-12
-stand as written**, F-12's premise stronger than when it was filed. **F-14 and
-F-15 are new**, found by the re-read: the board work put five games through the
-same hand-rolled mark state and four different replay mechanisms, which is the
-centralization F-4 did for one channel, still owed for two more. The doc.md gets
-the closing harvest pass.
+**All fifteen findings are WORKED.** The closing re-read (its own section, below
+the findings) added seven more: one conversion with a decision in it (F-16,
+stackdown's second hand-rolled mark), and six stale claims the area's own fixes
+had written into siblings — fixed in place.
 
 **What Joel said at the opening, which frames the reading:** setgame was built
 BEFORE `plans/tile-feedback.md` existed — it was setgame that made him decide
@@ -31,26 +28,29 @@ heavily refactored since, so choices made there may want improving.
 
 ## The roster
 
-`src/common/board-marks/` — every file `cs-met-board-marks`:
+`src/common/board-marks/` — every file `cs-audited-board-marks` (they were
+`cs-met-board-marks` at the opening):
 
 - `feedbackTiming.ts`
 - `useFlash.ts` · `useFlash.test.ts`
-- `useMark.ts` · `useMark.test.ts` — WRITTEN by this area (F-14),
-  `cs-audited-board-marks`
+- `useMark.ts` · `useMark.test.ts` — WRITTEN by this area (F-14)
 - `useAnnouncedMark.ts` · `useAnnouncedMark.test.ts` — WRITTEN by this area
-  (F-14, option B), `cs-audited-board-marks`
+  (F-14, option B)
 - `useChangeCause.ts` — renamed from `useMoveCausedChange.ts` (F-10), and its
   `useChangeCause.test.ts`, WRITTEN by this area
 - `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
-  (F-4), `cs-audited-board-marks`
-- `useTurnStartFlash.ts`
-- `doc.md` (one-sentence lede, no intro) · `todo.md` (empty)
+  (F-4)
+- `useTurnStartFlash.ts` · `useTurnStartFlash.test.ts` — the test WRITTEN by
+  this area (F-7)
+- `doc.md` (a one-sentence lede and no intro at the opening; the intro and
+  `## Details` written by F-1 and harvested at the close) · `todo.md` (empty
+  at the opening, empty at the close)
 
 Outside the folder, on the roster by Joel's word:
 
 - `src/setgame/lib/flash.ts` · `flash.test.ts` — setgame's own claim flash
-  (`claimTransition`, `DEPART_MS` / `ARRIVE_MS`, `FlashKind`), `cs-met-board-marks`.
-  The audit may centralize what it does.
+  (`claimTransition`, `DEPART_MS` / `ARRIVE_MS`, `FlashKind`),
+  `cs-audited-board-marks`. The audit may centralize what it does.
 - `src/common/core-css/base.css` — ONLY its flash rules (the two
   `--mark-*-flash-duration` tokens and their comment). Its stamp stays
   `cs-audited-corecss`: the file is `core-css`'s, and only these lines are read
@@ -64,6 +64,9 @@ connections, psychicnum, wordle, stackdown, scrabble, strands); `setgame/compone
 but not roster (`cs-unmet`, setgame's own area will read it).
 
 ## What the folder is, in one paragraph
+
+*As it stood at the audit, 2026-09-15 — the folder has seven source files and
+six tests now, and the current shape is `doc.md`'s.*
 
 Three questions, four files. **Did a move cause this change?** —
 `useMoveCausedChange` pairs a content key with the server's move marker and
@@ -462,7 +465,8 @@ vocabulary's "until the next action" verdict lifetime, and a duration-based hook
 would be wrong for it. stackdown's peer mark and wordiply's are a two-beat
 SEQUENCE — two marks with a delay, not one mark.
 
-**WORKED 2026-09-15**, as option (1). `useMark<T>(durationMs)` holds one mark
+**WORKED 2026-09-16**, as option (1) (the commit is dated the 16th; an earlier
+revision of this line said the 15th). `useMark<T>(durationMs)` holds one mark
 with its reason attached, null meaning the board is saying nothing; `useFlash`
 keeps the other shape, a set of hot ids, and the two sit beside each other with
 the difference stated in both docstrings. The three exact copies converted and
@@ -530,6 +534,159 @@ already worked; (3) buys a name for a hook whose body is shorter than its import
 
 The boggle spec is planted-verified: with the old key restored it fails on the
 tile being the same DOM node across two refusals.
+
+## The closing re-read, 2026-09-16
+
+The whole area in one sitting — the seven sources, the six tests, setgame's
+flash pair, the mark rules in `playArea.module.css` and the flash lines in
+`base.css` — plus, for each worked finding, the grep that would find the same
+defect in a sibling ([app-audit.md](../app-audit.md) §4: a claim one group
+disproved can still stand next door). Seven more. Six were the area's own
+findings recurring one file over, or stale claims the area's own fixes wrote;
+they are fixed in place. One is a conversion with a decision in it, and waits.
+
+### F-board-marks-16 · `stackdown-second-mark` · stackdown still hand-rolls a self-clearing mark, one block below the `useMark` F-14 gave it
+
+**FOUND at the re-read; OPEN — a decision.** F-14 converted stackdown's word
+flash and recorded the file as done, and twenty-five lines below that
+conversion `refusedWord` is the same fourteen lines again: a nullable value in
+`useState`, a timer in a `useRef`, a clear-and-restart at the raise, an unmount
+effect. It holds the player's own refused word — its tiles stay off the board
+while the answer is read in the slots — and when the beat ends it runs three
+things: `clearWord()`, the returned tiles' attention flash, and the null. That
+END-OF-BEAT work is why it did not fit `useMark`, which has no hook point at the
+end, and why F-14's re-verification (which counted "three exact copies") walked
+past it.
+
+It IS a shape the folder now has: `useAnnouncedMark` with `announce: false` is
+exactly "wear the answer for `WORD_ANSWER_MS`, then run `onEnd`" — the wordiply
+own-word case. Options: (1) convert to `useAnnouncedMark(…, { announce: false,
+onEnd })`, which deletes the ref, the effect and the restart, and puts the
+end-of-beat work where wordiply's already is; (2) give `useMark` an `onEnd` of
+its own and convert to that — then two hooks carry the same option and the
+difference between them shrinks to the announce phase; (3) leave it for
+stackdown's area, which is where the file's other marks will be read anyway.
+Recommend (1): no new surface, and the two callers of the sequence hook become
+three, which is what Joel built it for (*"we may have other games use
+'announce-then-mark' pattern in the future"*). Not built at the re-read
+because it is a game's move path, and the choice between (1) and (2) is the
+kind a decision is for.
+
+**WORKED 2026-09-16**, as option (1) — Joel: *"1"*. `refusedWord` is
+`useAnnouncedMark<number[]>()` raised with `announce: false` and an `onEnd`
+that clears the word and flashes the returned tiles; the ref, the unmount
+effect, the restart and the `useRef` import are gone (seventeen lines out,
+fourteen in, most of them the comment). The path had NO spec — it was green
+after the conversion because nothing exercised it — so `PlayArea.test.tsx` got
+one: the slots wear the refusal and shake, `clearWord` is not called a
+millisecond before `WORD_ANSWER_MS` and is called at it, and the tiles land
+back wearing the attention flash with the slots' verdict gone. Planted: with
+`announce: true` the hold grows by the fade and the spec fails on `clearWord`
+never being called at the beat.
+
+### F-board-marks-17 · `flash-archaeology-again` · F-2's defect, twice more
+
+**WORKED 2026-09-16.** `useFlash`'s docstring had grown a new parenthetical —
+"There was a default of 1000 here, which is a decision nobody made…" — written
+by F-3's fix, which is the exact how-it-used-to-be paragraph F-2 had just cut
+from the same docstring. And scrabble's `BoardCol` carried its twin: "All three
+ran on a shared default of 1000 before, a number nobody picked." Both gone;
+the commit message is where that lives.
+
+### F-board-marks-18 · `stale-siblings` · Five claims the area's own work made false
+
+**WORKED 2026-09-16**, each in place:
+
+- `useFlash`'s last paragraph still said a tagged mark "keeps its own
+  self-clearing state" — F-14 built `useMark` for exactly that and the
+  docstring next door never heard. It names `useMark` now.
+- `feedbackTiming.ts`'s header said `publishMarkDurations` "writes the two
+  durations" and that "the `*_FLASH_MS` values" are fade plus slack. It writes
+  three (the head-shake's joined), and `AMBIGUOUS_PICK_FLASH_MS` is a
+  `*_FLASH_MS` that is a whole lifetime with no fade under it. The header now
+  names the two composed constants rather than a pattern.
+- `base.css`'s "Feedback timings" section said the two tokens are "both READ
+  here". None is read there — every reader is in `playArea.module.css` — and
+  there are three. It is a pointer now: not here, published from
+  `feedbackTiming.ts`, read by the mark rules.
+- `useTurnStartFlash`'s docstring named a `prev` that is `prevMyTurn`, and its
+  rule 2 said nothing about a frame still up when the turn leaves — which the
+  hook takes off at once, and F-7's test pins. One clause added.
+- `tile-feedback.md` still said `useChangeCause` "hands back the previous
+  content only when a move caused the change" and that setgame "folds in when
+  it converts" (F-10 did both), that stackdown rings for 900ms and strands for
+  1000ms "at a different number" (F-3 named one), listed the shared lifetime as
+  a strands proposal (done), and had scrabble's three outlines "at about a
+  second" (F-3 gave them named beats). All five corrected.
+
+### F-board-marks-19 · `two-clocks-again` · `.verdictRing` shakes on a literal `0.4s` beside `.verdictShake` on the token
+
+**WORKED 2026-09-16.** F-11 made `feedbackTiming.ts` the one home and F-14's
+head-shake published `--mark-verdict-shake-duration`; `.verdictShake` reads it
+and the comment between them says "one shake, one meaning, one duration". The
+older `.verdictRing`, twenty rules up, still had `verdict-shake 0.4s` typed in.
+It reads the token now — the same defect F-11 worked, in the sibling rule. Its
+comment also sent the reader to "wordle's BoardCol, connections' Board" for the
+replay nonce: wordle's is `Board.tsx`, and connections stopped wearing the ring
+when F-14's work put it on `useFlash`. It points at `.verdictShake`'s rule,
+where F-15 wrote the replay rule in full.
+
+### F-board-marks-20 · `stale-example` · The flash keyframe's comment worked its example at a duration the fade no longer has
+
+**WORKED 2026-09-16.** "At 350ms this is 300ms solid and a 50ms tail" — the
+fade is 250ms, and the sentence before it already makes the point (the split is
+a proportion, so retuning keeps the shape). The example is gone; a number in a
+comment is the count that always rots.
+
+### F-board-marks-21 · `test-claims` · Two test files carried claims the area itself had retired
+
+**WORKED 2026-09-16.** `useFlash.test.ts` had a spec named "accepts a custom
+duration" — from when there was a default to be custom against; F-3 made every
+duration the caller's. Renamed for what it checks. And the "what checked out"
+list below credited `useFlash`'s test with its unmount cleanup, which the test
+did not exercise while `useMark`'s, `useAnnouncedMark`'s and
+`useTurnStartFlash`'s all did; the spec is added, so the claim is true.
+`useTurnStartFlash.test.ts`'s last spec cited THIS FILE by name for having
+recorded the hook wrong — a durable file pointing at the area record, which the
+rule forbids; the comment keeps the rule and drops the citation.
+
+### F-board-marks-22 · `experiment-unrecorded` · The spellingbee / wordwheel experiment lived only here
+
+**WORKED 2026-09-16.** Joel's 2026-09-15 ruling — spellingbee colors a refused
+word's letters, wordwheel deliberately does not, friends decide for both — was
+recorded in this file's game section and nowhere that outlives it. It is a
+Someday in both games' `todo.md` now, each naming its twin, so the game area
+that opens first meets it on its first read and does not "fix" one to match the
+other.
+
+### F-board-marks-23 · `unnamed-effects` · The area wrote seven non-trivial callbacks as bare arrows
+
+**FOUND by Joel at the close, 2026-09-16; WORKED the same day.** The
+convention (code-conventions.md → the hook-callback rule) names a `useEffect`
+callback when it is non-trivial, and every effect this area wrote was a bare
+arrow: the take-off timers in `useMoveAttention` and `useTurnStartFlash`, the
+unmount cancels in `useFlash` and `useMark`, connections' flash-then-shake and
+psychicnum's shake-after-flash (both 2026-09-15), and setgame's hold-then-swap,
+whose body F-10 rewrote. Named for what they do: `takeMarkOffAfterBeat`,
+`takeFrameOffAfterBeat`, `cancelTimerOnUnmount` (twice), `flashThenShake`,
+`shakeAfterFlash`, `holdThenSwap`. The two multi-line `renderHook` callbacks in
+the folder's tests took names too — as hooks (`useRecordedAnswers`,
+`useAttentionOnChangedCells`), because `rules-of-hooks` refuses a hook call
+inside a function not named as one. Left bare on purpose: the one-line
+`useEffect(() => () => stop(), [stop])`, the `setTimeout` bodies (the
+convention scopes itself to the three hooks and says so), and scrabble's three
+effects, which are July's and scrabble's area's. The re-read had grepped for the
+area's own findings recurring and not for this rule, which is a sibling of the
+docstring-marker pass and belongs in the same sitting.
+
+Also at the re-read, checked and true: the `doc.md` caller table against every
+importer (the grep for the folder's path, then each hook's name); no `move-flash`
+or `useMoveCausedChange` anywhere outside this file and the commit log; no date
+later than today in any file the area touched; `common/board-marks` already off
+`INTROS_OWED`; `publishMarkDurations` called at boot beside `trackLayoutWidth`;
+the three `--mark-*-duration` tokens declared in no stylesheet; the two
+`--mark-attention-*` colors in both themes. The one-paragraph summary above
+("Three questions, four files") is marked as the audit's, not today's.
 
 ### What checked out
 
@@ -670,7 +827,8 @@ The white click-flash overlay is gone — it was written when the press was a ba
 `scale(0.9)` and easy to miss, and white at 0.7 over a pale hex read as the tile
 blanking; the press does that job now.
 
-**Owed.** The outcome color on the letters is KEPT, and wordwheel deliberately
+**Owed.** (Filed in `spellingbee/todo.md` at the close, F-22.) The outcome
+color on the letters is KEPT, and wordwheel deliberately
 does NOT have it, so friends can play both and say whether coloring a letter tile
 helps at all (Joel, 2026-09-15). The doubt that started it: a refused TETE colors
 two hexes, because a hive letter stands for every use of it in the word — the
@@ -711,7 +869,8 @@ A refused word head-shakes the whole wheel, as spellingbee's hive does and for
 the same reason: the refusal is about the word, and the letters are all legal
 tiles that did nothing wrong.
 
-**Owed.** No outcome color on the tiles, and that is the POINT: spellingbee has
+**Owed.** (Filed in `wordwheel/todo.md` at the close, F-22.) No outcome color
+on the tiles, and that is the POINT: spellingbee has
 one and this doesn't, so the pair is an experiment friends get to settle (Joel,
 2026-09-15). Whatever comes back decides it for both. `Wheel.module.css` and spellingbee's
 `Letters.module.css` now share
@@ -752,13 +911,18 @@ the hive stays SVG. The ledger says so.
 
 ## Predicted test breaks
 
-*(none yet — nothing has changed)*
+*Written at the audit:* if F-4 lands, `waffle/components/PlayArea.test.tsx`
+(the two `attentionFlash` specs) is the end-to-end check and should stay green,
+being about the class and not the hook. If F-11 chooses `animationend`: the
+same two specs, plus the three games' `yourTurnFlash` specs, assert the class
+ON and never its removal, so jsdom's lack of animation events should not bite.
 
-If F-4 lands: `waffle/components/PlayArea.test.tsx` (the two `attentionFlash`
-specs) is the end-to-end check and should stay green, being about the class
-and not the hook. If F-11 chooses `animationend`: the same two specs, plus the
-three games' `yourTurnFlash` specs, assert the class ON and never its removal,
-so jsdom's lack of animation events should not bite — verify.
+*What happened:* F-4 landed and waffle's two specs stayed green as predicted.
+F-11 did not choose `animationend` (the class still leaves on a timer, and the
+animations end on their own), so the second prediction never came due. The
+breaks the area actually produced were the ones it wrote on purpose — F-7's
+seventh spec, which failed against the hook and corrected this file, and
+F-15's planted boggle spec.
 
 ## Closing
 
@@ -785,7 +949,17 @@ so jsdom's lack of animation events should not bite — verify.
       guard bites this file too, which is why the phrase is not written out here. Planted both — a line in the
       folder's `todo.md` and a sentence in `docs/ui.md` — and both failed before
       being taken back out.
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — **DONE
+      2026-09-16**, seven more findings (F-16 – F-22 above), one open.
+- [x] the folder's `doc.md` intro written and its row off `INTROS_OWED` (F-1,
+      2026-09-15); **harvested 2026-09-16** — the lede names all three kinds of
+      mark and the lifetimes, and `## Details` gained the announce-then-answer
+      changeover rule. No render tree: the folder holds hooks, not components.
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — **2026-09-16.** The folder's own `todo.md` is empty: the one open item
+      (F-16) is stackdown's and waits on a decision, and the experiment is in the
+      two bee games' todos (F-22). The game section below stays by Joel's word
+      as a record of what landed; every "Owed" line in it now also lives in
+      `tile-feedback.md`'s roster or the game's `todo.md`.
+- [ ] every file on the roster blessed, or its stamp says why not — **JOEL'S.**
+      The roster is `cs-audited-board-marks` throughout; nothing is blessed.

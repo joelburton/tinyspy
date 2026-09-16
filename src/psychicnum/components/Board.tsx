@@ -126,7 +126,7 @@ export function Board({
     .filter((w) => results.get(w) === false)
     .sort()
     .join(',')
-  useEffect(() => {
+  useEffect(function shakeAfterFlash() {
     if (wrongKey === '') return
     const timer = setTimeout(() => shakeWrong(wrongKey.split(',')), ATTENTION_FADE_MS)
     return () => clearTimeout(timer)

@@ -2,8 +2,9 @@
 
 The marks a board wears for a beat and then takes off: the attention flash on
 the pieces a move just changed, the frame at the moment the turn becomes yours,
-and a general hot set a game lights for its own reasons. None of them is state — a
-mark says "look here", never "this is how things are".
+and the hot set or single mark a game raises for its own reasons — with every
+mark's lifetime. None of them is state — a mark says "look here", never "this is
+how things are".
 
 ## Intro to area
 
@@ -119,6 +120,16 @@ it is raising, because a mark's lifetime is part of what the mark means. Passing
 a number of your own is therefore a claim that the mark is a kind the vocabulary
 does not have yet — setgame's hold-then-arrive is the one that is, and its two
 numbers live with the choreography they time.
+
+**Announce, then answer, and the changeover is the fade.** When a piece has to
+be pointed at AND then wear an outcome — a teammate's word, which the player was
+not watching for — `useAnnouncedMark` runs the two in sequence, and the answer's
+color goes on at exactly the instant the attention flash finishes fading. Any
+earlier paints the answer under a flash still on top of it, so the player sees
+the flash and then a color that arrives unannounced. Both lifetimes are the
+vocabulary's, so the hook takes neither; what a caller chooses is whether to
+announce at all (your own word needs no pointing at) and what should happen
+when the sequence ends, for state a game keeps beside the mark.
 
 **Both halves of the attention mark are animations on that one duration** — the
 flash fading off the piece, and the dark ink it needs while it is up. They begin

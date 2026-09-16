@@ -77,9 +77,9 @@ export function useAnnouncedMark<T>(): [
   // Both timers go on unmount, so neither can fire a setState afterward.
   useEffect(() => () => stop(), [stop])
 
-  /** Take the mark off NOW, canceling the rest of the sequence. `onEnd` does
-   *  NOT run: it belongs to a mark that finished, and this one was interrupted
-   *  by something the caller knows more about than the hook does. */
+  // Take the mark off NOW, canceling the rest of the sequence. `onEnd` does NOT
+  // run: it belongs to a mark that finished, and this one was interrupted by
+  // something the caller knows more about than the hook does.
   const clear = useCallback(() => {
     stop()
     setMark(null)

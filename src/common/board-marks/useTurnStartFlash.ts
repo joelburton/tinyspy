@@ -11,10 +11,12 @@ import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
  * runs on:
  *
  *   1. **Never on mount.** Opening a game that is already your turn is not the
- *      turn arriving; `prev` seeds from the first value, so only a genuine
+ *      turn arriving; `prevMyTurn` seeds from the first value, so only a genuine
  *      false → true transition during the session fires.
  *   2. **Rising edge only.** Losing the turn is announced by the board dimming,
- *      which is a state, not an event.
+ *      which is a state, not an event. It does take a frame still up OFF at
+ *      once — you acted, so the announcement is spent — and the turn coming
+ *      back is a fresh arrival on a full clock.
  *
  * In a free-for-all game `myTurn` is permanently true, so this never fires —
  * no caller-side gate needed.
@@ -34,7 +36,7 @@ export function useTurnStartFlash(myTurn: boolean): boolean {
     setFlashing(myTurn)
   }
 
-  useEffect(() => {
+  useEffect(function takeFrameOffAfterBeat() {
     if (!flashing) return
     const timer = setTimeout(() => setFlashing(false), YOUR_TURN_FLASH_MS)
     return () => clearTimeout(timer)

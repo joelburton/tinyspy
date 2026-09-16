@@ -72,7 +72,7 @@ export function useMoveAttention<Content, Id>({
   // which is a reaction to new props and stays in render. The constant is how
   // long the CLASS is held; what the mark LOOKS like is timed by CSS, from the
   // same number (see `feedbackTiming`).
-  useEffect(() => {
+  useEffect(function takeMarkOffAfterBeat() {
     if (hot.size === 0) return
     const timer = setTimeout(() => setHot(NOTHING), ATTENTION_FLASH_MS)
     return () => clearTimeout(timer)

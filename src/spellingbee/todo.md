@@ -77,4 +77,13 @@
 
 ## Someday
 
+- **The outcome color on a refused word's letters is a live experiment, and
+  wordwheel is its control.** Here the letters the word used take the outcome's
+  fill; wordwheel's tiles deliberately do NOT, so friends can play both and say
+  whether coloring a letter tile helps at all (Joel, 2026-09-15). The doubt that
+  started it: a refused TETE colors two hexes, because a hive letter stands for
+  every use of it in the word, and a word has as many letters as it likes.
+  **Whatever comes back decides it for both** — do not bring wordwheel into line
+  to match. Its twin is in `wordwheel/todo.md`.
+
 ## Maybe

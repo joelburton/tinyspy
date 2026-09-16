@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -196,13 +196,11 @@ export function PlayArea({
   // answer was read in the slots, and this is where the letters went.
   const [returnedTiles, flashReturned] = useFlash<number>(ATTENTION_FLASH_MS)
 
-  /** The word this player just had refused, still in the slots and wearing the
-   *  answer. Its tiles are off the board until the beat ends. */
-  const [refusedWord, setRefusedWord] = useState<number[] | null>(null)
-  const refusedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => {
-    if (refusedTimer.current) clearTimeout(refusedTimer.current)
-  }, [])
+  // The word this player just had refused, still in the slots and wearing the
+  // answer; its tiles are off the board until the beat ends. The answer only —
+  // no announcement, since the player is looking at the word they just typed —
+  // and the sequence's end is where the tiles go home (`onEnd`, at the raise).
+  const [refusedWord, showRefusedWord] = useAnnouncedMark<number[]>()
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -271,22 +269,21 @@ export function PlayArea({
         // The answer shows in the SLOTS, where the eye already is, and the five
         // tiles stay off the board while it does — coming back only once the
         // beat ends, wearing the attention flash so the eye follows them home.
-        setRefusedWord(tileIds)
+        showRefusedWord(tileIds, {
+          announce: false,
+          onEnd: () => {
+            clearWord()
+            flashReturned(tileIds)
+          },
+        })
         localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
-        if (refusedTimer.current) clearTimeout(refusedTimer.current)
-        refusedTimer.current = setTimeout(() => {
-          clearWord()
-          flashReturned(tileIds)
-          setRefusedWord(null)
-          refusedTimer.current = null
-        }, WORD_ANSWER_MS)
         return
       } else {
         reportUnhandled('submit_word', res)
         return
       }
     },
-    [gameId, clearWord, commitWord, showFlash, localFeedbackSlot, flashReturned],
+    [gameId, clearWord, commitWord, showFlash, showRefusedWord, localFeedbackSlot, flashReturned],
   )
 
   // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──

@@ -9,15 +9,16 @@ import { useMoveAttention } from './useMoveAttention'
  *  callers, small enough to read. */
 function render(initial: { board: string; moves: number; quiet?: boolean }) {
   return renderHook(
-    ({ board, moves, quiet }: { board: string; moves: number; quiet?: boolean }) =>
-      useMoveAttention({
+    function useAttentionOnChangedCells({ board, moves, quiet }: { board: string; moves: number; quiet?: boolean }) {
+      return useMoveAttention({
         content: board,
         contentKey: board,
         moveCount: moves,
         quiet,
         changed: (before, now) =>
           new Set([...now].map((c, i) => (c === before[i] ? -1 : i)).filter((i) => i >= 0)),
-      }),
+      })
+    },
     { initialProps: initial },
   )
 }

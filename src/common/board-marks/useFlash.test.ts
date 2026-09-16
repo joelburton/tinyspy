@@ -48,12 +48,20 @@ describe('useFlash', () => {
     expect(result.current[0].has(3)).toBe(true)
   })
 
-  it('accepts a custom duration', () => {
+  it('clears at whichever beat it was given', () => {
     const { result } = renderHook(() => useFlash(500))
     act(() => result.current[1]([9]))
     act(() => vi.advanceTimersByTime(499))
     expect(result.current[0].has(9)).toBe(true)
     act(() => vi.advanceTimersByTime(1))
     expect([...result.current[0]]).toEqual([])
+  })
+
+  it('does not fire after unmount', () => {
+    const { result, unmount } = renderHook(() => useFlash(1000))
+    act(() => result.current[1]([1]))
+    unmount()
+    // No "setState on an unmounted component" — the cleanup took the timer.
+    expect(() => act(() => vi.advanceTimersByTime(1000))).not.toThrow()
   })
 })

@@ -73,8 +73,9 @@ export type FlashKind = 'held' | 'leaving' | 'arriving'
  * to the game but whether it is new to the slot you are looking at.
  *
  * Call this only when a CLAIM caused the change. It cannot tell — and must not
- * guess — the difference between a claim and a fresh deal; see `PlayArea`,
- * which reads the cause off the event log instead.
+ * guess — the difference between a claim and a fresh deal; `PlayArea` reads
+ * the cause off the event log through `useChangeCause` and calls this on the
+ * answer that says a claim did it.
  */
 export function claimTransition(
   shown: readonly Card[],

@@ -211,7 +211,7 @@ export function BoardCol({
   // submit, or a teammate's row arriving — so they read the same either way.
   const [attentionTiles, flashAttention] = useFlash<string>(ATTENTION_FLASH_MS)
   const [shakenTiles, shakeTiles] = useFlash<string>(VERDICT_SHAKE_MS)
-  useEffect(() => {
+  useEffect(function flashThenShake() {
     if (verdict === null) return
     flashAttention(verdict.tiles)
     // Every verdict that can land ON TILES is a refusal — a correct guess takes

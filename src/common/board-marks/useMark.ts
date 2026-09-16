@@ -42,12 +42,11 @@ export function useMark<T>(
   )
 
   // Clear a pending timer on unmount so it can't fire a setState afterward.
-  useEffect(
-    () => () => {
+  useEffect(function cancelTimerOnUnmount() {
+    return () => {
       if (timer.current) clearTimeout(timer.current)
-    },
-    [],
-  )
+    }
+  }, [])
 
   // Take the mark off NOW. It deliberately leaves any pending timer alone, so
   // that this is a plain state update and nothing else: that timer would null an

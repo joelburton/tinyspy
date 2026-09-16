@@ -165,7 +165,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The hold, then the swap. One timer for the whole board — the replacements
   // all land together, because it was never the SPEED of their arrival that made
   // them noticeable, only the mark.
-  useEffect(() => {
+  useEffect(function holdThenSwap() {
     if (!depart) return
     const timer = setTimeout(() => {
       flashArriving(claimTransition(shown, board).arriving)

@@ -12,8 +12,7 @@ const EMPTY: ReadonlySet<never> = new Set()
  *
  * `durationMs` is required and comes from `feedbackTiming` — a mark's lifetime
  * is part of what the mark MEANS, so a caller says which beat it is raising and
- * never a number of its own. (There was a default of 1000 here, which is a
- * decision nobody made wearing a hook signature's clothes.)
+ * never a number of its own.
  *
  * Each call owns its own timer, so two marks on one board don't interfere, and
  * calling `flash` again before it clears restarts the countdown and replaces
@@ -26,8 +25,7 @@ const EMPTY: ReadonlySet<never> = new Set()
  * board changes out from under a mark that is still lit.
  *
  * A SET of ids is the whole of what it holds: a single nullable tagged value —
- * one mark with a reason attached — is a different shape and keeps its own
- * self-clearing state.
+ * one mark with a reason attached — is the other shape, and that is `useMark`.
  */
 export function useFlash<T = number>(
   durationMs: number,
@@ -48,12 +46,11 @@ export function useFlash<T = number>(
   )
 
   // Clear a pending timer on unmount so it can't fire a setState afterward.
-  useEffect(
-    () => () => {
+  useEffect(function cancelTimerOnUnmount() {
+    return () => {
       if (timer.current) clearTimeout(timer.current)
-    },
-    [],
-  )
+    }
+  }, [])
 
   // Take the mark off NOW. It deliberately leaves any pending timer alone, so
   // that this is a plain state update and nothing else: that timer would empty
