@@ -49,7 +49,9 @@ which pieces are hot — and marks an ambiguous letter in the word a player type
 or outlines the cells of a word the server just refused. `useMark` holds ONE
 mark with a reason attached, where null means the board is saying nothing: a
 refused word's tiles and the outcome they wear are one fact, not a set of hot
-ids. Neither is about a move at all. A mark whose lifetime is "until the next
+ids. `useAnnouncedMark` is that mark in two phases, for news the player was not
+watching for — the attention flash points at the pieces, and when it has faded
+they wear the outcome's color. Neither is about a move at all. A mark whose lifetime is "until the next
 action" is neither shape — it has no clock, and the action that ends it is what
 clears it.
 
@@ -71,6 +73,7 @@ something unmarked is made.
 | `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the wash on pieces a move changed |
 | `useFlash` (a set of hot ids) | connections `BoardCol`, psychicnum `Board`, stackdown `PlayArea` + `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | a wash, a head-shake, an ambiguous letter, scrabble's three placement outlines |
 | `useMark` (one mark, with its reason) | boggle, spellingbee and stackdown `PlayArea` | a refused word's answer, on the tiles or letters it used |
+| `useAnnouncedMark` (one mark, in two phases) | stackdown and wordiply `PlayArea` | a teammate's word: the attention flash, then the outcome's color |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
 setgame is on the two pieces underneath instead: `useChangeCause`, keyed on the

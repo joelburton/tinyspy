@@ -3,6 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
@@ -45,24 +46,24 @@ export function GuessBoard({
   held?: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer on whichever row its word is in, for a beat: a teammate's word
    *  is already a landed row, mine may still be the held one. */
-  flash?: { word: string; outcome: Outcome; attention: boolean } | null
+  flash?: AnnouncedMark<{ word: string; outcome: Outcome }> | null
 }) {
   // The answer marks the row its word is IN, and MY row wins: guessing a word
   // again is answered where I just typed it, not on the row it landed in four
   // turns ago. Only a teammate's word — which has no held row of mine — marks a
   // landed one.
-  const onHeldRow = held !== null && flash !== null && flash.word === held.word
+  const onHeldRow = held !== null && flash !== null && flash.value.word === held.word
   const flashed =
-    flash && !onHeldRow ? guesses.findIndex((g) => g.word === flash.word) : -1
+    flash && !onHeldRow ? guesses.findIndex((g) => g.word === flash.value.word) : -1
   const activeIndex = showActive ? guesses.length + (held ? 1 : 0) : -1
   /** The marks a row wears while it is the answered one. */
   const answerMarks = (a: NonNullable<typeof flash>) =>
     cls(
-      a.attention && shared.attentionFlash,
-      !a.attention && styles.answered,
-      !a.attention && VERDICT_TONE[a.outcome],
+      a.phase === 'pointing' && shared.attentionFlash,
+      a.phase === 'answering' && styles.answered,
+      a.phase === 'answering' && VERDICT_TONE[a.value.outcome],
       // Side to side means "not a winning move", so only a win is spared it.
-      !a.attention && a.outcome !== 'won' && shared.verdictShake,
+      a.phase === 'answering' && a.value.outcome !== 'won' && shared.verdictShake,
     )
 
   return (
@@ -79,7 +80,7 @@ export function GuessBoard({
               className={cls(
                 styles.row,
                 styles.done,
-                flash && flash.word === held.word && answerMarks(flash),
+                flash && flash.value.word === held.word && answerMarks(flash),
               )}
             >
               <DimmedBaseWord word={held.word} base={base} className={styles.rowWord} />

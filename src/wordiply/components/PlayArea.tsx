@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -16,7 +16,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
-import { ATTENTION_FADE_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import { useAnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
 import { lengthScore } from '../lib/scoring'
 import type { WordiplySetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -198,47 +198,29 @@ export function PlayArea(ctx: GamePageCtx) {
   /** The answer being shown on whichever row the word is in. Always timed, for
    *  everyone: a mark that waits for your next move is a mark still claiming
    *  something about a board you have moved on from. */
-  const [flash, setFlash] = useState<
-    { word: string; outcome: Outcome; attention: boolean } | null
-  >(null)
-  const answerTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const [flash, showFlash] = useAnnouncedMark<{ word: string; outcome: Outcome }>()
   const showAnswer = useCallback(
     (w: string, outcome: Outcome, peer = false) => {
-      answerTimers.current.forEach(clearTimeout)
-      // A teammate's word lands in a row nobody was watching, so it gets both
-      // beats in the order every board uses: the attention flash says WHERE,
-      // and once it fades the answer's color says WHAT. My own word needs only
-      // the color — I am looking at the row I typed into.
+      // A teammate's word lands in a row nobody was watching, so it is
+      // ANNOUNCED: the attention flash says where, and once it fades the
+      // answer's color says what. My own word needs only the color — I am
+      // looking at the row I typed into.
+      //
       // A teammate's word is already a row of its own; mine is not one yet —
       // accepted, it is about to be, and refused, it never will be.
       // `awaitingRow` is the difference between the two kinds of held row: an
       // ACCEPTED word is standing in for a server row that is on its way, and
       // steps aside when it lands. Anything else — refused, already used — has
-      // no row coming, so it stays put for the beat and is answered HERE, on
-      // the row it was just typed into.
+      // no row coming, so it stays put for the mark's life and goes with it,
+      // which is what `onEnd` is for.
       if (!peer) setHeld({ word: w, length: w.length, awaitingRow: outcome === 'won' })
-      setFlash({ word: w, outcome, attention: peer })
-      const lead = peer ? ATTENTION_FADE_MS : 0
-      answerTimers.current = [
-        ...(peer
-          ? [
-              setTimeout(
-                () => setFlash((f) => (f ? { ...f, attention: false } : null)),
-                ATTENTION_FADE_MS,
-              ),
-            ]
-          : []),
-        setTimeout(() => {
-          setFlash(null)
-          // A refused word's row goes with its mark; an accepted one waits for
-          // the server's row, which the check below hands over to.
-          if (outcome !== 'won') setHeld(null)
-        }, lead + WORD_ANSWER_MS),
-      ]
+      showFlash(
+        { word: w, outcome },
+        { announce: peer, onEnd: outcome === 'won' ? undefined : () => setHeld(null) },
+      )
     },
-    [],
+    [showFlash],
   )
-  useEffect(() => () => answerTimers.current.forEach(clearTimeout), [])
 
   // …and a held row that is WAITING for its server row goes the moment that row
   // lands. A word already on the board is not waiting for anything — guessing it

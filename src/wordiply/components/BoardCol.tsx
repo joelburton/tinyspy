@@ -10,6 +10,7 @@ import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
 import { GuessBoard } from './GuessBoard'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */
@@ -47,7 +48,7 @@ export function BoardCol({
    *  `<GuessBoard>`. */
   held: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer being shown on the row that word is in, for a beat. */
-  flash: { word: string; outcome: Outcome; attention: boolean } | null
+  flash: AnnouncedMark<{ word: string; outcome: Outcome }> | null
   word: string
   onChange: Dispatch<SetStateAction<string>>
   onSubmit: () => void

@@ -27,11 +27,8 @@ import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFlash } from '@/common/board-marks/useFlash'
 import { useMark } from '@/common/board-marks/useMark'
-import {
-  ATTENTION_FADE_MS,
-  ATTENTION_FLASH_MS,
-  WORD_ANSWER_MS,
-} from '@/common/board-marks/feedbackTiming'
+import { useAnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
+import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
@@ -186,23 +183,14 @@ export function PlayArea({
   // change are one event — the tiles you are being told about are already gone
   // by the time you look. They are inert while held (`heldTileIds` below), so
   // nobody can pick up a tile the server has already taken.
-  const [peerMark, setPeerMark] = useState<
-    { ids: number[]; tone: 'won' | 'lost'; answered: boolean } | null
-  >(null)
-  const peerMarkTimers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const markPeerWord = useCallback((tileIds: number[], valid: boolean) => {
-    if (tileIds.length === 0) return
-    peerMarkTimers.current.forEach(clearTimeout)
-    setPeerMark({ ids: tileIds, tone: valid ? 'won' : 'lost', answered: false })
-    peerMarkTimers.current = [
-      setTimeout(
-        () => setPeerMark((m) => (m ? { ...m, answered: true } : null)),
-        ATTENTION_FADE_MS,
-      ),
-      setTimeout(() => setPeerMark(null), ATTENTION_FADE_MS + WORD_ANSWER_MS),
-    ]
-  }, [])
-  useEffect(() => () => peerMarkTimers.current.forEach(clearTimeout), [])
+  const [peerMark, showPeerMark] = useAnnouncedMark<{ ids: number[]; tone: 'won' | 'lost' }>()
+  const markPeerWord = useCallback(
+    (tileIds: number[], valid: boolean) => {
+      if (tileIds.length === 0) return
+      showPeerMark({ ids: tileIds, tone: valid ? 'won' : 'lost' })
+    },
+    [showPeerMark],
+  )
 
   // My own refused word's tiles, marked as they land back on the board — the
   // answer was read in the slots, and this is where the letters went.
@@ -505,7 +493,7 @@ export function PlayArea({
   // the tiles the server has already taken stay drawn, and inert, until the
   // answer has been read. Nothing else delays a removal.
   const heldTileIds = useMemo(
-    () => (peerMark?.tone === 'won' ? new Set(peerMark.ids) : new Set<number>()),
+    () => (peerMark?.value.tone === 'won' ? new Set(peerMark.value.ids) : new Set<number>()),
     [peerMark],
   )
   const offBoard = useMemo(() => {
@@ -519,14 +507,16 @@ export function PlayArea({
    *  shows, and my own refused tiles as they land back. */
   const attentionTiles = useMemo(() => {
     const ids = new Set<number>(returnedTiles)
-    if (peerMark && !peerMark.answered) for (const id of peerMark.ids) ids.add(id)
+    if (peerMark?.phase === 'pointing') for (const id of peerMark.value.ids) ids.add(id)
     return ids
   }, [returnedTiles, peerMark])
 
   /** A teammate's answer, once the attention flash has handed the tiles back. */
   const boardAnswer = useMemo(
     () =>
-      peerMark?.answered ? { ids: new Set(peerMark.ids), tone: peerMark.tone } : null,
+      peerMark?.phase === 'answering'
+        ? { ids: new Set(peerMark.value.ids), tone: peerMark.value.tone }
+        : null,
     [peerMark],
   )
 

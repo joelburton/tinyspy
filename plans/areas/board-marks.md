@@ -37,6 +37,8 @@ heavily refactored since, so choices made there may want improving.
 - `useFlash.ts` · `useFlash.test.ts`
 - `useMark.ts` · `useMark.test.ts` — WRITTEN by this area (F-14),
   `cs-audited-board-marks`
+- `useAnnouncedMark.ts` · `useAnnouncedMark.test.ts` — WRITTEN by this area
+  (F-14, option B), `cs-audited-board-marks`
 - `useChangeCause.ts` — renamed from `useMoveCausedChange.ts` (F-10), and its
   `useChangeCause.test.ts`, WRITTEN by this area
 - `useMoveAttention.ts` · `useMoveAttention.test.ts` — WRITTEN by this area
@@ -267,6 +269,15 @@ A file per unit: `useMoveCausedChange.test.ts`, `useTurnStartFlash.test.ts`.
 was written with the hook. `useTurnStartFlash` is still the only file in the
 folder with no test of its own.
 
+**WORKED 2026-09-16.** `useTurnStartFlash.test.ts`: silent on mount whichever way
+the turn already sits, the rising edge, no fire when the turn leaves, firing
+again next turn, never in a free-for-all, and no fire after unmount.
+
+It earned its keep immediately. The seventh case was written to pin what the
+audit had RECORDED about a turn leaving and returning inside the beat — and
+failed, because the hook does the opposite. The area's own "what checked out"
+list is corrected below. Every file in the folder now has a test of its own.
+
 ### F-board-marks-8 · `cause-hook-name` · The name asks a yes/no question and the hook answers with content
 
 **WORKED 2026-09-15**, by F-10's rename. `useMoveCausedChange(content, key, moves)` reads as "did a move cause a
@@ -455,10 +466,27 @@ SEQUENCE — two marks with a delay, not one mark.
 with its reason attached, null meaning the board is saying nothing; `useFlash`
 keeps the other shape, a set of hot ids, and the two sit beside each other with
 the difference stated in both docstrings. The three exact copies converted and
-lost forty lines between them. The two-beat sequence was deliberately left: it is
-two `useMark`s with a delay, and whether the delay wants a name is easier to see
-once both games are written that way than it was from two hand-rolled copies.
-letterboxed is not this hook's shape and was not touched.
+lost forty lines between them. letterboxed is not this hook's shape and was not touched.
+
+**AND OPTION (B) TOO, 2026-09-16.** `useAnnouncedMark<T>()` is the sequence:
+`{ value, phase: 'pointing' | 'answering' } | null`, the attention flash then the
+outcome's color then off. Both lifetimes are baked rather than passed, because
+the vocabulary fixes them; what is worth having in one place is WHEN the phases
+change over — exactly `ATTENTION_FADE_MS`, the instant the attention flash
+finishes fading and the piece's own color is visible again. Earlier paints the
+answer under a flash still on top of it, and that rule was written out in two
+games' comments and nowhere else. `announce: false` skips the first phase for a
+player already looking at the piece, which is wordiply's own-word case.
+
+It grew one thing beyond the presentation: an `onEnd` captured at `show`, because
+wordiply keeps state BESIDE the mark that ends with it — a refused word's held
+row, which has no server row coming to replace it. Without a hook point at the
+end of the sequence that game could not convert at all. A cleared mark does not
+run it: that mark was interrupted, and the caller knows more about what comes
+next than the hook does.
+
+Joel, 2026-09-16, on building it at two callers: *"we may have other games use
+'announce-then-mark' pattern in the future."*
 
 ### F-board-marks-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
 
@@ -515,8 +543,15 @@ tile being the same DOM node across two refusals.
   `Promise.all`; psychicnum's content and marker both come from its guesses
   read).
 - `useTurnStartFlash`: never on mount, rising edge only, free-for-all never
-  fires. A turn that leaves and returns inside 1.2s neither replays the ring
-  nor restarts the timer, and that is fine.
+  fires. ~~A turn that leaves and returns inside 1.2s neither replays the ring
+  nor restarts the timer, and that is fine.~~ **WRONG AS RECORDED — corrected
+  2026-09-16 by F-7's test.** The transition sets `flashing` to whichever way the
+  turn just went, so a turn LEAVING takes the frame off at once instead of
+  letting it finish, and coming back is a fresh arrival with a full clock. Both
+  halves are defensible — you acted, so the announcement is spent; you are being
+  told again, so it is told properly — and both are pinned by a spec now. What is
+  not defensible is reading a hook and recording the opposite of what it does,
+  which is what a unit test is for and why F-7 existed.
 - `useFlash`'s unmount cleanup, restart-on-reflash, and its test.
 - `feedbackTiming`'s two values against their tokens: attention equal (the
   minimum the rule allows), your-turn longer on purpose.
