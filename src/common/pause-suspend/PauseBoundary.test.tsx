@@ -41,7 +41,7 @@ const BEA: Member = {
   username: 'bea',
   color: 'blue',
 }
-/** Nobody on the channel — every expected member reads as absent. */
+/** Nobody on the channel — every player passed in reads as absent. */
 const NONE_PRESENT = new Set<string>()
 
 /** The four props `GamePage` always passes, with no manual pause in effect —
@@ -77,7 +77,7 @@ function MountCounterChild({ onMount }: { onMount: () => void }) {
 describe('PauseBoundary', () => {
   it('renders children when paused=false', () => {
     render(
-      <PauseBoundary paused={false} expected={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <div data-testid="child">play surface</div>
       </PauseBoundary>,
     )
@@ -87,7 +87,7 @@ describe('PauseBoundary', () => {
 
   it('hides children and renders the overlay when paused=true (presence)', () => {
     render(
-      <PauseBoundary paused={true} expected={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <div data-testid="child">play surface</div>
       </PauseBoundary>,
     )
@@ -98,7 +98,7 @@ describe('PauseBoundary', () => {
   it('remounts children when paused toggles true→false (i.e., children unmount, not visibility:hidden)', () => {
     const onMount = vi.fn()
     const { rerender } = render(
-      <PauseBoundary paused={false} expected={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -106,7 +106,7 @@ describe('PauseBoundary', () => {
 
     // Pause: child unmounts. Mount count stays at 1.
     rerender(
-      <PauseBoundary paused={true} expected={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -116,7 +116,7 @@ describe('PauseBoundary', () => {
     // Resume: child remounts. Mount count increments — the proof that
     // the previous unmount actually happened.
     rerender(
-      <PauseBoundary paused={false} expected={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={false} players={[]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
@@ -126,7 +126,7 @@ describe('PauseBoundary', () => {
 
   it('shows the missing peer name in the presence-pause text', () => {
     render(
-      <PauseBoundary paused={true} expected={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
+      <PauseBoundary paused={true} players={[BEA]} presentUserIds={NONE_PRESENT} {...escapes()}>
         <div>play</div>
       </PauseBoundary>,
     )
@@ -143,7 +143,7 @@ describe('PauseBoundary', () => {
       <PauseBoundary
         {...escapes()}
         paused={true}
-        expected={[]}
+        players={[]}
         presentUserIds={NONE_PRESENT}
         manuallyPausedBy={ADA}
         onResume={onResume}
@@ -168,7 +168,7 @@ describe('PauseBoundary', () => {
       <PauseBoundary
         {...escapes()}
         paused={true}
-        expected={[BEA]}
+        players={[BEA]}
         presentUserIds={NONE_PRESENT}
         actEndGame={actEndGame}
       >
@@ -184,7 +184,7 @@ describe('PauseBoundary', () => {
       <PauseBoundary
         {...escapes()}
         paused={true}
-        expected={[BEA]}
+        players={[BEA]}
         presentUserIds={NONE_PRESENT}
         actEndGame={boundActionFixture('act-end-game', () => ({ state: 'hidden' }))}
       >

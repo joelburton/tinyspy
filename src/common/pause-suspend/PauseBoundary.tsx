@@ -9,9 +9,9 @@ type Props = {
   // Whether the game is currently paused — the union of every pause source
   // (presence, manual). The boundary does not care which; only the boolean.
   paused: boolean
-  // The roster the overlay draws, and the ids currently on the channel that
-  // split it into present and away. See `PauseOverlay`, which is handed both.
-  expected: Member[]
+  // The players the overlay draws, and the ids currently on the channel that
+  // split them into present and away. See `PauseOverlay`, which is handed both.
+  players: Member[]
   presentUserIds: Set<string>
   // Who pressed Pause — null when the pause is presence-only — and the handler
   // that releases it. Both pass straight through to `PauseOverlay`; its Props
@@ -42,7 +42,7 @@ type Props = {
  */
 export function PauseBoundary({
   paused,
-  expected,
+  players,
   presentUserIds,
   manuallyPausedBy,
   onResume,
@@ -53,7 +53,7 @@ export function PauseBoundary({
   if (paused) {
     return (
       <PauseOverlay
-        expected={expected}
+        players={players}
         presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={onResume}

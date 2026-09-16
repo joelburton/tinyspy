@@ -6,9 +6,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN, the prose pass done 2026-09-16.** Roster agreed (Joel: *"audit
 the area"*) and stamped `cs-met-pause-suspend`; every file read. Thirteen
-findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6
-and F-7. The four that remain each carry a decision and are presented one at a
-time: F-8, F-9, F-11, F-13.
+findings: the prose ones — F-1 to F-5, F-10, F-12 — are worked, and so are F-6,
+F-7 and F-8. The three that remain each carry a decision and are presented one
+at a time: F-9, F-11, F-13.
 
 ## The roster
 
@@ -266,6 +266,20 @@ draws IS a roster, and "roster" is the word the docstrings and `states.md`
 already reach for; (2) `activePlayers`, matching the caller's name end to end;
 (3) leave. Recommend (1); (2) drags "active" (a word `states.md` uses for
 view state) into a component that only lists people.
+
+**WORKED 2026-09-16 as `players`, not the `roster` this finding recommended.**
+The re-verification turned up a ruling the audit had missed: `docs/naming.md` →
+player says that inside game-context code the variable is `players` with type
+`Player[]`, and these two components are game-context code — `computePause`'s
+own parameter already obeys it. Two things also told against `roster`: the word
+already means the sixteen gametypes through much of `docs/`, and `activePlayers`
+would drag "active" in (not forbidden — the no-`'active'` convention is about
+play_state VALUES — but it is the overload that convention warns about). Joel:
+*"is this just 'what to call the prop'? if so, i'll take 1."* Renamed in both
+components, `GamePage`'s call, and the test's nine renders. The CSS keeps its
+`.roster*` classes, which name the visual block, and `states.md` keeps calling
+it the roster in prose; "expected" survives only where it is the CONCEPT — who
+is expected — in `computePause`'s docstring and the stylesheet's header.
 
 ### F-pause-suspend-9 · `both-on-a-leading-actor` · The manual-pause sentence forces `show="both"` where the actor already leads
 

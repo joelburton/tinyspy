@@ -393,7 +393,7 @@ export function GamePage({
 
       <PauseBoundary
         paused={paused}
-        expected={activePlayers}
+        players={activePlayers}
         presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}

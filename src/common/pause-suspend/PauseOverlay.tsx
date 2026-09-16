@@ -9,11 +9,11 @@ import styles from './PauseOverlay.module.css'
 import { StandardButton } from '../buttons/StandardButton'
 
 type Props = {
-  // The roster to draw — every player we are waiting on (conceders already
+  // The players to draw — everyone we are waiting on (conceders already
   // excluded upstream), one per row with an identity disc: filled color when
   // present, a hollow gray "away" ring when absent.
-  expected: Member[]
-  // User ids currently on the game's realtime channel. Anyone in `expected` but
+  players: Member[]
+  // User ids currently on the game's realtime channel. Anyone in `players` but
   // not here is drawn as an away ring.
   presentUserIds: Set<string>
   // Set when a player pressed Pause, which is what draws the "X paused the
@@ -44,32 +44,31 @@ type Props = {
  *
  * What it says comes from the two pause sources, which can both be true:
  *
- *   - somebody in `expected` is off the channel — "Waiting for everyone to
+ *   - somebody in `players` is off the channel — "Waiting for everyone to
  *     connect…" over the roster, which covers a player who dropped AND one who
  *     was invited and has not arrived yet;
  *   - `manuallyPausedBy` is set — "Bea paused the game", with Resume beside it.
  *     Resume clears only the manual pause; a presence pause outlives it.
  *
- * The roster lists the WHOLE expected team and not just the missing, so a
- * waiting player sees who is already here alongside who we are still waiting
- * on. Names stay black wherever the overlay writes one — the disc alone carries
+ * The roster it draws is the WHOLE team and not just the missing, so a waiting
+ * player sees who is already here alongside who we are still waiting on. Names stay black wherever the overlay writes one — the disc alone carries
  * identity, the same grammar as the header's `PageHeaderPlayersStrip`
  * (docs/ui.md → "Player identity = a colored disc").
  *
  * Paused is not suspended; docs/states.md → paused defines both words.
  */
 export function PauseOverlay({
-  expected,
+  players,
   presentUserIds,
   manuallyPausedBy,
   onResume,
   actBackToClub,
   actEndGame,
 }: Props) {
-  // Anyone expected but off the channel is who we're waiting on, which is what
-  // draws the roster. Whether the game is paused at all is not asked here — the
+  // Anyone on the list but off the channel is who we're waiting on, which is
+  // what draws the roster. Whether the game is paused at all is not asked here — the
   // boundary decided that before rendering this.
-  const someoneMissing = expected.some((m) => !presentUserIds.has(m.user_id))
+  const someoneMissing = players.some((m) => !presentUserIds.has(m.user_id))
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
@@ -80,7 +79,7 @@ export function PauseOverlay({
             {/* The whole team, one per row. The list block is centered but
                 its rows are left-aligned, so every dot shares one column. */}
             <ul className={styles.roster}>
-              {expected.map((m) => {
+              {players.map((m) => {
                 const present = presentUserIds.has(m.user_id)
                 return (
                   <li key={m.user_id} className={styles.rosterItem}>
