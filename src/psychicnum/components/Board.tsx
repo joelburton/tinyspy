@@ -53,7 +53,7 @@ type Props = {
   /** Guesses the server has recorded. The CAUSE the attention flash reads: a
    *  board that changed while this stood still was revealed or re-dealt, not
    *  played into. */
-  moveCount?: number
+  moveCount: number
   /** A control floated over the board's top-right (the Shuffle button). Rendered
    *  INSIDE the board root — the root is the `position: relative` anchor — so it
    *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -93,7 +93,7 @@ export function Board({
   gameOver = null,
   notMyTurn = false,
   myTurnJustStarted = false,
-  moveCount = 0,
+  moveCount,
   floatingControl,
 }: Props) {
   // ATTENTION — the tiles that just got decided. psychicnum's coop board is

@@ -115,7 +115,7 @@ type Props = {
    *  arriving is only news when a MOVE put it there — `replay_board` deletes the
    *  guesses, so a restart drops this instead of advancing it and the re-dealt
    *  board says nothing (plans/tile-feedback.md → Read the cause). */
-  moveCount?: number
+  moveCount: number
   /** Turn-history: render read-only under the shared viewer frame (a past turn's
    *  board). Off during live play. */
   viewing?: boolean
@@ -168,7 +168,7 @@ export function Board({
   notMyTurn = false,
   myTurnJustStarted = false,
   gameOver = null,
-  moveCount = 0,
+  moveCount,
   washedTiles = NO_TILES,
   shakenTiles = NO_TILES,
   viewing = false,

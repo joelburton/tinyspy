@@ -242,6 +242,12 @@ waffle's is. Game-side, so the fix is two lines in two games' files when this
 area's changes reach them (the area may fix another folder's problem now); noted
 here because it is the hook's API that invites it.
 
+**WORKED 2026-09-15.** Required in both, matching waffle's. Both already carried
+a docstring saying the prop is the CAUSE the attention mark reads, so the only
+thing missing was the type agreeing with it. Nothing else moved: every call site
+was already passing it, which is exactly why a default that disables the feature
+could sit there unnoticed.
+
 ### F-move-flash-7 · `cause-hook-untested` · Two of the three hooks have no test of their own
 
 `useFlash` has a four-case unit test. `useMoveCausedChange` is covered only
