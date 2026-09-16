@@ -4,8 +4,10 @@ The folders it reads: `timer`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED 2026-09-16.** Roster agreed and stamped `cs-met-timer`; every
-file read. The clock's SQL half — `common.tick_timer`, `common.require_valid_timer`
+**Status: CLOSED 2026-09-16, blessed.** Audited, worked, re-read and harvested
+in one day; blessed on Joel's words the same day — *"mark files in this area as
+blessed, then close the area"* — four files `cs-blessed-timer`. Roster agreed
+and every file read. The clock's SQL half — `common.tick_timer`, `common.require_valid_timer`
 and the `common.timers` table in `supabase/sql/common.sql` — is EVIDENCE, not
 roster (Joel, 2026-09-16: *"use them for evidence"*); read in full, stamps
 untouched.
@@ -276,6 +278,111 @@ And the level is what the five games want: `waffle`, `wordle`, `connections`,
 `psychicnum` and `stackdown` read `timerExpired` into `buildOver` as a fact
 about an already-terminal game, which survives a reload where an edge does not.
 
+## The closing re-read (2026-09-16)
+
+Every roster file in one sitting, then every file the five commits touched,
+then the greps: the effect-name grep over the touched files (clean — the one
+bare arrow, `GamePage`'s one-line menu cleanup, is the trivial case the rule
+exempts), `.then(` in the folder (both named), the day's dates against
+`git log` (all 2026-09-16, none ahead), the old clock's words repo-wide
+(`BoardScreen`, `Idle accounting`, `idle_since`, `total_idle_seconds`,
+`anchored at`, `This replaced`), and every prose mention of `useGameTimer`,
+`formatTimerSeconds` and `timerLabel` outside the folder. Seven findings, all
+worked the same day. Two are the area's own earlier findings recurring in a
+sibling — which is what the re-read is for — and one is a recorded absence
+that was never true.
+
+### F-timer-9 · `overturned-reason-in-doc` · `doc.md` still gave F-8's overturned reason
+
+`## Details` opened with "That edge stays with `GamePage` because the gate is
+`GamePage`'s knowledge, not the hook's" — written at F-1, before F-8's
+re-verify found that the hook takes `paused` and the reason was wrong. F-8's
+commit touched only this file, so the doc kept the sentence the area had
+struck. Same shape as `chat`'s re-read: yesterday's finding writes today's
+stale claim.
+
+**WORKED.** The paragraph now gives the reason that holds: the ref is mutated
+inside an effect, which runs once per commit; computed during render,
+StrictMode's second pass would find it set and return false, and the second
+pass is what React keeps.
+
+### F-timer-10 · `phantom-absence` · The Notes said `tick_timer` has no pgTAP; it has nine specs
+
+`supabase/tests/common/tick_timer_test.sql` has existed since the clock was
+built (2026-06-19) and pins exactly the conditional the note called
+"exercised only by playing": no advance inside the first second, one advance
+after it, the same-second dedup for one player and for two, a 60-second gap
+costing +1, the persisted count, PN012 for a non-member and PA004 as
+ok/noted. The note was written from a grep for `tick_timer` that was read as
+an absence without opening the directory — the easiest wrong answer, and
+this one had a handoff hanging off it.
+
+**WORKED.** The note is corrected below and the handoff withdrawn. `doc.md`'s
+SQL paragraph now names the test file and its trick (rewinding `last_tick`
+by hand rather than sleeping), so the next reader does not re-derive it.
+
+### F-timer-11 · `manifest-timer-docstring` · `TimerMode`'s docstring described the old clock
+
+`manifest/gameManifest.ts`: "`countup` — display-only; ticks up from
+game-creation time" (it counts seconds of play, not wall time since
+creation), and "See docs/games/connections.md → 'Timer' for the browser-side
+/ no-server-sync choice" (the clock is the server's, and the section it cites
+says so and points at `common.md`). F-6's shape — prose describing the
+accumulator — in the type the hook consumes, which the audit listed as
+evidence and read past. `manifest` is closed and blessed; closed is not
+locked for prose.
+
+**WORKED.** The four arms say what they are today, `countdown` names
+`GamePage` as the firer on the edge, and the pointer is `src/common/timer/doc.md`.
+
+### F-timer-12 · `stale-link-text` · `connections.md`'s link table names the hook by its pre-reorg path
+
+"The browser-side timer" → `src/common/hooks/game/useGameTimer.ts` as the
+visible text, over a href that resolves. `docs/common-folders.md` says these
+prose paths are corrected as each folder's `doc.md` is harvested, which is
+this step; the row's label was also the stale claim of F-11 in three words.
+
+**WORKED.** "The timer hook" → `src/common/timer/useGameTimer.ts`. The other
+pre-move texts in that table (`pause.ts`, `PauseOverlay.tsx`,
+`PauseBoundary.tsx`) belong to `pause-suspend`'s harvest and are left.
+
+### F-timer-13 · `archaeology-in-test` · The hook's test carried two "used to" sentences
+
+F-2 deleted the archaeology sentence from `useGameTimer.ts`; the test beside
+it kept two — `notOk`'s docstring ("It used to drop every one, which is what
+hid the interesting half") and a spec title ("— a bug it used to swallow").
+
+**WORKED.** The docstring says why the split matters in the present tense
+("Dropping every one would hide the interesting half …"); the spec is
+`SCREAMS for a code it never declared`.
+
+### F-timer-14 · `padding-claim` · `timerLabel.test.ts`'s docstring made two claims F-3 falsified
+
+Written in the prose pass, after F-3 had moved the formatter: "Nobody would
+catch `0:5` until a game was played on a short countdown and its recap
+printed" — but the header now prints through the same formatter, so an
+unpadded field shows for ten seconds of every minute of every timed game. And
+"It is asserted twice on purpose — through `formatTimerSeconds` directly" —
+the formatter's spec asserts `0:09` and `0:00`, not `0:05`; what is asserted
+twice is the padding.
+
+**WORKED.** The docstring says where the game would show it (the header, ten
+seconds a minute) and that the PADDING is what both specs pin.
+
+### F-timer-15 · `browser-side-clock` · `codenamesduet.sql`'s `submit_timeout` header calls the clock browser-side
+
+"The FE clock is browser-side (count-down ticks locally)" and "the rationale
+on FE-driven clock" — the same stale claim as F-11, found by grepping for its
+words. The file is `cs-unmet`; the two sentences are this area's truth and
+are fixed in passing.
+
+**WORKED**, the two clock sentences only. The same header's "raises P0001
+'game is not active'. The FE swallows that" (and its twin in
+`psychicnum.sql`'s `submit_timeout` header, and a third at codenamesduet's
+`end_game`) predates the envelope sprint and is left for those games' areas
+to read with the RPC open — it is an envelope claim, not a timer one, and
+what each raises today was not verified here.
+
 ## Notes
 
 - **A forward-fix at the listing, 2026-09-16, before the roster was agreed.**
@@ -297,14 +404,12 @@ about an already-terminal game, which survives a reload where an edge does not.
   than deleted, because subtracting from another area's blessed fixture is
   Joel's call; he made it (*"do it"*) and it is gone. The suite is green without
   it, which is the proof nothing read it.
-- **`tick_timer` has no pgTAP of its own.** The functions that touch
-  `common.timers` in `supabase/tests/` are the replay tests (the zeroing) and
-  codenamesduet's create test (the seed row). The conditional that IS the
-  design — one tick per real second however many ask, `last_tick` renewed, a
-  read-back when the WHERE misses, PA004 for a deleted game — is exercised only
-  by playing. SQL is evidence here by Joel's ruling, so this is a handoff: it
-  belongs to whichever area reads `common.sql`'s functions, recorded here so
-  the question is asked with the file open.
+- **`tick_timer` IS pinned by pgTAP** — `supabase/tests/common/tick_timer_test.sql`,
+  nine specs, the conditional exercised by rewinding `last_tick` by hand. An
+  earlier version of this note said the opposite and handed the gap to the
+  area that reads `common.sql`'s functions; F-timer-10 (`phantom-absence`)
+  retracts both. Nothing is owed. The file stays `cs-unmet`: it was read as
+  evidence, not audited.
 - **`docs/deferred.md`'s heartbeat item** ("`tick_timer` is the heartbeat we
   already have and don't use") is true today and out of this area's scope: it
   is a presence/disconnect design, filed deliberately. Left where it is.
@@ -331,8 +436,14 @@ effects: nothing asserts on effect names.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group — with the
-      effect-name grep over every file touched
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — with the
+      effect-name grep over every file touched (2026-09-16, seven findings)
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1;
+      `## Details` harvested again at the re-read)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (nothing is owed — `todo.md` is empty on purpose)
+- [x] every file on the roster blessed, or its stamp says why not — **DONE
+      2026-09-16**, on Joel's words (*"mark files in this area as blessed, then
+      close the area"*): the folder's four `.ts` files read `cs-blessed-timer`.
+      The SQL half keeps `cs-unmet` — evidence, not roster, by Joel's ruling at
+      the opening.

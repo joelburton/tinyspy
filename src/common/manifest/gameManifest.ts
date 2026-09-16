@@ -306,15 +306,15 @@ export type CommonGameListRow = {
  * Per-game timer declaration, consumed by `useGameTimer`:
  *
  *   - `none` — no timer.
- *   - `countup` — display-only; ticks up from game-creation
- *     time. Doesn't drive state changes.
- *   - `countdown` — ticks down from `seconds`. At zero,
- *     `useGameTimer.expired` flips true; the per-gametype
- *     `submitTimeout` fires; the game flips to a terminal
+ *   - `countup` — display-only: the count of seconds somebody was
+ *     playing, shown as it climbs. Drives no state change.
+ *   - `countdown` — `seconds` minus that count. At zero,
+ *     `useGameTimer.expired` is true; `GamePage` fires the gametype's
+ *     `submitTimeout` on that edge, and the game flips to a terminal
  *     play_state.
  *
- * See docs/games/connections.md → "Timer" for the browser-side / no-
- * server-sync choice.
+ * The count is the server's (`common.timers.ticks`, advanced by
+ * `common.tick_timer`); the design is `src/common/timer/doc.md`.
  */
 export type TimerMode =
   | { kind: 'none' }

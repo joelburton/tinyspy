@@ -918,8 +918,8 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- ============================================================
 -- codenamesduet.submit_timeout — wall-clock countdown expired
 -- ============================================================
--- The FE clock is browser-side (count-down ticks locally); when
--- it hits zero, the FE fires this. We flip the game to
+-- The clock is common.timers, advanced by common.tick_timer; when
+-- the countdown derived from it hits zero, the FE fires this. We flip the game to
 -- `lost_timeout` (distinct from `lost_clock`, which is the
 -- turns-exhausted Duet ending) and call common.end_game
 -- with outcome='timeout' (the play_state carries the verdict;
@@ -930,7 +930,7 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- FE swallows that — losing once is enough.
 --
 -- Mirrors connections.submit_timeout / psychicnum.submit_timeout —
--- see those for the rationale on FE-driven clock + idempotent
+-- see those for the rationale on the FE-fired, idempotent
 -- server flip.
 
 drop function if exists codenamesduet.submit_timeout(uuid);

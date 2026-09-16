@@ -1,4 +1,4 @@
-// cs-met-timer
+// cs-blessed-timer
 
 import { describe, it, expect } from 'vitest'
 import { formatTimerSeconds, timerLabel } from './timerLabel'
@@ -9,12 +9,13 @@ import { formatTimerSeconds, timerLabel } from './timerLabel'
  * in.
  *
  * Most of these just pin the arms of `TimerMode`. **The one worth having is
- * `0:05`**: a countdown under a minute is where an unpadded seconds field would
- * show, and `padStart(2, '0')` is exactly the sort of line that looks like it
- * could go. Nobody would catch `0:5` until a game was played on a short
- * countdown and its recap printed. It is asserted twice on purpose — through
- * `formatTimerSeconds` directly and through the `countdown` arm that calls it —
- * so a label that stopped sharing the formatter fails here rather than drifting.
+ * `0:05`**: a seconds field under ten is where an unpadded one would show, and
+ * `padStart(2, '0')` is exactly the sort of line that looks like it could go.
+ * Nothing but a game would catch `2:5`, and a game would — ten seconds out of
+ * every minute in the header. The padding is asserted twice on purpose —
+ * through `formatTimerSeconds` directly and through the `countdown` arm that
+ * calls it — so a label that stopped sharing the formatter fails here rather
+ * than drifting.
  *
  * Asserting `'none'` is likewise not a restatement of the code. The value is
  * always printed after a "Timer:" label — by `setupRows.ts`'s `timerRow()` for

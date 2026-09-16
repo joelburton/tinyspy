@@ -1,4 +1,4 @@
-// cs-met-timer
+// cs-blessed-timer
 
 import type { TimerMode } from '../manifest/gameManifest'
 

@@ -788,5 +788,5 @@ otherwise every opponent row would read a bare "Correct".
 | How shared selection works | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast; `broadcast()` short-circuits to local-only in compete) |
 | How `matchedCategories` is projected | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/game/pause.ts`](../../src/common/pause-suspend/pause.ts) + [`src/common/components/game/PauseOverlay.tsx`](../../src/common/pause-suspend/PauseOverlay.tsx) + [`src/common/components/game/PauseBoundary.tsx`](../../src/common/pause-suspend/PauseBoundary.tsx) |
-| The browser-side timer | [`src/common/hooks/game/useGameTimer.ts`](../../src/common/timer/useGameTimer.ts) + the connections setup dialog's timer field |
+| The timer hook | [`src/common/timer/useGameTimer.ts`](../../src/common/timer/useGameTimer.ts) + the connections setup dialog's timer field |
 | The evaluator | [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) |

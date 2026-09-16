@@ -1,4 +1,4 @@
-// cs-met-timer
+// cs-blessed-timer
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
@@ -125,9 +125,9 @@ describe('useGameTimer', () => {
   /**
    * **Which not-ok this poll may swallow, and which it may not.**
    *
-   * It used to drop every one, which is what hid the interesting half: a raw
-   * Postgres fault here — a broken `common.timers`, a lost grant — is a real
-   * bug arriving with a real SQLSTATE, and it vanished once a second.
+   * Dropping every one would hide the interesting half: a raw Postgres fault
+   * here — a broken `common.timers`, a lost grant — is a real bug arriving
+   * with a real SQLSTATE, and it would vanish once a second.
    */
   const notOk = (dbcode: string | null) => ({
     data: {
@@ -171,7 +171,7 @@ describe('useGameTimer', () => {
     expect(shown.join(' ')).not.toContain('fell through to unhandled')
   })
 
-  it('SCREAMS for a code it never declared — a bug it used to swallow', async () => {
+  it('SCREAMS for a code it never declared', async () => {
     clearFaultsForTest()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     rpcMock.mockResolvedValue(notOk('42P01')) // undefined_table: common.timers is gone

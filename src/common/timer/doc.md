@@ -40,13 +40,17 @@ and `timerLabel` is the sentence they both print.
 
 ## Details
 
-**`expired` is a level, not an edge**, and the distinction matters to exactly
-one caller. It is true for as long as a countdown sits at 0, which is what the
-games want — "did the clock end this?" is a fact about a terminal game, and it
-survives a reload. What it is not is a trigger: `GamePage` wants the moment,
-builds the edge with a ref, and gates it on `paused` so a timeout that comes due
-as a pause engages resolves on resume. That edge stays with `GamePage` because
-the gate is `GamePage`'s knowledge, not the hook's.
+**`expired` is a level, not an edge**, and the distinction matters to the
+caller that fires the timeout. It is true for as long as a countdown sits at 0,
+which is what the games want — "did the clock end this?" is a fact about a
+terminal game, and it survives a reload. What it is not is a trigger: `GamePage`
+wants the moment, builds the edge with a ref it mutates inside an effect, and
+gates it on `paused` so a timeout that comes due as a pause engages resolves on
+resume. The edge stays there because a hook cannot hand one back safely.
+Computed during render, StrictMode's second pass finds the ref already set and
+returns false, and the second pass is the one React keeps — the timeout would
+never fire in development. An effect runs once per commit, which is why
+`GamePage`'s ref works where the hook's would not.
 
 **Local ticks merge forward-only — except against a big drop.** Several players
 poll the same clock, so responses land out of order and differ by a tick or
@@ -74,7 +78,10 @@ the per-second UPDATE does not churn the games realtime stream. `tick_timer`'s
 line. `common.reset_game` zeroes the row on a replay, the view-state RPCs are
 pointer flips that do no timer work, and `common.require_valid_timer` validates
 the setup shape at create time — its five raises are all faults (PN035–PN039),
-because the timer control cannot produce any of them.
+because the timer control cannot produce any of them. The conditional is pinned
+by `supabase/tests/common/tick_timer_test.sql`, which rewinds `last_tick` by
+hand instead of sleeping: one advance per real second however many players
+ask, a minute's gap costing one, and a deleted game answering moot.
 
 **M:SS is written once**, in `timerLabel.ts`, which is the file that owns the
 timer's words: `formatTimerSeconds` for the header and the countdown input,
