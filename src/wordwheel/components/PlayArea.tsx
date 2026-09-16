@@ -314,6 +314,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // BoardCol's `submitDisabled` gate vetoes their submit — so the only
       // reasons left are the missing center or simply not-a-word. The hook wraps
       // the reason as `WORD — reason`.
+      // What each refusal means HERE. Required, and no engine decides it: a word
+      // the list does not know is a WRONG MOVE in this game — the letters are in
+      // front of you and the list is the ordinary one. (wordiply reads the same
+      // event as a `warning`, because it is asking you to try strange words.)
+      // Too short is a slip rather than a wrong move; a word you already found
+      // is nothing happening.
+      outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
       explainReject: (w) => {
         // Name the letter rather than the rule: "missing \"A\"" is both shorter
         // and more actionable than "missing center letter" (the quotes are

@@ -120,16 +120,25 @@ export type WordSubmitConfig = {
   ) => void
 
   /**
-   * The outcome the pill wears for a word the lookup refused. `warning` by
-   * default — in a word hunt a word the list does not know is not a bad MOVE.
+   * What each refusal MEANS in this game, as an outcome. Required, and there is
+   * deliberately no default: what a refusal is worth is the game's judgment, not
+   * this engine's.
    *
-   * A game whose refusal covers a RULE as well says so here: wordiply's list
-   * misses both "not a word" and "does not contain the stem", and the second is
-   * a rule broken, which is `lost`. The server draws the same line (its
-   * `missing_base` versus `not_a_word`), so this is what keeps the pill, the
-   * board and the turn log saying one thing about one event.
+   * The two readings in the roster are opposite and both right. boggle,
+   * spellingbee and wordwheel treat a word the list does not know as a wrong
+   * move — `lost`. wordiply encourages long, strange guesses, so the same event
+   * is a `warning` there: making a bad word feel like an error would be mean in
+   * a game that wants you to try one.
+   *
+   * It takes the word as well as the answer because a game's single `not_legal`
+   * may cover several things: wordiply's list misses both "not a word" and "does
+   * not contain the stem", and only the second is a rule broken.
+   *
+   * Whatever it returns is what the PILL says — so a game showing the answer
+   * anywhere else reads this same function for those surfaces too, and the two
+   * cannot drift.
    */
-  rejectOutcome?: (word: string) => Outcome
+  outcomeFor: (word: string, answer: 'too_short' | 'already_found' | 'not_legal') => Outcome
   /**
    * Optional: say nothing when a word is ACCEPTED.
    *
@@ -232,9 +241,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      // `lost`: a length rule is a rule, and breaking one is a wrong move —
-      // which in the games that charge for a turn actually costs you one.
-      slot.show(FeedbackMessage.result('lost', line(w, 'too short')))
+      slot.show(FeedbackMessage.result(c.outcomeFor(w, 'too_short'), line(w, 'too short')))
       c.onAnswer?.(w, 'too_short')
       c.recordReject?.(w, 'too_short')
       return
@@ -251,20 +258,19 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      slot.show(FeedbackMessage.result('warning', line(w, 'already found', entry?.isBonus)))
+      slot.show(
+        FeedbackMessage.result(
+          c.outcomeFor(w, 'already_found'),
+          line(w, 'already found', entry?.isBonus),
+        ),
+      )
       c.onAnswer?.(w, 'already_found')
       return
     }
 
     if (!entry) {
-      // `warning` unless the game says otherwise: in a word hunt a word the list
-      // does not know is not a bad MOVE — you are thinking of words and this one
-      // was not there, and the list may be at fault or it may have been a typo.
-      // `lost` is for breaking a rule, which `rejectOutcome` is how a game says
-      // its lookup also catches. (docs/outcomes.md; the same reading that keeps
-      // `near` for "almost right" and nothing else.)
       slot.show(
-        FeedbackMessage.result(c.rejectOutcome?.(w) ?? 'warning', line(w, c.explainReject(w))),
+        FeedbackMessage.result(c.outcomeFor(w, 'not_legal'), line(w, c.explainReject(w))),
       )
       c.onAnswer?.(w, 'not_legal')
       // One reason for both misses the lookup can't tell apart (not in the

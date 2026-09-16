@@ -306,6 +306,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // A miss at/above min length: name why (a letter off the board, or the
       // center letter missing) else it's simply not a word. The hook wraps the
       // reason as `WORD — reason`.
+      // What each refusal means HERE. Required, and no engine decides it: a word
+      // the list does not know is a WRONG MOVE in this game — the letters are in
+      // front of you and the list is the ordinary one. (wordiply reads the same
+      // event as a `warning`, because it is asking you to try strange words.)
+      // Too short is a slip rather than a wrong move; a word you already found
+      // is nothing happening.
+      outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
       explainReject: (w) => {
         for (const ch of w) {
           if (!allowedLetters.has(ch)) return 'bad letters'

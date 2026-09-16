@@ -35,6 +35,10 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     lookup,
     commit: vi.fn().mockResolvedValue(null), // null = the word landed
     explainReject: () => 'not a word',
+    // A stand-in reading, not a default: the hook has none, and each game says
+    // its own. These cases are about WHICH branch ran, so the words below are
+    // the ones the roster's majority uses (boggle, spellingbee, wordwheel).
+    outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
     ...over,
   }
 }
@@ -185,25 +189,25 @@ describe('useWordSubmit', () => {
     expect(compete.commit).toHaveBeenCalledTimes(1)
   })
 
-  it('rejects a too-short word as LOST — a rule is a rule — and does not commit', async () => {
+  it('shows the game\'s own outcome for a too-short word, and does not commit', async () => {
     const cfg = makeCfg({ minWordLength: 4 })
     const { type, submit } = setup(cfg)
 
     type('ab')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('lost')
+    expect(shown(cfg)?.outcome).toBe('warning')
     expect(shown(cfg)?.text).toMatch(/too short/i)
   })
 
-  it('rejects a non-legal word as a WARNING — a miss is not a bad move', async () => {
+  it('shows the game\'s own outcome for a non-legal word, via explainReject', async () => {
     const cfg = makeCfg({ explainReject: () => 'not on board' })
     const { type, submit } = setup(cfg)
 
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('warning')
+    expect(shown(cfg)?.outcome).toBe('lost')
     expect(shown(cfg)?.text).toBe('QQQQ — not on board')
   })
 

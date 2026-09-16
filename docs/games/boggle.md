@@ -464,7 +464,18 @@ board), swapped in for spellingbee's hex flower.
     clears (the universal `useCaptureKeys` last-move history). Words can also be built
     by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
     [mobile.md](../mobile.md)); the traced word drives the same `word`/`onChange` engine,
-    and typing clears the path. Own-move results are `result` messages in the
+    and typing clears the path. A TYPED word lights the tiles its letters could
+    mean (`traceCells`), so the player watches the word walk the board as they
+    spell it: a letter with one candidate tile takes the selected border outright,
+    a letter with several lights all of them in that same border held back toward
+    the tile, and a later letter settles it by filling the color in. On H-E-A-X-T
+    over Z-Z-A-R-Z, `HE` settles two tiles, `HEA` holds both As, and `HEAR` settles
+    the R while the As stay open. The board only ever ADDS certainty, so no tile is
+    ever lit and then taken back: a letter the board CANNOT follow leaves the
+    tiles exactly where they were and dims itself in the entry box instead (GO on
+    the board and no T beside it dims the T of GOT, and every letter after it) —
+    the positional cousin of the bee games' off-the-puzzle letter dim. A tapped path wins over all of it — it is the player's own choice,
+    not a deduction — and submitting picks one route for the answer marks. Own-move results are `result` messages in the
     **local** slot (required `+N` / bonus / too-short / off-board / not-a-word),
     dismissed by the next keystroke or tile tap — not the header's global slot,
     which carries teammates' finds.

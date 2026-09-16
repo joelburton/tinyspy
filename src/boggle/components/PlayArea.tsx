@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -22,7 +22,10 @@ import type { Actor } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
-import { traceableStr } from '../lib/boardTrace'
+import { traceableStr, tracePathStr, traceCellsStr } from '../lib/boardTrace'
+import { ANSWER_OUTCOME } from '../lib/answer'
+import { WORD_ANSWER_MS } from '@/common/move-flash/feedbackTiming'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
@@ -162,6 +165,23 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
+  /** The tiles a refused word used, wearing its answer. Board-cell indices —
+   *  BoardCol turns them into view positions, since the player may have rotated
+   *  the board under them. */
+  const [answered, setAnswered] = useState<{ cells: number[]; outcome: Outcome } | null>(null)
+  const answerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showAnswer = useCallback((cells: number[], outcome: Outcome) => {
+    setAnswered({ cells, outcome })
+    if (answerTimer.current) clearTimeout(answerTimer.current)
+    answerTimer.current = setTimeout(() => {
+      setAnswered(null)
+      answerTimer.current = null
+    }, WORD_ANSWER_MS)
+  }, [])
+  useEffect(() => () => {
+    if (answerTimer.current) clearTimeout(answerTimer.current)
+  }, [])
+
   const { word, setWord, lastWord, submit } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
@@ -199,7 +219,37 @@ export function PlayArea(ctx: GamePageCtx) {
       // — the distinction boggle keeps, computed from the board on the FE. The
       // hook wraps the reason as `WORD — reason`.
       explainReject: (w) => (game && traceableStr(game.board, w) ? 'not a word' : 'not on board'),
+      // What each refusal means HERE, read by the pill and by the tiles below —
+      // one table, so they cannot say different things about one word.
+      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
+      // A refused word wears its answer on the tiles it used. The path has to be
+      // WORKED OUT: a typed word says nothing about which of two Es it meant, so
+      // the board is walked for a route that spells it. A word that traces
+      // nowhere ("not on board") has no tiles to mark, and the pill carries it
+      // alone.
+      //
+      // The actor's alone, and no attention flash with it: you know what you
+      // just typed, and a peer is never told about somebody else's miss.
+      onAnswer: (w, answer) => {
+        if (answer === 'accepted' || !game) return
+        const cells = tracePathStr(game.board, w)
+        if (cells === null) return
+        showAnswer(cells, ANSWER_OUTCOME[answer])
+      },
     })
+
+  // TRACE AS YOU TYPE. Every letter lights the tiles that could carry it: one
+  // candidate and the tile is settled, more than one and they all light faintly
+  // until a later letter picks between them. So the board only ever ADDS
+  // certainty as the word grows — no tile is ever lit and then taken back.
+  //
+  // Board-cell indices, like the refused-word marks — BoardCol turns them into
+  // whatever rotation the player is looking at, and ignores them entirely while
+  // a TAPPED path exists, since that path is what the player actually chose.
+  const typedCells = useMemo(
+    () => (game && word.length > 0 ? traceCellsStr(game.board, word) : null),
+    [game, word],
+  )
 
   // The display grid (letters in board order). BoardCol owns the local rotate on top.
   const grid = useMemo(
@@ -540,6 +590,10 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Board to render ──
         grid={grid}
         n={game.n}
+        // The tiles a refused word used, wearing its answer — board-cell
+        // indices, which BoardCol rotates into the view the player is looking at.
+        answered={answered}
+        typedCells={typedCells}
         // ── Word entry (engine here; rendered in BoardCol) ──
         word={word}
         onChange={setWord}

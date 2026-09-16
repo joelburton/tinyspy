@@ -6,14 +6,20 @@
  * Semantic names tied to boggle's vocabulary (`tile`) rather than literal
  * colors — see docs/ui.md "two vocabularies".
  *
- * The selected-path highlight is the SHARED `--button-normal-primary-color`, not a boggle hue
- * (PlayArea.module.css) — there was a `--boggle-accent` here claiming that job,
- * but nothing ever read it.
+ * A tile on the traced path wears the app's own SELECTED border
+ * (`--tile-selected-edge-color`, PlayArea.module.css), not a boggle hue — there
+ * was a `--boggle-accent` here claiming that job, but nothing ever read it.
  */
 /* @@ */ :root {
 /* @@ */   --boggle-tile:        var(--tile-3-fill-color);  /* the shared normal tile (shade 3) */
+/* @@ */   --boggle-tile-edge:   var(--tile-4-edge-color);   /* …edged a rung DOWN the ramp, to lift it off a pale tray */
 /* @@ */   --boggle-tile-text:   var(--tile-slot-ink-color);
-/* @@ */   --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
+  /* A tile a TYPED letter might mean, where more than one could. The selected
+     border thinned toward the tile beneath it: the same mark, held back, so
+     settling on one is the color filling in rather than a different mark. */
+/* @@ */   --boggle-tile-maybe-edge: color-mix(in oklab, var(--tile-selected-edge-color) 35%, var(--boggle-tile));
+/* @@ */   --boggle-board-bg:    var(--tile-1-fill-color);  /* the tray: the tile ramp's LIGHTEST shade */
+/* @@ */   --boggle-board-edge:  var(--tile-5-edge-color);   /* …outlined in the tile's own paired edge */
   /* The shared <Stats> grid colors its figures with `--rank-text`, aliased per
      game (the same seam spellingbee + wordwheel use). boggle has no rank ladder,
      so its figures are just the body text color. */

@@ -368,6 +368,98 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
   })
 })
 
+/**
+ * Trace as you type: every letter lights the tiles that could carry it — solid
+ * where only one tile can, held back where several can, and never taken away
+ * again as the word grows.
+ */
+describe('boggle PlayArea — trace as you type', () => {
+  /** View indices of the tiles wearing one of the two selection marks. The CSS
+   *  module hashes a class to `_<name>_<hash>`, so the underscores are what keep
+   *  `selected` from also matching `maybeSelected`. */
+  const wearing = (mark: 'selected' | 'maybeSelected') =>
+    [...document.querySelectorAll('[data-boggle-tile]')]
+      .flatMap((t, i) => (t.className.includes(`_${mark}_`) ? [i] : []))
+
+  it('lights the tiles a typed word can only mean one way', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(wearing('selected')).toEqual([])
+
+    // abcd / efgh / ijkl / mnop — sixteen distinct faces, so a(0) → f(5) → k(10)
+    // is the only run that spells it and nothing is ever in doubt.
+    await user.keyboard('afk')
+    expect(wearing('selected')).toEqual([0, 5, 10])
+    expect(wearing('maybeSelected')).toEqual([])
+  })
+
+  it('holds both tiles while a letter is open, and settles the rest around it', async () => {
+    // heax / zzar — the A is the choice, and it stays one:
+    //   HE   → H and E settled
+    //   HEA  → both As held
+    //   HEAR → the R settles too, with the A still open behind it
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ board: 'heaxzzarzzzzzzzz' }))
+    render(<WithKeys {...makeCtx()} />)
+
+    await user.keyboard('he')
+    expect(wearing('selected')).toEqual([0, 1])
+    expect(wearing('maybeSelected')).toEqual([])
+
+    await user.keyboard('a')
+    expect(wearing('selected')).toEqual([0, 1])
+    expect(wearing('maybeSelected')).toEqual([2, 6])
+
+    await user.keyboard('r')
+    expect(wearing('selected')).toEqual([0, 1, 7])
+    expect(wearing('maybeSelected')).toEqual([2, 6])
+  })
+
+  /** The typed word, character by character, with a `·` under each letter the
+   *  board cannot follow (the entry box's dim). */
+  const typedWord = () => {
+    const spans = [...screen.getByTestId('entry-value').children]
+    return spans.map((c) => c.textContent).join('') +
+      '/' + spans.map((c) => (c.className.includes('_unreachable_') ? '·' : ' ')).join('')
+  }
+
+  it('keeps the prefix lit and dims the letter the board cannot follow', async () => {
+    // a and c are both on the board but not neighbors, so the path stops after
+    // the a: the a's tile holds its mark, and the c says why it went no further.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('ac')
+    expect(wearing('selected')).toEqual([0])
+    expect(typedWord()).toBe('AC/ ·')
+
+    // Everything after a stopped path is unspellable too, without re-asking.
+    await user.keyboard('e')
+    expect(wearing('selected')).toEqual([0])
+    expect(typedWord()).toBe('ACE/ ··')
+  })
+
+  it('lights nothing when the first letter is off the board', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('zz')
+    expect(wearing('selected')).toEqual([])
+    expect(wearing('maybeSelected')).toEqual([])
+    expect(typedWord()).toBe('ZZ/··')
+  })
+
+  it('goes dark again when the word is submitted', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('afk')
+    expect(wearing('selected')).toEqual([0, 5, 10])
+
+    // The box is consumed on submit, so the marks it lit go with it — what the
+    // tiles wear after a refusal is the ANSWER, on the one route picked for it.
+    await user.keyboard('{Enter}')
+    expect(wearing('selected')).toEqual([])
+  })
+})
+
 describe('boggle PlayArea — coop peer narration (global header)', () => {
   // `usePeerFeedback` seeds the backlog silently on the first loaded render,
   // then shows a header message for each NEW peer row. So each test renders

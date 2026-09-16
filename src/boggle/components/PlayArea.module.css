@@ -104,6 +104,9 @@
   gap: var(--grid-gap);
   padding: 10px;
   background: var(--boggle-board-bg);
+  /* The tray is a shade of the same warm ramp its tiles are, so it needs an edge
+   * of its own or it dissolves into the page. */
+  border: var(--tile-edge-width) solid var(--boggle-board-edge);
   border-radius: 12px;
   box-sizing: border-box;
   /* Anchor for the floating rotate control (rendered inside the grid), so it
@@ -117,12 +120,24 @@
   justify-content: center;
   background: var(--boggle-tile);
   color: var(--boggle-tile-text);
+  /* `border-box` sized, so the selected border below costs no layout — it
+   * thickens inward and nothing on the board moves. */
+  border: var(--tile-edge-width) solid var(--boggle-tile-edge);
+  box-sizing: border-box;
   border-radius: 8px;
+  /* Depth, like every other board's pieces. It needs a tray light enough to
+   * cast onto, which is why the two changed together: against the near-black
+   * this used to sit on, a shadow was invisible and so was a black edge. */
+  box-shadow: var(--tile-shadow);
   min-width: 0;
   min-height: 0;
   /* Tap-to-trace (BoardCol): each tile is a button. Smooth the state changes and
    * kill the mobile tap-highlight (it paints a gray box that fights the tile). */
-  transition: transform 80ms ease, background 80ms ease, color 80ms ease;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 80ms ease,
+    color 80ms ease;
   -webkit-tap-highlight-color: transparent;
   /* Path-tracing is rapid repeated taps on adjacent tiles — exactly the gesture
    * iOS Safari reads as double-tap-to-zoom. Opt out of it + the tap delay. */
@@ -143,33 +158,99 @@
   text-transform: uppercase;
 }
 
-/* A blank tile (face 0) renders a faint "?", matching scrabble's blank. */
+/* A blank tile (face 0) renders a faint "?", matching scrabble's blank. The
+ * letter fades; `.tileBlank` on the tile itself is what excludes it from the
+ * pointer, the hover lift and the press below. */
 /* @@ */ .blank {
   opacity: 0.4;
 }
+/* @@ */ .tileBlank {
+  cursor: default;
+}
 
-/* A clickable tile presses on tap — immediate "you hit it" feedback (a blank
- * isn't interactive, so scope to the button role).
+/* A tile you can trace on: the pointer, the hover lift and the press, in this
+ * game's own selectors (common/game-page/playArea.module.css → `.tile:hover` /
+ * `:active`). The piece rises while its shadow falls away, and presses back
+ * down when tapped.
  *
- * `:not(:disabled)` is not decoration: `[role='button']` makes this (0,2,1),
- * which OUT-RANKS base.css's `button:disabled { cursor: not-allowed }` at
- * (0,1,1). boggle never disables a tile today (it guards the handler instead),
- * so this is a trap rather than a bug — but a tile that ever did get `disabled`
- * would silently keep the pointer and claim to be clickable. */
-/* @@ */ .tile[role='button']:not(:disabled) {
+ * Scoped by `:not(.tileBlank)` rather than by a button role: a boggle tile is a
+ * plain `<div>` with no role and no tab stop, deliberately — see BoardCol,
+ * which explains at length why the button costume was taken off. These rules
+ * were keyed on `[role='button']` until 2026-09-15, which by then matched
+ * NOTHING: the press feedback and the pointer cursor had both been dead since
+ * the role went, with the CSS still describing them. A blank is the one tile
+ * that takes no clicks (BoardCol drops its handlers), so it takes none of
+ * this. */
+/* `:not(:disabled)` is the guard's requirement rather than this game's: a
+ * pointer cursor must never out-rank `button:disabled { cursor: not-allowed }`.
+ * A boggle tile is a div and cannot be disabled, so it changes nothing here —
+ * and if one ever became a control, the cursor would already be right. */
+/* @@ */ .tile:not(.tileBlank):not(:disabled) {
   cursor: pointer;
 }
-/* @@ */ .tile[role='button']:active {
-  transform: scale(0.92);
+/* @@ */ .tile:not(.tileBlank):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tile-hover-shadow);
+}
+/* @@ */ .tile:not(.tileBlank):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
 }
 
-/* A tile on the current traced path: accent fill + a light ring so the word's
- * route reads at a glance and lifts off the neighboring tiles. Overrides the
- * resting `.tile` fill/text (placed after it, equal specificity). */
+/* Reduced motion: the movement goes, the shadows stay. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.tileBlank):hover,
+/* @@ */   .tile:not(.tileBlank):active {
+    transform: none;
+  }
+}
+
+/* THE ANSWER on a refused word's tiles: the outcome's own fill and white ink,
+ * the same two colors a piece wears anywhere. The tone classes beside this one
+ * are the shared vocabulary's and set nothing but the two custom properties read
+ * here, which is why a boggle tile can take one without being a `.tileFace`. */
+/* @@ */ .answered {
+  background: var(--verdict-fill);
+  border-color: var(--verdict-fill);
+  color: var(--verdict-ink);
+}
+
+/* …and the same border where a typed letter has MORE than one tile it could
+ * mean: same width, the color held back toward the tile. Both of those matter —
+ * the width is what makes settling on one tile read as the same mark going
+ * solid, rather than a second mark replacing a first.
+ *
+ * Only a TYPED word raises this. A tapped path names its tiles outright, so
+ * there is nothing for it to be unsure about. */
+/* @@ */ .maybeSelected {
+  border-color: var(--boggle-tile-maybe-edge);
+  border-width: var(--tile-selected-edge-width);
+}
+
+/* A tile on the current traced path, in the app's ordinary SELECTED channel: a
+ * black border, thicker than the resting one
+ * (common/game-page/playArea.module.css → `.tile.selected`).
+ *
+ * It used to be a blue fill — the action BUTTON's blue, which is a control
+ * color on a game piece, and it was reached for because the tray behind the
+ * board is dark. The tray is behind the TILES though, and a tile here is the
+ * app's normal tile face: the border sits on that, black on shade 3, exactly
+ * as it does on every other board.
+ *
+ * The resting border is drawn transparent so selecting one changes only the
+ * color and the width — a border appearing from nothing would move the letter. */
 /* @@ */ .selected {
-  background: var(--button-normal-primary-color);
-  color: var(--ink-onDark-color);
-  box-shadow: 0 0 0 2px var(--button-normal-primary-color);
+  border-color: var(--tile-selected-edge-color);
+  border-width: var(--tile-selected-edge-width);
+}
+
+/* A typed letter the board cannot follow, in the entry box (<TypedWord>): the
+ * shared dim the bee games give a letter their puzzle doesn't have. Here it
+ * means the path stops — so it runs from the first such letter to the end of
+ * the word, and the tiles behind it stay lit at the prefix that does trace. */
+/* @@ */ .unreachable {
+  color: var(--entry-illegal-ink-color);
 }
 
 /* The below-board REGION (universal). Board-matched width (a long typed word

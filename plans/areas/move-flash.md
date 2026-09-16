@@ -379,7 +379,7 @@ work is not what the sprint usually does. Most of the audit is code quality,
 readability, duplication: invisible to a player. **These are changes a player
 feels**, which is why they are worth a record of their own.
 
-None of the five is at tf2. Each got the MARKS brought onto the shared
+None of these games is at tf2. Each got the MARKS brought onto the shared
 vocabulary, not the full pass against the current framework, and the level is
 Joel's to set.
 
@@ -434,6 +434,28 @@ and the previous word's ghost line is the accent washed rather than gray.
 it while its answer shows, and wears that answer's color. A teammate's word gets
 the attention flash then the green. One table (`lib/answer.ts`) decides the
 outcome, and the pill, the row and the log all read it.
+
+**Owed.** Nothing recorded yet.
+
+### boggle
+
+**Landed.** The board reads as a board: the tray went from near-black to the
+palest tile shade with an edge of its own, the tiles are the ordinary face with
+shade-4 edges and the shared shadow, and the selected channel is the app's black
+border instead of the action button's blue fill. The hover lift and the press
+were dead — both rules were keyed on `[role='button']`, and the role had been
+taken off the tile — so they work again for the first time since. A refused word
+resolves ON the board: the tiles it used take the answer's own fill and white ink
+and shake, the actor's alone, with no attention flash (you know what you just
+typed). `lib/answer.ts` is the one table the pill, the tiles and the log read, so
+red-for-wrong and orange-for-duplicate cannot disagree — and it is boggle's own,
+which is the point: wordiply, which encourages long strange words, answers
+differently. A typed word now lights the board as it is spelled: each
+letter marks the tiles that could carry it, solid where one tile can and held
+back where several can, so certainty only ever grows and no tile is lit and then
+taken back. A letter the board can't follow doesn't darken the board — it dims
+itself in the entry box, the way a bee game dims a letter off its puzzle. ("Show nothing until one route is left" was tried first and read as
+borders flickering on and off — a player has no way to know why.)
 
 **Owed.** Nothing recorded yet.
 

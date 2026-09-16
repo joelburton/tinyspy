@@ -286,8 +286,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // short and "must contain the stem" are RULES, and breaking one costs a
       // turn like any other move.
       onAnswer: (w, answer) => showAnswer(w, ANSWER_OUTCOME[answerFor(w, answer)]),
-      // …and the pill says the same, because it is the same table.
-      rejectOutcome: (w) => ANSWER_OUTCOME[answerFor(w, 'not_legal')],
+      // …and the pill says the same, because it is the same table. A word the
+      // list does not know is a WARNING here and not a loss: this game asks you
+      // to try long, strange words, and answering one of them like an error
+      // would be mean. boggle and the bee games read the same event as `lost`,
+      // which is why the engine holds no default and every game says its own.
+      outcomeFor: (w, answer) => ANSWER_OUTCOME[answerFor(w, answer)],
       // Not in the legal set: either it doesn't contain the base, or it's not
       // a word. (Too-short is handled by minWordLength above.)
       explainReject: (w) =>

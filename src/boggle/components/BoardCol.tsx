@@ -2,8 +2,12 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { TraceCells } from '../lib/boardTrace'
 import { EntryRow } from '@/common/word-entry/EntryRow'
+import { TypedWord } from './TypedWord'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
@@ -61,6 +65,8 @@ export function BoardCol({
   // ── Board to render ──
   grid,
   n,
+  answered,
+  typedCells,
   // ── Word entry (engine in PlayArea; rendered here) ──
   word,
   onChange,
@@ -82,6 +88,15 @@ export function BoardCol({
   grid: string[][]
   /** The board dimension (game.n) — drives the grid's --cols / --rows. */
   n: number
+  /** The tiles a refused word used, wearing its answer, in BOARD cell indices —
+   *  this column turns them into the view the player is looking at. Null when
+   *  nothing was just refused, which is nearly always. */
+  answered: { cells: number[]; outcome: Outcome } | null
+  /** Where the TYPED word's letters can sit, in board cells: `certain` is a
+   *  letter with one candidate tile, `possible` a letter with several. Null when
+   *  nothing is typed. Ignored while a tapped path exists — that one is the
+   *  player's own choice, not a deduction. */
+  typedCells: TraceCells | null
 
   // ── Word entry ──
   /** The pending typed word. */
@@ -115,6 +130,43 @@ export function BoardCol({
   // submit + validation (traceableStr) are unchanged. Typing clears the path (you
   // switched to the keyboard); Backspace/Delete steps it back one tile (see
   // `handleTyping`); submitting clears it (fresh word).
+  // The tiles a refused word used, in the CURRENT view: the answer arrives in
+  // board coordinates, and the player may have turned the board under it. One
+  // clockwise turn sends (row, col) to (col, n-1-row); the rotation is applied
+  // as many times as the view is turned.
+  /** Board cells → the keys the grid below draws by, through however many turns
+   *  the player has given the board. One clockwise turn sends (row, col) to
+   *  (col, n-1-row). */
+  const inView = useCallback(
+    (cells: number[]) => {
+      const out = new Set<string>()
+      for (const cell of cells) {
+        let y = (cell / n) | 0
+        let x = cell % n
+        for (let i = 0; i < turns; i++) {
+          const py = y
+          y = x
+          x = n - 1 - py
+        }
+        out.add(`${y}-${x}`)
+      }
+      return out
+    },
+    [n, turns],
+  )
+
+  const answeredCells = useMemo(
+    () => (answered ? { cells: inView(answered.cells), outcome: answered.outcome } : null),
+    [answered, inView],
+  )
+  const typed = useMemo(
+    () =>
+      typedCells
+        ? { certain: inView(typedCells.certain), possible: inView(typedCells.possible) }
+        : null,
+    [typedCells, inView],
+  )
+
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
     if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)
@@ -198,7 +250,27 @@ export function BoardCol({
             return (
               <div
                 key={`${y}-${x}`}
-                className={cls(styles.tile, step >= 0 && styles.selected)}
+                className={cls(
+                  styles.tile,
+                  // A refused word's tiles: the answer's own color, and the
+                  // head-shake, for the beat. No attention flash — you know
+                  // what you typed and where it went.
+                  answeredCells?.cells.has(`${y}-${x}`) && styles.answered,
+                  answeredCells?.cells.has(`${y}-${x}`) &&
+                    VERDICT_TONE[answeredCells.outcome],
+                  answeredCells?.cells.has(`${y}-${x}`) && shared.verdictShake,
+                  // A blank takes no clicks (its handlers are dropped below), so
+                  // it takes none of the pointer/hover/press treatment either —
+                  // said on the TILE, since `.blank` styles the letter inside it.
+                  isBlank && styles.tileBlank,
+                  // Selected: the tiles this word uses — the ones tapped, or,
+                  // for a typed word, the ones a letter has settled on.
+                  (step >= 0 || (path.length === 0 && typed?.certain.has(`${y}-${x}`))) &&
+                    styles.selected,
+                  // …and the same border, held back, where a letter still has more
+                  // than one tile it could mean.
+                  path.length === 0 && typed?.possible.has(`${y}-${x}`) && styles.maybeSelected,
+                )}
                 // The stable test handle; `data-step` is the tile's 1-based
                 // position in the traced word, absent when it isn't on the path.
                 data-boggle-tile
@@ -246,7 +318,12 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             recall={lastWord}
             localFeedbackSlot={localFeedbackSlot}
-          />
+          >
+            {/* Per-character: the letters past where the board can follow are
+                dimmed. A tapped word is traced by construction, so `reach` is
+                its whole length and nothing dims. */}
+            <TypedWord word={word} reach={typedCells?.reach ?? word.length} />
+          </EntryRow>
         </div>
       </div>
     </div>
