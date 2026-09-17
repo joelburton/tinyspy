@@ -21,7 +21,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(23);
+select plan(27);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -43,17 +43,21 @@ select (strands.create_game(
 -- (1)–(3) The three accepting outcomes
 -- ============================================================
 
-select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(0)) -> 'data' ->> 'result',
-  'theme',
-  'a theme word''s exact path is accepted as "theme"'
-);
+-- Each is captured once and asserted twice: `submit_path` is a move, so the
+-- result and the outcome have to come out of the same call.
+create temp table theme_res on commit drop as
+select strands.submit_path((select id from game), pg_temp.strands_row_path(0)) as res;
+select is((select res -> 'data' ->> 'result' from theme_res), 'theme',
+  'a theme word''s exact path is accepted as "theme"');
+select is((select res ->> 'outcome' from theme_res), 'won',
+  'a theme word is the goal: won');
 
-select is(
-  strands.submit_path((select id from game), pg_temp.strands_row_path(4)) -> 'data' ->> 'result',
-  'spangram',
-  'the spangram''s path is accepted as "spangram", not merely "theme"'
-);
+create temp table spangram_res on commit drop as
+select strands.submit_path((select id from game), pg_temp.strands_row_path(4)) as res;
+select is((select res -> 'data' ->> 'result' from spangram_res), 'spangram',
+  'the spangram''s path is accepted as "spangram", not merely "theme"');
+select is((select res ->> 'outcome' from spangram_res), 'won',
+  'the spangram is the goal too: won');
 
 -- The OUTCOME rides with the result, and this one is the reason to assert it:
 -- a valid non-theme word is `near`, not `won` — it moves the hint bar, which is
@@ -143,21 +147,23 @@ select is(
 -- (10) Duplicates earn nothing
 -- ============================================================
 
-select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
-  'duplicate',
-  'a word already credited this game is a duplicate, not a fresh point'
-);
+create temp table dup_res on commit drop as
+select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;
+select is((select res -> 'data' ->> 'result' from dup_res), 'duplicate',
+  'a word already credited this game is a duplicate, not a fresh point');
+select is((select res ->> 'outcome' from dup_res), 'warning',
+  'a duplicate is a move the rules turn away: warning');
 
 -- ============================================================
 -- (11)–(12) Unknown words, and the may-enter tier
 -- ============================================================
 
-select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(6, 4)) -> 'data' ->> 'result',
-  'invalid',
-  'a word not in the dictionary at this band is invalid'
-);
+create temp table invalid_res on commit drop as
+select strands.submit_path((select id from game), pg_temp.strands_prefix_path(6, 4)) as res;
+select is((select res -> 'data' ->> 'result' from invalid_res), 'invalid',
+  'a word not in the dictionary at this band is invalid');
+select is((select res ->> 'outcome' from invalid_res), 'lost',
+  'not a word is the one real miss: lost');
 
 -- band 0 would be below every word; band 1 admits the fixture's difficulty-1
 -- words. A game at a LOWER band than the word's difficulty must reject it —

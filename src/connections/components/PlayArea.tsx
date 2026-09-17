@@ -223,7 +223,7 @@ export function PlayArea({
         // category can run 25+ chars), and the header fits ~26 on a phone
         // before it ellipsises. The solved band appears on the reader's own
         // board at the same moment, so naming it here says nothing new.
-        return FeedbackMessage.peer(member, 'won', 'found category')
+        return FeedbackMessage.peer(member, g.outcome, 'found category')
       }
       return FeedbackMessage.peer(member, g.outcome, g.outcome === 'near' ? 'was one away' : 'guessed wrong')
     },
@@ -624,8 +624,8 @@ export function PlayArea({
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
         // The frame says "this board is not a live position", which is true in
-        // two situations, not one: the game is over for everybody (its tone is
-        // the verdict's), or this player is out of a compete race while the
+        // two situations, not one: the game is over for everybody (the frame
+        // wears the verdict's outcome), or this player is out of a compete race while the
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
         gameOver={over ? over.outcome : locallyDone ? 'neutral' : null}

@@ -65,9 +65,12 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   waffle.submit_swap((select id from g1), 2, 3),
-  '{"type":"ok","data":{"result":"swapped","solved":false,"terminal":false}}'::jsonb,
-  'an accepted swap names itself, so a call site has a case to assert'
+  '{"type":"ok","outcome":null,"data":{"result":"swapped","solved":false,"terminal":false}}'::jsonb,
+  'an accepted swap names itself and carries no outcome'
 );
+-- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
+-- an expected envelope that simply omits the key would pass whatever the server
+-- put there. A swap has no verdict — the tiles' own colors are the answer.
 
 reset role;
 select is(

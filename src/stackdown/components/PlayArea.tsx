@@ -167,11 +167,11 @@ export function PlayArea({
 
   // ─── Word-slot flash (the WordEntry green/red beat) ─────────────
   // A word flashes in the entry row for a beat, then clears — or sooner, when the
-  // player starts a new word (BoardCol's tile click clears it). Two sources feed it:
-  // the player's OWN just-accepted word (green "good move"), and — in coop — a
-  // TEAMMATE's played word (green if valid, red if rejected), driven by
-  // usePeerFeedback. Because a teammate can trigger it, the state lives here and is
-  // passed down to BoardCol (which renders it via WordEntry).
+  // player starts a new word (BoardCol's tile click clears it). The source is the
+  // player's OWN just-accepted word (green "good move"): a teammate's word is
+  // marked on THEIR TILES instead (`markPeerWord` below), never in this entry
+  // row. The state lives here and is passed down to BoardCol (which renders it
+  // via WordEntry).
   const [flash, showFlash, clearFlash] = useMark<WordFlash>(WORD_ANSWER_MS)
   // ─── A teammate's word, marked where it happened ───────────────
   // On the BOARD, on their tiles — not in this player's entry row, which is
@@ -562,7 +562,7 @@ export function PlayArea({
   // The FULL stackdown menu. `buildGameMenu` supplies the framing (Help + chat
   // above, Back to club below); the middle is this game's own rows, each one a
   // binding it already made — so a row's words, glyph, key and availability come
-  // from the action rather than being typed here a second time. The help rungs
+  // from the action rather than being typed here a second time. The hint rungs
   // and Reveal are the menu twins of the info column's buttons: the row is what
   // NAMES those glyphs, which is why they gray rather than drop.
   useEffect(function publishGameMenu() {
@@ -585,8 +585,8 @@ export function PlayArea({
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
   // growing. Surface each teammate submission as a `peer` message in the
-  // GLOBAL header (with their identity disc), and flash their played word
-  // (green/red) in the entry row. Called unconditionally before the early
+  // GLOBAL header (with their identity disc), and mark their played word on
+  // THEIR TILES (`markPeerWord`). Called unconditionally before the early
   // returns; the hook no-ops off coop and until loaded.
   usePeerFeedback({
     enabled: game?.mode === 'coop',

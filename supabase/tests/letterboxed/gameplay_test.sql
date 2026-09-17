@@ -26,7 +26,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(31);
+select plan(32);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -93,6 +93,8 @@ select pg_temp.envelope_is(
     "accepted":true,"letters_covered":3,"solved":false}}'::jsonb,
   'submit_word reports the letters the chain now covers'
 );
+-- The `won` above is the half of the rule SQL owns; src/letterboxed/lib/answer.ts
+-- gives the row this wrote the same word, and the log bar wears that.
 
 select is(
   (select chain from letterboxed.players_state
@@ -209,11 +211,14 @@ select is(
 -- ── 6. Covering all twelve wins it ──────────────────────────
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 
-select is(
-  (letterboxed.submit_word((select id from g), 'kcfil'))->'data'->>'solved',
-  'true',
-  'covering all twelve letters solves the board'
-);
+-- Captured once and asserted twice: the SOLVING word is a second `won`
+-- envelope, and until it was pinned only `data.solved` was.
+create temp table solve_res on commit drop as
+select letterboxed.submit_word((select id from g), 'kcfil') as res;
+select is((select res->'data'->>'solved' from solve_res), 'true',
+  'covering all twelve letters solves the board');
+select is((select res->>'outcome' from solve_res), 'won',
+  'the solving word is won, like every accepted word');
 
 select is(
   (select play_state from common.games where id = (select id from g)),

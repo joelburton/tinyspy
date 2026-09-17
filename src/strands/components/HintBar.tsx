@@ -59,7 +59,7 @@ export function HintBar({ points, cost, showing, actHint }: Props) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {/* `act-hint` — icon + label, in the roster's amber "help" tone (ui.md →
+      {/* `act-hint` — icon + label, in the roster's `caution` tone (ui.md →
           Button iconography). NOT icon-only: this is the one control the whole
           hint economy exists to reach, so it says its name. */}
       <ActionButton

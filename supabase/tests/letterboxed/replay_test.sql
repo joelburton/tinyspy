@@ -17,7 +17,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(9);
+select plan(10);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -41,7 +41,15 @@ select (letterboxed.create_game(
 
 -- Play it to the WIN, with a hint taken along the way (so every counter the
 -- replay must reset is genuinely non-zero first).
-select letterboxed.log_hint_or_spoiler((select id from g), 'kcfil', 'hint');
+-- The one call this suite makes to it, so the rung's envelope is pinned here.
+-- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
+-- an expected envelope that simply omits the key would pass whatever the server
+-- put there. The FE has already shown the hint in its own pill; this answer only
+-- says the log agrees, so it carries no word.
+select pg_temp.envelope_is(
+  letterboxed.log_hint_or_spoiler((select id from g), 'kcfil', 'hint'),
+  '{"type":"ok","outcome":null,"data":{"result":"logged","kind":"hint","word":"kcfil"}}'::jsonb,
+  'a logged hint echoes the row it wrote and carries no outcome');
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select letterboxed.submit_word((select id from g), 'kcfil');

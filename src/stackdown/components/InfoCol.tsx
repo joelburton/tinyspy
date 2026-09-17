@@ -195,7 +195,7 @@ export function InfoCol({
           </InfoActionsRow>
         ) : isPlayer ? (
           <InfoActionsRow>
-            {/* Cheats: both warning-toned (amber) — "a hint, not good-or-bad".
+            {/* Cheats: both in the roster's `caution` tone (amber).
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
                 name the glyph would take from `label` alone. */}

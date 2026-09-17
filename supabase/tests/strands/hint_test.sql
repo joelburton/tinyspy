@@ -94,7 +94,7 @@ select e as envelope, e -> 'data' as payload
 select pg_temp.envelope_is(
   (select envelope from hint),
   '{"type":"ok","outcome":"warning","data":{"result":"hinted","hint_points":0}}'::jsonb,
-  'spending answers ok/hinted, in the help-you-asked-for tone'
+  'spending answers ok/hinted, in the outcome a hint wears'
 );
 
 select is(

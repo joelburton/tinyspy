@@ -16,8 +16,12 @@ export type Answer = 'correct' | 'oneAway' | 'wrong'
 /**
  * The outcome of every answer, in one place.
  *
- * **The pill, the tile verdict, the log bar, the history tint and the PDF all
- * read THIS**, and `submit_guess` says the same word back in its envelope.
+ * **Everything reading a ROW reads THIS** — the log bar, a teammate's line and
+ * the PDF — and `submit_guess` says the same word back in its envelope, which
+ * is where the pill and the tile verdict take theirs (`res.outcome`). The
+ * history viewer's tint is the exception, and deliberately: it is keyed by the
+ * `Answer` itself, because three tint classes cannot be keyed by a
+ * seven-value vocabulary.
  *
  * `near` is the vocabulary's own word for the middle one — "close, one away,
  * nearly right", which `docs/outcomes.md` defines with this very case in mind.

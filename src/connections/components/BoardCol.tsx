@@ -130,7 +130,7 @@ export function BoardCol({
   notMyTurn: boolean
   // True for a beat as the turn arrives (the shared your-turn flash).
   myTurnJustStarted: boolean
-  // The tone of the game-over frame, or null while the board is live.
+  // The outcome the game-over frame wears, or null while the board is live.
   gameOver: TerminalOutcome | null
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
@@ -206,7 +206,12 @@ export function BoardCol({
   function showWithVerdict(tiles: string[], feedbackMsg: FeedbackMessage) {
     const msgId = localFeedbackSlot.show(feedbackMsg)
     setVerdictSeq(verdictSeq + 1)
-    setVerdict({ tiles: new Set(tiles), tone: feedbackMsg.outcome, nonce: verdictSeq + 1, msgId })
+    setVerdict({
+      tiles: new Set(tiles),
+      outcome: feedbackMsg.outcome,
+      nonce: verdictSeq + 1,
+      msgId,
+    })
   }
   // The two beats a verdict gets on the board, in order: the attention flash says
   // WHERE the answer landed, and once it has faded the head-shake says the answer
@@ -218,7 +223,7 @@ export function BoardCol({
     if (verdict === null) return
     flashAttention(verdict.tiles)
     // Every verdict that can land ON TILES is a refusal — a correct guess takes
-    // its four away and becomes a band — so the shake needs no tone test.
+    // its four away and becomes a band — so the shake needs no outcome test.
     const timer = setTimeout(() => shakeTiles(verdict.tiles), ATTENTION_FADE_MS)
     return () => clearTimeout(timer)
   }, [verdict, flashAttention, shakeTiles])
@@ -277,7 +282,7 @@ export function BoardCol({
         marks
           ? {
               tiles: new Set(newestGuess.tiles),
-              tone: newestGuess.outcome,
+              outcome: newestGuess.outcome,
               nonce: verdictSeq + 1,
               msgId: null,
             }

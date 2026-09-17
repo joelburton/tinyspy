@@ -164,7 +164,7 @@ function drawChain(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
 }
 
 /**
- * That board's moves — the full log, retreats and help included, because on
+ * That board's moves — the full log, retreats and rungs included, because on
  * paper "what did we try?" is most of what a finished game is worth keeping.
  */
 function drawMoves(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {

@@ -29,7 +29,7 @@ describe('historyChainAt', () => {
     expect(historyChainAt(evs, 2)).toEqual([])
   })
 
-  it('help does not move the chain', () => {
+  it('a hint or spoiler does not move the chain', () => {
     const evs = [ev('played', 'adg'), ev('hint', 'gjb'), ev('spoiler', 'gjb')]
     expect(historyChainAt(evs, 2)).toEqual(['adg'])
   })

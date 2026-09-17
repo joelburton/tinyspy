@@ -42,8 +42,12 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   setgame.record_hint((select id from g), (pg_temp.sg_live((select id from g)))[1:1]),
-  '{"type":"ok","data":{"result":"recorded","hints_used":1}}'::jsonb,
+  '{"type":"ok","outcome":null,"data":{"result":"recorded","hints_used":1}}'::jsonb,
   'a one-card hint is recorded, and the answer names itself');
+-- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
+-- an expected envelope that simply omits the key would pass whatever the server
+-- put there. Asking for a hint shows itself, in the ring the client already
+-- drew, so this envelope deliberately carries no word.
 
 reset role;
 select is(

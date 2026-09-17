@@ -183,21 +183,16 @@ grant select on connections.club_game_status to authenticated;
 -- the durable identity. Ascending, so a club works forward through the
 -- archive in publication order.
 --
--- Returns 0 rows when everyone here has played everything — create_game
--- turns that into `no-unplayed-puzzle|`, and the dialog says so up front.
--- **Returns the envelope, and `data` is ONE puzzle or null.** It used to be
+-- **Returns the envelope, and `data` is ONE puzzle.** It used to be
 -- `returns table(...)` and every caller wrote `data?.[0] ?? null` to get back to
 -- the same thing — a shape that says "some rows" for a function that answers a
 -- question with one answer.
 --
--- The empty case is `outcome: 'warning'`. Nothing failed and nobody erred: these
--- players have simply done every puzzle we have. `warning` is the tone that says
--- so without claiming a fault, and it leaves both callers free to keep their own
--- words — the setup form's "none left", the new-game path's longer sentence
--- naming the import command.
---
--- No handler, because there is nothing to catch: this raises nothing. A raw
--- Postgres error still reaches `runRpc` as an error and becomes a fault there.
+-- The empty case — everyone here has played everything — is PN302, a
+-- form-validation not-ok, and the reasoning for that is at the raise below.
+-- So there is no `ok` arm carrying an outcome for it, and the handler at the
+-- bottom is what turns the raise into an envelope. A raw Postgres error still
+-- reaches `runRpc` as an error and becomes a fault there.
 drop function if exists connections.next_puzzle_for_club(uuid[]);
 
 -- `plpgsql`, not `sql`, because the empty case RAISES (PN302 below) and a raise

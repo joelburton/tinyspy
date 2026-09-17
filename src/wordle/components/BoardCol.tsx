@@ -35,7 +35,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * Concede show into it too); this column shows the soft rejects and draws it.
  * See docs/playarea.md.
  */
-/** How long the rejected row keeps its amber ring — a touch past the shake, so
+/** How long the rejected row keeps its ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */
 const REJECT_MARK_MS = 900
 
@@ -125,8 +125,9 @@ export function BoardCol({
 }) {
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  /** Bumped on every soft reject — the active row shakes and rings amber for a
-   *  beat. A NONCE rather than a boolean, because rejecting the same word twice
+  /** Bumped on every soft reject — the active row shakes and rings in the
+   *  refusal's outcome for a beat (amber for a duplicate, red for a word the
+   *  dictionary refused). A NONCE rather than a boolean, because rejecting the same word twice
    *  must replay the shake: a boolean already `true` changes nothing, and the
    *  second attempt would look ignored. `<Board>` keys the row on it so the
    *  animation restarts. */
@@ -217,7 +218,7 @@ export function BoardCol({
    * (docs/envelopes.md → The shape of a call site).
    *
    * The rules were applied and no guess was burned, so the typed row stays put
-   * and the board shakes instead. Takes the tone and the sentence as ARGUMENTS
+   * and the board shakes instead. Takes the outcome and the sentence as ARGUMENTS
    * because the server wrote both, per answer — this function is the shared
    * mechanism, never the source of the words.
    *
@@ -273,7 +274,7 @@ export function BoardCol({
         // Identical to `correct` on purpose, and a separate branch anyway: the
         // two differ in what they did to the GAME, not in what this column has
         // to do about it, and merging them would be a branch matching two
-        // answers — which is how the `?? 'lost'` below it came to exist.
+        // answers.
         setCurrent('')
         return
       } else {

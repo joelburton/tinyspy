@@ -122,7 +122,7 @@ select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
 -- The outcome is asserted with it. src/wordle/lib/answer.ts gives the row this
 -- wrote the same word, and the log bar wears that — one rule, two languages,
--- a test in each. The non-solving guess below is the half that changed on
+-- a test in each. The non-solving guess above is the half that changed on
 -- 2026-09-17 (`lost` → `neutral`) with nothing here to catch it.
 select is((select (res->>'outcome') from winres), 'won',
   'a solving guess is won');

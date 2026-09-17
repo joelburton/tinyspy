@@ -20,8 +20,9 @@
   letter-spacing: 0.03em;
 }
 
-/* Each guessed word (row 2), colored by its reveal outcome — the same agent-green
- * / neutral-tan / assassin-red vocabulary the board uses for revealed tiles. */
+/* Each guessed word (row 2), colored by what it REVEALED — the same agent-green
+ * / neutral-tan / assassin-red key-card vocabulary the board uses for revealed
+ * tiles, which is not the outcome vocabulary. */
 /* @@ */ .guessWord {
   font-weight: 700;
   letter-spacing: 0.03em;

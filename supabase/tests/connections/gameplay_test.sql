@@ -20,6 +20,10 @@
 --   - 4 matched categories flips play_state to 'won', clears
 --     is_current_view flipped via common.end_game
 --
+-- Every envelope's `outcome` is asserted here, and its twin is the frontend's
+-- src/connections/lib/answer.ts, where ANSWER_OUTCOME says the same word for
+-- the row the same guess writes. Both halves move together.
+--
 -- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
 -- simulation primer.
 

@@ -86,7 +86,7 @@ type SubmitResult = {
 function resultFor(r: SubmitResult): FeedbackMessage {
   // The BODY is this surface's — only it knows the shared `WORD — body` format
   // and whether the bar just filled. The OUTCOME is `lib/answer.ts`'s, the same
-  // word the log row and a teammate's line wear for this guess.
+  // word the log row wears for this guess.
   const line = (body: string) => `${r.word.toUpperCase()} — ${body}`
   const say = (body: string) =>
     FeedbackMessage.result(ANSWER_OUTCOME[r.result], line(body))

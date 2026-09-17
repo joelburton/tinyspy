@@ -471,18 +471,24 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- ============================================================
 -- wordle.submit_guess — the core move
 -- ============================================================
--- Submit a 5-letter guess. Soft rejections (no guess consumed, no row
--- written): a malformed entry ('invalid'), a word not in the legal
--- slice ('notAWord'), or one already guessed on this board
--- ('duplicate'). A valid, fresh word is colored, logged, and counts
--- against the budget. Hard rejections (raised): not a player, game not
--- playing, the caller already solved, or out of guesses.
+-- Submit a 5-letter guess. Soft rejections (an `ok`: no guess consumed,
+-- no row written) are the word already guessed on this board
+-- ('duplicate', `warning`) and the word not in the legal slice
+-- ('notAWord', `lost`). A valid, fresh word is colored, logged, and
+-- counts against the budget. Hard rejections (raised): not a player,
+-- game not playing, a malformed entry (PN256 — the client refuses a
+-- short word before it calls), the caller already solved, or out of
+-- guesses.
 --
 -- The `for update` lock on the games row serializes concurrent coop
 -- guesses against the shared budget.
 --
--- Returns jsonb { result, colors, guesses_used, solved, terminal }.
--- `result` ∈ correct | incorrect | notAWord | duplicate | invalid.
+-- The `ok` carries { result, colors, guesses_used, solved, terminal },
+-- `result` ∈ correct | incorrect | notAWord | duplicate, and the
+-- envelope's outcome is the word the pill and the board's ring wear:
+-- `won` for a solve, `neutral` for an ordinary guess (the frontend's
+-- lib/answer.ts says the same for the row), and the two above for the
+-- soft rejects.
 drop function if exists wordle.submit_guess(uuid, text);
 create or replace function wordle.submit_guess(
   target_game uuid,

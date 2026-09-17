@@ -404,28 +404,22 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- The guess must be one of the board words (the player clicks a
 -- tile or types a word that's on the board). Compared case-folded.
 --
--- The return value answers ONE question — did the caller's guess
--- hit a secret? — because its only consumer is the pill flashed in
--- the entry box. Returns one of:
---   'won'     — this guess found the last needed secret; the
---               caller (compete) / team (coop) wins. Terminal.
---   'correct' — found a secret. Usually the game continues; it can
---               also be the guess that empties the budget (see the
---               loss branch below), which ends the game — still
---               'correct', because the player DID find a secret.
---   'wrong'   — missed.
--- The FE flashes green for 'won'/'correct', red for 'wrong'; the
--- terminal transition itself it observes via realtime, not the
--- return value.
+-- The envelope answers ONE question — did the caller's guess hit a
+-- secret? — because its only consumer is the pill flashed in the
+-- entry box. Its `data` carries two facts, so neither has to be
+-- decoded out of the other:
+--   'verdict'    — 'hit' or 'miss'.
+--   'found_all'  — true only on the guess that completes the set;
+--                  the caller (compete) / team (coop) wins.
+-- The outcome is `won` for a hit and `lost` for a miss (the reason
+-- is beside the return). A word already in the log is refused as
+-- PA002, `warning`. The terminal transition itself the FE observes
+-- via realtime, not the envelope.
 --
--- There is deliberately NO 'lost': the budget-exhausting guess used
--- to return it whichever way the guess went, so a correct guess that
--- happened to empty the budget flashed a red "Incorrect" for a beat
--- before the terminal verdict replaced it — the return value was
--- reporting the game's fate in a slot the FE reads as the player's.
--- Every other way this game ends (timeout, concede, a compete
--- opponent finishing) already reaches the FE via realtime; the
--- exhaustion loss now does too.
+-- The outcome is the CALLER's verdict, never the game's fate: a
+-- correct guess that happens to empty the budget still says `won`,
+-- and the loss reaches the FE over realtime like every other way
+-- this game ends (timeout, concede, a compete opponent finishing).
 --
 -- "Found all three" is scoped per mode:
 --   coop    — the TEAM's distinct correct guesses (everyone's).
@@ -693,7 +687,7 @@ begin
     --
     -- A miss is `lost`: the budget is what you spend to play, and a wrong guess
     -- spends some of it for nothing. `neutral` — news rather than a verdict —
-    -- was the word here until 2026-09-16, and no surface believed it: the pill,
+    -- was the word here until 2026-09-17, and no surface believed it: the pill,
     -- the log and a teammate's line all said red anyway. The frontend's
     -- lib/answer.ts now says the same word for the row this wrote.
     return common.ok_envelope(
@@ -893,16 +887,16 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- ============================================================
 -- Reveals one of the player's (compete) / team's (coop) unfound
 -- secret WORDS — the answer. Logged as a `kind = 'reveal'` row so
--- it flows into the turn log over realtime (amber), and so coop
+-- it flows into the turn log over realtime (red), and so coop
 -- teammates get a "X revealed a word" pill (in compete the guesses
 -- RLS scopes the row to the caller — reveals are private there).
--- Costs nothing and does NOT find the secret: it just shows it, so
+-- Costs no budget and does NOT find the secret: it just shows it, so
 -- the player still has to guess (or doesn't bother — it's a cheat).
 --
--- ONE `ok`, carrying the revealed word, and its outcome is `warning`: a
--- spoiler is neither good nor bad play, and coloring it green or red would
--- adjudicate something the player did not do (docs/outcomes.md → Help you
--- asked for). Its twin is stackdown.reveal_next_word, which answers the same
+-- ONE `ok`, carrying the revealed word, and its outcome is `lost`: a spoiler
+-- hands over the secret itself, which ends the hunt for it (docs/outcomes.md →
+-- One event, one outcome, and the frontend's lib/answer.ts says the same word
+-- for the row). Its twin is stackdown.reveal_next_word, which answers the same
 -- way down to the outcome.
 
 -- `create or replace` cannot change a function's return type, and this one

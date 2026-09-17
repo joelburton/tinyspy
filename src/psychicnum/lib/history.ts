@@ -10,7 +10,7 @@
  * a guess only ever ADDS a permanent green/red mark, so a past board is the guesses
  * up to that turn folded into the same `word → is_correct` map the live board uses.
  * A word is guessable only once (the server rejects re-guesses), so the fold never
- * overwrites. Hint / reveal turns mark no tile (they're free helpers), so they leave
+ * overwrites. Hint / reveal turns mark no tile (they decide nothing), so they leave
  * the map unchanged and light nothing.
  *
  * **Keyed by log position, not a stored id.** psychicnum's `guesses` has no per-turn

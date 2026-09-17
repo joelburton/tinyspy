@@ -787,7 +787,7 @@ begin
     -- would ask: the compete board offers no hint button at all.
     raise exception 'BUG: hint request in a race'
       using errcode = 'PN280', hint = 'fault', column = '_',
-      detail = 'hints are coop-only; free generative help would decide a race';
+      detail = 'hints are coop-only; a free generative hint would decide a race';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;

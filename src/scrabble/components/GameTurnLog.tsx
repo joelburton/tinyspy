@@ -16,7 +16,8 @@ const aiId = (seat: number | null) => `ai:${seat}`
  * scrabble's move log — the shared `<TurnLog>` table (same chrome the other v3
  * games use). Each play is its OWN single `<tr>` (the shared layer no longer owns
  * row shape — docs/playarea.md → Turn log): the outcome bar (green for a
- * played word, neutral for an exchange / pass, red for a coop forfeit), the turn
+ * played word, neutral for an exchange, a pass or a coop forfeit — the words
+ * `lib/answer.ts` gives the row's `kind`), the turn
  * number ("#<seq>", the shared `<TurnLogNumber>`), the move in `.main`, and the
  * actor right-aligned in `<TurnLogActor>`. Newest at the bottom; the shared
  * `<TurnLog>` auto-snaps to the latest row.

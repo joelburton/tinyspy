@@ -456,7 +456,11 @@ export function PlayArea(ctx: GamePageCtx) {
       // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
       // +14" shape) so the headline reads before the word does — and so the
       // line fits the header's ~26 phone characters.
-      return FeedbackMessage.peer(member, 'won', `${wow ? 'wow!' : 'found'} ${label} +${r.points}`)
+      return FeedbackMessage.peer(
+        member,
+        ANSWER_OUTCOME.accepted,
+        `${wow ? 'wow!' : 'found'} ${label} +${r.points}`,
+      )
     },
     globalFeedbackSlot,
   })

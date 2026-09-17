@@ -29,13 +29,13 @@ const HISTORY_LIT_TINT: Record<Answer, string> = {
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
- * The verdict's tone class, keyed by the tone its PILL wore.
+ * The verdict's class, keyed by the outcome its PILL wore.
  *
  * TOTAL over `Outcome`, which is the point: the mark never picks its own color,
  * it wears the pill's, because the two are one message
  * (plans/tile-feedback.md). A map that covered only the three connections
- * happened to use forced the one call site whose tone comes from the SERVER to
- * hand-map seven words onto three — `msg.tone === 'warning' ? 'warning' :
+ * happened to use forced the one call site whose outcome comes from the SERVER
+ * to hand-map seven words onto three — `msg.outcome === 'warning' ? 'warning' :
  * 'lost'` — which silently painted anything unrecognized red (Joel,
  * 2026-08-29). Being total makes a new outcome a compile error here instead.
  *
@@ -55,9 +55,9 @@ const VERDICT_TONE: Record<Outcome, string | null> = {
 /** The answer to my last guess, worn by the tiles it covered. */
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
-  // ANY outcome, because the mark wears its pill's tone and the pill speaks the
-  // full vocabulary. `VERDICT_TONE` above is total over it.
-  tone: Outcome
+  // ANY outcome, because the mark wears its pill's outcome and the pill speaks
+  // the full vocabulary. `VERDICT_TONE` above is total over it.
+  outcome: Outcome
   // Bumped per verdict. The shake is a CSS animation, which only restarts on a
   // NEW element, so the tiles are keyed on this: submitting the same four tiles
   // twice has to shake twice.
@@ -85,7 +85,7 @@ type Props = {
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
   inFlightTiles?: ReadonlySet<string>
-  // The verdict on my last guess, ringed in its pill's tone (BoardCol sets it,
+  // The verdict on my last guess, ringed in its pill's outcome (BoardCol sets it,
   // and clears it on the next tile click). Null while nothing is being judged.
   verdict?: BoardVerdict | null
   // Tiles taking the attention flash — the beat that says an answer landed here.
@@ -108,8 +108,8 @@ type Props = {
   notMyTurn?: boolean
   // True for a beat as the turn becomes mine (useTurnStartFlash).
   myTurnJustStarted?: boolean
-  // The game's outcome once it is over — the board wears the frame in that
-  // tone. `'neutral'` also covers a player who is out of a compete race while
+  // The game's outcome once it is over — the board wears the frame in it.
+  // `'neutral'` also covers a player who is out of a compete race while
   // the others play on: their board is inert even though the game isn't.
   gameOver?: TerminalOutcome | null
   // ATTENTION, the server's move marker: the guess log's length. A band
@@ -149,7 +149,7 @@ type Props = {
  * `.selected` border for a tile in the guess being built — worn whoever picked
  * it, because in coop the four tiles are one shared move — with `.peerPick`
  * naming the picker where that is worth saying; `.dimInFlight` while the guess
- * is with the server; `.verdictFill` in its pill's tone when the answer lands.
+ * is with the server; `.verdictFill` in its pill's outcome when the answer lands.
  * On a BAND: `.attentionFlash`, for a category that resolved under a teammate's
  * hands. On the BOARD: the not-your-turn dim, the your-turn flash, and the
  * game-over frame. What is left to connections is the bands themselves and the
@@ -324,12 +324,12 @@ export function Board({
                 attentionTiles.has(tile) && shared.attentionFlash,
                 shakenTiles.has(tile) && shared.verdictShake,
                 inFlight && shared.dimInFlight,
-                // The answer fills the tile, in a PALE tier of its pill's tone.
+                // The answer fills the tile, in a PALE tier of its pill's outcome.
                 // The background is free to take it: a connections tile carries
                 // no state color — a decided one stops being a tile at all and
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && VERDICT_TONE[verdict.tone],
+                isVerdict && verdict && VERDICT_TONE[verdict.outcome],
                 isHistoryLit && HISTORY_LIT_TINT[historyLitResult],
                 isHistoryLit && styles.historyTile,
               )}

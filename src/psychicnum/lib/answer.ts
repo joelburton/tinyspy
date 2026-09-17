@@ -27,7 +27,7 @@ export type Answer = 'hit' | 'miss' | 'hint' | 'reveal' | 'not_on_board'
  *
  *   - the budget is what you spend to play, so a miss spends some of it for
  *     nothing: red, not news.
- *   - a hint is a nudge you asked for and paid for, which is neither good nor
+ *   - a hint is a nudge you asked for, free here but still neither good nor
  *     bad play: `warning`, as a hint is in every game. A spoiler hands over the
  *     secret itself, which ends the hunt for it — that is a loss, and it wears
  *     red.

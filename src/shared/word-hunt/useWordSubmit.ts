@@ -110,11 +110,11 @@ export type WordSubmitConfig = {
    * Presentational and nothing else: unlike `recordReject` it fires for EVERY
    * answer including the already-found one, because a board showing an answer
    * has to show that one too; and it writes nothing anywhere, so a game COULD
-   * color a reason differently from the pill. None does: every one of the four
-   * routes both this and `outcomeFor` through its own `lib/answer.ts`, which is
-   * the rule (docs/outcomes.md → One event, one outcome). wordiply's dictionary
-   * miss used to be a `warning` here and a `lost` in the pill; it is a `warning`
-   * in both.
+   * color a reason differently from the pill. None does: a surface that colors
+   * anything here takes the word from its own `lib/answer.ts`, the same table
+   * `outcomeFor` reads for the pill, which is the rule (docs/outcomes.md → One
+   * event, one outcome). wordwheel colors nothing — its `onAnswer` only bumps
+   * the shake — so the question does not arise there.
    */
   onAnswer?: (
     word: string,

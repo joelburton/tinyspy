@@ -114,7 +114,7 @@ describe('buildLetterboxedPrintModel', () => {
     expect([...m.tracks[0].covered].sort()).toEqual(['a', 'b', 'd', 'g', 'j'])
   })
 
-  it('keeps retreats and help in the printed log', () => {
+  it('keeps retreats, hints and spoilers in the printed log', () => {
     const m = buildLetterboxedPrintModel({
       ...base,
       mode: 'coop',

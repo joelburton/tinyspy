@@ -163,10 +163,13 @@ select submit_clue((select id from g1), 'WHATEVER', 1);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   pass_turn((select id from g1)),
-  '{"type":"ok","data":{"result":"passed","turn_number":3,
+  '{"type":"ok","outcome":null,"data":{"result":"passed","turn_number":3,
     "turns_remaining":7,"clue_giver":"A","play_state":"playing"}}'::jsonb,
-  'pass_turn succeeds for the guesser in the guess phase'
+  'pass_turn succeeds for the guesser in the guess phase, carrying no outcome'
 );
+-- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
+-- an expected envelope that simply omits the key would pass whatever the server
+-- put there. Ending your own turn is not a move anything adjudicates.
 
 select is(
   (select turns_remaining from games where id = (select id from g1)),

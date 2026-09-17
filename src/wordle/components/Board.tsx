@@ -48,10 +48,11 @@ type Props = {
   // rings. The pill says WHAT was wrong; this says WHERE. Keyed into the row so
   // a repeat rejection replays the shake rather than doing nothing.
   rejectNonce?: number
-  // Which outcome that rejection carries. The ring's color comes from the
-  // shared table, which is TOTAL over the vocabulary, so the caller narrows
-  // nothing on the way down.
-  rejectOutcome?: Outcome
+  // Which outcome that rejection carries. REQUIRED: a default here would be a
+  // second place naming a refusal's word, and the caller is the one holding the
+  // answer. The ring's color comes from the shared table, which is TOTAL over
+  // the vocabulary, so the caller narrows nothing on the way down.
+  rejectOutcome: Outcome
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live. The
   // same mark waffle wears; see plans/tile-feedback.md.
@@ -89,7 +90,7 @@ export function Board({
   isViewingHistory = false,
   historyLitBoardRow = -1,
   rejectNonce = 0,
-  rejectOutcome = 'lost',
+  rejectOutcome,
   gameOver = null,
   notMyTurn = false,
   myTurnJustStarted = false,

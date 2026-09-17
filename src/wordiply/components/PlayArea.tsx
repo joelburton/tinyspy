@@ -455,8 +455,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // No verb: the dot names who, the word is the news, the count is its
       // length. "played" earned no room in the header's ~26 phone characters.
       // …and their word lands on the shared board, so the row says so too.
-      showAnswer(r.word, 'won', true)
-      return FeedbackMessage.peer(member, 'won', `${r.word.toUpperCase()} (${r.length})`)
+      showAnswer(r.word, ANSWER_OUTCOME.accepted, true)
+      return FeedbackMessage.peer(
+        member,
+        ANSWER_OUTCOME.accepted,
+        `${r.word.toUpperCase()} (${r.length})`,
+      )
     },
     globalFeedbackSlot,
   })

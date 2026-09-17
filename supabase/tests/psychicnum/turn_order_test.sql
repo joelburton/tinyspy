@@ -73,7 +73,7 @@ select pg_temp.envelope_is(
   'turns: a guess from the non-current player is rejected'
 );
 
--- (3) ada (current) guesses wrong — accepted, returns 'wrong'.
+-- (3) ada (current) guesses wrong — accepted as a miss.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zdelta'),

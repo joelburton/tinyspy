@@ -83,9 +83,9 @@ describe('buildDuetPrintModel — what happened on a cell', () => {
     expect(m.cells[1].revealed).toBe('assassin')
   })
 
-  it('treats a bystander burned by EITHER seat as a neutral outcome', () => {
-    // A neutral isn't a global reveal — it's per-seat — so the outcome is
-    // derived from the two burn flags rather than revealed_as.
+  it('treats a bystander burned by EITHER seat as revealing a neutral', () => {
+    // A neutral isn't a global reveal — it's per-seat — so what the cell
+    // revealed is derived from the two burn flags rather than revealed_as.
     const m = buildDuetPrintModel({
       ...base,
       words: board({ 3: { neutral_a: true }, 4: { neutral_b: true } }),
@@ -94,7 +94,7 @@ describe('buildDuetPrintModel — what happened on a cell', () => {
     expect(m.cells[4].revealed).toBe('neutral')
   })
 
-  it('leaves an untouched word with no outcome', () => {
+  it('leaves an untouched word revealing nothing', () => {
     expect(buildDuetPrintModel({ ...base }).cells[5].revealed).toBeNull()
   })
 })

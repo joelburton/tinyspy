@@ -476,14 +476,14 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     answer(okEnvelope)
 
     // The answer arrives: the dim lifts and the verdict fills the same four
-    // tiles in the tone its pill wears — "Incorrect" is an error in both places.
+    // tiles in the outcome its pill wears — "Incorrect" is `lost` in both places.
     await waitFor(() => expect(tile('a').className).toMatch(/verdictFill/))
     expect(tile('a').className).toMatch(/verdictLost/)
     expect(tile('a').className).not.toMatch(/dimInFlight/)
     expect(screen.getByText('Incorrect')).toBeInTheDocument()
   })
 
-  it('fills a refused guess in the tone its pill takes, without asking the server', async () => {
+  it('fills a refused guess in the outcome its pill takes, without asking the server', async () => {
     const user = userEvent.setup()
     h.result = loaded({
       game: game('coop'),

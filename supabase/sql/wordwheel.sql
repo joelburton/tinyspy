@@ -589,16 +589,13 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- ============================================================
 -- wordwheel.submit_word
 -- ============================================================
--- The only mid-game action. Validates the word in the order
--- wordwheel-ws uses (chosen so each rejection gives the friendliest
--- feedback when multiple things are wrong):
---
---   1. tooShort         length < 4
---   2. badLetters       uses a letter that isn't on the board
---   3. missingCenter    doesn't include the center letter
---   4. notAWord         not in required_words and not in bonus_words (i.e. not legal)
---   5. a duplicate      REFUSED per mode rule (see below) — not an answer
---   6. accepted / bonus / pangram
+-- The only mid-game action, and it is TRUSTING-COMMIT: the word arrives
+-- already judged. The legality checks — too short, a letter not in the
+-- wheel's multiset, the center letter missing, not on the board's list —
+-- all run on the FE (src/wordwheel/lib/answer.ts and the shared
+-- word-hunt engine), so a refused word never reaches this function. What
+-- is left here is the duplicate, REFUSED per mode rule (see below) as a
+-- RACE rather than an answer, and the accepted word itself.
 --
 -- "Per mode rule":
 --   - coop:    duplicate iff ANY row exists with this game_id
@@ -613,13 +610,15 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- FOR UPDATE) — one fewer cross-schema read per submission than
 -- digging into common.games.setup.
 --
--- Returns jsonb `{ result, points }` rather than a bare result enum,
+-- The `ok` carries `{ result, points }` rather than a bare result enum,
 -- so the FE can show points earned (and call out a pangram) in the
 -- entry feedback WITHOUT re-deriving the point/pangram rules on the
--- client. The `result` vocabulary gains `'pangram'` (a required OR
--- bonus word using all 9 letters; takes precedence over the
--- accepted/bonus distinction, which the FE doesn't surface anyway).
--- Rejected results (notAWord, tooShort, …) carry `points: 0`.
+-- client. `result` is `accepted` / `bonus` / `pangram` — a pangram being
+-- a required OR bonus word using all 9 letters, which takes precedence
+-- over the accepted/bonus distinction the FE doesn't surface anyway —
+-- or `won`, the word that reached the target rank. The envelope carries
+-- no outcome: the pill is shown from the FE's own table before this call
+-- is made (docs/envelopes.md → Who writes the words, per answer).
 --
 -- Throws (hard rejections):
 --   42501 not authenticated, not a game player

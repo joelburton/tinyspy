@@ -92,12 +92,12 @@ function mark(doc: jsPDF, kind: Mark, cx: number, cy: number, size: number): voi
 }
 
 /**
- * One board cell: the word, its outcome border + corner mark, the keycard
- * inset(s), and the bystander triangles.
+ * One board cell: the word, the border + corner mark for what it revealed, the
+ * keycard inset(s), and the bystander triangles.
  */
 function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: number): void {
   // The tile's own border says what HAPPENED. An untouched word gets the plain
-  // dark-gray box — no outcome, so no color.
+  // dark-gray box — it revealed nothing, so no color.
   const outline = c.revealed ? MARK_RGB[c.revealed] : null
   doc.setLineWidth(outline ? 1.6 : 0.6)
   if (outline) doc.setDrawColor(...outline)

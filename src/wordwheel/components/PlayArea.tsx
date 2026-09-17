@@ -465,7 +465,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // the word does — and so the line fits the header's ~26 phone characters,
       // which "found WORD +14 — pangram! 🦌" did not.
       const what = `${r.is_pangram ? 'pangram 🦌' : 'found'} ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`
-      return FeedbackMessage.peer(member, 'won', what)
+      return FeedbackMessage.peer(member, ANSWER_OUTCOME.accepted, what)
     },
     globalFeedbackSlot,
   })

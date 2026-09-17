@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(34);
+select plan(35);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -119,6 +119,10 @@ create temp table inv on commit drop as
       {"x":10,"y":7,"letter":"J","blank":false}]'::jsonb, array['ZXQJ'], 99) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from inv), 'invalid', 'a non-word is rejected (free)');
+-- The refusal's outcome, which no row can carry: a rejected word writes nothing
+-- to `scrabble.plays`, so the pill and the red tile flash are its only surfaces
+-- and this envelope is the only place the word is said.
+select is((select res ->> 'outcome' from inv), 'lost', 'a refused word is lost');
 select is((select inv.res -> 'data' -> 'bad_words' from inv), '["ZXQJ"]'::jsonb,
   'the rejecting word is reported');
 select is((select version from scrabble.games where id = (select id from gb)), 0,

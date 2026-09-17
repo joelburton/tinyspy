@@ -56,13 +56,13 @@ const MARK: Record<GuessResult, typeof IconWordOk> = {
  * doesn't.
  *
  * A find needs no label: green bar + purple word IS "theme", green bar + gold
- * word IS "spangram", and an amber bar IS "valid word". Spelling those out
- * again cost the width that a long word needs on a phone, to repeat what the
- * row already showed.
+ * word IS "spangram", and the gold `near` bar IS "valid word". Spelling those
+ * out again cost the width that a long word needs on a phone, to repeat what
+ * the row already showed.
  *
- * A reject is the opposite case. All three paint the same red bar, so the
- * color narrows it to "this missed" and the label is the only thing saying
- * WHY — too short, already counted, or not a word at all.
+ * A reject is the opposite case. Its bar says only how far the move got —
+ * amber for the two the rules turn away, red for the one real miss — so the
+ * label is what says WHY: too short, already counted, or not a word at all.
  */
 const BODY: Partial<Record<GuessResult, string>> = {
   duplicate: 'already found',

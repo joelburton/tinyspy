@@ -181,7 +181,7 @@ describe('psychicnum PlayArea — concede', () => {
 
   it('keeps each action button its own tone — the color IS what it means', () => {
     // A regression this actually had: the tones live on the ACTION now (amber
-    // for a help ask, red for the whole solution, red for an exit), and an
+    // for a hint, red for the whole solution, red for an exit), and an
     // action that forgot one came out action-blue like everything else.
     render(<PlayArea {...makeCtx()} />)
     expect(screen.getByRole('button', { name: 'Hint' }).className).toMatch(/caution/)

@@ -36,10 +36,10 @@ const NO_TILES: ReadonlySet<number> = new Set()
  *   - Owned here: the red ambiguous-tile flash (a typed letter matched >1 exposed
  *     tile) — purely this column's own input feedback.
  *   - Owned by PlayArea, rendered here via props: the word-slot flash (`flash` —
- *     own-accepted or a coop teammate's word) and the local feedback slot
- *     (`localFeedbackSlot`, which this column shows its input-engine results
- *     into and draws). Those channels have triggers outside this column (coop
- *     peer narration; the reveal/hint cheats), so the coordinator owns them.
+ *     my own accepted word) and the local feedback slot (`localFeedbackSlot`,
+ *     which this column shows its input-engine results into and draws). Those
+ *     channels have triggers outside this column (a teammate's word marks their
+ *     tiles; the reveal/hint cheats), so the coordinator owns them.
  */
 export function BoardCol({
   tiles,
@@ -98,8 +98,7 @@ export function BoardCol({
   // it dismisses a gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
 
-  // ── Word-slot flash (own-accepted / coop peer word — timer owned by PlayArea) ──
-  // The word-slot flash (own-accepted / peer word), owned by PlayArea's timer.
+  // ── Word-slot flash (my own accepted word — timer owned by PlayArea) ──
   flash: WordFlash | null
   // Drop any lingering word flash when a new word starts.
   clearFlash: () => void

@@ -1199,7 +1199,8 @@ begin
   -- the server's verdict is the first anyone knows rather than a stale copy
   -- losing a race. Every field this RPC has ever returned is still here.
   --
-  -- The outcome is the tone the frontend's `pillFor` was already choosing;
+  -- The outcome is the one the frontend's `ANSWER_OUTCOME` gives the same
+  -- result (src/strands/lib/answer.ts — one rule, two languages);
   -- `message` stays null because the pill copy is the shared `WORD — body`
   -- format four other games speak through `useWordSubmit`, and composing it in
   -- SQL would fork a format whose whole point is being identical.
@@ -1370,7 +1371,7 @@ begin
   insert into strands.events (game_id, user_id, kind, path)
   values (target_game, caller_id, 'hint', coords);
 
-  -- `warning`, the help-you-asked-for tone: spending a hint is neither good nor
+  -- `warning`, the word a hint wears everywhere: spending one is neither good nor
   -- bad play, and coloring it would adjudicate something the player did not do
   -- (docs/outcomes.md). `coords` and `hint_points` are the fields this RPC has
   -- always returned.

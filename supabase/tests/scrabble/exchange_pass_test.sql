@@ -14,7 +14,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(17);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -78,8 +78,13 @@ reset role;
 select pg_temp.sc_turn((select id from gcp), 'ada11111-1111-1111-1111-111111111111');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select scrabble.pass_turn((select id from gcp), 0);
+create temp table rpass on commit drop as
+  select scrabble.pass_turn((select id from gcp), 0) as res;
 reset role;
+-- `neutral`, the same reading as the exchange above with nothing bought.
+-- src/scrabble/lib/answer.ts gives the `pass` row the same word.
+select is((select res ->> 'outcome' from rpass), 'neutral',
+  'a pass is a turn nothing adjudicates');
 select is((select consecutive_passes from scrabble.games where id = (select id from gcp)), 1,
   'pass bumps the pass streak');
 select is(pg_temp.sc_current_user((select id from gcp)),

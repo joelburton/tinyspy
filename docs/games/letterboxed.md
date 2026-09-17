@@ -506,8 +506,8 @@ at the site that knows the condition. What the four turn RPCs can say:
 | `PN399` "BUG: a word under three letters" | `fault` | |
 | `PN403` "BUG: a word this board cannot play" | `fault` | |
 | `PN411` "BUG: a clear in turn-by-turn coop" | `fault` | |
-| `PN414` "BUG: help in a compete game" | `fault` | |
-| `PN415` "BUG: help of an unknown kind" | `fault` | |
+| `PN414` "BUG: a hint or spoiler in a compete game" | `fault` | |
+| `PN415` "BUG: a rung of an unknown kind" | `fault` | |
 | `PN396` / `PN404` / `PN408` / `PN412` "That game no longer exists" | `fault` | one per RPC |
 
 **The split runs through `submit_word`'s five shape checks, and it is the one

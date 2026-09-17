@@ -1346,26 +1346,26 @@ begin
   end if;
   if g_row.mode <> 'coop' then
     -- A fault: the mode is fixed at create_game and the FE renders neither
-    -- help button in compete, so this arriving means a broken client.
-    raise exception 'BUG: help in a compete game'
+    -- rung's button in compete, so this arriving means a broken client.
+    raise exception 'BUG: a hint or spoiler in a compete game'
       using errcode = 'PN414', hint = 'fault', column = '_',
       detail = 'hint/spoiler would be a win button in a race';
   end if;
   if kind not in ('hint', 'spoiler') then
-    raise exception 'BUG: help of an unknown kind'
+    raise exception 'BUG: a rung of an unknown kind'
       using errcode = 'PN415', hint = 'fault', column = '_',
       detail = format('log_hint_or_spoiler kind must be hint or spoiler; got %L', kind);
   end if;
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it, or the clock ran out, between the FE
-    -- computing the help and telling the server it was taken.
+    -- computing the word and telling the server the rung was taken.
     raise exception 'Game over'
       using errcode = 'PN413', hint = 'race', column = '_',
       detail = 'common.games.play_state is terminal';
   end if;
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who
-  -- asked for help, not what the team's position is. Nothing RENDERS it —
+  -- took a rung, not what the team's position is. Nothing RENDERS it —
   -- the turn log is what players read — but it stays as the cheap
   -- per-player tally the log would otherwise have to be folded to get.
   update letterboxed.players
@@ -1380,7 +1380,7 @@ begin
   values (target_game, caller_id, log_hint_or_spoiler.kind, lower(trim(word_shown)),
           letterboxed._covered(v_chain));
 
-  -- No outcome: the FE has already shown the help itself, in its own pill, and
+  -- No outcome: the FE has already shown the hint or the word itself, in its own pill, and
   -- this answer only says the log agrees. Its job is to be a not-ok when the
   -- log does NOT agree.
   return common.ok_envelope(jsonb_build_object(

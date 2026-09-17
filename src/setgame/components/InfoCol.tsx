@@ -163,7 +163,7 @@ export function InfoCol({
                 would leave a player hunting for a button they know this game
                 has; a disabled one with a reason answers the question before
                 it is asked. (The ban itself is the priced-hint rule: a free
-                generative help decides a race.) */}
+                generative hint decides a race.) */}
             <ActionButton action={actHint} show="icon" />
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}

@@ -56,8 +56,8 @@ type Props = {
  * columns: row 1 is `[bar] | # | count WORD | clue-giver` (the bar `rowSpan`s the
  * whole turn; the `<ActorDot>` right-aligned via the shared `.who` column), and
  * row 2 spans those three content columns with the turn's guesses — each word
- * colored by its reveal outcome (agent green / neutral tan / assassin red), the
- * same vocabulary the board uses. The `.divider` on row 1 draws the
+ * colored by what it REVEALED (agent green / neutral tan / assassin red), the
+ * key-card vocabulary the board uses, not an outcome. The `.divider` on row 1 draws the
  * between-turns line (so there's no line *within* a turn). A guess-less turn reads
  * **"(clue given)"** while it's the current, still-live turn (the guesser hasn't
  * acted yet) and **"(no guesses)"** once it has ended empty (the guesser passed) —

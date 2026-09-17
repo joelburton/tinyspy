@@ -270,10 +270,10 @@ export function PlayArea({
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
-  // ─── The two help asks ─────────────────────────────────
+  // ─── The hint and the spoiler ──────────────────────────
   // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
   // via realtime; coop teammates get a header message. Nothing to do with the
-  // return value here — the helper rows arrive over the subscription. The RPC
+  // return value here — those rows arrive over the subscription. The RPC
   // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
   // on this page means the whole solution at game-over.
   //
@@ -452,12 +452,12 @@ export function PlayArea({
     run: createNewGame,
   })
 
-  // The two help asks. Grayed rather than dropped when you can't ask: the menu
-  // row is what NAMES those glyphs (docs/ui.md → the menu is the legend), so a
-  // disabled row still teaches the lightbulb and the bare eye.
+  // The hint and the spoiler. Grayed rather than dropped when you can't ask:
+  // the menu row is what NAMES those glyphs (docs/ui.md → the menu is the
+  // legend), so a disabled row still teaches the lightbulb and the bare eye.
   const actHint = useBoundAction('act-hint', {
-    // Three states, not two: GONE once the game is over (there is no move left
-    // to help with), gray while the game is live and you are out of guesses or
+    // Three states, not two: GONE once the game is over (there is no guess left
+    // to nudge), gray while the game is live and you are out of guesses or
     // one is in flight, live otherwise.
     describe: () => (isTerminal ? 'hidden' : isStillPlaying && !hinting ? 'active' : 'disabled'),
     run: getHint,
@@ -532,7 +532,7 @@ export function PlayArea({
         // isn't its own, so this list is the same in coop and compete.
         exits: [actConcede, actEndGame],
         extra: [
-          // The menu twins of the info column's two help buttons.
+          // The menu twins of the info column's hint and spoiler buttons.
           { items: [actHint, actSpoiler] },
           { items: [actPrintBoard] },
           {

@@ -16,8 +16,9 @@ export type Answer = GuessResult | 'spent_hint'
 /**
  * The outcome of every answer, in one place.
  *
- * **The log bar, the pill and a teammate's line all read THIS**, and
- * `submit_guess` / `spend_hint` say the same words in their envelopes. Four
+ * **The log bar and the pill both read THIS**, and `submit_path` / `spend_hint`
+ * say the same words in their envelopes. (No teammate's line: strands narrates
+ * nobody's move — see `hooks/useGame.ts`.) Four
  * separate tables used to key off the one `result` column — the log's, the
  * pill's switch, the PDF's and history's — and the first two disagreed with the
  * server and with each other.

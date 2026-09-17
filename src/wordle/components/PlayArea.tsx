@@ -167,7 +167,8 @@ export function PlayArea({
 
   // ─── Coop peer-guess narration (global header) ─────────────────
   // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth guessed
-  // CRANE", neutral-toned with their identity dot. Only accepted guesses reach here —
+  // CRANE", in the row's own outcome (`neutral` for an ordinary guess, `won` for the
+  // one that solves it) with their identity dot. Only accepted guesses reach here —
   // `wordle.guesses` holds nothing else (a soft reject writes no row). My own guesses
   // are excluded (they land on the shared board). Compete never narrates a guess: RLS
   // scopes `guesses` to the caller, and we gate on coop besides. The shared hook's

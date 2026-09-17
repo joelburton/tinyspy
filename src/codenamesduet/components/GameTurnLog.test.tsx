@@ -20,8 +20,8 @@
  *      and "(no guesses)" once it's ended (or the game is over).
  *   5. The per-turn outcome verdict — tested on the pure `turnOutcome` helper.
  *
- * NOT covered: the per-outcome color hookup (on guessed words AND the outcome
- * bar). With CSS Modules the class name is hashed and Vitest runs with css:false
+ * NOT covered: the color hookup (the key-card color on guessed words, and the
+ * outcome bar). With CSS Modules the class name is hashed and Vitest runs with css:false
  * (the styles object is empty at test time), so asserting a specific variant
  * class is meaningless. The word/clue presence + text is asserted in the DOM;
  * the outcome-bar mapping is verified via `turnOutcome` directly; the colors

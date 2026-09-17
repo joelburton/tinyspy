@@ -89,7 +89,7 @@ type ChainAnswer =
   | { result: 'cleared'; letters_covered: 0 }
 
 /** What `log_hint_or_spoiler` answers: one `ok`, echoing the row it wrote. */
-type HelpAnswer = {
+type RungAnswer = {
   result: 'logged'
   kind: 'hint' | 'spoiler'
   word: string
@@ -122,7 +122,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  // The below-board slot: word results, help, End / Concede's not-oks, and
+  // The below-board slot: word results, the two rungs, End / Concede's not-oks, and
   // the four standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -299,9 +299,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // chain, so a bulk clear would be a second way to do the same thing.
   const removeLast = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
 
-  // ─── Help (coop only) ──────────────────────────────────
+  // ─── The hint ladder (coop only) ───────────────────────
   // The search runs HERE, over the board's shipped word list — see lib/solve.ts
-  // for why that list ships at all. The server is told only that help was
+  // for why that list ships at all. The server is told only that a rung was
   // taken, so the turn log agrees with what happened.
   //
   // Two buttons, two rungs of the shared hint ladder (docs/ui.md → button
@@ -404,7 +404,7 @@ export function PlayArea(ctx: GamePageCtx) {
       localFeedbackSlot.show(
         FeedbackMessage.hint(ANSWER_OUTCOME[kind], hintOrSpoilerPillText(kind, r.word)),
       )
-      const res = await runRpc<HelpAnswer>(
+      const res = await runRpc<RungAnswer>(
         db.rpc('log_hint_or_spoiler', { target_game: gameId, word_shown: r.word, kind }),
       )
       if (res.type === 'not-ok') {
@@ -494,7 +494,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // one a win button, and the server refuses them there too. Hiding rather than
   // disabling is deliberate — a control that named a glyph the surface never
   // shows would teach a lie (crosswords drops its Reveal submenu in compete for
-  // the same reason). Both go inert at terminal: there is nothing left to help.
+  // the same reason). Both go inert at terminal: there is no word left to find.
   const actHint = useBoundAction('act-hint', {
     describe: () => {
       if (game?.mode === 'compete') return 'hidden'

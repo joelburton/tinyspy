@@ -6,11 +6,13 @@ No folder: every game's move path. The process is [app-audit.md](../app-audit.md
 `todo.md`, not here.
 
 **Status: OPEN — all eleven games worked, the closing re-read DONE 2026-09-17,
-seventeen findings from it (F-5 to F-21) recorded below and the doc half of
-them fixed; the code half is open. Not closeable: the five todos the area filed
-are open, and Joel has said the roster will NOT be blessed for this area — its
-files belong to other areas and should not have been stamped for it (what to
-do with the `cs-*-outcome-fix` stamps is his call).** Opened 2026-09-16: the plan and the roster were agreed (Joel: *"yes,
+seventeen findings from it (F-5 to F-21) recorded below, the doc half fixed and
+the MECHANICAL code half fixed the same day. What is left of the re-read is two
+decisions (F-13 strands' pill, F-14 stackdown's ambiguous ring) and F-18's
+archaeology sentences. Not closeable: the five todos the area filed are open,
+and Joel has said the roster will NOT be blessed for this area — its files
+belong to other areas and should not have been stamped for it (what to do with
+the `cs-*-outcome-fix` stamps is his call).** Opened 2026-09-16: the plan and the roster were agreed (Joel: *"yes,
 go ahead. then begin."*) and the roster stamped `cs-met-outcome-fix` —
 eighty-three files, all `cs-unmet` before: the six SQL files; per log game its
 `GameTurnLog.tsx`, `PlayArea.tsx`, `BoardCol.tsx`, `hooks/useGame.ts`,
@@ -18,7 +20,10 @@ eighty-three files, all `cs-unmet` before: the six SQL files; per log game its
 mark keys on an outcome and the `pdf/print*Pdf.ts` that read one; stackdown's
 `WordEntry.tsx`; the decision-site libs; codenamesduet's `hooks/useBoard.ts`;
 the bee family's `lib/answer.ts` ×2 and the shared `useWordSubmit.ts`
-(wordwheel's `lib/answer.ts` joins when it is written). Work starts with
+(wordwheel's `lib/answer.ts` joins when it is written). **Created by the area,
+so on the roster too:** `src/wordwheel/lib/answer.ts` and the four
+`lib/answer.test.ts` — wordwheel's, and spellingbee's, boggle's and wordiply's
+from F-17. Work starts with
 stackdown, per step 3, reading its `todo.md` first. The rule is Joel's,
 already written in [docs/outcomes.md → One event, one outcome](../../docs/outcomes.md):
 the server's outcome, if provided, is always right; where the frontend decides,
@@ -579,13 +584,19 @@ fault classes grepped over the whole roster: `tone` for an outcome, `help` for
 a hint, an outcome literal in value position, the old names, dates against
 `git log`, counts and "the only" in the outcome prose, cites to a dead heading.
 
-**The doc half of every finding below is FIXED in this sitting** (Joel: *"do the
+**The doc half of every finding below was FIXED first** (Joel: *"do the
 re-read and update docs"*): `docs/outcomes.md`, `common/outcomes/doc.md`,
 `CLAUDE.md`, and the game docs for codenamesduet, stackdown, scrabble,
 connections, wordle, strands, letterboxed, spellingbee, wordiply, boggle,
-wordwheel, waffle and psychicnum. **The code half — comments, docstrings, SQL
-comments, tests and the few code changes — is recorded and NOT done**; each
-finding says which sites are which.
+wordwheel, waffle and psychicnum.
+
+**The MECHANICAL code half is FIXED too, the same day** (Joel: *"please do the
+mechanical findings"*) — F-5, F-6, F-7, F-8, F-10, F-11, F-12, F-15, F-16,
+F-17, F-21, and F-18's one wrong date. `tsc -b`, eslint, vitest (341 files /
+3266 tests) and pgTAP (178 files / 2489 tests) are green, and the four
+`"outcome":null` pins were verified by planting a wrong word and watching the
+suite fail. **What is left is the two DECISIONS (F-13, F-14) and F-18's
+archaeology sentences, which are Joel's call.**
 
 ### F-outcome-fix-5 · `psychicnum-spoiler-comment` · the `request_reveal` header still says the spoiler is `warning`
 
@@ -598,8 +609,8 @@ to the outcome."* The function returns `'lost'` (ruling k, changed in
 `864885bd`), and the body's own comment two lines above the return says RED.
 `docs/outcomes.md` has no heading "Help you asked for" — the paragraph is now
 "A hint you asked for", under The words. stackdown's twin does answer `lost`,
-so only the word and the cite are wrong. Fix: say `lost`, cite One event, one
-outcome. OPEN (SQL comment).
+so only the word and the cite are wrong. **FIXED**: the header says `lost`
+and cites One event, one outcome, and "(amber)" on the log row is now "(red)".
 
 ### F-outcome-fix-6 · `psychicnum-no-lost-prose` · the `submit_guess` prose still describes a text return with "deliberately NO 'lost'"
 
@@ -612,13 +623,14 @@ there is deliberately no `lost`:
   the test-table row — **FIXED**; the Deferred link to the heading repointed.
 - `supabase/sql/psychicnum.sql` the `submit_guess` header (the *"Returns one
   of: 'won' … 'correct' … 'wrong' … There is deliberately NO 'lost'"* block)
-  — OPEN. The real point of that block (the answer is the caller's own
-  verdict, never the game's fate) survives in the body's comment beside the
-  miss branch.
+  — **FIXED**: it describes the envelope (`verdict`, `found_all`, the outcome
+  per arm, PA002), and keeps the real point of the old block — the answer is
+  the caller's own verdict, never the game's fate.
 - `supabase/tests/psychicnum/gameplay_test.sql` (the header list, and the
   descriptions *"returns 'wrong'"*, *"returns correct, not a loss value"* —
   the assertions themselves pin `won`/`lost`) and `turn_order_test.sql`
-  (*"returns 'wrong'"*) — OPEN.
+  (*"returns 'wrong'"*) — **FIXED**, and the header gained the twin comment
+  F-16 wanted.
 
 ### F-outcome-fix-7 · `connections-verdict-tone` · the `tone`-for-outcome the plan said step 8 would fix is still there
 
@@ -637,7 +649,10 @@ tone is the verdict's)"*; `PlayArea.test.tsx` *"in the tone its pill wears"*
 (twice, one of them also calling "Incorrect" an `error` — it is `lost`, and
 the assertion beside it says `verdictLost`). Fix: the field is `outcome`, the
 prose says outcome. The doc's two "PILL's tone" sentences are **FIXED**. Code
-OPEN.
+**FIXED**: `BoardVerdict.tone` is `outcome`, both writers with it, and every
+sentence says outcome. `VERDICT_TONE` itself is NOT renamed — that name is the
+shared half filed in `common/game-page/todo.md`, and connections' copy moves
+with it.
 
 ### F-outcome-fix-8 · `tone-for-outcome-prose` · the same word in other games' prose
 
@@ -652,7 +667,8 @@ OPEN.
   roster's amber "help" tone"* (ui.md defines no such tone).
 - `supabase/sql/connections.sql` *"`warning` is the tone that says so"* — inside
   a paragraph that is stale anyway (F-12).
-- `psychicnum/components/Board.module.css` *"SATURATED outcome tones"*.
+- `psychicnum/components/Board.module.css` *"SATURATED outcome tones"* (and
+  the token name beside it was wrong too — F-12).
 - Docs — **FIXED**: spellingbee's terminal table (*"→ tone won"* ×7 — a
   `TerminalOutcome`, but the vocabulary rule holds), wordiply's *"neutral
   tone"*, waffle's `tone:'neutral'` and *"reads as `success` … (tone follows
@@ -660,7 +676,12 @@ OPEN.
   *"PILL's tone"* ×2. `docs/games/stackdown.md`'s Deferred item *"the `lost`
   tone"* is LEFT — see F-12.
 
-Code sites OPEN.
+Code sites **FIXED**: wordle's two, strands' three (the SQL's `pillFor`
+sentence now names `lib/answer.ts`), connections' SQL, psychicnum's CSS.
+HintBar's "amber help tone" is the button's real tone, `caution`. One sibling
+the grep had not listed went with them: `stackdown/components/InfoCol.tsx`
+called the two cheat buttons *"warning-toned"* — an outcome word for a button
+whose registry tone is `caution`.
 
 ### F-outcome-fix-9 · `guessoutcome-still-cited` · two docs called connections' `GuessOutcome` an open narrowing — **FIXED**
 
@@ -680,7 +701,9 @@ red)"*, `GameTurnLog.module.css` *"colored by its reveal outcome"*,
 outcome bar)"* — only the bar wears an outcome; `pdf/model.test.ts` *"as a
 neutral outcome"*, *"the outcome is derived from the two burn flags"*, *"with
 no outcome"*; `pdf/printCodenamesduetPdf.ts` *"its outcome border"*, *"no
-outcome, so no color"* (the border is `MARK_RGB[c.revealed]`). All OPEN.
+outcome, so no color"* (the border is `MARK_RGB[c.revealed]`). All **FIXED** —
+each says what the cell REVEALED, and the key-card vocabulary is named as not an
+outcome.
 
 The doc — **FIXED**: *"codenamesduet is the one game on the roster with no
 `lib/answer.ts`"* was false (waffle has none; `docs/outcomes.md` names both);
@@ -725,12 +748,16 @@ spoiler. Left standing:
   BFS"*; psychicnum's *"Two helpers"*, *"every guess **and helper**"*, *"Two
   helper RPCs"*.
 
-Code sites OPEN. What let this recur: the sweep grepped "help ladder" and
-"priced help" and not the word.
+Code sites **FIXED**, including the two raise texts — PN414 is now *"BUG: a
+hint or spoiler in a compete game"* and PN415 *"BUG: a rung of an unknown
+kind"*, with `docs/games/letterboxed.md`'s error table moved with them — and
+letterboxed's `HelpAnswer` type, which is `RungAnswer`. What let this recur:
+the sweep grepped "help ladder" and "priced help" and not the word.
 
 ### F-outcome-fix-12 · `stale-outcome-claims` · sentences about outcomes that the tree no longer supports
 
-Docs **FIXED**, code OPEN, per file:
+Docs **FIXED**; code **FIXED** too, except the two items marked LEFT below
+(both Joel's to delete). Per file:
 
 - **stackdown** — a teammate's word stopped flashing in the entry row on
   2026-09-15 (`9f6310f3`, before this area): `markPeerWord` marks their
@@ -752,7 +779,7 @@ Docs **FIXED**, code OPEN, per file:
   outcome `won`"* (ruling f: `neutral`; the same doc's outcome section had it
   right) and called the illegal-shape refusal *"an error pill"* (`lost`) —
   FIXED. `components/GameTurnLog.tsx` *"red for a coop forfeit"* — ruling g
-  made it `neutral`, and the bar indexes the table — OPEN.
+  made it `neutral`, and the bar indexes the table — **FIXED**.
 - **wordle** — `docs/games/wordle.md` listed `invalid` among the soft rejects
   (it is fault PN256, as the same doc says elsewhere) and said the pill is
   *"`error` for not-a-word / RPC failure"* (not-a-word is `lost`; a not-ok wears
@@ -762,7 +789,8 @@ Docs **FIXED**, code OPEN, per file:
   below carries it); `supabase/sql/wordle.sql`'s `submit_guess` header still
   lists `'invalid'` as a soft rejection and describes a bare `result` rather
   than the envelope's word; `gameplay_test.sql` *"The non-solving guess below"*
-  — it is above — OPEN.
+  — it is above — **FIXED** (the SQL header now describes the envelope and its
+  two soft rejects; PN256 is named as the fault it is).
 - **strands** — `docs/games/strands.md` said a spent hint takes *"a `neutral`
   bar"* (ruling e: `warning`), *"the ones `resultFor` was already choosing"*,
   and the glyphs are *"named for the outcome"* (they are a verdict-glyph
@@ -772,7 +800,7 @@ Docs **FIXED**, code OPEN, per file:
   `components/PlayArea.tsx` the same teammate's line; `components/GameTurnLog.tsx`
   *"an amber bar IS "valid word""* (`near` is gold) and *"All three paint the
   same red bar"* (two are `warning`, one `lost`); `strands.sql` names
-  `pillFor`, deleted 2026-09-12 — OPEN.
+  `pillFor`, deleted 2026-09-12 — **FIXED**.
 - **letterboxed** — `docs/games/letterboxed.md`'s turn-log paragraph said
   *"help is amber … retreats are neutral"* against its own §6 (spoiler `lost`,
   retreats `noted`) — FIXED.
@@ -785,7 +813,8 @@ Docs **FIXED**, code OPEN, per file:
   `submit_word` headers still list *"tooShort / badLetters / missingCenter /
   notAWord"* as checks the function runs and say *"Rejected results (notAWord,
   tooShort, …) carry `points: 0`"* — both are trusting-commit and return no
-  rejected result — OPEN.
+  rejected result — **FIXED**: each header says the FE judges the word, names
+  the results the `ok` can carry, and says the envelope carries no outcome.
 - **boggle** — the doc's *"too short / duplicate → instant info"* (`warning`)
   — FIXED. **wordiply** — *"A rejected guess never hits the server"*
   (`recordReject` records it) — FIXED.
@@ -797,7 +826,8 @@ Docs **FIXED**, code OPEN, per file:
   `--outcome-{won,lost,near}-fill-color` / `--outcome-*-fill-color`, tokens
   that do not exist (the bucket is `--outcomes-*`); `lib/answer.ts` says a
   hint is *"a nudge you asked for and paid for"* — `request_hint` costs
-  nothing — OPEN.
+  nothing — **FIXED** (the tokens are `--outcomes-*-bar-color` /
+  `--outcomes-*-fill-color`, and the hint is free here).
 - **connections** — `lib/answer.ts` says *"The pill, the tile verdict, the log
   bar, the history tint and the PDF all read THIS"*: the pill and the tile
   verdict read the ENVELOPE (`res.outcome`, `feedbackMsg.outcome`), and the
@@ -805,13 +835,17 @@ Docs **FIXED**, code OPEN, per file:
   reasoning); only the log bar, the PDF and the peer line read the table.
   `supabase/sql/connections.sql`'s `next_puzzle_for_club` header still says
   *"The empty case is `outcome: 'warning'`"* while the function raises PN302
-  ten lines later and says so twice below — OPEN. The doc's `.verdictError`
+  ten lines later and says so twice below — **FIXED**: the table docstring
+  names the row readers and the envelope readers apart, and the SQL header
+  describes PN302. (Two sentences in the same header were stale the same way
+  and went with it — a `returns table(...)`-era "0 rows" line and a "no
+  handler, this raises nothing" line, when PN302 is exactly a raise.) The doc's `.verdictError`
   (the class is `verdictLost`) and *"green/amber/red"* (`near` is gold) —
   FIXED.
 - **shared** — `shared/word-hunt/useWordSubmit.ts` *"None does: every one of
   the four routes both this and `outcomeFor` through its own `lib/answer.ts`"*
   — wordwheel's `onAnswer` reads no outcome at all (it only bumps the shake),
-  and the sentence is a census — OPEN.
+  and the sentence is a census — **FIXED**: it states the condition instead.
 
 ### F-outcome-fix-13 · `strands-pill-reads-the-table` · the one pill that indexes `ANSWER_OUTCOME` instead of `res.outcome`
 
@@ -850,7 +884,8 @@ are still a second place), `spellingbee/components/PlayArea.tsx`,
 `peer(member, 'won', …)`, and `connections/components/PlayArea.tsx`
 `peer(member, 'won', 'found category')` where the sibling branch two lines down
 already reads `g.outcome`. Fix: `ANSWER_OUTCOME.accepted` / `g.outcome`. The
-PlayArea tests that pin `'won'` on those lines keep passing. OPEN (mechanical).
+PlayArea tests that pin `'won'` on those lines keep passing. **FIXED** — all
+five now index a table.
 
 ### F-outcome-fix-16 · `sql-half-unpinned` · envelope words the area's rule says are pinned, and are not
 
@@ -878,14 +913,17 @@ Missing, per game:
   psychicnum's `gameplay_test.sql` the same; letterboxed's `won` pin (the undo
   and clear pins beside it have the comment).
 
-All OPEN.
+All **FIXED**. The four `"outcome":null` pins were verified by planting a wrong
+word in waffle's and watching the suite fail — a single-file `supabase test db`
+run cannot say (it exits 3 with no plan), so plant against `npm run test:db`.
 
 ### F-outcome-fix-17 · `fe-half-unpinned` · three tables have no `lib/answer.test.ts`
 
 spellingbee, boggle and wordiply have `ANSWER_OUTCOME` tables and no test that
 reads them; only wordwheel's (written by step 10) does. No test file in those
 folders imports the table. Their SQL carries no outcome, so the vitest half is
-the whole pin. Fix: a `lib/answer.test.ts` per game on wordwheel's model. OPEN.
+the whole pin. **FIXED**: `src/{spellingbee,boggle,wordiply}/lib/answer.test.ts`
+on wordwheel's model (they join the roster).
 
 ### F-outcome-fix-18 · `answer-docstring-archaeology` · the area wrote history into the code, and one date is wrong
 
@@ -911,8 +949,8 @@ is not useful."* Written by this area, in outcome comments:
   right.
 
 Whether the undated "which they did" sentences stay is Joel's call — they are
-the argument for the table's existence, told as history. The wrong date is a
-plain fix. OPEN.
+the argument for the table's existence, told as history, and they are LEFT
+standing. The wrong date is **FIXED** (psychicnum.sql now says 2026-09-17).
 
 ### F-outcome-fix-19 · `counts-in-the-outcome-docs` · **FIXED**
 
@@ -937,7 +975,7 @@ section now, at the top of its Frontend section.
 `wordle/components/Board.tsx` declares `rejectOutcome?: Outcome` with a default
 of `'lost'`. Its caller (`BoardCol`) always passes it, so the default runs never
 — and it is a second place naming a refusal's word, one that disagrees with the
-duplicate's `warning`. Fix: the prop is required. OPEN (mechanical). The
+duplicate's `warning`. Fix: the prop is required. **FIXED**. The
 `useState<Outcome>('lost')` beside it in `BoardCol` is the filed todo's
 subject, not this.
 
@@ -963,12 +1001,12 @@ date in the area's prose matches `git log` except the one in F-18.
       F-5 to F-21
 - [x] the rule's home in `docs/outcomes.md` says what shipped; each game's
       `docs/games/<game>.md` names its one decision site — the doc half of every
-      finding is done; the code half is open above
+      finding is done, and so is the mechanical code half (2026-09-17)
 - [ ] every game's `todo.md` holds what is still owed — the five items the area
       filed are open (setgame's hint ring, psychicnum's decided-tile fill,
       wordle's not-ok ring, connections' `matched`, game-page's `verdictTone`);
-      the code half of F-5 to F-21 is here, not in a todo, until Joel says which
-      are worked and which are filed
+      F-13, F-14 and F-18's archaeology sentences are here, not in a todo, until
+      Joel rules on them
 - [ ] the stamps: Joel, 2026-09-17 — the files belong to other areas and will
       not be blessed for this one; what the `cs-*-outcome-fix` stamps become is
       his call
