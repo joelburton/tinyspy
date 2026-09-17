@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
@@ -43,10 +43,10 @@ const MARK_RGB: Record<Mark, [number, number, number]> = {
 const COLS = 5
 const CELL_GAP = 3
 // A keycard inset is deliberately SMALL: it's a reference you consult, sitting
-// out of the way of the word. The outcome mark is deliberately BIGGER — it's
+// out of the way of the word. The reveal mark is deliberately BIGGER — it's
 // what you scan the grid for.
 const INSET = 7 // side of a keycard inset box
-const OUTCOME_MARK = 8
+const REVEALED_MARK = 8
 
 /** Generate the PDF and hand it to the browser as a download. */
 export function printCodenamesduetPdf(m: DuetPrintModel): void {
@@ -98,7 +98,7 @@ function mark(doc: jsPDF, kind: Mark, cx: number, cy: number, size: number): voi
 function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: number): void {
   // The tile's own border says what HAPPENED. An untouched word gets the plain
   // dark-gray box — no outcome, so no color.
-  const outline = c.outcome ? MARK_RGB[c.outcome] : null
+  const outline = c.revealed ? MARK_RGB[c.revealed] : null
   doc.setLineWidth(outline ? 1.6 : 0.6)
   if (outline) doc.setDrawColor(...outline)
   else doc.setDrawColor(DARK_GRAY)
@@ -106,7 +106,7 @@ function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: 
 
   // …and its mark repeats it in shape, top-LEFT — the corner the two keycard
   // insets leave free.
-  if (c.outcome) mark(doc, c.outcome, x + 8, y + 8, OUTCOME_MARK)
+  if (c.revealed) mark(doc, c.revealed, x + 8, y + 8, REVEALED_MARK)
 
   // The word, centered, shrunk to fit the cell.
   doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(BLACK)

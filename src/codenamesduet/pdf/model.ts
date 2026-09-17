@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/turnLog'
@@ -36,8 +36,10 @@ export type Mark = 'agent' | 'neutral' | 'assassin'
 /** One printed board cell. */
 export type PrintCell = {
   word: string
-  /** What HAPPENED here — null while the word is untouched. */
-  outcome: Mark | null
+  /** What was REVEALED here — null while the word is untouched. A `Mark`, which
+   *  is this game's key-card vocabulary and not the app's outcome one: a
+   *  bystander is neither a good move nor a bad one, it is a bystander. */
+  revealed: Mark | null
   /** My key's label. Always present: the print exists to be thought about. */
   mine: Mark
   /** The partner's label — terminal only, null during play. */
@@ -60,7 +62,7 @@ const MARK_OF: Record<KeyLabel, Mark> = { G: 'agent', N: 'neutral', A: 'assassin
 
 /** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
  *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
-function outcomeOf(w: WordRow): Mark | null {
+function revealedOf(w: WordRow): Mark | null {
   if (w.revealed_as === 'G') return 'agent'
   if (w.revealed_as === 'A') return 'assassin'
   return w.neutral_a || w.neutral_b ? 'neutral' : null
@@ -102,7 +104,7 @@ export function buildDuetPrintModel(o: {
     .sort((a, b) => a.position - b.position)
     .map((w) => ({
       word: w.word,
-      outcome: outcomeOf(w),
+      revealed: revealedOf(w),
       mine: MARK_OF[o.myKey[w.position]],
       peer: peerKey ? MARK_OF[peerKey[w.position]] : null,
       // Which seat burned it decides who it's still open to, so the two flags

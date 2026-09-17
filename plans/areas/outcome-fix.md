@@ -455,6 +455,29 @@ the change broke the tests it should have.
 rather than collapsed here, since its docstring argues a case that the new field
 retires.
 
+**9 · codenamesduet — DONE 2026-09-17, and it needs NO `lib/answer.ts`.** The
+plan's step 3 called for "a map over the key letter"; the read says there is
+nothing to key. Nothing here shows a single guess's outcome — a guess answers
+with a REVEAL and the board says it, so the pill is deliberately silent on all
+five `ok` answers; the log prints the guessed words in the key-card palette
+(`--codenamesduet-agent` ×3), which is outside `--outcomes-*` by design; the PDF
+uses its own `Mark`. The only thing wearing an outcome is the TURN, and
+`turnOutcome` was already the one function that decides it (decision (j): it
+keeps the fold). Building a one-reader table beside its only reader would have
+been invention, so it was not built — the reasoning is in `turnOutcome`'s
+docstring and the game's doc instead.
+
+**What the read DID find: the PDF had a field named `outcome` holding a `Mark`.**
+`PrintCell.outcome: Mark | null` — the outcome vocabulary's word on a value from
+the key-card one, the same class of mistake as calling an outcome a "tone". It
+is `revealed` now, with `outcomeOf` → `revealedOf` and `OUTCOME_MARK` →
+`REVEALED_MARK`.
+
+Also confirmed rather than assumed: `submit_guess` DOES say a per-guess word (an
+agent `won`, a bystander `lost`) and it agrees with the fold everywhere the two
+are comparable. Nothing reads it, because nothing shows it — recorded so the
+next reader does not mistake the silence for a gap.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

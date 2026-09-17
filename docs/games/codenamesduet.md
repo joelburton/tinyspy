@@ -334,6 +334,33 @@ The function lives in [`supabase/functions/codenamesduet-suggest-clue/index.ts`]
 
 The trust model here is "we're not the gatekeeper of cheating" — a clue-giver could ask Claude themselves in another browser tab, so we're not adding friction. The function exists for convenience and for the better prompting we can do server-side (the prompt has the actual board state, not what the user typed).
 
+## The one outcome decision (`lib/turnOutcome.ts`)
+
+**codenamesduet is the one game on the roster with no `lib/answer.ts`**, and the
+reason is that nothing here shows a single guess's outcome.
+
+A guess answers with a REVEAL, and the board says it — so the pill deliberately
+stays silent on all five `ok` answers. Where the turn log prints the guessed
+words it draws them in the **key-card palette** (`--codenamesduet-agent` and its
+two siblings), which is this game's own vocabulary and deliberately outside
+`--outcomes-*`; the PDF does the same with its `Mark` (agent / neutral /
+assassin, drawn as ✓ / – / ✗). Neither is an outcome.
+
+The one thing wearing an outcome is the **turn**, and `turnOutcome` is where it
+is decided: any assassin → `lost`, only bystanders → `lost`, mixed → `near`, all
+agents → `won`, no guesses → `neutral`. Joel ruled (2026-09-16) that the bar
+reads the TURN rather than its last guess — `near` for a mixed turn is a rule the
+turn owns and no single guess can express.
+
+It folds over the key LETTERS because its three questions are about the key card
+— did anything end the game, did we advance, did we waste a word — and not about
+what a guess was worth. `submit_guess` does say a per-guess word in its envelope
+(an agent `won`, a bystander `lost`), and it agrees with this fold everywhere the
+two are comparable; nothing reads it, because nothing shows it.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 ## Frontend
 
 ### Folder layout
@@ -430,6 +457,8 @@ src/codenamesduet/
                           (count + word) so the global / ? ~ shortcuts still
                           fire while typing a clue.
     GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
+                          Its bar's word is lib/turnOutcome.ts's — see "The one
+                          outcome decision" above.
                           codenamesduet renders its OWN rows (row anatomy is the
                           game's — see playarea.md → Turn log): a TWO-<tr> turn per
                           turn_number (grouped client-side). Row 1 = real columns

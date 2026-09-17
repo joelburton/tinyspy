@@ -79,8 +79,8 @@ describe('buildDuetPrintModel — what happened on a cell', () => {
       ...base,
       words: board({ 0: { revealed_as: 'G' }, 1: { revealed_as: 'A' } }),
     })
-    expect(m.cells[0].outcome).toBe('agent')
-    expect(m.cells[1].outcome).toBe('assassin')
+    expect(m.cells[0].revealed).toBe('agent')
+    expect(m.cells[1].revealed).toBe('assassin')
   })
 
   it('treats a bystander burned by EITHER seat as a neutral outcome', () => {
@@ -90,12 +90,12 @@ describe('buildDuetPrintModel — what happened on a cell', () => {
       ...base,
       words: board({ 3: { neutral_a: true }, 4: { neutral_b: true } }),
     })
-    expect(m.cells[3].outcome).toBe('neutral')
-    expect(m.cells[4].outcome).toBe('neutral')
+    expect(m.cells[3].revealed).toBe('neutral')
+    expect(m.cells[4].revealed).toBe('neutral')
   })
 
   it('leaves an untouched word with no outcome', () => {
-    expect(buildDuetPrintModel({ ...base }).cells[5].outcome).toBeNull()
+    expect(buildDuetPrintModel({ ...base }).cells[5].revealed).toBeNull()
   })
 })
 
