@@ -17,8 +17,8 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
       CATEGORIES,
     )
-    expect(result.outcome).toBe('won')
-    if (result.outcome === 'won') {
+    expect(result.result).toBe('correct')
+    if (result.result === 'correct') {
       expect(result.rank).toBe(0)
       expect(result.name).toBe('A-words')
       expect(result.tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
@@ -30,7 +30,7 @@ describe('evaluateGuess', () => {
       ['ARROW', 'ALPHA', 'APPLE', 'ANGEL'],
       CATEGORIES,
     )
-    expect(result.outcome).toBe('won')
+    expect(result.result).toBe('correct')
   })
 
   it('returns near when 3 of 4 tiles share a category', () => {
@@ -39,7 +39,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
       CATEGORIES,
     )
-    expect(result.outcome).toBe('near')
+    expect(result.result).toBe('oneAway')
   })
 
   it('returns wrong when at most 2 tiles share any one category', () => {
@@ -48,7 +48,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'BANANA', 'BIRCH'],
       CATEGORIES,
     )
-    expect(result.outcome).toBe('lost')
+    expect(result.result).toBe('wrong')
   })
 
   it('returns wrong for a fully-mixed guess (one from each category)', () => {
@@ -56,7 +56,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'BANANA', 'CASTLE', 'DAGGER'],
       CATEGORIES,
     )
-    expect(result.outcome).toBe('lost')
+    expect(result.result).toBe('wrong')
   })
 
   it('returns wrong when the guess has fewer than 4 tiles', () => {
@@ -65,7 +65,7 @@ describe('evaluateGuess', () => {
     // a "correct" if it does — short input means no category can have
     // 4 overlap.
     const result = evaluateGuess(['ALPHA', 'ANGEL', 'APPLE'], CATEGORIES)
-    expect(result.outcome).toBe('lost')
+    expect(result.result).toBe('wrong')
   })
 
   it('returned tiles is a copy, not a reference to the category', () => {
@@ -75,7 +75,7 @@ describe('evaluateGuess', () => {
       ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
       CATEGORIES,
     )
-    if (result.outcome === 'won') {
+    if (result.result === 'correct') {
       result.tiles.push('NEW')
       expect(CATEGORIES[0].tiles).toEqual(['ALPHA', 'ANGEL', 'APPLE', 'ARROW'])
     }

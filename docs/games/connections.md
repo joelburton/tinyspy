@@ -82,9 +82,37 @@ Unlike codenamesduet and psychicnum — where the server holds a secret and vali
 
 **Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-secrets mechanic" section](psychicnum.md#the-hidden-secrets-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise. Compete mode introduces a cheating *incentive* coop didn't have (a player could read `board.categories` in devtools and pick the right 4 tiles instantly), but the trust model says we're not the gatekeeper of that — we're friends.
 
+### The one outcome decision (`lib/answer.ts`)
+
+A guess is one of three answers — `correct`, `oneAway`, `wrong`, the values
+`connections.guesses.result` stores — and `lib/answer.ts` says what each is
+worth: `won`, `near`, `lost`. `near` is the vocabulary's own word for the middle
+one ("close, one away, nearly right", which `docs/outcomes.md` defines with this
+very case in mind), and that is why the three wire words exist rather than being
+outcomes outright: `oneAway` is what the BOARD did, `near` is what it is worth,
+and the column stores the first.
+
+**`evaluateGuess` answers in the wire word**, so a verdict travels from the
+evaluator to the column with no translation step — the outbound conversion that
+used to sit in `BoardCol` is gone. Coming back the other way, `useGame`'s seam
+reads the column through this table once and nothing downstream sees a wire
+word, with one exception: the history viewer's tile tint has exactly three
+classes, so it keys on the three-value answer rather than on the seven-value
+vocabulary. That is also what retired `GuessOutcome`, the narrowing this game
+carried — the fix was not to widen the narrowing but to stop keying a
+three-valued thing off the outcome list at all.
+
+`submit_guess` now splits the two: `data.result` NAMES the case (which is how a
+call site picks its `ok` branch) and the envelope's `outcome` carries the word.
+It used to put the outcome word in `result` and leave `outcome` null, so one
+field did both jobs and the field built for the word sat empty.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 **What stays server-authoritative regardless:** atomic mutations of shared state. The mistake-count increment and the `play_state` terminal flip need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychicnum. One-correct-per-rank idempotency comes from two mode-aware **partial unique indexes** on `connections.guesses` (the schema section below has the exact predicates) — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
-**If connections ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_category_rank` parameters from `submit_guess`. The architectural shape is small enough that the future-proofing is conceptual, not structural. Compete is where this matters first.
+**If connections ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_category_rank` parameters from `submit_guess` (the envelope's `outcome` would then be the server's own word rather than an echo of the caller's). The architectural shape is small enough that the future-proofing is conceptual, not structural. Compete is where this matters first.
 
 ## Schema: `connections.*`
 

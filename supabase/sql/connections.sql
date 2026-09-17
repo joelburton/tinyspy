@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- connections — the REPEATABLE half
@@ -986,12 +986,12 @@ begin
       end if;
     end if;
 
-    -- The match is written, and the answer says WHICH verdict was recorded.
-    -- The three `ok`s use the outcome vocabulary (docs/outcomes.md) because
-    -- that is what a guess's verdict IS — `near` is defined there as "close —
-    -- one away, nearly right". The wire words stay in the column; the answer
-    -- speaks the language every reader of it already speaks.
-    return common.ok_envelope(jsonb_build_object('result', 'won'));
+    -- The match is written. `result` NAMES THE CASE, in the wire words the
+    -- column stores, and the envelope's `outcome` says what it is WORTH — the
+    -- split every other RPC on the roster uses. It used to put the outcome word
+    -- in `result` and leave `outcome` null, which made the one field do both
+    -- jobs and left the field built for the word empty.
+    return common.ok_envelope(jsonb_build_object('result', 'correct'), 'won');
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
@@ -1113,9 +1113,12 @@ begin
   -- by `data` (docs/envelopes.md → Choosing which `ok` branch), so the RPC
   -- returns the two answers separately rather than one the caller must
   -- disambiguate itself (Joel, 2026-08-29).
+  --
+  -- `result` is the case, `outcome` is the word — and the frontend's
+  -- lib/answer.ts says the same word for the row this wrote.
   return common.ok_envelope(
-    jsonb_build_object('result',
-      case when result = 'oneAway' then 'near' else 'lost' end));
+    jsonb_build_object('result', result),
+    case when result = 'oneAway' then 'near' else 'lost' end);
 
 exception when others then
   get stacked diagnostics

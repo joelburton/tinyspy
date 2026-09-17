@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useState } from 'react'
@@ -20,7 +20,8 @@ import { StrikeMarks } from './StrikeMarks'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
-import { evaluateGuess, sameTileSet, RESULT_FOR_OUTCOME, type GuessOutcome } from '../lib/evaluate'
+import { evaluateGuess, sameTileSet } from '../lib/evaluate'
+import type { Answer } from '../lib/answer'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
@@ -68,7 +69,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * its own answer. A guess that wrote NOTHING is not here at all: it comes back
  * as PN300 or PN301, both races.
  */
-type GuessAnswer = { result: GuessOutcome }
+type GuessAnswer = { result: Answer }
 
 export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks via `snap`) ──
@@ -319,21 +320,18 @@ export function BoardCol({
     const evaluation = evaluateGuess(unionTiles, game.board.categories)
     setSubmitting(true)
     setInFlightTiles(new Set(sent))
-    // THE OUTBOUND SEAM, the twin of useGame's: the wire word is written here
-    // and nowhere else in the FE. `evaluateGuess` answers in outcomes, the
-    // column stores `connections.guesses.result`, and these two lines are the
-    // whole of the translation between them.
-    const storedResult = RESULT_FOR_OUTCOME[evaluation.outcome]
     // Only a match names a category. The argument is OPTIONAL rather than
     // nullable, so the other two verdicts leave it out rather than send null —
     // which is why this is a spread and not a value.
     const matchedCategory =
-      evaluation.outcome === 'won' ? { matched_category_rank: evaluation.rank } : {}
+      evaluation.result === 'correct' ? { matched_category_rank: evaluation.rank } : {}
 
+    // No translation on the way up: `evaluateGuess` already answers in the word
+    // the column stores.
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
       target_game: gameId,
       tiles: unionTiles,
-      result: storedResult,
+      result: evaluation.result,
       ...matchedCategory,
     }))
     setSubmitting(false)
@@ -368,19 +366,19 @@ export function BoardCol({
     // The FE computed these three itself and sent the answer up — but reading
     // its own value back to pick a branch would be choosing an `ok` case by
     // something the envelope did not say, so the RPC names each one.
-    } else if (res.type === 'ok' && res.data.result === 'won') {
+    } else if (res.type === 'ok' && res.data.result === 'correct' && res.outcome !== null) {
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
       // into a band on this very render, leaving nothing to ring.
-      localFeedbackSlot.show(FeedbackMessage.result('won', 'Correct'))
+      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Correct'))
       sendClear()
       return
-    } else if (res.type === 'ok' && res.data.result === 'near') {
-      showWithVerdict(sent, FeedbackMessage.result('near', 'One away!'))
+    } else if (res.type === 'ok' && res.data.result === 'oneAway' && res.outcome !== null) {
+      showWithVerdict(sent, FeedbackMessage.result(res.outcome, 'One away!'))
       sendClear()
       return
-    } else if (res.type === 'ok' && res.data.result === 'lost') {
-      showWithVerdict(sent, FeedbackMessage.result('lost', 'Incorrect'))
+    } else if (res.type === 'ok' && res.data.result === 'wrong' && res.outcome !== null) {
+      showWithVerdict(sent, FeedbackMessage.result(res.outcome, 'Incorrect'))
       sendClear()
       return
     } else {
@@ -491,7 +489,7 @@ export function BoardCol({
         moveCount={guesses.length}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historySnap?.historyLitTiles}
-        historyLitOutcome={historySnap?.outcome}
+        historyLitResult={historySnap?.result}
         // Shuffle floats over the board's top-right — a fresh visual scan of the
         // SAME tiles (not a turn action). Only while the grid is shown. Passed
         // into Board so it anchors to the visual board, not the column.

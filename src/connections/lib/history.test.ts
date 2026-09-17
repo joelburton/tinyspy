@@ -30,15 +30,15 @@ const BOARD: Board = {
 function g(o: Partial<GuessRow>): GuessRow {
   return {
     id: 'id', user_id: 'u', tiles: ['apple', 'pear', 'plum', 'lime'],
-    outcome: 'lost', matched: false, matched_category_rank: null, guessed_at: '2026-06-12T18:00:00Z', ...o,
+    outcome: 'lost', result: 'wrong', matched: false, matched_category_rank: null, guessed_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
 
 // Turn 0: correct FRUIT (rank 0). Turn 1: a wrong guess. Turn 2: correct METALS (rank 1).
 const GUESSES: GuessRow[] = [
-  g({ tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', matched: true, matched_category_rank: 0 }),
-  g({ tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', matched: false }),
-  g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', matched: true, matched_category_rank: 1 }),
+  g({ tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0 }),
+  g({ tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
+  g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 1 }),
 ]
 
 describe('historySnapshot', () => {
@@ -62,12 +62,12 @@ describe('historySnapshot', () => {
     expect([...historySnapshot(GUESSES, BOARD, 1).historyLitTiles].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
-    expect(historySnapshot(GUESSES, BOARD, 1).outcome).toBe('lost')
+    expect(historySnapshot(GUESSES, BOARD, 1).result).toBe('wrong')
   })
 
   it('describes a correct turn by its category, the others by the canonical copy', () => {
     expect(historySnapshot(GUESSES, BOARD, 0).historyLabel).toBe('Matched FRUIT')
     expect(historySnapshot(GUESSES, BOARD, 1).historyLabel).toBe('Not a match')
-    expect(historySnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).historyLabel).toBe('One away!')
+    expect(historySnapshot([g({ outcome: 'near', result: 'oneAway', matched: false })], BOARD, 0).historyLabel).toBe('One away!')
   })
 })

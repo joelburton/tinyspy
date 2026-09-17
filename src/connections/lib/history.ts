@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 /**
  * connections — the turn-history replay. Given the guess log, the static board, and
@@ -26,7 +26,7 @@
  */
 import type { Board, Category } from './board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
-import type { GuessOutcome } from './evaluate'
+import type { Answer } from './answer'
 
 export interface HistorySnapshot {
   /** Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's own
@@ -35,11 +35,12 @@ export interface HistorySnapshot {
   /** The tiles on the grid at this turn — `board.tileOrder` minus the strictly-before
    *  matched tiles. Feed straight to `<Board tiles>`. */
   tiles: string[]
-  /** The four tiles this turn guessed — ring + tint them in the outcome color. */
+  /** The four tiles this turn guessed — ring + tint them by what it was. */
   historyLitTiles: Set<string>
-  /** This turn's verdict — drives the lit tiles' color. An outcome, so the color
-   *  comes from the shared vocabulary rather than a mapping written here. */
-  outcome: GuessOutcome
+  /** This turn's verdict, as the three-value wire word — which is what the lit
+   *  tiles' tint keys on, there being exactly three of those and seven
+   *  outcomes. What it is WORTH is `lib/answer.ts`'s. */
+  result: Answer
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   historyLabel: string
 }
@@ -71,7 +72,7 @@ export function historySnapshot(
     matched,
     tiles,
     historyLitTiles: new Set(turn?.tiles ?? []),
-    outcome: turn?.outcome ?? 'lost',
+    result: turn?.result ?? 'wrong',
     historyLabel: describe(turn, board),
   }
 }
@@ -87,6 +88,6 @@ function describe(turn: GuessRow | undefined, board: Board): string {
         : undefined
     return cat ? `Matched ${cat.name.toUpperCase()}` : 'Correct'
   }
-  if (turn.outcome === 'near') return 'One away!'
+  if (turn.result === 'oneAway') return 'One away!'
   return 'Not a match'
 }

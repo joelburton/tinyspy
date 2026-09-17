@@ -53,12 +53,13 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
  *  out of `data` now, so a mock resolving `{ error: null }` alone hands it a
  *  body it can't read and the call site sees a fault.
  *
- *  `data.result` is what the call site branches on: `counted` is a wrong guess
- *  the server recorded, which is what these tests submit. An answer that wrote
- *  nothing comes back as a RACE (PN300 / PN301), not as an `ok`. */
+ *  `data.result` NAMES THE CASE, in the wire words the column stores, and
+ *  `outcome` says what it is worth — the split every move RPC uses. These tests
+ *  submit a wrong guess the server recorded; an answer that wrote nothing comes
+ *  back as a RACE (PN300 / PN301), not as an `ok`. */
 const okEnvelope = {
   data: {
-    type: 'ok', data: { result: 'lost' }, outcome: null, severity: null,
+    type: 'ok', data: { result: 'wrong' }, outcome: 'lost', severity: null,
     message: null, field: null, meta: null, dbcode: null, detail: null,
   },
   error: null,
@@ -491,7 +492,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           id: 'g1',
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
-          outcome: 'lost', matched: false,
+          outcome: 'lost', result: 'wrong', matched: false,
           matched_category_rank: null,
           guessed_at: '2026-06-15T00:01:00Z',
         },
@@ -518,7 +519,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           id: 'g1',
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
-          outcome: 'lost', matched: false,
+          outcome: 'lost', result: 'wrong', matched: false,
           matched_category_rank: null,
           guessed_at: '2026-06-15T00:01:00Z',
         },
@@ -547,7 +548,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       id,
       user_id: userId,
       tiles: ['a', 'b', 'e', 'i'],
-      outcome: 'lost' as const, matched: false,
+      outcome: 'lost' as const, result: 'wrong' as const, matched: false,
       matched_category_rank: null,
       guessed_at: '2026-06-15T00:01:00Z',
     })
@@ -611,7 +612,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
       h.result = loaded({
         game: game('coop'),
-        guesses: [{ ...wrongGuess('g2', 'u2'), outcome: 'won' as const, matched: true }],
+        guesses: [{ ...wrongGuess('g2', 'u2'), outcome: 'won' as const, result: 'correct' as const, matched: true }],
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
@@ -680,7 +681,7 @@ describe('connections PlayArea — attention', () => {
     id: `g-${userId}`,
     user_id: userId,
     tiles: ['a', 'b', 'c', 'd'],
-    outcome: 'won' as const, matched: true,
+    outcome: 'won' as const, result: 'correct' as const, matched: true,
     matched_category_rank: 0,
     guessed_at: '2026-06-15T00:01:00Z',
   })

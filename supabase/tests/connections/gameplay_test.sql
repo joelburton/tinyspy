@@ -114,8 +114,8 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','BANANA','CASTLE','DAGGER']::text[],
                            'wrong', null),
-  '{"type": "ok", "data": {"result": "lost"}}'::jsonb,
-  'submit_guess: a recorded wrong guess answers ok/lost'
+  '{"type": "ok", "outcome": "lost", "data": {"result": "wrong"}}'::jsonb,
+  'submit_guess: a wrong guess names its case and carries its outcome'
 );
 
 reset role;
@@ -149,8 +149,8 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE','BANANA']::text[],
                            'oneAway', null),
-  '{"type": "ok", "data": {"result": "near"}}'::jsonb,
-  'submit_guess: a recorded one-away guess answers ok/near'
+  '{"type": "ok", "outcome": "near", "data": {"result": "oneAway"}}'::jsonb,
+  'submit_guess: a one-away guess names its case and carries its outcome'
 );
 reset role;
 select is(
@@ -180,8 +180,8 @@ select pg_temp.envelope_is(
     'correct',
     0
   ),
-  '{"type": "ok", "data": {"result": "won"}}'::jsonb,
-  'submit_guess: a recorded correct guess answers ok/won'
+  '{"type": "ok", "outcome": "won", "data": {"result": "correct"}}'::jsonb,
+  'submit_guess: a correct guess names its case and carries its outcome'
 );
 
 reset role;

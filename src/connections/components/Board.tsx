@@ -1,10 +1,10 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
-import type { GuessOutcome } from '../lib/evaluate'
+import type { Answer } from '../lib/answer'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
@@ -15,13 +15,14 @@ import styles from './PlayArea.module.css'
 
 const COLS = 4
 
-/** A history-lit tile's tint class, by the viewed turn's outcome. Keyed
- *  by the OUTCOME, like everything else the guess touches — the classes it names
- *  were already built from `--outcomes-*` tokens. */
-const HISTORY_LIT_TINT: Record<GuessOutcome, string> = {
-  won: styles.historyTile_won,
-  near: styles.historyTile_near,
-  lost: styles.historyTile_lost,
+/** A history-lit tile's tint class, by what the viewed guess WAS. Keyed by the
+ *  three-value answer rather than by the outcome, because those three are all a
+ *  guess can be, where the outcome vocabulary has seven and four of them could
+ *  never land here. The classes themselves are built from `--outcomes-*`. */
+const HISTORY_LIT_TINT: Record<Answer, string> = {
+  correct: styles.historyTile_won,
+  oneAway: styles.historyTile_near,
+  wrong: styles.historyTile_lost,
 }
 
 /** Empty lit-tile set — a stable reference so a live render never rings a tile. */
@@ -119,11 +120,11 @@ type Props = {
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.
   isViewingHistory?: boolean
-  // The four tiles the viewed turn guessed — ringed and tinted `historyLitOutcome`.
+  // The four tiles the viewed turn guessed — ringed and tinted by `historyLitResult`.
   // Empty / omitted when live.
   historyLitTiles?: ReadonlySet<string>
   // The viewed turn's verdict — the tint for `historyLitTiles`.
-  historyLitOutcome?: GuessOutcome
+  historyLitResult?: Answer
   // A control floated over the board's top-right (the Shuffle button). Rendered
   // INSIDE the board root — the root is the `position: relative` anchor — so it
   // hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -173,7 +174,7 @@ export function Board({
   shakenTiles = NO_TILES,
   isViewingHistory = false,
   historyLitTiles = NO_TILES,
-  historyLitOutcome = 'lost',
+  historyLitResult = 'wrong',
   floatingControl,
 }: Props) {
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)
@@ -329,7 +330,7 @@ export function Board({
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && VERDICT_TONE[verdict.tone],
-                isHistoryLit && HISTORY_LIT_TINT[historyLitOutcome],
+                isHistoryLit && HISTORY_LIT_TINT[historyLitResult],
                 isHistoryLit && styles.historyTile,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}

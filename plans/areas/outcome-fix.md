@@ -425,6 +425,36 @@ the row, so the table is its only authority. Noted in the test.
 the red tile flash are its only surfaces — and both now read that envelope
 instead of a literal.
 
+**8 · connections — DONE 2026-09-17.** The cause-shape, and the fix was not to
+widen the narrowing. `lib/answer.ts` holds the three wire words
+(`correct`/`oneAway`/`wrong` → `won`/`near`/`lost`), which is
+`OUTCOME_FOR_RESULT` moved to the area's shape.
+
+**`GuessOutcome` is gone, and so is `RESULT_FOR_OUTCOME`.** `evaluateGuess` now
+answers in the WIRE word, so a verdict travels from the evaluator to the column
+with no translation — the outbound seam in `BoardCol` disappeared rather than
+being rewritten. The inbound seam in `useGame` stays and reads the column
+through the table once.
+
+**The history tint is what forced the shape.** Its three classes cannot be keyed
+by a seven-value vocabulary, and padding `Record<Outcome, string>` with four
+classes nobody draws is blocked by the dead-class guard — so it keys on the
+three-value ANSWER, which is total over what can arrive and is not a narrowing
+of anything. `GuessRow` gained `result` alongside `outcome` to carry it. That is
+the real answer to the todo's question ("could a guess ever answer with a fourth
+word?"): the question was mis-shaped, because the three tints were never about
+the outcome list.
+
+**SQL: `result` names the case, `outcome` carries the word.** It had been
+putting the outcome word in `data.result` and leaving `outcome` null — one field
+doing both jobs, and the field built for the word left empty. Three pgTAP
+assertions moved with it, which is the first game this area has touched where
+the change broke the tests it should have.
+
+`matched` on `GuessRow` is now derivable from `result`; filed in the game's todo
+rather than collapsed here, since its docstring argues a case that the new field
+retires.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

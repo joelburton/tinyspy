@@ -2,16 +2,13 @@
 
 ## Bugs
 
-- **Judge `GuessOutcome`, the three-word narrowing of `Outcome`.** Ruled
-  2026-09-15: any outcome is a valid outcome, so a type admitting only some of
-  them is a finding until its reason is written down and holds
-  ([docs/outcomes.md](../../docs/outcomes.md) → A narrower Outcome type). This
-  one says a guess is `won`, `near` or `lost` — which is true of connections
-  today, and the type is `Extract`ed rather than hand-written, so a word dropped
-  from the vocabulary cannot survive in it. What it has not been asked is
-  whether a guess could ever answer with a fourth word: `warning` is the obvious
-  candidate ("you already tried that" is a guess being answered), and the pill
-  already says it while this type cannot. Decide here, with the game open.
+- **`matched` on `GuessRow` is now derivable.** It is `result === 'correct'`,
+  and `result` joined the row on 2026-09-17 so the history viewer's three tint
+  classes could key on a three-value word instead of a narrowed `Outcome`. Its
+  docstring defends it as "the rule, kept separate from the look" — an argument
+  against asking a COLOR about the rules, which no longer applies now that the
+  fact is there to ask. Collapse it, or rewrite the docstring to say why two
+  fields carry one fact.
 
 - **The Hints menu row is live when the list it toggles is not drawn.**
   `act-hint`'s `describe` answers `active` always, but `InfoCol` mounts

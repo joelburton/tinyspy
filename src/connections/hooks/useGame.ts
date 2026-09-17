@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -7,7 +7,8 @@ import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardow
 import { onPostgresAttached } from '@/common/realtime/postgresAttached'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import { OUTCOME_FOR_RESULT, type GuessOutcome, type GuessResult } from '../lib/evaluate'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
@@ -41,10 +42,16 @@ export type GuessRow = {
   id: string
   user_id: string
   tiles: string[]
-  /** How this guess READS — the shared vocabulary, converted at the seam above.
-   *  Never the wire word: a tile ring, a log row and a PDF cell all want the
-   *  same three colors the rest of the app uses. */
-  outcome: GuessOutcome
+  /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, which
+   *  is also the word `submit_guess` sent back in its envelope. Never the wire
+   *  word: a tile ring, a log row and a PDF cell all want the same colors the
+   *  rest of the app uses. */
+  outcome: Outcome
+  /** What this guess WAS — the three-value wire word the column stores. Carried
+   *  beside the outcome because some readers need the FACT rather than the
+   *  color: the history viewer's tint has exactly three classes, and a
+   *  seven-value vocabulary cannot key them. */
+  result: Answer
   /** Whether this guess MATCHED a category — the rule, kept separate from the
    *  look. `outcome === 'won'` happens to mean the same thing today, but that
    *  is a color answering a question about the rules, which is exactly the
@@ -297,17 +304,18 @@ export function useGame(
         puzzleDate: row.puzzle_date,
         created_at: row.created_at,
       })
-      // THE INBOUND SEAM: the wire word is converted here and never travels
-      // further. `matched` is derived here too, so no downstream rule has to
-      // ask a color whether a category was found.
+      // THE INBOUND SEAM: the wire word is read through `lib/answer.ts` here and
+      // never travels further. `matched` is derived here too, so no downstream
+      // rule has to ask a color whether a category was found.
       setGuesses(
         guessesRes.data.map((g) => {
-          const result = g.result as GuessResult
+          const result = g.result as Answer
           return {
             id: g.id,
             user_id: g.user_id,
             tiles: g.tiles,
-            outcome: OUTCOME_FOR_RESULT[result],
+            outcome: ANSWER_OUTCOME[result],
+            result,
             matched: result === 'correct',
             matched_category_rank: g.matched_category_rank,
             guessed_at: g.guessed_at,
