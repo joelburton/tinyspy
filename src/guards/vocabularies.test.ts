@@ -363,7 +363,8 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/lists/FilterSelect.module.css': ['0.8rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.95rem'],
       'src/common/turn-log/historyViewer.module.css': ['1rem'],
-      'src/common/turn-log/TurnLog.module.css': ['0.9rem', '1rem'],
+      'src/common/turn-log/TurnLog.module.css': ['0.9rem'],
+      'src/common/turn-log/gameTurnLog.module.css': ['1rem'], //  `.primary`, the row's lead value
       'src/common/word-list/WordList.module.css': ['17px'],
       'src/common/info-sheet/MobileStatusBar.module.css': ['0.95rem'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
@@ -515,7 +516,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/info-sheet/infoPanel.module.css': ['2px'],
       'src/common/turn-log/historyViewer.module.css': ['2px'],
-      'src/common/turn-log/TurnLog.module.css': ['1px'],
+      'src/common/turn-log/gameTurnLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
       'src/common/game-page/playArea.module.css': ['1px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],

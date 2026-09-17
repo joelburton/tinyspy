@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Player, GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -38,7 +38,7 @@ type Props = {
  * (muted), the word (bold — the important part), the result, and the actor
  * (right-aligned with their identity dot, so the dots line up down the column).
  * Cells use `<TurnLog>`'s content classes so they match other games' logs; the
- * `.turnLogDivider` class on each row draws the between-turns line (suppressed on
+ * `.divider` class on each row draws the between-turns line (suppressed on
  * the first by `:first-child`).
  *
  * Three row kinds:
@@ -87,12 +87,13 @@ export function GameTurnLog({
   // the viewer indexes by log POSITION, so a filtered list's row 3 isn't turn 3.
   // Otherwise it degrades to a plain read-only number rather than disappearing,
   // which keeps the column's width and the row's shape identical either way.
-  const turnNumber = (i: number) =>
-    turnLogPicker.boardIsShown ? (
-      <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
-    ) : (
-      <td className={turnLog.meta}>#{i + 1}</td>
-    )
+  const turnNumber = (i: number) => (
+    <TurnLogNumber
+      n={i + 1}
+      isOpenInHistory={historyId === i}
+      onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+    />
+  )
 
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
@@ -101,13 +102,13 @@ export function GameTurnLog({
         // the row carries a clue sentence, not a word + a one-word result.
         if (g.kind === 'hint') {
           return (
-            <tr key={g.id} className={turnLog.turnLogDivider}>
+            <tr key={g.id} className={gameTurnLog.divider}>
               <TurnLogBar outcome="near" />
               {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `.who` stays snug). */}
-              <td colSpan={2} className={cls(turnLog.main, styles.hint)}>
-                <span className={turnLog.meta}>Hint:</span> {g.word}
+              <td colSpan={2} className={cls(gameTurnLog.main, styles.hint)}>
+                <span className={gameTurnLog.muted}>Hint:</span> {g.word}
               </td>
               {whoCell(g.user_id)}
             </tr>
@@ -116,16 +117,16 @@ export function GameTurnLog({
         // Guess (good/bad) or reveal (amber, the answer).
         const isReveal = g.kind === 'reveal'
         return (
-          <tr key={g.id} className={turnLog.turnLogDivider}>
+          <tr key={g.id} className={gameTurnLog.divider}>
             <TurnLogBar outcome={isReveal ? 'near' : g.is_correct ? 'won' : 'lost'} />
             {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `.who` sits snug at the right. */}
-            <td className={cls(turnLog.other, turnLog.primary)}>
+            <td className={cls(gameTurnLog.other, gameTurnLog.primary)}>
               <DefinableWord word={g.word} />
             </td>
-            <td className={turnLog.main}>{isReveal ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
+            <td className={gameTurnLog.main}>{isReveal ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
           </tr>
         )

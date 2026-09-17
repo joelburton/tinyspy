@@ -24,7 +24,7 @@
  * ("not a word"). Left to wrap, the two-to-three word reasons stack onto three
  * lines and every rejected row grows to triple height — a ragged log whose row
  * rhythm depends on which words you got wrong. Keep them on one line and let
- * the word column (turnLog.main) absorb the slack, as it does in every other
+ * the word column (gameTurnLog.main) absorb the slack, as it does in every other
  * game's log. */
 /* @@ */ .outcome {
   white-space: nowrap;

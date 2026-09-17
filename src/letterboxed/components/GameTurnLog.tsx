@@ -9,7 +9,7 @@ import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
 import { hintPrefix } from '../lib/help'
 import type { EventRow } from '../hooks/useGame'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import styles from './PlayArea.module.css'
 
 /**
@@ -18,7 +18,7 @@ import styles from './PlayArea.module.css'
  * number, the move itself in the slack-absorbing `main` column, and the actor
  * on the right so the identity discs line up down the log.
  *
- * COVERAGE IS ITS OWN COLUMN (`turnLog.other`), not a suffix on the move text.
+ * COVERAGE IS ITS OWN COLUMN (`gameTurnLog.other`), not a suffix on the move text.
  * Appended, it landed wherever the word happened to end and the numbers
  * staggered down the log; as a column they line up, which is most of why the
  * shared log is a `<table>` rather than a list of rows.
@@ -76,21 +76,21 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Moves" picker={turnLogPicker} shown={shown}>
       {shown.map((e, i) => (
-        <tr key={e.id} className={turnLog.turnLogDivider}>
+        <tr key={e.id} className={gameTurnLog.divider}>
           <TurnLogBar outcome={barFor(e)} />
           {/* A live handle only when the rows on show ARE the board's rows —
               otherwise a click would replay someone else's chain onto your
               board. */}
-          {boardIsShown ? (
-            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
-          ) : (
-            <td className={turnLog.meta}>#{i + 1}</td>
-          )}
-          <td className={turnLog.main}>
+          <TurnLogNumber
+            n={i + 1}
+            isOpenInHistory={historyId === i}
+            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+          />
+          <td className={gameTurnLog.main}>
             <Move event={e} />
           </td>
-          <td className={turnLog.other}>
-            <span className={turnLog.meta}>
+          <td className={gameTurnLog.other}>
+            <span className={gameTurnLog.muted}>
               {e.letters_covered}/{BOARD_SIZE}
             </span>
           </td>

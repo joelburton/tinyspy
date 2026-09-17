@@ -30,15 +30,41 @@
 
 ## Soon
 
-- **`TurnLog.module.css` is read by eleven games' `GameTurnLog.tsx`**, which
-  makes it the repo's clearest case of a component-named stylesheet that is not
-  one component's. Joel, 2026-09-14: a `Foo.module.css` should be about the look
-  of `Foo`, changeable without worrying about anyone else. Two ways out, both in
-  [docs/deferred.md](../../../docs/deferred.md) → Common / architecture: rename
-  it `turnLog.module.css` (the repo's existing lowercase-means-shared
-  convention), or let each game's own module `composes:` from it so a game's
-  `.tsx` imports only its own stylesheet. Decide here when the area opens; the
-  convention itself is the cross-cutting half.
+- **A compete game at terminal should be able to show another player's board.**
+  Today the `#N` handle dies whenever the log on show is not the sequence the
+  board replays, and `boardIsShown` is one flag over two unrelated conditions:
+
+  - **coop with a single player picked** — the board is SHARED, so every row in
+    the filtered list is a real event in the history the board replays. The
+    handle could work; it dies only because the snapshot builders index by
+    position in the shown list rather than by the row's own id. Every one of the
+    seven games already HAS a stable id on the row (`connections.id`,
+    `letterboxed.id`, `psychicnum.id`, `strands.id`, and `seq` in stackdown,
+    waffle, wordle) — positional keying is a choice those builders made, not a
+    shortage. Resolving the id against the unfiltered log at the seam is the
+    whole fix.
+  - **compete with an opponent picked** — the board on screen is YOURS, so their
+    turn has nothing to replay on. Mid-game their rows are RLS-hidden anyway
+    ("Hidden until game ends."). **At terminal the rows are all there**, with
+    their feedback colors, and each game's snapshot builder is pure — so what is
+    missing is the decision that a compete log's `#N` may replay SOMEONE ELSE's
+    board, and the UI to say whose board you are looking at while it does.
+    Joel, 2026-09-16, wants this: reading moth's finished wordle as six rows of
+    text where the game can draw it as a board is the gap.
+
+  **setgame is the existence proof that this is reachable**, and its own comment
+  says why: it offers the viewer on every row whatever the filter, because its
+  snapshot is the `board_after` stored on the event rather than a fold over one
+  player's sequence — "any row can be opened without knowing whose board it
+  belonged to". **wordiply is the other odd one**: a turn log with no viewer at
+  all, so its rows have no `#N`. Joel: *"setgame and wordiply shouldn't need to
+  be different around this stuff"* — one feature, the same everywhere, rather
+  than three behaviors a player has to learn per game.
+
+  Fixing the first half also reframes **F-20** (`boardIsShown`'s name is vague
+  partly because it covers two unrelated conditions), and the second half may
+  retire the flag entirely.
+
 
 
 ## Someday

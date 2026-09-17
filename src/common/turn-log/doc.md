@@ -77,6 +77,23 @@ stays mounted, so a half-typed word or a staged rack survives a trip through the
 history and is there again on the way out. Neither half is the accident: don't
 "fix" the docs that call it frozen, and don't unmount what is under it.
 
+**Two stylesheets, split by who reads them.** `TurnLog.module.css` is what the
+components draw themselves — the box, the table, the outcome bar, the turn
+number, the who column — and a game never imports it. `gameTurnLog.module.css`
+is the row vocabulary a game puts on its own `<tr>`s and `<td>`s: `.divider`,
+`.main`, `.other`, `.primary`, `.entryHead`, `.entryCont`, `.muted`. The
+capital/lowercase pair is the repo's rule for it (docs/deferred.md → Common /
+architecture): a capital name is one component's and only that component may
+import it; a lowercase one is shared.
+
+The split is by READER, and measuring it is what produced these two lists: of
+the classes in the old single file, thirteen were read only by the components,
+six only by the games, and two by both — and both of those turned out to be one
+thing each wearing a shared name. `.who` was the components' (a docstring
+mentioned it, no game used it), and `.meta` was doing two jobs at once: the turn
+number's column, and de-emphasised text inside a row. It is two classes now,
+`.turnNumber` and `.muted`, in the two files.
+
 **One file holds four components, and the other concern's files say so.**
 `TurnLog.tsx` is the panel plus the pieces a game builds a row from —
 `TurnLogBar`, `TurnLogNumber`, `TurnLogActor` — which is the packaging exception

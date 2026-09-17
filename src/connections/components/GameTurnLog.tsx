@@ -4,7 +4,7 @@ import { Fragment } from 'react'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Category } from '../lib/board'
 import type { GuessRow, Player } from '../hooks/useGame'
@@ -46,7 +46,7 @@ type Props = {
  * width, in board order — kept as the FE stored them, so the row matches what the
  * players were looking at). Real table cells, not a flexbox sub-line inside one
  * cell (that throws away the column alignment the table exists for — see
- * playarea.md → Turn log (conversion gotchas)). `.turnLogDivider` on row 1 draws the
+ * playarea.md → Turn log (conversion gotchas)). `.divider` on row 1 draws the
  * between-turns line. The verdict names the matched
  * category on a correct guess ("Matched: Colors"), so "the row that solved the
  * blue band" is legible at a glance; the other two outcomes carry the
@@ -90,26 +90,26 @@ export function GameTurnLog({
         <Fragment key={g.id}>
           {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle | verdict (`.main`,
               absorbs the slack) | actor (`.who`, shrinks to the username).
-              `.turnLogDivider` draws the line above this turn; `.entryHead`/
+              `.divider` draws the line above this turn; `.entryHead`/
               `.entryCont` hug the two rows together. The `#N` handle opens that turn
               on the board viewer. */}
-          <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
+          <tr className={cls(gameTurnLog.divider, gameTurnLog.entryHead)}>
             <TurnLogBar outcome={g.outcome} rowSpan={2} />
             {/* The `#N` handle replays that turn on the board — live ONLY when the
                 rows on show ARE the board's (my own, or coop's shared game). On an
                 opponent's log, or the All view, the board still shows mine, so the
                 number stays a plain read-only marker. */}
-            {turnLogPicker.boardIsShown ? (
-              <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
-            ) : (
-              <td className={turnLog.meta}>#{i + 1}</td>
-            )}
-            <td className={turnLog.main}>{verdictLabel(g, nameByRank)}</td>
+            <TurnLogNumber
+              n={i + 1}
+              isOpenInHistory={historyId === i}
+              onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+            />
+            <td className={gameTurnLog.main}>{verdictLabel(g, nameByRank)}</td>
             <TurnLogActor actor={memberById(players, g.user_id)} />
           </tr>
           {/* Row 2: the four guessed tiles, full width — spanning the #N + verdict +
               who columns beneath the meta line. */}
-          <tr className={turnLog.entryCont}>
+          <tr className={gameTurnLog.entryCont}>
             <td colSpan={3} className={styles.words}>{g.tiles.join(' · ')}</td>
           </tr>
         </Fragment>

@@ -3,7 +3,7 @@
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { EventRow } from '../hooks/useGame'
 import { Card } from './Card'
@@ -84,7 +84,7 @@ export function GameTurnLog({
         // without knowing whose board it belonged to.
         const index = events.indexOf(event)
         return (
-          <tr key={event.id} className={turnLog.turnLogDivider}>
+          <tr key={event.id} className={gameTurnLog.divider}>
             {/* `near` is the shared amber bar, and it is what stackdown
                 already flags a logged help request with — a hint is neither a
                 find nor a failure, but it is not NOTHING either, which is what

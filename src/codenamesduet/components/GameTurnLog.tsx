@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
 import type { ClueRow } from '../hooks/useClues'
@@ -57,7 +57,7 @@ type Props = {
  * whole turn; the `<ActorDot>` right-aligned via the shared `.who` column), and
  * row 2 spans those three content columns with the turn's guesses — each word
  * colored by its reveal outcome (agent green / neutral tan / assassin red), the
- * same vocabulary the board uses. The `.turnLogDivider` on row 1 draws the
+ * same vocabulary the board uses. The `.divider` on row 1 draws the
  * between-turns line (so there's no line *within* a turn). A guess-less turn reads
  * **"(clue given)"** while it's the current, still-live turn (the guesser hasn't
  * acted yet) and **"(no guesses)"** once it has ended empty (the guesser passed) —
@@ -146,17 +146,17 @@ export function GameTurnLog({
           <Fragment key={t}>
             {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (`.meta`) | count
                 WORD (`.main`, absorbs the slack) | clue-giver (`.who`, shrinks to
-                the username). `.turnLogDivider` draws the line above this turn
+                the username). `.divider` draws the line above this turn
                 (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
                 together. The `#N` handle is the turn-viewer control (see the note). */}
-            <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
+            <tr className={cls(gameTurnLog.divider, gameTurnLog.entryHead)}>
               <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
               <TurnLogNumber
                 n={t}
                 isOpenInHistory={historyId === t}
                 onShowHistory={() => onShowHistory(t)}
               />
-              <td className={turnLog.main}>
+              <td className={gameTurnLog.main}>
                 <span className={styles.clueWord}>
                   {clue.count} {clue.word.toUpperCase()}
                 </span>
@@ -167,10 +167,10 @@ export function GameTurnLog({
                 (#, clue, clue-giver) beneath the clue line. No divider class — the
                 line belongs between turns, not within one. The bar's rowSpan
                 occupies col 0 here, so this colSpan starts at the # column. */}
-            <tr className={turnLog.entryCont}>
+            <tr className={gameTurnLog.entryCont}>
               <td colSpan={3}>
                 {turnGuesses.length === 0 ? (
-                  <span className={turnLog.meta}>
+                  <span className={gameTurnLog.muted}>
                     {inProgress ? '(clue given)' : '(no guesses)'}
                   </span>
                 ) : (

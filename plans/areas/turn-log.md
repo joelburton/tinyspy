@@ -12,10 +12,10 @@ this file against it.
 
 | | |
 |---|---|
-| **worked** (14) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-19 (including its ten-game meaning-based sweep) · F-22 |
+| **worked** (15) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-19 (including its ten-game meaning-based sweep) · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
 | **skipped** (1) | F-12, to the `z-index` area it caused to be scheduled (plan §3 row 39) |
-| **open** (5) | F-16 · F-17 · F-18 · F-20 · F-21 |
+| **open** (4) | F-17 · F-18 · F-20 · F-21 |
 
 ## The roster
 
@@ -528,6 +528,48 @@ allowlist rows, `outcomes.md` and `playarea.md` mentions); (2) `composes:` —
 a decision about the shape of the repo's CSS, which the deferred item says it
 is, so it waits there; (3) leave. Recommend (1); it is the convention the
 deferred item names, and it changes no pixel.
+
+**WORKED 2026-09-16 — and the recommended rename was the wrong instrument.**
+Joel asked how much of the file each side actually reads, and measuring it
+changed the answer: of its 21 classes, **thirteen were read only by the
+components** (`.turnLog`, `.turnLogBox`, `.turnLogTable`, `.bar`, `.barInner`
+and its seven outcome variants, `.turnNumber`), **six only by the games**
+(`.turnLogDivider`, `.main`, `.other`, `.primary`, `.entryHead`, `.entryCont`),
+and two by both. One lowercase name would have declared thirteen
+component-private rules "shared" in the same gesture that fixed six.
+
+So it **split by reader** instead: `TurnLog.module.css` keeps what the
+components draw (capital, and no game imports it), and
+**`gameTurnLog.module.css`** — Joel's name, matching the eleven `GameTurnLog.tsx`
+that read it — takes the row vocabulary.
+
+**Both "shared" classes turned out to be one thing wearing a shared name.**
+
+- **`.who` was never shared.** The measurement said "1 game", and the game was
+  wordle — in a DOCSTRING. Its markup uses `<TurnLogActor>` like everyone else.
+- **`.meta` was doing two jobs**: the turn number's column (seven games writing
+  `<td className={turnLog.meta}>#{i + 1}</td>` by hand as the inert fallback) and
+  de-emphasised text inside a row ("(no guesses)", a `Hint:` label, `3/12`, a
+  reason after a word). It is two classes now — **`.turnNumber`** with the
+  components, **`.muted`** with the games. Joel: *"`.meta` is a dumb name for the
+  turn-numbers"*, and `.muted` earns its vagueness only where there is no
+  consistent meaning.
+
+**`<TurnLogNumber>` draws both cases now**, which is what let the column class
+stay private. Joel: *"they're the same thing — just some can be clicked and some
+can't."* Omitting `onShowHistory` renders the plain number, so the seven games
+that hand-wrote the fallback each lost a branch, and `.turnNumber` /
+`.turnNumberHandle` split by affordance exactly as he predicted: the handle adds
+a hit target, a pointer and a hover, and nothing else.
+
+**One class renamed, not seven.** The moved classes were already bare — the old
+file's own header said composable classes keep bare names and let the import
+alias namespace them. `.turnLogDivider` was the exception, a content class
+wearing a structural prefix, so it is `.divider`.
+
+**The guard moved the literals with their rules:** `vocabularies.test.ts`'s
+`pending` rows for `1rem` (`.primary`) and `1px` (`.divider`) key on the new file
+now, which it failed until they did.
 
 ### F-turn-log-17 · `near-for-help-rows` · Five games log a hint, a spoiler or a reveal as `near`
 

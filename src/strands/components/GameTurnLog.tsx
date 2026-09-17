@@ -14,7 +14,7 @@ import {
 } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import type { EventRow, GuessResult } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -171,14 +171,14 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((row, i) => (
-        <tr key={row.id} className={turnLog.turnLogDivider}>
+        <tr key={row.id} className={gameTurnLog.divider}>
           <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
-          {boardIsShown ? (
-            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
-          ) : (
-            <td className={turnLog.meta}>#{i + 1}</td>
-          )}
-          <td className={turnLog.main}>
+          <TurnLogNumber
+            n={i + 1}
+            isOpenInHistory={historyId === i}
+            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+          />
+          <td className={gameTurnLog.main}>
             {/* Fixed-width slot, so every word starts at the same x no
                 matter which glyph precedes it. */}
             <span
@@ -199,7 +199,7 @@ export function GameTurnLog({
                  the same slot the word would occupy rather than leaving a gap.
                  Muted, because unlike every other row here there is no player
                  input to report; `#N` still replays the ring on the board. */
-              <span className={turnLog.meta}>Hint used</span>
+              <span className={gameTurnLog.muted}>Hint used</span>
             ) : (
               <>
                 {definable(row) ? (
@@ -208,7 +208,7 @@ export function GameTurnLog({
                   <span className={wordClass(row)}>{row.word.toUpperCase()}</span>
                 )}
                 {BODY[row.result] && (
-                  <span className={turnLog.meta}> — {BODY[row.result]}</span>
+                  <span className={gameTurnLog.muted}> — {BODY[row.result]}</span>
                 )}
               </>
             )}

@@ -436,11 +436,11 @@ src/codenamesduet/
                           [<TurnLogBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
                           history handle, keyed by turn_number — click to replay that
                           turn on the board) | {count} {WORD} | the
-                          clue-giver via <ActorDot> (right-aligned via turnLog.who);
+                          clue-giver via <ActorDot> (right-aligned by <TurnLogActor>);
                           row 2 spans those content columns with the guesses (each
                           colored by reveal outcome) — or "(clue given)" while the
                           turn is still live, "(no guesses)" once it ended empty.
-                          turnLog.turnLogDivider on row 1 draws the between-turns
+                          gameTurnLog.divider on row 1 draws the between-turns
                           line. Per-turn outcome from lib/turnOutcome.ts.
                           Header carries the shared "whose turns?" picker
                           (useTurnLogPlayerPicker — Team + both players; duet is

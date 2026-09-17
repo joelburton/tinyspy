@@ -5,7 +5,7 @@ import { memberById } from '@/common/members/memberList'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import type { Member } from '@/common/members/member'
 import { tileColor } from '../lib/colors'
 import type { GuessRow } from '../hooks/useGame'
@@ -41,9 +41,10 @@ type Props = {
  *     the shared `<TurnLogNumber>` handle — click it to open that turn on the board;
  *     on an opponent's read-only log (compete) it's a plain muted number.
  *   - **the squares** — the guess + its g/y/x feedback; the row's headline, so it
- *     takes the slack-absorbing `turnLog.main` column (keeping `.who` snug right).
- *   - **who** — the guesser's `<ActorDot>` in the right-aligned `turnLog.who`
- *     column, so the identity discs line up down the log.
+ *     takes the slack-absorbing `gameTurnLog.main` column (keeping the who column
+ *     snug right).
+ *   - **who** — the guesser's `<ActorDot>`, which `<TurnLogActor>` puts in the
+ *     right-aligned who column, so the identity discs line up down the log.
  *
  * The who column is rendered **unconditionally**, like every other v3 turn log:
  * in compete, RLS scopes `guesses` to the caller, so it simply shows the viewer's
@@ -90,14 +91,14 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
-        <tr key={`${g.user_id}-${g.seq}`} className={turnLog.turnLogDivider}>
+        <tr key={`${g.user_id}-${g.seq}`} className={gameTurnLog.divider}>
           <TurnLogBar outcome={g.is_correct ? 'won' : 'neutral'} />
-          {boardIsShown ? (
-            <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
-          ) : (
-            <td className={turnLog.meta}>#{i + 1}</td>
-          )}
-          <td className={turnLog.main}>
+          <TurnLogNumber
+            n={i + 1}
+            isOpenInHistory={historyId === i}
+            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+          />
+          <td className={gameTurnLog.main}>
             {/* The whole guess is one definable word — every wordle guess is a
                 legal dictionary word, so the affordance rides the five-square
                 group rather than the cells, and one click looks it up. */}

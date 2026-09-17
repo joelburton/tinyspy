@@ -443,7 +443,7 @@ src/psychicnum/
                           red=wrong / amber=hint+reveal) + `#n` (the shared
                           <TurnLogNumber> history handle — click to replay that turn
                           on the board) + word + result +
-                          actor with their identity dot, and turnLog.turnLogDivider
+                          actor with their identity dot, and gameTurnLog.divider
                           for the between-turns line. A hint row collapses the
                           word+result columns into a colspan "Hint: <clue>". The
                           guessed/revealed WORD is click-to-define (DefinableWord)

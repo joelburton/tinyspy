@@ -118,10 +118,14 @@ export function TurnLogBar({
 }
 
 /**
- * The turn-log **"#N" handle** — the shared turn-history control. Clicking it opens
- * that turn on the board viewer; when that turn is the one being viewed, the number
- * wears the history blue ring (mirroring the board `.historyFrame`). It lives in the muted
- * `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
+ * The turn-log **"#N"** — every row's turn number, and the turn-history control
+ * when it can be one. Pass `onShowHistory` and it becomes a click target that
+ * opens that turn on the board; omit it and the same number draws plain. They
+ * are the same thing, and a game does not hand-write the inert case.
+ *
+ * A game omits the handler when the log on show is not the sequence the board
+ * replays — a filtered log's row 3 is not the board's turn 3 (the picker's
+ * `boardIsShown`). doc.md → Details has the seam.
  *
  * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
  * (codenamesduet's clue + guess rows). A whole-row "viewing" outline then draws a
@@ -132,27 +136,31 @@ export function TurnLogBar({
  * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
  * on Space — so pressing Space to leave the viewer (the shared "any key exits")
  * would instead re-select the turn. A span with an `onClick` isn't focusable, so it
- * takes no keystroke and Space falls through to `act-exit-history`. The
+ * takes no keystroke and Space falls through to `act-exit-viewer`. The
  * `data-turn-number` marker is how `useHistoryViewer`'s click-anywhere-to-exit
  * listener tells "the user is selecting a turn" from "the user clicked away".
  */
 export function TurnLogNumber({
   n,
-  isOpenInHistory,
+  isOpenInHistory = false,
   onShowHistory,
 }: {
   // The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
   // codenamesduet's `turn_number`, stackdown/waffle's 1-based log position).
   n: number
   // Is this the turn currently open in the board viewer? Rings the number blue.
-  isOpenInHistory: boolean
-  // Open this turn on the board viewer.
-  onShowHistory: () => void
+  // Meaningless without `onShowHistory`, since an inert number opens nothing.
+  isOpenInHistory?: boolean
+  // Open this turn on the board viewer. OMITTED = this number opens nothing, and
+  // draws as a plain one.
+  onShowHistory?: () => void
 }) {
+  if (!onShowHistory) return <td className={styles.turnNumber}>#{n}</td>
+
   return (
-    <td className={styles.meta}>
+    <td className={styles.turnNumber}>
       <span
-        className={cls(styles.turnNumber, isOpenInHistory && history.historyNumber)}
+        className={cls(styles.turnNumberHandle, isOpenInHistory && history.historyNumber)}
         data-tooltip="Click to view this turn on the board"
         data-turn-number
         onClick={onShowHistory}
@@ -163,12 +171,6 @@ export function TurnLogNumber({
   )
 }
 
-/**
- * The turn-log **"who" cell** — the right-aligned `<td>` (the shared `.who`
- * column) wrapping the shared `<ActorDot>`. Every game's row ends this way, so
- * the column and the tag are single-sourced together. Props forward straight to
- * `<ActorDot>` (`actor` / `fallback` / `className`).
- */
 export function TurnLogActor(props: ComponentProps<typeof ActorDot>) {
   return (
     <td className={styles.who}>

@@ -530,8 +530,8 @@ src/connections/
                           (row anatomy is the game's — see ui.md → Turn log): row 1 =
                           [<TurnLogBar> ⇣rowSpan 2] | `#N` (the shared <TurnLogNumber>
                           history handle) | verdict | actor (right-aligned via
-                          turnLog.who) in REAL <td> columns; row 2 spans those columns
-                          with the 4 guessed tiles. turnLog.turnLogDivider on row 1 draws
+                          the who column) in REAL <td> columns; row 2 spans those columns
+                          with the 4 guessed tiles. gameTurnLog.divider on row 1 draws
                           the between-turns line. No flexbox sub-line in a cell.
                           Stateless/presentational. Clicking a `#N` opens that turn on the
                           board via the shared history viewer (see lib/history.ts).

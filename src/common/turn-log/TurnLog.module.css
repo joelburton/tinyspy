@@ -6,7 +6,7 @@
  * shared PANEL + the composable atoms a game drops into its own rows. Rows are
  * flat (no card border): a game's turn carries its outcome as a colored LEFT BAR
  * (<TurnLogBar>, inset so the bars read as individual segments) and the
- * `.turnLogDivider` line between turns; no vertical borders between cells. See
+ * `.divider` line between turns; no vertical borders between cells. See
  * TurnLog.tsx and docs/playarea.md → "Turn log".
  *
  * Class vocabulary: the STRUCTURE is `turnLog`-prefixed (.turnLog / .turnLogBox /
@@ -49,36 +49,11 @@
  * consistent padding/size without each needing a class. `:where()` holds this at
  * single-ELEMENT specificity (0,0,1), so any game cell class — or the bar atom's
  * `.bar` — overrides it without a specificity fight. No vertical borders between
- * cells; the only divider is `.turnLogDivider` below. */
+ * cells; the only divider is `.divider` below. */
 /* @@ */ :where(.turnLogTable) td {
   padding: 0.6rem 0.4rem;
   vertical-align: middle;
   font-size: 0.9rem;
-}
-
-/* The divider line BETWEEN turns. A game applies this to the FIRST <tr> of each
- * turn (it alone knows where a turn starts — one row, or several). A top border,
- * so a multi-row turn gets NO mid-turn line; the very first turn's row is
- * suppressed by :first-child, so a game can apply it to every turn-start row
- * unconditionally. Full width, reaching the left edge (over the bar column too). */
-/* @@ */ .turnLogDivider td {
-  border-top: 1px solid var(--page-divider-color);
-}
-/* @@ */ .turnLogDivider:first-child td {
-  border-top: none;
-}
-
-/* Multi-row entry: hug its rows together so they read as ONE entry, not several.
- * The game (which knows the row kinds, since it renders them) tags the entry's
- * FIRST row `.entryHead` and each CONTINUATION row `.entryCont`; we just trim the
- * facing padding. (Preferred over a `:has()`/`:not()` selector that re-derives
- * the row kind from structure — the explicit class names what the component
- * already knows.) Inert for single-row entries (which carry neither). */
-/* @@ */ .entryHead td {
-  padding-bottom: 0.1rem;
-}
-/* @@ */ .entryCont td {
-  padding-top: 0;
 }
 
 /* ─── Outcome bar: a shared, OPTIONAL cell atom (<TurnLogBar>) ──────────────
@@ -158,55 +133,6 @@
  * SIZING only — no emphasis — so a game composes its own look on top
  * (e.g. `cls(turnLog.other, turnLog.primary)` for a bold word). */
 
-/* The MAIN content column — absorbs the row's slack (so a long value doesn't
- * wrap). Exactly one cell per row should be `.main`; put it where the slack
- * should land (typically the last content cell before `.who`, so the gap sits
- * between the content and the actor). */
-/* @@ */ .main {
-  width: 100%;
-}
-
-/* A secondary content column — sized to fit its content, doesn't absorb slack,
- * stays on one line. No emphasis baked in (a game adds its own). */
-/* @@ */ .other {
-  white-space: nowrap;
-}
-
-/* The lead value of the row — the guessed number, the played word. EMPHASIS, not
- * sizing: compose with a sizing class (`.main` / `.other`) for the column. */
-/* @@ */ .primary {
-  font-weight: 700;
-  font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Minor / de-emphasized info — a turn number, a small note. Muted; sizes to its
- * content (typically space-free, so it never wraps). */
-/* @@ */ .meta {
-  color: var(--page-text-muted-color);
-}
-
-/* The clickable "#N" turn handle (see <TurnLogNumber>) — the turn-history control
- * that opens that turn on the board viewer. A `<span>` (not a button — Space on a
- * focused button would re-select instead of exiting the viewer), styled as the plain
- * muted number it replaces (inherits the `.meta` font/color) so the log reads
- * unchanged until hovered. The tight negative margin keeps the number sitting where
- * the bare text did, so adopting the handle shifts no layout. The `outline` channel
- * is left to the "viewing" marker (historyViewer `.historyNumber`). */
-/* @@ */ .turnNumber {
-  display: inline-block;
-  padding: 1px 5px;
-  margin: -1px -3px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  white-space: nowrap;
-}
-/* Hover = a background tint + the number darkens to full-strength (a span can't take
- * focus, so there's no focus state to style). */
-/* @@ */ .turnNumber:hover {
-  background: var(--page-surface-hover-color);
-  color: var(--page-text-strong-color);
-}
 
 /* The right-aligned "who" column. Shrinks to its content (the `<ActorDot>`'s
  * "name ●"), so the discs line up at the right edge across rows and the slack
@@ -219,3 +145,33 @@
 
 /* (The "whose turns?" dropdown itself is the shared `<FilterSelect>`, which
  * owns its own styling — the same control the word list's two filters use.) */
+
+/* ─── The turn number (<TurnLogNumber>) ───────────────────────────────────
+ * Every log row's "#N" wears `.turnNumber`, whether or not it opens anything:
+ * it is the same thing either way, and only some of them can be clicked. Muted
+ * like the row's other secondary text, and never wrapped — "#12" is one word.
+ *
+ * `.turnNumberHandle` is the affordance on top, and nothing else: a hit target
+ * (padding, with a negative margin that cancels it, so adopting the handle
+ * shifts no layout), a pointer, and a hover. A `<span>` rather than a button —
+ * Space on a focused button would re-select the turn instead of leaving the
+ * viewer. The `outline` channel is left to the "viewing" marker (historyViewer
+ * `.historyNumber`). */
+/* @@ */ .turnNumber {
+  color: var(--page-text-muted-color);
+  white-space: nowrap;
+}
+
+/* @@ */ .turnNumberHandle {
+  display: inline-block;
+  padding: 1px 5px;
+  margin: -1px -3px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+/* Hover = a background tint + the number darkens to full-strength (a span can't take
+ * focus, so there's no focus state to style). */
+/* @@ */ .turnNumberHandle:hover {
+  background: var(--page-surface-hover-color);
+  color: var(--page-text-strong-color);
+}

@@ -382,7 +382,7 @@ consistent without imposing structure:
   padding sets the spacing; the span is absolutely positioned + inset top/bottom
   so it tracks the (possibly multi-row) cell height and adjacent bars read as
   individual segments.
-- **`.turnLogDivider`** — the between-turns **divider line**. A game puts it on
+- **`.divider`** — the between-turns **divider line**. A game puts it on
   the **first `<tr>` of each turn** (it alone knows where a turn starts — one row
   or several). It's a *top* border, so a multi-row turn gets **no** mid-turn line;
   `:first-child` suppresses it on the very first turn, so a game applies it to

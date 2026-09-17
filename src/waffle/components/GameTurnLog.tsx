@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Member } from '@/common/members/member'
 import { coord } from '../lib/waffle'
@@ -35,7 +35,7 @@ type Props = {
  * divs, which throw away the column alignment the table exists for): the outcome
  * bar, the turn number ("#N", `.meta`), the move ("A (A1) ↔ B (C2)" — swapped
  * letters leading, coordinates receding — in `.main` so it absorbs the row's
- * slack), and the swapper's `<ActorDot>` right-aligned (`.who`). `.turnLogDivider`
+ * slack), and the swapper's `<ActorDot>` right-aligned (`.who`). `.divider`
  * draws the between-turns line.
  *
  * **Both modes** since 2026-08-02 (compete used to write no swaps at all). Whose
@@ -76,21 +76,17 @@ export function GameTurnLog({
         // The "#N" handle replays that swap on the board viewer. Identified by
         // POSITION in the log (mirrors stackdown's GameTurnLog), shown as seq.
         return (
-          <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
+          <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
             <TurnLogBar outcome="neutral" />
             {/* The "#N" handle replays that swap on the board — live only when
                 the rows shown ARE the board's (coop's shared game, or my own).
                 An opponent's log, or the All view, can't drive my board. */}
-            {turnLogPicker.boardIsShown ? (
-              <TurnLogNumber
-                n={s.seq}
-                isOpenInHistory={historyId === i}
-                onShowHistory={() => onShowHistory(i)}
-              />
-            ) : (
-              <td className={turnLog.meta}>#{s.seq}</td>
-            )}
-            <td className={turnLog.main}>
+            <TurnLogNumber
+              n={s.seq}
+              isOpenInHistory={historyId === i}
+              onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+            />
+            <td className={gameTurnLog.main}>
               <span className={styles.move}>
                 <span className={styles.letter}>{s.letter_a.toUpperCase()}</span>
                 <span className={styles.coord}>({coord(s.pos_a)})</span>

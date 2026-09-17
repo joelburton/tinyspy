@@ -5,7 +5,7 @@ import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogBar } from '@/common/turn-log/TurnLog'
 import { ANSWER_OUTCOME } from '../lib/answer'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Member } from '@/common/members/member'
 import type { GuessRow } from '../hooks/useGame'
@@ -48,7 +48,7 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  *     until 2026-09-15; the guess row and the pill say the same word, so all
  *     three had to agree on one outcome, and this is it.
  *   - **the word** — the row's headline, so it takes the slack-absorbing
- *     `turnLog.main` column. Definable only when it's a real word: looking up
+ *     `gameTurnLog.main` column. Definable only when it's a real word: looking up
  *     something the dictionary just rejected would be a dead end.
  *   - **length / reason** — an accepted guess shows its LENGTH (wordiply's one
  *     live readout; scores stay terminal-only). A reject shows why instead.
@@ -74,11 +74,11 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   return (
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g) => (
-        <tr key={g.id} className={turnLog.turnLogDivider}>
+        <tr key={g.id} className={gameTurnLog.divider}>
           <TurnLogBar
             outcome={ANSWER_OUTCOME[g.valid ? 'accepted' : (g.reason ?? 'not_a_word')]}
           />
-          <td className={turnLog.main}>
+          <td className={gameTurnLog.main}>
             {g.valid ? (
               <DefinableWord word={g.word} />
             ) : (
@@ -87,7 +87,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
               <span className={styles.rejected}>{g.word.toUpperCase()}</span>
             )}
           </td>
-          <td className={cls(turnLog.meta, styles.outcome)}>
+          <td className={cls(gameTurnLog.muted, styles.outcome)}>
             {g.valid ? g.length : REJECT_LABEL[g.reason ?? 'not_a_word']}
           </td>
           <TurnLogActor actor={memberById(players, g.user_id)} />

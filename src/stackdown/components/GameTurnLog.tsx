@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { SubmissionRow } from '../hooks/useGame'
@@ -87,22 +87,18 @@ export function GameTurnLog({
           // "#N" handle opens that turn on the board viewer (words / misses /
           // cheats all viewable), keyed by log POSITION — stackdown's seq is
           // per-user (see lib/history).
-          <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
+          <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
             <TurnLogBar outcome={outcome} />
             {/* The "#N" handle opens that turn on the board viewer — live only
                 when the rows on show ARE the board's sequence. The viewer
                 indexes by log POSITION, so a filtered list's row 3 isn't the
                 board's turn 3; there it degrades to a plain number. */}
-            {turnLogPicker.boardIsShown ? (
-              <TurnLogNumber
-                n={i + 1}
-                isOpenInHistory={historyId === i}
-                onShowHistory={() => onShowHistory(i)}
-              />
-            ) : (
-              <td className={turnLog.meta}>#{i + 1}</td>
-            )}
-            <td className={turnLog.main}>
+            <TurnLogNumber
+              n={i + 1}
+              isOpenInHistory={historyId === i}
+              onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+            />
+            <td className={gameTurnLog.main}>
               {isRequest ? (
                 // A logged cheat request, now carrying the text it revealed
                 // (stored on the row by reveal_next_hint / reveal_next_word):
@@ -119,12 +115,12 @@ export function GameTurnLog({
                       : 'Requested word'}
                 </span>
               ) : s.valid && s.word ? (
-                <DefinableWord word={s.word} className={turnLog.primary} />
+                <DefinableWord word={s.word} className={gameTurnLog.primary} />
               ) : (
                 // An invalid attempt — struck through + tagged (the red bar
                 // already carries the "rejected" signal).
                 <>
-                  <span className={cls(turnLog.primary, styles.invalidWord)}>
+                  <span className={cls(gameTurnLog.primary, styles.invalidWord)}>
                     {s.word?.toUpperCase()}
                   </span>{' '}
                   <span className={styles.tag}>not a word</span>

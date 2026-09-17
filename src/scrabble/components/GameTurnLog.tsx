@@ -3,7 +3,7 @@
 import type { Member } from '@/common/members/member'
 import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import turnLog from '@/common/turn-log/TurnLog.module.css'
+import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { PlayRow } from '../hooks/useGame'
@@ -91,7 +91,7 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((p) => (
-        <tr key={p.seq} className={turnLog.turnLogDivider}>
+        <tr key={p.seq} className={gameTurnLog.divider}>
           <TurnLogBar outcome={outcomeFor(p.kind)} />
           {/* Turn number — the play's 1-based seq; the shared handle opens that
               turn on the board viewer and rings itself while it's open. */}
@@ -100,7 +100,7 @@ export function GameTurnLog({
             isOpenInHistory={historyId === p.seq}
             onShowHistory={() => onShowHistory(p.seq)}
           />
-          <td className={turnLog.main}>
+          <td className={gameTurnLog.main}>
             {p.kind === 'word' && (
               <>
                 <span className={styles.score}>+{p.score ?? 0}</span>{' '}
