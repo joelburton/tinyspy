@@ -435,6 +435,12 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 [scrabble-ai-players.md](scrabble-ai-players.md) lands. Leave it nullable here;
 that plan tightens it as its closing proof.
 
+**Each phase STOPS for Joel's review before its commit** (Joel, 2026-09-17:
+*"make sure you stop at end of each game, so i can review before i tell you to
+commit"*). The work is left in the working tree, the app green, and nothing is
+committed until he says so — phase 0 and the sibling plans' phases the same way,
+a phase being the review unit wherever it is not a whole game.
+
 **Each phase is one game, one commit, and contains:** the migration, the
 rewritten `supabase/sql/<game>.sql`, that game's pgTAP, and that game's frontend
 **data access** — `useGame`'s selects and row type, the realtime subscription's
