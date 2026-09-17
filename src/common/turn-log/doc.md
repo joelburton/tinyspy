@@ -77,6 +77,17 @@ stays mounted, so a half-typed word or a staged rack survives a trip through the
 history and is there again on the way out. Neither half is the accident: don't
 "fix" the docs that call it frozen, and don't unmount what is under it.
 
+**One file holds four components, and the other concern's files say so.**
+`TurnLog.tsx` is the panel plus the pieces a game builds a row from —
+`TurnLogBar`, `TurnLogNumber`, `TurnLogActor` — which is the packaging exception
+in [code-conventions.md](../../../docs/code-conventions.md#component-names):
+subparts that live only inside one component, individually small, reached for
+together. Everything belonging to the **viewer** is in its own files, and their
+names carry the word: `HistoryBanner.tsx`, `useHistoryViewer.ts`,
+`historyViewer.module.css`. The banner is drawn over the game's input area, not
+inside the log at all, so a reader hunting the viewer never opens a file named
+for the log.
+
 **The render tree.** Most of what is drawn below belongs to the game, which is
 why this folder is hard to see from any one of its files:
 

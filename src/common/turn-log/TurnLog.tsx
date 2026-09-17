@@ -1,7 +1,8 @@
 // cs-met-turn-log
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ComponentProps, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
+import { ActorDot } from '../members/ActorMention'
 import type { Outcome } from '../outcomes/outcomes'
 import infoPanel from '../info-sheet/infoPanel.module.css'
 import styles from './TurnLog.module.css'
@@ -158,6 +159,20 @@ export function TurnLogNumber({
       >
         #{n}
       </span>
+    </td>
+  )
+}
+
+/**
+ * The turn-log **"who" cell** — the right-aligned `<td>` (the shared `.who`
+ * column) wrapping the shared `<ActorDot>`. Every game's row ends this way, so
+ * the column and the tag are single-sourced together. Props forward straight to
+ * `<ActorDot>` (`actor` / `fallback` / `className`).
+ */
+export function TurnLogActor(props: ComponentProps<typeof ActorDot>) {
+  return (
+    <td className={styles.who}>
+      <ActorDot {...props} />
     </td>
   )
 }

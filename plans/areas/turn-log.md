@@ -12,18 +12,19 @@ this file against it.
 
 | | |
 |---|---|
-| **worked** (13) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-19 (including its ten-game meaning-based sweep) · F-22 |
+| **worked** (14) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-19 (including its ten-game meaning-based sweep) · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
 | **skipped** (1) | F-12, to the `z-index` area it caused to be scheduled (plan §3 row 39) |
-| **open** (6) | F-15 · F-16 · F-17 · F-18 · F-20 · F-21 |
+| **open** (5) | F-16 · F-17 · F-18 · F-20 · F-21 |
 
 ## The roster
 
 `src/common/turn-log/` — every file `cs-met-turn-log`:
 
-- `TurnLog.tsx` — three components: `TurnLog`, the panel (heading row, the
-  scroll box, a `<table>` whose rows are the game's); `TurnLogBar`, the outcome
-  bar cell; `TurnLogNumber`, the `#N` handle that opens a turn on the board
+- `TurnLog.tsx` — the panel and the row vocabulary, four components since F-15:
+  `TurnLog` (heading row, the scroll box, a `<table>` whose rows are the game's),
+  `TurnLogBar` (the outcome bar cell), `TurnLogNumber` (the `#N` handle that
+  opens a turn on the board) and `TurnLogActor` (the "who" cell)
 - `HistoryBanner.tsx` — the viewer's banner: the label, the ✕, and the whole
   strip as a click-to-exit target (written by F-14) · `HistoryBanner.test.tsx`
 - `TurnLog.test.tsx` — the panel's one behavior: it snaps to the newest entry
@@ -32,7 +33,6 @@ this file against it.
 - `TurnLog.module.css` — the panel, the bar, the row vocabulary a game composes
   (`.main` / `.other` / `.primary` / `.meta` / `.who`, the divider, the
   multi-row hug)
-- `TurnLogActor.tsx` — the "who" cell: the `.who` `<td>` around `ActorDot`
 - `useHistoryViewer.ts` — which past turn is open, `showHistory` /
   `exitHistory`, click-anywhere-to-exit, and the `act-exit-history` binding
 - `useHistoryViewer.test.ts`
@@ -478,6 +478,45 @@ Options: (1) one file per component, matching `TurnLogActor`
 (`TurnLogBar.tsx`, `TurnLogNumber.tsx`); (2) keep the family and say so in
 `doc.md`; (3) the reverse — fold `TurnLogActor` in. Recommend (1): the repo's
 "filename is the component" rule, and the folder already does it once.
+
+**WORKED 2026-09-16, (2) AND (3) together — Joel: *"2. and we can move
+turnlogactor in."*** `TurnLog.tsx` is the panel plus the row vocabulary
+(`TurnLogBar`, `TurnLogNumber`, `TurnLogActor`), `TurnLogActor.tsx` is deleted,
+and eleven games fold that import into the one they already had.
+
+**The escape the todo hoped for was closed**, which is what settled it: the
+`game-page` precedent (`PlayAreaMountLog.tsx`, resolved by finding one component
+no longer earned its keep) is unavailable — `TurnLog` has 14 readers,
+`TurnLogBar` 13, `TurnLogNumber` and `TurnLogActor` 11 each. All four are load
+bearing, so the only real question was whether they are one vocabulary. They
+are: a game imports them together, in one line, to write one `<tr>`.
+
+**`HistoryBanner` stays out, and Joel's reason is sharper than the one I gave.**
+I had it separate because it is not a row piece; he put it on the folder's actual
+seam — *"it's about the history viewer and isn't related directly to the
+turn-log, and it needs to be a file that clearly say 'history'."* So the split is
+by CONCERN and the filenames announce it: `HistoryBanner.tsx`,
+`useHistoryViewer.ts` and `historyViewer.module.css` all carry the word, against
+`TurnLog.tsx` and `TurnLog.module.css`. That is written into `doc.md` → Details,
+where the next reader of this folder meets it.
+
+**The general rule is Joel's, and it is now in
+[code-conventions.md](../../docs/code-conventions.md#component-names)** rather
+than in this folder, since setgame (`Card.tsx`) and `members`
+(`ActorMention.tsx`) have the same question open:
+
+> *"in general, for rules about 'one file per component': in most cases,
+> components should be separate files (clear case: InfoCol and BoardCol and
+> PlayArea should always be separate files — they're large and complex). The
+> 'subparts of a turn log' are used only by the TurnLog component and are
+> relatively small and straightforward. that's why it's ok to package them
+> together."*
+
+So the test is **size and dependence, never subject**: a component that could be
+looked for on its own gets its own file, however related it is. One clarification
+went into the doc because a literal reading is false — "used only by `TurnLog`"
+means used only *within* it; `TurnLogBar` and the rest have eleven callers each,
+and every use site is inside a `<TurnLog>`.
 
 ### F-turn-log-16 · `stylesheet-name-eleven-importers` · `TurnLog.module.css` is read by eleven games and is named as one component's
 

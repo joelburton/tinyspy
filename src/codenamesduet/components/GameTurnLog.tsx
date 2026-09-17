@@ -1,8 +1,7 @@
 // cs-unmet
 
 import { Fragment } from 'react'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
+import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { cls } from '@/common/utils/cls'

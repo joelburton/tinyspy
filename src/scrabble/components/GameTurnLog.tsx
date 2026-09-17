@@ -1,8 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'

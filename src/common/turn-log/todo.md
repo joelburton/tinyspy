@@ -40,13 +40,6 @@
   `.tsx` imports only its own stylesheet. Decide here when the area opens; the
   convention itself is the cross-cutting half.
 
-- **`TurnLog.tsx` exports more than one component**, so "the filename is the
-  component" is false in it: `TurnLog`, `TurnLogBar`, `TurnLogNumber`. The
-  three look like a real family rather than an accident, which is why this
-  wants a look rather than a mechanical split. (The same question is open in
-  setgame for `Card.tsx` and in `members` for `ActorMention.tsx`. `game-page`
-  had it too, in `PlayAreaMountLog.tsx`, and answered it by finding one of the
-  two components no longer earned its keep — worth trying before a split.)
 
 ## Someday
 

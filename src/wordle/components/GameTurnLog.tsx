@@ -1,11 +1,10 @@
 // cs-unmet
 
-import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import type { Member } from '@/common/members/member'
 import { tileColor } from '../lib/colors'

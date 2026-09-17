@@ -1,7 +1,6 @@
 // cs-unmet
 
-import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
-import { TurnLog, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import turnLog from '@/common/turn-log/TurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Member } from '@/common/members/member'

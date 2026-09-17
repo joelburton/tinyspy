@@ -3,13 +3,8 @@
 import type { GamePlayer } from '@/common/members/member'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import {
-  TurnLog,
-  TurnLogBar,
-  TurnLogNumber,
-} from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { TurnLogActor } from '@/common/turn-log/TurnLogActor'
 import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
 import { hintPrefix } from '../lib/help'
