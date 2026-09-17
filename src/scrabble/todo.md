@@ -139,6 +139,39 @@
   `labelFor` and its in-game verdict treat `ended` in COMPETE as neutral, since
   nobody won is not the same as everyone losing.
 
+- **The leftover-tile scoring is logged on one ending out of five, and in one
+  mode out of two — so a score drops and the log does not say why.** Joel,
+  2026-09-17: it should be a row every time.
+
+  `scrabble._finish` applies the scoring on EVERY terminal path. In coop it
+  subtracts the shared rack's tile value from `team_score`; in compete it
+  subtracts each player's own leftovers and then hands the going-out seat the
+  sum of everybody else's. The row is written in exactly one place —
+  `scrabble.end_game`'s coop branch, the `manual` ending — so:
+
+  | ending | coop | compete |
+  |---|---|---|
+  | `manual` (End game) | deducted **and logged** | deducted, not logged |
+  | `conceded` | deducted, not logged | deducted, not logged |
+  | `timeout` | deducted, not logged | deducted, not logged |
+  | `blocked` (a lap of passes) | n/a — coop has no turns to pass | deducted, not logged |
+  | `complete` (somebody went out) | nothing to deduct — the rack is empty | deducted, not logged, **plus** the out-seat's bonus |
+
+  So the fix is to write the row where the deduction happens (inside `_finish`),
+  not where the game was ended. Three things to decide while doing it:
+
+  - **compete needs one row per player**, since each player loses their own
+    leftovers — the coop row is one row for one shared rack.
+  - **the going-out bonus is the other half of the same arithmetic** and has no
+    row at all. Either it is a second kind, or the out-seat's row carries a
+    positive score and the kind covers both directions.
+  - **`complete` in coop writes nothing**, and should keep writing nothing: an
+    empty rack deducts zero, and a zero row would be noise.
+
+  The kind is `leftovers` (renamed from `forfeit` by the events work — "penalty"
+  and "forfeit" both imply a judgment this row deliberately does not make; it is
+  arithmetic, and its outcome is `neutral`).
+
 ## Someday
 
 - **The AI suggest-a-move box is a `SelectionList` site that did not fit.**
