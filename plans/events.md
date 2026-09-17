@@ -56,7 +56,13 @@ create table <game>.events (
   created_at timestamptz not null default now(),
   -- …the game's own payload columns, unchanged…
 );
+
+create index <game>_events_game_id_id_idx on <game>.events (game_id, id);
 ```
+
+That index is the one an `order by id` read within a single game wants.
+letterboxed and setgame already carry it; the older seven have `(game_id)` or
+nothing, and pick it up in their phase (§14.9).
 
 Read `order by id`, never by the timestamp: two rows written in one transaction
 tie on `created_at`, and the log's whole meaning is its order.
@@ -77,12 +83,14 @@ theme/spangram/invalid, wordle computes the colors. None of that moves the kind.
 
 Checked against every insert site, and it holds without exception: each writes a
 literal, one per RPC branch. No `case`, no variable, anywhere. (Two edges worth
-knowing. stackdown's word insert relies on the column's `default 'word'` rather
-than naming it — same outcome, but the sweep should write the literal, since a
-kind that is mandatory everywhere should not arrive by default in one game. And
-scrabble's `leftovers` is the one row no player asks for: `end_game` decides
-whether it exists at all. Even there the kind is not in question, only whether
-there is a row.)
+knowing. **Three tables declare a `default` on `kind`** — stackdown `'word'`,
+psychicnum `'guess'`, strands `'guess'` — and stackdown's word insert relies on
+its default rather than naming the literal. The skeleton above has no default:
+drop all three and write the literal at every insert, since a kind that is
+mandatory everywhere should not arrive by default anywhere. letterboxed and
+setgame are the model. And scrabble's `leftovers` is the one row no player asks
+for: `end_game` decides whether it exists at all. Even there the kind is not in
+question, only whether there is a row.)
 
 This is what lets `kind` be a check-constrained literal at every insert, and it
 is why a game can show its pill before the round trip.
@@ -176,7 +184,7 @@ One column name doing four jobs, and every job is now done by something else.
 | column | what it did | why it goes |
 |---|---|---|
 | `scrabble.plays.seq` | the game-wide move number, and the history handle | `id` is the same fact |
-| `wordle.guesses.seq` | *looks* like the board row; actually just the key + the read order + the peer-dedup key | all three become `id`. Nothing places a tile by it — `lib/history.ts` says the board replay indexes by list position |
+| `wordle.guesses.seq` | *looks* like the board row; actually the key, the read order, the peer-dedup key — **and the club-list subtitle**, which picks the latest guess with `order by gx.seq desc limit 1` twice in `_sync_title` | all of them become `id`. Nothing places a tile by it — `lib/history.ts` says the board replay indexes by list position |
 | `waffle.swaps.seq` | a per-player count, displayed as `#N` | the ordinal supplies the display; `players.swaps_used` holds the live count |
 | `wordiply.guesses.seq` | the five-slot index, null on rejects | exactly the metered number under the predicate `valid = true`; the nullability *is* that predicate written as a constraint |
 | `stackdown.submissions.seq` | nothing but the key | `id` |
@@ -184,12 +192,31 @@ One column name doing four jobs, and every job is now done by something else.
 wordiply's `guesses_valid_shape` check loses its `seq` clauses and reduces to
 `(valid and reason is null) or (not valid and reason in (…))`.
 
+**`seq` has SQL readers, not just frontend ones** (§14.5). wordle's club-list
+subtitle orders by it twice; scrabble's status view builds its move string with
+`string_agg(… order by p.seq)`. When a game's `seq` goes, grep that game's
+`supabase/sql/` file for it as well as its `src/` folder — both become
+`order by id`.
+
 ## 6. Per game
 
 **`took_turn`, read from the code** — every `common._advance_turn` call site,
 plus scrabble's own `_advance_seat`. Those branches are the evidence, not the
 definition (§8): they are each game saying "that was a go", and the backfill
 applies that judgment in every mode.
+
+**The terminal move is a turn.** §8 rules it, and the table above says so row by
+row — an implementer reading "non-terminal" out of the rotation branches would
+write the wrong CASE. It also decides HOW the column is written: wordle and
+waffle insert the log row BEFORE they compute `out_terminal` (`wordle.sql`
+inserts at the guess, decides terminal forty lines later; waffle the same), so a
+"non-terminal" definition would force a post-insert UPDATE in every move RPC.
+Under §8 the value is knowable at insert time — rejects `raise` and write
+nothing — so `took_turn` is a literal in the insert (§14.3).
+
+**setgame's `record_hint` is gated by `_require_turn` and never advances**, its
+comment calling a hint *"part of YOUR TURN"*. Only `claim` is a turn there; the
+gate is not evidence of one, and a backfill reviewer should not read it as one.
 
 **Each phase confirms its game's answers rather than assuming them.** The
 rotation's answers were made for a different question — *"should the next player
@@ -200,16 +227,16 @@ that is a check, not a given. stackdown had no answer at all until Joel gave one
 
 | game | table → | key → | timestamp → | kinds → | seq | `took_turn` is true for |
 |---|---|---|---|---|---|---|
-| **psychicnum** | `guesses` → `events` | uuid → bigint | `guessed_at` | guess · hint · **spoiler** | — | an accepted, non-terminal `guess` |
-| **wordle** | `guesses` → `events` | **composite** → bigint | `guessed_at` | **guess** (new) | drop | an accepted, non-terminal `guess` |
-| **connections** | `guesses` → `events` | uuid → bigint | `guessed_at` | **guess** (new) | — | an accepted, non-terminal `guess` (both the correct-not-final and the wrong-not-4th branches) |
-| **letterboxed** | — | — (bigint) | — | **word** · **undo** · **clear** · hint · spoiler | — | a played `word`, an `undo` (costing your turn is what stops it being a free reroll), **and a `clear`** — Joel, 2026-09-17: *"yes, it uses a turn and it can't be played in turn-by-turn coop."* The two facts sit together: a clear is a turn wherever it can happen, and turn-by-turn coop is where it cannot (PN411) |
-| **setgame** | — | — (bigint) | — | claim · hint | — | an accepted, non-terminal `claim` |
-| **strands** | — | uuid → bigint | — | guess · hint | — | a `guess` whose result is `theme`, `spangram` or `hint_word` — a rejected trace is "a misfire, not a turn" |
+| **psychicnum** | `guesses` → `events` | uuid → bigint | `guessed_at` | guess · hint · **spoiler** | — | an accepted `guess`, the terminal one included |
+| **wordle** | `guesses` → `events` | **composite** → bigint | `guessed_at` | **guess** (new) | drop | an accepted `guess`, the terminal one included |
+| **connections** | `guesses` → `events` | uuid → bigint | `guessed_at` | **guess** (new) | — | an accepted `guess` — both the correct and the wrong/oneAway branches, the fourth group and the fourth mistake included |
+| **letterboxed** | — | — (bigint) | — | **word** · **undo** · **clear** · hint · spoiler | — | a played `word` (the twelfth-letter one included), an `undo` (costing your turn is what stops it being a free reroll), **and a `clear`** — Joel, 2026-09-17: *"yes, it uses a turn and it can't be played in turn-by-turn coop."* The two facts sit together: a clear is a turn wherever it can happen, and turn-by-turn coop is where it cannot (PN411) |
+| **setgame** | — | — (bigint) | — | claim · hint | — | an accepted `claim`, the last one included |
+| **strands** | — | uuid → bigint | — | guess · hint | — | a `guess` whose result is `theme`, `spangram` or `hint_word` (the solving trace included) — a rejected trace is "a misfire, not a turn" |
 | **stackdown** | `submissions` → `events` | **composite** → bigint | `submitted_at` | word · hint · **spoiler** | drop | **`word` (accepted or refused) and `spoiler`** — Joel, 2026-09-17: *"stackdown uses a turn on word and spoiler. a good or bad word still uses a turn."* Not derivable from code: stackdown has no rotation (see below), so nothing ever had to rule on it |
-| **scrabble** | `plays` → `events` | **composite** → bigint | `played_at` | word · exchange · pass · **leftovers** | drop | coop: a non-terminal `word`, and an `exchange`. compete: `word`, `exchange` and **`pass`** — via its own `_advance_seat` (§8). Joel, 2026-09-17: *"a pass in scrabble is took_turn (it advances to next player)."* `leftovers` is not a turn — `end_game` writes it, no player did it |
-| **waffle** | `swaps` → `events` | **composite** → bigint | `swapped_at` | **swap** (new) | drop | an accepted, non-terminal `swap` |
-| **wordiply** | `guesses` → `events` | — (bigint) | `guessed_at` | **guess** (new) | drop | an accepted, non-terminal `guess`, **and** a reject whose reason is `too_short` or `missing_base` — but not `not_a_word` |
+| **scrabble** | `plays` → `events` | **composite** → bigint | `played_at` | word · exchange · pass · **leftovers** | drop | coop: a `word` (the going-out one included), and an `exchange`. compete: `word`, `exchange` and **`pass`** — via its own `_advance_seat` (§8). Joel, 2026-09-17: *"a pass in scrabble is took_turn (it advances to next player)."* `leftovers` is not a turn — `end_game` writes it, no player did it |
+| **waffle** | `swaps` → `events` | **composite** → bigint | `swapped_at` | **swap** (new) | drop | an accepted `swap`, the solving or last one included |
+| **wordiply** | `guesses` → `events` | — (bigint) | `guessed_at` | **guess** (new) | drop | an accepted `guess` (the fifth included), **and** a reject whose reason is `too_short` or `missing_base` — but not `not_a_word` |
 
 Renamed kinds, in one place so nothing is missed: psychicnum and stackdown
 `reveal` → `spoiler`; scrabble `forfeit` → `leftovers`; letterboxed `played` →
@@ -251,7 +278,12 @@ becomes historical, which is what a frozen migration is for.
 wrong forever, and the repeatable half's `drop policy if exists guesses_select`
 would leave the old policy alive under a new one. Joel: *"rename."*
 
-**There is no guard that a log table is published.** Add one (§9).
+**The publication IS guarded, and more strictly than a rename needs.**
+`supabase/tests/common/realtime_publication_test.sql` is a bidirectional
+`set_eq` over `pg_publication_tables` naming every log table by schema and
+name, so an extra or missing table both fail it. Each phase edits that file's
+expected pair for its game, and the test going red at the rename until the edit
+lands is the check. Do not write a second guard (§14.1).
 
 ## 8. `took_turn` — every game has turns
 
@@ -307,11 +339,17 @@ The risk: `supabase db reset` produces an empty database, so at the moment a new
 migration runs there are no old-shape rows. The normal loop never executes the
 backfill, and prod is the only place with real data.
 
-**Phase 0 — a rehearsal harness.** One Make target: dump prod structure + data
-into a scratch local database, apply the pending migration, run that game's
-pgTAP suite against it, print row counts before and after. Repeatable for all
-ten games. The dump holds real accounts and chat, so it stays local and out of
-git.
+**Phase 0 — a rehearsal harness, mostly assembled already** (§14.7). Two of its
+three parts are in the Makefile: `db-backup` (a `-Fc` dump of auth plus every
+app schema, data only) and `db-restore` (data-only, FK-ordered, single
+transaction). What phase 0 adds is the sequencing, and it has one non-obvious
+step: **the local database must be at the OLD shape when the dump is restored**,
+so the pending migration file has to be absent while `db-schema-sql ENV=local`
+runs, then put back and applied alone with `supabase migration up`. Then
+`npm run test:db` and the row counts. Do NOT run `db-seed` or `db-data` after
+the restore — `db-data`'s stackdown reload deletes restored boards. The dump
+holds real accounts and chat, so confirm `backups/` is gitignored before the
+first run.
 
 **Every backfill migration self-checks and aborts.** The migration is the only
 code that will ever see prod's old rows:
@@ -322,6 +360,37 @@ code that will ever see prod's old rows:
 
 **Statement order, so no half-done state can commit:** add the column nullable →
 backfill → verify → `set not null`, all in one migration.
+
+**An identity column backfills in SCAN order, not by time** (§14.6, verified on
+the local database in a rolled-back transaction). `add column … generated always
+as identity` numbered three rows whose timestamps were out of order `1, 2, 3` by
+insertion, ignoring the timestamp. For an insert-only table that usually matches
+the old order, and "usually" is not a self-check. So the seven tables that
+change key do it explicitly:
+
+```sql
+alter table g.t add column new_id bigint;
+update g.t t set new_id = r.rn
+  from (select id, row_number() over (order by <old timestamp>, id) rn from g.t) r
+ where r.id = t.id;
+alter table g.t alter column new_id set not null;
+alter table g.t drop constraint <old pkey>;
+alter table g.t drop column id;
+alter table g.t rename column new_id to id;
+alter table g.t alter column id add generated always as identity;
+alter table g.t add primary key (id);
+select setval(pg_get_serial_sequence('g.t', 'id'), (select max(id) from g.t));
+```
+
+For the four composite-key tables the ordering is `(<old timestamp>, seq)`. The
+three uuid tables have no `seq` to break a timestamp tie, so `, id` tie-breaks
+on the uuid — arbitrary but stable, and the migration should say it is
+arbitrary. **Add to the self-check above: the new `id` order equals the old
+order, asserted before the `set not null`.**
+
+**An identity sequence does not rename with its table.** wordiply's would stay
+`wordiply.guesses_id_seq` after the rename; rename it to `events_id_seq` so all
+ten match letterboxed's and setgame's, which already do.
 
 **No fixture migrations.** A dev-only seeding migration runs in prod too.
 
@@ -340,8 +409,10 @@ rename half: row loss, ordering, and a table quietly leaving the publication.
 
 ## 10. Phases
 
-**Phase 0** — the rehearsal harness (§9), and the skeleton guard + publication
-assertion (§11). Nothing else can be verified without them.
+**Phase 0** — the rehearsal harness (§9) and the skeleton guard (§11). The
+publication assertion already exists and needs only to be known about (§14.1);
+the skeleton guard is the per-game column assertion nine games lack, so it is
+written before the first rename, not after.
 
 **Phase 1 — psychicnum.** Joel: *"the first one we should do is psychicnum — it's
 the game i best understand and can read the code/schema for, and its our normal
@@ -381,8 +452,16 @@ renames everything is readable on its own.
   decays at the next game.
 - **A publication assertion** — every `<game>.events` table is in
   `supabase_realtime`. This is the bug class with a doc and no guard.
-- **Per-game pgTAP** — each game's schema test names its columns, so each phase
-  updates one.
+- **Per-game pgTAP** — but NOT a schema test per game: only wordiply has a
+  `schema_test.sql` (§14.2). What names log-table columns, and so moves with its
+  game's phase, is the direct inserts in
+  `supabase/tests/{wordiply,stackdown,connections,strands}/rls_test.sql`,
+  wordiply's `schema_test.sql` and `gameplay_test.sql`, and every suite that
+  asserts on a log row. **The skeleton guard is the per-game column assertion the
+  other nine do not have — write it first.**
+- **One e2e fixture inserts into a log table**: `seedWaffleSwapLog` in
+  `e2e/helpers/fixtures.ts` names `waffle.swaps` and its `seq`. It is outside the
+  "frontend data access" list in §10, and waffle's phase must carry it.
 - `src/types/db.ts` is generated: `npm run types:gen` (or `gmake dev-types`)
   after each phase.
 
@@ -417,6 +496,11 @@ starting here:
   `#N`, was ruled moot 2026-09-17.)
 
 ## 14. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+> **FOLDED IN 2026-09-17.** Every WRONG, TRAP and SUGGEST note below has been
+> corrected or absorbed in the sections above, and 14.8 is ruled. The section
+> stays as the record of what was wrong and how it was found — a second reader
+> checking a plan against the code, before any of it was built.
 
 **What this section is.** A second reader (Claude Fable) checked this plan
 against the code on 2026-09-17, after Joel and Opus wrote it and before any

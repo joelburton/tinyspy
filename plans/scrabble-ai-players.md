@@ -17,9 +17,10 @@ the table's key is `(game_id, seat)` rather than `(game_id, user_id)`,
 `scrabble.plays.user_id` is nullable, and the frontend mints a synthetic
 `Member` per seat — `{ user_id: 'ai:2', username: 'AI 2', color: 'purple' }`.
 
-Measured 2026-09-17: **81 AI mentions in `supabase/sql/scrabble.sql`, 53 lines
-across 11 files in `src/scrabble/`, and zero in `src/common`.** So the concept
-is fully contained today; the question is only where the special cases live.
+The concept is **fully contained in scrabble today** — its SQL and its
+`src/scrabble/` files carry all of it, and the only hits in `src/common` are
+comments. So the question is not whether there are special cases but where they
+live.
 
 Three reasons to move them:
 
@@ -53,7 +54,12 @@ Three reasons to move them:
   becomes the three profile rows.
 
   The `-bot` suffix is load-bearing: it is what tells a reader the dot is not a
-  person. Color cannot say that, and nothing else needs to.
+  person. Color cannot say that, and nothing else needs to — **which is a
+  deliberate transfer**, because `AI_DISC_COLORS` carries a comment saying those
+  colors were kept off the palette's usual first picks *"so a bot reads as 'not
+  one of us'."* Say so where the constant is deleted (§10.9). It also settles
+  the colors: `db-add-user` validates against the full palette, so any of the
+  eight is legal and the three above are taste.
 
 - **Bots ARE seated in `common.game_players`**, so they are players of the game
   everywhere participation is counted — the game header's roster, and
@@ -148,8 +154,8 @@ them."*
 scrabble runs **two** rotations today. Coop uses the common one
 (`common.games.current_turn_user_id` + `game_players.turn_seat`); compete keeps
 its own (`scrabble.games.current_seat` + `scrabble._advance_seat`, four call
-sites). `common.sql` records that they *"coexist deliberately"* without saying
-why — and the why is the bots:
+sites). The common MIGRATION records beside `current_turn_user_id` that they
+*"coexist deliberately"* without saying why — and the why is the bots:
 
 - the compete gate is **by seat**, and says so: `if g.mode = 'compete' and
   p_seat is distinct from g.current_seat`, commented *"By SEAT (current_seat),
@@ -181,17 +187,28 @@ Three things to settle first:
    chosen first player; scrabble deliberately seats AIs *after* the humans.
    Either keep scrabble's seating and adopt only the pointer, or teach the
    common seater an explicit order.
-2. **The AI driver is seat-shaped.** `ai_move_context` asks "is the seat at
-   `current_seat` an AI?" via `scrabble.players.ai_level`. It becomes "is the
-   user at `current_turn_user_id` an `ai_member`?", or keeps reading `ai_level`,
-   which survives either way.
+2. **The AI driver is seat-shaped on BOTH sides.** In SQL, `scrabble.get_ai_context`
+   asks "is the seat at `current_seat` an AI?" via `scrabble.players.ai_level`.
+   In the frontend, `PlayArea.tsx`'s poke effect asks
+   `isCompete && game.currentUserId == null && aiRoster.some((a) => a.seat === game.currentSeat)`.
+   Retiring `current_seat` means rewriting BOTH against `current_turn_user_id`
+   and the profile's `ai_member` — miss the frontend one and the bot never
+   moves and the table stalls, which is §7's rule from the other side. Keep what
+   the surrounding comments record: every connected client pokes, there is no
+   leader, duplicates are harmless because the RPCs guard by seat and version,
+   and the disarm path below it (a wedged poke ref *"wedges the game
+   permanently"*) must survive the rewrite (§10.7).
 3. **`seat` itself stays.** It owns the rack and the display order, and
    `(game_id, seat)` should stay unique. Only the POINTER is retired.
 
 **This is visible in compete** — a turn line and a board dim that are not there
-today — so it is a small UX change, not purely internal. It belongs in phase 4,
+today — so it is a small UX change, not purely internal. It belongs in phase 3,
 and it is optional: the bots work without it, and it is the tidying the bots
-make possible.
+make possible. Two housekeeping items ride with it: `docs/common.md` says
+unifying the two pointers is out of scope, and that sentence is what this
+rewrites; and the rotation header in `supabase/sql/common.sql` calls scrabble's
+function `scrabble._advance_turn` when it is `_advance_seat` (§14.10 of
+[events.md](events.md)).
 
 ## 7. The rule that has to be written down
 
@@ -207,38 +224,88 @@ scrabble — it is a constraint on every gametype that might want a bot next.
 
 ## 8. Phases
 
-**Phase 1 — the identities.** `profiles.ai_member` (migration), the three
-profiles, and the `auth.users` rows they reference. Joel: **a script, not a
+**Phase 1 — the identities.** `profiles.ai_member` (migration), and the three
+profiles with the `auth.users` rows they reference. Joel: **a script, not a
 migration** — `auth` is Supabase-managed and a migration writing into it is what
-breaks on a platform upgrade. So: a one-off Admin API script, run per
-environment, plus `seed.dev.sql` locally. `db-data` is not part of `deploy`, so
-prod's run is a documented manual step.
+breaks on a platform upgrade. **That script already exists** (§10.1):
+`supabase/scripts/add-user.ts`, wired as
+`gmake db-add-user ENV=… EMAIL=… HANDLE=… COLOR=… DRY=1` — `createUser`, a magic
+link, `verifyOtp`, then `common.claim_username` as that user, with `deleteUser`
+as the rollback. Use it; do not write a second. It validates a real email
+address, so each bot needs a well-formed one, and it is also what gives each bot
+its solo club (§10.2, ruled acceptable). `db-data` is not part of `deploy`, so
+prod's three runs are a documented manual step.
 
-**Phase 2 — seating.** `create_game`'s one `or`; bots into `common.game_players`;
-`scrabble.create_game` resolving `ai_count` → bot ids in alpha order.
+Two `common.profiles` rules apply to the new column (§10.8): `ai_member` arrives
+by `ADD COLUMN`, which appends, so the column-order rule `db-drift` enforces
+takes care of itself — just do not tidy it into the frozen baseline next to
+`color`. And say in the migration comment that it is public in the same sense
+`color` is, the way `theme`'s comment does. There is no UPDATE policy on
+`profiles`, so `ai_member` is set only by the migration, the seed, or a definer
+RPC.
 
-**Phase 3 — presence.** §4, with its test.
+**Phase 2 — seating AND presence, in one phase.** `create_game`'s one `or`; bots
+into `common.game_players`; `scrabble.create_game` resolving `ai_count` → bot ids
+in alpha order. **Presence cannot be a separate phase** (§10.4): `computePause`
+runs over `activePlayers`, which is `game_players ⨯ profiles`, so the moment a
+bot's row exists every bot game sits behind the pause overlay. Seating and
+filtering ship together.
 
-**Phase 4 — scrabble sheds its second shape**, and optionally its second
+Two regressions this phase must carry, both found by the review:
+
+- **An all-conceded compete game would never end** (§10.3).
+  `scrabble._maybe_finish_compete` counts non-conceded players with an INNER
+  join from `scrabble.players` to `common.game_players`. Today that join drops
+  AI seats, so when every human concedes the count is 0 and the game ends. Once
+  bots are seated they are counted, a bot never concedes, and the count never
+  reaches 0 — a table of bots sits in `playing` forever. Needs a pgTAP case:
+  seat one human and one bot, concede the human, assert terminal. (`_advance_seat`
+  and the winner queries LEFT-join and are safe. `scrabble._finish`'s
+  `player_results` inner join is the GOOD side of the same change: written
+  *"HUMANS ONLY"*, it starts including bots with no code change, which is how
+  "a bot's win should definitely count" falls out. Rewrite that comment.)
+- **The presence filter belongs in `useCommonGame`, not `computePause`**
+  (§10.5). `PauseOverlay.tsx` carries its own copy of the predicate and draws a
+  hollow ring per absent player, so filtering `activePlayers` at the hook fixes
+  both while patching `computePause` fixes only the flag. `Member` has no
+  `ai_member` field today, so the hook's profiles select gains a column. Check
+  two more readers of that list in the same phase: `GamePage.tsx`'s auto-suspend
+  on `players.length <= 1`, and the header players strip, which would otherwise
+  draw a permanently hollow bot dot.
+
+**Phase 3 — scrabble sheds its second shape**, and optionally its second
 rotation (§6). `scrabble.players.user_id` becomes
 `not null`, the key becomes `(game_id, user_id)`, `players_human_xor_ai` goes,
 `AI_DISC_COLORS` and `aiMemberOfSeat` go, and the log's `ai:<seat>` synthetic ids
 become real user ids. This is where the 81 + 53 lines come down.
 
-**Phase 5 — the closing proof.** `scrabble.events.user_id` becomes `not null`,
+**The rematch seats bots twice if nobody stops it** (§10.6). `PlayArea.tsx`
+builds a new game's `player_user_ids` as `players.map((p) => p.user_id)`, so with
+bots in `players` a rematch passes the bot ids AND `ai_count`, and
+`scrabble.create_game` seats them from both. §5 keeps "how many bots" as the
+input, so strip `ai_member` profiles out of `player_user_ids` and let `ai_count`
+seat them, as it does today.
+
+**Phase 4 — the closing proof.** `scrabble.events.user_id` becomes `not null`,
 which [events.md](events.md) §10 left open for exactly this moment.
 
-## 9. Open
+## 9. Open — nothing that blocks starting
 
-1. **Which four of the eight palette colors**, if `brown` / `purple` / `pink`
-   should change now that the bots have names (they are inherited from
-   `AI_DISC_COLORS`, not chosen for these names).
-2. **What a bot's `common.game_players` row says about presence** in the *data* —
-   the roster row exists, so anything that reads "who is in this game" gets a bot
-   and must not expect a heartbeat from it. §4 covers the pause; anything else
-   reading presence needs a look during phase 3.
+The colors are taste (§2), the solo clubs are ruled (§10.2), and the readers of
+the player list that must learn about bots are named in phase 2 — the pause, the
+overlay's own copy of the predicate, `GamePage`'s auto-suspend, and the header
+strip. One thing to carry into phase 3 rather than decide now: the bots' display
+name today is `AI ${i + 1}`, numbered among AI seats, while their synthetic id is
+`ai:${seat}`, by absolute seat. The two disagree when a human sits between two
+bots, and both disappear together — noted so the log's actor column is checked
+against real usernames rather than assumed (§10.10).
 
 ## 10. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+> **FOLDED IN 2026-09-17.** Every WRONG, REGRESSION, TRAP and SUGGEST note below
+> has been corrected or absorbed above, and 10.2 is ruled. The section stays as
+> the record — two of these were regressions the phases as written would have
+> shipped.
 
 **What this section is.** A second reader (Claude Fable) checked this plan
 against the code on 2026-09-17, before any phase started. The tags mean the

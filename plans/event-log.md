@@ -53,7 +53,8 @@ plus every game's import. Worth one commit of its own.
 The `#N` handle opens a past turn on the board. Two things are wrong with it, and
 they are the same bug: **the number and the link are the same value.**
 
-Six games pass the index of the *filtered* array:
+**Seven** games pass the index of the *filtered* array — connections,
+letterboxed, psychicnum, stackdown, strands, waffle, wordle:
 
 ```ts
 const shown = turnLogPicker.filter(guesses)
@@ -62,12 +63,19 @@ const shown = turnLogPicker.filter(guesses)
 ```
 
 So filtering renumbers the game, and the handle addresses a row by a position
-that the filter just changed. The games that get it right today get it right for
-different reasons: scrabble because its `plays.seq` is a game-wide ordinal
-(*"by `seq`, not by log position, so filtering can't misaddress it"*), setgame
-because it numbers over the full log via `events.indexOf(event)`, codenamesduet
-because it addresses a `turn_number`, waffle by accident (its per-player `seq`
-is game-wide in coop by lock-step, and wrong in compete).
+that the filter just changed.
+
+**waffle is the seventh instance plus a mismatch of its own** (§F.2): it prints
+`n={s.seq}` — the swapper's own count — while passing `onShowHistory(i)`, the
+filtered position. Its comment says exactly that: *"Identified by POSITION in
+the log … shown as seq."* So in compete the number on screen and the row the
+handle opens already disagree.
+
+Only two games address a row stably today, and for different reasons: scrabble
+because its `plays.seq` is a game-wide ordinal (*"by `seq`, not by log position,
+so filtering can't misaddress it"*), and codenamesduet because it addresses a
+`turn_number`. setgame is the near miss — it indexes into the UNFILTERED list,
+which keeps its handles live but is still a position.
 
 And **compete has no history at all**, because seven games' RLS hides other
 players' log rows until the game ends
@@ -92,13 +100,24 @@ third move. At terminal every row is visible and the numbering is the game's
 real order.
 
 This reverses setgame's recorded decision and the comment that states it (*"the
-number is the turn's identity, and a filter must not renumber the game"*). That
-comment and any echo of it in `turn-log/doc.md` are rewritten as part of this
-phase, not left contradicting the code.
+number is the turn's identity, and a filter must not renumber the game"*).
 
-**Ordering is `order by id`** (events.md §2), which replaces three different
-frontend orderings today: connections by `guessed_at`, strands by `created_at`,
-wordle by `seq`.
+`turn-log/doc.md` carries no echo of that sentence — it states the OPPOSITE
+convention as the norm, in two places: *"`boardIsShown` is false more often than
+it looks … the filtered list's row 3 is not the board's turn 3"*, and *"scrabble
+and codenamesduet name a turn by a game-wide ordinal, everyone else by its
+position in the log."* Those two passages are what this phase rewrites (§F.3),
+along with the `Id` docstring in `useHistoryViewer.ts` (*"stackdown's log
+position"*) and the four builder docstrings that tell the caller to pass the
+displayed list — wordle, strands, waffle, letterboxed.
+
+**Ordering is `order by id`** (events.md §2) — and by the time this plan starts
+it is already done. Ten hooks order their log fetch by five different columns
+today (`guessed_at` in psychicnum, connections and wordiply; `seq` in wordle,
+scrabble and waffle; `submitted_at` in stackdown; `created_at` in strands; `id`
+in letterboxed and setgame), and events.md §10 puts each hook's select and order
+change in that game's own phase as "data access" (§F.4). Nobody does it twice,
+and nobody waits for this plan to do it.
 
 ### B.2.1 What the number does when a compete game ends, and why that is fine
 
@@ -139,9 +158,10 @@ plainly: **the number and the snapshot are different lists.**
   the rows the viewer can always see (their own mid-game; everyone's at
   terminal).
 
-So each game's `lib/history.ts` takes a row **id** and resolves it against the
-list it is folding, instead of taking an index into the displayed list. Ten
-builders, one shape:
+So each builder takes a row **id** and resolves it against the list it is
+folding, instead of taking an index into the displayed list. Nine
+`lib/history.ts` files and one `lib/play.ts` — scrabble's builder is
+`historyBoard`, and it has no `lib/history.ts` (§F.5):
 
 | game | today | after |
 |---|---|---|
@@ -150,9 +170,11 @@ builders, one shape:
 | scrabble | `plays.seq` | the row's `id` |
 | codenamesduet | `turn_number` | unchanged — it addresses a TURN, not a row, and duet is out of events.md |
 
-`useHistoryViewer<T>` is already generic (scrabble passes an object target), so
-the shared hook needs no new shape — just a narrower one, since every game's
-handle becomes the same type.
+`useHistoryViewer<T>` is already generic and stays that way. **The handle does
+not become a number everywhere** (§F.5): scrabble's target is
+`{ kind: 'turn'; seq }` | `{ kind: 'peerPreview'; placements; sharerId; words; score }`,
+because coop's show-a-move preview rides the same hook. It narrows to
+`{ kind: 'turn'; id }`, not to a bare id.
 
 ### B.4 Compete history — the new feature
 
@@ -216,7 +238,20 @@ size.
 
 It belongs here rather than in events.md because each game's subscription string
 changes with that game's phase, and this is the plan that can assert them all at
-once. **Ask before running any e2e** ([docs/testing.md](../docs/testing.md)).
+once. **Ask Joel before running any e2e** — that is his standing instruction to
+the assistant, not something `docs/testing.md` says (§F.6).
+
+The spec has precedent in the same folder: `wordwheel.e2e.ts` and
+`psychicnum-turn-order.e2e.ts` each assert that an update ARRIVES by realtime
+rather than by refetch. The new one is that shape, once per renamed table. Read
+`src/common/realtime/useRealtimeRefetch.ts` first — `TableSubscription` is the
+`{ schema, table, filter }` triple every game hands it — and check connections
+separately, since it hand-rolls its three `postgres_changes` handlers.
+
+**Two existing specs exercise the `#N` handle and are the ones most likely to go
+red** when it becomes a row id: `e2e/codenamesduet-history.e2e.ts` and
+`e2e/stackdown-history.e2e.ts`. stackdown's is the one that proves the
+filtered-index bug is gone.
 
 Otherwise: every game's `PlayArea` and `GameTurnLog` tests, the `turn-log` folder
 tests renamed with their subjects, and the board-geometry baseline left alone (it
@@ -232,6 +267,11 @@ is gitignored and unrelated).
    board · GUESS 3"? Sketch it before the phase, not during.
 
 ## F. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+> **FOLDED IN 2026-09-17.** Every WRONG, TRAP and SUGGEST note below has been
+> corrected or absorbed above, and F.1 and F.7 are ruled. The section stays as
+> the record of what a second reader found by checking the plan against the
+> code.
 
 **What this section is.** A second reader (Claude Fable) checked this plan
 against the code on 2026-09-17, before either phase started. The tags mean the
