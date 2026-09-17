@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'

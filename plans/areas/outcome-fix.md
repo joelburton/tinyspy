@@ -5,14 +5,14 @@ No folder: every game's move path. The process is [app-audit.md](../app-audit.md
 `outcome-fix` row), this file holds the audit. Owed work lives in each game's
 `todo.md`, not here.
 
-**Status: CLOSED 2026-09-17 — Joel: *"close outcome-fix"*. NOT BLESSED, and
-deliberately so.** Every other area closes by its roster reading
-`cs-blessed-<area>`; this one cannot, because Joel ruled the same day that its
-files *"belong to other areas and should not have been stamped for it"*. So no
-file was blessed, no stamp was written at the close, and **the 106 files
-carrying `cs-fixed-outcome-fix` / `cs-met-outcome-fix` keep those stamps until
-he says what becomes of them.** What closing means here is only this: every
-finding is settled and nothing is waiting on a reading of this file.
+**Status: CLOSED 2026-09-17 — Joel: *"stamp fix onto outcome-fix and close the
+area"*. NOT BLESSED, and deliberately so.** Every other area closes by its
+roster reading `cs-blessed-<area>`; this one cannot, because Joel ruled the same
+day that its files *"belong to other areas and should not have been stamped for
+it"*. So **all 109 roster files read `cs-fixed-outcome-fix`** — every finding
+resolved, which is Claude's claim to make — and **not one is blessed**: each
+file's own area still owes Joel the read. What closing means here is only this:
+every finding is settled and nothing is waiting on a reading of this file.
 
 All eleven games worked, the closing re-read DONE 2026-09-17, seventeen
 findings from it (F-5 to F-21) recorded below, the doc half and then the code
@@ -1019,8 +1019,13 @@ ruling took the dated lines out of the code altogether.
       filed are open where they belong: setgame's hint ring, psychicnum's
       decided-tile fill, wordle's not-ok ring, connections' `matched`,
       game-page's `verdictTone`
-- [ ] **the stamps — the one thing this close does NOT settle.** Joel,
-      2026-09-17: the files belong to other areas and will not be blessed for
-      this one, and what the `cs-*-outcome-fix` stamps become is his call. No
-      stamp was written at the close, and none may be: a `cs-blessed` records
-      that Joel read a file, which is a claim only he can make.
+- [x] the stamps — **109 files `cs-fixed-outcome-fix`**, Joel's choice at the
+      close out of three (bless · fix · reset to unmet): the only one of the
+      three that is simply true of every file, since the findings are resolved
+      and nobody has claimed he read anything. Sixteen were still `cs-met`
+      (roster files no finding touched — all five wordiply files among them) and
+      came up with the rest, so the roster reads one thing.
+- [ ] **not blessed, and that is the area's permanent state.** A `cs-blessed`
+      records that Joel read a file, which is a claim only he can make; he ruled
+      these files belong to other areas, so the blessing comes with each file's
+      own area rather than here.
