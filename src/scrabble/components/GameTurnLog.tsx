@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-outcome-fix
 
 import type { Member } from '@/common/members/member'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'

@@ -5,8 +5,16 @@ No folder: every game's move path. The process is [app-audit.md](../app-audit.md
 `outcome-fix` row), this file holds the audit. Owed work lives in each game's
 `todo.md`, not here.
 
-**Status: OPENING 2026-09-16 — the plan is agreed, the roster is proposed and
-not yet agreed.** Nothing is stamped; nothing is read beyond what the plan needed. The rule is Joel's,
+**Status: OPEN 2026-09-16.** The plan and the roster are agreed (Joel: *"yes,
+go ahead. then begin."*) and the roster is stamped `cs-met-outcome-fix` —
+eighty-three files, all `cs-unmet` before: the six SQL files; per log game its
+`GameTurnLog.tsx`, `PlayArea.tsx`, `BoardCol.tsx`, `hooks/useGame.ts`,
+`pdf/model.ts` (scrabble prints from `PlayArea`), the `Board.tsx` where a verdict
+mark keys on an outcome and the `pdf/print*Pdf.ts` that read one; stackdown's
+`WordEntry.tsx`; the decision-site libs; codenamesduet's `hooks/useBoard.ts`;
+the bee family's `lib/answer.ts` ×2 and the shared `useWordSubmit.ts`
+(wordwheel's `lib/answer.ts` joins when it is written). Work starts with
+stackdown, per step 3, reading its `todo.md` first. The rule is Joel's,
 already written in [docs/outcomes.md → One event, one outcome](../../docs/outcomes.md):
 the server's outcome, if provided, is always right; where the frontend decides,
 it decides ONCE; and a game is audited by asking the same question of the
@@ -14,7 +22,7 @@ pill, the board and the log (and the PDF, the fourth reader). The proof planted
 by `turn-log` F-17 — four games logging hints and reveals as `near` — is still in place and
 is not fixed ahead of the read.
 
-## The roster (proposed)
+## The roster (agreed 2026-09-16)
 
 **The decision sites today**, one per game, however wrong the placement:
 

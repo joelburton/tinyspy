@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-outcome-fix
 
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'

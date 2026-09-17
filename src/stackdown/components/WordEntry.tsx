@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-outcome-fix
 
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
