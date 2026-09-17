@@ -226,6 +226,18 @@ The FE-side validation happens in `useWordSubmit` + `lib/` before the commit fir
 4. `alreadyFound` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
 5. otherwise accepted: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
 
+**What each of those five is WORTH is `lib/answer.ts`'s** — four answers
+(`accepted` · `already_found` · `not_legal` · `too_short`) mapped to `won` ·
+`warning` · `lost` · `warning`, read by the pill and by the refused word's hexes
+through the one table. The shared engine names no word of its own: it routes
+every answer, `accepted` included, through this game's `outcomeFor`. Until
+2026-09-17 an accepted word was a flat `'won'` inside the engine — the one
+answer a game could not have an opinion about, even though all four already
+carried one here. boggle and wordwheel hold the same table for the same reasons;
+wordiply's differs deliberately, since a word its list does not know is a
+`warning` there rather than a loss (it is asking you to try strange words). See
+[outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 Server-side on the trusted commit: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` — compete on the caller's target-rank hit, coop on the TEAM's (only when the team set a target; without one coop never auto-terminates from `submit_word`). It re-checks the dedup under the row lock as a race backstop, and rejects a conceded caller.
 
 `SELECT … FOR UPDATE` on `spellingbee.games` serializes concurrent submissions. The PK on `found_words` is `(game_id, user_id, word)` — a same-player double-submit is also caught at the constraint level.

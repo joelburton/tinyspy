@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
@@ -109,10 +109,12 @@ export type WordSubmitConfig = {
    *
    * Presentational and nothing else: unlike `recordReject` it fires for EVERY
    * answer including the already-found one, because a board showing an answer
-   * has to show that one too; and it writes nothing anywhere, so a game is free
-   * to color a reason differently from the pill (wordiply's dictionary miss is
-   * a `warning` there and a `lost` in the pill, which is a disagreement worth
-   * fixing but not this callback's business).
+   * has to show that one too; and it writes nothing anywhere, so a game COULD
+   * color a reason differently from the pill. None does: every one of the four
+   * routes both this and `outcomeFor` through its own `lib/answer.ts`, which is
+   * the rule (docs/outcomes.md → One event, one outcome). wordiply's dictionary
+   * miss used to be a `warning` here and a `lost` in the pill; it is a `warning`
+   * in both.
    */
   onAnswer?: (
     word: string,
@@ -134,11 +136,19 @@ export type WordSubmitConfig = {
    * may cover several things: wordiply's list misses both "not a word" and "does
    * not contain the stem", and only the second is a rule broken.
    *
+   * **`accepted` goes through it too**, so the engine never names a word of its
+   * own: an accepted word was a flat `'won'` here until 2026-09-17, which is the
+   * one answer a game could not have an opinion about even though all four of
+   * them already carried one in its table.
+   *
    * Whatever it returns is what the PILL says — so a game showing the answer
    * anywhere else reads this same function for those surfaces too, and the two
    * cannot drift.
    */
-  outcomeFor: (word: string, answer: 'too_short' | 'already_found' | 'not_legal') => Outcome
+  outcomeFor: (
+    word: string,
+    answer: 'accepted' | 'too_short' | 'already_found' | 'not_legal',
+  ) => Outcome
   /**
    * Optional: say nothing when a word is ACCEPTED.
    *
@@ -287,7 +297,10 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     pendingRef.current.add(w)
     c.onAnswer?.(w, 'accepted')
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    if (!c.hideAccepted) slot.show(FeedbackMessage.result('won', line(w, body, entry.isBonus)))
+    if (!c.hideAccepted)
+      slot.show(
+        FeedbackMessage.result(c.outcomeFor(w, 'accepted'), line(w, body, entry.isBonus)),
+      )
 
     // The commit lost: free the word so it can be retried, and put the
     // server's own sentence up — a notOk, which ranks over the optimistic "+N"

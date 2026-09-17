@@ -37,8 +37,10 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     explainReject: () => 'not a word',
     // A stand-in reading, not a default: the hook has none, and each game says
     // its own. These cases are about WHICH branch ran, so the words below are
-    // the ones the roster's majority uses (boggle, spellingbee, wordwheel).
-    outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
+    // the ones the roster's majority uses (boggle, spellingbee, wordwheel) —
+    // including `accepted`, which routes through here like every other answer.
+    outcomeFor: (_w, answer) =>
+      answer === 'accepted' ? 'won' : answer === 'not_legal' ? 'lost' : 'warning',
     ...over,
   }
 }

@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
@@ -28,8 +28,15 @@ type Props = {
  * `<TurnLog>` table (same chrome psychicnum / connections / codenamesduet use).
  * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
  * `<TurnLogItem>` is retired — docs/playarea.md → Turn log), composing the
- * shared `<TurnLogOutcomeBar>` + content classes. A swap has no win/lose verdict, so
- * every row's outcome bar is `neutral` (gray, like psychicnum's hint rows).
+ * shared `<TurnLogOutcomeBar>` + content classes. A swap has no win/lose verdict,
+ * so every row's outcome bar is `neutral` — the word for a turn that counted and
+ * that nothing adjudicates.
+ *
+ * **That is the whole of waffle's outcome decision**, which is why there is no
+ * `lib/answer.ts` here as there is in most games: the game has one move kind,
+ * `submit_swap` deliberately carries no outcome and no message (the colors reach
+ * everyone together over realtime instead), and no pill reports a swap at all.
+ * One move, one word, one reader (docs/outcomes.md → One event, one outcome).
  *
  * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
  * divs, which throw away the column alignment the table exists for): the outcome

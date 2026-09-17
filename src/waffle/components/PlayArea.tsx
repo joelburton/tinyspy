@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'

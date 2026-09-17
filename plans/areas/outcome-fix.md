@@ -478,6 +478,38 @@ agent `won`, a bystander `lost`) and it agrees with the fold everywhere the two
 are comparable. Nothing reads it, because nothing shows it — recorded so the
 next reader does not mistake the silence for a gap.
 
+**10 · the bee family + wordiply — DONE 2026-09-17.** The engine's literal is
+gone: `useWordSubmit`'s `outcomeFor` takes `'accepted'` too, so an accepted word
+reads the game's own table instead of a flat `'won'` — the one answer a game
+could not have an opinion about, even though spellingbee's and boggle's tables
+had carried one for it all along with nobody reading it. **wordwheel got the
+`lib/answer.ts` it never had** (its `outcomeFor` was an inline ternary over
+three answers). wordiply needed nothing: its `answerFor` already covered
+`accepted`, and its `onAnswer` and `outcomeFor` already read one table.
+
+The engine's test stub failed on the change, which is the change proving itself:
+it answered `warning` for everything, so an accepted word went from `won` to
+`warning` the moment the literal stopped overriding it.
+
+Both stale docstrings the plan named are corrected. `useWordSubmit`'s claim that
+"wordiply's dictionary miss is a `warning` [on the board] and a `lost` in the
+pill, a disagreement worth fixing" is no longer true — it is `warning` in both,
+because both read `ANSWER_OUTCOME`. `docs/games/spellingbee.md` now names its
+table and says why wordiply's differs.
+
+**11 · waffle — PASSES, 2026-09-17, audited not assumed.** One move kind; the
+log's bar is `neutral` and that is the only word it has; `submit_swap`
+deliberately carries no outcome and no message, because the colors reach
+everyone together over realtime; no pill reports a swap at all. The board's
+g/y/x tile colors and the terminal frame are other vocabularies. No
+`lib/answer.ts` — one move, one word, one reader — and the log's docstring now
+says so rather than leaving the absence to be rediscovered. The two
+`peerMilestone` lines ("solved it", "out of swaps") are news about a player's
+state rather than verdicts on a move, and were left.
+
+**ALL ELEVEN GROUPS ARE DONE.** What remains is step 4 (the guard, the docs) and
+the closing re-read.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

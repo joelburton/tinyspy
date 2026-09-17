@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-fixed-outcome-fix
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -19,6 +19,7 @@ import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-h
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -327,7 +328,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // event as a `warning`, because it is asking you to try strange words.)
       // Too short is a slip rather than a wrong move; a word you already found
       // is nothing happening.
-      outcomeFor: (_w, answer) => (answer === 'not_legal' ? 'lost' : 'warning'),
+      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
       // Any answer but an accept is a move that didn't win, which is the whole
       // of what the shake says. The actor's alone: a peer is never told about
       // somebody else's miss.
