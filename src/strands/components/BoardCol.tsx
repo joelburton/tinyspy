@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { cls } from '@/common/utils/cls'

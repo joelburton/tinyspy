@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { PrintHeader } from '@/common/pdf/frame'
 import type { Coord } from '../lib/board'

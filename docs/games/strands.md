@@ -219,6 +219,37 @@ clock is merely how a session stops.
 | `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
 | `end_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
+### The one outcome decision (`lib/answer.ts`)
+
+A turn is one of seven answers — `submit_path`'s six results plus `spent_hint`,
+which is what a `kind: 'hint'` row is (it has no `result` column). `lib/answer.ts`
+says what each is worth:
+
+| answer | outcome | why |
+|---|---|---|
+| `theme` · `spangram` | `won` | the thing you came for |
+| `hint_word` | `near` | a valid non-theme word moves the hint bar — real progress, not the goal |
+| `duplicate` · `too_short` | `warning` | moves the rules turn away, with nothing happening |
+| `invalid` | `lost` | the one real miss |
+| `spent_hint` | `warning` | a hint, and a hint reads the same in every game |
+
+The log bar and the pill index that table, and `submit_path` / `spend_hint` say
+the same words in their envelopes. **Four tables used to key off the one
+`result` column** and the first two disagreed with the server and with each
+other. The other two remain and are not duplicates of this one: the PDF's `MARK`
+is a glyph vocabulary for black-and-white paper, and history's `BODY` is
+sentence text. Neither is an outcome.
+
+Two readings changed on 2026-09-17. `duplicate` and `too_short` had been `lost`
+in the log, on the argument that they EARNED NOTHING — which describes the hint
+economy rather than the move, and the server had said `warning` all along. A
+spent hint had been `neutral`, on the argument that a hint is the opposite of
+progress because you spend what you banked — true, and still not a reason to say
+nothing happened.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 ### Classification order — a rule, not an implementation detail
 
 1. the path matches an unfound theme word's path → **theme** / **spangram**
@@ -423,7 +454,8 @@ word so the two can never disagree about a row.
 
 **Colors**, and each says one thing: purple = a found theme word, gold = the
 spangram, light purple = the live trace, gray = a word nobody found (drawn at the
-reveal). Green belongs to the hint bar and the `valid word` result. The turn log
+reveal). Green belongs to the hint bar; the `valid word` result is gold, since it is
+progress rather than the goal. The turn log
 uses *darker text variants* of purple and gold — a color tuned as a disc fill
 under white letters is not the same color that reads as 15px type on a white row.
 

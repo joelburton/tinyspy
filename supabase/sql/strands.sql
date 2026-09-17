@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- strands — the REPEATABLE half
@@ -1218,6 +1218,11 @@ begin
       when 'duplicate'  then 'warning'
       when 'too_short'  then 'warning'
       when 'invalid'    then 'lost'
+      -- A valid non-theme word is `near`, not `won`: it moves the hint bar,
+      -- which is real progress, but the goal is the theme. Ruled 2026-09-16
+      -- ("progress, not the goal"); the frontend's lib/answer.ts says the same
+      -- word for the row this wrote.
+      when 'hint_word'  then 'near'
       else 'won'
     end);
 

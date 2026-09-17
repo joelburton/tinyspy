@@ -389,6 +389,25 @@ function's `drop function if exists` stays forever — the behavior file is
 re-applied, not diffed. `docs/deferred.md`'s item and letterboxed's todo entry
 both close.
 
+**6 · strands — DONE 2026-09-17.** `lib/answer.ts`: seven answers —
+`submit_path`'s six results plus `spent_hint`, which is what a `kind: 'hint'`
+row is (it carries no `result`). Decisions (c)(d)(e) all applied: `hint_word`
+`near`, `duplicate` and `too_short` `warning`, a spent hint `warning`. ONE SQL
+line — `hint_word` was `won` on the server and `near` in the log, and the change
+broke no pgTAP, so it is pinned now.
+
+**Four tables keyed off one `result` column, and only two were duplicates.**
+The log's `OUTCOME` + `HINT_OUTCOME` and the pill's switch both decided the
+word; they are one table now. The PDF's `MARK` (`best`/`find`/`ok`/`no`, glyphs
+for black-and-white paper) and history's `BODY` (sentence text) STAY — they key
+off the same column but answer different questions, which is what separates a
+second vocabulary from a second decision.
+
+Two of this game's own readings were overturned and both are recorded in the
+new file: `duplicate`/`too_short` as `lost` argued from the hint economy rather
+than the move, and the spent hint's `neutral` argued that a hint is the opposite
+of progress — true, and not a reason to say nothing happened.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

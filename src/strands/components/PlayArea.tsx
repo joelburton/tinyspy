@@ -1,9 +1,10 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { setupRows } from '../lib/setupSummary'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -83,20 +84,25 @@ type SubmitResult = {
  * Joel's ruling the full bar IS the signal.
  */
 function resultFor(r: SubmitResult): FeedbackMessage {
+  // The BODY is this surface's — only it knows the shared `WORD — body` format
+  // and whether the bar just filled. The OUTCOME is `lib/answer.ts`'s, the same
+  // word the log row and a teammate's line wear for this guess.
   const line = (body: string) => `${r.word.toUpperCase()} — ${body}`
+  const say = (body: string) =>
+    FeedbackMessage.result(ANSWER_OUTCOME[r.result], line(body))
   switch (r.result) {
     case 'spangram':
-      return FeedbackMessage.result('won', line('spangram'))
+      return say('spangram')
     case 'theme':
-      return FeedbackMessage.result('won', line('theme'))
+      return say('theme')
     case 'hint_word':
-      return FeedbackMessage.result('won', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
+      return say(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word')
     case 'duplicate':
-      return FeedbackMessage.result('warning', line('already found'))
+      return say('already found')
     case 'too_short':
-      return FeedbackMessage.result('warning', line('too short'))
+      return say('too short')
     default:
-      return FeedbackMessage.result('lost', line('not a word'))
+      return say('not a word')
   }
 }
 

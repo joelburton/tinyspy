@@ -1,7 +1,6 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { memberById } from '@/common/members/memberList'
@@ -13,6 +12,7 @@ import {
   IconWordOk,
 } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import type { Member } from '@/common/members/member'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import type { EventRow, GuessResult } from '../hooks/useGame'
@@ -29,40 +29,6 @@ type Props = {
   /** Open a turn on the board. */
   onShowHistory: (index: number) => void
 }
-
-/**
- * How each submission paints its outcome bar, in the shared four-value
- * vocabulary (`Outcome`). The mapping is the point:
- *
- *   - **won** — a theme word or the spangram. The thing you came for.
- *   - **near** — a valid non-theme word. Real progress (it moves the hint bar)
- *     but not the goal, which is exactly what `near` says elsewhere.
- *   - **lost** — too short, not a word, already counted. All three are misfires.
- *
- * A duplicate lands on `lost` rather than `neutral` because it EARNED NOTHING:
- * being generous about it in the log would misreport the hint economy.
- */
-const OUTCOME: Record<GuessResult, Outcome> = {
-  spangram: 'won',
-  theme: 'won',
-  hint_word: 'near',
-  duplicate: 'lost',
-  too_short: 'lost',
-  invalid: 'lost',
-}
-
-/**
- * A spent hint is `neutral` — the fourth value, and the only row in this log
- * that uses it.
- *
- * It is not `lost` (nothing missed), not `near` (that means "progress toward
- * the goal", and a hint is the opposite: you SPENT the progress you'd banked),
- * and certainly not `won`. `neutral` says "this happened and it isn't scored",
- * which is exactly right — and it keeps the four bar colors reading as one
- * scale, where an eye running the log still sorts finds from misses without a
- * fifth thing competing for attention.
- */
-const HINT_OUTCOME: Outcome = 'neutral'
 
 /**
  * The verdict as a GLYPH, before the word.
@@ -172,7 +138,12 @@ export function GameTurnLog({
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((row, i) => (
         <tr key={row.id} className={gameTurnLog.divider}>
-          <TurnLogOutcomeBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
+          {/* The bar's word is `lib/answer.ts`'s — the log names none of its own,
+              so it cannot disagree with the pill that reported the same turn. A
+              hint row has no `result` column, which is what `spent_hint` is. */}
+          <TurnLogOutcomeBar
+            outcome={ANSWER_OUTCOME[row.kind === 'hint' ? 'spent_hint' : row.result]}
+          />
           <TurnLogNumber
             n={i + 1}
             isOpenInHistory={historyId === i}

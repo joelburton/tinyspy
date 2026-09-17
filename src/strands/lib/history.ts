@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-fixed-outcome-fix
 
 import type { Coord } from './board'
 

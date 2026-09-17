@@ -21,7 +21,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(22);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -55,11 +55,17 @@ select is(
   'the spangram''s path is accepted as "spangram", not merely "theme"'
 );
 
-select is(
-  strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) -> 'data' ->> 'result',
-  'hint_word',
-  'a dictionary word that is not a theme word earns a hint point'
-);
+-- The OUTCOME rides with the result, and this one is the reason to assert it:
+-- a valid non-theme word is `near`, not `won` — it moves the hint bar, which is
+-- real progress, but the goal is the theme (ruled 2026-09-16). It said `won`
+-- until 2026-09-17 while the log said `near`, and nothing here caught it.
+-- src/strands/lib/answer.ts is the other language of this rule.
+create temp table hw on commit drop as
+select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;
+select is((select res -> 'data' ->> 'result' from hw), 'hint_word',
+  'a dictionary word that is not a theme word earns a hint point');
+select is((select res ->> 'outcome' from hw), 'near',
+  'a valid non-theme word is progress, not the goal');
 
 -- ============================================================
 -- (4) THE ORDERING RULE — theme first, length second
