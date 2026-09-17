@@ -15,7 +15,7 @@ import styles from './PlayArea.module.css'
 
 const COLS = 4
 
-/** Turn-history: a guessed tile's tint class by the viewed turn's outcome. Keyed
+/** A history-lit tile's tint class, by the viewed turn's outcome. Keyed
  *  by the OUTCOME, like everything else the guess touches — the classes it names
  *  were already built from `--outcomes-*` tokens. */
 const HISTORY_LIT_TINT: Record<GuessOutcome, string> = {
@@ -24,7 +24,7 @@ const HISTORY_LIT_TINT: Record<GuessOutcome, string> = {
   lost: styles.historyTile_lost,
 }
 
-/** Empty highlight set — a stable reference so a live render never rings a tile. */
+/** Empty lit-tile set — a stable reference so a live render never rings a tile. */
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
@@ -54,67 +54,67 @@ const VERDICT_TONE: Record<Outcome, string | null> = {
 /** The answer to my last guess, worn by the tiles it covered. */
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
-  /** ANY outcome, because the mark wears its pill's tone and the pill speaks the
-   *  full vocabulary. `VERDICT_TONE` above is total over it. */
+  // ANY outcome, because the mark wears its pill's tone and the pill speaks the
+  // full vocabulary. `VERDICT_TONE` above is total over it.
   tone: Outcome
-  /** Bumped per verdict. The shake is a CSS animation, which only restarts on a
-   *  NEW element, so the tiles are keyed on this: submitting the same four tiles
-   *  twice has to shake twice. */
+  // Bumped per verdict. The shake is a CSS animation, which only restarts on a
+  // NEW element, so the tiles are keyed on this: submitting the same four tiles
+  // twice has to shake twice.
   nonce: number
 }
 
 type Props = {
-  /** Categories resolved by a correct guess — full-width colored bands at the
-   *  top, sorted by rank. */
+  // Categories resolved by a correct guess — full-width colored bands at the
+  // top, sorted by rank.
   matched: MatchedCategory[]
-  /** Categories revealed at game-end (loss / elimination); `[]` during play. */
+  // Categories revealed at game-end (loss / elimination); `[]` during play.
   unmatched: Category[]
-  /** Remaining tiles, in display order. They stay on a FROZEN board (that's the
-   *  record of how far the players got) and step aside only for the reveal,
-   *  whose bands take their grid rows. */
+  // Remaining tiles, in display order. They stay on a FROZEN board (that's the
+  // record of how far the players got) and step aside only for the reveal,
+  // whose bands take their grid rows.
   tiles: string[]
-  /** May these tiles be clicked? False on a frozen board, which marks them
-   *  `disabled` — the shared `.tile` chrome then drops the pointer cursor and
-   *  the hover lift, so a record doesn't advertise itself as an input. */
+  // May these tiles be clicked? False on a frozen board, which marks them
+  // `disabled` — the shared `.tile` chrome then drops the pointer cursor and
+  // the hover lift, so a record doesn't advertise itself as an input.
   interactive: boolean
-  /** tile → user_id (the inverted selections map). Says which tiles are in the
-   *  guess being built, and whose pick each one was. */
+  // tile → user_id (the inverted selections map). Says which tiles are in the
+  // guess being built, and whose pick each one was.
   ownerByTile: ReadonlyMap<string, string>
   onToggle: (tile: string) => void
-  /** The tiles of a guess that is OUT — sent, waiting on the server. They wear
-   *  the shared in-flight dim until the answer lands. */
+  // The tiles of a guess that is OUT — sent, waiting on the server. They wear
+  // the shared in-flight dim until the answer lands.
   inFlightTiles?: ReadonlySet<string>
-  /** The verdict on my last guess, ringed in its pill's tone (BoardCol sets it,
-   *  and clears it on the next tile click). Null while nothing is being judged. */
+  // The verdict on my last guess, ringed in its pill's tone (BoardCol sets it,
+  // and clears it on the next tile click). Null while nothing is being judged.
   verdict?: BoardVerdict | null
-  /** Tiles taking the attention flash — the beat that says an answer landed here.
-   *  Raised for every verdict, my own included. */
+  // Tiles taking the attention flash — the beat that says an answer landed here.
+  // Raised for every verdict, my own included.
   attentionTiles?: ReadonlySet<string>
-  /** Tiles taking the head-shake, which starts once the flash has faded and the
-   *  verdict color underneath is visible. */
+  // Tiles taking the head-shake, which starts once the flash has faded and the
+  // verdict color underneath is visible.
   shakenTiles?: ReadonlySet<string>
-  /** user_id → resolved color var, for the identity ring. */
+  // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
-  /** Is this board SHARED — a coop game with somebody else in it? Identity is
-   *  only information there. Solo, every pick is mine and a colored ring would be
-   *  decoration on top of the selection border; in compete nobody sees my picks
-   *  but me, so the same applies. When it IS shared, everyone's picks are ringed
-   *  INCLUDING MINE: a board where only some picks carry a color reads as missing
-   *  data rather than as "the unmarked ones are yours". */
+  // Is this board SHARED — a coop game with somebody else in it? Identity is
+  // only information there. Solo, every pick is mine and a colored ring would be
+  // decoration on top of the selection border; in compete nobody sees my picks
+  // but me, so the same applies. When it IS shared, everyone's picks are ringed
+  // INCLUDING MINE: a board where only some picks carry a color reads as missing
+  // data rather than as "the unmarked ones are yours".
   sharedBoard?: boolean
-  /** Turn-order (coop, opt-in): a teammate holds the move, so the whole board
-   *  is inactive — the board-scope dim. */
+  // Turn-order (coop, opt-in): a teammate holds the move, so the whole board
+  // is inactive — the board-scope dim.
   notMyTurn?: boolean
-  /** True for a beat as the turn becomes mine (useTurnStartFlash). */
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
   myTurnJustStarted?: boolean
-  /** The game's outcome once it is over — the board wears the frame in that
-   *  tone. `'neutral'` also covers a player who is out of a compete race while
-   *  the others play on: their board is inert even though the game isn't. */
+  // The game's outcome once it is over — the board wears the frame in that
+  // tone. `'neutral'` also covers a player who is out of a compete race while
+  // the others play on: their board is inert even though the game isn't.
   gameOver?: TerminalOutcome | null
-  /** ATTENTION, the server's move marker: the guess log's length. A band
-   *  arriving is only news when a MOVE put it there — `replay_board` deletes the
-   *  guesses, so a restart drops this instead of advancing it and the re-dealt
-   *  board says nothing (plans/tile-feedback.md → Read the cause). */
+  // ATTENTION, the server's move marker: the guess log's length. A band
+  // arriving is only news when a MOVE put it there — `replay_board` deletes the
+  // guesses, so a restart drops this instead of advancing it and the re-dealt
+  // board says nothing (plans/tile-feedback.md → Read the cause).
   moveCount: number
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.
@@ -124,10 +124,10 @@ type Props = {
   historyLitTiles?: ReadonlySet<string>
   // The viewed turn's verdict — the tint for `historyLitTiles`.
   historyLitOutcome?: GuessOutcome
-  /** A control floated over the board's top-right (the Shuffle button). Rendered
-   *  INSIDE the board root — the root is the `position: relative` anchor — so it
-   *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
-   *  column's top, which the vertically-centered board no longer touches. */
+  // A control floated over the board's top-right (the Shuffle button). Rendered
+  // INSIDE the board root — the root is the `position: relative` anchor — so it
+  // hugs the VISUAL board. Anchoring to the column instead would strand it at the
+  // column's top, which the vertically-centered board no longer touches.
   floatingControl?: ReactNode
 }
 
@@ -293,8 +293,8 @@ export function Board({
             sharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
           const inFlight = inFlightTiles.has(tile)
           const isVerdict = verdict?.tiles.has(tile) ?? false
-          // Turn-history: this tile is one of the four the viewed turn guessed —
-          // tint it the outcome color + ring it in the history blue.
+          // One of the four tiles the viewed turn guessed — tinted the outcome
+          // color and ringed in the history blue.
           const isHistoryLit = historyLitTiles.has(tile)
           return (
             <button

@@ -6,7 +6,7 @@
  *   1. STRICTLY-BEFORE folding — the snapshot's bands are the correct guesses BEFORE
  *      the viewed turn, so a viewed correct turn's own tiles are still on the grid.
  *   2. The highlight — exactly the four tiles the viewed turn guessed.
- *   3. The description — a correct turn names its category; the others carry the
+ *   3. The historyLabel — a correct turn names its category; the others carry the
  *      canonical copy.
  */
 import { describe, expect, it } from 'vitest'
@@ -66,8 +66,8 @@ describe('historySnapshot', () => {
   })
 
   it('describes a correct turn by its category, the others by the canonical copy', () => {
-    expect(historySnapshot(GUESSES, BOARD, 0).description).toBe('Matched FRUIT')
-    expect(historySnapshot(GUESSES, BOARD, 1).description).toBe('Not a match')
-    expect(historySnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).description).toBe('One away!')
+    expect(historySnapshot(GUESSES, BOARD, 0).historyLabel).toBe('Matched FRUIT')
+    expect(historySnapshot(GUESSES, BOARD, 1).historyLabel).toBe('Not a match')
+    expect(historySnapshot([g({ outcome: 'near', matched: false })], BOARD, 0).historyLabel).toBe('One away!')
   })
 })

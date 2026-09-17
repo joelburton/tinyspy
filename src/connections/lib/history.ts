@@ -41,11 +41,11 @@ export interface HistorySnapshot {
    *  comes from the shared vocabulary rather than a mapping written here. */
   outcome: GuessOutcome
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
-  description: string
+  historyLabel: string
 }
 
 /**
- * Reconstruct the board + lit tiles + description for the turn at `index`. Folds
+ * Reconstruct the board + lit tiles + historyLabel for the turn at `index`. Folds
  * every CORRECT guess at a position `< index` into the matched bands (strictly
  * before), and marks this turn's own 4 tiles as the lit ones.
  */
@@ -72,7 +72,7 @@ export function historySnapshot(
     tiles,
     historyLitTiles: new Set(turn?.tiles ?? []),
     outcome: turn?.outcome ?? 'lost',
-    description: describe(turn, board),
+    historyLabel: describe(turn, board),
   }
 }
 

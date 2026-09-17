@@ -582,11 +582,11 @@ export function PlayArea({
 
   const { remainingTiles } = boardView!
 
-  // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
+  // When a past turn is open, `historySnap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
   // the outcome color). Keyed by log position; a later realtime guess only grows the
   // log past historyId, so a past turn holds.
-  const snap = historyId !== null ? historySnapshot(guesses, game.board, historyId) : null
+  const historySnap = historyId !== null ? historySnapshot(guesses, game.board, historyId) : null
 
   // tile → user_id mapping. In coop this carries every peer's
   // contribution; in compete it only ever has the caller's tiles
@@ -618,7 +618,7 @@ export function PlayArea({
         remainingTiles={remainingTiles}
         unmatched={unmatched}
         solutionShown={solutionShown}
-        snap={snap}
+        historySnap={historySnap}
         isViewingHistory={isViewingHistory}
         showInput={showInput}
         isMyTurn={isMyTurn}

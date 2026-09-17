@@ -26,10 +26,10 @@ type Props = {
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
-  /** Turn-history: the turn currently open in the board viewer (by log position),
-   *  or null when live. Its `#N` handle wears the shared yellow ring. */
+  // The turn currently open in the board viewer (by log position), or null when
+  // live. Its `#N` handle wears the shared history ring.
   historyId: number | null
-  /** Open a turn in the board viewer (click its `#N`). */
+  // Open a turn in the board viewer (click its `#N`).
   onShowHistory: (index: number) => void
 }
 

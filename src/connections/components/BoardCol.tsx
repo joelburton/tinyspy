@@ -77,7 +77,7 @@ export function BoardCol({
   remainingTiles,
   unmatched,
   solutionShown,
-  snap,
+  historySnap,
   isViewingHistory,
   showInput,
   isMyTurn,
@@ -104,61 +104,61 @@ export function BoardCol({
 }: {
   // ── Board to render ──
   game: ConnectionsGame
-  /** Live matched bands (shown when not viewing). */
+  // Live matched bands (shown when not viewing).
   matchedCategories: MatchedCategory[]
-  /** Live remaining tiles — the shuffle source; the display order derives from these. */
+  // Live remaining tiles — the shuffle source; the display order derives from these.
   remainingTiles: string[]
-  /** Categories revealed at game-end (loss / elimination); `[]` during play. */
+  // Categories revealed at game-end (loss / elimination); `[]` during play.
   unmatched: Category[]
-  /** Is the ANSWER on the board right now (the terminal reveal)? The four
-   *  unsolved categories take the loose tiles' place while it's on, and the
-   *  tiles come back when it's off — see the `tiles` prop below. */
+  // Is the ANSWER on the board right now (the terminal reveal)? The four
+  // unsolved categories take the loose tiles' place while it's on, and the
+  // tiles come back when it's off — see the `tiles` prop below.
   solutionShown: boolean
-  /** The viewed turn's snapshot, or null when live — PlayArea reconstructs it. */
-  snap: HistorySnapshot | null
+  // The viewed turn's snapshot, or null when live — PlayArea reconstructs it.
+  historySnap: HistorySnapshot | null
   isViewingHistory: boolean
-  /** May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
-   *  Participant-level (terminal / eliminated / conceded) — NOT turn-aware. */
+  // May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
+  // Participant-level (terminal / eliminated / conceded) — NOT turn-aware.
   showInput: boolean
-  /** Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
-   *  false, tile selection + submit are frozen (the InfoCol TurnStatusLine explains
-   *  why). Kept apart from `showInput` so a non-turn doesn't read as terminal /
-   *  eliminated (which would flip to the reveal view). */
+  // Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
+  // false, tile selection + submit are frozen (the InfoCol TurnStatusLine explains
+  // why). Kept apart from `showInput` so a non-turn doesn't read as terminal /
+  // eliminated (which would flip to the reveal view).
   isMyTurn: boolean
-  /** Turn-order: a teammate holds the move, so the board wears the shared dim.
-   *  Narrower than `!isMyTurn` — a terminal board is inactive for a different
-   *  reason and says so with the frame instead. */
+  // Turn-order: a teammate holds the move, so the board wears the shared dim.
+  // Narrower than `!isMyTurn` — a terminal board is inactive for a different
+  // reason and says so with the frame instead.
   notMyTurn: boolean
-  /** True for a beat as the turn arrives (the shared your-turn flash). */
+  // True for a beat as the turn arrives (the shared your-turn flash).
   myTurnJustStarted: boolean
-  /** The tone of the game-over frame, or null while the board is live. */
+  // The tone of the game-over frame, or null while the board is live.
   gameOver: TerminalOutcome | null
-  /** Return to the live board (the banner click / ✕). */
+  // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
   // ── Tile selection ──
-  /** tile → user_id (the inverted selections map) — the per-tile mine/peer treatment. */
+  // tile → user_id (the inverted selections map) — the per-tile mine/peer treatment.
   ownerByTile: ReadonlyMap<string, string>
   toggleTile: (tile: string) => void
   sendClear: () => void
-  /** The flat union of every player's selection (coop) / the caller's (compete). */
+  // The flat union of every player's selection (coop) / the caller's (compete).
   unionTiles: string[]
   selfId: string
   colorByUserId: ReadonlyMap<string, string>
-  /** Coop, with somebody else in the game — the only case where "whose pick is
-   *  this?" is a question the board can usefully answer. */
+  // Coop, with somebody else in the game — the only case where "whose pick is
+  // this?" is a question the board can usefully answer.
   sharedBoard: boolean
 
   // ── Own-guess feedback ──
-  /** PlayArea's below-board slot. This column shows each guess's result into
-   *  it, and while it holds anything — a result, "you're out", whose turn,
-   *  the verdict — the pill takes the commit row's place. A tile click is the
-   *  player's next move, so it dismisses a gesture-cleared result. */
+  // PlayArea's below-board slot. This column shows each guess's result into
+  // it, and while it holds anything — a result, "you're out", whose turn,
+  // the verdict — the pill takes the commit row's place. A tile click is the
+  // player's next move, so it dismisses a gesture-cleared result.
   localFeedbackSlot: FeedbackSlot
 
   // ── Guess dispatch ──
   gameId: string
-  /** The guess log — for FE-side dup detection before firing submit_guess. */
+  // The guess log — for FE-side dup detection before firing submit_guess.
   guesses: GuessRow[]
 
   // ── Below-board readout ──
@@ -456,13 +456,13 @@ export function BoardCol({
           While viewing, the board is the historical snapshot (bands before the turn +
           its 4 guessed tiles ringed); else live (tiles only while input is live). */}
       <Board
-        matched={snap ? snap.matched : matchedCategories}
-        unmatched={snap ? [] : unmatched}
+        matched={historySnap ? historySnap.matched : matchedCategories}
+        unmatched={historySnap ? [] : unmatched}
         // The tiles survive the end of the game — a finished board is your
         // bands PLUS the ones you never cracked, frozen, which is the only
         // record of how far you got. They step aside only for the reveal, whose
         // bands need the rows (bands + ceil(tiles/4) is a fixed row count).
-        tiles={snap ? snap.tiles : solutionShown ? [] : displayedTiles}
+        tiles={historySnap ? historySnap.tiles : solutionShown ? [] : displayedTiles}
         // A historical snapshot is a record too — never clickable. `isMyTurn` is
         // in here as well as on the click guard: a tile that hovers, lifts and
         // shows a pointer while silently swallowing the click is a promise the
@@ -489,8 +489,8 @@ export function BoardCol({
         // guesses the server has recorded, and whether the newest was mine.
         moveCount={guesses.length}
         isViewingHistory={isViewingHistory}
-        historyLitTiles={snap?.historyLitTiles}
-        historyLitOutcome={snap?.outcome}
+        historyLitTiles={historySnap?.historyLitTiles}
+        historyLitOutcome={historySnap?.outcome}
         // Shuffle floats over the board's top-right — a fresh visual scan of the
         // SAME tiles (not a turn action). Only while the grid is shown. Passed
         // into Board so it anchors to the visual board, not the column.
@@ -513,7 +513,7 @@ export function BoardCol({
           banner overlays it. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
-          {isViewingHistory && snap && <HistoryBanner label={snap.description} onExit={onExitHistory} />}
+          {isViewingHistory && historySnap && <HistoryBanner label={historySnap.historyLabel} onExit={onExitHistory} />}
           {/* One slot, one pill: whatever ranks highest in it. A tap on a
               gesture-cleared result dismisses it, and the ring above leaves
               with it — the two are one message, so they end together. */}

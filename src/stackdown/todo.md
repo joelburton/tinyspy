@@ -35,8 +35,17 @@
   doing it explicitly and something has to make that rule visible. Found
   2026-09-16 by Joel, reading the history-names sweep. **scrabble has the same
   block** (`hover`, `greenCells`, `redCells`, blanked on `isViewingHistory` at
-  the call site), so this is one shape and not one game's; connections still to
-  check. Decide it once.
+  the call site), so this is one shape and not one game's.
+
+  **connections does not, and its answer is better than either option above.**
+  It passes every live mark to its `Board` ungated and instead hands the MARK
+  HOOK `quiet: isViewingHistory` — so the mark never fires while a past turn is
+  open, rather than firing and being blanked on the way down. One decision, at
+  the source, with the reason beside it ("a live band landing behind the viewer
+  is not something to point at on a board nobody is reading"). The two props it
+  does gate, `interactive` and `ownerByTile`, are gated because they are about
+  what the board ACCEPTS, not what it shows. Start from that shape when deciding
+  this.
 
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -

@@ -616,7 +616,21 @@ The four games whose names already turned out to be lying go first.
       Left, per the plan: `hintCoords` is a hint, not history — and the board
       draws a hint's ring and the history ring with the same vocabulary on
       purpose ("these cells, no claim about order").
-- [ ] **connections**
+- [x] **connections** — read 2026-09-16. Four things:
+      - `snap` → `historySnap` (a PROP here as well as a local — `BoardCol` takes
+        the snapshot itself), and `HistorySnapshot.description` → `historyLabel`.
+      - **A stale yellow the sweep missed**: `GameTurnLog`'s `historyId` said its
+        `#N` handle "wears the shared yellow ring". The yellow sweep is grep-based
+        and line-based, and the words "history" and "viewer" were on the line
+        ABOVE this one — exactly the miss a read catches and a pattern cannot.
+        (Checked the whole repo again afterwards: it was the last one.)
+      - the `/**`-on-props pass: 34 members across `Board.tsx` and `BoardCol.tsx`,
+        the most of any game so far.
+      - three `Turn-history:` prefixes dropped, and `HISTORY_LIT_TINT`'s
+        docstring rewritten around the name it has now.
+      Left, correctly: `boardView` is the live derived board, and `viewerTrack`
+      in `pdf/model.ts` is the PERSON — the second instance of that trap after
+      codenamesduet's `viewerFinished`.
 - [ ] **wordle**
 - [ ] **waffle**
 - [ ] **psychicnum**
