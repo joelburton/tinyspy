@@ -25,35 +25,35 @@ const KEY_SQUARE: Record<KeyLabel, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = 
 }
 
 type Props = {
-  /** The 25 board word rows, with denormalized reveal state. */
+  // The 25 board word rows, with denormalized reveal state.
   words: WordRow[]
-  /** The caller's own key view (a 25-element array of G/N/A). */
+  // The caller's own key view (a 25-element array of G/N/A).
   myKey: KeyLabel[]
-  /** The partner's key view. Null while the game is in play; populated
-   *  post-game so the peer's keycard square can be shown. */
+  // The partner's key view. Null while the game is in play; populated
+  // post-game so the peer's keycard square can be shown.
   peerKey: KeyLabel[] | null
-  /** Caller's seat ('A' | 'B') or undefined if not seated. Picks which
-   *  per-seat neutral flag is "mine" for the background + click gate. */
+  // Caller's seat ('A' | 'B') or undefined if not seated. Picks which
+  // per-seat neutral flag is "mine" for the background + click gate.
   mySeat: Seat | undefined
-  /** Whether the game has reached a terminal status. Gates the peer keycard
-   *  square (shown only once the game is over). */
+  // Whether the game has reached a terminal status. Gates the peer keycard
+  // square (shown only once the game is over).
   gameOver: boolean
-  /** Whether the caller should be able to click cells right now.
-   *  Computed by derivePhase against game.status + seat + clue
-   *  state. */
+  // Whether the caller should be able to click cells right now.
+  // Computed by derivePhase against game.status + seat + clue
+  // state.
   cellsClickable: boolean
-  /** The tile whose guess RPC is in flight (the pending "…" + accent ring), or
-   *  null. Owned by PlayArea, which dispatches the guess. */
+  // The tile whose guess RPC is in flight (the pending "…" + accent ring), or
+  // null. Owned by PlayArea, which dispatches the guess.
   pendingPos: number | null
-  /** Fire a guess on the given board position. PlayArea owns the submit_guess
-   *  RPC + the own-action error flash; this component just reports the click. */
+  // Fire a guess on the given board position. PlayArea owns the submit_guess
+  // RPC + the own-action error flash; this component just reports the click.
   onGuess: (position: number) => void
-  /** Turn-history: render read-only under the viewer frame (a past turn's
-   *  board). `words` is then the historical snapshot; PlayArea gates clicks off and
-   *  the board column catches a click to exit. Off during live play. */
+  // Render read-only under the viewer frame (a past turn's board). `words` is then
+  // the historical snapshot; PlayArea gates clicks off and the board column catches
+  // a click to exit. Off during live play.
   isViewingHistory?: boolean
-  /** Turn-history: the board positions the viewed turn decided — ring each one in
-   *  the history blue ("added this turn"). Empty / omitted when live. */
+  // The board positions the viewed turn decided — ringed in the history blue
+  // ("added this turn"). Empty / omitted when live.
   historyLitTiles?: ReadonlySet<number>
 }
 
@@ -147,7 +147,7 @@ export function Board({
                 bgCls,
                 isPending && styles.tilePending,
                 // Turn-history: this cell was decided on the turn being viewed.
-                historyLitTiles.has(w.position) && styles.historyCell,
+                historyLitTiles.has(w.position) && styles.historyTile,
               )}
               disabled={!clickable || isPending}
               onClick={() => clickable && onGuess(w.position)}

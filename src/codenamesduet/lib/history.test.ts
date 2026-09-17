@@ -66,10 +66,10 @@ describe('historySnapshot', () => {
   })
 
   it('describes the turn name-free: clue then guessed words, or "passed"', () => {
-    expect(historySnapshot(WORDS, guesses, { word: 'bread', count: 2 }, 1).description).toBe(
+    expect(historySnapshot(WORDS, guesses, { word: 'bread', count: 2 }, 1).historyLabel).toBe(
       '#1: 2 BREAD → ALPHA',
     )
-    expect(historySnapshot(WORDS, guesses, { word: 'wait', count: 1 }, 5).description).toBe(
+    expect(historySnapshot(WORDS, guesses, { word: 'wait', count: 1 }, 5).historyLabel).toBe(
       '#5: 1 WAIT — passed',
     )
   })

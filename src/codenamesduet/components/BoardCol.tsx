@@ -92,44 +92,44 @@ export function BoardCol({
   onSuggestionChange,
 }: {
   // ── Mobile-only status strip ──
-  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
-   *  above the board ONLY below the `--mobile` breakpoint — where the info
-   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
-   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
+  // above the board ONLY below the `--mobile` breakpoint — where the info
+  // column is off-canvas in the InfoSheet and would otherwise take a tap to
+  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
   mobileStatus: ReactNode
 
   // ── Board to render ──
-  /** The 25 board words — the live board OR a snapshot's reveal state (PlayArea picks). */
+  // The 25 board words — the live board OR a snapshot's reveal state (PlayArea picks).
   words: WordRow[]
-  /** The caller's own key view. */
+  // The caller's own key view.
   myKey: KeyLabel[]
-  /** The partner's key view, once the game's over (post-game reveal); else null. */
+  // The partner's key view, once the game's over (post-game reveal); else null.
   peerKey: KeyLabel[] | null
-  /** Caller's seat, or undefined if watching. */
+  // Caller's seat, or undefined if watching.
   mySeat: Seat | undefined
   gameOver: boolean
-  /** The board-gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
-   *  from the phase (`!derivePhase().cellsClickable`); this column ORs in
-   *  `isViewingHistory` before handing the leaf `<Board>` its `cellsClickable`. */
+  // The board-gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
+  // from the phase (`!derivePhase().cellsClickable`); this column ORs in
+  // `isViewingHistory` before handing the leaf `<Board>` its `cellsClickable`.
   readOnly: boolean
-  /** Turn-history: the positions the viewed turn decided — ring them (undefined live). */
+  // The positions the viewed turn decided — ringed (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
 
   // ── History viewer ──
   isViewingHistory: boolean
-  /** The viewed turn's description while inspecting history (drives the banner), or
-   *  null when live. */
+  // The viewed turn's description while inspecting history (drives the banner), or
+  // null when live.
   historyLabel: string | null
-  /** Return to the live board (the banner click / ✕). */
+  // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
-  /** PlayArea's below-board slot. This column and the clue panel show their
-   *  not-oks into it (a rejected guess / clue / pass), and while it holds
-   *  anything — a not-ok, the terminal verdict — the pill takes the clue
-   *  panel's place. A tile click is the player's next move, so it dismisses a
-   *  gesture-cleared message. */
+  // PlayArea's below-board slot. This column and the clue panel show their
+  // not-oks into it (a rejected guess / clue / pass), and while it holds
+  // anything — a not-ok, the terminal verdict — the pill takes the clue
+  // panel's place. A tile click is the player's next move, so it dismisses a
+  // gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
 
   // ── Clue panel ──
@@ -138,8 +138,8 @@ export function BoardCol({
   currentClue: ClueRow | null
   inSuddenDeath: boolean
   peer: Player | undefined
-  /** Open / update / close the AI clue-suggestion dialog (state lives in PlayArea,
-   *  which renders the panel high in the tree so react-rnd positions it on-screen). */
+  // Open / update / close the AI clue-suggestion dialog (state lives in PlayArea,
+  // which renders the panel high in the tree so react-rnd positions it on-screen).
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
   // Phase-clickability, the positive of the `readOnly` gate. Reintroduced (rather

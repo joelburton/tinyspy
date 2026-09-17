@@ -30,10 +30,10 @@ type Props = {
   /** Whether the game has ended. A guess-less *current* turn at terminal is no
    *  longer "in progress," so it reads "(no guesses)", not "(clue given)". */
   gameOver: boolean
-  /** Turn-history: the turn currently open in the board viewer (by `turn_number`),
-   *  or null when live. That turn's `#N` handle wears the shared viewing ring. */
+  // The turn currently open in the board viewer (by `turn_number`), or null when
+  // live. That turn's `#N` handle wears the shared viewing ring.
   historyId: number | null
-  /** Open a turn in the board viewer — click (or Enter/Space) any of its rows. */
+  // Open a turn in the board viewer — click (or Enter/Space) any of its rows.
   onShowHistory: (turnNumber: number) => void
 }
 

@@ -580,7 +580,22 @@ The four games whose names already turned out to be lying go first.
       of show-a-move (`useSharedMove`, `shareMove`, `SharedMovePayload`,
       `sharerId`) is a transport of its own, not the preview: the preview is what
       the receiver draws.
-- [ ] **codenamesduet** — `viewedClue` known
+- [x] **codenamesduet** — read 2026-09-16. Five things:
+      - `viewedClue` → `historyClue` (the known one); `snap` → `historySnap`;
+        `HistorySnapshot.description` → `historyLabel`, the same end-to-end match
+        stackdown needed.
+      - **`.historyCell` → `.historyTile`**, the mirror of scrabble's lesson:
+        follow the GAME's noun. codenamesduet's board squares are tiles in its
+        own stylesheet (`.overlayTile`, `.tileKey`, `.tilePending`), so the class
+        was the outlier and `historyLitTiles` was already right. scrabble went
+        the other way for the same reason (`greenCells`, `redCells`), which is
+        the rule: the noun is the game's, not the sweep's.
+      - the `/**`-on-props pass: 21 members, and this game needed the converter
+        WIDENED — its `Board` declares `type Props = { … }` where the others use
+        an inline literal, so the first pass silently converted nothing there.
+      - four `Turn-history:` prefixes dropped where the name now says it.
+      Clean: `InfoCol`, `GameTurnLog`'s body, the backstop greps. `viewerFinished`
+      is here and stays — its "viewer" is the PERSON, the trap the plan names.
 - [ ] **strands** — `.discViewed` known; `hintCoords` is NOT history and stays
 - [ ] **connections**
 - [ ] **wordle**

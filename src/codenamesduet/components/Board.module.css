@@ -138,11 +138,11 @@
   outline-offset: -2px;
 }
 
-/* Turn-history: a cell the VIEWED past turn decided — the shared history blue
+/* A tile the VIEWED past turn decided — the shared history blue
  * (`--history-color`), the same signal the board frame + the viewed turn's #N
  * handle wear. An inset outline so it hugs just inside the tile edge (over the fill,
  * clear of the grid gap and neighbors). Pairs with the board-level `.historyFrame`. */
-/* @@ */ .historyCell {
+/* @@ */ .historyTile {
   outline: 3px solid var(--history-color);
   outline-offset: -3px;
 }

@@ -38,11 +38,11 @@ export interface HistorySnapshot {
    *  blue ("added this turn"). Empty for a passed (guess-less) turn. */
   historyLitTiles: Set<number>
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
-  description: string
+  historyLabel: string
 }
 
 /**
- * Reconstruct the board + lit tiles + description for `turnNumber`. Folds every
+ * Reconstruct the board + lit tiles + historyLabel for `turnNumber`. Folds every
  * guess with `turn_number <= turnNumber` onto the fixed words (INCLUSIVE), and
  * collects this turn's own guessed positions as the lit tiles.
  */
@@ -76,7 +76,7 @@ export function historySnapshot(
     neutral_b: neutralB.has(w.position),
   }))
 
-  return { words: snapWords, historyLitTiles, description: describe(clue, guesses, turnNumber) }
+  return { words: snapWords, historyLitTiles, historyLabel: describe(clue, guesses, turnNumber) }
 }
 
 /** "#3: 2 BREAD → STEEL, COFFEE" — the clue given that turn, then the words guessed

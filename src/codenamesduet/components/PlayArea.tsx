@@ -537,21 +537,21 @@ export function PlayArea({
       hasCurrentTurnClue: currentTurnClue !== null,
     })
 
-  // Turn-history: when a past turn is open in the viewer, `snap` is that turn's
-  // board (else null = live). `historySnapshot` folds the guess log up to the viewed
+  // When a past turn is open in the viewer, `historySnap` is that turn's board
+  // (else null = live). `historySnapshot` folds the guess log up to the viewed
   // turn onto the fixed words and rings that turn's own cells; the turn's clue
   // feeds the banner label. Snapshots are stable — a later realtime guess only
   // grows turns > historyId, so viewing a past turn never shifts under you.
-  const viewedClue =
+  const historyClue =
     historyId !== null
       ? clues.find((c) => c.turn_number === historyId) ?? null
       : null
-  const snap =
+  const historySnap =
     historyId !== null
       ? historySnapshot(
           words,
           guesses,
-          viewedClue ? { word: viewedClue.word, count: viewedClue.count } : null,
+          historyClue ? { word: historyClue.word, count: historyClue.count } : null,
           historyId,
         )
       : null
@@ -584,16 +584,16 @@ export function PlayArea({
           />
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──
-        words={snap ? snap.words : words}
+        words={historySnap ? historySnap.words : words}
         myKey={myKey}
         peerKey={peerKey}
         mySeat={mySeat}
         gameOver={gameOver}
         readOnly={!cellsClickable}
-        historyLitTiles={snap?.historyLitTiles}
+        historyLitTiles={historySnap?.historyLitTiles}
         // ── History viewer ──
         isViewingHistory={isViewingHistory}
-        historyLabel={snap?.description ?? null}
+        historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) — and the slot its
         //    not-oks, the clue panel's, and the verdict show into ──
