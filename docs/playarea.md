@@ -368,7 +368,7 @@ consistent without imposing structure:
   cell padding/size lives on `:where(.turnLogTable) td` (held at single-*element*
   specificity by `:where()`, so any game cell class or the bar atom overrides it
   without a fight).
-- **`<TurnLogBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
+- **`<TurnLogOutcomeBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
   row piece common to most logs. It's *optional* (a game's row needn't include
   it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
   class), so a game drops it into whatever row it builds. `outcome` is an
@@ -395,7 +395,7 @@ consistent without imposing structure:
   than a structural `:has()` selector — readability over cleverness. Single-row
   turns carry neither.
 - **Column-sizing classes** — a small model for a row's cells: an optional
-  `<TurnLogBar>` (col 0), an optional **`<TurnLogNumber>`** (the turn number —
+  `<TurnLogOutcomeBar>` (col 0), an optional **`<TurnLogNumber>`** (the turn number —
   muted, shrinks, never wraps; a live handle or a plain number, see the viewer
   below), one or more content columns, and **`<TurnLogActor>`** (the who cell:
   right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column

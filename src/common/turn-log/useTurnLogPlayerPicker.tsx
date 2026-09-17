@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 import { useState } from 'react'
 import { orderSelfFirst } from '../members/memberList'
@@ -86,15 +86,14 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   // The aggregate is the default in coop — it IS the shared game. In compete
   // your own board is what you're looking at, so that's the default there
   // (unless the whole race happens on one board — see competeSharesOneGame).
-  const fallback = solo
-    ? (ordered[0]?.user_id ?? '')
-    : mode === 'coop'
-      ? TEAM
-      : competeSharesOneGame
-        ? ALL
-        : viewerIsPlayer
-          ? selfId
-          : ALL
+  function defaultSelection(): string {
+    if (solo) return ordered[0]?.user_id ?? ''
+    if (mode === 'coop') return TEAM
+    if (competeSharesOneGame) return ALL
+    if (viewerIsPlayer) return selfId
+    return ALL
+  }
+  const fallback = defaultSelection()
 
   // State holds only what the USER picked; the default is DERIVED every render.
   // Freezing the default into `useState(initializer)` looked equivalent and

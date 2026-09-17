@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { TurnLog, TurnLogActor, TurnLogBar } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar } from '@/common/turn-log/TurnLog'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
@@ -75,7 +75,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g) => (
         <tr key={g.id} className={gameTurnLog.divider}>
-          <TurnLogBar
+          <TurnLogOutcomeBar
             outcome={ANSWER_OUTCOME[g.valid ? 'accepted' : (g.reason ?? 'not_a_word')]}
           />
           <td className={gameTurnLog.main}>

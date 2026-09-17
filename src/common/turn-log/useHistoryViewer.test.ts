@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 /**
  * Tests for useHistoryViewer — the cross-column coordination state every

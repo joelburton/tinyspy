@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
@@ -172,7 +172,7 @@ export function GameTurnLog({
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((row, i) => (
         <tr key={row.id} className={gameTurnLog.divider}>
-          <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
+          <TurnLogOutcomeBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
           <TurnLogNumber
             n={i + 1}
             isOpenInHistory={historyId === i}

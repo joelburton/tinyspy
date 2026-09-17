@@ -1,4 +1,4 @@
-/* cs-met-turn-log */
+/* cs-blessed-turn-log */
 
 /* The shared turn log — a per-turn history in an evident, fixed-height scroll
  * box. It's a <table> so each game's row pieces line up in columns across rows,
@@ -6,7 +6,7 @@
  * `<TurnLog>` and its atoms draw THEMSELVES — the panel, the table's cell default,
  * the outcome bar, the turn number, the who column — and no game imports it. Rows
  * are flat (no card border): a game's turn carries its outcome as a colored LEFT
- * BAR (<TurnLogBar>, inset so the bars read as individual segments) and a divider
+ * BAR (<TurnLogOutcomeBar>, inset so the bars read as individual segments) and a divider
  * line between turns; no vertical borders between cells. See TurnLog.tsx and
  * docs/playarea.md → "Turn log".
  *
@@ -55,7 +55,7 @@
   font-size: 0.9rem;
 }
 
-/* ─── Outcome bar: a shared, OPTIONAL cell atom (<TurnLogBar>) ──────────────
+/* ─── Outcome bar: a shared, OPTIONAL cell atom (<TurnLogOutcomeBar>) ──────────────
  * Self-contained — its look doesn't depend on the <tr> carrying any class, so a
  * game drops it into whatever row markup it builds. The bar lives in its own
  * column, decoupled from whatever the next cell holds (#n, words, …). Two pieces

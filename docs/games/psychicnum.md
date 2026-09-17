@@ -439,7 +439,7 @@ src/psychicnum/
     Board.module.css  keyed by tile; rings the viewed turn's word in history mode.
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see playarea.md → Turn log):
-                          each row = the shared <TurnLogBar> cell (green=correct /
+                          each row = the shared <TurnLogOutcomeBar> cell (green=correct /
                           red=wrong / amber=hint+reveal) + `#n` (the shared
                           <TurnLogNumber> history handle — click to replay that turn
                           on the board) + word + result +

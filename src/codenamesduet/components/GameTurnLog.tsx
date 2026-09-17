@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { Fragment } from 'react'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
@@ -150,7 +150,7 @@ export function GameTurnLog({
                 (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
                 together. The `#N` handle is the turn-viewer control (see the note). */}
             <tr className={cls(gameTurnLog.divider, gameTurnLog.entryHead)}>
-              <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
+              <TurnLogOutcomeBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
               <TurnLogNumber
                 n={t}
                 isOpenInHistory={historyId === t}

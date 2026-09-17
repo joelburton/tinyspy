@@ -97,7 +97,7 @@ number's column, and de-emphasised text inside a row. It is two classes now,
 
 **One file holds four components, and the other concern's files say so.**
 `TurnLog.tsx` is the panel plus the pieces a game builds a row from —
-`TurnLogBar`, `TurnLogNumber`, `TurnLogActor` — which is the packaging exception
+`TurnLogOutcomeBar`, `TurnLogNumber`, `TurnLogActor` — which is the packaging exception
 in [code-conventions.md](../../../docs/code-conventions.md#component-names):
 subparts that live only inside one component, individually small, reached for
 together. Everything belonging to the **viewer** is in its own files, and their
@@ -115,7 +115,7 @@ GameTurnLog                           the GAME's file, one per log game
     ├── picker        = useTurnLogPlayerPicker's result — the panel draws its
     │                   dropdown (a <FilterSelect>, lists/) and its empty line
     └── children      = the game's <tr>s, built from
-          ├── TurnLogBar              the outcome bar cell
+          ├── TurnLogOutcomeBar       the outcome bar cell
           ├── TurnLogNumber           the #N handle  → showHistory(id)
           └── TurnLogActor            the who cell, wrapping <ActorDot> (members/)
 

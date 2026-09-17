@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 import type { ReactNode } from 'react'
 import styles from './historyViewer.module.css'

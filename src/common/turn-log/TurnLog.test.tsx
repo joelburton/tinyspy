@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 /**
  * Tests for <TurnLog> — the shared panel every game's log wears.

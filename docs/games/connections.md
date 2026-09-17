@@ -528,7 +528,7 @@ src/connections/
     GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
                           Renders its OWN two-<tr> rows in the shared <TurnLog> panel
                           (row anatomy is the game's — see playarea.md → Turn log): row 1 =
-                          [<TurnLogBar> ⇣rowSpan 2] | `#N` (the shared <TurnLogNumber>
+                          [<TurnLogOutcomeBar> ⇣rowSpan 2] | `#N` (the shared <TurnLogNumber>
                           history handle) | verdict | actor (right-aligned via
                           the who column) in REAL <td> columns; row 2 spans those columns
                           with the 4 guessed tiles. gameTurnLog.divider on row 1 draws

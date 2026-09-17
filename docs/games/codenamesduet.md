@@ -433,7 +433,7 @@ src/codenamesduet/
                           codenamesduet renders its OWN rows (row anatomy is the
                           game's — see playarea.md → Turn log): a TWO-<tr> turn per
                           turn_number (grouped client-side). Row 1 = real columns
-                          [<TurnLogBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
+                          [<TurnLogOutcomeBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
                           history handle, keyed by turn_number — click to replay that
                           turn on the board) | {count} {WORD} | the
                           clue-giver via <ActorDot> (right-aligned by <TurnLogActor>);

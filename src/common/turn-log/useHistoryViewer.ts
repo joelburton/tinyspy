@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { setInfoSheetOpen } from '../info-sheet/infoSheetStore'

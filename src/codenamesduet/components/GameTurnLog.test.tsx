@@ -6,7 +6,7 @@
  * supabase mocking; just RTL render with props.
  *
  * Each turn renders as TWO `<tr>`s (codenamesduet's own row markup — a clue row
- * + a guess row, with the shared `<TurnLogBar>` rowSpanning both): row 1 is
+ * + a guess row, with the shared `<TurnLogOutcomeBar>` rowSpanning both): row 1 is
  * `# | clue | clue-giver` columns, row 2 spans the turn's guess line. So N turns
  * => 2N rows in DOM order, clue row then guess row.
  *

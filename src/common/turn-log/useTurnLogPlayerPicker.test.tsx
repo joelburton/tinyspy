@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 /**
  * Tests for useTurnLogPlayerPicker — the "whose turns?" dropdown every turn-log

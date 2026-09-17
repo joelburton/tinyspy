@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
@@ -92,7 +92,7 @@ export function GameTurnLog({
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((p) => (
         <tr key={p.seq} className={gameTurnLog.divider}>
-          <TurnLogBar outcome={outcomeFor(p.kind)} />
+          <TurnLogOutcomeBar outcome={outcomeFor(p.kind)} />
           {/* Turn number — the play's 1-based seq; the shared handle opens that
               turn on the board viewer and rings itself while it's open. */}
           <TurnLogNumber

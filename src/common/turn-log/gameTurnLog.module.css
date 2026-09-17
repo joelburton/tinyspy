@@ -1,4 +1,4 @@
-/* cs-met-turn-log */
+/* cs-blessed-turn-log */
 
 /* The row vocabulary — what a GAME's `GameTurnLog.tsx` puts on the `<tr>`s and
  * `<td>`s it renders inside a `<TurnLog>`. Lowercase, because it is read by every
@@ -13,7 +13,7 @@
  * the import alias.
  *
  * The COLUMN-SIZING classes form a small model for a row's cells: an optional
- * `<TurnLogBar>` (col 0), an optional `<TurnLogNumber>`, one (or more) content
+ * `<TurnLogOutcomeBar>` (col 0), an optional `<TurnLogNumber>`, one (or more) content
  * column, and the `<TurnLogActor>` who cell. Exactly ONE content column should be
  * `.main` (it absorbs the row's slack, so it is least likely to wrap); any others
  * are `.other` (sized to their content). Everything but `.main` shrinks to fit, so

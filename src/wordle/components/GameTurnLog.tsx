@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import type { Member } from '@/common/members/member'
 import { tileColor } from '../lib/colors'
@@ -92,7 +92,7 @@ export function GameTurnLog({
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <tr key={`${g.user_id}-${g.seq}`} className={gameTurnLog.divider}>
-          <TurnLogBar outcome={g.is_correct ? 'won' : 'neutral'} />
+          <TurnLogOutcomeBar outcome={g.is_correct ? 'won' : 'neutral'} />
           <TurnLogNumber
             n={i + 1}
             isOpenInHistory={historyId === i}

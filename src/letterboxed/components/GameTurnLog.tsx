@@ -3,7 +3,7 @@
 import type { GamePlayer } from '@/common/members/member'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
@@ -77,7 +77,7 @@ export function GameTurnLog({
     <TurnLog heading="Moves" picker={turnLogPicker} shown={shown}>
       {shown.map((e, i) => (
         <tr key={e.id} className={gameTurnLog.divider}>
-          <TurnLogBar outcome={barFor(e)} />
+          <TurnLogOutcomeBar outcome={barFor(e)} />
           {/* A live handle only when the rows on show ARE the board's rows —
               otherwise a click would replay someone else's chain onto your
               board. */}

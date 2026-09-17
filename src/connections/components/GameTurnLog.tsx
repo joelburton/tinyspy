@@ -3,7 +3,7 @@
 import { Fragment } from 'react'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Category } from '../lib/board'
@@ -94,7 +94,7 @@ export function GameTurnLog({
               `.entryCont` hug the two rows together. The `#N` handle opens that turn
               on the board viewer. */}
           <tr className={cls(gameTurnLog.divider, gameTurnLog.entryHead)}>
-            <TurnLogBar outcome={g.outcome} rowSpan={2} />
+            <TurnLogOutcomeBar outcome={g.outcome} rowSpan={2} />
             {/* The `#N` handle replays that turn on the board — live ONLY when the
                 rows on show ARE the board's (my own, or coop's shared game). On an
                 opponent's log, or the All view, the board still shows mine, so the

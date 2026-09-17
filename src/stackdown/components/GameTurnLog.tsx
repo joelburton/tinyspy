@@ -3,7 +3,7 @@
 import type { Member } from '@/common/members/member'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
@@ -88,7 +88,7 @@ export function GameTurnLog({
           // cheats all viewable), keyed by log POSITION — stackdown's seq is
           // per-user (see lib/history).
           <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
-            <TurnLogBar outcome={outcome} />
+            <TurnLogOutcomeBar outcome={outcome} />
             {/* The "#N" handle opens that turn on the board viewer — live only
                 when the rows on show ARE the board's sequence. The viewer
                 indexes by log POSITION, so a filtered list's row 3 isn't the

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Member } from '@/common/members/member'
@@ -28,7 +28,7 @@ type Props = {
  * `<TurnLog>` table (same chrome psychicnum / connections / codenamesduet use).
  * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
  * `<TurnLogItem>` is retired — docs/playarea.md → Turn log), composing the
- * shared `<TurnLogBar>` + content classes. A swap has no win/lose verdict, so
+ * shared `<TurnLogOutcomeBar>` + content classes. A swap has no win/lose verdict, so
  * every row's outcome bar is `neutral` (gray, like psychicnum's hint rows).
  *
  * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
@@ -77,7 +77,7 @@ export function GameTurnLog({
         // POSITION in the log (mirrors stackdown's GameTurnLog), shown as seq.
         return (
           <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
-            <TurnLogBar outcome="neutral" />
+            <TurnLogOutcomeBar outcome="neutral" />
             {/* The "#N" handle replays that swap on the board — live only when
                 the rows shown ARE the board's (coop's shared game, or my own).
                 An opponent's log, or the All view, can't drive my board. */}

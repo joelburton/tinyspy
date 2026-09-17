@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { Player, GuessRow } from '../hooks/useGame'
@@ -34,7 +34,7 @@ type Props = {
  * the rows from the props it's given, newest snapping into view.
  *
  * Each turn is a single `<tr>` psychicnum renders itself (the row anatomy is the
- * game's — see TurnLog.tsx): the shared `<TurnLogBar>` cell, then the turn number
+ * game's — see TurnLog.tsx): the shared `<TurnLogOutcomeBar>` cell, then the turn number
  * (muted), the word (bold — the important part), the result, and the actor
  * (right-aligned with their identity dot, so the dots line up down the column).
  * Cells use `<TurnLog>`'s content classes so they match other games' logs; the
@@ -103,7 +103,7 @@ export function GameTurnLog({
         if (g.kind === 'hint') {
           return (
             <tr key={g.id} className={gameTurnLog.divider}>
-              <TurnLogBar outcome="near" />
+              <TurnLogOutcomeBar outcome="near" />
               {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `.who` stays snug). */}
@@ -118,7 +118,7 @@ export function GameTurnLog({
         const isReveal = g.kind === 'reveal'
         return (
           <tr key={g.id} className={gameTurnLog.divider}>
-            <TurnLogBar outcome={isReveal ? 'near' : g.is_correct ? 'won' : 'lost'} />
+            <TurnLogOutcomeBar outcome={isReveal ? 'near' : g.is_correct ? 'won' : 'lost'} />
             {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result

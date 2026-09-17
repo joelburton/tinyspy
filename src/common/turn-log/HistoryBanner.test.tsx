@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 /**
  * Tests for <HistoryBanner> — the viewer's "you are looking at a past turn" strip.

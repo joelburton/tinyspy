@@ -2,7 +2,7 @@
 
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import { TurnLog, TurnLogActor, TurnLogBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
+import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import type { EventRow } from '../hooks/useGame'
@@ -89,7 +89,7 @@ export function GameTurnLog({
                 already flags a logged help request with — a hint is neither a
                 find nor a failure, but it is not NOTHING either, which is what
                 the neutral gray said. */}
-            <TurnLogBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
+            <TurnLogOutcomeBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
             <TurnLogNumber
               n={index + 1}
               isOpenInHistory={historyId === index}

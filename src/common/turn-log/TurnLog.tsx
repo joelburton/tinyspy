@@ -1,4 +1,4 @@
-// cs-met-turn-log
+// cs-blessed-turn-log
 
 import { useEffect, useRef, type ComponentProps, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -16,7 +16,7 @@ import history from './historyViewer.module.css'
  * scroll box that auto-snaps to the newest row like a chat panel.
  *
  * **The panel owns no row.** Its children ARE the `<tr>`s the game renders, built
- * from this folder's atoms (`<TurnLogBar>`, `<TurnLogNumber>`, `<TurnLogActor>`)
+ * from this folder's atoms (`<TurnLogOutcomeBar>`, `<TurnLogNumber>`, `<TurnLogActor>`)
  * and the sizing/emphasis classes in `gameTurnLog.module.css`. The only shared
  * contract is "a turn-log item is a `<tr>` inside this table" — doc.md says why.
  *
@@ -97,7 +97,7 @@ export function TurnLog({
  * bar cover the whole turn — pass the number of rows it spans; omit for a normal
  * single-row turn.
  */
-export function TurnLogBar({
+export function TurnLogOutcomeBar({
   outcome,
   rowSpan,
 }: {

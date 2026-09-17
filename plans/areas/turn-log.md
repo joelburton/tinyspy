@@ -4,8 +4,12 @@ The folders it reads: `turn-log`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, audited 2026-09-16, re-read 2026-09-16.** Roster agreed (Joel:
-*"audit this area"*) and stamped `cs-met-turn-log`; every file read, and the docs
+**Status: CLOSED 2026-09-16, blessed.** Audited, re-read and blessed the same
+day: eleven files `cs-blessed-turn-log` (Joel: *"mark the files in this area
+blessed, then close the area and commit"*), after two rulings of his on the
+re-read's work — `TurnLogBar` → `TurnLogOutcomeBar`, and the picker's
+four-deep `fallback` ternary rewritten as `defaultSelection()`. Roster agreed
+(Joel: *"audit this area"*) and stamped `cs-met-turn-log`; every file read, and the docs
 and games around it read as evidence. Thirty-one findings — seventeen from the
 audit; F-18, F-20, F-21 and F-22 found afterwards, by Joel reading the work and
 by the re-read of this file against it; and F-23 … F-31 from the closing re-read
@@ -21,11 +25,12 @@ in a sibling file.
 
 ## The roster
 
-`src/common/turn-log/` — every file `cs-met-turn-log`:
+`src/common/turn-log/` — every file `cs-blessed-turn-log` (`cs-met-turn-log`
+through the audit):
 
 - `TurnLog.tsx` — the panel and the row vocabulary, four components since F-15:
   `TurnLog` (heading row, the scroll box, a `<table>` whose rows are the game's),
-  `TurnLogBar` (the outcome bar cell), `TurnLogNumber` (the `#N` handle that
+  `TurnLogOutcomeBar` (the outcome bar cell — `TurnLogBar` until Joel renamed it after the re-read, 2026-09-16; the findings below say the old name), `TurnLogNumber` (the `#N` handle that
   opens a turn on the board) and `TurnLogActor` (the "who" cell)
 - `HistoryBanner.tsx` — the viewer's banner: the label, the ✕, and the whole
   strip as a click-to-exit target (written by F-14) · `HistoryBanner.test.tsx`
@@ -1362,4 +1367,6 @@ allowlist line that went stale when a fix landed.
       (2026-09-16: both entries are now pointers — the `near` ruling keeps the
       vocabulary and sends the where-to-fix list to `outcome-fix`, and the
       compete-history entry points at `history-always-available`)
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] every file on the roster blessed, or its stamp says why not (Joel,
+      2026-09-16 — eleven files `cs-blessed-turn-log`; `doc.md` and `todo.md`
+      carry no stamp)
