@@ -5,16 +5,24 @@ No folder: every game's move path. The process is [app-audit.md](../app-audit.md
 `outcome-fix` row), this file holds the audit. Owed work lives in each game's
 `todo.md`, not here.
 
-**Status: OPEN — but every finding is settled.** All eleven games worked, the
-closing re-read DONE 2026-09-17, seventeen findings from it (F-5 to F-21)
-recorded below, the doc half and then the code half fixed the same day. The two
-decisions left this file for the games that own them — F-13 is closed in place,
-filed to `src/strands/todo.md`, and F-14 was MOVED WHOLE to
-`src/stackdown/todo.md` (its number is not reused) — and F-18 was ruled and
-fixed. **Not closeable: the five todos the area filed are open,
-and Joel has said the roster will NOT be blessed for this area — its files
-belong to other areas and should not have been stamped for it (what to do with
-the `cs-*-outcome-fix` stamps is his call).** Opened 2026-09-16: the plan and the roster were agreed (Joel: *"yes,
+**Status: CLOSED 2026-09-17 — Joel: *"close outcome-fix"*. NOT BLESSED, and
+deliberately so.** Every other area closes by its roster reading
+`cs-blessed-<area>`; this one cannot, because Joel ruled the same day that its
+files *"belong to other areas and should not have been stamped for it"*. So no
+file was blessed, no stamp was written at the close, and **the 106 files
+carrying `cs-fixed-outcome-fix` / `cs-met-outcome-fix` keep those stamps until
+he says what becomes of them.** What closing means here is only this: every
+finding is settled and nothing is waiting on a reading of this file.
+
+All eleven games worked, the closing re-read DONE 2026-09-17, seventeen
+findings from it (F-5 to F-21) recorded below, the doc half and then the code
+half fixed the same day. The two decisions left this file for the games that
+own them — F-13 is closed in place, filed to `src/strands/todo.md`, and F-14
+was MOVED WHOLE to `src/stackdown/todo.md` (its number is not reused) — and
+F-18 was ruled and fixed. **The five todos the area filed are open where owed
+work lives, in the games' `todo.md`**: setgame's hint ring, psychicnum's
+decided-tile fill, wordle's not-ok ring, connections' `matched`, game-page's
+`verdictTone`. Opened 2026-09-16: the plan and the roster were agreed (Joel: *"yes,
 go ahead. then begin."*) and the roster stamped `cs-met-outcome-fix` —
 eighty-three files, all `cs-unmet` before: the six SQL files; per log game its
 `GameTurnLog.tsx`, `PlayArea.tsx`, `BoardCol.tsx`, `hooks/useGame.ts`,
@@ -1006,10 +1014,13 @@ ruling took the dated lines out of the code altogether.
 - [x] the rule's home in `docs/outcomes.md` says what shipped; each game's
       `docs/games/<game>.md` names its one decision site — the doc half of every
       finding is done, and so is the code half (2026-09-17)
-- [ ] every game's `todo.md` holds what is still owed — F-13 is now strands'
+- [x] every game's `todo.md` holds what is still owed — F-13 is now strands'
       and F-14 is stackdown's (a Soon item in each), and the five items the area
-      filed are still open: setgame's hint ring, psychicnum's decided-tile fill,
-      wordle's not-ok ring, connections' `matched`, game-page's `verdictTone`
-- [ ] the stamps: Joel, 2026-09-17 — the files belong to other areas and will
-      not be blessed for this one; what the `cs-*-outcome-fix` stamps become is
-      his call
+      filed are open where they belong: setgame's hint ring, psychicnum's
+      decided-tile fill, wordle's not-ok ring, connections' `matched`,
+      game-page's `verdictTone`
+- [ ] **the stamps — the one thing this close does NOT settle.** Joel,
+      2026-09-17: the files belong to other areas and will not be blessed for
+      this one, and what the `cs-*-outcome-fix` stamps become is his call. No
+      stamp was written at the close, and none may be: a `cs-blessed` records
+      that Joel read a file, which is a claim only he can make.
