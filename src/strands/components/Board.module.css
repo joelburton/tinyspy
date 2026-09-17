@@ -108,7 +108,7 @@
 /* The "click me again to submit" marker on the most recent tile. A ring
  * OUTSIDE the disc rather than a color change, so it reads as an extra
  * affordance rather than a different kind of selection. */
-/* @@ */ .discLastRing {
+/* @@ */ .ringLast {
   fill: none;
   stroke: var(--strands-active-ring);
   stroke-width: 0.06;
@@ -121,7 +121,7 @@
  * `--history-color`, the same blue the board frame and the log's viewed-row
  * outline take. It was gold until 2026-08-18, left over from when the viewer was
  * yellow: strands was the last game whose ring disagreed with its own frame. */
-/* @@ */ .discViewed {
+/* @@ */ .ringHistory {
   fill: none;
   stroke: var(--history-color);
   stroke-width: 0.1;
@@ -134,13 +134,13 @@
  * reads as emphatically as the other rings, and solid rather than the hint's
  * dashes, because this is one moment's answer to one keystroke, not a standing
  * state. Cleared by `AMBIGUOUS_PICK_FLASH_MS`. */
-/* @@ */ .discAmbiguous {
+/* @@ */ .ringAmbiguous {
   fill: none;
   stroke: var(--outcomes-error-ink-color);
   stroke-width: 0.1;
 }
 
-/* @@ */ .discHint {
+/* @@ */ .ringHint {
   fill: none;
   stroke: var(--strands-hint-ring);
   stroke-width: 0.08;

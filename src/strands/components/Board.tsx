@@ -10,29 +10,29 @@ export type FoundPath = { path: Coord[]; isSpangram: boolean }
 
 type Props = {
   board: BoardLetters
-  /** Found theme words + the spangram. These PERSIST — discs and lines both. */
+  // Found theme words + the spangram. These PERSIST — discs and lines both.
   found: FoundPath[]
-  /** The trace being built right now, in click order. */
+  // The trace being built right now, in click order.
   trace: readonly Coord[]
-  /** Words NOBODY found, drawn only once the solution is revealed: gray, so the
-   *  post-game board shows what was missed without competing with what was
-   *  found. Empty during play. */
+  // Words NOBODY found, drawn only once the solution is revealed: gray, so the
+  // post-game board shows what was missed without competing with what was
+  // found. Empty during play.
   missed?: Coord[][]
-  /** A spent hint's cells: ringed, and deliberately NOT connected — the player
-   *  still has to work out the order. Null when no hint is showing. */
+  // A spent hint's cells: ringed, and deliberately NOT connected — the player
+  // still has to work out the order. Null when no hint is showing.
   hintCoords: Coord[] | null
-  /** Tile click. The reducer decides what it means; the board just reports it. */
+  // Tile click. The reducer decides what it means; the board just reports it.
   onTileClick: (at: Coord) => void
-  /** Frozen at terminal (and while a peer's turn is pending in a turn game). */
+  // Frozen at terminal (and while a peer's turn is pending in a turn game).
   disabled?: boolean
-  /** Replaying a past turn: the board wears the shared history frame. */
+  // Replaying a past turn: the board wears the shared history frame.
   isViewingHistory?: boolean
-  /** The cells the viewed turn traced — ringed, so a rejected word's route is
-   *  visible even though it changed nothing. */
+  // The cells the viewed turn traced — ringed, so a rejected word's route is
+  // visible even though it changed nothing.
   historyLitTiles?: Coord[]
-  /** Cells a typed letter matched when it matched MORE THAN ONE — ringed red for
-   *  a beat, meaning "several of these; click the one you meant". Empty at rest;
-   *  the flash timer lives in the column that feeds this. */
+  // Cells a typed letter matched when it matched MORE THAN ONE — ringed red for
+  // a beat, meaning "several of these; click the one you meant". Empty at rest;
+  // the flash timer lives in the column that feeds this.
   ambiguous?: Coord[]
 }
 
@@ -145,7 +145,7 @@ export function Board({
             it takes the letter back, like any other selected tile. */}
         {trace.length > 0 && (
           <circle
-            className={styles.discLastRing}
+            className={styles.ringLast}
             cx={cx(trace[trace.length - 1][1])}
             cy={cy(trace[trace.length - 1][0])}
             r={0.47}
@@ -157,7 +157,7 @@ export function Board({
         {historyLitTiles.map((c) => (
           <circle
             key={`v${coordKey(c)}`}
-            className={styles.discViewed}
+            className={styles.ringHistory}
             cx={cx(c[1])}
             cy={cy(c[0])}
             r={0.44}
@@ -169,7 +169,7 @@ export function Board({
         {(hintCoords ?? []).map((c) => (
           <circle
             key={`h${coordKey(c)}`}
-            className={styles.discHint}
+            className={styles.ringHint}
             cx={cx(c[1])}
             cy={cy(c[0])}
             r={0.42}
@@ -186,7 +186,7 @@ export function Board({
         {ambiguous.map((c) => (
           <circle
             key={`a${coordKey(c)}`}
-            className={styles.discAmbiguous}
+            className={styles.ringAmbiguous}
             cx={cx(c[1])}
             cy={cy(c[0])}
             r={0.44}

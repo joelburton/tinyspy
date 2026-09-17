@@ -17,6 +17,19 @@
   beside it already answers `hidden` for it.
 
 ## Soon
+
+- **A hint should reveal the spangram last.** `strands.spend_hint` picks the word
+  to ring out of one pool — `solution->'themeWords' || jsonb_build_array(solution->'spangram')`
+  — with `order by random() limit 1`, so the spangram is as likely as any theme
+  word. It should not be: it is the board's centerpiece, the longest word, and
+  the one that touches both sides, so revealing it early gives away more of the
+  grid than any other single reveal and takes the best moment of the solve with
+  it. Prefer every unfound theme word first, and offer the spangram only when
+  nothing else is left. The change is in the `order by` — rank the spangram last,
+  then random within each rank — not in the eligibility filter above it, which is
+  already right (a word found by an equivalent trace still counts as found).
+  Joel, 2026-09-16.
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 8.25rem`, where that last term stands for

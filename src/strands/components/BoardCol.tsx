@@ -18,36 +18,36 @@ import styles from './PlayArea.module.css'
 type Props = {
   board: readonly string[]
   found: FoundPath[]
-  /** Words nobody found, shown only once the solution is revealed. */
+  // Words nobody found, shown only once the solution is revealed.
   missed: Coord[][]
   trace: readonly Coord[]
   hintCoords: Coord[] | null
   onTileClick: (at: Coord) => void
   disabled: boolean
-  /** Replaying a past turn. */
+  // Replaying a past turn.
   isViewingHistory: boolean
-  /** The viewed turn's traced cells, ringed. */
+  // The viewed turn's traced cells, ringed.
   historyLitTiles: Coord[]
-  /** What the banner says about the viewed turn. */
+  // What the banner says about the viewed turn.
   historyLabel: string
   onExitHistory: () => void
-  /** The word being traced, as text. Empty when nothing is selected. */
+  // The word being traced, as text. Empty when nothing is selected.
   echo: string
-  /** Take back the last traced cell — ⌫ and the button, one binding. */
+  // Take back the last traced cell — ⌫ and the button, one binding.
   actDelete: BoundAction
-  /** Submit the trace — Enter and the button, one binding. */
+  // Submit the trace — Enter and the button, one binding.
   actSubmit: BoundAction
-  /** Cells a typed letter matched when it matched several — ringed red for a beat. */
+  // Cells a typed letter matched when it matched several — ringed red for a beat.
   ambiguous: Coord[]
-  /** PlayArea's below-board slot. While it holds a message — a move's result,
-   *  the theme clue, whose turn, the verdict — the pill takes the move row's
-   *  place. */
+  // PlayArea's below-board slot. While it holds a message — a move's result,
+  // the theme clue, whose turn, the verdict — the pill takes the move row's
+  // place.
   localFeedbackSlot: FeedbackSlot
   // ── Hint economy ──
   hintPoints: number
   hintCost: number
   hintShowing: boolean
-  /** Cash a hint — the bar's button IS this binding. */
+  // Cash a hint — the bar's button IS this binding.
   actHint: BoundAction
 }
 

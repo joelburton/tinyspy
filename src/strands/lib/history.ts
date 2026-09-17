@@ -31,7 +31,7 @@ export type HistorySnapshot = {
    */
   hintCoords: Coord[] | null
   /** The banner line: what that turn was. */
-  description: string
+  historyLabel: string
 }
 
 /** What the banner says about a turn, matching the log's own wording so the two
@@ -77,7 +77,7 @@ export function historySnapshot(rows: readonly HistoryRow[], index: number): His
     // A hint's cells go to `hintCoords`, never `historyLitTiles` — see HistorySnapshot.
     historyLitTiles: isHint ? [] : (viewed?.path ?? []),
     hintCoords: isHint ? viewed.path : null,
-    description: !viewed
+    historyLabel: !viewed
       ? ''
       : viewed.kind === 'hint'
         // No word, by design — so the banner names the ACT, and the ring on the

@@ -596,7 +596,26 @@ The four games whose names already turned out to be lying go first.
       - four `Turn-history:` prefixes dropped where the name now says it.
       Clean: `InfoCol`, `GameTurnLog`'s body, the backstop greps. `viewerFinished`
       is here and stays — its "viewer" is the PERSON, the trap the plan names.
-- [ ] **strands** — `.discViewed` known; `hintCoords` is NOT history and stays
+- [x] **strands** — read 2026-09-16. Four things:
+      - `snap` → `historySnap`, `HistorySnapshot.description` → `historyLabel`,
+        and the hook's return was kept whole as `viewer` → **`historyViewer`**
+        (this game and setgame are the two that do not destructure).
+      - **`.discViewed` → `.ringHistory`, and the family split with it.** Joel,
+        mid-read: unless the CSS separates the circle from the border around it,
+        the word should be tile rather than disc. It DOES separate them, and the
+        names were not tracking it — four of the eight `disc*` classes are
+        `fill:` at `r=0.38` (they ARE the disc) and four are `fill: none` +
+        `stroke:` at `r=0.42–0.47` (a ring OUTSIDE the disc, as `discLastRing`'s
+        own comment said). So the fills keep `disc*` and the rings became
+        `ringLast` / `ringHistory` / `ringAmbiguous` / `ringHint`.
+      - the `/**`-on-props pass: 19 members.
+      - `cssClasses.test.ts` caught what the read missed: `e2e/strands-typing`
+        selects `circle[class*="discAmbiguous"]`, which would have waited for an
+        element that could never appear and failed as a timeout reading like
+        flake.
+      Left, per the plan: `hintCoords` is a hint, not history — and the board
+      draws a hint's ring and the history ring with the same vocabulary on
+      purpose ("these cells, no claim about order").
 - [ ] **connections**
 - [ ] **wordle**
 - [ ] **waffle**

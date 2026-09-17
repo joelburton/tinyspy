@@ -34,7 +34,7 @@ const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-cell=
 /** The traced word, as the EntryBox renders it. */
 const entry = (page: Page) => page.getByTestId('entry-value')
 /** Cells ringed red because a typed letter matched more than one of them. */
-const rings = (page: Page) => page.locator('circle[class*="discAmbiguous"]')
+const rings = (page: Page) => page.locator('circle[class*="ringAmbiguous"]')
 
 async function openGame(browser: import('@playwright/test').Browser, handle: string) {
   const club = await createSoloClub(handle)
