@@ -471,7 +471,7 @@ off via `common._advance_turn` — an exchange is a real turn-consuming coop mov
 (There's no coop pass — `pass_turn` is compete-only, which is the rule now in
 question: see Deferred — so only `_commit_word` and `_commit_exchange` carry the
 common gate.) Answers an `ok` · `{result:'exchanged', drawn, version, terminal}`
-in outcome `won` — `terminal` is always false now (an exchange resets the pass
+in outcome `neutral` — `terminal` is always false now (an exchange resets the pass
 streak rather than feeding it, so it can no longer end a game), but the key
 stays in the shape because every move RPC returns it and the FE branches on it
 uniformly. A CAS miss is `PN447`, a race, exactly as `play_word`'s.
@@ -618,7 +618,7 @@ registry's caution tone (`act-pass` — icon-only, left of Submit); and **Submit
 shared component that doubles as the live preview — the triangle pinned left, the
 play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
 width so it never resizes. Submit is enabled for *any* placed tiles; an illegal
-shape isn't disabled-away but surfaces as an error pill on submit. The **info column** holds
+shape isn't disabled-away but surfaces as a `lost` pill on submit. The **info column** holds
 the live turn/score state, the compete `OpponentStrip` (metric "Score"), the
 End/Concede action row (the terminal outcome line at game over), a help line, the
 setup disclosure, and the Moves log filling the rest.

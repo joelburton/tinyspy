@@ -99,15 +99,13 @@ same word.
 outcome: Outcome
 ```
 
-**Any outcome, and there is no turn-log outcome type.** The bar took a
-hand-cut four until 2026-09-15 (`won` / `lost` / `near` / `neutral`), which was
-a second name for a list that already exists and a narrower one — and it was
-load-bearing in the wrong direction: `warning` being unsayable in a log is why
-several games logged a hint as `near`, so their logs and their pills said
-different words about the same turn. `TurnLog.module.css` carries a bar class
-per outcome. Four games did log a hint or a reveal as `near`; none does now — a
-hint is `warning` and a reveal or spoiler is `lost`, and the logs stopped
-choosing words of their own at all (see below).
+**Any outcome, and there is no turn-log outcome type.** A narrower list for
+the log would be a second name for one that already exists, and it is
+load-bearing in the wrong direction: `warning` being unsayable in a log is how
+a hint comes to be logged as `near`, so the log and the pill say different
+words about the same turn. `TurnLog.module.css` carries a bar class per
+outcome. A hint is `warning` and a reveal or spoiler is `lost`, and a log
+chooses no word of its own (see below).
 
 ### Boards and tiles
 
@@ -125,8 +123,9 @@ The two arms reach a pill differently, and the asymmetry is deliberate. A
 `not-ok` is mapped by one shared constructor (`FeedbackMessage.notOk`, reading
 `notOkOutcome`), because severity already says how it should read and fifteen
 boards deriving that separately would drift. An `ok` is **not** mapped: what a successful answer shows is
-game-specific — a pangram's score, a word's length, nothing at all — and no rule
-has been found there yet.
+game-specific — a pangram's score, a word's length, nothing at all — so the pill
+reads the word the envelope carries (`res.outcome`) and composes the sentence
+itself. See One event, one outcome below.
 
 Two rules from there worth repeating, because they are what keep this list from
 sprawling:
@@ -158,10 +157,9 @@ outcome is a frontend that will disagree with the log showing the same row.
 **2 · Where the frontend decides, it decides ONCE.** A move the frontend judges
 alone (a trusting-commit word, a locally-refused guess), or a server answer that
 carries no outcome, is classified in exactly one place — one table, one
-function — and every surface reads it. wordiply was the first worked example and
-nine other games follow it now: `lib/answer.ts` maps the game's answers to
-outcomes, and the pill, the row and the turn log all index that table. The shape
-is written out below.
+function — and every surface reads it. `lib/answer.ts` maps the game's answers
+to outcomes, and the pill, the row and the turn log all index that table. The
+shape is written out below.
 
 **3 · So audit a game by asking the same question three times.** For each event
 a game can produce: what does the pill say, what does the log row say, what does
@@ -169,8 +167,8 @@ the board do? A game passes when one derivation answers all three.
 
 ### How a game does it
 
-The three rules above are the rule; this is the shape eleven games settled into
-when it was applied to all of them, and what a new game should copy.
+The three rules above are the rule; this is the shape a game takes, and what a
+new game copies.
 
 **Each game has a `src/<game>/lib/answer.ts`.** It declares the game's own answer
 words — whatever its rows and its RPC already call them, never a new set — and
@@ -198,9 +196,9 @@ as a row, with no envelope at all, which is why both halves exist.
 **The two halves are one rule in two languages, and each gets its own test.**
 There is no fixture both can read without codegen, so a game pins its SQL half
 with an `outcome` assertion in pgTAP and its frontend half in
-`lib/answer.test.ts`, with a comment in each naming the other. Four games' SQL
-turned out to be asserting nothing at all, which is how their servers had been
-saying a different word from their logs for months.
+`lib/answer.test.ts`, with a comment in each naming the other. An SQL half that
+nothing asserts is how a server comes to say a different word from its log with
+no test going red.
 
 **Two games deliberately have no table, and that is not an oversight.**
 codenamesduet shows no single guess's outcome — a guess is one tile, it answers
@@ -279,10 +277,10 @@ been won, been lost, or was stopped with neither happening. `near` and `warning`
 judge a MOVE, and once the game is over there are no more moves. The terminal
 section is where it gets its full hearing.
 
-The other two narrowings are **open questions**, each filed in the folder that
-has to answer it: connections' `GuessOutcome`, and the info action row's
-`Exclude<Outcome, 'error'>`. That second one was written down here with the
-reason "error is never an outcome", which contradicts this file two screens up:
+The other narrowing is an **open question**, filed in the folder that has to
+answer it: the info action row's `Exclude<Outcome, 'error'>`. It was written
+down here with the reason "error is never an outcome", which contradicts this
+file two screens up:
 `error` is a full member, a game may answer with it, and if one did it would
 take an error pill and an error bar in the log like any other word.
 

@@ -434,6 +434,15 @@ dedups. Exactly the scrabble/spellingbee trusting-commit model.
 
 ## 8. Frontend (`src/boggle/`)
 
+### The one outcome decision (`lib/answer.ts`)
+
+Four answers — `accepted` · `already_found` · `not_legal` · `too_short` —
+mapped to `won` · `warning` · `lost` · `warning`, read by the pill and by the
+board's answer mark through `outcomeFor`, which the shared `useWordSubmit`
+calls for every answer, `accepted` included. No RPC carries an outcome: the
+frontend decides, once. The same table as spellingbee's, for the same reasons
+([spellingbee.md](spellingbee.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
+
 **v3 layout** — the shared two-column scaffold (`common/components/game/PlayArea.module.css`,
 imported as `shared`): a board column + a fixed info column, no full-page scroll
 (per [docs/ui.md](../ui.md) and [docs/playarea.md](../playarea.md)).
@@ -545,7 +554,7 @@ doesn't scroll.
 instantly with no round-trip and commits optimistically: a word in required ∪
 bonus → **+N** (bonus finds get a trailing `•`), committed in the background;
 a miss → not-a-word if it traces on the board (`lib/boardTrace`), else
-not-on-board; too short / duplicate → instant info. The server only records +
+not-on-board; too short / duplicate → an instant `warning`. The server only records +
 dedups the accepted words.
 
 **Setup form.** Dice set · an optional **Custom board** (the tiles, typed — see

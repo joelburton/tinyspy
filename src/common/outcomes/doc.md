@@ -41,7 +41,7 @@ apart from its neighbors is how a vocabulary stops being one.
   fails unless every member has all seven color roles — in both themes, since a
   separate check there holds the two theme files to one token set.
 - **A subset is `Extract`ed from the list and lives with its consumer**, not
-  here: `TerminalOutcome` in `common/terminal/`, `GuessOutcome` in connections.
+  here: `TerminalOutcome` in `common/terminal/`.
   Cutting it from `Outcome` means renaming a member breaks the subset instead of
   quietly leaving it behind, and keeping subsets out of this folder stops it
   becoming a catalog of everyone's special cases.

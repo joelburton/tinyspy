@@ -36,7 +36,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Every key the app listens for: dispatch routing, the global shell shortcuts, per-game board keys |
 | [docs/pdf.md](docs/pdf.md) | Printing boards to PDF: the printable design language + the shared `common/pdf/` helpers |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
-| [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-help rule |
+| [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-hint rule |
 | [docs/game-status-labels.md](docs/game-status-labels.md) | Every game's title + club-page status line, per play state |
 | [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work + the index of per-game registers (see its "Where an item goes") |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |

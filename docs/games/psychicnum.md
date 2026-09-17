@@ -31,7 +31,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - A **board of N words** (N = `word_count`, 5–20, chosen at setup), sampled from `common.words` at create-game time under a clean (`crude=0 AND slur=0`) + `american` + non-`slang` + `difficulty ≤ band` filter. **Three of the board words are secret**; the same three for everyone, and players win by finding **all three** (by clicking a word tile or typing the word).
 - The board words are **public** (you see and click them). The three secrets are **hidden server-side** — clients can't tell which words are secret during play even with devtools open — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic) below.
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
-- **Two helpers, both free + logged in the turn log, neither finds the secret or decrements the budget** (a hint's row is amber, a spoiler's red — see the one outcome decision below):
+- **A hint and a spoiler, both free + logged in the turn log, neither finds the secret or decrements the budget** (a hint's row is amber, a spoiler's red — see the one outcome decision below):
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
   - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." Its button stays the amber bare-eye even though a spoiler's outcome is red — a button's tone is about the move you are about to make, where the outcome is about what happened; the red boxed-eye Reveal is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
   - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). Row and button are the same bound action ([common/actions](../../src/common/actions/doc.md)), so neither can drift from the other.
@@ -74,7 +74,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `found_secrets_count` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
-| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); the turn log renders a hint amber and a spoiler red. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
+| `guesses` | Append-only log of every guess, **hint and spoiler**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); the turn log renders a hint amber and a spoiler red. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
 
@@ -219,17 +219,11 @@ The first three **board** words alphabetically, uppercased and dash-joined (e.g.
 
 It must **not** reference the secrets, because `common.games.title` is club-wide readable and would put them in plain sight — and it doesn't: the board words are shown to every player anyway, and three of them in alphabetical order say nothing about *which* three are secret. The column-level grant on `psychicnum.games.secrets` (described in [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)) stays the canonical "true server-side secret." (We don't care about friends peeking via devtools — see [CLAUDE.md → Trust model](../../CLAUDE.md) — but the secrets shouldn't sit in a label-shaped column that exists for a different purpose.)
 
-### `psychicnum.submit_guess(target_game uuid, guess text) → text`
+### `psychicnum.submit_guess(target_game uuid, guess text) → jsonb`
 
-The only mid-game guess action. The guess must be one of the board words (compared case-folded — the player clicks a tile or types a board word). There are three secrets; players win by finding all three, so a correct guess no longer ends the game by itself — only the one that completes the set does. Returns one of:
+The only mid-game guess action. The guess must be one of the board words (compared case-folded — the player clicks a tile or types a board word). There are three secrets; players win by finding all three, so a correct guess does not end the game by itself — only the one that completes the set does. It answers an envelope — `won` for a hit, `lost` for a miss, `warning` for a word already guessed — with `{ verdict, found_all }` in `data` (the table under "What it answers" below).
 
-- `'won'` — found the last needed secret; caller (compete) / team (coop) wins. Terminal.
-- `'correct'` — found a secret. Usually the game continues; it can also be the guess that empties the budget, which ends the game — still `'correct'`.
-- `'wrong'` — missed.
-
-The FE flashes green for `'won'`/`'correct'`, red for `'wrong'`; the terminal transition it observes via realtime, not the return value.
-
-**The return value is the caller's verdict on their own guess, never the game's fate.** There's deliberately no `'lost'`: the budget-exhausting guess used to return one whichever way the guess itself went, so a *correct* guess that happened to empty the budget flashed a red "Incorrect" for a beat before the terminal verdict replaced it. Every other way this game ends (timeout, concede, a compete opponent finishing) already reaches the FE by realtime; the exhaustion loss now does too, and the RPC's three values answer only "did I hit a secret?" *(Fixed 2026-08-02.)*
+**The answer is the caller's verdict on their own guess, never the game's fate.** The budget-exhausting guess answers by what the guess did — a hit that empties the budget is still `won` — and every way the game ends (the exhausted budget, timeout, concede, a compete opponent finishing) reaches the FE by realtime, so the pill never flashes a loss over a correct guess.
 
 **Mode-aware budget decrement:**
 - Coop: decrements every `psychicnum.players` row.
@@ -299,7 +293,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### `psychicnum.request_hint(target_game uuid)` and `request_reveal(target_game uuid)`
 
-Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
+Two RPCs, `request_hint` and `request_reveal`, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
 
 - **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer). Teammate pill: "X revealed a word". Surfaced as the mid-game **Spoiler** button.
 - **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word). Teammate pill: "● X got hint".
@@ -537,7 +531,7 @@ See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-speci
 | file | covers |
 |---|---|
 | `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.{guesses,word_count}` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in connections's create_game test), `is_current_view` flips via `common.games`, title formula, `word_count` board words + three secrets drawn from them, column-level grant blocks SELECT of `secrets`. |
-| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `found_secrets_count`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` answers `hint` or `no-hint` and logs the clue, `request_reveal` answers `reveal` and logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
+| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), a hit answers `won` (`verdict: hit`) and bumps `found_secrets_count`, the last hit flips `play_state`, a miss answers `lost` and decrements (per-mode), re-guessing a taken word rejected, `request_hint` answers `hint` or `no-hint` and logs the clue, `request_reveal` answers `reveal` and logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `secrets IS NULL` while active and the actual array once status is terminal — exercising both the `security_invoker` row-gating and the `_secrets_for` helper's CASE. |
 | `tests/psychicnum/concede_test.sql` | The compete-only elimination concede: a concede keeps the game going while an opponent still has budget; everyone conceding ends it (`lost_compete`, no winner); coop is rejected. |
 | `tests/psychicnum/end_game_test.sql` | The manual stop in BOTH modes: the uniform `play_state='ended'` + `status.outcome='manual'` + everyone's `result={won:false}`; idempotency (a second call raises P0001); non-player rejection. |
@@ -584,7 +578,7 @@ helpers live in [docs/pdf.md](../pdf.md).
 ## Deferred
 
 Nothing outstanding. (The budget-exhausting *correct* guess that flashed
-"Incorrect" was fixed 2026-08-02 — see [`submit_guess`](#psychicnumsubmit_guesstarget_game-uuid-guess-text--text).)
+"Incorrect" was fixed 2026-08-02 — see [`submit_guess`](#psychicnumsubmit_guesstarget_game-uuid-guess-text--jsonb).)
 
 ## Won't do
 

@@ -220,11 +220,10 @@ Builds the title (per the formula above), calls `common.create_game` with the `'
 
 The FE-side validation happens in `useWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
 
-1. `tooShort` — length < `minWordLength` (4)
-2. `badLetters` / `missingCenter` — the reject reason from the legal-list lookup miss (`explainReject`)
-3. `notAWord` — not in the shipped `required ∪ bonus` list
-4. `alreadyFound` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
-5. otherwise accepted: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
+1. `too_short` — length < `minWordLength` (4)
+2. `not_legal` — not in the shipped `required ∪ bonus` list; `explainReject` says which rule it broke (a letter off the board, the center letter missing, or simply not a word)
+3. `already_found` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
+4. otherwise `accepted`: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
 
 **What each of those five is WORTH is `lib/answer.ts`'s** — four answers
 (`accepted` · `already_found` · `not_legal` · `too_short`) mapped to `won` ·
@@ -563,7 +562,7 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 3. RPC validates, inserts a `found_words` row, updates `common.games.status`, possibly fires the terminal flip.
 4. Realtime UPDATE event on `spellingbee.found_words` reaches `useGame`'s `useRealtimeRefetch`; `load()` re-reads `games_state` + `found_words`.
 5. `setGame({...})` + `setFoundWords(...)` re-render `PlayArea`.
-6. The submission's `{ result, points }` drives the feedback pill — the `result` enum (`'pangram'` / `'accepted'` / `'bonus'` / `'tooShort'` / …) picks the tone + copy, and `points` appends "+Npts" for results that scored.
+6. The pill was already shown before the RPC fired — `useWordSubmit` decides the answer from the shipped list and `lib/answer.ts` gives it its outcome — so the `ok` answer's `{ result, points }` changes nothing the pill says; only a not-ok does, by releasing the word.
 7. `useRecentlyFound` flags the new word as recent for 5s → `<WordList>` underlines it in the finder's color.
 
 ### "End game" menu wiring
@@ -582,15 +581,15 @@ When `isTerminal` flips true:
 The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`. Rank names come straight off the shared ladder — `RANKS[idx]` from [`rankLadder`](../../src/shared/rank-ladder/rankLadder.ts) — and a rank naming the GOAL is quoted (`"Amazing"`); the neutral `Ended:` verdict names the rank reached, unquoted.
 
 **Coop** (`targetRankIdx` = `setup.target_rank`, null for the open-ended hunt):
-- `won` → tone won, verdict `Won: "<target rank>" N/M points` — the rank NAMED is the one they set out for; the score can overshoot it.
-- `lost` → tone lost, verdict `Lost: ran out of time` (only reachable with a target set: the countdown beat them to it).
-- `ended` → tone neutral, verdict `Ended: <current rank> N/M points` — the open-ended hunt finishing, or an early stop; the same sentence at every rank (Genius included): they didn't fail at anything.
+- `won` → outcome `won`, verdict `Won: "<target rank>" N/M points` — the rank NAMED is the one they set out for; the score can overshoot it.
+- `lost` → outcome `lost`, verdict `Lost: ran out of time` (only reachable with a target set: the countdown beat them to it).
+- `ended` → outcome `neutral`, verdict `Ended: <current rank> N/M points` — the open-ended hunt finishing, or an early stop; the same sentence at every rank (Genius included): they didn't fail at anything.
 
 **Compete** (`targetRankIdx` also read from `setup.target_rank` — the canonical, immutable source; every terminal writer re-emits `status.target_rank` too, but reading setup means the verdict never depends on a status round-trip):
-- `won_compete` + caller is winner → tone won, verdict `Won: "<target rank>" N/M points`.
-- `won_compete` + caller is NOT winner → tone lost, verdict `<winner-name> won at "<target rank>"` — rendered with the winner's identity dot as the pill's node; no "Lost:" prefix, the loss is implicit in "they won".
-- `lost` → tone lost, verdict `Lost: all conceded` (the branch written for the all-conceded collective loss).
-- `lost_compete` with `outcome='timeout'` → tone lost, verdict `Lost: ran out of time`.
+- `won_compete` + caller is winner → outcome `won`, verdict `Won: "<target rank>" N/M points`.
+- `won_compete` + caller is NOT winner → outcome `lost`, verdict `<winner-name> won at "<target rank>"` — rendered with the winner's identity dot as the pill's node; no "Lost:" prefix, the loss is implicit in "they won".
+- `lost` → outcome `lost`, verdict `Lost: all conceded` (the branch written for the all-conceded collective loss).
+- `lost_compete` with `outcome='timeout'` → outcome `lost`, verdict `Lost: ran out of time`.
 - `ended` (manual) → the shared neutral `gameEndedTerminalMessage('compete')`: `Game ended — no winner`.
 
 ### Realtime channels

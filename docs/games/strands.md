@@ -270,8 +270,8 @@ and `invalid` are the game's rules applied to a move that genuinely happened —
 and nothing local was consulted first, so there is no stale copy losing a race:
 strands ships **no word list to the client**, and the frontend deliberately does
 not gate on `min_word_length`. The server's verdict is the first anyone knows.
-Their outcomes (`warning`, `warning`, `lost`) are the ones `resultFor` was
-already choosing, moved into the answer; `message` stays null because the
+Their outcomes (`warning`, `warning`, `lost`) are `lib/answer.ts`'s, and the
+envelope says the same word; `message` stays null because the
 result's text is the shared `WORD — body` format four other games speak.
 
 **What IS a `not-ok`** is a trace this board could not have produced, or a move
@@ -326,7 +326,7 @@ connecting line**, so the player still works out the order.
   can only ring one word legibly.
 - **Not turn-gated.** Spending is a decision about a team resource, not a move.
 - **Logged as a turn.** `spend_hint` writes one `events` row (`kind = 'hint'`),
-  so a spent hint takes an ordinary numbered position in the log — a `neutral`
+  so a spent hint takes an ordinary numbered position in the log — a `warning`
   bar, a lightbulb glyph, "Hint used" where a word would be, and a live `#N`
   that replays its ring. **One row, attributed to whoever cashed it**, even in
   coop where the counters fan out to every player: a shared pool still has a
@@ -444,7 +444,7 @@ its discs at any size.
 
 **Every log row leads with a verdict GLYPH** — trophy (spangram), star (theme
 word), check (valid word), X (rejected) — from the shared icon registry, named
-for the outcome rather than for this game so another word game's log can reuse
+for the verdict rather than for this game so another word game's log can reuse
 them. Two jobs: an eye running down the log sorts finds from misses without
 reading a word, and it is the NON-COLOR encoding of the same fact, which the
 PDF printer will need — [pdf.md](../pdf.md) prints in three shades of gray,

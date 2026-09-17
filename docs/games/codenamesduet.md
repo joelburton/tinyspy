@@ -336,8 +336,8 @@ The trust model here is "we're not the gatekeeper of cheating" — a clue-giver 
 
 ## The one outcome decision (`lib/turnOutcome.ts`)
 
-**codenamesduet is the one game on the roster with no `lib/answer.ts`**, and the
-reason is that nothing here shows a single guess's outcome.
+**codenamesduet has no `lib/answer.ts`** (waffle is the other game without one,
+for its own reason), because nothing here shows a single guess's outcome.
 
 A guess answers with a REVEAL, and the board says it — so the pill deliberately
 stays silent on all five `ok` answers. Where the turn log prints the guessed
@@ -467,7 +467,8 @@ src/codenamesduet/
                           turn on the board) | {count} {WORD} | the
                           clue-giver via <ActorDot> (right-aligned by <TurnLogActor>);
                           row 2 spans those content columns with the guesses (each
-                          colored by reveal outcome) — or "(clue given)" while the
+                          in its key-card color: agent / bystander / assassin, not
+                          an outcome) — or "(clue given)" while the
                           turn is still live, "(no guesses)" once it ended empty.
                           gameTurnLog.divider on row 1 draws the between-turns
                           line. Per-turn outcome from lib/turnOutcome.ts.
@@ -511,9 +512,10 @@ src/codenamesduet/
     setup.ts              CodenamesduetSetup type + DEFAULT_CODENAMESDUET_SETUP. PlayArea
                           casts `ctx.setup as CodenamesduetSetup` to read the turn cap.
     turnOutcome.ts        Pure per-turn outcome verdict for the GameTurnLog bar:
-                          any assassin → 'bad'; only neutrals → 'bad' (a wasted
-                          turn is a setback); mixed agent+neutral → 'partial'; all
-                          agents (≥1) → 'good'; no guesses (passed) → 'neutral'.
+                          any assassin → lost; only bystanders → lost (a wasted
+                          turn is a setback); mixed agent+bystander → near; all
+                          agents (≥1) → won; no guesses (passed) → neutral. See
+                          "The one outcome decision" above.
     turnOutcome.test.ts   Pure unit test of the above.
     history.ts            The turn-history replay (pure + unit-tested). Given the fixed 25
                           board words + the guess log + a turn's clue, reconstruct the board

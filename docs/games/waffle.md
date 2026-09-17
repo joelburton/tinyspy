@@ -266,7 +266,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   (a second call raises `P0001 'game is not in progress'`, swallowed by the FE).
   Same "realtime touch" tail as `submit_timeout` so the FE refetches and reveals
   the solution. The FE renders a plain "Game ended" outcome line
-  (`tone:'neutral'` — no win green, no loss red; the copy says there's no
+  (`outcome: 'neutral'` — no win green, no loss red; the text says there's no
   winner). `buildOver` / `labelFor` both branch on `'ended'` before their
   win/lose branches. Modeled exactly on `spellingbee.end_game`.
 - **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
@@ -404,6 +404,16 @@ Two details the formula is careful about:
 
 ## Frontend (`src/waffle/`)
 
+### The one outcome decision — and why there is no `lib/answer.ts`
+
+waffle has one move kind. `submit_swap` deliberately carries no outcome and no
+message (the colors reach everyone together over realtime), no pill reports a
+swap at all, and the log's bar is `neutral` on every row — the word for a turn
+that counted and that nothing adjudicates. One move, one word, one reader, so
+there is no table; the decision is stated where it is made, in
+`GameTurnLog.tsx`. The g/y/x tile colors are the board's own vocabulary, not
+outcomes. See [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 The FE follows the v3 conventions (see [ui.md](../ui.md)): a refused swap, the
 locally-terminal "waiting" state, whose turn it is, and the terminal verdict all show
 through the local feedback slot's `<FeedbackPill>` in the `.belowBoard` slot (a
@@ -415,8 +425,8 @@ Concede) and disables the grid — and Concede goes gray once you have SOLVED, s
 conceding would forfeit a win already banked; the `.infoCol` follows the canonical **state →
 opponent strip → action row → help → setup → log** order; the `OpponentStrip` carries
 a `metricLabel="Swaps"`; and the turn log renders its own `<tr>` rows. An opponent
-solving reads as `success` (green), the same green a found word always reads as (tone
-follows the event, not the viewer's stake).
+solving reads as `won` (green), the same green a found word always reads as (the
+outcome follows the event, not the viewer's stake).
 
 Mirrors the other game folders:
 
@@ -523,8 +533,9 @@ there. Instead, a **coop solve** pops the shared **`CelebrationBlockingModal`**
 win** (the `playState → 'won'` flip lands on every connected client via the
 realtime refetch, so the group celebrates together); opening an already-won
 game shows nothing, and a replay-board → second solve celebrates again. Gated
-on `playState === 'won'`, not `over.outcome` (manual-end reuses
-`outcome:'won'` for styling), and coop-only — a compete win is one player's,
+on `playState === 'won'`, not `over.outcome` (`over` needs `game.mode`, which
+is null until `useGame`'s fetch lands and would fake a flip on every mount of a
+won game; and a manual end is `neutral` anyway), and coop-only — a compete win is one player's,
 carried by the pill/action row. The coop win's in-page verdict (pill + outcome
 line) is **golf-style against par** — "Par +2", or "Par!" for matching it (par
 is the generator's minimum, so under-par can't happen) — rather than a generic

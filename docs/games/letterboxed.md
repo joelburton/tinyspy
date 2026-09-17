@@ -222,7 +222,7 @@ the call site.
 
 ---
 
-## 6. Help — two rungs, computed on the FE
+## 6. Hints — two rungs, computed on the FE
 
 **Coop only.** Under "first past the bar wins," an optimal suggestion is a
 straight-up win button — whoever clicks fastest wins — so both rungs are
@@ -643,9 +643,9 @@ on the board.
 **Turn log** (`GameTurnLog`): one `<tr>` per event in the shared `<TurnLog>`
 atoms, with coverage as its own column (`7/12`) so the numbers line up. Bar
 colors: a **played word is green** (landing a legal word on this board is
-unambiguously progress, unlike a wordle guess), **help is amber** (matching the
-Hint/Spoiler buttons), retreats are **neutral** (in turn-coop an undo is a
-sacrifice made for the next player — red would misdescribe it). Every word is
+unambiguously progress, unlike a wordle guess), **a hint is amber** and **a
+spoiler red** (it hands the word over), retreats are **blue** — `noted`, news
+rather than a verdict — every word from `lib/answer.ts` (§6). Every word is
 click-to-define. The shared whose-moves picker applies (coop "Team" + players;
 compete "All", defaulting to you; a rival's rows fill in at terminal).
 
@@ -654,7 +654,7 @@ compete "All", defaulting to you; a rival's rows fill in at terminal).
 ([`lib/history.ts`](../../src/letterboxed/lib/history.ts)) is a **fold**, which
 is the payoff of the events table being append-only: a chain isn't a board that
 accumulates, it's a stack that can also shrink, so `historyChainAt` just runs the four
-rules forward — `played` push, `undone` pop, `cleared` empty, help nothing. The
+rules forward — `played` push, `undone` pop, `cleared` empty, a hint or a spoiler nothing. The
 boundary is **inclusive** (viewing move N shows the chain *after* it — the only
 reading that makes an `undone` row show anything at all, since its whole content
 is the word no longer being there). `#N` is live only when the shown rows are
@@ -685,7 +685,7 @@ slot's "Waiting for ● moth" covers whose-turn on the phone surface. See
 
 **Coop peer narration** (`usePeerFeedback`): a teammate's word changes *my*
 board, so the header says so — `● moth TRACE (7/12)`, "undid TRACE" (named, so
-peers know which word came off), or "cleared the chain". Help narrates on two
+peers know which word came off), or "cleared the chain". A hint or a spoiler narrates on two
 channels at once — the header names the act, the local slot carries the
 content (see §6 Hints). Compete has no narration — the race ends on first solve and the
 OpponentStrip already shows live progress (wordiply and strands are the same).
@@ -698,8 +698,8 @@ compete's for whoever got there first ("All twelve! 🐍").
 The **track family** (`common/pdf/columns`, three to a page): coop is one
 "Team" track, compete one per player whose chain is visible — mid-race that's
 just yours (`players_state` masks rivals), at terminal everyone. Each track:
-the square, the standing, the numbered chain, the full move log — retreats and
-help included, because "what did we try?" is most of what a finished game is
+the square, the standing, the numbered chain, the full move log — retreats,
+hints and spoilers included, because "what did we try?" is most of what a finished game is
 worth keeping.
 
 A covered letter moves its encoding from color to **weight**: a heavy black
@@ -716,7 +716,7 @@ playing. `->` not `→` (WinAnsi).
 | | coop | compete |
 |---|---|---|
 | chain | **one, shared** — every player's row lock-stepped; anyone submits (or turn-by-turn, opt-in) | **private per player**, same board; rivals see only letters-covered + word-count |
-| help | Hint + Spoiler, unpenalized, logged | **none** — either rung is a win button |
+| hints | Hint + Spoiler, unpenalized, logged | **none** — either rung is a win button |
 | ends | all twelve covered (won) / timeout (lost) / manual (ended) | **first to cover all twelve within the cap — the race ends** / timeout resolves on coverage / all-conceded / manual |
 | undo / clear | undo refunds; costs a turn in turn-coop; clear refused there (no FE surface anywhere) | undo your own chain freely |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
@@ -752,7 +752,7 @@ realtime-publication memberships are guarded centrally
 (`supabase/tests/common/realtime_publication_test.sql`); the gametype
 registrations by `clubs_gametypes_test.sql`.
 
-**Vitest** (`src/letterboxed/`): `lib/solve.test.ts` (the help BFS — shortest
+**Vitest** (`src/letterboxed/`): `lib/solve.test.ts` (the hint BFS — shortest
 path, the greedy tie-break, stuck vs unreachable), `lib/history.test.ts` (the
 fold + the inclusive boundary), `lib/customBoard.test.ts` (the typed-board
 reader — the `formatSides`/`parseSides` round trip, separators ignored, short

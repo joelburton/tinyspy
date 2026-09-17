@@ -485,11 +485,12 @@ pill.
   (via `keyOf: (user_id, seq)`), bootstrapping quietly on the first loaded render so
   a reconnect doesn't replay the backlog. Each *new* teammate submission fires a
   **global** header feedback pill — carrying the teammate's identity disc (`● moth
-  found SCARE` / `● moth tried FOOFS — not a word` [error] / `● moth revealed a hint`
-  / `● moth revealed a word` [warning]) — and, for a played word, `messageFor` also
-  calls back into PlayArea (`onPeerWord`) to flash that word (green/red) in the entry
-  row. No-ops off coop (compete hides peers' submissions) and skips the caller's own
-  rows (those are reported in the local below-board slot / ring instead).
+  found SCARE` [won] / `● moth tried FOOFS` [lost] / `● moth revealed a hint`
+  [warning] / `● moth took a spoiler` [lost], every word from `lib/answer.ts`) —
+  and, for a played word, `messageFor` also calls `markPeerWord` to mark that
+  word's tiles on the board in the same outcome. No-ops off coop (compete hides
+  peers' submissions) and skips the caller's own rows (those are reported in the
+  local below-board slot / ring instead).
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
@@ -506,10 +507,10 @@ pill.
   stack), `WordEntry`
   (the five-slot word under the board; clicking a slot returns that tile and
   every tile after it. When nothing's being spelled it flashes a word for ~1s
-  — PlayArea's `flash` timer, cleared early when a new word starts: green for
-  the player's own just-accepted word OR a teammate's valid find, red for a
-  teammate's rejected word. The flash carries plain letters, not tile ids, so
-  it can show a teammate's word whose tiles this client never picked up),
+  — PlayArea's `flash` timer, cleared early when a new word starts: the
+  player's own just-accepted word, in `lib/answer.ts`'s word for it. The flash
+  carries plain letters, not tile ids, because an accepted word's tiles have
+  already left the board),
   `GameTurnLog` (the info-column submission log — heading "Turns" — rendered on
   the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar,
   whose word comes from `lib/answer.ts` — see **The one outcome decision** below.
@@ -536,7 +537,7 @@ pill.
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
   order, so an ambiguous letter can't pick for you). No match shows a local
-  **error** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
+  **lost** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
   ("N 'X' tiles are on top — click one") AND briefly outlines the candidate tiles
   in red (an `ambiguousTiles` set passed to `Board`). Keys aimed at chat or an input
   never reach an action at all — that gate is the dispatcher's.

@@ -424,7 +424,7 @@ tints. What each one says, and when it ends:
 | `.selected` — thick black border | this tile is in the guess being built, **whoever picked it** (coop's four tiles are one shared move) | on submit, or Clear |
 | `.peerPick` — an inset border in a player's color | whose pick it was. On a SHARED board (coop, 2+ players) every pick is ringed, mine included; solo and compete, none are | with the selection |
 | `.dimInFlight` | the guess is with the server | when the answer lands |
-| `.verdictFill` + `.verdictError` / `.verdictNear` / `.verdictWarning` | the answer, filling the four tiles in its PILL's tone: red "Incorrect", gold "One away!", orange "You already tried that". A correct guess has no mark — those tiles become a band on the same render | my next action, a teammate's guess, or a restart |
+| `.verdictFill` + `.verdictLost` / `.verdictNear` / `.verdictWarning` | the answer, filling the four tiles in its PILL's outcome: red "Incorrect", gold "One away!", orange "You already tried that". A correct guess has no mark — those tiles become a band on the same render | my next action, a teammate's guess, or a restart |
 | `.attentionFlash` on a BAND | a category resolved under someone else's hands | ~0.7s |
 | board: `.dimNotYourTurn` / `.yourTurnFlash` / `.gameOverFrame` | turn-order and terminal state | with the state |
 
@@ -522,7 +522,7 @@ src/connections/
                           in coop) and passes down to BoardCol.
                           **Feedback splits local vs group** (like psychicnum; see ui.md +
                           deferred.md → Feedback channels): my OWN guess result shows
-                          green/amber/red as a `result` in the local feedback slot
+                          green/gold/red as a `result` in the local feedback slot
                           (the shared `<FeedbackPill>`, in the fixed-height `.localFeedback`
                           slot), dismissed on the next move; a teammate's
                           guess is a `peer` message in the header ("● Bea found category"). Only coop reaches
@@ -722,7 +722,7 @@ Promoted out of inline test fixtures because every connections test needs them a
 | `src/connections/lib/localOrder.test.ts` | The per-player local-shuffle ordering helpers (shuffle + reset). |
 | `src/connections/lib/history.test.ts` | The turn-history snapshot boundary (bands strictly-before, THIS turn's tiles still on the grid) + outcome tinting. |
 | `src/connections/hooks/useGame.test.ts` | The realtime-channel lifecycle: the stable `connections:<gameId>` room and the effect's load-bearing dependency array (resubscribes on gameId, not on unread values). |
-| `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. Plus the board FEEDBACK wiring — which mark lands on which element, for whom, and when it ends: the identity ring (everyone's on a shared board, nobody's solo or in compete), the in-flight dim and the verdict fill in its pill's tone, the band attention flash (a teammate's guess only; silent on the reveal), the four board-scope marks, and the mark's three deaths (my next action, a teammate's guess, a restart). |
+| `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. Plus the board FEEDBACK wiring — which mark lands on which element, for whom, and when it ends: the identity ring (everyone's on a shared board, nobody's solo or in compete), the in-flight dim and the verdict fill in its pill's outcome, the band attention flash (a teammate's guess only; silent on the reveal), the four board-scope marks, and the mark's three deaths (my next action, a teammate's guess, a restart). |
 | `src/connections/manifest.test.ts` | `startGameInClub`: creates via `create_game`, sends NO `puzzleId` when the setup carries none (how the server is told to choose) and passes an explicit one through when given. The find-or-create + roster-mismatch paths it used to guard are gone with the picker. |
 | `supabase/tests/strands/next_puzzle_test.sql` | `next_puzzle_for_club` (strands' copy; connections' is its twin): ascending, per-PLAYER not per-club, across clubs, and the exhausted case raising `no-unplayed-puzzle|`. |
 

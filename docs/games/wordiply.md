@@ -436,7 +436,7 @@ repeating.
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
 | ends | after the team's 5th guess / timeout / manual `end_game` | once every active player has spent 5 / timeout / concede |
-| terminal verdict | "Ended: **N%**, M letters" — neutral tone (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
+| terminal verdict | "Ended: **N%**, M letters" — outcome `neutral` (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row surface, and coop
@@ -447,6 +447,19 @@ board. A real fork, resolved in [Decisions](#10-decisions).
 ---
 
 ## 7. Frontend
+
+### The one outcome decision (`lib/answer.ts`)
+
+Five answers — `accepted` · `too_short` · `missing_base` · `not_a_word` ·
+`already_found` — mapped to `won` · `lost` · `lost` · `warning` · `warning`.
+The pill, the board's answer mark and the log bar all index that table; the
+shared `useWordSubmit` routes every answer, `accepted` included, through this
+game's `outcomeFor`, and the log reads a row's `reason`, which is the server's
+word for the same answer (so `answerFor` splits the engine's one "not legal"
+into `missing_base` / `not_a_word` before indexing). No RPC carries an outcome
+here: the frontend decides, once. A word the list does not know is a
+`warning` rather than a loss, because this game is asking you to try strange
+words. See [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, one folder
 (the sibling-manifest pattern — psychicnum is canonical; wordwheel follows it line-for-line).
@@ -481,7 +494,8 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   lookup is membership in the shipped `legalWords` Set (points = the word's **length**, so the
   hook's per-word value IS the length), `commit` calls the `submit_guess` RPC (and surfaces a
   server `{ok:false}` as a release). `minWordLength = base.length + 1`; `explainReject`
-  distinguishes "must contain BASE" from "not a word". A rejected guess never hits the server.
+  distinguishes "must contain BASE" from "not a word". A rejected guess is decided on the FE
+  and then recorded through `recordReject` (§7b).
   **An accepted word shows no result** (`hideAccepted` — the row already shows the word +
   its length); only rejections show, as `result` messages in the local slot.
 - **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` + `InfoCol`,
