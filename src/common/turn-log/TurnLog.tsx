@@ -152,7 +152,7 @@ export function TurnLogNumber({
     <td className={styles.meta}>
       <span
         className={cls(styles.turnNumber, isOpenInHistory && history.historyNumber)}
-        title="Click to view this turn on the board"
+        data-tooltip="Click to view this turn on the board"
         data-turn-number
         onClick={onShowHistory}
       >

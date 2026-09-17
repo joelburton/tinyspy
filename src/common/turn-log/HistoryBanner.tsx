@@ -15,10 +15,15 @@ import styles from './historyViewer.module.css'
  *
  * `onExit` is `useHistoryViewer`'s `exitHistory`. The whole banner is a
  * click-to-exit target and the ✕ is the visible way to do it; both call it.
+ * Neither carries a tooltip: an ✕ that closes the thing it sits in needs no
+ * explaining.
  */
 export function HistoryBanner({ label, onExit }: { label: ReactNode; onExit: () => void }) {
   return (
-    <div className={styles.historyBanner} onClick={onExit} title="Click to exit">
+    // `data-history-banner` is the spec handle (the repo's `[data-board]` /
+    // `[data-cell]` convention). The specs matched `[title="Click to exit"]`
+    // until the title went, which is a brittle way to find anything.
+    <div className={styles.historyBanner} onClick={onExit} data-history-banner>
       <span className={styles.historyBannerLabel}>{label}</span>
       <button
         type="button"

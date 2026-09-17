@@ -44,7 +44,7 @@ test.describe('waffle turn-history viewer', () => {
     // ── Open the viewer via the swap's handle: the banner appears over the
     // below-board region and the board must not reflow.
     await handles.first().click()
-    const banner = page.locator('[title="Click to exit"]')
+    const banner = page.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
     expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)
 

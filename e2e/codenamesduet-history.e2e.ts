@@ -69,10 +69,10 @@ test.describe('codenamesduet turn-history viewer', () => {
     const liveHeight = await boardHeight(pageBob)
 
     // ── Open the viewer: click the turn's "#N" handle (a <span>, not the row). The
-    // description banner appears over the below-board slot (its "Click to exit"
-    // title is a stable handle).
+    // description banner appears over the below-board slot, found by its
+    // `data-history-banner` marker.
     await handle.click()
-    const banner = pageBob.locator('[title="Click to exit"]')
+    const banner = pageBob.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await expect(banner).toContainText('BREAD') // "#1: 1 BREAD → …"
 

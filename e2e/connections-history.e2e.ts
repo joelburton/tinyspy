@@ -50,7 +50,7 @@ test.describe('connections turn-history viewer', () => {
     // ── Open the viewer via the turn's #N handle: the banner names the turn; the
     // board must not reflow (the banner overlays a fixed-height slot).
     await handle.click()
-    const banner = page.locator('[title="Click to exit"]')
+    const banner = page.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await expect(banner).toContainText(/matched/i) // "Matched WORDS STARTING WITH A"
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)

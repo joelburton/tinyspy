@@ -12,8 +12,8 @@ F-4 turned up: every file in the repo that called the shared history marker
 yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
 bug, the banner component, and the history vocabulary — the last including its
 ten-game meaning-based sweep. **F-22 is worked too**, and it CLOSED F-6 and F-7
-by deleting the props they were about, and **F-8** is worked. **Nine findings
-wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
+by deleting the props they were about, and **F-8 and F-10** are worked. **Eight
+findings wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
 and by the re-read of this file against it.
 
 ## The roster
@@ -328,6 +328,27 @@ tooltips folder's hook, if it can attach to a `<span>` handle the way it does
 to the header's marks; (2) drop the attribute — the hover tint already says
 "clickable", and the `#N` reads the same in every game; (3) leave. Recommend
 (1), to be confirmed with the tooltips API open; (2) if it cannot.
+
+**WORKED 2026-09-16, and there were TWO**, the second one mine: F-14 carried
+`title="Click to exit"` into `<HistoryBanner>` verbatim from the nine
+hand-written banners. Joel ruled them separately:
+
+- **the banner gets no tooltip at all** — *"the 'x' for the history banner
+  doesn't need a tooltip of any kind. 'x'-to-close is obvious."*
+- **the `#N` handle gets the app's own bubble**, `data-tooltip`. Confirmed
+  possible first: `TooltipHost` delegates by `closest('[data-tooltip]')`, so it
+  attaches to any element — letterboxed's `ChainStrip` and crosswords' `Controls`
+  already do it off a button. `DefinableWord`'s documented exception (the native
+  title, because a hundred definable words in a list would trail popups) was
+  offered as a reason to keep the native one here too, and not taken.
+
+**And the specs stopped matching on wording** — Joel: *"matching by title or
+exact label is inherently flaky."* Three unit assertions found the handle by
+`getByTitle('Click to view this turn on the board')` and six e2e found the
+banner by `[title="Click to exit"]`; when the title went, all nine would have
+failed for a reason that reads like a bug in the app. They match the marker now:
+`data-history-banner` on the banner (new, the repo's `[data-board]` convention),
+and the `#N`'s own text for the handle.
 
 ### F-turn-log-11 · `color-black-literal` · `.turnNumber:hover { color: black }`
 

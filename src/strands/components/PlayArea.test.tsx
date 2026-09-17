@@ -344,7 +344,8 @@ describe('strands PlayArea — a letter extends the trace', () => {
     render(<WithKeys {...makeCtx()} />)
     expect(stateOf('act-extend-trace')).toBe('active')
 
-    await user.click(screen.getByTitle('Click to view this turn on the board'))
+    // The "#N" handle, by its text rather than a tooltip's wording.
+    await user.click(screen.getByText(/^#\d+$/))
     expect(stateOf('act-extend-trace')).toBe('disabled')
     await press({ key: 'w' })
     expect(tracedCells()).toBe(0)

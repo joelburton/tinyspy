@@ -47,7 +47,7 @@ test.describe('wordle turn-history viewer', () => {
     // ── Open the viewer via turn #2's handle: the banner names the turn (its
     // guessed word) and overlays the below-board region; the board must not reflow.
     await handles.nth(1).click()
-    const banner = page.locator('[title="Click to exit"]')
+    const banner = page.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await expect(banner).toContainText(`Guess 2: ${words[1]}`)
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)

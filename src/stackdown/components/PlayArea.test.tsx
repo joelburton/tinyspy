@@ -86,6 +86,11 @@ function playerRow(user_id: string, over: Partial<PlayerRow> = {}): PlayerRow {
   return { user_id, found_count: 0, solved: false, solved_at: null, ...over }
 }
 
+/** The "#N" handle in the log row holding `cell` — by its marker, never by its
+ *  wording (the shared `<TurnLogNumber>` sets `data-turn-number`). */
+const handleIn = (cell: HTMLElement) =>
+  within(cell.closest('tr')!).getByText(/^#\d+$/)
+
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 const twoRows = [playerRow('u1'), playerRow('u2')]
 
@@ -314,13 +319,9 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     expect(screen.queryByText('L')).not.toBeInTheDocument()
 
     // Open the viewer via the turn's "#N" handle (the click target is the number,
-    // not the row). The CLEAR row has two titled controls — the #N handle + the
-    // definable word — so target the handle by its title.
-    await user.click(
-      within(screen.getByText('CLEAR').closest('tr')!).getByTitle(
-        'Click to view this turn on the board',
-      ),
-    )
+    // not the row). Found by its marker rather than its words: the row also holds
+    // a definable word, and matching on wording breaks when the wording changes.
+    await user.click(handleIn(screen.getByText('CLEAR')))
 
     // Viewing turn 0: the viewer banner shows the description, and CLEAR's
     // tiles are back on the historical board (nothing was cleared before it).
@@ -338,11 +339,7 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     h.result = historyHook()
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
 
-    await user.click(
-      within(screen.getByText('Hint: a fruit').closest('tr')!).getByTitle(
-        'Click to view this turn on the board',
-      ),
-    )
+    await user.click(handleIn(screen.getByText('Hint: a fruit')))
 
     // The hint's description now also appears in the banner (2 = log row + banner).
     expect(screen.getAllByText('Hint: a fruit')).toHaveLength(2)
