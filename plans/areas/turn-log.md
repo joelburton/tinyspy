@@ -10,8 +10,10 @@ games around it read as evidence. Seventeen findings; **the prose pass — F-1
 to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
 F-4 turned up: every file in the repo that called the shared history marker
 yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
-bug, the banner component, and the history vocabulary. Ten findings wait for a
-decision each, F-18 among them.
+bug, the banner component, and the history vocabulary — the last including its
+ten-game meaning-based sweep. **Twelve findings wait for a decision each**:
+F-18, F-20 and F-21 were found after the audit, by Joel reading the work and by
+the re-read of this file against it.
 
 ## The roster
 
@@ -29,17 +31,21 @@ decision each, F-18 among them.
   (`.main` / `.other` / `.primary` / `.meta` / `.who`, the divider, the
   multi-row hug)
 - `TurnLogActor.tsx` — the "who" cell: the `.who` `<td>` around `ActorDot`
-- `useHistoryViewer.ts` — which past turn is open, `select` / `exitViewing`,
-  click-anywhere-to-exit, and the `act-exit-viewer` binding
+- `useHistoryViewer.ts` — which past turn is open, `showHistory` /
+  `exitHistory`, click-anywhere-to-exit, and the `act-exit-history` binding
 - `useHistoryViewer.test.ts`
-- `historyViewer.module.css` — the viewing look: the board `.frame`, the
-  `.viewedNumber` ring, the `.banner` over the input area and its label and ✕,
-  `.bannerHost`, scrabble's `.sharePreview` recolor
+- `historyViewer.module.css` — the viewing look: the board `.historyFrame`, the
+  `.historyNumber` ring, the `.historyBanner` over the input area with its label
+  and ✕, `.historyBannerHost`, scrabble's `.peerPreview` recolor
 - `useTurnLogPlayerPicker.tsx` — the "whose turns?" dropdown, its default, the
   row filter, `boardIsShown`, the honest empty line
 - `useTurnLogPlayerPicker.test.tsx`
 - `doc.md` (lede + intro + Details, written in the prose pass) · `todo.md`
   (one Bug, three Soons)
+
+**Everything above is as of 2026-09-16, after F-9, F-14 and F-19 shipped** —
+the roster's own names moved under it, which is the hazard
+[[feedback_reread_the_header_after_a_fix]] names.
 
 Evidence, read and left:
 
@@ -47,20 +53,22 @@ Evidence, read and left:
   crosswords, spellingbee, wordwheel), which compose rows from this folder's
   atoms — psychicnum's single-row and codenamesduet's two-row turn read in
   full; the ten `PlayArea.tsx` that hold `useHistoryViewer` (every log game
-  but wordiply) and the nine `BoardCol.tsx` that draw the banner by hand.
+  but wordiply) and the ten `BoardCol.tsx` that place the banner (they drew it
+  by hand until F-14).
 - `docs/playarea.md` → Turn log, Whose turns?, Turn-history viewer, Per-game
   history-viewer specifics, What building it taught us; `docs/ui.md` → the
   `handle` button kind, "Styled tooltips, not the native `title`";
   `docs/outcomes.md` → the `TurnOutcome` story; `docs/deferred.md` → the
-  hand-written banner ✕; `docs/mobile.md`, `naming.md`, `code-conventions.md`,
+  banner ✕ (rewritten by F-14 — it is a one-file look question now); `docs/mobile.md`, `naming.md`, `code-conventions.md`,
   `pdf.md` each once.
 - `info-sheet/infoPanel.module.css` (`.heading`, `.headerRow`, `.box` — the
   panel wears them), `lists/FilterSelect.tsx`, `members/ActorMention.tsx`,
   `members/memberList.ts`, `actions/useBoundAction.ts`,
   `core-css/patterns/empty-state.css`, `themes/daylight.css` (the five tokens
   the two stylesheets read all resolve), `core-css/base.css` → the z ladder.
-- `e2e/codenamesduet-history.e2e.ts` and the six other `*-history.e2e.ts`
-  that click a `[data-turn-number]` handle.
+- `e2e/codenamesduet-history.e2e.ts` and the five other `*-history.e2e.ts`
+  (six in all) that click a `[data-turn-number]` handle. **None of them clicks
+  the banner ✕** — found at F-14, which is why `HistoryBanner.test.tsx` exists.
 - `src/guards/vocabularies.test.ts` names both stylesheets in its `pending`
   allowlists (a guard is not roster).
 
@@ -72,9 +80,9 @@ each game renders its own `<tr>`s from a small vocabulary this folder supplies
 (an outcome bar cell, a `#N` cell, a who cell, sizing and emphasis classes, a
 divider, a two-row hug), so eleven logs look alike without sharing a row shape.
 **The viewer** is one piece of state — which past turn is open on the board —
-with three ways out that every game gets for free: a keystroke (the hook binds
-the any-key `act-exit-viewer`), a click anywhere but another `#N`, and the
-banner's ✕. What a past board LOOKS like is each game's `lib/history.ts`; what
+with three ways out: a keystroke (the hook binds the any-key
+`act-exit-history`) and a click anywhere but another `#N`, both free, plus the
+banner's ✕, which the game places and the shared `<HistoryBanner>` draws. What a past board LOOKS like is each game's `lib/history.ts`; what
 it wears while viewing is this folder's stylesheet — a blue frame on the board,
 a blue ring on the open `#N`, an opaque banner over the input area. **The
 seam** is `boardIsShown`: the picker knows whether the rows on show are the
@@ -309,22 +317,24 @@ to the header's marks; (2) drop the attribute — the hover tint already says
 A literal ink where the vocabulary has `--page-text-strong-color` (`#000000`).
 Options: (1) the token; (2) leave. Recommend (1).
 
-### F-turn-log-12 · `z-index-literal` · `.banner { z-index: 5 }` is not on the ladder
+### F-turn-log-12 · `z-index-literal` · `.historyBanner { z-index: 5 }` is not on the ladder
 
 The z ladder in `base.css` says a rung migrates when its component's area is
 audited. The banner overlays the below-board input inside the board column,
 so `5` works only because it competes with nothing above the column's own
-stacking. Options: (1) `var(--z-board)` — the banner is part of the play
+stacking. (The class was `.banner` when this was written; F-19 renamed it.) Options: (1) `var(--z-board)` — the banner is part of the play
 surface; (2) measure whether anything under it is positioned with a z-index
 at all and drop the declaration if not; (3) leave. Recommend (2) then (1):
 measure first.
 
 ### F-turn-log-13 · `unnamed-effects` · Two bare-arrow effects in the hook, one under a nine-line header
 
-`useHistoryViewer.ts`: the click-anywhere effect (line 73) has the longest
-comment in the file and no name — `exitOnClickAway`; the ref-sync effect
-(line 60) has a two-line comment — `syncViewingIdRef`. Options: (1) name
-both; (2) name only the first. Recommend (1).
+`useHistoryViewer.ts`: the click-anywhere effect — the one with the longest
+comment in the file — has no name; nor does the ref-sync effect above it. Names:
+`exitOnClickAway` and `syncHistoryIdRef` (it was `syncViewingIdRef` when this was
+written; F-19 renamed the ref). The handler inside the first, `onDocClick`, says
+where it is bound rather than what it does. Options: (1) name both effects and
+the handler; (2) name only the click-anywhere effect. Recommend (1).
 
 ### F-turn-log-14 · `banner-drawn-nine-times` · The viewing banner's markup is hand-written in nine games; this folder owns only its classes
 
@@ -722,15 +732,65 @@ sheet as `styles`, not `history`). And `git ls-files` skips UNTRACKED files, so
 the three files this area had just written were silently absent from every
 sweep until `git add -N`.
 
+### F-turn-log-20 · `board-is-shown-says-nothing` · The picker's history gate is named for its premise, not its answer
+
+`useTurnLogPlayerPicker` returns `boardIsShown`, and F-19's rule reaches it:
+every consumer is a history decision, and the name mentions neither history nor
+the decision. Seven games gate on it, all in the same shape —
+
+    {who.boardIsShown ? (
+      <TurnLogNumber n={i + 1} isOpenInHistory={…} onShowHistory={…} />
+    ) : (
+      <td className={turnLog.meta}>#{i + 1}</td>
+    )}
+
+— and the two that key a turn by a stable id say in their docstrings that they
+IGNORE it (codenamesduet by `turn_number`, scrabble by `seq`), which is the
+tell: a value whose documentation is about who does and does not consult it for
+one purpose is named for that purpose. `boardIsShown` states the premise ("the
+board is showing these rows"); what a caller wants is the answer.
+
+Options: (1) `canOpenHistory` — the question the call site asks, and `can…`
+cannot be read as anything but a boolean; (2) `historyIsAddressable` — truer to
+the mechanism (a filtered log's row 3 is not the board's turn 3) and clumsier;
+(3) leave. Recommend (1). The doc.md Details paragraph "`boardIsShown` is false
+more often than it looks" moves with it, as does `playarea.md` → Whose turns?,
+which explains it under that name.
+
+### F-turn-log-21 · `turn-number-is-the-history-control` · The `#N` handle's three names say "turn number", and one of them exists only for the viewer
+
+`TurnLogNumber`, `.turnNumber` and `data-turn-number` are the component, the
+class and the DOM marker of one thing. They divide differently than the names
+suggest:
+
+- **`data-turn-number` has exactly one functional reader**, and it is the
+  history hook: `useHistoryViewer`'s click-anywhere-to-exit does
+  `closest('[data-turn-number]')` to tell "the user is selecting a turn" from
+  "the user clicked away". Nothing else in `src/` reads it; the three
+  `*-history.e2e.ts` that use it as a selector are driving the viewer. It is a
+  history mechanism wearing a name about numbering.
+- **`TurnLogNumber` and `.turnNumber` are more arguable.** The cell is a turn's
+  number in every game; what makes it a CONTROL is the history viewer, and when
+  `boardIsShown` is false the games render a plain `<td>` instead — so the
+  component is "the number, as a handle" and the class styles the handle.
+
+Options: (1) the marker alone becomes `data-history-handle` (one hook, one test,
+three e2e selectors) and the component and class stay — the split the code
+actually has; (2) all three take history names (`HistoryHandle`,
+`.historyHandle`, `data-history-handle`), which reads better in
+`useHistoryViewer` and worse in a game's log, where the cell really is the turn
+number; (3) leave. Recommend (1).
+
 ## What checked out
 
 - The `<span>`-not-`<button>` rule for `#N` is the same in `TurnLog.tsx`, the
   stylesheet and `ui.md`'s `handle` kind, and the reason (Space is the exit)
   holds against `useHistoryViewer`.
-- `viewingIdRef` has its one promised reader (scrabble's PlayArea);
-  `competeSharesOneGame` its two (scrabble, setgame); `boardIsShown` is read
-  by every position-keyed game; `.entryHead` / `.entryCont` by exactly the two
-  multi-row logs (codenamesduet, connections); `.sharePreview` by scrabble.
+- `historyIdRef` (was `viewingIdRef`) has its one promised reader (scrabble's
+  BoardCol, via its PlayArea); `competeSharesOneGame` its two (scrabble,
+  setgame); `boardIsShown` is read by every position-keyed game; `.entryHead` /
+  `.entryCont` by exactly the two multi-row logs (codenamesduet, connections);
+  `.peerPreview` (was `.sharePreview`) by scrabble.
 - All eleven logs put `.turnLogDivider` on the turn-start row; all eleven pass
   the picker as `headerAction` and its `emptyText`.
 - Every token the two stylesheets read resolves in `daylight.css`, and the
@@ -755,19 +815,27 @@ sweep until `git add -N`.
 
 ## Predicted test breaks
 
-F-6, F-7, F-8 and F-9 change the panel's props: `tsc -b` fails at every
-`<TurnLog>` site that stops matching (eleven files), no runtime spec. F-13
-changes nothing observable. F-16 renames a file the vocabularies guard names
-three times (its `pending` rows) and that `outcomes.md` / `playarea.md` link
-— the link guard catches the docs, the stamp guard needs `git mv`. F-17
-changes the word five games' logs paint; any per-game spec asserting `near`
-on a help row moves with it. F-14 replaces markup the seven `*-history.e2e.ts`
-click through by text (✕) — they should hold, and they are the proof.
+**Still ahead.** F-6, F-7 and F-8 change the panel's props: `tsc -b` fails at
+every `<TurnLog>` site that stops matching (eleven files). F-13 changes nothing
+observable. F-16 renames a file the vocabularies guard names three times (its
+`pending` rows) and that `outcomes.md` / `playarea.md` link — the link guard
+catches the docs, the stamp guard needs `git mv`. F-17 changes the word five
+games' logs paint; any per-game spec asserting `near` on a help row moves with
+it.
+
+**What actually happened, for calibration.** F-9 did fail `tsc` at all eleven
+sites as predicted — but the prediction's "no runtime spec" was itself the
+finding (`TurnLog.test.tsx` is new). F-14's prediction was wrong twice: there
+are SIX `*-history.e2e.ts`, not seven, and none of them clicks the ✕, so they
+proved nothing about it. F-19 was caught by two guards nobody had predicted —
+`cssClasses.test.ts` on an e2e selector, and `orphanedDocstrings.test.ts` on an
+allowlist line that went stale when a fix landed.
 
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group — with the
       effect-name grep over every file touched
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (the
+      prose pass, 2026-09-16)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
