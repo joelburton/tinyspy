@@ -19,9 +19,9 @@ export type Answer = 'hit' | 'miss' | 'hint' | 'reveal' | 'not_on_board'
  * **The log bar, a teammate's line and the refusal pill all read THIS**, and
  * `submit_guess` / `request_reveal` / `request_hint` say the same words in their
  * envelopes (the pill for a guess reads it from there). They are views of one
- * turn, and deriving the outcome per view is exactly how they drift — which they
- * did: a miss was `neutral` on the server and red on every surface at once, and
- * a spoiler was amber in the pill and gold in the log.
+ * turn, and deriving the outcome per view is exactly how they drift: a miss is
+ * one event, and the server, the pill and the log each choosing its color are
+ * three chances to disagree about it.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *

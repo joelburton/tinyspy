@@ -17,8 +17,8 @@ export type Answer =
  *
  * **The pill, the guess row and the turn log all read THIS.** They are three
  * views of one event, and deriving the outcome three times is exactly how they
- * drift — which they did: a word the dictionary refused was red in the pill,
- * amber in the log and neither on the board, all at once.
+ * drift: a word the dictionary refuses is one answer, and three surfaces each
+ * choosing its color are three chances to give it three.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *

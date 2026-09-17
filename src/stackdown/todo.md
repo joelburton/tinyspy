@@ -118,6 +118,34 @@
   `labelFor` and its in-game verdict treat `ended` in COMPETE as neutral, since
   nobody won is not the same as everyone losing.
 
+- **One keystroke, two words: the ambiguous letter's pill says `warning` and its
+  tile ring says `error`.** Typing a letter that matches more than one exposed
+  tile shows `FeedbackMessage.result('warning', 'N "X" tiles are on top — click
+  one')` in `BoardCol.tsx`, and flashes the candidates through `.flash` in
+  `Board.module.css`, which draws `--outcomes-error-ink-color`. The pill and the
+  board mark are ONE message (plans/tile-feedback.md — the mark wears the pill's
+  outcome), so they should not differ.
+
+  `.flash`'s own comment argues for the red it uses: *"the ERROR red, not the
+  lost red: nothing has been judged here, and the outcome vocabulary's `error`
+  is the member that never means a judgment"*. That reading is the one
+  `docs/outcomes.md` explicitly retired — *"`error` is a full member… a game may
+  answer with it, and if one did it would take an error pill and an error bar in
+  the log like any other word"* — so `error` is not a neutral "look here" color
+  going spare. The comments around the branch say "red" too, and would move with
+  whatever is decided.
+
+  Two ways out:
+  1. **the ring takes the pill's word** — `.flash` draws
+     `--outcomes-warning-ink-color`, and the keystroke has one verdict on two
+     surfaces. This is the recommendation the audit made.
+  2. **the ring stops being a verdict** — it is a "look here" cue like setgame's
+     hint ring, outside the outcome vocabulary, and is renamed and re-tokened to
+     say so.
+
+  Found by the `outcome-fix` audit (its F-14); the other keystroke refusal — no
+  matching tile, `lost` in the pill, no ring — is fine either way.
+
 ## Someday
 
 - `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is

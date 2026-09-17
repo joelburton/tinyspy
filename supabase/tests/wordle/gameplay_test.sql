@@ -51,11 +51,10 @@ select pg_temp.envelope_is(
   'too-short entry is a fault');
 
 -- The WHOLE envelope, not just `result`. BoardCol reads three things off this
--- answer — the case, the sentence and the outcome — and used to guess the last
--- two (`res.message ?? ''`, `res.outcome ?? 'lost'`) because one branch served
--- both soft rejects. The branches are split now and the guesses are gone, so if
--- the server ever stops sending the pair, this answer matches no branch and
--- screams. That is the behavior worth pinning.
+-- answer — the case, the sentence and the outcome — and guesses at none of
+-- them: each soft reject has its own branch, so if the server ever stops
+-- sending the pair, this answer matches no branch and screams. That is the
+-- behavior worth pinning.
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), 'zzzzz'),
   '{"type":"ok","outcome":"lost","message":"Not in word list",
@@ -122,8 +121,7 @@ select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
 -- The outcome is asserted with it. src/wordle/lib/answer.ts gives the row this
 -- wrote the same word, and the log bar wears that — one rule, two languages,
--- a test in each. The non-solving guess above is the half that changed on
--- 2026-09-17 (`lost` → `neutral`) with nothing here to catch it.
+-- a test in each.
 select is((select (res->>'outcome') from winres), 'won',
   'a solving guess is won');
 select is((select (res->'data'->>'terminal')::boolean from winres), true,

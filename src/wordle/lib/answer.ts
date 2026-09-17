@@ -23,9 +23,7 @@ export type Answer = 'correct' | 'incorrect'
  * did not solve the board is NOT a bad move. You are meant to spend guesses —
  * the colors it comes back with are the whole mechanism, and a five-letter word
  * that rules out four letters has done its job. So a non-solving guess is
- * `neutral`: a turn that counted and that nothing adjudicates. (The server said
- * `lost` until 2026-09-17 and no surface believed it; the log had said
- * `neutral` all along.)
+ * `neutral`: a turn that counted and that nothing adjudicates.
  */
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   correct: 'won',

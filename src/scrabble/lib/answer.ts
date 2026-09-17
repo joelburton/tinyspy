@@ -25,15 +25,13 @@ export type Answer = PlayRow['kind']
  *   - a **word** is the move this game is made of, and it scores: `won`.
  *   - an **exchange** is not. Swapping tiles is buying a better rack at the
  *     cost of a turn, and whether it pays off shows up two moves later — so it
- *     is a turn that counted and that nothing adjudicates. (The server called it
- *     `won` until 2026-09-17, which made trading tiles read like scoring.)
+ *     is a turn that counted and that nothing adjudicates. Calling it `won`
+ *     would make trading tiles read like scoring.
  *   - a **pass** is the same shape with nothing bought.
  *   - a **forfeit** is the row `end_game` writes when a coop table stops with
  *     tiles still in hand, carrying their value as a negative score. It is
  *     `neutral` too: the table decided to stop, which is not a defeat, and the
- *     negative number in the row already says what it cost. (The log called it
- *     `lost` while a teammate's line called it `neutral` — the same row, two
- *     words.)
+ *     negative number in the row already says what it cost.
  *
  * Three of four being `neutral` is the honest shape: scrabble adjudicates the
  * PLAY and lets the score carry everything else.

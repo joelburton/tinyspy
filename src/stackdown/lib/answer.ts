@@ -18,9 +18,9 @@ export type Answer = 'accepted' | 'invalid' | 'hint' | 'reveal'
  * **The log bar, the board tiles, the entry slots and a teammate's line all read
  * THIS**, and the RPC's envelope says the same word for the same event (the pill
  * reads it from there). They are views of one turn, and deriving the outcome per
- * view is exactly how they drift — which they did: a spoiler was amber in the
- * pill and gold in the log, and a hint was gold in the log while the server
- * called it amber.
+ * view is exactly how they drift: a spoiler is one event, and the pill, the log
+ * and the server each choosing its color are three chances to disagree about
+ * what it was.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *

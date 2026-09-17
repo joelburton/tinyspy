@@ -686,10 +686,9 @@ begin
     -- still a correct guess to the person who made it.
     --
     -- A miss is `lost`: the budget is what you spend to play, and a wrong guess
-    -- spends some of it for nothing. `neutral` — news rather than a verdict —
-    -- was the word here until 2026-09-17, and no surface believed it: the pill,
-    -- the log and a teammate's line all said red anyway. The frontend's
-    -- lib/answer.ts now says the same word for the row this wrote.
+    -- spends some of it for nothing — `neutral`, news rather than a verdict, is
+    -- not what the pill, the log and a teammate's line all say about it. The
+    -- frontend's lib/answer.ts says the same word for the row this wrote.
     return common.ok_envelope(
       jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
                          'found_all', false),

@@ -5,11 +5,13 @@ No folder: every game's move path. The process is [app-audit.md](../app-audit.md
 `outcome-fix` row), this file holds the audit. Owed work lives in each game's
 `todo.md`, not here.
 
-**Status: OPEN — all eleven games worked, the closing re-read DONE 2026-09-17,
-seventeen findings from it (F-5 to F-21) recorded below, the doc half fixed and
-the MECHANICAL code half fixed the same day. What is left of the re-read is two
-decisions (F-13 strands' pill, F-14 stackdown's ambiguous ring) and F-18's
-archaeology sentences. Not closeable: the five todos the area filed are open,
+**Status: OPEN — but every finding is settled.** All eleven games worked, the
+closing re-read DONE 2026-09-17, seventeen findings from it (F-5 to F-21)
+recorded below, the doc half and then the code half fixed the same day. The two
+decisions left this file for the games that own them — F-13 is closed in place,
+filed to `src/strands/todo.md`, and F-14 was MOVED WHOLE to
+`src/stackdown/todo.md` (its number is not reused) — and F-18 was ruled and
+fixed. **Not closeable: the five todos the area filed are open,
 and Joel has said the roster will NOT be blessed for this area — its files
 belong to other areas and should not have been stamped for it (what to do with
 the `cs-*-outcome-fix` stamps is his call).** Opened 2026-09-16: the plan and the roster were agreed (Joel: *"yes,
@@ -590,13 +592,14 @@ re-read and update docs"*): `docs/outcomes.md`, `common/outcomes/doc.md`,
 connections, wordle, strands, letterboxed, spellingbee, wordiply, boggle,
 wordwheel, waffle and psychicnum.
 
-**The MECHANICAL code half is FIXED too, the same day** (Joel: *"please do the
-mechanical findings"*) — F-5, F-6, F-7, F-8, F-10, F-11, F-12, F-15, F-16,
-F-17, F-21, and F-18's one wrong date. `tsc -b`, eslint, vitest (341 files /
-3266 tests) and pgTAP (178 files / 2489 tests) are green, and the four
-`"outcome":null` pins were verified by planting a wrong word and watching the
-suite fail. **What is left is the two DECISIONS (F-13, F-14) and F-18's
-archaeology sentences, which are Joel's call.**
+**The CODE half is FIXED too, the same day.** First the mechanical findings
+(Joel: *"please do the mechanical findings"*) — F-5, F-6, F-7, F-8, F-10, F-11,
+F-12, F-15, F-16, F-17, F-21 — then F-18's ruling. `tsc -b`, eslint, vitest
+(341 files / 3266 tests) and pgTAP (178 files / 2489 tests) are green, and the
+four `"outcome":null` pins were verified by planting a wrong word and watching
+the suite fail. The two decisions went to the games that own them: F-13 is
+closed below, filed to `src/strands/todo.md`, and F-14 was moved whole to
+`src/stackdown/todo.md`.
 
 ### F-outcome-fix-5 · `psychicnum-spoiler-comment` · the `request_reveal` header still says the spoiler is `warning`
 
@@ -859,19 +862,10 @@ list. Options: (1) pass `res.outcome` into `resultFor` and let the table serve
 the row readers only — the rule as written; (2) keep it and write strands
 down as the exception in `outcomes.md`, with the reason. Recommend (1): the
 comment beside it (*"the outcome travels in the envelope"*) already argues for
-it. DECISION.
+it.
 
-### F-outcome-fix-14 · `stackdown-ambiguous-ring-is-error` · one keystroke, two words
-
-F-3 ruled the keystroke refusals pill-only and left their words as literals.
-But the ambiguous-letter keystroke has TWO surfaces: the pill says `warning`
-(*"N “X” tiles are on top — click one"*) and the candidate tiles ring in
-`.flash`, which `Board.module.css` paints with `--outcomes-error-ink-color` —
-the word for a real failure, which no move may wear. The comments around it
-say "red". Options: (1) the ring reads `--outcomes-warning-ink-color`, the
-pill's word; (2) the ring is a "look here" cue outside the outcome vocabulary,
-like setgame's hint ring, and is renamed/re-tokened to say so. Recommend (1) —
-it is a verdict on the keystroke, and it should be the same verdict. DECISION.
+**CLOSED here 2026-09-17** (Joel): option (1), FILED as a Soon item in
+`src/strands/todo.md` — it is that game's work, not this area's.
 
 ### F-outcome-fix-15 · `peer-line-literals` · a teammate's accepted word is `'won'` by hand
 
@@ -948,9 +942,18 @@ is not useful."* Written by this area, in outcome comments:
   date matches its commit; "ruled 2026-09-16" lines are ruling dates and are
   right.
 
-Whether the undated "which they did" sentences stay is Joel's call — they are
-the argument for the table's existence, told as history, and they are LEFT
-standing. The wrong date is **FIXED** (psychicnum.sql now says 2026-09-17).
+**RULED 2026-09-17 and FIXED**, Joel taking the recommendation: **the dated
+lines are cut**, and **the "which they did" sentences stay — in the present
+tense**, without the clause that makes them history.
+
+The dated ones were pure archaeology: nobody reading `useWordSubmit` needs what
+it said yesterday, and the date rots into a puzzle. The others are doing the
+work a docstring owes its caller — they answer *"why is there a table at all?"*
+— and they answer it just as well as a condition: *"a spoiler is one event, and
+the pill, the log and the server each choosing its color are three chances to
+disagree about what it was."* Nine files lost a date, six `lib/answer.ts` were
+rewritten (psychicnum's too, which this finding had not listed), and the one
+wrong date went with them rather than being corrected.
 
 ### F-outcome-fix-19 · `counts-in-the-outcome-docs` · **FIXED**
 
@@ -993,7 +996,8 @@ anywhere for `GuessOutcome`, `RESULT_FOR_OUTCOME`, `OUTCOME_FOR_RESULT`,
 and nothing else chooses a word; its PDF field is `revealed` everywhere in
 code. waffle's bar is `neutral` and its docstring says why. The bee family's
 `outcomeFor` all index their tables and every table covers `accepted`. Every
-date in the area's prose matches `git log` except the one in F-18.
+date in the area's prose matched `git log` except the one in F-18 — and F-18's
+ruling took the dated lines out of the code altogether.
 
 ## Closing
 
@@ -1001,12 +1005,11 @@ date in the area's prose matches `git log` except the one in F-18.
       F-5 to F-21
 - [x] the rule's home in `docs/outcomes.md` says what shipped; each game's
       `docs/games/<game>.md` names its one decision site — the doc half of every
-      finding is done, and so is the mechanical code half (2026-09-17)
-- [ ] every game's `todo.md` holds what is still owed — the five items the area
-      filed are open (setgame's hint ring, psychicnum's decided-tile fill,
-      wordle's not-ok ring, connections' `matched`, game-page's `verdictTone`);
-      F-13, F-14 and F-18's archaeology sentences are here, not in a todo, until
-      Joel rules on them
+      finding is done, and so is the code half (2026-09-17)
+- [ ] every game's `todo.md` holds what is still owed — F-13 is now strands'
+      and F-14 is stackdown's (a Soon item in each), and the five items the area
+      filed are still open: setgame's hint ring, psychicnum's decided-tile fill,
+      wordle's not-ok ring, connections' `matched`, game-page's `verdictTone`
 - [ ] the stamps: Joel, 2026-09-17 — the files belong to other areas and will
       not be blessed for this one; what the `cs-*-outcome-fix` stamps become is
       his call

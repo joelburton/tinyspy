@@ -50,9 +50,9 @@ create temp table rex on commit drop as
 reset role;
 select is((select res -> 'data' ->> 'result' from rex), 'exchanged', 'a valid exchange succeeds');
 -- `neutral`, not `won`: swapping tiles buys a better rack at the cost of a turn,
--- and whether it pays off shows up two moves later (ruled 2026-09-16). It said
--- `won` until 2026-09-17, which made trading tiles read like scoring, and
--- nothing here caught it. src/scrabble/lib/answer.ts is the other language.
+-- and whether it pays off shows up two moves later (ruled 2026-09-16) — `won`
+-- would make trading tiles read like scoring.
+-- src/scrabble/lib/answer.ts is the other language.
 select is((select res ->> 'outcome' from rex), 'neutral',
   'an exchange is a turn nothing adjudicates');
 select is((select jsonb_array_length(res -> 'data' -> 'drawn') from rex), 2,

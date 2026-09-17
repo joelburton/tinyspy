@@ -137,9 +137,8 @@ export type WordSubmitConfig = {
    * not contain the stem", and only the second is a rule broken.
    *
    * **`accepted` goes through it too**, so the engine never names a word of its
-   * own: an accepted word was a flat `'won'` here until 2026-09-17, which is the
-   * one answer a game could not have an opinion about even though all four of
-   * them already carried one in its table.
+   * own — not even for the one answer that looks like it could not be argued
+   * about, since all four games already carry a word for it in their tables.
    *
    * Whatever it returns is what the PILL says — so a game showing the answer
    * anywhere else reads this same function for those surfaces too, and the two

@@ -11,9 +11,7 @@ import { ANSWER_OUTCOME } from './answer'
  * half in `supabase/tests/wordle/gameplay_test.sql`, which asserts
  * `submit_guess` answers `won` for a solving guess and `neutral` for one that
  * colors but does not solve. One rule in two languages, so a word changed in
- * either fails the other's test. (Neither half existed until 2026-09-17: the
- * server said `lost` for a non-solving guess and the log said `neutral`, and
- * nothing noticed.)
+ * either fails the other's test.
  *
  * The two soft rejects are not here on purpose. A duplicate and a word off the
  * list write no row, so the pill and the board's reject ring are their only

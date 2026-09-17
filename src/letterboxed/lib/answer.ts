@@ -19,9 +19,8 @@ export type Answer = 'played' | 'undone' | 'cleared' | 'hint' | 'spoiler'
  * **The log bar, a teammate's line and the hint/spoiler pill all read THIS**,
  * and every RPC that writes one of these rows says the same word in its
  * envelope. They are views of one turn, and deriving the outcome per view is
- * exactly how they drift — which they did: a hint was gold in the log and blue
- * in the pill, and taking a word back was gray on the server and blue to a
- * teammate.
+ * exactly how they drift: a hint is one event, and the log and the pill
+ * choosing its color separately are two chances to disagree about it.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *
@@ -33,9 +32,9 @@ export type Answer = 'played' | 'undone' | 'cleared' | 'hint' | 'spoiler'
  *   - **undo and clear are `noted`, not `neutral`.** They are information: the
  *     chain is shorter than it was, and the player who did it is telling the
  *     table so. Blue is the vocabulary's word for news that is not a verdict.
- *     `neutral` had been the word, on the reading that in turn-by-turn coop an
- *     undo costs the undoer their turn; that is still true and is why neither
- *     is red, but it is not a reason to call news nothing.
+ *     Not `neutral`: in turn-by-turn coop an undo does cost the undoer their
+ *     turn, which is why neither is red, but that is not a reason to call news
+ *     nothing.
  *   - a hint names a word's length and opening letters, which leaves you
  *     something to find: `warning`, as a hint is in every game.
  *   - a spoiler IS the word. There is nothing left to find, so it is red.

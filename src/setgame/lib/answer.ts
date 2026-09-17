@@ -18,8 +18,9 @@ export type Answer = 'claim' | 'hint' | 'not_a_set'
  *
  * **The log bar, a teammate's line and the refusal pill all read THIS**, and
  * `submit_set`'s envelope says `won` for the same claim. They are views of one
- * turn, and deriving the outcome per view is how they drift — which they did: a
- * hint was gold in the log while every other game's hint was amber.
+ * turn, and deriving the outcome per view is how they drift — a hint colored
+ * here and colored again in the log is two chances to part company with the
+ * amber every other game's hint wears.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *

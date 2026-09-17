@@ -61,8 +61,7 @@ select is((select res ->> 'outcome' from spangram_res), 'won',
 
 -- The OUTCOME rides with the result, and this one is the reason to assert it:
 -- a valid non-theme word is `near`, not `won` — it moves the hint bar, which is
--- real progress, but the goal is the theme (ruled 2026-09-16). It said `won`
--- until 2026-09-17 while the log said `near`, and nothing here caught it.
+-- real progress, but the goal is the theme (ruled 2026-09-16).
 -- src/strands/lib/answer.ts is the other language of this rule.
 create temp table hw on commit drop as
 select strands.submit_path((select id from game), pg_temp.strands_prefix_path(1, 4)) as res;

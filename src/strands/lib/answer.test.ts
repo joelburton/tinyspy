@@ -14,8 +14,8 @@ import { ANSWER_OUTCOME } from './answer'
  * word changed in either fails the other's test.
  *
  * `spend_hint`'s `warning` is asserted in `hint_test.sql`; the two `warning`s
- * for a duplicate and a short word ride `submit_path`'s envelope, which the
- * server has always said and the LOG used to contradict.
+ * for a duplicate and a short word ride `submit_path`'s envelope, which
+ * `gameplay_test.sql` pins beside the words above.
  */
 describe('ANSWER_OUTCOME', () => {
   it('gives each answer its ruled word', () => {

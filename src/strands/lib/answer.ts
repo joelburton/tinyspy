@@ -18,14 +18,11 @@ export type Answer = GuessResult | 'spent_hint'
  *
  * **The log bar and the pill both read THIS**, and `submit_path` / `spend_hint`
  * say the same words in their envelopes. (No teammate's line: strands narrates
- * nobody's move — see `hooks/useGame.ts`.) Four
- * separate tables used to key off the one `result` column — the log's, the
- * pill's switch, the PDF's and history's — and the first two disagreed with the
- * server and with each other.
+ * nobody's move — see `hooks/useGame.ts`.)
  *
- * The other two still exist and are not duplicates of this: the PDF's `MARK` is
- * a glyph vocabulary for black and white paper, and history's `BODY` is
- * sentence text. Neither is an outcome.
+ * Two other tables key off the same `result` column and are NOT duplicates of
+ * this one: the PDF's `MARK` is a glyph vocabulary for black and white paper,
+ * and history's `BODY` is sentence text. Neither is an outcome.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *
@@ -34,14 +31,13 @@ export type Answer = GuessResult | 'spent_hint'
  *     but it is not the goal. `near` is exactly that: on the right track.
  *   - **already found** and **too short** are not misfires you get punished
  *     for; they are moves the rules turn away without anything happening.
- *     `warning`. (The log called them `lost` on the reading that they "earned
- *     nothing", which describes the hint economy rather than the move.)
+ *     `warning`. Not `lost` on the reading that they "earned nothing": that
+ *     describes the hint economy rather than the move.
  *   - **not a word** is the one real miss, and it is red.
  *   - a **spent hint** is `warning` for the same reason a hint is everywhere:
  *     you asked for it and paid for it, and it is neither good nor bad play.
- *     (The log called it `neutral`, arguing a hint is the opposite of progress
- *     because you spend the progress you banked. True, and still not a reason
- *     to say nothing happened.)
+ *     Not `neutral`: a hint does spend progress you banked, which is the
+ *     opposite of earning it, but that is not a reason to say nothing happened.
  */
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   spangram: 'won',
