@@ -14,7 +14,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(18);
+select plan(20);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -60,7 +60,7 @@ select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), 'zzzzz'),
   '{"type":"ok","outcome":"lost","message":"Not in word list",
     "data":{"result":"notAWord","solved":false,"terminal":false}}'::jsonb,
-  'a 5-letter non-word → notAWord, with the words and the tone the pill renders');
+  'a 5-letter non-word → notAWord, with the words and the outcome the pill renders');
 
 reset role;
 select is(
@@ -73,11 +73,16 @@ select is(
   0::bigint, 'soft rejects wrote no guess row');
 
 -- ── A valid non-target guess: incorrect, burns one ─────────
+-- `neutral`, not `lost`: you are MEANT to spend guesses, and one that comes back
+-- with colors has done its job. src/wordle/lib/answer.ts says the same word for
+-- the row this wrote — one rule, two languages.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  wordle.submit_guess((select id from g), (select word from valw))->'data'->>'result',
-  'incorrect',
+create temp table missres on commit drop as
+select wordle.submit_guess((select id from g), (select word from valw)) as res;
+select is((select res->'data'->>'result' from missres), 'incorrect',
   'a valid non-answer word → incorrect');
+select is((select res->>'outcome' from missres), 'neutral',
+  'a non-solving guess is neutral');
 
 reset role;
 select is(
@@ -115,6 +120,12 @@ select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 
 select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
+-- The outcome is asserted with it. src/wordle/lib/answer.ts gives the row this
+-- wrote the same word, and the log bar wears that — one rule, two languages,
+-- a test in each. The non-solving guess below is the half that changed on
+-- 2026-09-17 (`lost` → `neutral`) with nothing here to catch it.
+select is((select (res->>'outcome') from winres), 'won',
+  'a solving guess is won');
 select is((select (res->'data'->>'terminal')::boolean from winres), true,
   'the solving guess is terminal');
 

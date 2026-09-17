@@ -1,8 +1,10 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/turn-log/historyViewer.module.css'
@@ -43,12 +45,13 @@ type Props = {
   // The row keeps its g/y/x tile colors; the ring just marks which one.
   historyLitBoardRow?: number
   // Bumped by `<BoardCol>` on every soft reject — the active row shakes and
-  // rings amber. The pill says WHAT was wrong; this says WHERE. Keyed into the
-  // row so a repeat rejection replays the shake rather than doing nothing.
+  // rings. The pill says WHAT was wrong; this says WHERE. Keyed into the row so
+  // a repeat rejection replays the shake rather than doing nothing.
   rejectNonce?: number
-  // Which tone that rejection carries — the SAME tone as its pill, so the two
-  // halves of one message agree.
-  rejectTone?: 'lost' | 'warning'
+  // Which outcome that rejection carries. The ring's color comes from the
+  // shared table, which is TOTAL over the vocabulary, so the caller narrows
+  // nothing on the way down.
+  rejectOutcome?: Outcome
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live. The
   // same mark waffle wears; see plans/tile-feedback.md.
@@ -86,7 +89,7 @@ export function Board({
   isViewingHistory = false,
   historyLitBoardRow = -1,
   rejectNonce = 0,
-  rejectTone = 'lost',
+  rejectOutcome = 'lost',
   gameOver = null,
   notMyTurn = false,
   myTurnJustStarted = false,
@@ -150,7 +153,7 @@ export function Board({
                 rejectNonce > 0 && isActive && shared.verdictRing,
                 rejectNonce > 0 &&
                   isActive &&
-                  (rejectTone === 'warning' ? shared.verdictWarning : shared.verdictLost),
+                  VERDICT_TONE[rejectOutcome],
               )}
               role="row"
             >

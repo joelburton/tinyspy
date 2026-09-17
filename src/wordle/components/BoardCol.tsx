@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -131,9 +131,8 @@ export function BoardCol({
    *  second attempt would look ignored. `<Board>` keys the row on it so the
    *  animation restarts. */
   const [rejectNonce, setRejectNonce] = useState(0)
-  /** The tone of the last rejection — mirrors the pill's, so the ring and the
-   *  pill never disagree about how bad it was. */
-  const [rejectTone, setRejectTone] = useState<'lost' | 'warning'>('lost')
+  /** The outcome of the last rejection, written by `softReject`. */
+  const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
   // moment we submit until its colored server row arrives via realtime, so the letters
   // don't blink out during the round-trip. The row then flips in place. Cleared on
@@ -222,18 +221,15 @@ export function BoardCol({
    * because the server wrote both, per answer — this function is the shared
    * mechanism, never the source of the words.
    *
-   * `outcome` widens to the two ring colors `Board` renders: amber for a
-   * warning, red for anything else, which is what a failure looks like anyway.
-   * It is a TOTAL map rather than a filter — a bare `if` on the value it knows
-   * would leave the PREVIOUS rejection's color on the row when anything else
-   * arrived, wrong and silent. (The real fix is for `Board` to take an
-   * `Outcome` and map it to its two colors itself; docs/ui.md → "The verdict
-   * mark's state" has why the rest of this state stays per game.)
+   * `outcome` reaches the ring UNTOUCHED: `Board` takes the word and looks its
+   * color up in the shared table, so this column narrows nothing and the ring
+   * and the pill cannot say different things about one refusal. The nonce
+   * beside it stays per game (docs/ui.md → "The verdict mark's state").
    */
   const softReject = useCallback(
     (outcome: Outcome, text: string) => {
       setPending(null)
-      setRejectTone(outcome === 'warning' ? 'warning' : 'lost')
+      setRejectOutcome(outcome)
       setRejectNonce((n) => n + 1)
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
     },
@@ -326,7 +322,7 @@ export function BoardCol({
         isViewingHistory={isViewingHistory}
         historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
         rejectNonce={rejectNonce}
-        rejectTone={rejectTone}
+        rejectOutcome={rejectOutcome}
         gameOver={gameOver}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}

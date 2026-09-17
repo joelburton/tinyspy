@@ -352,6 +352,19 @@ every one a miss or the reveal, which is the change proving itself. Tests:
 `turn_order_test.sql`. Doc: the new section, the two envelope tables, and four
 stale "amber" claims about the spoiler.
 
+**4 · wordle — DONE 2026-09-17.** `lib/answer.ts`: two answers, `correct` →
+`won` and `incorrect` → **`neutral`** (decision b) — the SQL said `lost` and the
+log said `neutral`, and NOTHING held them together, which is why the change
+broke no pgTAP. Both halves are pinned now. The log bar and both peer lines
+index the table (coop's teammate line had said a flat `neutral` even for a
+solving guess). The two soft rejects stay OUT of the table by F-3's ruling — no
+row, and the pill and the reject ring both read the envelope. **wordle's
+`todo.md` item is closed by this**: `Board` takes an `Outcome` and looks its
+ring color up in `VERDICT_TONE`, so `rejectTone: 'lost' | 'warning'` and the
+call-site narrowing in `BoardCol` are both gone. Two stale claims fixed with it:
+a `BoardCol` docstring describing the narrowing, and a comment citing
+`docs/ui.md` as "tone follows the event" when it says **outcome**.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

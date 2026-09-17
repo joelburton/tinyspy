@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo } from 'react'
@@ -9,6 +9,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { setupRows } from '../lib/setupSummary'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -179,16 +180,21 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
       const member = memberById(members, g.user_id)
-      return FeedbackMessage.peer(member, 'neutral', `guessed ${g.guess.toUpperCase()}`)
+      return FeedbackMessage.peer(
+        member,
+        ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect'],
+        `guessed ${g.guess.toUpperCase()}`,
+      )
     },
     globalFeedbackSlot,
   })
 
   // ─── Compete opponent-solve narration (global header) ──────────
   // In compete, RLS hides opponents' guesses, so the only peer event we can surface is
-  // a SOLVE (the public `players.solved` flag flips): "● moth solved it". SUCCESS-toned
-  // (green) — a solve is a solve regardless of whose it is; tone follows the event, not
-  // my competitive stake (docs/ui.md → Feedback pill ("tone follows the event")). My own
+  // a SOLVE (the public `players.solved` flag flips): "● moth solved it". It wears the
+  // word a solving guess wears anywhere — a solve is a solve regardless of whose it is;
+  // the OUTCOME follows the event, not my competitive stake (docs/ui.md → Feedback
+  // pill, "Outcome follows the event, not the viewer's stake"). My own
   // solve is excluded (covered by the terminal feedback). `solvedIds` is memoized so
   // the hook re-runs only when it changes.
   const solvedIds = useMemo(
@@ -202,7 +208,7 @@ export function PlayArea({
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
       const member = memberById(members, id)
-      return FeedbackMessage.peerMilestone(member, 'won', 'solved it')
+      return FeedbackMessage.peerMilestone(member, ANSWER_OUTCOME.correct, 'solved it')
     },
     globalFeedbackSlot,
   })

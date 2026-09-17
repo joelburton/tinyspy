@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- wordle — the REPEATABLE half
@@ -708,7 +708,11 @@ begin
       'solved',       did_solve,
       'terminal',     out_terminal
     ),
-    case when did_solve then 'won' else 'lost' end);
+    -- A guess that did not solve the board is `neutral`, not `lost`: you are
+    -- MEANT to spend guesses, and one that rules out four letters has done its
+    -- job. The frontend's lib/answer.ts says the same word for the row this
+    -- wrote — as its log had been saying all along, while this said `lost`.
+    case when did_solve then 'won' else 'neutral' end);
 
 exception when others then
   get stacked diagnostics

@@ -2,6 +2,34 @@
 
 ## Bugs
 
+- **A `not-ok` fires the row's verdict ring in the PREVIOUS refusal's color.**
+  `rejectNonce` is bumped from two places in `BoardCol.doSubmit` — `softReject`
+  (the two `ok` soft rejects) and the `not-ok` branch — but `rejectOutcome` is
+  set only by the first. The nonce clears itself after `REJECT_MARK_MS`; the
+  outcome is plain state that never resets, so a `not-ok` rings the active row
+  in whatever the last soft reject left behind while the pill beside it reads
+  the envelope.
+
+  **It shows on a RACE, and only there.** A `fault` puts up the fault modal
+  (`reportDbFault`), which dominates the screen and makes the ring a footnote;
+  the other severities have no modal, and wordle has three races at this call
+  site — `PN255` "Game over", `PN257` "Already solved", `PN243` "Not your turn".
+  A race defaults to `warning`, so: after a DUPLICATE (also `warning`) the two
+  agree, by coincidence; after a NOT-A-WORD (`lost`) the ring is red under an
+  amber pill; and on the session's first refusal the `useState('lost')` default
+  does the same. "Someone ended the game while you were typing" is the everyday
+  way to see it.
+
+  **The fix is one line**: the `not-ok` branch calls
+  `setRejectOutcome(notOkOutcome(res))` — the same function
+  `FeedbackMessage.notOk` already uses for the pill, so the ring and the pill
+  read one value instead of agreeing by luck.
+
+  Found 2026-09-17 by `outcome-fix`, which did NOT cause it: the old
+  `rejectTone` had the identical hole, and the `outcome === 'warning' ? … : …`
+  narrowing everyone took for the safety net only ever ran on the path that was
+  already right. Filed rather than fixed because it is a behavior change, not
+  an outcome one.
 - `act-new-game` answers `active` before the game row has loaded, so an
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
@@ -64,12 +92,6 @@
   what the menu drops at draw time — so "not in the menu" asserts `?.hidden
   === true`, not `toBeUndefined()`.
 
-- **`Board` should take an `Outcome` and map it to its two colors itself.**
-  Today the seven-value outcome is narrowed at the call site in `BoardCol`
-  (`warning` → amber, everything else red), which is total but is narrowing
-  done in the wrong place. The rest of the verdict-mark state — a nonce and a
-  tone as two states written together — stays per game on purpose
-  (docs/ui.md → "The verdict mark's state is per game").
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a

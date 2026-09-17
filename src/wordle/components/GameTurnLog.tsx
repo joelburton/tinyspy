@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
@@ -7,6 +7,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import type { Member } from '@/common/members/member'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { tileColor } from '../lib/colors'
 import type { GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -92,7 +93,9 @@ export function GameTurnLog({
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <tr key={`${g.user_id}-${g.seq}`} className={gameTurnLog.divider}>
-          <TurnLogOutcomeBar outcome={g.is_correct ? 'won' : 'neutral'} />
+          {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
+              own to disagree with the pill about the same guess. */}
+          <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect']} />
           <TurnLogNumber
             n={i + 1}
             isOpenInHistory={historyId === i}
