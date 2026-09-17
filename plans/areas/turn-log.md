@@ -12,8 +12,8 @@ F-4 turned up: every file in the repo that called the shared history marker
 yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
 bug, the banner component, and the history vocabulary — the last including its
 ten-game meaning-based sweep. **F-22 is worked too**, and it CLOSED F-6 and F-7
-by deleting the props they were about, and **F-8 and F-10** are worked. **Eight
-findings wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
+by deleting the props they were about, and **F-8, F-10 and F-11** are worked.
+**Seven findings wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
 and by the re-read of this file against it.
 
 ## The roster
@@ -354,6 +354,21 @@ and the `#N`'s own text for the handle.
 
 A literal ink where the vocabulary has `--page-text-strong-color` (`#000000`).
 Options: (1) the token; (2) leave. Recommend (1).
+
+**WORKED 2026-09-16, the token.** Re-verified first, and it was worth doing: it
+was the LAST literal black in `src/` (`color: black` matched this one line and
+nothing else), and it was not cosmetic — `daylight.css` sets the token to
+`#000000`, so the two agreed there, but `midnight.css` sets it to `#ffffff`, so
+under `?theme=midnight` this rule painted a hovered `#N` black on a dark
+surface. Every other line in these two stylesheets already read a token; this
+was the hole.
+
+**And `cssTokens.test.ts` turned the finding round.** The token was on
+`DECLARED_AHEAD` — declared by both themes and read by NOTHING — so this rule is
+now its first and only reader, and the guard failed until its allowlist line
+came out. So it was not "a literal where a token existed"; it was a literal and
+an unread token, one hole with two halves. Third guard this session to work by
+the shrinking-allowlist pattern, after `cssClasses` and `orphanedDocstrings`.
 
 ### F-turn-log-12 · `z-index-literal` · `.historyBanner { z-index: 5 }` is not on the ladder
 

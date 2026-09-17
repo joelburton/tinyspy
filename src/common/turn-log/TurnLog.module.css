@@ -205,7 +205,7 @@
  * focus, so there's no focus state to style). */
 /* @@ */ .turnNumber:hover {
   background: var(--page-surface-hover-color);
-  color: black;
+  color: var(--page-text-strong-color);
 }
 
 /* The right-aligned "who" column. Shrinks to its content (the `<ActorDot>`'s

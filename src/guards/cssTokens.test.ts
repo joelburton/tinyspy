@@ -197,11 +197,6 @@ describe('CSS custom-property tokens', () => {
     '--letter-spacing-wide',
     '--border-width-frame',
 
-    // The other text gray the ramp was missing. Its sibling
-    // `--page-text-label-color` has a reader now (the key list's heading), and
-    // the two everything reads — `--page-text-color` and
-    // `--page-text-muted-color` — keep the names they have.
-    '--page-text-strong-color',
 
     // The z- ladder (base.css → THE Z- LAYERS). Almost all of it is LIVE now —
     // the floating panels resolve their tier from their family, and the menu,
