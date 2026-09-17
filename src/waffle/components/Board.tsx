@@ -38,42 +38,42 @@ function changedCells(before: BoardSnapshot, after: BoardSnapshot): ReadonlySet<
 }
 
 type Props = {
-  /** 25-char board string, holes = '.'. Live board OR a historical snapshot. */
+  // 25-char board string, holes = '.'. Live board OR a historical snapshot.
   board: string
-  /** 25-char per-tile color codes (g/y/x/.), or null before load. */
+  // 25-char per-tile color codes (g/y/x/.), or null before load.
   colors: string | null
-  /** When true, tiles aren't interactive (terminal / paused / viewing history). */
+  // When true, tiles aren't interactive (terminal / paused / viewing history).
   disabled?: boolean
-  /** Turn-history: draw the gray-blue "viewing a past turn" frame + suppress the
-   *  attention flash (the ringed cells mark what the viewed swap did instead). */
+  // Draw the gray-blue "viewing a past turn" frame + suppress the
+  // attention flash (the ringed cells mark what the viewed swap did instead).
   isViewingHistory?: boolean
-  /** Turn-history: the cells the viewed swap moved — ring them. */
+  // The two tiles the viewed swap moved — ring them.
   historyLitTiles?: ReadonlySet<number>
-  /** Swap the letters of two filled cells. */
+  // Swap the letters of two filled cells.
   onSwap: (a: number, b: number) => void
-  /** The swap in flight, or null. Its two cells take the shared in-flight dim —
-   *  "your click landed; the server is working" — and ALL swap input
-   *  is ignored until it settles: a production round-trip can run a second
-   *  or two, and the reflexive did-I-misclick re-tap of the same two tiles
-   *  would otherwise queue the REVERSE swap. */
+  // The swap in flight, or null. Its two cells take the shared in-flight dim —
+  // "your click landed; the server is working" — and ALL swap input
+  // is ignored until it settles: a production round-trip can run a second
+  // or two, and the reflexive did-I-misclick re-tap of the same two tiles
+  // would otherwise queue the REVERSE swap.
   pendingSwap?: readonly [number, number] | null
-  /** A teammate holds the move (turn-order coop): dim the whole board. The dim
-   *  on a board says "you cannot act at all", the same verb the in-flight dim
-   *  above uses on a tile — the element it lands on says what is inactive. */
+  // A teammate holds the move (turn-order coop): dim the whole board. The dim
+  // on a board says "you cannot act at all", the same verb the in-flight dim
+  // above uses on a tile — the element it lands on says what is inactive.
   notMyTurn?: boolean
-  /** True for a beat at the moment the turn becomes mine — flashes the board
-   *  frame yellow. The dim lifting is a state change; this is the event, and
-   *  you are by definition looking elsewhere when it happens. */
+  // True for a beat at the moment the turn becomes mine — flashes the board
+  // frame yellow. The dim lifting is a state change; this is the event, and
+  // you are by definition looking elsewhere when it happens.
   myTurnJustStarted?: boolean
-  /** The game is finished, and how it ended — the board takes a band in that
-   *  outcome's gray (neutral for a game that was simply ended). Null while it is
-   *  still live. Permanent, unlike the two transient dims above: it says "this is
-   *  a record, not a position". */
+  // The game is finished, and how it ended — the board takes a band in that
+  // outcome's gray (neutral for a game that was simply ended). Null while it is
+  // still live. Permanent, unlike the two transient dims above: it says "this is
+  // a record, not a position".
   gameOver?: TerminalOutcome | null
-  /** How many swaps the server has recorded for the board on show (the replay
-   *  log's length — everyone's in coop, mine in compete). It is the CAUSE the
-   *  attention flash reads: a board that changed while this number stood still
-   *  was re-dealt or revealed, not played. */
+  // How many swaps the server has recorded for the board on show (the replay
+  // log's length — everyone's in coop, mine in compete). It is the CAUSE the
+  // attention flash reads: a board that changed while this number stood still
+  // was re-dealt or revealed, not played.
   moveCount: number
 }
 

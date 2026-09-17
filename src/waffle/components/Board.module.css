@@ -162,7 +162,7 @@
 /* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
 }
 
-/* Turn-history: the two cells the viewed swap moved. Ringed in the shared
+/* The two tiles the viewed swap moved. Ringed in the shared
  * history color — the same gray-blue as the board frame around them and the #N
  * handle in the log, so all three parts of "you are looking at this past turn"
  * are one mark rather than three. Drawn with `outline` (order-independent, and

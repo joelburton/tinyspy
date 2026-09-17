@@ -36,50 +36,50 @@ export function BoardCol({
   localFeedbackSlot,
 }: {
   // ── Mobile-only status strip ──
-  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
-   *  above the board ONLY below the `--mobile` breakpoint — where the info
-   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
-   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
+  // above the board ONLY below the `--mobile` breakpoint — where the info
+  // column is off-canvas in the InfoSheet and would otherwise take a tap to
+  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
   mobileStatus: ReactNode
 
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
-  /** 25-char board string, holes '.'. */
+  // 25-char board string, holes '.'.
   board: string
-  /** 25-char g/y/x colors (server-computed live, FE-computed for a snapshot), or null. */
+  // 25-char g/y/x colors (server-computed live, FE-computed for a snapshot), or null.
   colors: string | null
-  /** Board inert (terminal / not a player / locally done / viewing a past swap). */
+  // Board inert (terminal / not a player / locally done / viewing a past swap).
   readOnly: boolean
-  /** Turn-history: the two cells the viewed swap moved — ring them (undefined live). */
+  // The two tiles the viewed swap moved — ring them (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
 
   // ── History viewer (its overlay lives in the below-board region) ──
-  /** The viewed swap's description while inspecting history (drives the banner + the
-   *  gray-blue frame), or null when live. */
+  // The viewed swap's description while inspecting history (drives the banner + the
+  // gray-blue frame), or null when live.
   historyLabel: string | null
-  /** Return to the live board (a board/banner click, or the ✕). */
+  // Return to the live board (a board/banner click, or the ✕).
   onExitHistory: () => void
 
   // ── Move ──
-  /** Swap the letters of two filled cells — the one committed action up. */
+  // Swap the letters of two filled cells — the one committed action up.
   onSwap: (a: number, b: number) => void
-  /** The swap currently in flight (its two cells take the in-flight dim; input is
-   *  gated), or null. See PlayArea's `pendingSwap`. */
+  // The swap currently in flight (its two cells take the in-flight dim; input is
+  // gated), or null. See PlayArea's `pendingSwap`.
   pendingSwap: readonly [number, number] | null
-  /** Turn-order coop: a teammate holds the move, so the whole board dims. */
+  // Turn-order coop: a teammate holds the move, so the whole board dims.
   notMyTurn: boolean
-  /** True for a beat at the moment the turn becomes mine — the board frame
-   *  flashes yellow. Always false in a free-for-all game. */
+  // True for a beat at the moment the turn becomes mine — the board frame
+  // flashes yellow. Always false in a free-for-all game.
   myTurnJustStarted: boolean
-  /** The game is finished, and how it ended — the board's permanent band takes
-   *  that outcome's gray. Null while it's live. */
+  // The game is finished, and how it ended — the board's permanent band takes
+  // that outcome's gray. Null while it's live.
   gameOver: TerminalOutcome | null
-  /** Swaps recorded for the board on show — the CAUSE the attention flash reads,
-   *  so a re-dealt or revealed board doesn't light up. See `<Board>`. */
+  // Swaps recorded for the board on show — the CAUSE the attention flash reads,
+  // so a re-dealt or revealed board doesn't light up. See `<Board>`.
   moveCount: number
 
   // ── Below-board feedback ──
-  /** PlayArea's below-board slot — a refused swap, "you're out", whose turn,
-   *  the verdict. Drawn in the reserved-height slot under the board. */
+  // PlayArea's below-board slot — a refused swap, "you're out", whose turn,
+  // the verdict. Drawn in the reserved-height slot under the board.
   localFeedbackSlot: FeedbackSlot
 }) {
   const isViewingHistory = historyLabel !== null

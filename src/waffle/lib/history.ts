@@ -3,7 +3,7 @@
 /**
  * waffle — the turn-history replay. Given the starting `scramble`, the hidden
  * `solution`, and the coop swap log, reconstruct what the board looked like at any
- * past swap, plus its colors and a description — so the PlayArea can hand `Board`
+ * past swap, plus its colors and a historyLabel — so the PlayArea can hand `Board`
  * a historical board the same way it hands it the live one.
  *
  * This is the ADD-style replay (like scrabble's `historyBoard`, unlike stackdown's
@@ -45,8 +45,8 @@ export interface HistorySnapshot {
   colors: string | null
   /** The two cells the viewed swap moved — ring these on the board. */
   historyLitTiles: Set<number>
-  /** A short, name-free description of the swap (the log row already shows who). */
-  description: string
+  /** A short, name-free historyLabel of the swap (the log row already shows who). */
+  historyLabel: string
 }
 
 /**
@@ -68,11 +68,11 @@ export function historyBoardAfter(
 }
 
 /**
- * Reconstruct the board + colors + description for the swap at `index` in a
+ * Reconstruct the board + colors + historyLabel for the swap at `index` in a
  * single player's swap log (see the module note — never a mixed list). An out-of-range `index` (shouldn't happen — the caller passes a real
  * row's position) clamps naturally: past the end applies every swap (the final
  * board), and there's no `swaps[index]`, so no tile is lit and the
- * description neutral.
+ * historyLabel neutral.
  */
 export function historySnapshot(
   scramble: string,
@@ -86,7 +86,7 @@ export function historySnapshot(
     board,
     colors: solution ? computeColors(board, solution) : null,
     historyLitTiles: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
-    description: describe(swap),
+    historyLabel: describe(swap),
   }
 }
 

@@ -118,8 +118,7 @@ export function PlayArea({
   // swap's historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
   // and freezes input. Only coop can reach it (compete renders no swap log). Any key
   // returns to live: the hook binds `act-exit-history` itself, so nothing is wired here.
-  const { historyId: historyId, isViewingHistory, showHistory, exitHistory } =
-    useHistoryViewer()
+  const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
 
   // Mobile: below --mobile the board fills the screen and the whole info column
   // slides in as an off-canvas sheet from a "Game info" menu item (the shared
@@ -549,7 +548,7 @@ export function PlayArea({
   const replaySwaps = isCompete
     ? swaps.filter((sw) => sw.user_id === session.user.id)
     : swaps
-  const snap =
+  const historySnap =
     historyId !== null
       ? historySnapshot(game.scramble, game.solution, replaySwaps, historyId)
       : null
@@ -584,12 +583,12 @@ export function PlayArea({
       ? optimisticSwap.cells
       : null
 
-  const board = snap
-    ? snap.board
+  const board = historySnap
+    ? historySnap.board
     : (revealSolution ??
       (pendingSwap ? swapCells(serverBoard, pendingSwap[0], pendingSwap[1]) : serverBoard))
-  const colors = snap
-    ? snap.colors
+  const colors = historySnap
+    ? historySnap.colors
     : revealSolution
       ? computeColors(revealSolution, revealSolution)
       : pendingSwap && self?.colors
@@ -626,8 +625,8 @@ export function PlayArea({
         board={board}
         colors={colors}
         readOnly={readOnly}
-        historyLitTiles={snap?.historyLitTiles}
-        historyLabel={snap ? snap.description : null}
+        historyLitTiles={historySnap?.historyLitTiles}
+        historyLabel={historySnap ? historySnap.historyLabel : null}
         onExitHistory={exitHistory}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}

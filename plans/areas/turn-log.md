@@ -642,7 +642,17 @@ The four games whose names already turned out to be lying go first.
       alone and derives `const isViewingHistory = historySnap !== null` rather
       than being handed both — the thing F-18 is about in psychicnum and
       codenamesduet.
-- [ ] **waffle**
+- [x] **waffle** — read 2026-09-16. Nothing lying here either:
+      - `snap` → `historySnap`, `HistorySnapshot.description` → `historyLabel`,
+        and a second `const { historyId: historyId, … }` self-alias (stackdown
+        had the other — both are the rename's own litter).
+      - the `/**`-on-props pass: 25 members; four `Turn-history:` prefixes
+        dropped.
+      - three comments described `historyLitTiles` as "the cells the viewed swap
+        moved" — the noun the deferred cell/tile sweep is about, but here it sat
+        directly on a prop named `…Tiles`, so the comment now matches the name
+        beside it. The other ~141 `cell` identifiers in this game are the
+        sweep's, not this row's.
 - [ ] **psychicnum**
 - [ ] **setgame**
 - [ ] **letterboxed**

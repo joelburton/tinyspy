@@ -42,7 +42,7 @@ describe('historySnapshot', () => {
       Array.from({ length: 25 }, (_, i) => ([6, 8, 16, 18].includes(i) ? '.' : 'g')).join(''),
     )
     expect(snap.historyLitTiles).toEqual(new Set([0, 1]))
-    expect(snap.description).toBe('#2: B (A1) ↔ A (B1)')
+    expect(snap.historyLabel).toBe('#2: B (A1) ↔ A (B1)')
   })
 
   it('viewing an earlier swap shows the board AS OF that swap, colored for that state', () => {
@@ -63,11 +63,11 @@ describe('historySnapshot', () => {
     expect(snap.colors).toBeNull()
   })
 
-  it('out-of-range index → clamps to all swaps applied, no historyLitTiles, neutral description', () => {
+  it('out-of-range index → clamps to all swaps applied, no historyLitTiles, neutral historyLabel', () => {
     const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 9)
     expect(snap.board).toBe(SOLUTION) // past the end → every swap applied
     expect(snap.historyLitTiles.size).toBe(0)
-    expect(snap.description).toBe('This swap')
+    expect(snap.historyLabel).toBe('This swap')
   })
 })
 
