@@ -212,12 +212,14 @@ server-side flag-fall detection. The
 cheap interim is for scrabble compete's setup to stop offering a countdown
 at all.)
 
-## Help in compete
+## Hints in compete
 
-**Help** is the umbrella for hints, reveals, checks and AI suggestions. The
+**Hint** is the word for what a game hands a stuck player — a nudge, a reveal, a
+check, an AI suggestion. It is never called "help": help is the text explaining
+a form field, the rules of a game, or what an AI does, and nothing else. The
 roster's compete stances, verified against the SQL and game docs:
 
-| game | help | in compete? | price |
+| game | hint | in compete? | price |
 |---|---|---|---|
 | strands | the earned hint bar | yes — it's core | **scored**: fewest hints IS the ranking |
 | crosswords | check / reveal | check yes; reveal **banned** ("reveal-all would trivially win the compete race") | check deliberately free: "wrong is self-informative, not answer-leaking" |
@@ -225,14 +227,14 @@ roster's compete stances, verified against the SQL and game docs:
 | setgame | the hint ladder | **banned** (`record_hint` raises `hint-in-compete`; the button still renders, disabled, saying why) | — |
 | psychicnum | hint / reveal | **yes, both, free** (`_unfound_secret` scopes to the compete caller) | ⚠ **un-priced** |
 
-The principle the deliberate rows share: **help in compete must be priced** —
+The principle the deliberate rows share: **a hint in compete must be priced** —
 **banned**, **earned**, **scored** into the ranking, or free only when
 **self-informative** (it can tell you you're wrong; it can't hand you
-progress). Free *generative* help in a race is the one indefensible square,
+progress). A free *generative* hint in a race is the one indefensible square,
 and psychicnum's compete reveal sits in it: the revealed word is still
 guessable, so ask-then-guess is a legal shortcut toward the win. Harmless
 among friends, but it's the roster's one undecided cell — decide it, don't
-inherit it. Pricing also composes with the styles: **scored** help fits
+inherit it. Pricing also composes with the styles: a **scored** hint fits
 *best* games (one more ranking component); *race* games only get banned /
 earned / self-informative.
 
@@ -319,8 +321,8 @@ keys; retire ad-hoc synonyms on contact.
 | **player clock** | a per-player time budget spent on your own turns (chess clock) — the turn-based-compete answer; proposed, not built |
 | **flag fall** | a player clock running out — ruled an automatic **concede**, never a crowning (see no survival wins) |
 | **standings on a loss** | a collective loss that still records who was ahead — a ranking attached to the verdict, not an adjudication |
-| **help** | the umbrella for hints, reveals, checks and AI suggestions |
-| **priced help** | the compete rule: help must be **banned**, **earned**, **scored**, or free-only-if-**self-informative** — never free and generative |
+| **hint** | what a game hands a stuck player: a nudge, a reveal, a check, an AI suggestion. **Never called "help"** — help is the text explaining a form field, the rules of a game, or what an AI does, and nothing else (Joel, 2026-09-17) |
+| **priced hint** | the compete rule: a hint must be **banned**, **earned**, **scored**, or free-only-if-**self-informative** — never free and generative |
 | **comparator** | a lexicographic ranking (wordiply today): later components matter only on exact ties |
 | **composite score** | a weighted blend of ranking components into one number that IS the ranking (proposed for wordiply) |
 | **refusing to lose** | stalling a best game to avoid the ranking — explicitly out of scope; never defended against (the trust model answers it; a timer is the opt-in remedy) |

@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -7,6 +7,7 @@ import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
+import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -318,7 +319,7 @@ export function PlayArea({
   }, [gameId, localFeedbackSlot])
 
   // ─── Coop peer events → the header ─────────────────────
-  // A teammate's guess (green correct / red not) or help request (amber) is
+  // A teammate's guess (green correct / red not), or their hint or spoiler, is
   // narrated in the header. My own events are excluded — my guesses get the
   // local slot, my hint shows in my own turn log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
@@ -332,18 +333,21 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local
       const member = memberById(players, g.user_id)
-      // Helper actions (hint / reveal) → amber: important, but neither good nor
-      // bad. (A reveal logs the answer word, but we narrate it without naming
-      // the word — "revealed a word", not which one.)
+      // A hint, or a spoiler. (A reveal logs the answer word, but we narrate it without
+      // naming the word — "revealed a word", not which one.)
       if (g.kind === 'hint' || g.kind === 'reveal') {
-        return FeedbackMessage.peer(member, 'warning', g.kind === 'hint' ? 'got hint' : 'revealed word')
+        return FeedbackMessage.peer(
+          member,
+          ANSWER_OUTCOME[g.kind],
+          g.kind === 'hint' ? 'got hint' : 'revealed word',
+        )
       }
       // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
       // the color), leaving the header's ~26 phone characters for the word
       // itself rather than a sentence around it.
       return FeedbackMessage.peer(
         member,
-        g.is_correct ? 'won' : 'lost',
+        ANSWER_OUTCOME[answerOf(g)],
         `${g.is_correct ? 'Correct: ' : 'Wrong: '}${g.word.toUpperCase()}`,
       )
     },
@@ -352,9 +356,9 @@ export function PlayArea({
 
   // ─── Compete opponent progress (group feedback) ────────
   // When an opponent's public found_secrets_count count ticks up, narrate "X guessed a
-  // secret word" — the COUNT, never which word (that stays private). GREEN
-  // (success), the SAME tone coop uses for a peer's correct guess: green means
-  // "they found a word" in both modes, so the player doesn't maintain a
+  // secret word" — the COUNT, never which word (that stays private). It reads as
+  // the HIT it is, the same as coop's line for a peer's correct guess: green
+  // means "they found a word" in both modes, so the player doesn't maintain a
   // compete-only color-meaning. Watches the players rows; the ref seeds silently
   // on first load so history isn't replayed.
   useEffect(function announceOpponentProgress() {
@@ -366,7 +370,9 @@ export function PlayArea({
       if (prev === undefined) continue  // first sighting — seed, don't announce
       if (p.found_secrets_count <= prev) continue
       const member = memberById(players, p.user_id)
-      globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'guessed a word'))
+      globalFeedbackSlot.show(
+        FeedbackMessage.peer(member, ANSWER_OUTCOME.hit, 'guessed a word'),
+      )
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 

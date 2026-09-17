@@ -473,7 +473,7 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
     await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
   })
 
-  it('a single-letter reveal is NOT confirmed — it is the ordinary help ladder', () => {
+  it('a single-letter reveal is NOT confirmed — it is the ordinary hint ladder', () => {
     render(<><WithKeys {...makeCtx()} /><ConfirmationHost /></>)
     h.rpc.mockClear()
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })

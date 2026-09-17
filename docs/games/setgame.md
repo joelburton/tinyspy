@@ -425,8 +425,8 @@ to three mini cards, and who — the same components the board draws, at
 `--card-w: 1.9rem`.
 
 **Hints are rows too**, tagged `Hint` and carrying the shared **amber**
-(`warning`) bar rather than the neutral one — priced help, which is the word
-every game gives a hint. Without the tag a hint's one-to-three cards read
+(`warning`) bar rather than the neutral one — the word every game gives a
+hint. Without the tag a hint's one-to-three cards read
 as a find, which is exactly backwards. A hint row holds what the asker was
 *shown*, so it has one, two or three cards depending on how far up the ladder
 they went.
@@ -632,7 +632,7 @@ Two bugs this shape produced, both fixed and both worth knowing:
   wants the events table. Rapid pressing deadlocked (40P01). Both RPCs now take
   the games row `for update` first, in the same order.
 
-Banned outright in compete per the priced-help rule — free generative help
+Banned outright in compete per the priced-hint rule — a free generative hint
 decides a race. The button still renders there, disabled, with "No hints when
 competing", rather than vanishing.
 

@@ -238,7 +238,7 @@ Two judgment calls in the execution:
 - **The token went; the argument stayed.** Most of these sentences wrapped a
   real point — why Reveal is not Spoiler, why WordCheck is not Hint — around
   the token. The point is why anyone reads the docstring, so it survives in
-  plain words ("irreversible", "help you asked for", "the main move").
+  plain words ("irreversible", "a hint you asked for", "the main move").
 - **Color words stayed** ("amber", "the accent blue", "red"). They describe
   what a reader sees rather than naming a value the code sets, and the
   sibling comparisons need them. Worth revisiting if a theme ever moves one.

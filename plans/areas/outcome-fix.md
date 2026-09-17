@@ -340,6 +340,18 @@ nothing. Tests: `answer.test.ts` and the `outcome` assertion in
 `gameplay_test.sql`. Doc: the same new section in `docs/games/setgame.md`, and
 the turn-log paragraph's "amber (`near`)" corrected to `warning`.
 
+**3 · psychicnum — DONE 2026-09-17.** `lib/answer.ts`: five answers (`hit` ·
+`miss` · `hint` · `reveal` · `not_on_board`) and `answerOf(row)` reading `kind`
+before `is_correct` — the trap this game is the proof of, since a hint and a
+reveal are both written `is_correct = true`. The log bar, both peer lines and
+the not-on-board pill index the table; the guess pill reads `res.outcome`. THREE
+SQL words changed: a miss `neutral` → `lost` (decision a, in both arms) and the
+spoiler `warning` → `lost` (ruling k). Eight pgTAP assertions moved with them —
+every one a miss or the reveal, which is the change proving itself. Tests:
+`answer.test.ts` plus the assertions already throughout `gameplay_test.sql` /
+`turn_order_test.sql`. Doc: the new section, the two envelope tables, and four
+stale "amber" claims about the spoiler.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**
@@ -359,12 +371,58 @@ vitest assertion on the table, and a comment in each naming the other as its
 other half. Each language is pinned; the pair is held by the comment, not by
 the machine. Step 4 is amended to say so when it is worked.
 
-**F-outcome-fix-3 · stackdown's keyboard tile-pick refusals stay pill-only.**
-`BoardCol` decides two words for keystrokes — no exposed tile with that letter
-(`lost`), an ambiguous letter (`warning`). They are a different event grain from
-a submission: no row, no log, no board answer, one reader each. Putting them in
-`ANSWER_OUTCOME` would make it a table of two different kinds of thing, so they
-were left. Raised for Joel 2026-09-16; not yet ruled.
+**F-outcome-fix-4 · a hint's and a spoiler's BUTTON stay amber while a
+spoiler's outcome turns red, and that is right.** stackdown's and psychicnum's Spoiler buttons are
+`warning`-toned beside their Hint twins, and the spoiler's outcome is now `lost`.
+Not a disagreement: a button's tone is about the move you are about to make — a
+caution, "this will cost you" — where an outcome is about what happened. Both
+games' docs say so now rather than leaving the pair looking like a miss. It is
+also the chrome/outcome boundary Joel drew the same day, applied.
+
+**F-outcome-fix-5 · a decided tile's PERMANENT fill derives the word a second
+time.** psychicnum's board paints `correct ? styles.correct : styles.incorrect`
+from the row's boolean, and those two classes are `--outcomes-won-*` /
+`--outcomes-lost-*`. That is the same mapping `ANSWER_OUTCOME` makes, written
+again — so a miss ruled anything but `lost` would move the log and the pill and
+leave the board behind.
+
+Left alone, for a reason that is about the MARK and not about the word. The
+`verdict*` classes are for a beat: a piece flashes the answer and hands itself
+back. These fills are permanent — a guessed tile stays colored for the rest of
+the game, as the board's record of what has been ruled out — and routing a
+lasting state through the transient-verdict machinery is a decision that those
+are one thing, not a rename. It is also not expressible today: every
+`VERDICT_TONE` class sets exactly `--verdict-tone` / `--verdict-fill` /
+`--verdict-ink`, and a decided tile needs an EDGE. The color exists
+(`--outcomes-<family>-edge-color`, all seven, in `daylight.css`); what does not
+is a shared class set for a permanently-decided piece. That is
+[tile-feedback](../tile-feedback.md)'s question.
+
+Expect the same shape in wordle, waffle and connections — decide it once, when
+the first of them is reached, rather than per game.
+
+**F-outcome-fix-3 · an event with no row is pill-only, and stays out of the
+table. RULED 2026-09-17.** Three games have one. stackdown's `BoardCol` decides
+two words for keystrokes (no exposed tile with that letter → `lost`; an
+ambiguous letter → `warning`). scrabble's dictionary refusal is an `ok` with
+`lost` that writes nothing. psychicnum's PA002 "Already guessed" is an `ok`
+carried on a raise, so it has no `data` either.
+
+psychicnum's is the one that got looked at properly. It is genuinely reachable:
+`Board.tsx` sets `disabled={guessed || ...}`, so a guessed tile cannot be
+CLICKED again, but `submitGuess` checks only `words.includes(guess)` — so typing
+a word you already tried reaches the server. It costs nothing when it does: the
+raise rolls its subtransaction back, so no budget moves and no row is written.
+
+Joel, on whether to start writing a row so the log could show it: *"so it sounds
+like we only show a pill, so it's fine to leave that."* So an event that changes
+nothing and leaves no record is reported once, in the pill, and the table stays
+a table of things that happened. The same answer covers all three games.
+
+Note for whoever reads this later: psychicnum's two entry paths disagree about
+the duplicate rule — clicking is gated locally, typing is not — and the
+`results` map that gates the click is already in `BoardCol`. That is a behavior
+question, not an outcome one, and it was not opened.
 
 ## Closing
 

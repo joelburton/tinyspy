@@ -127,7 +127,7 @@ const CONCEDE_OR_END_CONFIRM: ConfirmOptions = {
 }
 
 /** The whole-grid reveal's question. The other two scopes ask nothing: Letter
- *  and Word are the ordinary help ladder, and confirming a hint you just asked
+ *  and Word are the ordinary hint ladder, and confirming a hint you just asked
  *  for is noise. Filling every answer is the one that ends the puzzle for the
  *  whole table, and its row sits one mis-click below "Word". */
 const REVEAL_GRID_CONFIRM: ConfirmOptions = {

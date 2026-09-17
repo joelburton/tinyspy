@@ -385,7 +385,7 @@ sizing).
   with it, `reveal_cells` writes the answers onto *everyone's* board and stamps
   them `revealed` (so the terminal Reveal/Hide toggle can't take it back — those
   letters are the players' fill now), and the row sits one mis-click below
-  "Word". Letter and word go straight through: they're the ordinary help ladder.
+  "Word". Letter and word go straight through: they're the ordinary hint ladder.
 - **Puzzle-info menu header** — the game menu opens with the loaded puzzle's
   **title + credits** (`title`, `by {author}`, `copyright`), a non-clickable block
   pinned above Help — crossplay's menu shows the same. It rides the shared menu's

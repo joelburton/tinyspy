@@ -92,7 +92,7 @@ export function historySnapshot(submissions: ReadonlyArray<Submission>, index: n
 
 /**
  * The kind-aware turn label. A valid word "cleared" its letters; a rejected word
- * was "entered … — not a word"; a hint / reveal names the help it surfaced (both
+ * was "entered … — not a word"; a hint / reveal names the text it surfaced (both
  * store their revealed text in `word` — the clue for a hint, the peeked word for
  * a reveal). Falls back gracefully if a row is missing its text.
  */

@@ -19,12 +19,12 @@ export type Answer = 'claim' | 'hint' | 'not_a_set'
  * **The log bar, a teammate's line and the refusal pill all read THIS**, and
  * `submit_set`'s envelope says `won` for the same claim. They are views of one
  * turn, and deriving the outcome per view is how they drift — which they did: a
- * hint was gold in the log while every other game's priced help was amber.
+ * hint was gold in the log while every other game's hint was amber.
  *
  * The readings, which are this game's rather than the vocabulary's:
  *
- *   - a hint is priced help you asked for, and it is spent whether or not you
- *     then see the set: `warning`, like priced help everywhere.
+ *   - a hint is spent whether or not you then go on to see the set, which is
+ *     neither good nor bad play: `warning`, as a hint is in every game.
  *   - three cards that are not a set cost you the pick, not the game. It is
  *     still the move going wrong, so it wears red.
  *

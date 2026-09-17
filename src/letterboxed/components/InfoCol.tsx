@@ -94,7 +94,7 @@ export function InfoCol({
    *  in PlayArea, which holds mode + roster. */
   setupRows: SetupRow[]
   // ── Action row ──
-  /** The two rungs of the help ladder. Both hide themselves in compete, where
+  /** The two rungs of the hint ladder. Both hide themselves in compete, where
    *  the server refuses them too, so this column places them without asking. */
   actHint: BoundAction
   actSpoiler: BoundAction
@@ -178,7 +178,7 @@ export function InfoCol({
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
-            {/* The two rungs of the help ladder, icon-only like everything else
+            {/* The two rungs of the hint ladder, icon-only like everything else
                 in this row. Each hides itself in compete, so this row places
                 them and asks nothing. */}
             <ActionButton action={actHint} show="icon" />

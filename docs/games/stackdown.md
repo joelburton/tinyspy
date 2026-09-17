@@ -277,9 +277,9 @@ creation, so it's self-contained; `board_id` is provenance only.
   envelope carrying `{result: 'reveal', word}` — the next solution word the
   caller still has to clear (`solution[cleared + 1]`) — defeating the
   hidden-solution invariant on
-  purpose. The `lost` outcome rides with it, painting the pill red: a spoiler is
-  priced help whose price is the whole hunt for that word, so unlike the hint
-  beside it (amber) there is nothing left to find. There is no "all cleared" answer: clearing
+  purpose. The `lost` outcome rides with it, painting the pill red: a spoiler
+  costs you the whole hunt for that word, so unlike the hint beside it (amber)
+  there is nothing left to find. There is no "all cleared" answer: clearing
   the sixth word ends the game in both modes, so a later call meets the
   in-progress gate and reads "Game over". `result` names the one case it does
   answer, because a call site may not take an `ok` branch by merely matching
@@ -288,7 +288,9 @@ creation, so it's self-contained; `board_id` is provenance only.
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE surfaces
-  it as a **Spoiler** action button (bare-eye — see [ui.md → Button
+  it as a **Spoiler** action button (bare-eye, and amber like the Hint beside it
+  — a BUTTON's tone is about the move you are about to make, where the outcome
+  is about what happened; see [ui.md → Button
   iconography](../ui.md#button-iconography)) in the info-column action row during play
   (writing its answer to the **local** below-board feedback slot — it's the
   player's own request). It also **logs the request** — a `kind='reveal'`
@@ -366,7 +368,7 @@ prettier title here.
 |---|---|---|
 | `submit_word` → `accepted` · `invalid` | `ok` | a non-word is a verdict: the rules were applied and nothing was cleared |
 | `reveal_next_word` → `reveal` | `ok`, `lost` | a spoiler ends the hunt for its word |
-| `reveal_next_hint` → `hint` | `ok`, `warning` | a hint is priced help: a nudge, neither good nor bad play |
+| `reveal_next_hint` → `hint` | `ok`, `warning` | a hint is a nudge — neither good nor bad play |
 | `PN291` "Someone cleared those tiles" | `race` | coop's stack is one shared object, so a teammate's word takes your tiles between your pick and your submit. They leave by realtime, so no local gate can see it coming. It rendered as the FAULT modal until 2026-09-01, when the severity moved to the raise |
 | `PN287` · `PN294` · `PN296` "Game over" · `PN288` "Already conceded" | `race` | |
 | `PN289` `BUG: submit after solving` · `PN290` `BUG: word that was not five distinct tiles` · `PN292` `BUG: word using a covered tile` | `fault` | the board only ever offers exposed, unremoved tiles, five at a time |

@@ -299,7 +299,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // for why that list ships at all. The server is told only that help was
   // taken, so the turn log agrees with what happened.
   //
-  // Two buttons, two rungs of the shared help ladder (docs/ui.md → button
+  // Two buttons, two rungs of the shared hint ladder (docs/ui.md → button
   // iconography): HINT describes the word, SPOILER hands it over. Both are
   // coop-only — in compete, "first past the bar wins" would make either a win
   // button, and the server refuses them there too.
@@ -385,7 +385,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
 
-      // A `hint` leaves only by its ×, like every priced help: it sits in the
+      // A `hint` leaves only by its ×, like every hint: it sits in the
       // entry's slot until the player has read it, and a keystroke can't take
       // it away by accident (docs/ui.md → Feedback pill).
       //
@@ -404,7 +404,7 @@ export function PlayArea(ctx: GamePageCtx) {
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'logged') {
-        // The help row arrives in the turn log by subscription. The hint
+        // The hint's row arrives in the turn log by subscription. The hint
         // above stands, which is the whole of what a successful log owes anyone.
         return
       } else {
@@ -479,7 +479,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: createNewGame,
   })
 
-  // ─── The help ladder ───────────────────────────────────
+  // ─── The hint ladder ───────────────────────────────────
   // Two rungs, COOP ONLY: in a race "first past the bar wins" would make either
   // one a win button, and the server refuses them there too. Hiding rather than
   // disabling is deliberate — a control that named a glyph the surface never
@@ -543,7 +543,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The FULL letterboxed menu. `buildGameMenu` supplies the framing (Help + chat
   // above, Back to club below); the middle is this game's own rows, each one a
   // binding it already made — so a row's words, glyph, key and availability come
-  // from the action rather than being typed here a second time. The help ladder
+  // from the action rather than being typed here a second time. The hint ladder
   // hides itself in compete, which is why this list is the same in both modes.
   // The effect re-runs only when the SHAPE changes, hence every dep is stable.
   useEffect(function publishGameMenu() {
@@ -573,7 +573,7 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (e) => {
       if (e.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === e.user_id)
-      // Peer help is TWO messages (Joel's spec, 2026-08-05): the header names
+      // A peer's hint is TWO messages (Joel's spec, 2026-08-05): the header names
       // the ACT ("● joel got a hint"), and the CONTENT — the same hint the
       // requester saw — lands in the local slot, so a hint one player asks
       // for is a hint the whole team has. Showing into the local slot from

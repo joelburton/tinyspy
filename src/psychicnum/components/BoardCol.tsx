@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
@@ -12,6 +12,7 @@ import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { EntryRow } from '@/common/word-entry/EntryRow'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { Board } from './Board'
 import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
@@ -205,7 +206,9 @@ export function BoardCol({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!words.includes(guess)) {
-      localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not on the board'))
+      localFeedbackSlot.show(
+        FeedbackMessage.result(ANSWER_OUTCOME.not_on_board, 'Not on the board'),
+      )
       return
     }
     setSubmitting(true)
@@ -234,10 +237,14 @@ export function BoardCol({
       // in the log, so it is already in `results` and the in-flight dim has
       // released itself.
       localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
-    } else if (res.type === 'ok' && res.data?.verdict === 'hit') {
-      localFeedbackSlot.show(FeedbackMessage.result('won', 'Correct'))
-    } else if (res.type === 'ok' && res.data?.verdict === 'miss') {
-      localFeedbackSlot.show(FeedbackMessage.result('lost', 'Incorrect'))
+    } else if (res.type === 'ok' && res.data?.verdict === 'hit' && res.outcome !== null) {
+      // The server sends no sentence — "Correct" / "Incorrect" is this surface's
+      // word for a verdict the player is already looking at on the board. What
+      // it does send is how that reads, so the outcome is the other half of each
+      // case's promise and the branch asserts it.
+      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Correct'))
+    } else if (res.type === 'ok' && res.data?.verdict === 'miss' && res.outcome !== null) {
+      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Incorrect'))
     } else {
       // Nothing named this answer, so the tile must not keep claiming to be in
       // flight — there is no result coming that would release it.

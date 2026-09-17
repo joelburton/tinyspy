@@ -226,7 +226,7 @@ export function PlayArea({
   // info column, so this mirrors that row's condition exactly rather than
   // inventing a second answer. Read by the game menu, where the pair's menu
   // twins live.
-  const canAskHelp = !!self && !isTerminal && !myConceded
+  const canAskHint = !!self && !isTerminal && !myConceded
 
   // Locally terminal (compete only): I conceded but the game continues for the
   // others. stackdown has no elimination, so conceding is the only path to it — it
@@ -380,21 +380,21 @@ export function PlayArea({
     localFeedbackSlot,
   })
 
-  // ─── The help ladder ─────────────────────────────────────────
+  // ─── The hint ladder ─────────────────────────────────────────
   // Two rungs, both grayed rather than dropped once you can't ask: the row is
   // what NAMES those glyphs (docs/ui.md → the menu is the legend), and a
   // disabled row still teaches the lightbulb and the bare eye. The labels say
   // which word each acts on, which the icon-only buttons have no room for.
   const actHint = useBoundAction('act-hint', {
     describe: () => ({
-      state: canAskHelp ? 'active' : 'disabled',
+      state: canAskHint ? 'active' : 'disabled',
       label: 'Hint for next word',
     }),
     run: revealHint,
   })
   const actSpoiler = useBoundAction('act-spoiler', {
     describe: () => ({
-      state: canAskHelp ? 'active' : 'disabled',
+      state: canAskHint ? 'active' : 'disabled',
       label: 'Cheat for next word',
     }),
     run: spoilNext,

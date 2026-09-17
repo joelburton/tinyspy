@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- psychicnum — the REPEATABLE half
@@ -690,10 +690,16 @@ begin
     -- The caller's own verdict, NOT the game's — the game's fate travels by
     -- realtime (end_game above). A correct guess that empties the budget is
     -- still a correct guess to the person who made it.
+    --
+    -- A miss is `lost`: the budget is what you spend to play, and a wrong guess
+    -- spends some of it for nothing. `neutral` — news rather than a verdict —
+    -- was the word here until 2026-09-16, and no surface believed it: the pill,
+    -- the log and a teammate's line all said red anyway. The frontend's
+    -- lib/answer.ts now says the same word for the row this wrote.
     return common.ok_envelope(
       jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
                          'found_all', false),
-      case when is_correct then 'won' else 'neutral' end);
+      case when is_correct then 'won' else 'lost' end);
   end if;
 
   -- ─── Game continues ──────────────────────────────────────
@@ -725,10 +731,11 @@ begin
               else '{}'::jsonb
          end
   );
+  -- A miss is `lost` — the reason is on the terminal arm above.
   return common.ok_envelope(
     jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
                        'found_all', false),
-    case when is_correct then 'won' else 'neutral' end);
+    case when is_correct then 'won' else 'lost' end);
 
 exception when others then
   get stacked diagnostics
@@ -954,8 +961,10 @@ begin
   insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, reveal_word, true, 'reveal');
 
+  -- A spoiler is RED. Its price is the whole hunt for that secret — there is
+  -- nothing left to find — so it does not wear the amber a hint does. The frontend's lib/answer.ts says the same word for this row.
   return common.ok_envelope(
-    jsonb_build_object('result', 'reveal', 'word', reveal_word), 'warning');
+    jsonb_build_object('result', 'reveal', 'word', reveal_word), 'lost');
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -990,7 +999,7 @@ grant execute on function psychicnum.request_reveal(uuid) to authenticated;
 -- carry that row's text in `hint`; only `result` tells them apart, which is
 -- what keeps a call site from having to match on the prose.
 --
--- Its outcome is `warning` in both cases: help you asked for is neither good
+-- Its outcome is `warning` in both cases: a hint is neither good
 -- nor bad play (docs/outcomes.md), and stackdown.reveal_next_hint — the same
 -- feature in another game — answers the same way.
 

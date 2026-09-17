@@ -9,7 +9,7 @@
  * touch device, because the menu is the legend. That makes the menu's contents
  * a real contract, not chrome: a row silently dropped takes a glyph's only
  * explanation with it. These pin it, plus the one mode rule that goes the other
- * way (compete has no help ladder at all, so naming it there would teach a lie).
+ * way (compete has no hint ladder at all, so naming it there would teach a lie).
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else renders for real.
@@ -168,7 +168,7 @@ beforeEach(() => {
 })
 
 describe('letterboxed PlayArea — the game menu is the icon legend', () => {
-  it('coop names both rungs of the help ladder, each with its glyph', () => {
+  it('coop names both rungs of the hint ladder, each with its glyph', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)

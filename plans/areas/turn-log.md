@@ -932,7 +932,7 @@ The four games whose names already turned out to be lying go first.
         `HistorySnapshot.description` → `historyLabel`.
       - **`hinted` → `ringed`.** The prop takes EITHER the live hint's cards or
         the history-lit ones, so it named one of its two causes — and `hint` is
-        reserved in this repo for priced help, which the history ring is not.
+        reserved in this repo for the in-game nudge, which the history ring is not.
         `ringed` names the mark.
       - the `/**`-on-props pass: 9 members.
       Filed in setgame's todo, found by the read: a viewed past turn is ringed

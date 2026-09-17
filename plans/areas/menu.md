@@ -534,7 +534,7 @@ it says the shell injects nothing and why only the game knows the shape.
 ## F-menu-22 · `hint-in-the-owning-section` · The menu's owning doc section says "key hint" twice and "Shortcut hints" once — WORKED
 
 docs/ui.md → GamePage menu is the section this folder answers to, and it
-used the word Joel ruled has one meaning here (priced help) for the key label
+used the word Joel ruled has one meaning here (an in-game hint) for the key label
 at a row's right edge — the same use this area fixed six of in the folder.
 
 **WORKED 2026-09-11** (Joel: fix the three now, as this area's owning doc).
@@ -563,8 +563,8 @@ still his, and untouched everywhere else.
   (`role="menu"`, `menuitem`, `aria-expanded`, `aria-haspopup`) and stays;
   the two comments that justify it in screen-reader terms are the existing
   rationale and are left alone.
-- **"hint" has ONE meaning in this repo and it is priced help** (Joel,
-  2026-09-11), so the key label at the right edge of a row is the SHORTCUT,
+- **"hint" has ONE meaning in this repo: the in-game nudge a player pays
+  for** (Joel, 2026-09-11), so the key label at the right edge of a row is the SHORTCUT,
   never the "shortcut hint". Six sites in this folder said otherwise and were
   changed: the stylesheet (twice), `menuModel.ts` (twice), the test file's
   header and one test name, and doc.md. Two uses of the ordinary English

@@ -1298,7 +1298,7 @@ revoke execute on function letterboxed.clear_chain(uuid) from public;
 grant execute on function letterboxed.clear_chain(uuid) to authenticated;
 
 -- ============================================================
--- letterboxed.log_help — record that help was taken
+-- letterboxed.log_help — record that a hint was taken
 -- ============================================================
 -- The suggestion itself is computed ON THE FE: it holds playable_words,
 -- so a breadth-first search over (letters-used, tail-letter) finds a

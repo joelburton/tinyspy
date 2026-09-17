@@ -178,7 +178,7 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 | `submit_word(target_game, submitted)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `playable_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). |
 | `undo_word(target_game)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
 | `clear_chain(target_game)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
-| `log_help(target_game, word_shown, kind)` | Records that help was taken (§6). The suggestion is computed on the FE; the server's only job is making the turn log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
+| `log_help(target_game, word_shown, kind)` | Records that a hint was taken (§6). The suggestion is computed on the FE; the server's only job is making the turn log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `end_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
 | `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common.require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
@@ -249,7 +249,7 @@ is the remedy in every case and therefore worth no characters: the pill is
 characters and truncated mid-word on DESKTOP. The undo × is on the chain strip
 either way.
 
-Two rungs, the shared help ladder ([ui.md → button
+Two rungs, the shared hint ladder ([ui.md → button
 iconography](../ui.md#button-iconography)):
 
 1. **`hint`** — the word's length plus its **first letters**: "8 letters
@@ -292,7 +292,7 @@ a counter beside the score would read as something the game holds against you
 number the log would otherwise have to be folded to get.
 
 **The help text is a `hint` message, and leaves only by its ×** ([ui.md →
-Feedback pill](../ui.md#feedback-pill)) — the rule for every priced help, so a
+Feedback pill](../ui.md#feedback-pill)) — the rule for every hint, so a
 keystroke can't clear a clue by accident. It sits in the **entry's slot** until
 the player presses ×; the capture keyboard still takes letters meanwhile, and
 the entry row comes back when the hint goes. The three diagnoses ("No word

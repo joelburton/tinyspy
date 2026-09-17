@@ -16,7 +16,7 @@ import type { EventRow } from '../hooks/useGame'
  *   played  → push the word
  *   undone  → pop the last one
  *   cleared → empty it
- *   hint / spoiler → nothing changed; help doesn't move the chain
+ *   hint / spoiler → nothing changed; neither one moves the chain
  *
  * **The boundary is INCLUSIVE**: viewing the move at `index` shows the chain
  * *after* it — "this is what move #N did", which is the natural way to review a

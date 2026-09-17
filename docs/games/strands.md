@@ -216,7 +216,7 @@ clock is merely how a session stops.
 |---|---|
 | `create_game(target_club, setup, player_user_ids, mode)` | Copies the puzzle onto the row, seeds counters + `status`, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <clue>"` — the clue is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
 | `submit_path(target_game, path)` | The move RPC. See the order below. |
-| `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — help you asked for is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
+| `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
 | `end_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
 ### Classification order — a rule, not an implementation detail

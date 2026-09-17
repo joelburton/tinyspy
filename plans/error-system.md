@@ -384,7 +384,7 @@ refetch), not two places in the source.
 - [x] `request_hint` · RPC — PN390–PN392, and TWO `ok`s: `hint` and `no-hint`,
       where a magic "No hint available" string used to carry the difference
 - [x] `request_reveal` · RPC — PN393–PN395, one `ok`. Both answer `warning`,
-      matching stackdown's twins — help you asked for is neither good nor bad
+      matching stackdown's twins — a hint is neither good nor bad
       play. **Their "nothing left" branches turned out to be UNREACHABLE** and
       became faults: `submit_guess` ends the game the moment the last secret is
       found, in both modes, so the play_state gate always fires first. That
@@ -400,7 +400,7 @@ read to convert; `submit_guess` has one call site, not two.
 
 **This area was marked finished when it was not**, and is now finished for
 real. The worked example in §5 covers `create_game` and `submit_guess`; the two
-priced-help RPCs were never listed, and an audit of every `grant execute … to
+priced-hint RPCs were never listed, and an audit of every `grant execute … to
 authenticated` found them (2026-09-01). Converting them was where the
 "unreachable branch" question got its answer — see the two rows above.
 
@@ -506,7 +506,7 @@ and took twenty assertions with it.
 - [x] `spend_hint` · RPC — PN428–PN434. THREE races the shared coop pool makes
       real (a teammate can fill the bar, spend it, or ring a word between your
       check and your click), one fault for the unreachable empty board, and an
-      `ok` in `warning` — help you asked for is neither good nor bad play
+      `ok` in `warning` — a hint is neither good nor bad play
 - [x] `submit_path` · RPC (2 call sites) — PN418–PN427, and SIX `ok`s. Three of
       them read like refusals and are not: `duplicate`, `too_short` and
       `invalid` are the rules applied to a move that happened, and NOTHING local

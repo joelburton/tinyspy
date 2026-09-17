@@ -740,7 +740,7 @@ grant execute on function setgame.submit_set(uuid, smallint[]) to authenticated;
 -- answers that, and a hint costs nothing anyway) but to keep a nonsense row out
 -- of a log people read.
 --
--- BANNED IN COMPETE, per the priced-help rule: help must be banned, earned,
+-- BANNED IN COMPETE, per the priced-hint rule: a hint must be banned, earned,
 -- scored into the ranking, or free only when self-informative. A hint here is
 -- free and generative, so in a race it is a win button.
 drop function if exists setgame.record_hint(uuid, smallint[]);

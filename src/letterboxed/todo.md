@@ -2,6 +2,25 @@
 
 ## Bugs
 
+- **`help` is used here for a hint, and this is the only game with the
+  pattern.** `help` means exactly three things — the text explaining a form
+  field, the text explaining a game's rules, the text explaining what an AI does
+  — and nothing else (Joel, 2026-09-17: *"HELP IS NOT A HINT. IT IS NOT AN
+  UMBRELLA TERM FOR HINTS/REVEALS/CHECKS/AI."*). The repo's prose was swept the
+  same day; these identifiers were left because they are one coherent rename and
+  this game's turn was coming.
+
+  `askHelp(kind: 'hint' | 'spoiler')` — Joel's name for it is
+  **`askForHintOrSpoiler`** (a hint-only game's would be `askHint`); its wrappers
+  `takeHint` / `takeSpoiler` are already right. Also `helpPillText()`, the file
+  `lib/help.ts`, and the RPC **`letterboxed.log_help`** — SQL, the generated
+  `db.ts`, `replay_test.sql` and the game doc. **No migration**: the schema shape
+  is a `kind` column that never says "help".
+
+  **Do it when `outcome-fix` reaches letterboxed** (Joel, 2026-09-17: *"let's fix
+  that when hit letterboxed"*), which is the same sitting that gives this game
+  its `lib/answer.ts`. Cross-cutting record: `docs/deferred.md`.
+
 - Two `font-weight: 650` (`Board.module.css`, `PlayArea.module.css`). A
   weight must be a multiple of 100 (docs/ui.md → The non-color
   vocabularies); both are bugs to fix, not values to keep.

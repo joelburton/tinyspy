@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useEffect, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'

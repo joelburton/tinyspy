@@ -91,7 +91,7 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
-  '{"type":"ok","outcome":"neutral",
+  '{"type":"ok","outcome":"lost",
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'coop: wrong guess returns wrong'
 );
@@ -163,7 +163,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.request_reveal((select id from coop_g)),
-  '{"type":"ok","outcome":"warning","data":{"result":"reveal"}}'::jsonb,
+  '{"type":"ok","outcome":"lost","data":{"result":"reveal"}}'::jsonb,
   'coop: request_reveal answers ok/reveal'
 );
 -- The WORD it spoiled is one of the two still unfound — asserted separately,
@@ -261,7 +261,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
-  '{"type":"ok","outcome":"neutral",
+  '{"type":"ok","outcome":"lost",
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'coop: the budget-exhausting wrong guess returns wrong'
 );
@@ -449,7 +449,7 @@ select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
 select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
-  '{"type":"ok","outcome":"neutral",
+  '{"type":"ok","outcome":"lost",
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'compete: the all-exhausting wrong guess returns wrong'
 );

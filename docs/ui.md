@@ -2108,7 +2108,7 @@ hint + spoiler reached letterboxed, psychicnum and stackdown, and how
 letterboxed got the Reveal solution row its terminal button had been missing.
 A grayed row still teaches, so an action whose `describe()` answers `disabled`
 keeps its row, grayed — only `hidden` drops it, which is the answer for an
-action the mode never offers at all (letterboxed's help ladder in compete,
+action the mode never offers at all (letterboxed's hint ladder in compete,
 crosswords' Reveal submenu), where naming a glyph the surface never shows would
 teach a lie. The pairing is taught
 once, at the point of need, and reads in all sixteen games afterwards — for no
@@ -2263,7 +2263,7 @@ Each tone re-sets the slot tokens both treatments read, so a tone works in eithe
 weight. For a command the two axes split: **tone is the registry's** — a fact
 about the action, which `<ActionButton>` does not even accept as a prop — and
 **weight is the placement's**, since how loud a button is depends on where it
-sits. Where they land: the help ladder — Hint, Spoiler, an AI suggestion — is
+sits. Where they land: the hint ladder — Hint, Spoiler, an AI suggestion — is
 `caution`, and so is scrabble's Pass, an uncommon act that forfeits the turn;
 End, Concede and Reveal are `destructive`, since all three are irreversible; a
 move commit, and codenamesduet's every-turn End turn, are `primary`; a dialog's

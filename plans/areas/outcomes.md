@@ -256,8 +256,8 @@ onto the nearest word that compiled. Both halves filed as Bugs in
 with them: two readings of one event can't both be right.
 
 Also his, on the wording: **the rows are hint rows, not "help"** — *"'help'
-never shows in turn-logs."* `hint` is the word the repo spends for priced help
-and the one a player sees; `help` is a category name with no surface.
+never shows in turn-logs."* `hint` is the word the repo spends for the
+in-game nudge, and the one a player sees; `help` is not a word for it at all.
 
 This leaves `docs/outcomes.md`'s paragraph on `TurnOutcome` wrong twice over —
 about why the type is four, and about the mapping it points at.

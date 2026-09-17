@@ -548,9 +548,9 @@ begin
     values (target_game, caller_id, next_seq, 'reveal', cleared, next_word);
   end if;
 
-  -- A spoiler is RED. It is priced help, but the price is the whole hunt for
-  -- this word — there is nothing left to find, so it reads as a loss and not as
-  -- the amber caution a hint wears (the frontend's lib/answer.ts says the same
+  -- A spoiler is RED. Its price is the whole hunt for this word — there is
+  -- nothing left to find, so it reads as a loss and not as the amber caution a
+  -- hint wears (the frontend's lib/answer.ts says the same
   -- word for the row this wrote). No message — the word IS the answer, and the
   -- surface shows it.
   --
@@ -663,9 +663,8 @@ begin
     values (target_game, caller_id, next_seq, 'hint', cleared, hint_text);
   end if;
 
-  -- Amber: a hint is priced help, and priced help is neither good nor bad play
-  -- (the spoiler beside it is red, because it ends the hunt rather than nudging
-  -- it). No message — the clue IS the answer. `result` names the case for the
+  -- Amber: a hint is a nudge, neither good nor bad play (the spoiler beside it
+  -- is red, because it ends the hunt rather than nudging it). No message — the clue IS the answer. `result` names the case for the
   -- same reason as reveal_next_word's.
   return common.ok_envelope(
     jsonb_build_object('result', 'hint', 'hint', hint_text), 'warning');

@@ -16,7 +16,7 @@
 - **The live hint's ring is GREEN, and a hint is amber everywhere else.**
   `--setgame-hint-ring` is `#16a34a` — a saturated green, and green is this
   app's success color. The same hint's log bar is amber (`warning`, the word
-  `lib/answer.ts` gives it, ruled 2026-09-16 as the word for priced help in
+  `lib/answer.ts` gives it, ruled 2026-09-16 as the word for a hint in
   every game), and its `Hint:` tag sits beside a row whose bar says caution. So
   the board and the log say two different things about one event.
 
@@ -45,7 +45,7 @@
   the shared color (the other nine games' shape), or setgame keeps one ring
   deliberately and says why. The prop itself was renamed `hinted` → `ringed` in
   that sweep, since it names a mark with two causes and `hint` is reserved for
-  priced help.
+  the priced hint itself.
 
 
 - **The below-board reserve is a hand-tuned constant.**

@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
@@ -84,8 +84,12 @@ export type GuessRow = {
   word: string
   is_correct: boolean
   /** 'guess' = a real guess (colors the board, counts toward the win);
-   *  'reveal' = a revealed secret word (the answer), amber in the turn log;
-   *  'hint' = a clue for a secret, amber in the turn log. */
+   *  'reveal' = a revealed secret word (the answer);
+   *  'hint' = a clue for a secret.
+   *
+   *  What each is WORTH is `lib/answer.ts`'s to say — and `kind` has to be read
+   *  before `is_correct`, because a hint and a reveal are both written
+   *  `is_correct = true`. */
   kind: 'guess' | 'hint' | 'reveal'
   guessed_at: string
 }

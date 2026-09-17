@@ -74,10 +74,29 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - **The history viewer's banner ✕ is its own `<button>`; consider `<CloseButton>`.** The shared dismiss glyph landed 2026-08-26 in the CSS sprint's `forms` area — `common/buttons/CloseButton.tsx`, converted at the floating-panel titlebar, the toast and the feedback pill. The banner's exit is the one left. **It is now a one-file question**: the `turn-log` area gave the banner a component (`common/turn-log/HistoryBanner.tsx`, 2026-09-16), so the `✕` (U+2715) that used to be typed by hand into nine `BoardCol.tsx` is written once. What made this urgent — nine copies agreeing by luck — is gone; what is left is a look decision, since `<CloseButton>` is a `StandardButton` with a hover wash and an `em`-sized box, and the banner's exit is a bare glyph with its own padding. Swapping it changes how the ✕ reads in ten games, so it wants a look rather than a sweep. **Not in the family:** letterboxed's `.chainRemove`, which is an *undo* ("Take back WORD") that merely looks like a close.
 - **The envelope does not carry the HTTP status, so the PN488 line cannot say it.** The status survives every layer but the last: `dbFetch` keeps it on the Response, postgrest-js forwards it, each wrapper reads it into its `transport` and logs it on the call's own `[db]` line — and then returns the envelope alone, whose nine keys are the wire shape SQL composes. So `reportUnhandled(call, res)`, which gets only what the call site holds, prints `status=200` for an `ok` (true on every transport) and **leaves it blank for a `not-ok`**, since a declared refusal arrived 200 and a raw fault arrived 4xx and nothing in the envelope says which (Joel, 2026-09-02: *"we should definitely not show 200 if we don't know"*). The same gap is why `call` is a hand-written string at ~95 scream sites. **The fix to consider is a tenth key** — the status, and possibly the call label, added by the wrapper to the envelope it returns. By the envelope's own design that is a compile error at every builder in SQL, Deno and TypeScript ("every key is always present"), which is the point of required keys and also why it is not a small change: it means deciding whether the wire shape SQL composes and the shape a call site reads are still the same type. A `WeakMap<Envelope, TransportFacts>` side channel in the wrappers was considered and declined the same day as messier than the gap it closes.
 - **`edgeFnTransport` treats a relay failure and a function that threw as the same thing.** functions-js distinguishes them — `FunctionsRelayError` means the request never reached our code, `FunctionsHttpError` means it ran and answered — and there is an `x-relay-error` header saying so. We read neither, so both become the same fault. The two deserve different words: one is "the edge platform is having a problem", which is nobody's bug and reads like a `service-error`; the other is ours and reads like a fault. Found 2026-09-01 while measuring what each layer can see for the fault-presentation move, and deliberately left out of it — that change was about WHO presents, not about classifying better. Nothing is broken meanwhile: both paths do reach the player as a fault with their diagnostics line.
-- **`help` names two different things, and one of them is wrong.** The reserved sense is **UI assistance** — the rules dialog, an InfoCol explanation, a field's `entryHelp`. It is also, wrongly, the umbrella for **hint + spoiler**, which are priced in-game assistance and not help at all (Joel, 2026-08-28: *"asking for a hint or a spoiler is NOT 'help'"*). Filed here rather than in [letterboxed.md](games/letterboxed.md) because the umbrella half is cross-cutting.
-  - **In letterboxed** (the only game with the pattern): `askHelp(kind: 'hint' | 'spoiler')` at `PlayArea.tsx:238` — Joel's name for it is **`askForHintOrSpoiler`**, and a hint-only game's would be `askHint`. Its two wrappers `takeHint` / `takeSpoiler` are already right. Also `helpPillText()`, the file `letterboxed/lib/help.ts`, the RPC **`letterboxed.log_help`** (SQL + generated `db.ts` + `replay_test.sql` + the game doc — no migration, since the schema shape is a `kind` column that doesn't say "help"), and the prose "help ladder" / "Peer help".
-  - **Repo-wide**, the same word is the umbrella in [win-lose.md](win-lose.md) (**"priced help"** — a named rule), [ui.md](ui.md) and [setgame.md](games/setgame.md) ("the help ladder"). Renaming the identifiers without the umbrella leaves the collision in place; renaming the umbrella needs a word that works in a rule, which `askForHintOrSpoiler` does not. **assist** is the candidate — "the priced-assist rule", "the assist ladder", `log_assist`.
-  - Deliberately not done during the envelope sprint (unrelated), and scoped when picked up: identifiers only, or identifiers + umbrella.
+- **`help` is used for a hint in a few identifiers — the prose half is done.**
+  **`help` has exactly three meanings and no others** (Joel, 2026-09-17): the
+  text explaining a form field, the text explaining the rules of a game, and the
+  text explaining what an AI does. It is **never** the word for a hint, a
+  spoiler, a check or an AI suggestion — those are **hints**, and the compete
+  rule about them is the **priced-hint rule**. Joel had already ruled the same
+  thing on 2026-08-28 (*"asking for a hint or a spoiler is NOT 'help'"*).
+
+  **The umbrella question is closed**, and the "assist" candidate this item used
+  to carry is dead: the word is `hint`. The PROSE was swept 2026-09-17 — the two
+  `win-lose.md` glossary rows — which had defined `help` as the umbrella and
+  named the compete rule after it, and were what kept licensing the usage —
+  the "ladder" prose in eleven files, the amber-hint rationale in `outcomes.md`,
+  strands' and psychicnum's SQL, and stackdown's `canAskHelp`.
+
+  **What is left is letterboxed's identifiers**, the only game with the pattern:
+  `askHelp(kind: 'hint' | 'spoiler')` — Joel's name for it is
+  **`askForHintOrSpoiler`**, and a hint-only game's would be `askHint`. Its two
+  wrappers `takeHint` / `takeSpoiler` are already right. Also `helpPillText()`,
+  the file `letterboxed/lib/help.ts`, and the RPC **`letterboxed.log_help`** (SQL
+  + generated `db.ts` + `replay_test.sql` + the game doc — no migration, since
+  the schema shape is a `kind` column that doesn't say "help"). One change, and
+  `outcome-fix` reaches letterboxed, which is the natural moment.
 - **A failed profile probe still guesses, and the guess is "you are fine".** `useSession`'s
   read of `common.profiles` treats a FAILURE as "signed in, no username yet", so a
   broken RLS policy or a dead connection at startup routes the user to

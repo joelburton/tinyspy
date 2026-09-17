@@ -43,10 +43,11 @@ two things that turn out to be one:
   noticing. Connections' "You already tried that", scrabble's "Board changed".
   It is also what a `race` defaults to (see
   [envelopes.md](envelopes.md) → Appearance).
-- **Help you asked for.** Stackdown's spoiler and letterboxed's stuck-hint are
-  amber for the same reason its button is: a hint is neither good nor bad play,
-  and coloring it green or red would adjudicate something the player did not
-  do.
+- **A hint you asked for.** letterboxed's stuck-hint is amber for the same
+  reason its button is: a hint is neither good nor bad play, and coloring it
+  green or red would adjudicate something the player did not do. A SPOILER is a
+  different call — it hands over the answer and ends the hunt for it, which is
+  `lost` (ruled 2026-09-16; see stackdown and psychicnum).
 
 What both have in common is that nothing is being judged. Which one a given case
 is stays a judgment call — decide it per site rather than by rule.
@@ -57,7 +58,7 @@ dark gray precisely because a pale border read as no border at all.
 
 **`noted` is news rather than a result.** "Leah invited you." "A hint is
 showing." "Nothing on the board to check yet." It also covers a turn that COUNTS
-without being adjudicated — letterboxed's help pills use it. It is deliberately
+without being adjudicated — letterboxed's hint and spoiler pills use it. It is deliberately
 blue, so it cannot be mistaken for a verdict at a glance.
 
 **`error` is a full member of the list.** A `not-ok`'s default appearance IS

@@ -658,29 +658,30 @@ type Explained =
   // square in the tool bar — so the two can't disagree about what it is called,
   // whether it applies or which key also does it.
 
-  /** The help ladder applies while the board is writable, and grays with it. */
-  const helpState = (): ActionState => (isPlayable ? 'active' : 'disabled')
+  /** Every tool in the bar — the hint ladder, and the pencil beside it —
+   *  applies while the board is writable, and grays with it. */
+  const writableState = (): ActionState => (isPlayable ? 'active' : 'disabled')
   /** …and Reveal is coop-only: revealing your own grid would trivially win a
    *  race, so in compete it isn't there at all. */
-  const revealState = (): ActionState => (mode === 'coop' ? helpState() : 'hidden')
+  const revealState = (): ActionState => (mode === 'coop' ? writableState() : 'hidden')
 
   const actPencil = useBoundAction('act-pencil', {
     // Named in both faces: this row says where ⌥P takes you, and a row that
     // fell back to the registry's "Pencil" in one branch would rename itself.
-    describe: () => ({ state: helpState(), label: pencil ? 'Switch to pen' : 'Switch to pencil' }),
+    describe: () => ({ state: writableState(), label: pencil ? 'Switch to pen' : 'Switch to pencil' }),
     run: () => setPencil((p) => !p),
   })
 
   const actCheckLetter = useBoundAction('act-check-letter', {
-    describe: helpState,
+    describe: writableState,
     run: () => handleCheck('letter'),
   })
   const actCheckWord = useBoundAction('act-check-word', {
-    describe: helpState,
+    describe: writableState,
     run: () => handleCheck('word'),
   })
   const actCheckPuzzle = useBoundAction('act-check-puzzle', {
-    describe: helpState,
+    describe: writableState,
     run: () => handleCheck('puzzle'),
   })
   const actRevealLetter = useBoundAction('act-reveal-letter', {

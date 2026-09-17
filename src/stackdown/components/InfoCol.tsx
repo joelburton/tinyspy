@@ -85,7 +85,7 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (cheats + End/Concede, back-to-club at terminal) ──
-  /** The two rungs of the help ladder — a hint toward the next word, or the
+  /** The two rungs of the hint ladder — a hint toward the next word, or the
    *  word itself. Both carry their own "which word" wording. */
   actHint: BoundAction
   /** Mid-game cheat: hand over the next word (the amber bare eye). Named for
@@ -195,7 +195,7 @@ export function InfoCol({
           </InfoActionsRow>
         ) : isPlayer ? (
           <InfoActionsRow>
-            {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
+            {/* Cheats: both warning-toned (amber) — "a hint, not good-or-bad".
                 Icon-only like the rest of the row; `tooltip` (the styled hover
                 bubble) carries the full "what it does" copy, richer than the
                 name the glyph would take from `label` alone. */}

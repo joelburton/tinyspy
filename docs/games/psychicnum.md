@@ -31,9 +31,9 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - A **board of N words** (N = `word_count`, 5–20, chosen at setup), sampled from `common.words` at create-game time under a clean (`crude=0 AND slur=0`) + `american` + non-`slang` + `difficulty ≤ band` filter. **Three of the board words are secret**; the same three for everyone, and players win by finding **all three** (by clicking a word tile or typing the word).
 - The board words are **public** (you see and click them). The three secrets are **hidden server-side** — clients can't tell which words are secret during play even with devtools open — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic) below.
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
-- **Two helpers, both free + logged amber in the turn log, neither finds the secret or decrements the budget:**
+- **Two helpers, both free + logged in the turn log, neither finds the secret or decrements the budget** (a hint's row is amber, a spoiler's red — see the one outcome decision below):
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
-  - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." Its button is the amber bare-eye; the red boxed-eye Reveal is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
+  - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." Its button stays the amber bare-eye even though a spoiler's outcome is red — a button's tone is about the move you are about to make, where the outcome is about what happened; the red boxed-eye Reveal is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
   - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). Row and button are the same bound action ([common/actions](../../src/common/actions/doc.md)), so neither can drift from the other.
 - Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DictBandField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
@@ -42,7 +42,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 
 - All players share a single guess pool (initial value = `setup.guesses`) **and one board**.
 - Every guess decrements **everyone's** budget — coop budgets always equal each other (the per-player rows just happen to track the same number, decremented in lock-step).
-- Every guess (and hint) is visible to every club member (the turn log shows all of them). A teammate's guess is narrated in the header (green/red) as "● X Correct: WORD" / "● X Wrong: WORD", and a teammate's hint request as "● X got hint" (amber).
+- Every guess (and hint) is visible to every club member (the turn log shows all of them). A teammate's guess is narrated in the header (green/red) as "● X Correct: WORD" / "● X Wrong: WORD", a teammate's hint as "● X got hint" (amber), and a teammate's spoiler as "● X revealed word" (red — it ends the hunt for that secret).
 - A number already taken (by anyone) can't be re-guessed.
 - **Win:** the team collectively finds all three secrets. Whole team wins.
 - **Lose:** the guess that takes the shared budget to zero before the set is complete. Whole team loses.
@@ -74,7 +74,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `found_secrets_count` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
-| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); both render amber in the turn log. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
+| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); the turn log renders a hint amber and a spoiler red. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
 
@@ -258,7 +258,7 @@ of the other, and the surface keeps learning about the ending from realtime.
 | answer | | |
 |---|---|---|
 | a hit | `ok`, `outcome: won` | `{verdict: 'hit', found_all}` |
-| a miss | `ok`, `outcome: neutral` | `{verdict: 'miss', found_all: false}` |
+| a miss | `ok`, `outcome: lost` | `{verdict: 'miss', found_all: false}` |
 | already guessed | `ok`, `outcome: warning`, "Already guessed" | a game-rule refusal is the rules being applied, and the FE deliberately doesn't check for duplicates — so this is reached by ordinary typing. **Raised on the `PA` branch**, the first use of it |
 | `PN269` "Game over" | `race` | a teammate ended it while your guess was in flight |
 | `PN270` "Already conceded" | `race` | your own concede landed first |
@@ -266,6 +266,36 @@ of the other, and the surface keeps learning about the ending from realtime.
 | `PN267` no such game · `PN268` "BUG: guess that is not on the board" · `PN271` not in this game · `PN272` "No guesses left" | `fault` | the board disables non-board tiles and the FE knows your budget, so each means a broken client |
 
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+
+### The one outcome decision (`lib/answer.ts`)
+
+Every turn psychicnum can produce is one of five answers — `hit`, `miss`,
+`hint`, `reveal`, `not_on_board` — and `lib/answer.ts` is the only place that
+says what each is worth: `won` · `lost` · `warning` · `lost` · `lost`. The
+words are the server's own, so nothing translates between row, envelope and
+table: `hit` / `miss` are `submit_guess`'s `verdict`, `hint` / `reveal` are the
+`guesses` row's `kind`. `not_on_board` is the frontend's, for a word the board
+does not hold — refused locally, and never written down.
+
+`answerOf(row)` reads a row's facts back into an answer, and reads `kind`
+FIRST. That is the trap it exists for: **a hint and a reveal row are both
+written `is_correct = true`**, so asking about the verdict first would read
+a hint or a spoiler as a correct guess.
+
+Everything that reads a ROW indexes the table — the log bar, a teammate's line,
+the compete progress line. The PILL reads the envelope instead, which says the
+same word for the same turn. Both languages are tested (`lib/answer.test.ts`,
+and the `outcome` assertions already throughout `gameplay_test.sql` /
+`turn_order_test.sql`), so a word changed in one fails the other.
+
+Not a reader: the board's permanent `.correct` / `.incorrect` tile fills. They
+draw from `--outcomes-*` and agree with the table, but they are a decided
+tile's lasting state rather than the verdict a turn wore for a beat, and they
+carry an edge color the shared verdict classes have no member for. See
+[tile-feedback](../../plans/tile-feedback.md).
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### `psychicnum.request_hint(target_game uuid)` and `request_reveal(target_game uuid)`
 
@@ -278,14 +308,14 @@ Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check 
 
 | | | |
 |---|---|---|
-| `ok` · `{result: 'reveal', word}` | `warning` | the spoiler |
+| `ok` · `{result: 'reveal', word}` | `lost` | the spoiler |
 | `ok` · `{result: 'hint', hint}` | `warning` | the clue |
 | `ok` · `{result: 'no-hint', hint: 'No hint available'}` | `warning` | the word has no clue in the dictionary. A row is logged either way; only `result` tells the two apart, so nothing has to recognize the fallback by its prose |
 | `PN391` / `PN394` "Game over" | `race` | a teammate ended it, or the clock ran out, while the button was up |
 | `PN390` / `PN393` "That game no longer exists" | `fault` | nothing to race against |
 | `PN392` / `PN395` "BUG: a hint/spoiler with every secret already found" | `fault` | see below |
 
-**`warning`, not `won` or `lost`.** Help you asked for is neither good nor bad play, and coloring it would adjudicate something the player did not do ([outcomes.md](../outcomes.md)).
+**A hint is `warning`; a spoiler is `lost`.** A hint is a nudge — neither good nor bad play, so amber. A spoiler's price is the whole hunt for that secret: there is nothing left to find, so it wears red. Ruled 2026-09-16, and the same pair of words in [stackdown](stackdown.md) ([outcomes.md](../outcomes.md)).
 
 **The "nothing left" branches are unreachable, so they are faults.** `_unfound_secret` comes back null only when every secret this caller can still find has been found, and `submit_guess` ends the game the moment that happens — in **both** modes, since finding all your own secrets is how a compete player wins. So the `play_state` gate fires first, and reaching these means `secrets` was empty at `create_game`. Until 2026-09-01 they were ordinary refusals ("Nothing left to hint"), which is what `ERROR_COPY`'s comment meant by psychicnum diverging from stackdown; the divergence closed in stackdown's direction.
 
@@ -439,8 +469,8 @@ src/psychicnum/
     Board.module.css  keyed by tile; rings the viewed turn's word in history mode.
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see playarea.md → Turn log):
-                          each row = the shared <TurnLogOutcomeBar> cell (green=correct /
-                          red=wrong / amber=hint+reveal) + `#n` (the shared
+                          each row = the shared <TurnLogOutcomeBar> cell (its color
+                          from lib/answer.ts) + `#n` (the shared
                           <TurnLogNumber> history handle — click to replay that turn
                           on the board) + word + result +
                           actor with their identity dot, and gameTurnLog.divider

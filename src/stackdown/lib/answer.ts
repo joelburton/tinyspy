@@ -27,9 +27,10 @@ export type Answer = 'accepted' | 'invalid' | 'hint' | 'reveal'
  *   - the board only ever exposes the six solution words, so a refused word is
  *     not a near miss or a dictionary quarrel — it is the wrong word, and it
  *     costs the turn.
- *   - a hint is priced help you asked for: `warning`, like priced help
- *     everywhere. A spoiler hands over the word itself, which ends the hunt for
- *     it — that is a loss, and it wears red.
+ *   - a hint is a nudge you asked for and paid for, which is neither good nor
+ *     bad play: `warning`, as a hint is in every game. A spoiler hands over the
+ *     word itself, which ends the hunt for it — that is a loss, and it wears
+ *     red.
  */
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   accepted: 'won',

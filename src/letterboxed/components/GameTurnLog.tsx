@@ -111,7 +111,7 @@ export function GameTurnLog({
  * unambiguously progress, so it reads as a success rather than as a neutral
  * event.
  *
- * `near` (amber) marks help taken, matching psychicnum's reveal rows and the
+ * `near` (amber) marks a hint or a spoiler taken, matching psychicnum's reveal rows and the
  * amber of the Hint / Spoiler buttons themselves. `neutral` is left for the
  * retreats: in turn-by-turn co-op an undo costs the undoer their turn and is
  * usually made for the next player, so red would misdescribe it.

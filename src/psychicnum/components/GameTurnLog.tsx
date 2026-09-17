@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
@@ -6,6 +6,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
 import type { Player, GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -41,12 +42,12 @@ type Props = {
  * `.divider` class on each row draws the between-turns line (suppressed on
  * the first by `:first-child`).
  *
- * Three row kinds:
- *   - a **guess** → green (correct) / red (incorrect) outcome bar; word + result.
- *   - a **reveal** (a revealed answer) → amber bar; word + "Answer".
- *   - a **hint** (a clue) → amber bar; the word+result columns are **replaced by
- *     a single colspan** cell "Hint: <clue>" (the row carries the clue text, not
- *     a word).
+ * Three row kinds. The bar's color is `lib/answer.ts`'s in every one of them —
+ * the log names no word of its own — and what differs here is the CELLS:
+ *   - a **guess** → word + result ("Correct" / "Incorrect").
+ *   - a **reveal** (a revealed answer) → word + "Answer".
+ *   - a **hint** (a clue) → the word+result columns are **replaced by a single
+ *     colspan** cell "Hint: <clue>" (the row carries the clue text, not a word).
  *
  * **Whose turns** are shown is picked by the shared `useTurnLogPlayerPicker`
  * dropdown in the header — one vocabulary across every turn-log game (solo: your
@@ -103,7 +104,7 @@ export function GameTurnLog({
         if (g.kind === 'hint') {
           return (
             <tr key={g.id} className={gameTurnLog.divider}>
-              <TurnLogOutcomeBar outcome="near" />
+              <TurnLogOutcomeBar outcome={ANSWER_OUTCOME.hint} />
               {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `.who` stays snug). */}
@@ -114,11 +115,13 @@ export function GameTurnLog({
             </tr>
           )
         }
-        // Guess (good/bad) or reveal (amber, the answer).
+        // A guess (right or wrong), or a reveal — the answer, handed over.
         const isReveal = g.kind === 'reveal'
         return (
           <tr key={g.id} className={gameTurnLog.divider}>
-            <TurnLogOutcomeBar outcome={isReveal ? 'near' : g.is_correct ? 'won' : 'lost'} />
+            {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
+                own to disagree with the pill about the same turn. */}
+            <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(g)]} />
             {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result

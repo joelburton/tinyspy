@@ -354,7 +354,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Hint — RENDERED IN COMPETE TOO, disabled and saying why. Hiding it would
   // leave a player hunting for a button they know this game has; a gray one
   // with a reason answers the question before it is asked. (The ban itself is
-  // the priced-help rule: free generative help decides a race.) The shared
+  // the priced-hint rule: a free generative hint decides a race.) The shared
   // run's single flight is what stops a fast second press running a second
   // ladder against the ring and board of the first.
   const actHint = useBoundAction('act-hint', {
