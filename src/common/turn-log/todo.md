@@ -2,31 +2,21 @@
 
 ## Bugs
 
-- **Every `near` in the repo wants checking; most of them mean `warning`.**
-  Ruled 2026-09-15: `near` means *this was almost right* — connections' one-away
-  guess is the case it exists for. A hint, a spoiler, a word the dictionary does
-  not know: none of those is a near-miss, and the word for them is `warning`
-  ("not a verdict on your play", which [docs/outcomes.md](../../../docs/outcomes.md)
-  defines to cover exactly this and which is the amber the Hint button already
-  wears). Every one of them was unsayable in a log until `TurnOutcome` was
-  deleted, so games took the nearest word that compiled.
+- **`near` means *this was almost right*** — connections' one-away guess is the
+  case it exists for, and this folder's outcome bar is what paints the word. A
+  hint, a spoiler, a word the dictionary does not know: none is a near-miss.
+  Ruled 2026-09-15; the vocabulary itself lives in
+  [docs/outcomes.md](../../../docs/outcomes.md).
 
-  Where they are, as of the ruling:
-
-  - **stackdown** — `hint` / `reveal` rows;
-  - **letterboxed** — `hint` / `spoiler` rows;
-  - **setgame** — any non-claim event (its comment cites stackdown as
-    precedent, so the three move together);
-  - **psychicnum** — a reveal row;
-  - **strands** — `hint_word`, and it is the odd one out: it puts a SPENT hint
-    on `neutral` and argues in its docstring that a hint is banked progress
-    being spent rather than progress made. Settle that with the others, because
-    the two readings cannot both be right.
-  - **connections** keeps its `near` everywhere — one-away is what the word is
-    for, and its pill, its log, its PDF and its board all say it.
-
-  wordiply's dictionary miss moved to `warning` when its row flash landed
-  (2026-09-15), which is the worked example.
+  **Where games get this wrong is the `outcome-fix` area's**
+  ([plan §3](../../../plans/app-audit.md) row 40), not a list to work from here.
+  Joel, 2026-09-16: *"i don't want this to be anything like a search-and-place of
+  'near' to 'warning'"* — the fix is that a move's outcome is determined once and
+  every consumer reads it, and the wrong `near`s are deliberately left in place as
+  the proof that the area worked. The row also carries the correction this entry
+  used to get wrong: **strands is not one of them** — its `near` is `hint_word`, a
+  valid non-theme word that EARNS hint progress, and its spent hint is a different
+  row kind sitting correctly on `neutral`.
 
 ## Soon
 
@@ -37,8 +27,6 @@
   picker's flag, setgame's and wordiply's odd-one-out behavior, and a UI question
   nobody has answered (whose board am I looking at?). The row holds the whole
   reading; nothing to repeat here.
-
-
 
 ## Someday
 

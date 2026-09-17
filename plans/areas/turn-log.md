@@ -1199,5 +1199,8 @@ allowlist line that went stale when a fix landed.
       effect-name grep over every file touched
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (the
       prose pass, 2026-09-16)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (2026-09-16: both entries are now pointers — the `near` ruling keeps the
+      vocabulary and sends the where-to-fix list to `outcome-fix`, and the
+      compete-history entry points at `history-always-available`)
 - [ ] every file on the roster blessed, or its stamp says why not
