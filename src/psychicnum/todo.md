@@ -9,6 +9,30 @@
 
 ## Soon
 
+- **A decided tile's permanent fill derives its color a second time.** `Board.tsx`
+  paints `guessed && (correct ? styles.correct : styles.incorrect)` straight off
+  the row's boolean, and those two classes are `--outcomes-won-*` /
+  `--outcomes-lost-*`. That is the same mapping `lib/answer.ts` makes, written
+  again — so a miss ruled anything but `lost` would move the log and the pill
+  and leave the board behind.
+
+  Left alone by `outcome-fix` (2026-09-17) for a reason about the MARK rather
+  than the word. The shared `verdict*` classes are for a beat: a piece flashes
+  the answer and hands itself back. These fills are permanent — a guessed tile
+  stays colored for the rest of the game, as the board's record of what has been
+  ruled out — and routing a lasting state through the transient-verdict
+  machinery is a decision that those are one thing, not a rename. It is also not
+  expressible today: every `VERDICT_TONE` class sets exactly `--verdict-tone` /
+  `--verdict-fill` / `--verdict-ink`, and a decided tile needs an EDGE. The color
+  exists (`--outcomes-<family>-edge-color`, all seven, in `daylight.css`); what
+  does not is a shared class set for a permanently-decided piece. That is
+  [tile-feedback](../../plans/tile-feedback.md)'s question.
+
+  **psychicnum is the only game with this shape**, checked 2026-09-17 across
+  every board stylesheet: wordle's and waffle's tile colors are their own g/y/x
+  vocabulary, connections' history tint is transient and already reads a total
+  table, and strands' hint bar is a progress bar rather than a decided piece.
+
 - **This is the control game for the app audit**: the deliberately minimal
   toy, opened first so that what it settles is about the SHAPE of a game
   area rather than about the game. Being first, it also answers what was

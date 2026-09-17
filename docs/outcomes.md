@@ -58,8 +58,9 @@ dark gray precisely because a pale border read as no border at all.
 
 **`noted` is news rather than a result.** "Leah invited you." "A hint is
 showing." "Nothing on the board to check yet." It also covers a turn that COUNTS
-without being adjudicated — letterboxed's hint and spoiler pills use it. It is deliberately
-blue, so it cannot be mistaken for a verdict at a glance.
+without being adjudicated — letterboxed's undo and clear are `noted`, since the
+chain is shorter than it was and the player who did it is telling the table so.
+It is deliberately blue, so it cannot be mistaken for a verdict at a glance.
 
 **`error` is a full member of the list.** A `not-ok`'s default appearance IS
 this word — three of the four severities read `error` (see
@@ -104,8 +105,9 @@ a second name for a list that already exists and a narrower one — and it was
 load-bearing in the wrong direction: `warning` being unsayable in a log is why
 several games logged a hint as `near`, so their logs and their pills said
 different words about the same turn. `TurnLog.module.css` carries a bar class
-per outcome. Where games still log a hint or a reveal as `near`, and why that is
-not fixed word by word, is in [`src/common/turn-log/todo.md`](../src/common/turn-log/todo.md).
+per outcome. Four games did log a hint or a reveal as `near`; none does now — a
+hint is `warning` and a reveal or spoiler is `lost`, and the logs stopped
+choosing words of their own at all (see below).
 
 ### Boards and tiles
 
@@ -156,13 +158,66 @@ outcome is a frontend that will disagree with the log showing the same row.
 **2 · Where the frontend decides, it decides ONCE.** A move the frontend judges
 alone (a trusting-commit word, a locally-refused guess), or a server answer that
 carries no outcome, is classified in exactly one place — one table, one
-function — and every surface reads it. wordiply is the worked example:
-`lib/answer.ts` maps its five answers to outcomes, and the pill, the guess row
-and the turn log all index that table.
+function — and every surface reads it. wordiply was the first worked example and
+nine other games follow it now: `lib/answer.ts` maps the game's answers to
+outcomes, and the pill, the row and the turn log all index that table. The shape
+is written out below.
 
 **3 · So audit a game by asking the same question three times.** For each event
 a game can produce: what does the pill say, what does the log row say, what does
 the board do? A game passes when one derivation answers all three.
+
+### How a game does it
+
+The three rules above are the rule; this is the shape eleven games settled into
+when it was applied to all of them, and what a new game should copy.
+
+**Each game has a `src/<game>/lib/answer.ts`.** It declares the game's own answer
+words — whatever its rows and its RPC already call them, never a new set — and
+one table from those to outcomes:
+
+```ts
+export type Answer = 'accepted' | 'invalid' | 'hint' | 'reveal'
+
+export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+  accepted: 'won', invalid: 'lost', hint: 'warning', reveal: 'lost',
+}
+```
+
+**Anything reading a ROW indexes that table** — the turn-log bar, a board mark, a
+teammate's line, the PDF, the history viewer. Where a row's answer has to be
+worked out from its columns, one `answerOf(row)` beside the table does it, and
+nothing else asks the columns. (psychicnum is why that function exists: a hint
+row and a reveal row are both written `is_correct = true`, so asking the verdict
+before asking the kind reads a hint as a correct guess.)
+
+**The PILL reads the RPC's envelope instead** — `res.outcome`, never a literal —
+and the SQL says the same word for the same facts. A teammate's move arrives only
+as a row, with no envelope at all, which is why both halves exist.
+
+**The two halves are one rule in two languages, and each gets its own test.**
+There is no fixture both can read without codegen, so a game pins its SQL half
+with an `outcome` assertion in pgTAP and its frontend half in
+`lib/answer.test.ts`, with a comment in each naming the other. Four games' SQL
+turned out to be asserting nothing at all, which is how their servers had been
+saying a different word from their logs for months.
+
+**Two games deliberately have no table, and that is not an oversight.**
+codenamesduet shows no single guess's outcome — a guess is one tile, it answers
+with a reveal, and the board says it — so the only thing wearing an outcome is
+the TURN, folded in `lib/turnOutcome.ts`. waffle has one move kind whose bar is
+always `neutral`. One move, one word, one reader: a table would be ceremony.
+
+**An event that writes no row stays out of the table.** A duplicate wordle guess,
+scrabble's dictionary refusal, psychicnum's "already guessed" — none reaches a
+log, so the pill (and a board flash where there is one) are its only surfaces and
+both read the envelope. There is nothing to derive twice.
+
+**A different vocabulary is not a disagreement.** wordle's and waffle's tile
+colors, codenamesduet's key card, setgame's card fills, strands' printed glyphs,
+the terminal frame: these are games saying their own thing, deliberately outside
+`--outcomes-*`. Don't route them through this list, and don't name a field
+`outcome` when it holds one of them.
 
 **Where the frontend and the server both classify, they must share a
 vocabulary.** wordiply's engine reports one refusal for "not a word" and "does

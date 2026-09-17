@@ -286,11 +286,23 @@ proven before it meets codenamesduet.
 - **The two-language test, per game**: one fixture of expected words per
   event kind; pgTAP asserts the RPC's envelope `outcome` against it, vitest
   asserts the map's word for that event's row against it.
-- **A guard, `src/guards/outcomeSeams.test.ts`**: an outcome-word literal
+- ~~**A guard, `src/guards/outcomeSeams.test.ts`**: an outcome-word literal
   (`'won'`, `'near'`, …) may not appear in a game's `GameTurnLog.tsx`,
-  `Board*.tsx`, `pdf/` or `lib/history.ts` — a SURFACE never names the word. The
-  allowed homes are `lib/answer.ts` (the FE-only table), `buildOver` (terminal,
-  a different vocabulary) and the peer-milestone lines. Verified by planting.
+  `Board*.tsx`, `pdf/` or `lib/history.ts`.~~ **NO GUARD** (Joel, 2026-09-17:
+  *"i don't think we need a guard for this."*)
+
+  The spec was written before any game was worked, and eleven games later it was
+  the wrong shape: it bans a SPELLING where the defect is a BEHAVIOR. A surface
+  may ask what a word is (`outcome === 'lost' && shared.verdictShake`, `gameOver
+  === 'won'`, `g.outcome === 'near' ? 'One away!' : …`); what it may not do is
+  CHOOSE one. Every one of those asking-lines contains an outcome literal and is
+  correct, so the guard would have fired on dozens of good lines and needed an
+  allowlist to survive. Narrowing it to the value position was possible but would
+  have been a regex over TypeScript, which this repo already has a filed bug
+  about.
+
+  What holds each game instead: its `answer.test.ts`, its pgTAP envelope pin, and
+  the "one outcome decision" section in its doc naming where the decision lives.
 - **The proof**: the four planted `near`s are gone by construction, not by
   search-and-replace — the log has no word of its own to be wrong with.
 - **Docs**: `docs/outcomes.md` → One event, one outcome gains the mechanism
@@ -512,14 +524,6 @@ the closing re-read.
 
 ## Findings
 
-**F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**
-`--setgame-hint-ring` is `#16a34a`, and green is the app's success color; the
-same hint's log bar is `warning`. So the board and the log say two different
-things about one event. NOT fixed here — it is a LOOK decision, and setgame's
-card fills are deliberately outside `--outcomes-*`. Filed in
-`src/setgame/todo.md` beside the existing question about the same ring (history
-borrowing the hint color), because the two have to be decided together.
-
 **F-outcome-fix-2 · the two-language safeguard has no shared fixture, and will
 not get one.** Step 4 asks for "one fixture of expected words per event kind"
 read by both pgTAP and vitest. There is no place both languages can read
@@ -536,28 +540,6 @@ Not a disagreement: a button's tone is about the move you are about to make — 
 caution, "this will cost you" — where an outcome is about what happened. Both
 games' docs say so now rather than leaving the pair looking like a miss. It is
 also the chrome/outcome boundary Joel drew the same day, applied.
-
-**F-outcome-fix-5 · a decided tile's PERMANENT fill derives the word a second
-time.** psychicnum's board paints `correct ? styles.correct : styles.incorrect`
-from the row's boolean, and those two classes are `--outcomes-won-*` /
-`--outcomes-lost-*`. That is the same mapping `ANSWER_OUTCOME` makes, written
-again — so a miss ruled anything but `lost` would move the log and the pill and
-leave the board behind.
-
-Left alone, for a reason that is about the MARK and not about the word. The
-`verdict*` classes are for a beat: a piece flashes the answer and hands itself
-back. These fills are permanent — a guessed tile stays colored for the rest of
-the game, as the board's record of what has been ruled out — and routing a
-lasting state through the transient-verdict machinery is a decision that those
-are one thing, not a rename. It is also not expressible today: every
-`VERDICT_TONE` class sets exactly `--verdict-tone` / `--verdict-fill` /
-`--verdict-ink`, and a decided tile needs an EDGE. The color exists
-(`--outcomes-<family>-edge-color`, all seven, in `daylight.css`); what does not
-is a shared class set for a permanently-decided piece. That is
-[tile-feedback](../tile-feedback.md)'s question.
-
-Expect the same shape in wordle, waffle and connections — decide it once, when
-the first of them is reached, rather than per game.
 
 **F-outcome-fix-3 · an event with no row is pill-only, and stays out of the
 table. RULED 2026-09-17.** Three games have one. stackdown's `BoardCol` decides
