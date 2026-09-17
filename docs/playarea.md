@@ -445,7 +445,12 @@ one list. You're still ordered first.
 Six things travel with the hook, and re-deriving any of them per game is how they
 drift: the `<select>`, its default selection, the aggregate label (mode-dependent),
 the row filter, whether `#N` may be a live history handle, and the empty-state
-wording. Two of those need care:
+wording. **The panel takes the hook's result whole** — `<TurnLog picker={turnLogPicker}
+shown={shown}>` — rather than being handed the control and the wording
+separately, so there is one way to wire it and nothing to get out of step. What
+stays the game's is `shown`: nine build it with `who.filter`, scrabble filters by
+hand (a bot's play has `user_id: null`), and codenamesduet filters turn numbers
+rather than rows. Two of the six need care:
 
 - **`emptyText` stays honest.** In compete, RLS hides an opponent's rows until the
   game ends, so an empty opponent log mid-game means *"hidden"*, not *"they

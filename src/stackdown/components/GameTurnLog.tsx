@@ -64,23 +64,17 @@ export function GameTurnLog({
   /** Open a turn in the board viewer (click any row — words, misses, cheats). */
   onShowHistory: (index: number) => void
 }) {
-  const who = useTurnLogPlayerPicker<SubmissionRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<SubmissionRow>({
     players,
     selfId,
     mode,
     isTerminal,
     emptyLabel: 'No words yet.',
   })
-  const shown = who.filter(submissions)
+  const shown = turnLogPicker.filter(submissions)
 
   return (
-    <TurnLog
-      heading="Turns"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((s, i) => {
         const isRequest = s.kind === 'hint' || s.kind === 'reveal'
         const outcome: Outcome = isRequest
@@ -100,7 +94,7 @@ export function GameTurnLog({
                 when the rows on show ARE the board's sequence. The viewer
                 indexes by log POSITION, so a filtered list's row 3 isn't the
                 board's turn 3; there it degrades to a plain number. */}
-            {who.boardIsShown ? (
+            {turnLogPicker.boardIsShown ? (
               <TurnLogNumber
                 n={i + 1}
                 isOpenInHistory={historyId === i}

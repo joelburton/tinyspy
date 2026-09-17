@@ -13,8 +13,9 @@ const ALL = 'all'
 const TEAM = 'team'
 
 export type TurnLogPlayerPicker<R extends ActorRow> = {
-  // The `<select>`, for `<TurnLog headerAction>`.
-  picker: React.ReactNode
+  // The dropdown the panel draws on its heading row. Not a native `<select>` —
+  // see where it is built, below.
+  dropdown: React.ReactNode
   // Rows narrowed to the current selection.
   filter: (rows: readonly R[]) => R[]
   // What's selected: a user id, or `'team'` / `'all'`.
@@ -45,9 +46,9 @@ export type TurnLogPlayerPicker<R extends ActorRow> = {
  * Everyone is named by handle, you included. doc.md → Details says why all six
  * results travel together rather than being re-derived per game.
  *
- *     const who = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
- *     const shown = who.filter(rows)
- *     <TurnLog headerAction={who.picker} empty={!shown.length} emptyText={who.emptyText}>
+ *     const turnLogPicker = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
+ *     const shown = turnLogPicker.filter(rows)
+ *     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
  */
 export function useTurnLogPlayerPicker<R extends ActorRow>({
   players,
@@ -64,7 +65,7 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
   isTerminal: boolean
   // True when compete is still ONE shared game. scrabble's race is turn-based on a
-  // single public board, so `All` is literally what you're looking at and the picker
+  // single public board, so `All` is literally what you're looking at and the dropdown
   // defaults there; the per-player entries are the extra ("just my own plays").
   competeSharesOneGame?: boolean
   // Override for a game whose rows aren't "turns" (wordle says "guesses").
@@ -116,7 +117,7 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   // FilterSelect, not <select>: a native dropdown holds the keyboard away from
   // the board and there is no event that reliably hands it back. Same control
   // the word-list filters use — see FilterSelect's docstring.
-  const picker = (
+  const dropdown = (
     <FilterSelect
       label={label}
       value={picked}
@@ -131,7 +132,7 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   )
 
   return {
-    picker,
+    dropdown,
     filter: (rows) => (showsEveryone ? [...rows] : rows.filter((r) => r.user_id === picked)),
     picked,
     showsEveryone,

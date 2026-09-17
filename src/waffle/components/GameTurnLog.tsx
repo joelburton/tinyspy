@@ -57,7 +57,7 @@ export function GameTurnLog({
   historyId,
   onShowHistory,
 }: Props) {
-  const who = useTurnLogPlayerPicker<SwapRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<SwapRow>({
     players,
     selfId,
     mode,
@@ -65,19 +65,13 @@ export function GameTurnLog({
     label: 'Whose swaps to show',
     emptyLabel: 'No swaps yet.',
   })
-  const shown = who.filter(swaps)
+  const shown = turnLogPicker.filter(swaps)
 
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
 
   return (
-    <TurnLog
-      heading="Swaps"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Swaps" picker={turnLogPicker} shown={shown}>
       {shown.map((s, i) => {
         const swapper = playerFor(s.user_id)
         // The "#N" handle replays that swap on the board viewer. Identified by
@@ -88,7 +82,7 @@ export function GameTurnLog({
             {/* The "#N" handle replays that swap on the board — live only when
                 the rows shown ARE the board's (coop's shared game, or my own).
                 An opponent's log, or the All view, can't drive my board. */}
-            {who.boardIsShown ? (
+            {turnLogPicker.boardIsShown ? (
               <TurnLogNumber
                 n={s.seq}
                 isOpenInHistory={historyId === i}

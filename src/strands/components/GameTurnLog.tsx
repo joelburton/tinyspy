@@ -141,7 +141,7 @@ export function GameTurnLog({
   // and the honest empty line all come from the shared hook — every turn-log
   // game carries it, on one vocabulary. The labels say "turns", not "words":
   // a spent hint is a row here and isn't one.
-  const who = useTurnLogPlayerPicker<EventRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<EventRow>({
     players,
     selfId,
     mode,
@@ -149,14 +149,14 @@ export function GameTurnLog({
     label: 'Whose turns to show',
     emptyLabel: 'No turns yet.',
   })
-  const shown = who.filter(events)
+  const shown = turnLogPicker.filter(events)
 
   // `#N` is a LIVE handle only when the rows on show ARE the board's own
   // sequence — coop's Team view, or my own in compete. Pick a single player out
   // of a shared coop log and position 3 of the filtered list isn't the board's
   // turn 3, so the handle degrades to a plain number rather than replaying the
   // wrong turn. The shared picker works this out; we just obey it.
-  const boardIsShown = who.boardIsShown
+  const boardIsShown = turnLogPicker.boardIsShown
 
   // Click-to-define. Only words the DICTIONARY accepted are looked up: a theme
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
@@ -170,13 +170,7 @@ export function GameTurnLog({
     )
 
   return (
-    <TurnLog
-      heading="Turns"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((row, i) => (
         <tr key={row.id} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />

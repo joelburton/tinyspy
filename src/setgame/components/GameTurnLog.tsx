@@ -53,7 +53,7 @@ export function GameTurnLog({
   historyId: number | null
   onShowHistory: (index: number | null) => void
 }) {
-  const picker = useTurnLogPlayerPicker<EventRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<EventRow>({
     players,
     selfId,
     mode,
@@ -64,24 +64,22 @@ export function GameTurnLog({
     competeSharesOneGame: true,
   })
 
-  const shown = picker.filter(events)
+  const shown = turnLogPicker.filter(events)
   const found = shown.filter((e) => e.kind === 'claim').length
   const hints = shown.filter((e) => e.kind === 'hint').length
 
   return (
     <TurnLog
       heading={mode === 'coop' ? `Found: ${found} · Hints: ${hints}` : `Found: ${found}`}
-      headerAction={picker.picker}
-      empty={shown.length === 0}
-      emptyText={picker.emptyText}
-      entryCount={shown.length}
+      picker={turnLogPicker}
+      shown={shown}
     >
       {shown.map((event) => {
         // Numbered over the FULL log, not the filtered view: the number is the
         // turn's identity, and a filter must not renumber the game.
         //
         // Every row offers the viewer, whatever the filter — unlike the games
-        // that gate it on `picker.boardIsShown`. They have to, because their
+        // that gate it on `turnLogPicker.boardIsShown`. They have to, because their
         // snapshot is a fold over one player's own sequence; ours is the
         // `board_after` stored on the row itself, so any row can be opened
         // without knowing whose board it belonged to.

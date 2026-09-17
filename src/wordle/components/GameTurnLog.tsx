@@ -42,7 +42,7 @@ type Props = {
  *     the shared `<TurnLogNumber>` handle — click it to open that turn on the board;
  *     on an opponent's read-only log (compete) it's a plain muted number.
  *   - **the squares** — the guess + its g/y/x feedback; the row's headline, so it
- *     takes the slack-absorbing `turnLog.main` column (keeping `who` snug right).
+ *     takes the slack-absorbing `turnLog.main` column (keeping `.who` snug right).
  *   - **who** — the guesser's `<ActorDot>` in the right-aligned `turnLog.who`
  *     column, so the identity discs line up down the log.
  *
@@ -70,7 +70,7 @@ export function GameTurnLog({
   // Whose guesses to show. The control, its default, the aggregate label, the row
   // filter, the `#N`-handle gate and the honest empty line all come from the
   // shared hook — see useTurnLogPlayerPicker.
-  const who = useTurnLogPlayerPicker<GuessRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<GuessRow>({
     players,
     selfId,
     mode,
@@ -78,7 +78,7 @@ export function GameTurnLog({
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shown = who.filter(guesses)
+  const shown = turnLogPicker.filter(guesses)
 
   // The turn-history `#N` is a LIVE (clickable) control only when the log is showing
   // the same board that replays on the main grid — the coop team board, or my own
@@ -86,16 +86,10 @@ export function GameTurnLog({
   // position lines up 1:1 with the board row and clicking `#N` opens the right turn.
   // When an OPPONENT's board is picked (compete, at terminal), the main grid still
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
-  const boardIsShown = who.boardIsShown
+  const boardIsShown = turnLogPicker.boardIsShown
 
   return (
-    <TurnLog
-      heading="Guesses"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <tr key={`${g.user_id}-${g.seq}`} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={g.is_correct ? 'won' : 'neutral'} />

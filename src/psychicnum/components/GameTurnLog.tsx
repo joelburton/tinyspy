@@ -64,14 +64,14 @@ export function GameTurnLog({
   historyId,
   onShowHistory,
 }: Props) {
-  const who = useTurnLogPlayerPicker<GuessRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<GuessRow>({
     players,
     selfId,
     mode,
     isTerminal,
     emptyLabel: 'No turns yet.',
   })
-  const shown = who.filter(guesses)
+  const shown = turnLogPicker.filter(guesses)
 
   // The actor's identity cell — shared by every row kind. The shared
   // <TurnLogActor> is the right-aligned `.who` <td> wrapping the name + disc;
@@ -89,20 +89,14 @@ export function GameTurnLog({
   // Otherwise it degrades to a plain read-only number rather than disappearing,
   // which keeps the column's width and the row's shape identical either way.
   const turnNumber = (i: number) =>
-    who.boardIsShown ? (
+    turnLogPicker.boardIsShown ? (
       <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
     ) : (
       <td className={turnLog.meta}>#{i + 1}</td>
     )
 
   return (
-    <TurnLog
-      heading="Turns"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => {
         // Hint: the word + result columns collapse into one colspan cell, since
         // the row carries a clue sentence, not a word + a one-word result.
@@ -112,7 +106,7 @@ export function GameTurnLog({
               <TurnLogBar outcome="near" />
               {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
-                  main column (absorbs the slack so `who` stays snug). */}
+                  main column (absorbs the slack so `.who` stays snug). */}
               <td colSpan={2} className={cls(turnLog.main, styles.hint)}>
                 <span className={turnLog.meta}>Hint:</span> {g.word}
               </td>
@@ -128,7 +122,7 @@ export function GameTurnLog({
             {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
-                stay clustered and `who` sits snug at the right. */}
+                stay clustered and `.who` sits snug at the right. */}
             <td className={cls(turnLog.other, turnLog.primary)}>
               <DefinableWord word={g.word} />
             </td>

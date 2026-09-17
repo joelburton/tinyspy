@@ -59,7 +59,7 @@ export function GameTurnLog({
   /** Open a move on the board (click its `#N`). */
   onShowHistory: (index: number) => void
 }) {
-  const who = useTurnLogPlayerPicker<EventRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<EventRow>({
     players,
     selfId,
     mode,
@@ -67,7 +67,7 @@ export function GameTurnLog({
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })
-  const shown = who.filter(events)
+  const shown = turnLogPicker.filter(events)
 
   // The viewer indexes by POSITION in the displayed rows, and PlayArea derives
   // the same list for itself (`boardRows`: coop = all events, compete = own).
@@ -76,16 +76,10 @@ export function GameTurnLog({
   // always means the same row on both sides. (An earlier version handed the
   // rows up through a state-setting effect instead; the fresh array re-fired
   // it every render and hit React's update-depth limit.)
-  const boardIsShown = who.boardIsShown
+  const boardIsShown = turnLogPicker.boardIsShown
 
   return (
-    <TurnLog
-      heading="Moves"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Moves" picker={turnLogPicker} shown={shown}>
       {shown.map((e, i) => (
         <tr key={e.id} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={barFor(e)} />

@@ -62,7 +62,7 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  * `seq` (they occupy no board row), so there'd be nothing to number them with.
  */
 export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Props) {
-  const who = useTurnLogPlayerPicker<GuessRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<GuessRow>({
     players,
     selfId,
     mode,
@@ -70,16 +70,10 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shown = who.filter(guesses)
+  const shown = turnLogPicker.filter(guesses)
 
   return (
-    <TurnLog
-      heading="Guesses"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g) => (
         <tr key={g.id} className={turnLog.turnLogDivider}>
           <TurnLogBar

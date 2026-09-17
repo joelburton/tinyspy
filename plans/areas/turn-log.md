@@ -11,9 +11,10 @@ to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
 F-4 turned up: every file in the repo that called the shared history marker
 yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
 bug, the banner component, and the history vocabulary — the last including its
-ten-game meaning-based sweep. **Twelve findings wait for a decision each**:
-F-18, F-20 and F-21 were found after the audit, by Joel reading the work and by
-the re-read of this file against it.
+ten-game meaning-based sweep. **F-22 is worked too**, and it CLOSED F-6 and F-7
+by deleting the props they were about. **Ten findings wait for a decision
+each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
+and by the re-read of this file against it.
 
 ## The roster
 
@@ -251,6 +252,11 @@ The `todo.md` Soon, re-verified: eleven `<TurnLog>` sites, eleven pass
 explaining the dead `<h3>`-alone arm. Options: (1) required; the arm and both
 warnings go; (2) leave. Recommend (1).
 
+**CLOSED 2026-09-16 by F-22, which deleted the prop.** The panel takes the
+picker whole now, so there is no `headerAction` to make required and no arm to
+delete — it draws the heading row unconditionally. The ⚠️ blocks had already
+gone in the prose pass, and the `todo.md` Soon is deleted with them.
+
 ### F-turn-log-7 · `empty-text-default-dead` · Two defaults for one line, and one of them is never read
 
 `<TurnLog emptyText = 'Nothing yet.'>` and the picker's `emptyLabel =
@@ -259,6 +265,10 @@ so the panel's default never draws, and the honesty rule ("Hidden until game
 ends.") lives in the picker. Options: (1) `emptyText` required on the panel;
 the picker keeps the one default; (2) leave. Recommend (1): a default is a
 decision, and this one is made twice.
+
+**CLOSED 2026-09-16 by F-22.** `emptyText` is not a prop any more: the panel
+reads `who.emptyText` itself, so the second default could not exist. The
+picker's `emptyLabel` is the one place the word is decided.
 
 ### F-turn-log-8 · `classname-no-caller` · `className?` on the panel, "for a rare per-game override" no game makes
 
@@ -780,6 +790,75 @@ actually has; (2) all three take history names (`HistoryHandle`,
 `.historyHandle`, `data-history-handle`), which reads better in
 `useHistoryViewer` and worse in a game's log, where the cell really is the turn
 number; (3) leave. Recommend (1).
+
+### F-turn-log-22 · `four-props-one-handshake` · Every game wired the same four props out of the picker by hand
+
+Joel, 2026-09-16, reading F-6: *"if all the games with a turn-log pass the same
+kind of filtering header-row, should any of that move into turnlog component?"*
+
+The CONTROL was already shared — `useTurnLogPlayerPicker` owns the `<select>`,
+its per-mode default, the filter, `boardIsShown` and the honest empty wording,
+and no game re-implements any of it. What was not shared was the handshake: ten
+of the eleven `<TurnLog>` call sites were byte-identical apart from the heading
+string.
+
+    <TurnLog
+      heading="Guesses"
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      entryCount={shown.length}
+    >
+
+Four of the five props were mechanically derived from `who` and `shown` in every
+game. That is not duplicated logic, it is a repeated handshake — and it is the
+kind that bites: **F-9, the area's only real bug, was a mis-wired one of these
+four**, six games passing the rows array where a count was wanted.
+
+**WORKED 2026-09-16.** `<TurnLog heading who shown>`, with `entryCount?` as the
+one escape hatch. What the research had to establish first, because it decides
+the shape: `shown` CANNOT move inside the panel. Nine games build it with
+`who.filter`, but scrabble filters by hand (a bot's play has `user_id: null`, so
+a row's identity is `user_id ?? ai:<seat>`) and codenamesduet filters TURN
+NUMBERS rather than rows. So the game keeps computing it and the panel reads its
+length — which is also what makes F-9's bug impossible by construction: you
+cannot pass an array where a count is wanted, because the array is what is
+wanted.
+
+- `picker: { dropdown: ReactNode; emptyText: string }` — structural, so any
+  `TurnLogPlayerPicker<R>` satisfies it whatever `R` is.
+- `entryCount = shown.length` by default; codenamesduet overrides it, with its
+  existing reason moved onto the override.
+**The naming took three passes, all Joel's.** The prop was `who` first, because
+ten games called the local that — and `who` is wrong for an object that is a
+dropdown, a filter, two flags and a line of text. Then `picker`, which collided
+with the hook's own member for the visible control (`picker.picker`). Where it
+landed:
+
+- the hook's member is **`dropdown`** — what a reader sees on the heading row.
+  (`control` was proposed and rejected: *"'control' is such a generic word"*.)
+- the panel's prop is **`picker`**.
+- the games' local is **`turnLogPicker`**, not `picker` — Joel: *"i want the
+  game code to be readable, and given that we get this from a hook called
+  'useTurnLogPlayerPicker', why are you avoiding putting the name turn log in
+  it?"* The honest answer was length, which is not a reason. So a game reads
+  `turnLogPicker.filter(guesses)` and `picker={turnLogPicker}`, and `turnLog`
+  (the stylesheet alias) sits beside it without either being ambiguous.
+
+**A raw regex for the local clobbered nine lines of prose**, in five games,
+where `who` meant the WHO COLUMN or a person — "the answer to 'who guessed
+what?'", "the person who went looking for it". The comment-aware pass exists
+precisely for this and I did not use it. Restored by hand, and worth the
+reminder: the rename helper skips comments, `re.sub` does not.
+
+**It closes F-6 and F-7**, which were both about props that no longer exist.
+
+**A spec of mine was passing for the wrong reason, and this caught it.**
+`TurnLog.test.tsx` found the scroll box with `section > div` — true only while
+the heading row was conditional and absent (the spec passed no `headerAction`).
+With the row unconditional, that selector returns the HEADER, and "leaves a
+scrolled-up box alone" was asserting that a header does not scroll. The helper
+takes `:nth-of-type(2)` now, and the planting was redone against the fix.
 
 ## What checked out
 

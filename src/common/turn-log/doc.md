@@ -83,7 +83,8 @@ why this folder is hard to see from any one of its files:
 ```
 GameTurnLog                           the GAME's file, one per log game
 └── TurnLog                           the panel: heading row, scroll box, table
-    ├── headerAction  ← useTurnLogPlayerPicker's <FilterSelect>   (lists/)
+    ├── picker        = useTurnLogPlayerPicker's result — the panel draws its
+    │                   dropdown (a <FilterSelect>, lists/) and its empty line
     └── children      = the game's <tr>s, built from
           ├── TurnLogBar              the outcome bar cell
           ├── TurnLogNumber           the #N handle  → viewer.select(id)

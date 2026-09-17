@@ -26,12 +26,27 @@ const rows = (n: number) =>
     </tr>
   ))
 
-/** The scroll box is the panel's only scrollable element. */
-const box = (c: HTMLElement) => c.querySelector('section > div') as HTMLDivElement
+/** The scroll box — the panel's second child, under the heading row. (It was
+ *  `section > div` until the heading row stopped being conditional; that selector
+ *  then picked up the HEADER, and the first spec below passed for the wrong
+ *  reason because a header never scrolls.) */
+const box = (c: HTMLElement) =>
+  c.querySelector('section > div:nth-of-type(2)') as HTMLDivElement
+
+/** The dropdown, as the panel sees it: a control for the heading row and a line
+ *  for the empty state. What it filters by is nothing to do with scrolling. */
+const picker = { dropdown: null, emptyText: 'Nothing yet.' }
 
 const panel = (n: number) => (
-  <TurnLog heading="Turns" entryCount={n} empty={n === 0}>
+  <TurnLog heading="Turns" picker={picker} shown={Array.from({ length: n })}>
     {rows(n)}
+  </TurnLog>
+)
+
+/** codenamesduet's shape: the log grows by more than one per entry. */
+const panelWithCount = (entries: number, count: number) => (
+  <TurnLog heading="Turns" picker={picker} shown={Array.from({ length: entries })} entryCount={count}>
+    {rows(entries)}
   </TurnLog>
 )
 
@@ -55,14 +70,14 @@ describe('TurnLog — scrolling to the newest entry', () => {
     expect(box(container).scrollTop).toBe(0)
   })
 
-  it('snaps when an entry GROWS, which is what a count bigger than the entries is for', () => {
+  it('snaps on the entryCount override, with the entries unchanged', () => {
     // codenamesduet's case: its entry is a turn, and a guess lands inside a turn
     // that already exists — so it counts clues + guesses, and the count moves
-    // even though the number of entries does not.
-    const { container, rerender } = render(panel(3))
+    // while the number of entries does not.
+    const { container, rerender } = render(panelWithCount(3, 7))
     box(container).scrollTop = 120
 
-    rerender(panel(5))
+    rerender(panelWithCount(3, 8))
 
     expect(box(container).scrollTop).toBe(0)
   })

@@ -19,30 +19,37 @@ import history from './historyViewer.module.css'
  * and the sizing/emphasis classes in `TurnLog.module.css`. The only shared
  * contract is "a turn-log item is a `<tr>` inside this table" — doc.md says why.
  *
- * `useTurnLogPlayerPicker` supplies `headerAction`, `empty` and `emptyText`
- * together; its docstring has the call.
+ * **Pass the picker itself**, not its pieces: the dropdown on the heading row,
+ * the empty state and its wording all come out of `useTurnLogPlayerPicker`, and
+ * every game wired the same three by hand until they didn't (doc.md → Details).
+ *
+ *     const turnLogPicker = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
+ *     const shown = turnLogPicker.filter(rows)
+ *     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}> …the <tr>s… </TurnLog>
  */
 export function TurnLog({
   heading,
-  headerAction,
-  empty,
-  emptyText = 'Nothing yet.',
-  entryCount,
+  picker,
+  shown,
+  entryCount = shown.length,
   className,
   children,
 }: {
   heading: string
-  // Control rendered right-aligned on the heading row — in practice always the
-  // `useTurnLogPlayerPicker` dropdown.
-  headerAction?: ReactNode
-  // True when there are no rows — renders the muted empty state instead.
-  empty: boolean
-  emptyText?: string
-  // How many entries the log is showing — the panel re-scrolls to the newest row
-  // whenever it changes. A NUMBER on purpose: a rows array would be a fresh object
-  // every render, so the log would snap back on each one (a clock alone re-renders
-  // the play area once a second).
-  entryCount: number
+  // The `useTurnLogPlayerPicker` result. The panel takes the whole thing because
+  // two of the things it needs are in it — the dropdown for the heading row and
+  // the honest empty wording — and a game that wires them separately can get
+  // them out of step.
+  picker: { dropdown: ReactNode; emptyText: string }
+  // The entries on show — whatever the game will render as rows. The panel reads
+  // only its LENGTH: empty when it is 0, and the scroll-to-newest key otherwise.
+  // Taking the list rather than a count is what makes the count impossible to
+  // mis-wire (a fresh array every render used to re-snap the log every second).
+  shown: readonly unknown[]
+  // Override for a game whose log grows by something other than one per entry.
+  // codenamesduet is the case: an entry there is a TURN, and guesses land inside
+  // a turn that already exists, so its turns alone would miss the snap.
+  entryCount?: number
   // Optional extra class merged onto the root. The panel already fills its flex
   // parent (`flex: 1` on `.turnLog`); this is only for a per-game override (a
   // different width/flex).
@@ -66,18 +73,14 @@ export function TurnLog({
 
   return (
     <section className={cls(styles.turnLog, className)}>
-      {/* Heading + a right-aligned control on one line. */}
-      {headerAction ? (
-        <div className={infoPanel.headerRow}>
-          <h3 className={infoPanel.heading}>{heading}</h3>
-          {headerAction}
-        </div>
-      ) : (
+      {/* Heading + the dropdown on one line. */}
+      <div className={infoPanel.headerRow}>
         <h3 className={infoPanel.heading}>{heading}</h3>
-      )}
+        {picker.dropdown}
+      </div>
       <div ref={boxRef} className={cls(infoPanel.box, styles.turnLogBox)}>
-        {empty ? (
-          <p className="emptyState">{emptyText}</p>
+        {shown.length === 0 ? (
+          <p className="emptyState">{picker.emptyText}</p>
         ) : (
           <table className={styles.turnLogTable}>
             <tbody>{children}</tbody>

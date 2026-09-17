@@ -70,7 +70,7 @@ export function GameTurnLog({
   historyId,
   onShowHistory,
 }: Props) {
-  const who = useTurnLogPlayerPicker<GuessRow>({
+  const turnLogPicker = useTurnLogPlayerPicker<GuessRow>({
     players,
     selfId,
     mode,
@@ -78,7 +78,7 @@ export function GameTurnLog({
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })
-  const shown = who.filter(guesses)
+  const shown = turnLogPicker.filter(guesses)
 
   // rank → name, off the BOARD (public in both modes) rather than off the
   // viewer's own matches — so an opponent's correct rows name their category
@@ -86,13 +86,7 @@ export function GameTurnLog({
   const nameByRank = new Map<number, string>(categories.map((c) => [c.rank, c.name]))
 
   return (
-    <TurnLog
-      heading="Guesses"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <Fragment key={g.id}>
           {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle | verdict (`.main`,
@@ -106,7 +100,7 @@ export function GameTurnLog({
                 rows on show ARE the board's (my own, or coop's shared game). On an
                 opponent's log, or the All view, the board still shows mine, so the
                 number stays a plain read-only marker. */}
-            {who.boardIsShown ? (
+            {turnLogPicker.boardIsShown ? (
               <TurnLogNumber n={i + 1} isOpenInHistory={historyId === i} onShowHistory={() => onShowHistory(i)} />
             ) : (
               <td className={turnLog.meta}>#{i + 1}</td>

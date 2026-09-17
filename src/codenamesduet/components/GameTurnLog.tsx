@@ -82,7 +82,7 @@ export function GameTurnLog({
   historyId,
   onShowHistory,
 }: Props) {
-  const who = useTurnLogPlayerPicker({
+  const turnLogPicker = useTurnLogPlayerPicker({
     players,
     selfId,
     mode: 'coop',
@@ -115,24 +115,23 @@ export function GameTurnLog({
   ).sort((a, b) => a - b)
 
   // Filtered by CLUE-GIVER (see the docstring). Filtered by hand rather than
-  // through `who.filter`, because the log's unit is a turn number, not a row
+  // through `turnLogPicker.filter`, because the log's unit is a turn number, not a row
   // with a `user_id` — reading `picked` / `showsEveryone` keeps the one
   // selection the hook owns without inventing a row shape to satisfy it.
   const shownTurns = turnNumbers.filter((t) => {
-    if (who.showsEveryone) return true
+    if (turnLogPicker.showsEveryone) return true
     const seat = clues.find((c) => c.turn_number === t)?.by_seat
-    return playerBySeat.get(seat ?? '')?.user_id === who.picked
+    return playerBySeat.get(seat ?? '')?.user_id === turnLogPicker.picked
   })
 
   return (
     <TurnLog
       heading="Clues"
-      headerAction={who.picker}
-      empty={shownTurns.length === 0}
-      emptyText={who.emptyText}
-      // Bigger than the entry count on purpose: an entry here is a TURN, and guesses
-      // land inside a turn that already exists (they grow its second row rather than
-      // adding one), so counting turns alone would miss the snap.
+      picker={turnLogPicker}
+      shown={shownTurns}
+      // The one game that overrides the count: an entry here is a TURN, and
+      // guesses land inside a turn that already exists (they grow its second row
+      // rather than adding one), so counting turns alone would miss the snap.
       entryCount={clues.length + sortedGuesses.length}
     >
       {shownTurns.map((t) => {

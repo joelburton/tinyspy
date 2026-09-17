@@ -64,7 +64,7 @@ export function GameTurnLog({
   /** Open a turn in the board viewer (click a row). */
   onShowHistory: (seq: number) => void
 }) {
-  const who = useTurnLogPlayerPicker({
+  const turnLogPicker = useTurnLogPlayerPicker({
     // Humans and bots in one roster — the hook orders them (you first, then by
     // handle), so a bot takes its alphabetical place rather than being
     // segregated. It plays like anyone else; it reads back like anyone else.
@@ -78,25 +78,19 @@ export function GameTurnLog({
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })
-  // Filtered by hand rather than through `who.filter`, because a bot's play has
+  // Filtered by hand rather than through `turnLogPicker.filter`, because a bot's play has
   // `user_id: null` and the row's identity is `user_id ?? ai:<seat>`. Reading
   // `picked` / `showsEveryone` keeps the ONE selection the hook owns without
   // rewriting every row just to give it a synthetic id.
   const shown = plays.filter(
-    (p) => who.showsEveryone || who.picked === (p.user_id ?? aiId(p.seat)),
+    (p) => turnLogPicker.showsEveryone || turnLogPicker.picked === (p.user_id ?? aiId(p.seat)),
   )
 
   const outcomeFor = (kind: PlayRow['kind']): Outcome =>
     kind === 'word' ? 'won' : kind === 'forfeit' ? 'lost' : 'neutral'
 
   return (
-    <TurnLog
-      heading="Turns"
-      headerAction={who.picker}
-      empty={shown.length === 0}
-      emptyText={who.emptyText}
-      entryCount={shown.length}
-    >
+    <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((p) => (
         <tr key={p.seq} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={outcomeFor(p.kind)} />

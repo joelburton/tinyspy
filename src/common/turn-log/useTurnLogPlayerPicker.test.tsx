@@ -44,7 +44,7 @@ const setup = (over: Partial<Parameters<typeof useTurnLogPlayerPicker>[0]> = {})
 describe('useTurnLogPlayerPicker — one vocabulary, every game', () => {
   it('compete lists All, then every player by handle', async () => {
     const { result } = setup()
-    render(<>{result.current.picker}</>)
+    render(<>{result.current.dropdown}</>)
     expect(await filterOptions()).toEqual(['All', 'me', 'moth'])
   })
 
@@ -52,26 +52,26 @@ describe('useTurnLogPlayerPicker — one vocabulary, every game', () => {
     // Co-op used to collapse to Team ALONE. Per-player entries let you pull one
     // thread out of a shared log — "what did moth actually play?".
     const { result } = setup({ mode: 'coop' })
-    render(<>{result.current.picker}</>)
+    render(<>{result.current.dropdown}</>)
     expect(await filterOptions()).toEqual(['Team', 'me', 'moth'])
   })
 
   it('a solo game is just the one handle — no aggregate', async () => {
     // "Team" of one, or "All" of one, would be the same list under two names.
     const { result } = setup({ mode: 'coop', players: [two[0]] })
-    render(<>{result.current.picker}</>)
+    render(<>{result.current.dropdown}</>)
     expect(await filterOptions()).toEqual(['me'])
   })
 
   it('never labels the viewer "You"', async () => {
     const { result } = setup()
-    render(<>{result.current.picker}</>)
+    render(<>{result.current.dropdown}</>)
     expect(await filterOptions()).not.toContain('You')
   })
 
   it('lists the viewer first, whatever order the players arrive in', async () => {
     const { result } = setup({ players: [two[1], two[0]] }) // deliberately not self-first
-    render(<>{result.current.picker}</>)
+    render(<>{result.current.dropdown}</>)
     expect(await filterOptions()).toEqual(['All', 'me', 'moth'])
   })
 })
@@ -97,10 +97,10 @@ describe('useTurnLogPlayerPicker — the default selection', () => {
     // nowhere — and the filter would then drop every row once the players
     // landed. (The codenamesduet-history.e2e flake this was found by.)
     function Probe({ players }: { players: typeof two }) {
-      const w = useTurnLogPlayerPicker<Row>({
+      const picker = useTurnLogPlayerPicker<Row>({
         players, selfId: 'u1', mode: 'coop', isTerminal: false,
       })
-      return <p data-testid="rows">{w.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
+      return <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
     }
     const { rerender } = render(<Probe players={[]} />)
     // …and while the roster is still empty there's nobody to filter BY, so the
@@ -112,13 +112,13 @@ describe('useTurnLogPlayerPicker — the default selection', () => {
 
   it('falls back when the picked player stops being offered', async () => {
     function Probe({ players }: { players: typeof two }) {
-      const w = useTurnLogPlayerPicker<Row>({
+      const picker = useTurnLogPlayerPicker<Row>({
         players, selfId: 'u1', mode: 'coop', isTerminal: false,
       })
       return (
         <>
-          {w.picker}
-          <p data-testid="rows">{w.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
+          {picker.dropdown}
+          <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
         </>
       )
     }
@@ -155,14 +155,14 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
 
   it('a single player picked out of a shared co-op log is NOT', async () => {
     function Probe() {
-      const who = useTurnLogPlayerPicker<Row>({
+      const picker = useTurnLogPlayerPicker<Row>({
         players: two, selfId: 'u1', mode: 'coop', isTerminal: false,
       })
       return (
         <>
-          {who.picker}
-          <p data-testid="rows">{who.filter(rows).map((r) => r.word).join(',')}</p>
-          <p data-testid="board">{String(who.boardIsShown)}</p>
+          {picker.dropdown}
+          <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',')}</p>
+          <p data-testid="board">{String(picker.boardIsShown)}</p>
         </>
       )
     }
@@ -178,10 +178,10 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
 
   it('compete: my own board yes, an opponent’s and All no', async () => {
     function Probe() {
-      const who = useTurnLogPlayerPicker<Row>({
+      const picker = useTurnLogPlayerPicker<Row>({
         players: two, selfId: 'u1', mode: 'compete', isTerminal: true,
       })
-      return (<>{who.picker}<p data-testid="board">{String(who.boardIsShown)}</p></>)
+      return (<>{picker.dropdown}<p data-testid="board">{String(picker.boardIsShown)}</p></>)
     }
     render(<Probe />)
     expect(screen.getByTestId('board')).toHaveTextContent('true')
@@ -201,14 +201,14 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
 
 describe('useTurnLogPlayerPicker — the honest empty line', () => {
   function Probe({ isTerminal }: { isTerminal: boolean }) {
-    const who = useTurnLogPlayerPicker<Row>({
+    const picker = useTurnLogPlayerPicker<Row>({
       players: two,
       selfId: 'u1',
       mode: 'compete',
       isTerminal,
       emptyLabel: 'No guesses yet.',
     })
-    return (<>{who.picker}<p data-testid="empty">{who.emptyText}</p></>)
+    return (<>{picker.dropdown}<p data-testid="empty">{picker.emptyText}</p></>)
   }
 
   it("says an opponent's empty log is HIDDEN mid-game, and empty at terminal", async () => {
