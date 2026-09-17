@@ -207,7 +207,9 @@ Two natural end triggers, plus the universal manual / timeout paths:
   for a natural finish vs a plain `Ended:` for a manual stop.
   **Manual end is NOT neutral in coop**:
   ending with tiles still in hand forfeits their value from the team score
-  (logged as a `'forfeit'` play, a red "−N tiles unplayed" in the log). This is
+  (logged as a `'forfeit'` play, a "−N tiles unplayed" line in the log — the
+  negative number carries the cost; the bar does not, since stopping was the
+  table's decision and not a defeat). This is
   deliberate — it pushes a solo/coop team to find plays for its last tiles
   rather than just stopping, the same penalty a natural end applies.
 
@@ -300,6 +302,29 @@ stackdown's `20260626`).
 so a play's word + score is already visible to opponents. Only **racks** and the
 **bag** are secret. This makes scrabble's hidden-state surface smaller than the
 answer-hiding games: there's no hidden *solution*, just hidden *resources*.
+
+### The one outcome decision (`lib/answer.ts`)
+
+A turn is one of the four things a `plays` row records, and its `kind` column is
+already the key. `lib/answer.ts` says what each is worth: `word` → `won`, and
+`exchange` · `pass` · `forfeit` → `neutral`.
+
+Three of four being `neutral` is the honest shape: scrabble adjudicates the
+PLAY and lets the score carry everything else. An exchange buys a better rack
+at the cost of a turn and whether it pays off shows up two moves later; a pass
+is the same with nothing bought; a forfeit is the table deciding to stop, which
+is not a defeat, and the negative number in the row already says what it cost.
+Both of the last two changed on 2026-09-17 — an exchange had answered `won`,
+which made trading tiles read like scoring, and a forfeit was `lost` in the log
+while a teammate's line called the same row `neutral`.
+
+**The dictionary refusal is not in the table**, and it is the absence worth
+knowing: `_commit_word` answers `invalid` with `lost` and writes NO row, so a
+refused word never reaches the log or the board history. The pill and the red
+tile flash are its only surfaces and both read that envelope.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### 4.2 The deliberate coop/compete column asymmetry
 
@@ -706,8 +731,8 @@ board rotation) — never shared, never persisted, doesn't pause.
   it has the tab ring, Escape and panel tier every other modal has; its 26
   letters are not actions, being answers to a question this panel asks rather
   than commands the page offers), `GameTurnLog` (the move log on the shared
-  `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
-  exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
+  `<TurnLog>` — one `<tr>` per play: an outcome bar whose color is
+  `lib/answer.ts`'s (see below), the move in `.main` [`+score WORD…`], the actor's
   `<ActorDot>`; words click-to-define via the common `DefinitionPopover`. The
   header carries the shared "whose moves?" picker (`useTurnLogPlayerPicker`),
   bent twice for scrabble: it defaults to the aggregate in BOTH modes

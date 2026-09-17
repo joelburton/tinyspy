@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(33);
+select plan(34);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -61,6 +61,10 @@ create temp table acc on commit drop as
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from acc), 'accepted', 'a valid word is accepted');
+-- The outcome rides with it: a word is the move this game is made of, and it
+-- scores. src/scrabble/lib/answer.ts gives the row this wrote the same word,
+-- and the log bar wears that — one rule, two languages, a test in each.
+select is((select res ->> 'outcome' from acc), 'won', 'a played word is won');
 select is((select board->112 from scrabble.games where id = (select id from ga)),
   '{"l":"C","b":false}'::jsonb, 'the C tile landed on the center square (7,7)');
 select is((select board->114 from scrabble.games where id = (select id from ga)),

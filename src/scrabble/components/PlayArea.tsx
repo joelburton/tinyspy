@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -17,6 +17,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { db } from '../db'
@@ -284,7 +285,7 @@ export function PlayArea({
       ? players.find((m) => m.user_id === latest.user_id)
       : aiMemberOfSeat(latest.seat)
     globalFeedbackSlot.show(
-      FeedbackMessage.peer(actor, latest.kind === 'word' ? 'won' : 'neutral', peerMoveText(latest)),
+      FeedbackMessage.peer(actor, ANSWER_OUTCOME[latest.kind], peerMoveText(latest)),
     )
   }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedbackSlot])
 

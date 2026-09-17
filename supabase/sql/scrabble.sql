@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- scrabble — the REPEATABLE half
@@ -1190,10 +1190,15 @@ begin
   -- `terminal` is always false now — an exchange can no longer end a game (it
   -- resets the pass streak rather than feeding it). The key stays in the shape
   -- because every move RPC returns it and the FE branches on it uniformly.
+  -- `neutral`: swapping tiles is buying a better rack at the cost of a turn,
+  -- and whether it pays off shows up two moves later — so it is a turn that
+  -- counts and that nothing adjudicates. It answered `won` until 2026-09-17,
+  -- which made trading tiles read like scoring. The frontend's lib/answer.ts
+  -- says the same word for the row this wrote.
   return common.ok_envelope(
     jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
                        'version', g.version + 1, 'terminal', v_terminal),
-    'won');
+    'neutral');
 
 -- As _commit_word's. Its two wrappers carry their own — their gates raise
 -- before they delegate here.

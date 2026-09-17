@@ -1,11 +1,11 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { Member } from '@/common/members/member'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -85,14 +85,14 @@ export function GameTurnLog({
     (p) => turnLogPicker.showsEveryone || turnLogPicker.picked === (p.user_id ?? aiId(p.seat)),
   )
 
-  const outcomeFor = (kind: PlayRow['kind']): Outcome =>
-    kind === 'word' ? 'won' : kind === 'forfeit' ? 'lost' : 'neutral'
-
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((p) => (
         <tr key={p.seq} className={gameTurnLog.divider}>
-          <TurnLogOutcomeBar outcome={outcomeFor(p.kind)} />
+          {/* The bar's word is `lib/answer.ts`'s — the log names none of its
+              own, so it cannot disagree with a teammate's line about the same
+              turn, which is exactly what a forfeit used to do. */}
+          <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[p.kind]} />
           {/* Turn number — the play's 1-based seq; the shared handle opens that
               turn on the board viewer and rings itself while it's open. */}
           <TurnLogNumber

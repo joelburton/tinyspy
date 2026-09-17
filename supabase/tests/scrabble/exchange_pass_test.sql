@@ -14,7 +14,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(16);
+select plan(17);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -49,6 +49,12 @@ create temp table rex on commit drop as
   select scrabble.exchange_tiles((select id from gco), 0, array['A','B']) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from rex), 'exchanged', 'a valid exchange succeeds');
+-- `neutral`, not `won`: swapping tiles buys a better rack at the cost of a turn,
+-- and whether it pays off shows up two moves later (ruled 2026-09-16). It said
+-- `won` until 2026-09-17, which made trading tiles read like scoring, and
+-- nothing here caught it. src/scrabble/lib/answer.ts is the other language.
+select is((select res ->> 'outcome' from rex), 'neutral',
+  'an exchange is a turn nothing adjudicates');
 select is((select jsonb_array_length(res -> 'data' -> 'drawn') from rex), 2,
   'two tiles are drawn to replace the two returned');
 select is((select array_length(shared_rack, 1) from scrabble.games where id = (select id from gco)),

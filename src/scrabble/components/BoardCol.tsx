@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -645,7 +645,7 @@ export function BoardCol({
       pendingDrawRef.current = prevDraw
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'accepted') {
+    } else if (res.type === 'ok' && res.data.result === 'accepted' && res.outcome !== null) {
       // Hold the played tiles on the board (as committed) until the realtime
       // refetch lands, so they don't blink out; green-flash them. The new rack
       // tiles get the yellow flash once the rack arrives.
@@ -655,11 +655,15 @@ export function BoardCol({
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
+      // The score line is this surface's — the server sends no sentence, since
+      // only the client holds the words `evaluatePlay` read off the board. What
+      // it does send is how the move reads, so the outcome is the other half of
+      // this case's promise and the branch asserts it.
       localFeedbackSlot.show(
-        FeedbackMessage.result('won', `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}`),
+        FeedbackMessage.result(res.outcome, `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}`),
       )
       return
-    } else if (res.type === 'ok' && res.data.result === 'invalid') {
+    } else if (res.type === 'ok' && res.data.result === 'invalid' && res.outcome !== null) {
       // The dictionary refused it — the one validation this client cannot do,
       // so an ok rather than a failure. Nothing was written and no version was
       // bumped, so the claim comes back.
@@ -667,7 +671,7 @@ export function BoardCol({
       pendingDrawRef.current = prevDraw
       const badWords = res.data.bad_words ?? []
       localFeedbackSlot.show(
-        FeedbackMessage.result('lost', `No: ${badWords.join(', ').toUpperCase()}`),
+        FeedbackMessage.result(res.outcome, `No: ${badWords.join(', ').toUpperCase()}`),
       )
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
@@ -704,10 +708,10 @@ export function BoardCol({
       pendingDrawRef.current = prevDraw
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'exchanged') {
+    } else if (res.type === 'ok' && res.data.result === 'exchanged' && res.outcome !== null) {
       setSelected(new Set())
       pendingDrawRef.current = res.data.drawn?.length ?? tiles.length
-      localFeedbackSlot.show(FeedbackMessage.result('won', `Swapped ${tiles.length}`))
+      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, `Swapped ${tiles.length}`))
       return
     } else {
       lastActionRef.current = prevAction

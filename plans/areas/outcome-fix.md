@@ -408,6 +408,23 @@ new file: `duplicate`/`too_short` as `lost` argued from the hint economy rather
 than the move, and the spent hint's `neutral` argued that a hint is the opposite
 of progress — true, and not a reason to say nothing happened.
 
+**7 · scrabble — DONE 2026-09-17.** `lib/answer.ts`: four answers, keyed by the
+`plays` row's own `kind`. Decisions (f) and (g): an exchange is `neutral` (ONE
+SQL line — it answered `won`, which made trading tiles read like scoring) and a
+forfeit is `neutral` (the log said `lost` while a teammate's line said `neutral`
+about the same row). Three of four are `neutral` now, which is the honest shape:
+this game adjudicates the PLAY and lets the score carry everything else. Neither
+the exchange nor the accepted word was pinned; both are.
+
+The `forfeit` row is the one answer with no SQL half to pin against: `end_game`
+writes it, and that RPC's envelope is about the GAME ending rather than about
+the row, so the table is its only authority. Noted in the test.
+
+**The dictionary refusal stays out of the table**, as question 4 already ruled:
+`_commit_word` answers `invalid` with `lost` and writes no row, so the pill and
+the red tile flash are its only surfaces — and both now read that envelope
+instead of a literal.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**
