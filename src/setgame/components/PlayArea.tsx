@@ -100,7 +100,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The turn-history viewer: click a log row to see the table as it stood just
   // after that event. Keyed by log POSITION rather than by event id, which is
   // what `historySnapshot` indexes.
-  const viewer = useHistoryViewer<number>()
+  const historyViewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()
   // The below-board slot: a claim's result, the hint's not-oks, End /
@@ -280,7 +280,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // but a live card key over a frozen historical board would be lying about
   // what it can do.
   useBoundAction('act-toggle-card', {
-    describe: () => (active && !viewer.isViewingHistory ? 'active' : 'hidden'),
+    describe: () => (active && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: (key) => {
       const slot = slotForKey(key ?? '')
       if (slot < 0 || slot >= shown.length) return
@@ -290,7 +290,7 @@ export function PlayArea(ctx: GamePageCtx) {
     },
   })
   useBoundAction('act-clear-selection', {
-    describe: () => (active && !viewer.isViewingHistory ? 'active' : 'hidden'),
+    describe: () => (active && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: () => {
       setPicked([])
       localFeedbackSlot.dismiss()
@@ -593,7 +593,8 @@ export function PlayArea(ctx: GamePageCtx) {
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
   // The past turn being replayed, or null for the live board.
-  const isViewingHistory = viewer.historyId === null ? null : historySnapshot(events, viewer.historyId)
+  const historySnap =
+    historyViewer.historyId === null ? null : historySnapshot(events, historyViewer.historyId)
 
   return (
     <div
@@ -607,11 +608,11 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
     >
       <BoardCol
-        board={isViewingHistory ? isViewingHistory.board : shown}
-        selected={isViewingHistory ? [] : selected}
-        hinted={isViewingHistory ? isViewingHistory.historyLitCards : ring}
+        board={historySnap ? historySnap.board : shown}
+        selected={historySnap ? [] : selected}
+        ringed={historySnap ? historySnap.historyLitCards : ring}
         flashes={flashes}
-        disabled={!active || isViewingHistory !== null}
+        disabled={!active || historySnap !== null}
         waiting={waiting}
         isCompete={isCompete}
         teamFound={teamFound}
@@ -623,8 +624,8 @@ export function PlayArea(ctx: GamePageCtx) {
         // out", the your-turn prompt. While a past turn is open, the shared
         // history banner covers it with the turn's description.
         localFeedbackSlot={localFeedbackSlot}
-        historyLabel={isViewingHistory?.description ?? null}
-        onExitHistory={viewer.exitHistory}
+        historyLabel={historySnap?.historyLabel ?? null}
+        onExitHistory={historyViewer.exitHistory}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -638,8 +639,8 @@ export function PlayArea(ctx: GamePageCtx) {
           deckLeft={game.deck_left}
           lastClaim={lastClaim}
           events={events}
-          historyId={viewer.historyId}
-          onShowHistory={(index) => (index === null ? viewer.exitHistory() : viewer.showHistory(index))}
+          historyId={historyViewer.historyId}
+          onShowHistory={(index) => (index === null ? historyViewer.exitHistory() : historyViewer.showHistory(index))}
           players={players}
           selfId={selfId}
           foundByUser={foundByUser}

@@ -19,27 +19,27 @@ import styles from './PlayArea.module.css'
 type Props = {
   board: readonly CardCode[]
   selected: readonly CardCode[]
-  hinted: readonly CardCode[]
+  ringed: readonly CardCode[]
   flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
-  /** Turn-by-turn coop, someone else's turn — fades the table. See `Board`. */
+  // Turn-by-turn coop, someone else's turn — fades the table. See `Board`.
   waiting: boolean
   // ── The mobile status bar's contents ──
   isCompete: boolean
   teamFound: number
   deckLeft: number
   hintsUsed: number
-  /** Ask for a hint. The SAME binding the info column places, so the two copies
-   *  can't come to say different things — including the gray "No hints when
-   *  competing" face, which the action carries. */
+  // Ask for a hint. The SAME binding the info column places, so the two copies
+  // can't come to say different things — including the gray "No hints when
+  // competing" face, which the action carries.
   actHint: BoundAction
   onCardClick: (card: CardCode) => void
-  /** PlayArea's below-board slot — a claim's result, the terminal verdict,
-   *  "you're out", or the your-turn prompt. */
+  // PlayArea's below-board slot — a claim's result, the terminal verdict,
+  // "you're out", or the your-turn prompt.
   localFeedbackSlot: FeedbackSlot
   // ── Turn-history viewer ──
-  /** The viewed turn's one-line description (drives the banner over the
-   *  pill slot), or null when live. */
+  // The viewed turn's one-line description (drives the banner over the
+  // pill slot), or null when live.
   historyLabel: string | null
   onExitHistory: () => void
 }
@@ -68,7 +68,7 @@ type Props = {
 export function BoardCol({
   board,
   selected,
-  hinted,
+  ringed,
   flashes,
   disabled,
   waiting,
@@ -98,7 +98,7 @@ export function BoardCol({
       <Board
         board={board}
         selected={selected}
-        hinted={hinted}
+        ringed={ringed}
         flashes={flashes}
         disabled={disabled}
         waiting={waiting}

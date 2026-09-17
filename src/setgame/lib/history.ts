@@ -16,7 +16,7 @@ export type HistorySnapshot = {
   /** The cards this event was about, ringed on that board. */
   historyLitCards: Card[]
   /** The banner line: what that turn was. */
-  description: string
+  historyLabel: string
 }
 
 /**
@@ -49,7 +49,7 @@ export function historySnapshot(rows: readonly HistoryRow[], index: number): His
   return {
     board: row.board_after,
     historyLitCards: row.cards,
-    description:
+    historyLabel:
       row.kind === 'claim'
         ? `Turn ${index + 1} — set claimed`
         : `Turn ${index + 1} — hint (${row.cards.length} of 3)`,

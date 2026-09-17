@@ -22,8 +22,8 @@ describe('historySnapshot', () => {
   })
 
   it('names the turn, and says how far a hint went', () => {
-    expect(historySnapshot(rows, 0)!.description).toBe('Turn 1 — hint (1 of 3)')
-    expect(historySnapshot(rows, 1)!.description).toBe('Turn 2 — set claimed')
+    expect(historySnapshot(rows, 0)!.historyLabel).toBe('Turn 1 — hint (1 of 3)')
+    expect(historySnapshot(rows, 1)!.historyLabel).toBe('Turn 2 — set claimed')
   })
 
   it('returns null for a turn that is not there', () => {

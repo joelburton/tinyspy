@@ -22,7 +22,7 @@ import styles from './Card.module.css'
 export function Card({
   card,
   selected = false,
-  hinted = false,
+  ringed = false,
   flash = null,
   disabled = false,
   readOnly = false,
@@ -30,22 +30,20 @@ export function Card({
 }: {
   card: CardCode
   selected?: boolean
-  /** Ringed by a coop hint: "there is a set through this card". */
-  hinted?: boolean
-  /** A transient mark — a set just claimed, or a card just dealt. */
-  /** Which transient mark this card is wearing — see `lib/flash.ts`. */
+  // Wearing the ring, from either of its two causes: a live coop hint ("there
+  // is a set through this card") or a viewed past turn's own cards.
+  ringed?: boolean
+  // Which transient mark this card is wearing — see `lib/flash.ts`.
   flash?: FlashKind | null
   disabled?: boolean
-  /**
-   * Draw the card as a READOUT rather than a control — a plain box, not a
-   * button. Used by the last-set panel, where the cards are something to look
-   * at rather than something to press.
-   *
-   * Not the same as `disabled`, and the difference bit: a disabled <button>
-   * picks up the global `button:disabled { opacity: 0.5 }`, which on a card
-   * dims the very colors that ARE its content. A readout is simply not a
-   * button, so nothing has to be overridden.
-   */
+  // Draw the card as a READOUT rather than a control — a plain box, not a
+  // button. Used by the last-set panel, where the cards are something to look
+  // at rather than something to press.
+  //
+  // Not the same as `disabled`, and the difference bit: a disabled <button>
+  // picks up the global `button:disabled { opacity: 0.5 }`, which on a card
+  // dims the very colors that ARE its content. A readout is simply not a
+  // button, so nothing has to be overridden.
   readOnly?: boolean
   onClick?: () => void
 }) {
@@ -66,7 +64,7 @@ export function Card({
     styles.card,
     readOnly && styles.readOnly,
     selected && styles.selected,
-    hinted && styles.hinted,
+    ringed && styles.ringed,
     flash === 'held' && styles.held,
     flash === 'leaving' && styles.leaving,
     flash === 'arriving' && styles.arriving,

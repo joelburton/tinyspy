@@ -9,24 +9,24 @@ import { Card, CardDefs } from './Card'
 import styles from './Board.module.css'
 
 type Props = {
-  /**
-   * The board AS DISPLAYED, in slot order. A null is a slot whose card has been
-   * claimed and whose replacement has not landed yet — the deal arrives one
-   * card a second, so an empty place is a normal, visible state here rather
-   * than an error.
-   */
+  //
+  // The board AS DISPLAYED, in slot order. A null is a slot whose card has been
+  // claimed and whose replacement has not landed yet — the deal arrives one
+  // card a second, so an empty place is a normal, visible state here rather
+  // than an error.
+  //
   board: readonly CardCode[]
-  /** Cards the player has picked, by card code (not by slot — see below). */
+  // Cards the player has picked, by card code (not by slot — see below).
   selected: readonly CardCode[]
-  /** Cards a coop hint is ringing. */
-  hinted: readonly CardCode[]
-  /** Transient marks, keyed by card code. */
+  // Cards a coop hint is ringing.
+  ringed: readonly CardCode[]
+  // Transient marks, keyed by card code.
   flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
-  /** Turn-by-turn coop, and it is someone else's turn — the board fades.
-   *  A STRICT SUBSET of `disabled`, and deliberately its own flag: the board is
-   *  also disabled at every terminal and while replaying a past turn, neither of
-   *  which should fade (both are states people sit and study). */
+  // Turn-by-turn coop, and it is someone else's turn — the board fades.
+  // A STRICT SUBSET of `disabled`, and deliberately its own flag: the board is
+  // also disabled at every terminal and while replaying a past turn, neither of
+  // which should fade (both are states people sit and study).
   waiting: boolean
   onCardClick: (card: CardCode) => void
 }
@@ -54,7 +54,7 @@ type Props = {
 export function Board({
   board,
   selected,
-  hinted,
+  ringed,
   flashes,
   disabled,
   waiting,
@@ -93,7 +93,7 @@ export function Board({
           <Card
             card={card}
             selected={selected.includes(card)}
-            hinted={hinted.includes(card)}
+            ringed={ringed.includes(card)}
             flash={flash}
             // A card being held on its way off the table is spent — it is on
             // screen only so you can watch it go. Clicking one could only ever

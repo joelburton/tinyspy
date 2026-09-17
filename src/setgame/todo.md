@@ -13,6 +13,24 @@
 
 ## Soon
 
+- **A viewed past turn is ringed in the HINT's color here, not the shared history
+  color.** Every other game with a viewer rings the cards/tiles a past turn
+  touched in `--history-color` — the same blue as the board frame and the log's
+  open `#N`, so all three parts of "you are looking at this past turn" read as one
+  mark. setgame instead feeds `historyLitCards` into the same `ringed` prop its
+  live hint uses, so a viewed turn wears `.ringed` — a dashed outline in
+  `--setgame-hint-ring` (`#16a34a`, a green). The result is that the frame and the
+  `#N` say history while the cards say hint, in a green that is also this app's
+  success color.
+
+  Found 2026-09-16 in the history-names sweep. Not changed there because it is a
+  LOOK decision, not a naming one: either the history case gets its own class in
+  the shared color (the other nine games' shape), or setgame keeps one ring
+  deliberately and says why. The prop itself was renamed `hinted` → `ringed` in
+  that sweep, since it names a mark with two causes and `hint` is reserved for
+  priced help.
+
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/Board.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 5rem`, where that last term stands for

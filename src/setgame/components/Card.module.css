@@ -74,11 +74,15 @@
   box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
 }
 
-/* A live coop hint. Dashed and neutral so it reads as "look here", not as an
- * outcome — the hint never says which set, only that one runs through this
- * card. Drawn as an outline rather than a box-shadow ring so it is visibly a
- * DIFFERENT kind of mark from selection. */
-/* @@ */ .hinted {
+/* The ring, worn by TWO things: a live coop hint, and the cards a viewed past
+ * turn touched (PlayArea feeds this one prop from either). Dashed and neutral so
+ * it reads as "look here", not as an outcome — the hint never says which set,
+ * only that one runs through this card. Drawn as an outline rather than a
+ * box-shadow ring so it is visibly a DIFFERENT kind of mark from selection.
+ *
+ * Note it is the HINT's color in both cases, where every other game rings a
+ * viewed turn in the shared `--history-color` — see todo.md. */
+/* @@ */ .ringed {
   outline: 4px dashed var(--setgame-hint-ring);
   outline-offset: 3px;
 }

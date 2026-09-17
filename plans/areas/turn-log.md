@@ -659,7 +659,25 @@ The four games whose names already turned out to be lying go first.
       identifier at all — the only game with a clean grep on the first pass.
       This is one of F-18's two games: its `BoardCol` takes `isViewingHistory`
       AND `historyLabel`, and guards the banner on both.
-- [ ] **setgame**
+- [x] **setgame** — read 2026-09-16, and the row that caught the sweep's own
+      worst mistake:
+      - **`isViewingHistory` held a SNAPSHOT.** The bare-`viewing` pass renamed
+        every local `viewing` to `isViewingHistory`, and this game's `viewing`
+        was `historyId === null ? null : historySnapshot(…)` — an object, not a
+        flag. So the file read `isViewingHistory ? isViewingHistory.historyLitCards
+        : ring`. It is `historySnap` now. A boolean name on an object is worse
+        than the vague name it replaced, and only reading the line caught it.
+      - `viewer` → `historyViewer` (this game and strands keep the object), and
+        `HistorySnapshot.description` → `historyLabel`.
+      - **`hinted` → `ringed`.** The prop takes EITHER the live hint's cards or
+        the history-lit ones, so it named one of its two causes — and `hint` is
+        reserved in this repo for priced help, which the history ring is not.
+        `ringed` names the mark.
+      - the `/**`-on-props pass: 9 members.
+      Filed in setgame's todo, found by the read: a viewed past turn is ringed
+      in `--setgame-hint-ring` (a green) rather than the shared `--history-color`,
+      so its frame and `#N` say history while its cards say hint. A look
+      decision, not a naming one.
 - [ ] **letterboxed**
 
 The known four are listed as each row's starting content deliberately, and are
