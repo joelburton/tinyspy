@@ -20,7 +20,7 @@ in a sibling file.
 |---|---|
 | **worked** (26) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-21 · F-22 · F-23 … F-31 (the closing re-read) |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
-| **skipped** (3) | F-12 → `z-index` · F-17 → `outcome-fix` · F-20 → `history-always-available` — each caused or helped cause the area it went to (plan §3 rows 41, 40, 39) |
+| **skipped** (3) | F-12 → `z-index` · F-17 → `outcome-fix` · F-20 → `history-always-available` — each caused or helped cause the area it went to (plan §3 rows 41, 39, 40 — `outcome-fix` was moved ahead of `history-always-available` at the close) |
 | **open** (0) | — every finding is worked, closed or skipped; only the blessing remains |
 
 ## The roster
@@ -591,8 +591,9 @@ strands' `neutral` case decided in the same pass; (2) each game at its own
 area; (3) leave. Recommend (1).
 
 **SKIPPED 2026-09-16 — it belongs to the `outcome-fix` area, scheduled out of
-this finding at plan §3 row 40 (row 39 until `history-always-available` went in
-ahead of it), ahead of `z-index`.** Joel refused the shape the
+this finding at plan §3 row 39, directly after this area — Joel moved it ahead
+of `history-always-available` at the close, so the outcome shape is settled
+before the snapshot builders are rewritten.** Joel refused the shape the
 options offered: *"i don't want this to be anything like a search-and-place of
 'near' to 'warning'."* The rule instead:
 
@@ -1007,7 +1008,7 @@ the mechanism (a filtered log's row 3 is not the board's turn 3) and clumsier;
 more often than it looks" moves with it, as does `playarea.md` → Whose turns?,
 which explains it under that name.
 
-**SKIPPED 2026-09-16 — to the `history-always-available` area (plan §3 row 39),
+**SKIPPED 2026-09-16 — to the `history-always-available` area (plan §3 row 40, after `outcome-fix`),
 which this finding helped cause.** Joel: *"it's a terrible variable name. should
 we punt this to the history-is-always-available area, so we have a single answer
 for compete history and the names around it?"* The name depends on what the thing
@@ -1280,8 +1281,9 @@ specs); nothing else in `src/` or `e2e/` carried the string.
 
 `gameTurnLog.module.css`: "read by eleven games" (a tally). This file's F-12 and
 F-17 both cite "plan §3 row 39" — true when written, wrong once
-`history-always-available` was inserted ahead of both (41 and 40 now; the status
-table had them right and the findings did not). `playarea.md`'s per-game viewer
+`history-always-available` was inserted ahead of both (the status table had
+them right and the findings did not — and at the close Joel swapped the two
+again, so `outcome-fix` is row 39 and `history-always-available` row 40). `playarea.md`'s per-game viewer
 section listed nine of the ten games (no strands). `outcomes.md` promised "which
 games still owe that correction" is in the todo, which since `b4bb0968` says
 explicitly it is not a list.
