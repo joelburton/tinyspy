@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconHideSolution } from '@/common/icons/icons'
@@ -25,7 +25,8 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { historyChainAt, historyLabelAt } from '../lib/history'
 import { setupRows } from '../lib/setupSummary'
-import { helpPillText } from '../lib/help'
+import { ANSWER_OUTCOME } from '../lib/answer'
+import { hintOrSpoilerPillText } from '../lib/hintOrSpoiler'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
@@ -87,7 +88,7 @@ type ChainAnswer =
   | { result: 'undone'; word: string; letters_covered: number }
   | { result: 'cleared'; letters_covered: 0 }
 
-/** What `log_help` answers: one `ok`, echoing the row it wrote. */
+/** What `log_hint_or_spoiler` answers: one `ok`, echoing the row it wrote. */
 type HelpAnswer = {
   result: 'logged'
   kind: 'hint' | 'spoiler'
@@ -210,7 +211,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'accepted') {
+    } else if (res.type === 'ok' && res.data.result === 'accepted' && res.outcome !== null) {
       // The next word's first letter comes from the chain, which the realtime
       // refetch is about to update — so clearing the draft is all that's needed.
       setDraft('')
@@ -222,9 +223,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // chain-full note (below) is what the player needs to read then.
       const wordsLeft = maxWords - (chain.length + 1)
       if (wordsLeft > 0) {
+        // The server sends no sentence — the words-left count is this surface's,
+        // and only it knows there is no mobile status bar to carry it. What the
+        // server does send is how the move reads, so the outcome is the other
+        // half of this case's promise and the branch asserts it.
         localFeedbackSlot.show(
           FeedbackMessage.result(
-            'won',
+            res.outcome,
             `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
           ),
         )
@@ -303,7 +308,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // iconography): HINT describes the word, SPOILER hands it over. Both are
   // coop-only — in compete, "first past the bar wins" would make either a win
   // button, and the server refuses them there too.
-  const askHelp = useCallback(
+  const askForHintOrSpoiler = useCallback(
     async (kind: 'hint' | 'spoiler') => {
       if (!game) return
       // `cleanWords`, NOT `playableWords` — the accept list carries crude,
@@ -396,9 +401,11 @@ export function PlayArea(ctx: GamePageCtx) {
       // hint has nothing left to be for) and three faults that mean a broken
       // client, so no player is holding a hint they could still have used
       // (Joel, 2026-09-01).
-      localFeedbackSlot.show(FeedbackMessage.hint('noted', helpPillText(kind, r.word)))
+      localFeedbackSlot.show(
+        FeedbackMessage.hint(ANSWER_OUTCOME[kind], hintOrSpoilerPillText(kind, r.word)),
+      )
       const res = await runRpc<HelpAnswer>(
-        db.rpc('log_help', { target_game: gameId, word_shown: r.word, kind }),
+        db.rpc('log_hint_or_spoiler', { target_game: gameId, word_shown: r.word, kind }),
       )
       if (res.type === 'not-ok') {
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
@@ -408,14 +415,17 @@ export function PlayArea(ctx: GamePageCtx) {
         // above stands, which is the whole of what a successful log owes anyone.
         return
       } else {
-        reportUnhandled('log_help', res)
+        reportUnhandled('log_hint_or_spoiler', res)
         return
       }
     },
     [game, sides, chain, maxWords, gameId, localFeedbackSlot],
   )
-  const takeHint = useCallback(() => void askHelp('hint'), [askHelp])
-  const takeSpoiler = useCallback(() => void askHelp('spoiler'), [askHelp])
+  const takeHint = useCallback(() => void askForHintOrSpoiler('hint'), [askForHintOrSpoiler])
+  const takeSpoiler = useCallback(
+    () => void askForHintOrSpoiler('spoiler'),
+    [askForHintOrSpoiler],
+  )
 
   // Reveal the seeded pair — LOCAL and reversible (useSolutionReveal), and
   // never automatic: a letterboxed win is covering the twelve letters with ANY
@@ -580,8 +590,15 @@ export function PlayArea(ctx: GamePageCtx) {
       // here is sound: messageFor runs once per NEW event inside the hook's
       // effect (the seen-set), never during render.
       if (e.kind === 'hint' || e.kind === 'spoiler') {
-        if (e.word) localFeedbackSlot.show(FeedbackMessage.hint('noted', helpPillText(e.kind, e.word)))
-        return FeedbackMessage.peer(member, 'noted', e.kind === 'hint' ? 'got a hint' : 'revealed a word')
+        if (e.word)
+          localFeedbackSlot.show(
+            FeedbackMessage.hint(ANSWER_OUTCOME[e.kind], hintOrSpoilerPillText(e.kind, e.word)),
+          )
+        return FeedbackMessage.peer(
+          member,
+          ANSWER_OUTCOME[e.kind],
+          e.kind === 'hint' ? 'got a hint' : 'revealed a word',
+        )
       }
       const what =
         e.kind === 'played'
@@ -591,7 +608,7 @@ export function PlayArea(ctx: GamePageCtx) {
               // say WHICH word came off (the log's "took back GJB" agrees).
               `undid ${e.word?.toUpperCase() ?? 'the last word'}`
             : 'cleared the chain'
-      return FeedbackMessage.peer(member, e.kind === 'played' ? 'won' : 'noted', what)
+      return FeedbackMessage.peer(member, ANSWER_OUTCOME[e.kind], what)
     },
     globalFeedbackSlot,
   })

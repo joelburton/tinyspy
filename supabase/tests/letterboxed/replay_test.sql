@@ -41,7 +41,7 @@ select (letterboxed.create_game(
 
 -- Play it to the WIN, with a hint taken along the way (so every counter the
 -- replay must reset is genuinely non-zero first).
-select letterboxed.log_help((select id from g), 'kcfil', 'hint');
+select letterboxed.log_hint_or_spoiler((select id from g), 'kcfil', 'hint');
 select letterboxed.submit_word((select id from g), 'adgjbehk');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select letterboxed.submit_word((select id from g), 'kcfil');

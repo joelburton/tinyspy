@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
 import type { GamePlayer } from '@/common/members/member'

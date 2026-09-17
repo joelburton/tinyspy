@@ -89,14 +89,18 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
   the "ladder" prose in eleven files, the amber-hint rationale in `outcomes.md`,
   strands' and psychicnum's SQL, and stackdown's `canAskHelp`.
 
-  **What is left is letterboxed's identifiers**, the only game with the pattern:
-  `askHelp(kind: 'hint' | 'spoiler')` — Joel's name for it is
-  **`askForHintOrSpoiler`**, and a hint-only game's would be `askHint`. Its two
-  wrappers `takeHint` / `takeSpoiler` are already right. Also `helpPillText()`,
-  the file `letterboxed/lib/help.ts`, and the RPC **`letterboxed.log_help`** (SQL
-  + generated `db.ts` + `replay_test.sql` + the game doc — no migration, since
-  the schema shape is a `kind` column that doesn't say "help"). One change, and
-  `outcome-fix` reaches letterboxed, which is the natural moment.
+  **letterboxed's identifiers went the same day**, when `outcome-fix` reached
+  that game: `askHelp` → `askForHintOrSpoiler` (Joel's name), `helpPillText` →
+  `hintOrSpoilerPillText`, `lib/help.ts` → `lib/hintOrSpoiler.ts`, and the RPC
+  `letterboxed.log_help` → `letterboxed.log_hint_or_spoiler` (SQL, the
+  regenerated `db.ts`, `replay_test.sql` and the game doc; no migration, since
+  the schema shape is a `kind` column that never said "help"). The `drop
+  function if exists letterboxed.log_help(...)` stays in the behavior file
+  forever — that file is re-applied rather than diffed, so deleting the drop
+  would strand the old function in every database that ran it.
+
+  **Nothing is owed here any more.** What would keep it from coming back is a
+  guard, which is the lexicon item further down this file.
 - **A failed profile probe still guesses, and the guess is "you are fine".** `useSession`'s
   read of `common.profiles` treats a FAILURE as "signed in, no username yet", so a
   broken RLS policy or a dead connection at startup routes the user to
@@ -315,7 +319,8 @@ was their green/yellow/gray feedback flattening to one gray in mono.
     "never for" column is cheap to check and obvious when wrong, which is not
     true of prose. Partial guard if it earns one: assert that identifiers
     matching a reserved word appear only in that word's allowed directories —
-    that would have caught `askHelp` and `letterboxed/lib/help.ts`.
+    that would have caught `askHelp` and `letterboxed/lib/help.ts`, both of
+    which had to be found by hand instead (2026-09-17).
   - **Chores:** three inbound anchors point into the lexicon (`naming.md#member`,
     `#peer`, `#player`, plus `#watch-list-of-generic-words`) out of 44 references
     to the file; `CLAUDE.md`'s table needs a row and an edit to the `naming.md`

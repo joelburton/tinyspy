@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- letterboxed — behavior (SnakeBox)
@@ -1184,12 +1184,15 @@ begin
   perform common._advance_turn(target_game);
   perform letterboxed._sync_status(target_game);
 
-  -- `neutral`: a turn that counts (in turn-coop it costs one) but that nothing
-  -- adjudicates — taking a word back is neither good nor bad play.
+  -- `noted`: a turn that counts (in turn-coop it costs one) and that nothing
+  -- adjudicates — taking a word back is neither good nor bad play. It is NEWS,
+  -- which is the blue word, not the gray one: the chain is shorter than it was
+  -- and the player who did it is telling the table so. The frontend's
+  -- lib/answer.ts says the same word for the row this wrote.
   return common.ok_envelope(
     jsonb_build_object('result', 'undone', 'word', v_popped,
                        'letters_covered', v_covered),
-    'neutral');
+    'noted');
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -1276,10 +1279,10 @@ begin
 
   perform letterboxed._sync_status(target_game);
 
-  -- `neutral` for the same reason undo is: emptying the chain is a move
-  -- nothing adjudicates.
+  -- `noted` for the same reason undo is: emptying the chain is news about the
+  -- chain rather than a move anything adjudicates.
   return common.ok_envelope(
-    jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'neutral');
+    jsonb_build_object('result', 'cleared', 'letters_covered', 0), 'noted');
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -1298,20 +1301,20 @@ revoke execute on function letterboxed.clear_chain(uuid) from public;
 grant execute on function letterboxed.clear_chain(uuid) to authenticated;
 
 -- ============================================================
--- letterboxed.log_help — record that a hint was taken
+-- letterboxed.log_hint_or_spoiler — record that a rung was taken
 -- ============================================================
 -- The suggestion itself is computed ON THE FE: it holds playable_words,
 -- so a breadth-first search over (letters-used, tail-letter) finds a
 -- word on a shortest path to covering all twelve in ~40 lines of
--- TypeScript. The server's only job is to remember that help was taken,
--- so the turn log agrees with what happened.
+-- TypeScript. The server's only job is to remember that a hint or a
+-- spoiler was taken, so the turn log agrees with what happened.
 --
 -- `kind` separates the two rungs: 'hint' gave the word's SHAPE, 'spoiler'
 -- gave the word. The log is the only record of either, which is why they
 -- are distinguishable there rather than merged into one counter.
 --
--- Trusting the client here costs nothing: help is unpenalized, and
--- COOP-ONLY. In compete either rung would be a win button — "first past
+-- Trusting the client here costs nothing: neither rung is penalized, and
+-- both are COOP-ONLY. In compete either would be a win button — "first past
 -- the bar" makes the fastest clicker the winner — so the mode check
 -- below is a real rule, not bookkeeping.
 drop function if exists letterboxed.log_hint(uuid, text);
@@ -1319,8 +1322,9 @@ drop function if exists letterboxed.log_hint(uuid, text);
 -- became jsonb. `if exists` because this file is re-applied in full on every
 -- deploy, so the drop has to be a no-op the second time.
 drop function if exists letterboxed.log_help(uuid, text, text);
+drop function if exists letterboxed.log_hint_or_spoiler(uuid, text, text);
 
-create or replace function letterboxed.log_help(target_game uuid, word_shown text, kind text)
+create or replace function letterboxed.log_hint_or_spoiler(target_game uuid, word_shown text, kind text)
 returns jsonb
 language plpgsql
 security definer
@@ -1350,7 +1354,7 @@ begin
   if kind not in ('hint', 'spoiler') then
     raise exception 'BUG: help of an unknown kind'
       using errcode = 'PN415', hint = 'fault', column = '_',
-      detail = format('log_help kind must be hint or spoiler; got %L', kind);
+      detail = format('log_hint_or_spoiler kind must be hint or spoiler; got %L', kind);
   end if;
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it, or the clock ran out, between the FE
@@ -1373,7 +1377,7 @@ begin
    where p.game_id = target_game and p.user_id = caller_id;
 
   insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, log_help.kind, lower(trim(word_shown)),
+  values (target_game, caller_id, log_hint_or_spoiler.kind, lower(trim(word_shown)),
           letterboxed._covered(v_chain));
 
   -- No outcome: the FE has already shown the help itself, in its own pill, and
@@ -1381,7 +1385,7 @@ begin
   -- log does NOT agree.
   return common.ok_envelope(jsonb_build_object(
     'result', 'logged',
-    'kind', log_help.kind,
+    'kind', log_hint_or_spoiler.kind,
     'word', lower(trim(word_shown))));
 
 -- One block, and it has never heard of any specific condition: it reads the
@@ -1397,8 +1401,8 @@ exception when others then
 end;
 $$;
 
-revoke execute on function letterboxed.log_help(uuid, text, text) from public;
-grant execute on function letterboxed.log_help(uuid, text, text) to authenticated;
+revoke execute on function letterboxed.log_hint_or_spoiler(uuid, text, text) from public;
+grant execute on function letterboxed.log_hint_or_spoiler(uuid, text, text) to authenticated;
 
 -- ============================================================
 -- letterboxed.submit_timeout — the clock ran out

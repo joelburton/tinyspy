@@ -365,6 +365,30 @@ call-site narrowing in `BoardCol` are both gone. Two stale claims fixed with it:
 a `BoardCol` docstring describing the narrowing, and a comment citing
 `docs/ui.md` as "tone follows the event" when it says **outcome**.
 
+**5 · letterboxed — DONE 2026-09-17.** `lib/answer.ts`: five answers keyed by
+the `events` row's own `kind` — `played` · `undone` · `cleared` · `hint` ·
+`spoiler` → `won` · `noted` · `noted` · `warning` · `lost` (decisions h and i).
+`barFor` is deleted; the log bar, both peer lines, the rung's own pill and the
+played-word pill all read one word.
+
+**The plan said letterboxed needed no SQL and that was wrong.** Ruling (i) makes
+undo and clear `noted`, and `undo_word` / `clear_chain` answered `neutral`.
+Nothing read those envelopes — both handlers dismiss the pill rather than
+showing one — but leaving them would have broken the area's own invariant, so
+both changed and both are pinned (`gameplay_test.sql`, against
+`lib/answer.test.ts`). The undo pin failed on the change; the clear had none and
+got one.
+
+**The `help` rename shipped here**, by Joel's word (*"let's fix that when hit
+letterboxed"*): `askHelp` → `askForHintOrSpoiler`, `helpPillText` →
+`hintOrSpoilerPillText`, `lib/help.ts` → `lib/hintOrSpoiler.ts`, and the RPC
+`letterboxed.log_help` → `letterboxed.log_hint_or_spoiler` (SQL + regenerated
+`db.ts` + `replay_test.sql` + the doc). Only `askForHintOrSpoiler` was Joel's
+name; the rest follow its construction and are his to shorten. The old
+function's `drop function if exists` stays forever — the behavior file is
+re-applied, not diffed. `docs/deferred.md`'s item and letterboxed's todo entry
+both close.
+
 ## Findings
 
 **F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**

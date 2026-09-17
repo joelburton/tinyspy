@@ -1822,7 +1822,7 @@ export type Database = {
         Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: Json }
-      log_help: {
+      log_hint_or_spoiler: {
         Args: { kind: string; target_game: string; word_shown: string }
         Returns: Json
       }

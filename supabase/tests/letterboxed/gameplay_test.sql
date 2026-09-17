@@ -26,7 +26,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(30);
+select plan(31);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -183,7 +183,14 @@ select is(
 );
 
 -- ── 5. clear_chain ──────────────────────────────────────────
-select letterboxed.clear_chain((select id from g));
+-- `noted` for the same reason undo is, and pinned for the same reason: this is
+-- the half of the rule SQL owns, and src/letterboxed/lib/answer.ts owns the
+-- other.
+select pg_temp.envelope_is(
+  letterboxed.clear_chain((select id from g)),
+  '{"type":"ok","outcome":"noted","data":{"result":"cleared"}}'::jsonb,
+  'a clear is news about the chain, not a verdict'
+);
 
 select ok(
   (select chain = '{}' from letterboxed.players_state
@@ -310,10 +317,14 @@ select pg_temp.envelope_is(
 -- and an undone word is no longer "already in the chain", so it may return.
 -- Undo NAMES the word it popped, which is the fact that makes the next line
 -- meaningful rather than coincidental.
+--
+-- `noted`, the blue word: an undo is NEWS about the chain, not a move anything
+-- adjudicates. src/letterboxed/lib/answer.ts says the same for the row this
+-- wrote — one rule, two languages, a test in each.
 select pg_temp.envelope_is(
   letterboxed.undo_word((select id from gt)),
-  '{"type":"ok","outcome":"neutral","data":{"result":"undone","word":"gjb"}}'::jsonb,
-  'undo answers with the word it took back'
+  '{"type":"ok","outcome":"noted","data":{"result":"undone","word":"gjb"}}'::jsonb,
+  'undo answers with the word it took back, as news'
 );
 select pg_temp.envelope_is(
   letterboxed.submit_word((select id from gt), 'gjb'),

@@ -35,7 +35,7 @@ conventions [`playarea.md`](../playarea.md).
 4. **The complete playable word set is computable at build time** — the indexed
    subset test spellingbee runs (`letter_mask & ~board_mask = 0`) plus the
    side-adjacency walk. A few hundred to a few thousand words per board. This
-   one fact is what makes the help search, instant local validation, and the
+   one fact is what makes the suggestion search, instant local validation, and the
    winnability guarantee nearly free.
 
 Where it sits on the roster: the only game where a word's **last letter**
@@ -93,7 +93,7 @@ Three different trust postures coexist here, each for its own reason:
   takes a row lock on the game to serialize appends.
 - **The playable word list and the seeded solution ship to the FE openly.**
   Per CLAUDE.md's trust model this costs nothing (friends, not adversaries),
-  and it buys a lot: the help search is ~40 lines of unit-testable TypeScript
+  and it buys a lot: the suggestion search is ~40 lines of unit-testable TypeScript
   instead of the most complex plpgsql in the repo (§6), and the FE can refuse a
   bad word instantly. The solution is **display-gated, not shielded**: the
   nothing autoreveals, so the seeded pair stays covered until the
@@ -135,7 +135,7 @@ every deploy).
 |---|---|
 | `seeds` | The board-seed pool (§7): a chained word **pair** — `last(word_a) = first(word_b)` — whose letters union to exactly twelve. PK is the twelve letters **sorted** (`char(12)`; the board is a set, never a multiset, so the sorted string and the bitmask are equivalent keys and the string is the readable one); `mask` is a generated column for the builder's subset query. `difficulty` is the band of the easiest solving pair; **the importer keeps only band ≤ 2 seeds**, so the guaranteed solution is always two words a person might think of. Every stored row is **partitionable by construction** (§7). |
 | `games` | One row per playthrough. `sides` is the twelve letters **in side order** — positions 1–3 one side, 4–6 the next, and so on — so the partition lives *in* the string and can't drift from it. `playable_words` (jsonb) is every word playable on this board at `legal_band`, computed once by the builder and shipped to the FE. `solution` is the seeded pair, copied on so the board stays self-contained if the seed table is re-imported. `max_words` (2..7, resolved from `extra_words`), `legal_band`, denormalized `mode` + `club_handle`. |
-| `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (coop-only help tally), `solved` / `solved_at`. |
+| `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (a coop-only tally of both rungs), `solved` / `solved_at`. |
 | `events` | The append-only game log, kinds `played` / `undone` / `cleared` / `hint` / `spoiler`. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the turn log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
 
 ### RLS
@@ -178,7 +178,7 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 | `submit_word(target_game, submitted)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `playable_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). |
 | `undo_word(target_game)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
 | `clear_chain(target_game)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
-| `log_help(target_game, word_shown, kind)` | Records that a hint was taken (§6). The suggestion is computed on the FE; the server's only job is making the turn log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
+| `log_hint_or_spoiler(target_game, word_shown, kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the turn log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `end_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
 | `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common.require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
@@ -187,7 +187,7 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 
 Every mid-game transition calls `_sync_status` (the wordle `_sync_title`
 pattern: derived, not remembered per-writer), so the club-page label is correct
-after a word, an undo, a clear, or help. Terminal transitions build their own
+after a word, an undo, a clear, a hint or a spoiler. Terminal transitions build their own
 blob for `common.end_game` — status **merges**, so every value a terminal
 asserts is restated ([status blob merges](../supabase.md)). Compete's
 mid-game/terminal blobs carry a `_leaderboard` of the two public numbers, with
@@ -249,12 +249,39 @@ is the remedy in every case and therefore worth no characters: the pill is
 characters and truncated mid-word on DESKTOP. The undo × is on the chain strip
 either way.
 
+### The one outcome decision (`lib/answer.ts`)
+
+Every turn letterboxed can produce is one of five answers — `played`, `undone`,
+`cleared`, `hint`, `spoiler` — and the `events` row's own `kind` column is
+already the key, so nothing translates. `lib/answer.ts` says what each is
+worth: `won` · `noted` · `noted` · `warning` · `lost`.
+
+**An undo and a clear are `noted`, not `neutral`.** They are news: the chain is
+shorter than it was, and the player who did it is telling the table so. Blue is
+the vocabulary's word for that. A hint leaves you something to find, so it is
+amber; a spoiler IS the word, so it is red.
+
+The log bar, a teammate's line and the rung's own pill index the table. The
+played-word pill reads `submit_word`'s envelope, and `undo_word` /
+`clear_chain` say `noted` in theirs — the same rule in SQL, pinned in
+`gameplay_test.sql` against `lib/answer.test.ts`. `log_hint_or_spoiler`
+deliberately carries no outcome: the frontend computed the suggestion and
+pilled it before the row was ever written, so the table is the only authority
+for those two.
+
+The frontend's own refusal is not in it: `rejectReason` turns a word away
+before any RPC, nothing is written down, and the pill is its only outcome
+surface (the board mark beside it is a shake, which carries no word).
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 Two rungs, the shared hint ladder ([ui.md → button
 iconography](../ui.md#button-iconography)):
 
 1. **`hint`** — the word's length plus its **first letters**: "8 letters
    starting with DEM" (three letters; four when the word is longer than eight —
-   `hintPrefix` in `lib/help.ts`, the ONE definition of the rule).
+   `hintPrefix` in `lib/hintOrSpoiler.ts`, the ONE definition of the rule).
 2. **`spoiler`** — the word itself.
 
 Both rungs also appear as **menu rows** ("Hint" / "Show the word") — the menu is
@@ -266,12 +293,12 @@ row nor the button asks about mode. The menu carries **Reveal solution**
 (`act-reveal`) for the same reason: the terminal row's boxed-eye button had no
 legend row, the only reveal-capable game missing one.
 
-Both call `log_help`, which bumps `hints_used` and writes an `events` row.
+Both call `log_hint_or_spoiler`, which bumps `hints_used` and writes an `events` row.
 
-**A failed help-log is shown, not swallowed** (Joel, 2026-09-01). The slot is
-already holding the help itself when the answer arrives, so the not-ok shows
-over it — and nothing is lost by that, because `log_help` can only refuse in
-ways that make the help moot: one race that fires once the game is over, and
+**A failed log is shown, not swallowed** (Joel, 2026-09-01). The slot is
+already holding the hint itself when the answer arrives, so the not-ok shows
+over it — and nothing is lost by that, because `log_hint_or_spoiler` can only
+refuse in ways that make the hint moot: one race that fires once the game is over, and
 three faults that mean a broken client. The reasoning that used to justify
 swallowing it — "the turn log keeps the content, so the pill is a convenience
 copy" — is true only when the write SUCCEEDS; a failed write is precisely the
@@ -283,15 +310,15 @@ naming the act ("● joel got a hint" / "● joel revealed a word") plus the sam
 content pill the requester saw, because a hint one player asks for is a hint
 the whole team has; and the turn log's lasting record ("Hint: 8 letters: DEM" /
 "Reveal: DEMOTIC" — the pills are transient, the log is what's given away on
-the record). All three read from `lib/help.ts`'s `helpPillText`/`hintPrefix` so
-they can't drift. Two event kinds, not one, because "I was told it starts with
+the record). All three read from `lib/hintOrSpoiler.ts`'s
+`hintOrSpoilerPillText`/`hintPrefix` so they can't drift. Two event kinds, not one, because "I was told it starts with
 DEM" and "I was told the word" are different admissions. **`hints_used` is tracked server-side but nothing renders
-it** — the turn log's amber help rows are the record players actually read, and
+it** — the turn log's rows are the record players actually read, and
 a counter beside the score would read as something the game holds against you
-(help is deliberately unpenalized). The per-player tally stays as the cheap
+(neither rung is penalized). The per-player tally stays as the cheap
 number the log would otherwise have to be folded to get.
 
-**The help text is a `hint` message, and leaves only by its ×** ([ui.md →
+**The text is a `hint` message, and leaves only by its ×** ([ui.md →
 Feedback pill](../ui.md#feedback-pill)) — the rule for every hint, so a
 keystroke can't clear a clue by accident. It sits in the **entry's slot** until
 the player presses ×; the capture keyboard still takes letters meanwhile, and

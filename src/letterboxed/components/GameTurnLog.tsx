@@ -1,13 +1,13 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { GamePlayer } from '@/common/members/member'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import { memberById } from '@/common/members/memberList'
 import { BOARD_SIZE } from '../lib/board'
-import { hintPrefix } from '../lib/help'
+import { ANSWER_OUTCOME } from '../lib/answer'
+import { hintPrefix } from '../lib/hintOrSpoiler'
 import type { EventRow } from '../hooks/useGame'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import styles from './PlayArea.module.css'
@@ -23,7 +23,8 @@ import styles from './PlayArea.module.css'
  * staggered down the log; as a column they line up, which is most of why the
  * shared log is a `<table>` rather than a list of rows.
  *
- * Bar colors are `barFor` below.
+ * Bar colors are `lib/answer.ts`'s — the log names no word of its own, so it
+ * cannot disagree with the pill that reported the same move.
  *
  * Retreats appear at all because `letterboxed.events` is an append-only stream
  * rather than a table rows get deleted from — "what did we already try?" is
@@ -77,7 +78,7 @@ export function GameTurnLog({
     <TurnLog heading="Moves" picker={turnLogPicker} shown={shown}>
       {shown.map((e, i) => (
         <tr key={e.id} className={gameTurnLog.divider}>
-          <TurnLogOutcomeBar outcome={barFor(e)} />
+          <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[e.kind]} />
           {/* A live handle only when the rows on show ARE the board's rows —
               otherwise a click would replay someone else's chain onto your
               board. */}
@@ -102,31 +103,11 @@ export function GameTurnLog({
 }
 
 /**
- * The row's bar color.
- *
- * A PLAYED WORD IS `won` — green. Getting a legal word onto this board is the
- * achievement here: it has to be a real word, fit the twelve letters, cross a
- * side at every step AND start on the letter the last word left you. Unlike a
- * wordle guess (which is one of six tries and usually wrong), landing one is
- * unambiguously progress, so it reads as a success rather than as a neutral
- * event.
- *
- * `near` (amber) marks a hint or a spoiler taken, matching psychicnum's reveal rows and the
- * amber of the Hint / Spoiler buttons themselves. `neutral` is left for the
- * retreats: in turn-by-turn co-op an undo costs the undoer their turn and is
- * usually made for the next player, so red would misdescribe it.
- */
-function barFor(e: EventRow): Outcome {
-  if (e.kind === 'played') return 'won'
-  if (e.kind === 'hint' || e.kind === 'spoiler') return 'near'
-  return 'neutral'
-}
-
-/**
  * A row's move text. Each kind names what HAPPENED in the game's own words, and
  * every one that carries a whole word makes that word definable.
  *
- * Help rows carry their CONTENT, not just the fact of the ask (Joel's spec,
+ * A hint's and a spoiler's rows carry their CONTENT, not just the fact of the
+ * ask (Joel's spec,
  * 2026-08-05): the pills that delivered the hint were transient, so the log is
  * the lasting record of what was given away — the hint's length + opening
  * letters (`hintPrefix`, the same vocabulary the pills used), the spoiler's
