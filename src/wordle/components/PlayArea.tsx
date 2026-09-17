@@ -449,12 +449,12 @@ export function PlayArea({
 
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
 
-  // Turn-history: when a past turn is open, `snap` is that turn's board (the guess rows
+  // When a past turn is open, `historySnap` is that turn's board (the guess rows
   // up to it, the last one ringed); else null = live. `myGuesses` is exactly the board
   // BoardCol shows (coop team / compete self), and the log only hangs its #N handles on
   // THAT board — so `historyId` indexes `myGuesses` 1:1. Stable: a later realtime guess
   // only grows the log past `historyId`, so a past turn holds.
-  const snap = isViewingHistory && historyId !== null ? historySnapshot(myGuesses, historyId) : null
+  const historySnap = isViewingHistory && historyId !== null ? historySnapshot(myGuesses, historyId) : null
 
   // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
   // state. `readOnly` (glossary): the board is inert when there's no self row, the
@@ -481,7 +481,7 @@ export function PlayArea({
       <BoardCol
         // ── Board to render (live rows + the history snapshot) ──
         rows={rows}
-        snap={snap}
+        historySnap={historySnap}
         maxGuesses={game.max_guesses}
         brand={brand}
         // ── History viewer ──

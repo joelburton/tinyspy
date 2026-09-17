@@ -29,7 +29,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * kept beside the input it commits (like psychicnum's BoardCol). The physical
  * `useCaptureKeys` + the on-screen keyboard drive the same `current`. It does NOT own
  * the game state: PlayArea hands it **the board to render** (the live `rows` + the
- * `snap` history override) + `readOnly` (the game-state half of "is the board
+ * `historySnap` override) + `readOnly` (the game-state half of "is the board
  * inert", which this column ORs with its own mid-submit state). The local
  * feedback slot is PlayArea's (its standing conditions and InfoCol's End /
  * Concede show into it too); this column shows the soft rejects and draws it.
@@ -73,7 +73,7 @@ export function BoardCol({
   // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
   //    this column picks live-vs-snapshot) ──
   rows,
-  snap,
+  historySnap,
   maxGuesses,
   brand,
   // ── History viewer (its banner lives in the below-board region) ──
@@ -88,39 +88,39 @@ export function BoardCol({
   myTurnJustStarted,
 }: {
   // ── Board to render ──
-  /** The LIVE board rows (the viewer's own / the coop team board) — drives the
-   *  keyboard letter-coloring, the in-flight `pendingWord` check, and the grid when
-   *  not viewing history. */
+  // The LIVE board rows (the viewer's own / the coop team board) — drives the
+  // keyboard letter-coloring, the in-flight `pendingWord` check, and the grid when
+  // not viewing history.
   rows: HistorySnapshotRow[]
-  /** The open history turn's snapshot (its rows + ringed row + banner label), or null
-   *  when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
-   *  it. */
-  snap: HistorySnapshot | null
+  // The open history turn's snapshot (its rows + ringed row + banner label), or null
+  // when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
+  // it.
+  historySnap: HistorySnapshot | null
   maxGuesses: number
-  /** Brand name (manifest) for the grid's screen-reader label. */
+  // Brand name (manifest) for the grid's screen-reader label.
   brand: string
 
   // ── History viewer ──
-  /** Return to the live board (the banner click / ✕). */
+  // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
-  /** The GAME-STATE half of the board gate — the board is inert (not a player,
-   *  terminal, solved/conceded, out of guesses). This column ORs it with its own
-   *  mid-submit / word-in-flight state to get the live `canGuess`. */
+  // The GAME-STATE half of the board gate — the board is inert (not a player,
+  // terminal, solved/conceded, out of guesses). This column ORs it with its own
+  // mid-submit / word-in-flight state to get the live `canGuess`.
   readOnly: boolean
-  /** PlayArea's below-board slot. This column shows the soft rejects and RPC
-   *  not-oks into it and draws its top between the board and the keyboard. */
+  // PlayArea's below-board slot. This column shows the soft rejects and RPC
+  // not-oks into it and draws its top between the board and the keyboard.
   localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks ──
-  /** The game is finished, and how — bands the board, and withdraws the keyboard
-   *  (there is no move left to make). Null while live. */
+  // The game is finished, and how — bands the board, and withdraws the keyboard
+  // (there is no move left to make). Null while live.
   gameOver: TerminalOutcome | null
-  /** Turn-order coop: a teammate holds the move, so the board dims. */
+  // Turn-order coop: a teammate holds the move, so the board dims.
   notMyTurn: boolean
-  /** True for a beat as the turn becomes mine — the frame flashes yellow. */
+  // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
   const [current, setCurrent] = useState('')
@@ -140,8 +140,8 @@ export function BoardCol({
   // soft-reject, or once it lands.
   const [pending, setPending] = useState<string | null>(null)
 
-  // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `snap` only then).
-  const isViewingHistory = snap !== null
+  // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `historySnap` only then).
+  const isViewingHistory = historySnap !== null
 
   // Replay-board resets the live rows. A `pending` left over from the finished
   // run would then resurrect (its row is no longer in `rows`, so the "landed"
@@ -317,14 +317,14 @@ export function BoardCol({
   return (
     <div className={shared.boardCol}>
       <Board
-        rows={snap ? snap.rows : rows}
+        rows={historySnap ? historySnap.rows : rows}
         current={current}
-        pending={snap ? '' : pendingWord}
+        pending={historySnap ? '' : pendingWord}
         maxGuesses={maxGuesses}
         active={!isViewingHistory && canGuess}
         brand={brand}
         isViewingHistory={isViewingHistory}
-        historyLitBoardRow={snap ? snap.historyLitBoardRow : -1}
+        historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
         rejectNonce={rejectNonce}
         rejectTone={rejectTone}
         gameOver={gameOver}
@@ -342,7 +342,7 @@ export function BoardCol({
             is open — the feedback slot + the keyboard stay mounted underneath, their
             capture frozen, and the banner covers the keyboard so a stray key can't
             type. */}
-        {isViewingHistory && snap && <HistoryBanner label={snap.description} onExit={onExitHistory} />}
+        {isViewingHistory && historySnap && <HistoryBanner label={historySnap.historyLabel} onExit={onExitHistory} />}
         <div className={shared.localFeedback}>
           <FeedbackPill slot={localFeedbackSlot} />
         </div>

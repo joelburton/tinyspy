@@ -38,11 +38,11 @@ export interface HistorySnapshot {
    *  g/y/x tile colors). Equal to `index` (the last row in `rows`). */
   historyLitBoardRow: number
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
-  description: string
+  historyLabel: string
 }
 
 /**
- * Reconstruct the rows + lit board row + description for the turn at `index`. Takes the
+ * Reconstruct the rows + lit board row + historyLabel for the turn at `index`. Takes the
  * first `index + 1` guesses (INCLUSIVE) as the board's rows and rings the last one.
  */
 export function historySnapshot(
@@ -56,6 +56,6 @@ export function historySnapshot(
   return {
     rows,
     historyLitBoardRow: index,
-    description: turn ? `Guess ${index + 1}: ${turn.guess.toUpperCase()}` : `Guess ${index + 1}`,
+    historyLabel: turn ? `Guess ${index + 1}: ${turn.guess.toUpperCase()}` : `Guess ${index + 1}`,
   }
 }

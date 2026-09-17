@@ -93,7 +93,7 @@
   );
 }
 
-/* Turn-history: the guess row the viewed turn added — a history-blue ring around it
+/* The guess row the viewed turn added — a history-blue ring around it
  * (mirrors the board `.historyFrame`), applied while inspecting a past turn. The row's
  * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
  * outline (not a border) so it layers outside the tiles without resizing them. */

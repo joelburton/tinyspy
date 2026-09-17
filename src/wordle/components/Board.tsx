@@ -14,48 +14,48 @@ const REVEAL_STEP_S = 0.22
 type SubmittedRow = { guess: string; colors: string }
 
 type Props = {
-  /** Submitted guesses (letters + their g/y/x colors), in order. */
+  // Submitted guesses (letters + their g/y/x colors), in order.
   rows: SubmittedRow[]
-  /** The active typing row's current letters (empty when not the
-   *  player's turn / game over). Rendered just below the submitted
-   *  rows, with no colors yet. */
+  // The active typing row's current letters (empty when not the
+  // player's turn / game over). Rendered just below the submitted
+  // rows, with no colors yet.
   current: string
-  /** A just-submitted word awaiting its colored server row. Shown in the
-   *  next slot as an uncolored (filled) row so the letters stay put
-   *  during the round-trip; when the real row lands it flips in place.
-   *  Empty when there's nothing in flight. */
+  // A just-submitted word awaiting its colored server row. Shown in the
+  // next slot as an uncolored (filled) row so the letters stay put
+  // during the round-trip; when the real row lands it flips in place.
+  // Empty when there's nothing in flight.
   pending: string
-  /** Total rows to draw — the guess budget (`max_guesses`). */
+  // Total rows to draw — the guess budget (`max_guesses`).
   maxGuesses: number
-  /** Whether the active typing row should show (game still in play for
-   *  this player). */
+  // Whether the active typing row should show (game still in play for
+  // this player).
   active: boolean
-  /** Brand name (from the manifest, via `ctx.brand`) for the grid's
-   *  screen-reader label — kept out of this chunk's source so the brand
-   *  lives only in the manifest. */
+  // Brand name (from the manifest, via `ctx.brand`) for the grid's
+  // screen-reader label — kept out of this chunk's source so the brand
+  // lives only in the manifest.
   brand: string
-  /** Turn-history: wear the shared viewing frame and make the board
-   *  click-through (so a board click falls to the document exit listener).
-   *  While viewing, PlayArea also hands historical `rows` + `active={false}` +
-   *  no `pending`, and rows never flip (they're already-final history). */
+  // Wear the shared viewing frame and make the board
+  // click-through (so a board click falls to the document exit listener).
+  // While viewing, PlayArea also hands historical `rows` + `active={false}` +
+  // no `pending`, and rows never flip (they're already-final history).
   isViewingHistory?: boolean
-  /** Turn-history: ring this row (the guess the viewed turn added), or -1 = none.
-   *  The row keeps its g/y/x tile colors; the ring just marks which one. */
+  // Ring this row (the guess the viewed turn added), or -1 = none.
+  // The row keeps its g/y/x tile colors; the ring just marks which one.
   historyLitBoardRow?: number
-  /** Bumped by `<BoardCol>` on every soft reject — the active row shakes and
-   *  rings amber. The pill says WHAT was wrong; this says WHERE. Keyed into the
-   *  row so a repeat rejection replays the shake rather than doing nothing. */
+  // Bumped by `<BoardCol>` on every soft reject — the active row shakes and
+  // rings amber. The pill says WHAT was wrong; this says WHERE. Keyed into the
+  // row so a repeat rejection replays the shake rather than doing nothing.
   rejectNonce?: number
-  /** Which tone that rejection carries — the SAME tone as its pill, so the two
-   *  halves of one message agree. */
+  // Which tone that rejection carries — the SAME tone as its pill, so the two
+  // halves of one message agree.
   rejectTone?: 'lost' | 'warning'
-  /** The game is finished, and how it ended — the board takes a band in that
-   *  outcome's gray (neutral for a game merely ended), null while it's live. The
-   *  same mark waffle wears; see plans/tile-feedback.md. */
+  // The game is finished, and how it ended — the board takes a band in that
+  // outcome's gray (neutral for a game merely ended), null while it's live. The
+  // same mark waffle wears; see plans/tile-feedback.md.
   gameOver?: TerminalOutcome | null
-  /** A teammate holds the move (turn-order coop): dim the whole board. */
+  // A teammate holds the move (turn-order coop): dim the whole board.
   notMyTurn?: boolean
-  /** True for a beat at the moment the turn becomes mine — flash the frame. */
+  // True for a beat at the moment the turn becomes mine — flash the frame.
   myTurnJustStarted?: boolean
 }
 

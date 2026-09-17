@@ -23,7 +23,7 @@ type Props = {
   /** Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
    *  a genuinely empty one (at terminal, when their guesses reveal). */
   isTerminal: boolean
-  /** Turn-history: the turn currently open in the board viewer (by log position),
+  /** The turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */
   historyId: number | null
   /** Open a turn in the board viewer (click its `#N`). */

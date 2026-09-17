@@ -631,7 +631,17 @@ The four games whose names already turned out to be lying go first.
       Left, correctly: `boardView` is the live derived board, and `viewerTrack`
       in `pdf/model.ts` is the PERSON — the second instance of that trap after
       codenamesduet's `viewerFinished`.
-- [ ] **wordle**
+- [x] **wordle** — read 2026-09-16, and the quietest row so far: no name was
+      lying, only under-saying.
+      - `snap` → `historySnap` (a prop here too, as in connections), and
+        `HistorySnapshot.description` → `historyLabel`.
+      - the `/**`-on-props pass: 22 members; six `Turn-history:` prefixes
+        dropped where the name now carries it (the one left is a section
+        header, which is prose doing its job).
+      Its `BoardCol` is the shape the others could copy: it takes `historySnap`
+      alone and derives `const isViewingHistory = historySnap !== null` rather
+      than being handed both — the thing F-18 is about in psychicnum and
+      codenamesduet.
 - [ ] **waffle**
 - [ ] **psychicnum**
 - [ ] **setgame**

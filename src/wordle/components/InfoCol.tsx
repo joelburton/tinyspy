@@ -129,7 +129,7 @@ export function InfoCol({
   /** The RAW guesses (not the viewer's own) — the log's dropdown switches whose show. */
   guesses: GuessRow[]
   mode: 'coop' | 'compete'
-  /** Turn-history: the open turn (by log position), or null when live. */
+  /** The open turn (by log position), or null when live. */
   historyId: number | null
   /** Open a turn on the board viewer (click its `#N`). */
   onShowHistory: (index: number) => void

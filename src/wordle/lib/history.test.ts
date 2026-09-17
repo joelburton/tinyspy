@@ -36,13 +36,13 @@ describe('wordle historySnapshot', () => {
   })
 
   it('describes the turn by its 1-based number + upper-cased guess', () => {
-    expect(historySnapshot(guesses, 0).description).toBe('Guess 1: SLATE')
-    expect(historySnapshot(guesses, 2).description).toBe('Guess 3: POINT')
+    expect(historySnapshot(guesses, 0).historyLabel).toBe('Guess 1: SLATE')
+    expect(historySnapshot(guesses, 2).historyLabel).toBe('Guess 3: POINT')
   })
 
   it('is defensive about an out-of-range index (no crash, empty label)', () => {
     const snap = historySnapshot(guesses, 9)
     expect(snap.rows).toHaveLength(3) // slice clamps to what exists
-    expect(snap.description).toBe('Guess 10')
+    expect(snap.historyLabel).toBe('Guess 10')
   })
 })
