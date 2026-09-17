@@ -62,7 +62,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // click-through while framed (historyViewer `.historyFrame` sets `pointer-events: none`),
   // so board clicks reach here as well. The opening click is on a `#N` handle (and
   // this only arms once `historyId` is set), so it never self-dismisses.
-  useEffect(() => {
+  useEffect(function exitOnClickAway() {
     if (historyId === null) return
     const onDocClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement | null)?.closest('[data-turn-number]')) return

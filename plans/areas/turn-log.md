@@ -4,17 +4,18 @@ The folders it reads: `turn-log`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, audited 2026-09-16.** Roster agreed (Joel: *"audit this
-area"*) and stamped `cs-met-turn-log`; every file read, and the docs and
-games around it read as evidence. Seventeen findings; **the prose pass — F-1
-to F-5 — is worked** (2026-09-16, one commit), and with it the sibling sweep
-F-4 turned up: every file in the repo that called the shared history marker
-yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
-bug, the banner component, and the history vocabulary — the last including its
-ten-game meaning-based sweep. **F-22 is worked too**, and it CLOSED F-6 and F-7
-by deleting the props they were about, and **F-8, F-10 and F-11** are worked.
-**Seven findings wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
-and by the re-read of this file against it.
+**Status: OPEN, audited 2026-09-16.** Roster agreed (Joel: *"audit this area"*)
+and stamped `cs-met-turn-log`; every file read, and the docs and games around it
+read as evidence. Twenty-two findings — seventeen from the audit, and F-18, F-20,
+F-21 and F-22 found afterwards, by Joel reading the work and by the re-read of
+this file against it.
+
+| | |
+|---|---|
+| **worked** (13) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-19 (including its ten-game meaning-based sweep) · F-22 |
+| **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
+| **skipped** (1) | F-12, to the `z-index` area it caused to be scheduled (plan §3 row 39) |
+| **open** (6) | F-15 · F-16 · F-17 · F-18 · F-20 · F-21 |
 
 ## The roster
 
@@ -375,10 +376,40 @@ the shrinking-allowlist pattern, after `cssClasses` and `orphanedDocstrings`.
 The z ladder in `base.css` says a rung migrates when its component's area is
 audited. The banner overlays the below-board input inside the board column,
 so `5` works only because it competes with nothing above the column's own
-stacking. (The class was `.banner` when this was written; F-19 renamed it.) Options: (1) `var(--z-board)` — the banner is part of the play
-surface; (2) measure whether anything under it is positioned with a z-index
-at all and drop the declaration if not; (3) leave. Recommend (2) then (1):
-measure first.
+stacking. (The class was `.banner` when this was written; F-19 renamed it.)
+Options: (1) `var(--z-board)` — the banner is part of the play surface;
+(2) measure whether anything under it is positioned with a z-index at all and
+drop the declaration if not; (3) leave. Recommend (2) then (1): measure first.
+
+**SKIPPED 2026-09-16 — it belongs to the `z-index` area, scheduled next (plan
+§3 row 39) out of this finding.** The measuring was done, and it overturned the
+recorded recommendation, which is why the finding could not be worked here:
+
+- **`var(--z-board)` would have been wrong.** `base.css` rules that layering
+  INSIDE a component's own stacking context is not on the ladder — "everything
+  local today is ≤ 10 and everything page-level is ≥ 1000" — and the banner is
+  `inset: 0` against a box the GAME makes a positioning context, so it never
+  joins the root stacking context at all. `5` is inside the permitted band, and
+  `vocabularies.test.ts` draws its line at 10 to allow exactly this.
+- **`--z-board-question` was considered** (Joel asked) and does not fit: it is
+  "a box over ONE square, showing or taking something for that square"
+  (crosswords' rebus), where the banner covers the whole below-board region and
+  reports rather than takes.
+- **The board is not at 1000.** `--z-board`, `--z-board-question` and `--z-ghost`
+  are declared and read by NOTHING; the guard's own comment says `--z-board`
+  gaining a reader is the signal that boards became sealed. The ladder documents
+  a state the app is not in, and this `5` is one of thirty local numbers rather
+  than an outlier.
+- **The audit it produced** — 38 declarations across `src/`, six on a rung,
+  thirty legitimate locals, and two real offenders (the drag ghost at `1000` in
+  bananagrams and `100` in scrabble, one element at two numbers, with
+  `--z-ghost` waiting) — is written into the plan's row 39 so the area starts
+  from it. One live defect was fixed on the way past: `dragGhost.module.css`
+  pointed at `docs/css-audit.md`, which does not exist.
+
+Joel's reasoning for the area: *"it will be best to handle the z-index issues in
+an area dedicated to this; so that everything has a clear meaning for the zindex
+(and make the board actually sit where we document it sitting at)."*
 
 ### F-turn-log-13 · `unnamed-effects` · Two bare-arrow effects in the hook, one under a nine-line header
 
@@ -388,6 +419,13 @@ comment in the file — has no name; nor does the ref-sync effect above it. Name
 written; F-19 renamed the ref). The handler inside the first, `onDocClick`, says
 where it is bound rather than what it does. Options: (1) name both effects and
 the handler; (2) name only the click-anywhere effect. Recommend (1).
+
+**WORKED 2026-09-16, option (2) — Joel took the narrower one.** The
+click-anywhere effect is `exitOnClickAway`; the ref-sync effect and `onDocClick`
+stay as they are. The rule (`code-conventions.md` → "`useEffect` — name it, when
+non-trivial") is about the effect a reader loses the thread on, and the
+three-line ref-sync is not that one. Eighteen bare `useEffect(() =>` remain
+across `common/`, so this folder was never unusual — only open.
 
 ### F-turn-log-14 · `banner-drawn-nine-times` · The viewing banner's markup is hand-written in nine games; this folder owns only its classes
 

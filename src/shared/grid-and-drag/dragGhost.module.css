@@ -21,7 +21,7 @@
  * ghost from `--rack-tile-size` where bananagrams's is sized by its content. A
  * ghost that stopped resembling the tile it came from would be a worse drag, not
  * a more consistent one. The z-indexes also differ (1000 vs 100) and are left
- * alone pending the z-index-ladder item in docs/css-audit.md — a fixed-position
+ * alone pending the `z-index` area (plans/app-audit.md §3) — a fixed-position
  * overlay's tier is a whole-app question, not a per-component one.
  */
 /* @@ */ .ghost {
