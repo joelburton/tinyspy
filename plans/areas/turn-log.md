@@ -14,8 +14,8 @@ this file against it.
 |---|---|
 | **worked** (15) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-19 (including its ten-game meaning-based sweep) · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
-| **skipped** (1) | F-12, to the `z-index` area it caused to be scheduled (plan §3 row 39) |
-| **open** (4) | F-17 · F-18 · F-20 · F-21 |
+| **skipped** (2) | F-12 → `z-index` · F-17 → `outcome-fix` — each caused the area it went to (plan §3 rows 40 and 39) |
+| **open** (3) | F-18 · F-20 · F-21 |
 
 ## The roster
 
@@ -581,6 +581,38 @@ and strands are the others the todo lists, strands with its own argument for
 now — this folder's bar is what draws the word, and the ruling is made;
 strands' `neutral` case decided in the same pass; (2) each game at its own
 area; (3) leave. Recommend (1).
+
+**SKIPPED 2026-09-16 — it belongs to the `outcome-fix` area, scheduled out of
+this finding at plan §3 row 39, ahead of `z-index`.** Joel refused the shape the
+options offered: *"i don't want this to be anything like a search-and-place of
+'near' to 'warning'."* The rule instead:
+
+> *"the outcome should be determined ONCE in ONE PLACE. that place is often
+> directly from the server… the server's outcome, if provided, is always right.
+> … it should be impossible for a turn log entry to ever have 'near' or
+> 'warning' or such if the determined outcome was 'lost'."*
+
+**The wrong `near`s stay wrong on purpose** — Joel: *"we can use the
+incorrect-near as a way to prove those get fixed in the 'outcome-fix' area."*
+Converting them here would destroy the test case.
+
+**The re-verification corrected the recorded list, which matters for the area
+that inherits it.** It is FOUR games, not five: psychicnum (a hint row and a
+reveal row), stackdown (hint / reveal), letterboxed (hint / spoiler), setgame
+(every non-claim event). **strands was miscounted.** Its `near` is `hint_word` —
+a valid non-theme word that EARNS hint progress, which is "progress but not the
+goal", exactly what `near` is for. Its spent hint is a different row kind
+entirely, on `neutral`, with a paragraph defending it. Nothing in strands is
+wrong.
+
+**And connections, which I first presented as the clean example, is the cause
+rather than the cure.** It converts once at the row seam — the placement Joel
+wants, its docstring even naming the PDF as a fourth consumer — but into
+`GuessOutcome = Extract<Outcome, 'won' | 'near' | 'lost'>`, with a reverse
+`RESULT_FOR_OUTCOME` that only type-checks because the set is narrowed. Joel:
+*"ANY OUTCOME IS A VALID OUTCOME."* `docs/outcomes.md` already lists that type
+as an open narrowing, and names the mechanism: a word made unsayable upstream is
+why four games squeezed help into the nearest word that compiled.
 
 ### F-turn-log-18 · `viewing-and-description-both-passed` · Two props for one fact, in two games
 
