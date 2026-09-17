@@ -54,7 +54,7 @@
 }
 
 /* THE VERDICT, worn exactly as a tile wears one: the answer's fill, white ink.
- * The tone classes beside this one are the shared vocabulary's
+ * The outcome classes beside this one are the shared vocabulary's
  * (`.verdictWon` / `.verdictLost` in common/game-page/playArea.module.css) and
  * carry nothing but the two custom properties read here — which is why a slot
  * can take them without being a `.tileFace` itself. The head-shake that goes

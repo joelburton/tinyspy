@@ -1,4 +1,4 @@
--- cs-met-outcome-fix
+-- cs-fixed-outcome-fix
 
 -- ============================================================
 -- stackdown — the REPEATABLE half
@@ -548,9 +548,11 @@ begin
     values (target_game, caller_id, next_seq, 'reveal', cleared, next_word);
   end if;
 
-  -- Priced help wears amber: a spoiler is neither good nor bad play, so
-  -- coloring it green or red would adjudicate something the player did not do.
-  -- No message — the word IS the answer, and the surface shows it.
+  -- A spoiler is RED. It is priced help, but the price is the whole hunt for
+  -- this word — there is nothing left to find, so it reads as a loss and not as
+  -- the amber caution a hint wears (the frontend's lib/answer.ts says the same
+  -- word for the row this wrote). No message — the word IS the answer, and the
+  -- surface shows it.
   --
   -- `result` names the case even though there is only one today: a call site
   -- may not take an `ok` branch by merely matching `ok` (docs/envelopes.md →
@@ -558,7 +560,7 @@ begin
   -- be rendered as this one, silently. It borrows the `kind` vocabulary the
   -- submissions row already uses for the same request.
   return common.ok_envelope(
-    jsonb_build_object('result', 'reveal', 'word', next_word), 'warning');
+    jsonb_build_object('result', 'reveal', 'word', next_word), 'lost');
 
 exception when others then
   get stacked diagnostics
@@ -661,9 +663,10 @@ begin
     values (target_game, caller_id, next_seq, 'hint', cleared, hint_text);
   end if;
 
-  -- Amber, like the spoiler: priced help is neither good nor bad play. No
-  -- message — the clue IS the answer. `result` names the case for the same
-  -- reason as reveal_next_word's.
+  -- Amber: a hint is priced help, and priced help is neither good nor bad play
+  -- (the spoiler beside it is red, because it ends the hunt rather than nudging
+  -- it). No message — the clue IS the answer. `result` names the case for the
+  -- same reason as reveal_next_word's.
   return common.ok_envelope(
     jsonb_build_object('result', 'hint', 'hint', hint_text), 'warning');
 

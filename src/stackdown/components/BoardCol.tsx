@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -10,7 +10,9 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MoveRow } from '@/common/word-entry/MoveRow'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { exposedIds, type Tile } from '../lib/board'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
 import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
@@ -108,7 +110,7 @@ export function BoardCol({
   attentionTiles: ReadonlySet<number>
   // A teammate's answer, once the attention flash has handed their tiles back:
   // those tiles wear the outcome's own color, and a refusal shakes.
-  boardAnswer: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
+  boardAnswer: { ids: ReadonlySet<number>; outcome: Outcome } | null
   // Tiles the server has taken but the board is still showing, so the answer
   // can be read before they go. Drawn, and inert.
   heldTiles: ReadonlySet<number>
@@ -261,7 +263,7 @@ export function BoardCol({
             active={!readOnly && !refusedWord}
             onRetract={retractTo}
             flash={flash}
-            verdict={refusedWord ? 'lost' : null}
+            verdict={refusedWord ? ANSWER_OUTCOME.invalid : null}
           />
         </MoveRow>
         {/* The LOCAL feedback area — reserves its own height (shared

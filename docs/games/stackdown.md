@@ -277,8 +277,9 @@ creation, so it's self-contained; `board_id` is provenance only.
   envelope carrying `{result: 'reveal', word}` — the next solution word the
   caller still has to clear (`solution[cleared + 1]`) — defeating the
   hidden-solution invariant on
-  purpose. The `warning` outcome rides with it, painting the pill amber: priced
-  help is neither good nor bad play. There is no "all cleared" answer: clearing
+  purpose. The `lost` outcome rides with it, painting the pill red: a spoiler is
+  priced help whose price is the whole hunt for that word, so unlike the hint
+  beside it (amber) there is nothing left to find. There is no "all cleared" answer: clearing
   the sixth word ends the game in both modes, so a later call meets the
   in-progress gate and reads "Game over". `result` names the one case it does
   answer, because a call site may not take an `ok` branch by merely matching
@@ -287,7 +288,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE surfaces
-  it as a **Spoiler** action button (amber, bare-eye — see [ui.md → Button
+  it as a **Spoiler** action button (bare-eye — see [ui.md → Button
   iconography](../ui.md#button-iconography)) in the info-column action row during play
   (writing its answer to the **local** below-board feedback slot — it's the
   player's own request). It also **logs the request** — a `kind='reveal'`
@@ -298,8 +299,8 @@ creation, so it's self-contained; `board_id` is provenance only.
   the games-row `for update` lock (for a collision-free `seq`).
 - **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
   carrying `{result: 'hint', hint}` — the next word's clue
-  (`common.words.hint`, which points at the word without naming it) — under the
-  same amber `warning`. Same gating +
+  (`common.words.hint`, which points at the word without naming it) — under an
+  amber `warning`. Same gating +
   next-word math as `reveal_next_word`, but the word never reaches the client —
   only the hint text crosses the wire. Every word a stackdown board can hold
   carries a hint, so a missing one is a fault the RPC shouts about (with the
@@ -364,12 +365,36 @@ prettier title here.
 | | | |
 |---|---|---|
 | `submit_word` → `accepted` · `invalid` | `ok` | a non-word is a verdict: the rules were applied and nothing was cleared |
-| `reveal_next_word` → `reveal`, `reveal_next_hint` → `hint` | `ok`, `warning` | help you asked for is neither good nor bad play |
+| `reveal_next_word` → `reveal` | `ok`, `lost` | a spoiler ends the hunt for its word |
+| `reveal_next_hint` → `hint` | `ok`, `warning` | a hint is priced help: a nudge, neither good nor bad play |
 | `PN291` "Someone cleared those tiles" | `race` | coop's stack is one shared object, so a teammate's word takes your tiles between your pick and your submit. They leave by realtime, so no local gate can see it coming. It rendered as the FAULT modal until 2026-09-01, when the severity moved to the raise |
 | `PN287` · `PN294` · `PN296` "Game over" · `PN288` "Already conceded" | `race` | |
 | `PN289` `BUG: submit after solving` · `PN290` `BUG: word that was not five distinct tiles` · `PN292` `BUG: word using a covered tile` | `fault` | the board only ever offers exposed, unremoved tiles, five at a time |
 | `PN298` · `PN299` `BUG: reveal/hint after the stack was cleared` · `PN297` `BUG: no hint for a band-N word` | `fault` | both buttons disappear at terminal |
 | `PN286` · `PN293` · `PN295` "That game no longer exists" · `PN051` (`create_game`) | `fault` | |
+
+### The one outcome decision (`lib/answer.ts`)
+
+Every turn stackdown can produce is one of four answers — `accepted`,
+`invalid`, `hint`, `reveal` — and `lib/answer.ts` is the only place that says
+what each is worth. `ANSWER_OUTCOME` maps the four onto the outcome vocabulary
+(`won` · `lost` · `warning` · `lost`), and `answerOf(row)` reads a
+`submissions` row's facts back into an answer, taking `kind` before `valid`
+because a request row leaves `valid` null.
+
+Everything that reads a ROW indexes that table: the log bar, a teammate's tiles
+on the board, a teammate's line in the header. The PILL reads the RPC's
+envelope instead, which says the same word for the same turn — the envelope is
+the same rule in SQL. Both languages are tested (`lib/answer.test.ts` and the
+`outcome` assertions in `gameplay_test.sql` / `reveal_test.sql`), so a word
+changed in one fails the other.
+
+The words are the server's own in both places it says them, so nothing needs
+translating between row, envelope and table: `accepted` / `invalid` are
+`submit_word`'s `result`, and `hint` / `reveal` are the row's `kind`.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### 5.3 Frontend (`src/stackdown/`)
 
@@ -484,10 +509,11 @@ pill.
   teammate's rejected word. The flash carries plain letters, not tile ids, so
   it can show a teammate's word whose tiles this client never picked up),
   `GameTurnLog` (the info-column submission log — heading "Turns" — rendered on
-  the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar:
-  valid words green + clickable to define, invalid attempts red + struck through +
-  tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
-  "Revealed: <WORD>"); every row names its actor via the shared `<ActorDot>`, in
+  the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar,
+  whose word comes from `lib/answer.ts` — see **The one outcome decision** below.
+  Valid words are clickable to define, invalid attempts are struck through and
+  tagged, and a cheat request shows the text it revealed ("Hint: <clue>" /
+  "Spoiler: <WORD>"); every row names its actor via the shared `<ActorDot>`, in
   both modes. The header carries the shared "whose turns?" picker
   (`useTurnLogPlayerPicker` — Team/All + each player); in compete an opponent's
   rows are RLS-hidden during play and open at terminal, which the picker's empty

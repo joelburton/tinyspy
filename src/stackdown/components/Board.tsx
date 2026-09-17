@@ -1,7 +1,8 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
 import history from '@/common/turn-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
@@ -80,8 +81,9 @@ export function Board({
   // Tiles taking the attention flash — "something happened here".
   attention?: ReadonlySet<number>
   // A teammate's answer on their tiles, once the attention flash has faded:
-  // the outcome's own fill, and a refusal shakes.
-  answer?: { ids: ReadonlySet<number>; tone: 'won' | 'lost' } | null
+  // the outcome's own fill, and a refusal shakes. The word is the caller's —
+  // `lib/answer.ts` decided it, and the board only paints it.
+  answer?: { ids: ReadonlySet<number>; outcome: Outcome } | null
   // Tiles the server has taken that are still being shown while their answer
   // is read. They are drawn like any other tile and take no clicks.
   held?: ReadonlySet<number>
@@ -121,7 +123,9 @@ export function Board({
               // The answer landing here: the attention flash first, then the
               // outcome's color, and a refusal shakes once the color shows.
               attention.has(t.id) && shared.attentionFlash,
-              answered && answer?.tone === 'lost' && shared.verdictShake,
+              // Motion is the refusal channel, not a second verdict: only a
+              // word that lost the turn shakes its tiles.
+              answered && answer?.outcome === 'lost' && shared.verdictShake,
             )}
             disabled={!isExp || !active || isHeld}
             onClick={() => onTileClick(t.id)}
@@ -134,9 +138,10 @@ export function Board({
               // A tile wearing an answer takes that outcome's fill and its white
               // ink, exactly as a word's slots do below the board — the same
               // event, the same two colors, wherever you are sitting.
-              background: answered
-                ? `var(--outcomes-${answer?.tone === 'won' ? 'won' : 'lost'}-fill-color)`
-                : depthColor(depths.get(t.id) ?? 0),
+              background:
+                answered && answer
+                  ? `var(--outcomes-${answer.outcome}-fill-color)`
+                  : depthColor(depths.get(t.id) ?? 0),
               ...(answered ? { color: 'var(--ink-onDark-color)' } : {}),
               cursor: isExp && active ? 'pointer' : 'default',
               justifyContent: align(corner.cx),

@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -23,6 +23,7 @@ import { db } from '../db'
 import { historySnapshot } from '../lib/history'
 import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
+import { ANSWER_OUTCOME, answerOf, type Answer } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFlash } from '@/common/board-marks/useFlash'
@@ -182,11 +183,14 @@ export function PlayArea({
   // change are one event — the tiles you are being told about are already gone
   // by the time you look. They are inert while held (`heldTileIds` below), so
   // nobody can pick up a tile the server has already taken.
-  const [peerMark, showPeerMark] = useAnnouncedMark<{ ids: number[]; tone: 'won' | 'lost' }>()
+  // The mark carries the ANSWER, not a color: whether the word was accepted is a
+  // fact two different things downstream need — the outcome the tiles wear, and
+  // whether the tiles are being held at all (only an accepted word takes them).
+  const [peerMark, showPeerMark] = useAnnouncedMark<{ ids: number[]; answer: Answer }>()
   const markPeerWord = useCallback(
-    (tileIds: number[], valid: boolean) => {
+    (tileIds: number[], answer: Answer) => {
       if (tileIds.length === 0) return
-      showPeerMark({ ids: tileIds, tone: valid ? 'won' : 'lost' })
+      showPeerMark({ ids: tileIds, answer })
     },
     [showPeerMark],
   )
@@ -257,7 +261,10 @@ export function PlayArea({
         // own-accepted signal; no message needed — and the move dismisses the
         // last result).
         localFeedbackSlot.dismiss()
-        showFlash({ letters: [...res.data.word.toUpperCase()], tone: 'won' })
+        showFlash({
+          letters: [...res.data.word.toUpperCase()],
+          outcome: ANSWER_OUTCOME.accepted,
+        })
         return
       } else if (res.type === 'ok' && res.data.result === 'invalid' && res.message !== null) {
         // NOT A WORD — an `ok`, because the rules were applied and no tile
@@ -489,7 +496,7 @@ export function PlayArea({
   // the tiles the server has already taken stay drawn, and inert, until the
   // answer has been read. Nothing else delays a removal.
   const heldTileIds = useMemo(
-    () => (peerMark?.value.tone === 'won' ? new Set(peerMark.value.ids) : new Set<number>()),
+    () => (peerMark?.value.answer === 'accepted' ? new Set(peerMark.value.ids) : new Set<number>()),
     [peerMark],
   )
   const offBoard = useMemo(() => {
@@ -511,7 +518,7 @@ export function PlayArea({
   const boardAnswer = useMemo(
     () =>
       peerMark?.phase === 'answering'
-        ? { ids: new Set(peerMark.value.ids), tone: peerMark.value.tone }
+        ? { ids: new Set(peerMark.value.ids), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
         : null,
     [peerMark],
   )
@@ -588,19 +595,23 @@ export function PlayArea({
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → the local slot / flash
       const member = players.find((p) => p.user_id === s.user_id)
-      if (s.kind === 'hint') return FeedbackMessage.peer(member, 'warning', 'revealed a hint')
-      if (s.kind === 'reveal') return FeedbackMessage.peer(member, 'warning', 'took a spoiler')
+      if (s.kind === 'hint')
+        return FeedbackMessage.peer(member, ANSWER_OUTCOME.hint, 'revealed a hint')
+      if (s.kind === 'reveal')
+        return FeedbackMessage.peer(member, ANSWER_OUTCOME.reveal, 'took a spoiler')
       // kind === 'word': ALSO mark their tiles on the board (an ambient cue, not
       // the message). Safe to fire here — the hook calls messageFor exactly once
       // per NEW peer submission, mirroring the one message.
       const word = (s.word ?? '').toUpperCase()
-      const valid = s.valid === true
-      markPeerWord(s.tile_ids ?? [], valid)
+      const answer = answerOf(s)
+      markPeerWord(s.tile_ids ?? [], answer)
       // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
       // phone and ellipsises silently, and the outcome already says it failed.
-      return valid
-        ? FeedbackMessage.peer(member, 'won', `found ${word}`)
-        : FeedbackMessage.peer(member, 'lost', `tried ${word}`)
+      return FeedbackMessage.peer(
+        member,
+        ANSWER_OUTCOME[answer],
+        answer === 'accepted' ? `found ${word}` : `tried ${word}`,
+      )
     },
     globalFeedbackSlot,
   })

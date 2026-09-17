@@ -1,13 +1,13 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { Member } from '@/common/members/member'
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
@@ -17,11 +17,13 @@ import styles from './GameTurnLog.module.css'
  * reads the same as the other games' logs. It isn't strictly a "found words"
  * list: it's chronological and carries invalid attempts and cheat requests too,
  * so it's a **turn log**, not a `<WordList>`. Each submission is one `<tr>` with
- * the shared outcome bar:
+ * the shared outcome bar, whose color is `lib/answer.ts`'s — the bar never names
+ * a word of its own, so it cannot disagree with the pill that reported the same
+ * turn. The row's text is this log's:
  *
- *   - a **valid** word    → green bar, the word clickable to define;
- *   - an **invalid** word → red bar, struck through + tagged "not a word";
- *   - a **cheat request**  → amber bar, the muted "Requested hint / word" row.
+ *   - a **valid** word    → the word, clickable to define;
+ *   - an **invalid** word → struck through + tagged "not a word";
+ *   - a **cheat request**  → the muted "Hint: …" / "Spoiler: …" row.
  *
  * All three are durable rows in `stackdown.submissions` (this is just a
  * projection of realtime). Every row is numbered #1, #2, … in order — including
@@ -76,11 +78,6 @@ export function GameTurnLog({
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((s, i) => {
         const isRequest = s.kind === 'hint' || s.kind === 'reveal'
-        const outcome: Outcome = isRequest
-          ? 'near' // amber bar — a logged cheat request
-          : s.valid
-            ? 'won'
-            : 'lost'
         return (
           // Every submission is its own one-row "turn"; the divider draws the
           // between-rows line (:first-child suppresses it on the first row). The
@@ -88,7 +85,7 @@ export function GameTurnLog({
           // cheats all viewable), keyed by log POSITION — stackdown's seq is
           // per-user (see lib/history).
           <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
-            <TurnLogOutcomeBar outcome={outcome} />
+            <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(s)]} />
             {/* The "#N" handle opens that turn on the board viewer — live only
                 when the rows on show ARE the board's sequence. The viewer
                 indexes by log POSITION, so a filtered list's row 3 isn't the

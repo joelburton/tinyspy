@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -54,9 +54,13 @@ select is(
 
 -- ── First valid word ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->'data'->>'result'),
-  'accepted', 'EAGLE → accepted');
+-- The outcome is asserted with it: the pill wears the word this envelope
+-- carries, and the log bar wears the one src/stackdown/lib/answer.ts gives the
+-- row this wrote. One rule in two languages, so each language has a test.
+create temp table acc on commit drop as
+select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)) as res;
+select is((select res->'data'->>'result' from acc), 'accepted', 'EAGLE → accepted');
+select is((select res->>'outcome' from acc), 'won', 'an accepted word is won');
 
 -- Coop surfaces the cleared word as the club-list title (ada is a club
 -- member, so she can read common.games).

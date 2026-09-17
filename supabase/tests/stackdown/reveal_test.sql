@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -35,6 +35,12 @@ select is(
 select is(
   (select stackdown.reveal_next_word((select id from g))->'data'->>'result'),
   'reveal', 'the reveal answer names its case');
+-- A spoiler is RED and a hint is amber (asserted in the envelope below) — the
+-- two halves of the priced-help ruling. src/stackdown/lib/answer.ts says the
+-- same two words for the rows these write, which is this test's other language.
+select is(
+  (select stackdown.reveal_next_word((select id from g))->>'outcome'),
+  'lost', 'a spoiler ends the hunt for its word → lost');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- stackdown word is in common.words' hint set, so the hint is present.

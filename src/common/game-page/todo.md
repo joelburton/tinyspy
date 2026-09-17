@@ -2,6 +2,25 @@
 
 ## Bugs
 
+- **`verdictTone.ts` calls an outcome a tone, and so does `--verdict-tone`.**
+  Joel, 2026-09-16: *"there is one and only one word we use for 'outcome' and
+  that is 'outcome'. do not use 'tone'. an outcome is not a tone … we do use
+  'tone' for game chrome (like buttons); those take a 'tone'. that's a different
+  vocabulary."* `VERDICT_TONE` is typed `Record<Outcome, string>` — it is keyed
+  by the vocabulary and named after the other one, which is exactly the
+  invitation a surface takes when it decides an outcome is a color it may pick.
+  The file name goes with the export.
+
+  **`--verdict-tone` is not a straight rename.** It and `--verdict-fill` are two
+  color roles of one outcome — the 800 ink tier a ring draws in, and the 400
+  fill tier a piece wears — so dropping "tone" leaves it needing a name that
+  says which role it is, beside the `-fill` and `-ink` that already do.
+
+  The GAMES' own `tone`-for-outcome (connections' `verdict.tone`, wordle's
+  `rejectTone`, and the prose in wordiply / spellingbee / boggle / psychicnum)
+  is being fixed per game as `outcome-fix` reaches each, by Joel's word. This
+  item is the shared half that no game step owns.
+
 ## Soon
 
 - **`game-page/playArea.module.css` is five concerns in one file.** Renamed to

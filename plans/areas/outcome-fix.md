@@ -216,6 +216,22 @@ the SQL changes · (g) `neutral` — the end-with-tiles-in-hand row · (h) a hin
 is `warning`; a reveal or spoiler is red — `lost`, confirmed** — so psychicnum's reveal
 and stackdown's reveal, `warning` on the server today, change in the SQL.
 
+**Vocabulary, ruled 2026-09-16: an outcome is called an OUTCOME, never a
+"tone."** Joel: *"there is one and only one word we use for 'outcome' and that
+is 'outcome'. do not use 'tone'. an outcome is not a tone."* And the boundary,
+immediately after: *"we do use 'tone' for game chrome (like buttons); those take
+a 'tone'. that's a different vocabulary."* So a prop, field, local or comment
+carrying an `Outcome` is named `outcome`; a BUTTON's tone is untouched, and so
+are the game palettes that are deliberately outside `--outcomes-*` (wordle's
+tile colors, codenamesduet's key card). **Each game's `tone`-for-outcome is
+fixed at that game's step** (Joel: *"we should fix the games use of tone for
+outcomes during this area"*) — connections' `verdict.tone` and
+`tone: feedbackMsg.outcome`, wordle's `rejectTone`, and the prose in wordiply,
+spellingbee, boggle and psychicnum. The SHARED half — `VERDICT_TONE`,
+`verdictTone.ts` and the `--verdict-tone` custom property — is filed in
+`common/game-page/todo.md`, because `--verdict-tone` needs a name saying which
+color ROLE it is rather than a straight rename.
+
 **Vocabulary, ruled the same day: "help" is NEVER the word for a hint, a
 reveal or a spoiler** — *"'help' is non-game text that explains how to play."*
 Reveal and spoiler are one thing under two games' names. This file said
