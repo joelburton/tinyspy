@@ -321,10 +321,50 @@ non-solving guess `neutral`), stackdown (a reveal `lost`), strands (hint_word
    and the board flashes the tiles red (`flashReject`), both reading the
    envelope's `lost`. Nothing to record in scrabble's todo: it is the design.
 
+## The games, as each is worked
+
+**1 · stackdown — DONE 2026-09-16** (`4b3cdbf5`). `lib/answer.ts`: four answers
+(`accepted` · `invalid` · `hint` · `reveal`), `ANSWER_OUTCOME`, and
+`answerOf(row)` reading `kind` before `valid`. Log bar, board tiles, entry slots
+and the peer line index the table; the pill keeps reading the envelope. SQL, one
+line: the spoiler is `lost`. `Board`/`WordEntry` widened from `'won' | 'lost'`
+to `Outcome` and paint through the total `VERDICT_TONE`. Tests: `answer.test.ts`
+plus `outcome` assertions in `gameplay_test.sql` / `reveal_test.sql`. Doc: a new
+**The one outcome decision** section in `docs/games/stackdown.md`.
+
+**2 · setgame — DONE 2026-09-16.** `lib/answer.ts`: three answers (`claim` ·
+`hint` · `not_a_set`) and the table, no `answerOf` — the `events` row's `kind`
+IS the key. The log bar, the peer line and the refusal pill index it. No SQL, as
+predicted: `submit_set` already says `won` and `record_hint` deliberately says
+nothing. Tests: `answer.test.ts` and the `outcome` assertion in
+`gameplay_test.sql`. Doc: the same new section in `docs/games/setgame.md`, and
+the turn-log paragraph's "amber (`near`)" corrected to `warning`.
+
 ## Findings
 
-(none yet — the roster is not agreed; the investigation above is the reading
-that produces them)
+**F-outcome-fix-1 · setgame's live hint ring is green while its hint is amber.**
+`--setgame-hint-ring` is `#16a34a`, and green is the app's success color; the
+same hint's log bar is `warning`. So the board and the log say two different
+things about one event. NOT fixed here — it is a LOOK decision, and setgame's
+card fills are deliberately outside `--outcomes-*`. Filed in
+`src/setgame/todo.md` beside the existing question about the same ring (history
+borrowing the hint color), because the two have to be decided together.
+
+**F-outcome-fix-2 · the two-language safeguard has no shared fixture, and will
+not get one.** Step 4 asks for "one fixture of expected words per event kind"
+read by both pgTAP and vitest. There is no place both languages can read
+without codegen or a test that parses SQL, neither worth it. What the first two
+games do instead: a pgTAP `outcome` assertion per server-adjudicated event, a
+vitest assertion on the table, and a comment in each naming the other as its
+other half. Each language is pinned; the pair is held by the comment, not by
+the machine. Step 4 is amended to say so when it is worked.
+
+**F-outcome-fix-3 · stackdown's keyboard tile-pick refusals stay pill-only.**
+`BoardCol` decides two words for keystrokes — no exposed tile with that letter
+(`lost`), an ambiguous letter (`warning`). They are a different event grain from
+a submission: no row, no log, no board answer, one reader each. Putting them in
+`ANSWER_OUTCOME` would make it a table of two different kinds of thing, so they
+were left. Raised for Joel 2026-09-16; not yet ruled.
 
 ## Closing
 

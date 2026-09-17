@@ -14,7 +14,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(18);
+select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -93,10 +93,14 @@ create temp table before_claim on commit drop as
 select pg_temp.sg_board((select id from g)) as board,
        pg_temp.sg_live((select id from g)) as taken;
 
+-- The outcome is asserted with it: a teammate's line and the log bar wear the
+-- word src/setgame/lib/answer.ts gives a `claim` row, and this envelope is that
+-- same rule in SQL. One rule, two languages, a test in each.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is(
-  (select setgame.submit_set((select id from g), (select taken from before_claim))->'data'->>'result'),
-  'claimed', 'a genuine set is accepted');
+create temp table claimed on commit drop as
+select setgame.submit_set((select id from g), (select taken from before_claim)) as res;
+select is((select res->'data'->>'result' from claimed), 'claimed', 'a genuine set is accepted');
+select is((select res->>'outcome' from claimed), 'won', 'a claimed set is won');
 
 reset role;
 select is(

@@ -397,6 +397,25 @@ the **last-set panel**, the OpponentStrip in compete, the actions, the setup
 recap, then the **turn log**. There is deliberately no count of the cards
 face-up: they are right there to be looked at.
 
+### The one outcome decision (`lib/answer.ts`)
+
+Every turn setgame can produce is one of three answers — `claim`, `hint`,
+`not_a_set` — and `lib/answer.ts` is the only place that says what each is
+worth: `won` · `warning` · `lost`. The first two are the `events` row's own
+`kind` column, so a row is already a key and needs no translating; `not_a_set`
+never becomes a row at all, since the board is face-up and the frontend refuses
+three non-matching cards without a round trip.
+
+The log bar, a teammate's line and the refusal pill all index that table.
+`submit_set`'s envelope says `won` for the same claim — the same rule in SQL —
+and both languages are tested (`lib/answer.test.ts`, and the `outcome`
+assertion in `gameplay_test.sql`). `record_hint` deliberately carries no
+outcome: asking for a hint shows itself, in the ring the client already drew,
+so there is no pill for it to disagree with.
+
+The rule this follows is [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+
 ### The turn log
 
 Rows are **pictures**, not text: a set has no name, and spelling one out ("2 red
@@ -406,8 +425,8 @@ to three mini cards, and who — the same components the board draws, at
 `--card-w: 1.9rem`.
 
 **Hints are rows too**, tagged `Hint` and carrying the shared **amber**
-(`near`) bar rather than the neutral one — help taken, which is stackdown's
-precedent for a cheat request. Without the tag a hint's one-to-three cards read
+(`warning`) bar rather than the neutral one — priced help, which is the word
+every game gives a hint. Without the tag a hint's one-to-three cards read
 as a find, which is exactly backwards. A hint row holds what the asker was
 *shown*, so it has one, two or three cards depending on how far up the ladder
 they went.

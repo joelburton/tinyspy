@@ -1,4 +1,4 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -15,6 +15,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import { isSet, type Card as CardCode } from '../lib/cards'
 import { nextHint, ringFromLog } from '../lib/hint'
 import { historySnapshot } from '../lib/history'
@@ -259,7 +260,9 @@ export function PlayArea(ctx: GamePageCtx) {
       if (isSet(next[0], next[1], next[2])) {
         void submitClaim(next)
       } else {
-        localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not a set'))
+        localFeedbackSlot.show(
+          FeedbackMessage.result(ANSWER_OUTCOME.not_a_set, 'Not a set'),
+        )
       }
     },
     [active, selected, submitClaim, localFeedbackSlot],
@@ -496,7 +499,7 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (c) => {
       if (c.user_id === selfId) return null
       const member = players.find((p) => p.user_id === c.user_id)
-      return FeedbackMessage.peer(member, 'won', 'found a set')
+      return FeedbackMessage.peer(member, ANSWER_OUTCOME.claim, 'found a set')
     },
     globalFeedbackSlot,
   })

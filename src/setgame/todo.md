@@ -13,6 +13,23 @@
 
 ## Soon
 
+- **The live hint's ring is GREEN, and a hint is amber everywhere else.**
+  `--setgame-hint-ring` is `#16a34a` — a saturated green, and green is this
+  app's success color. The same hint's log bar is amber (`warning`, the word
+  `lib/answer.ts` gives it, ruled 2026-09-16 as the word for priced help in
+  every game), and its `Hint:` tag sits beside a row whose bar says caution. So
+  the board and the log say two different things about one event.
+
+  Found 2026-09-16 by `outcome-fix`, and left alone there because it is a LOOK
+  decision rather than a word one: the ring is a "look here" mark, not a verdict,
+  and the game's card fills are deliberately outside `--outcomes-*` (the
+  departing-set green, the arriving yellow). What has to be decided is whether
+  the hint RING is in that family or in the outcome vocabulary — and if the
+  latter, amber has to survive the test the green was picked to pass: a thin
+  dash on a white card beside eleven other white cards was genuinely easy to
+  miss, which is why it stopped being gray. **Decide this with the item below**,
+  which is the other open question about the same ring.
+
 - **A viewed past turn is ringed in the HINT's color here, not the shared history
   color.** Every other game with a viewer rings the cards/tiles a past turn
   touched in `--history-color` — the same blue as the board frame and the log's

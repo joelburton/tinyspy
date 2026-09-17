@@ -1,10 +1,11 @@
-// cs-met-outcome-fix
+// cs-fixed-outcome-fix
 
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { TurnLog, TurnLogActor, TurnLogOutcomeBar, TurnLogNumber } from '@/common/turn-log/TurnLog'
 import gameTurnLog from '@/common/turn-log/gameTurnLog.module.css'
 import { useTurnLogPlayerPicker } from '@/common/turn-log/useTurnLogPlayerPicker'
+import { ANSWER_OUTCOME } from '../lib/answer'
 import type { EventRow } from '../hooks/useGame'
 import { Card } from './Card'
 import styles from './GameTurnLog.module.css'
@@ -85,11 +86,10 @@ export function GameTurnLog({
         const index = events.indexOf(event)
         return (
           <tr key={event.id} className={gameTurnLog.divider}>
-            {/* `near` is the shared amber bar, and it is what stackdown
-                already flags a logged help request with — a hint is neither a
-                find nor a failure, but it is not NOTHING either, which is what
-                the neutral gray said. */}
-            <TurnLogOutcomeBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
+            {/* The bar's word is `lib/answer.ts`'s, and the row's `kind` is
+                already its key — so the log has no word of its own to disagree
+                with the pill or a teammate's line about the same turn. */}
+            <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[event.kind]} />
             <TurnLogNumber
               n={index + 1}
               isOpenInHistory={historyId === index}
