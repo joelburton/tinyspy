@@ -39,8 +39,8 @@ test.describe('wordle turn-history viewer', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await boardReady(page, page.locator('[data-board]'))
 
-    // Both guesses log a #N handle (`[data-turn-number]`); wait for them to arrive.
-    const handles = page.locator('[data-turn-number]')
+    // Both guesses log a #N handle (`[data-history-handle]`); wait for them to arrive.
+    const handles = page.locator('[data-history-handle]')
     await expect(handles).toHaveCount(2, { timeout: 15000 })
     const liveHeight = await boardHeight(page)
 
@@ -53,7 +53,7 @@ test.describe('wordle turn-history viewer', () => {
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)
 
     // Switching turns without leaving the viewer — click #1's handle; the banner
-    // re-labels to the first guess (the `data-turn-number` marker keeps the click
+    // re-labels to the first guess (the `data-history-handle` marker keeps the click
     // from being treated as "click away").
     await handles.first().click()
     await expect(banner).toContainText(`Guess 1: ${words[0]}`)

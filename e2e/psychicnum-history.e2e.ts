@@ -35,10 +35,10 @@ test.describe('psychicnum turn-history viewer', () => {
 
     // Guess one board word: click its tile (sets the pending guess), then the Submit
     // button. Its tile colors green/red and turn #1 logs — the log's #N handle
-    // (`[data-turn-number]`) appearing is the robust "the guess landed" signal.
+    // (`[data-history-handle]`) appearing is the robust "the guess landed" signal.
     await page.locator('[data-board] button').first().click()
     await page.getByRole('button', { name: 'Submit' }).click()
-    const handle = page.locator('[data-turn-number]')
+    const handle = page.locator('[data-history-handle]')
     await expect(handle).toBeVisible({ timeout: 15000 })
     const liveHeight = await boardHeight(page)
 

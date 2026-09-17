@@ -37,5 +37,5 @@ test('connections: Enter submits the selected guess (no Submit-button click)', a
 
   // The turn logs → the guess landed. (A correct guess also collapses the four
   // A-words into a band, but the log handle is the crisp signal.)
-  await expect(page.locator('[data-turn-number]')).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('[data-history-handle]')).toBeVisible({ timeout: 15000 })
 })

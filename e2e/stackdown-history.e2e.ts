@@ -36,8 +36,8 @@ test.describe('stackdown turn-history viewer', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
-    // The cleared word logs a #N handle (the shared `[data-turn-number]`).
-    const handles = page.locator('[data-turn-number]')
+    // The cleared word logs a #N handle (the shared `[data-history-handle]`).
+    const handles = page.locator('[data-history-handle]')
     await expect(handles).toHaveCount(1, { timeout: 15000 })
     const liveHeight = await boardHeight(page)
 

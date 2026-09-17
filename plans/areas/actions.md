@@ -273,7 +273,8 @@ behaviors that answer to every key (dismissing feedback, leaving the history
 viewer)"; `isWildcard`'s docstring: "The two behaviors that do are…"), and
 `doc.md` said it once ("The two any-key behaviors differ in one property").
 The registry has three `pattern: 'any'` rows: `act-dismiss-feedback`,
-`act-exit-viewer` and crosswords' `act-drop-peek`, a non-consuming watcher
+`act-exit-history` (`act-exit-viewer` when this was written — `turn-log`
+renamed it 2026-09-16) and crosswords' `act-drop-peek`, a non-consuming watcher
 like dismiss. A count, and already wrong.
 
 **`doc.md`'s half WORKED 2026-09-11** as part of "update the doc.md as

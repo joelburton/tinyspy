@@ -12,10 +12,10 @@ this file against it.
 
 | | |
 |---|---|
-| **worked** (16) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-22 |
+| **worked** (17) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-21 · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
 | **skipped** (3) | F-12 → `z-index` · F-17 → `outcome-fix` · F-20 → `history-always-available` — each caused or helped cause the area it went to (plan §3 rows 41, 40, 39) |
-| **open** (1) | F-21 |
+| **open** (0) | — every finding is worked, closed or skipped |
 
 ## The roster
 
@@ -1045,6 +1045,34 @@ actually has; (2) all three take history names (`HistoryHandle`,
 `.historyHandle`, `data-history-handle`), which reads better in
 `useHistoryViewer` and worse in a game's log, where the cell really is the turn
 number; (3) leave. Recommend (1).
+
+**WORKED 2026-09-16 — and only one third of it was left to do.** Joel: *"ok, so
+it's about history. let's get the word 'history' into it."* The attribute is
+`data-history-handle`, across eleven files.
+
+**The other two thirds had answered themselves** while other findings shipped,
+which is the argument for re-verifying before working: **`TurnLogNumber` stopped
+being arguable at F-16**, which made it draw BOTH cases, so the component really
+is the turn number; and **`.turnNumber` split along the exact line this finding
+was probing**, also at F-16 — `.turnNumber` the number, `.turnNumberHandle` the
+affordance.
+
+**The marker was the one that had not moved**, for a reason worth keeping: it is
+set ONLY on the live branch, never on an inert number, and its one functional
+reader is the viewer's click-anywhere-to-exit. It marks exactly the numbers that
+open history, which is what its name now says — and a click on an inert number is
+a click AWAY, which correctly closes the viewer.
+
+**Two dead action names found while reading the prose around it**, neither
+catchable by a guard, both strings inside comments:
+
+- **`TurnLog.tsx` said `act-exit-viewer`, and I put it back there myself.** F-19
+  renamed it to `act-exit-history`; an hour later F-16's docstring rewrite pasted
+  from a draft that predated the rename — a regression introduced by the fix to
+  another finding, in the same file, the same day.
+- **`plans/areas/actions.md`**, a CLOSED area, named it in a sentence about what
+  the registry holds today. Corrected in place, with the rename noted rather than
+  the old name erased.
 
 ### F-turn-log-22 · `four-props-one-handshake` · Every game wired the same four props out of the picker by hand
 

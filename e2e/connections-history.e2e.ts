@@ -43,7 +43,7 @@ test.describe('connections turn-history viewer', () => {
     await page.getByRole('button', { name: /submit/i }).click()
 
     // Turn #1 logs — the log's #N handle appearing is the "guess landed" signal.
-    const handle = page.locator('[data-turn-number]')
+    const handle = page.locator('[data-history-handle]')
     await expect(handle).toBeVisible({ timeout: 15000 })
     const liveHeight = await boardHeight(page)
 

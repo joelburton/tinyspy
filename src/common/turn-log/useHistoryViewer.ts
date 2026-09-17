@@ -56,7 +56,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   // Click-anywhere-to-exit — INTRINSIC to the viewer (every game gets it, no wiring).
   // While a past turn is open, a click ANYWHERE returns to the live board, EXCEPT a
   // click on a turn-# handle (the shared `<TurnLogNumber>`, marked
-  // `data-turn-number`), which selects that turn instead — so you can switch turns
+  // `data-history-handle`), which selects that turn instead — so you can switch turns
   // without leaving the viewer. A document-level listener so it catches clicks
   // outside the board too (the info column, the log, the page chrome); the board is
   // click-through while framed (historyViewer `.historyFrame` sets `pointer-events: none`),
@@ -65,7 +65,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   useEffect(function exitOnClickAway() {
     if (historyId === null) return
     const onDocClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement | null)?.closest('[data-turn-number]')) return
+      if ((e.target as HTMLElement | null)?.closest('[data-history-handle]')) return
       setHistoryId(null)
     }
     document.addEventListener('click', onDocClick)

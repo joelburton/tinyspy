@@ -87,7 +87,7 @@ function playerRow(user_id: string, over: Partial<PlayerRow> = {}): PlayerRow {
 }
 
 /** The "#N" handle in the log row holding `cell` — by its marker, never by its
- *  wording (the shared `<TurnLogNumber>` sets `data-turn-number`). */
+ *  wording (the shared `<TurnLogNumber>` sets `data-history-handle`). */
 const handleIn = (cell: HTMLElement) =>
   within(cell.closest('tr')!).getByText(/^#\d+$/)
 

@@ -136,8 +136,8 @@ export function TurnLogBar({
  * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
  * on Space — so pressing Space to leave the viewer (the shared "any key exits")
  * would instead re-select the turn. A span with an `onClick` isn't focusable, so it
- * takes no keystroke and Space falls through to `act-exit-viewer`. The
- * `data-turn-number` marker is how `useHistoryViewer`'s click-anywhere-to-exit
+ * takes no keystroke and Space falls through to `act-exit-history`. The
+ * `data-history-handle` marker is how `useHistoryViewer`'s click-anywhere-to-exit
  * listener tells "the user is selecting a turn" from "the user clicked away".
  */
 export function TurnLogNumber({
@@ -162,7 +162,7 @@ export function TurnLogNumber({
       <span
         className={cls(styles.turnNumberHandle, isOpenInHistory && history.historyNumber)}
         data-tooltip="Click to view this turn on the board"
-        data-turn-number
+        data-history-handle
         onClick={onShowHistory}
       >
         #{n}

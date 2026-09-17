@@ -61,9 +61,9 @@ describe('useHistoryViewer', () => {
     const { result } = renderHook(() => useHistoryViewer())
     act(() => result.current.showHistory(2))
 
-    // The shared <TurnLogNumber> marks its handles with data-turn-number.
+    // The shared <TurnLogNumber> marks its handles with data-history-handle.
     const handle = document.createElement('button')
-    handle.setAttribute('data-turn-number', '4')
+    handle.setAttribute('data-history-handle', '4')
     const inner = document.createElement('span') // clicking a child still counts (closest)
     handle.appendChild(inner)
     document.body.appendChild(handle)

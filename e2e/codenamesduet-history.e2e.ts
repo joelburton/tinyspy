@@ -64,7 +64,7 @@ test.describe('codenamesduet turn-history viewer', () => {
 
     // The turn log now shows turn #1 with the clue word + the guess. Measure the
     // board BEFORE opening the viewer (this is the height that must not change).
-    const handle = pageBob.locator('[data-turn-number]')
+    const handle = pageBob.locator('[data-history-handle]')
     await expect(handle).toBeVisible({ timeout: 15000 })
     const liveHeight = await boardHeight(pageBob)
 
