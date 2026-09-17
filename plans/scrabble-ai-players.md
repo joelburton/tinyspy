@@ -4,6 +4,10 @@
 see [events.md](events.md) for the framing and the deploy rule (nothing ships
 until all three are done).
 
+> **Review notes at the end of this file (§10) — read them before starting any
+> phase.** They are feedback from a second reader, not rulings. Two of them are
+> regressions the phases below would ship as written.
+
 ## 1. Why
 
 scrabble can seat up to three AI opponents in compete. They are not users, so
@@ -55,7 +59,12 @@ Three reasons to move them:
   everywhere participation is counted — the game header's roster, and
   `common.end_game`'s per-player results. Joel: *"a bot's win should definitely
   count."*
-- **Bots are NOT in `common.clubs_members`** — see §3.
+- **Bots are in no HUMAN club.** Provisioned through `db-add-user` they each get
+  their own solo club (`=ada-bot` and friends) and a `clubs_members` row in it,
+  because `common.claim_username` makes one for every profile — ruled acceptable
+  2026-09-17 (§10.2). What matters for §3 is that no bot is a member of a club
+  any human belongs to, which is what keeps them out of every roster and every
+  picker.
 - **`scrabble.players` keeps its per-bot row** (it holds the rack, the score and
   `ai_level`), with `user_id` now `not null`, the key `(game_id, user_id)`, and
   `players_human_xor_ai` retired.
@@ -228,3 +237,158 @@ which [events.md](events.md) §10 left open for exactly this moment.
    the roster row exists, so anything that reads "who is in this game" gets a bot
    and must not expect a heartbeat from it. §4 covers the pause; anything else
    reading presence needs a look during phase 3.
+
+## 10. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+**What this section is.** A second reader (Claude Fable) checked this plan
+against the code on 2026-09-17, before any phase started. The tags mean the
+same as in [events.md](events.md) §14: **WRONG** is a false claim about the
+code, verified at the file named, and the plan text should be corrected before
+building; **ASK JOEL** is a question only he can answer, so ask and do not
+pick; **TRAP** will bite even though the plan is right; **SUGGEST** is
+optional. Line numbers are as of 2026-09-17 and will rot.
+
+The two notes that matter most are 10.3 and 10.4: each is a regression that
+the phases as ordered would ship.
+
+### 10.1 WRONG — the Admin API script already exists
+
+§8 phase 1 asks for *"a one-off Admin API script, run per environment."*
+`supabase/scripts/add-user.ts`, wired as `gmake db-add-user ENV=… EMAIL=…
+HANDLE=… COLOR=… DRY=1`, is that script: `createUser`, a magic link, `verifyOtp`,
+then `common.claim_username` AS that user, with `deleteUser` as the rollback.
+Its header argues against the seed.dev.sql approach in the same words the plan
+uses. Use it rather than writing a second one. It validates a real email
+address, so each bot needs a well-formed one. It also does what 10.2 describes.
+
+### 10.2 ASK JOEL — `claim_username` puts every new profile in a club
+
+§3's headline is *"Bots are NOT in `common.clubs_members`."* The only
+profile-creation path in the repo is `common.claim_username`, and it
+unconditionally creates the solo club `=<handle>` and a `clubs_members` row in
+it (there is no trigger on `auth.users`; `claim_username_test.sql` pins that).
+So a bot provisioned the normal way IS in `clubs_members`, in a club no human
+belongs to.
+
+Nothing a human sees changes either way: the player picker and the club roster
+read ONE club's members, and no human is in `=ada-bot`. But §3 states the
+absence as a fact and §5 leans on it, so it needs a ruling:
+
+- **accept the solo clubs** — three `=…-bot` rows in `common.clubs` and
+  `clubs_members`, exactly like every human's; `db-add-user` works unchanged;
+- **skip them** — a bot-only provisioning path that inserts the profile
+  without `claim_username`, so §3 stays literally true.
+
+This reader leans to *accept*: it is one fewer path, and the picker argument in
+§5 holds regardless.
+
+**RULED 2026-09-17 — accept, on the grounds of whichever is easier.** Joel:
+*"whichever is easier is fine; it's ok if they have clubs, it's ok if they
+don't. i can always delete them later."* Easier is `db-add-user` unchanged, so
+each bot gets its own `=<handle>-bot` solo club and a `clubs_members` row in it.
+§2 says so now. Nothing a human sees changes: no human is a member of those
+clubs, and the `create_game` gate in §3 is needed either way — a bot in
+`=ada-bot` is still not in the club the game is being created in.
+
+### 10.3 REGRESSION — an all-conceded compete game would never end
+
+`scrabble._maybe_finish_compete` (`supabase/sql/scrabble.sql`, near line 1471)
+counts non-conceded players with an INNER join from `scrabble.players` to
+`common.game_players`. Today that join drops AI seats, so when every human has
+conceded the count is 0 and the game ends. Once bots have `game_players` rows
+they are counted, a bot never concedes, and the count never reaches 0: a table
+of bots sits in `playing` forever. This belongs in phase 2 with a pgTAP case
+(seat one human and one bot, concede the human, assert terminal).
+
+`_advance_seat` and the winner queries near line 446 LEFT-join and are safe.
+`scrabble._finish`'s `player_results` inner join is the good side of the same
+change: it was written *"HUMANS ONLY"* and, once bots are seated, includes them
+without a code change, which is how *"a bot's win should definitely count"*
+falls out. Rewrite that comment when the phase lands.
+
+### 10.4 REGRESSION — phase 2 cannot ship before phase 3
+
+`useCommonGame` builds `players` from `game_players` joined to `profiles`, and
+`computePause` runs over that list. The moment a bot's `game_players` row
+exists, the pause fires and every bot game sits behind the overlay. Phase 3
+(presence) is not separable from phase 2 (seating); do them as one phase, or
+order presence first.
+
+### 10.5 WRONG — the two options in §4 are not equivalent
+
+§4 says *"Either filter bots out of `players` at the `useCommonGame` call site,
+or test the flag inside. One line either way."* `PauseOverlay.tsx` carries a
+second, independent version of the predicate (`players.some((m) => !presentUserIds.has(m.user_id))`)
+and draws a hollow ring per absent player. Filtering `activePlayers` in
+`useCommonGame` (the first option) fixes both, because `activePlayers` is what
+reaches the overlay; changing `computePause` fixes only the flag. Take the
+first option, and note that `Member` has no `ai_member` field today, so the
+profiles select in `useCommonGame` gains a column.
+
+Two more readers of that list to check in the same phase: `GamePage.tsx`'s
+auto-suspend on `players.length <= 1`, and the header players strip, which
+would draw a permanently hollow bot dot.
+
+### 10.6 TRAP — the rematch would seat bots twice
+
+`PlayArea.tsx` builds a new game's `player_user_ids` as `players.map((p) =>
+p.user_id)`. With bots in `players`, a rematch passes the bot ids AND
+`ai_count`, and `scrabble.create_game` seats them from both. Decide which
+carries them; since §5 keeps "how many bots" as the setup input, the likely
+answer is to strip `ai_member` profiles from `player_user_ids` and let
+`ai_count` seat them, as it does today.
+
+### 10.7 TRAP — the AI driver's predicate is seat-shaped in the frontend too
+
+§6 point 2 names the SQL side. The frontend side is the effect in
+`PlayArea.tsx` that decides to poke the edge function:
+`isCompete && game.currentUserId == null && aiRoster.some((a) => a.seat ===
+game.currentSeat)`. If phase 4 retires `current_seat`, that predicate has to be
+rewritten against `current_turn_user_id` and the profile's `ai_member`, or the
+bot never moves and the table stalls (§7's rule, from the other side). Keep
+what the surrounding comments record: every connected client pokes, there is
+no leader, and duplicates are harmless because the RPCs guard by seat and
+version. The disarm path below it (a wedged poke ref *"wedges the game
+permanently"*) must survive the rewrite.
+
+Also, the RPC §6 calls `ai_move_context` is `scrabble.get_ai_context`.
+
+### 10.8 TRAP — `profiles` has a column-order rule and a visibility rule
+
+Two comments on `common.profiles` in the common migration apply to `ai_member`:
+
+- `can_edit_words` is declared last on purpose, because prod received it as an
+  `ADD COLUMN` and `db-drift` compares column order. `ai_member` arrives by a
+  new migration (an `ADD COLUMN`, which appends), and the frozen baseline is
+  not edited, so the order takes care of itself. Just do not "tidy" it into
+  the baseline next to `color`.
+- The block above `profiles_select_authenticated` says a column that is not
+  public means doing the view first. `ai_member` is public in the same sense
+  `color` is; say so in the migration comment, the way `theme`'s does.
+
+There is no UPDATE policy on `profiles`, so `ai_member` is set only by the
+migration, the seed, or a definer RPC.
+
+### 10.9 SUGGEST — say where the "not one of us" signal moved
+
+`AI_DISC_COLORS` carries a comment: the colors were kept off the palette's
+usual first picks *"so a bot reads as 'not one of us'."* §2 moves that job to
+the `-bot` suffix and says color cannot carry it. That is a deliberate
+transfer; say so where the constant is deleted. It also answers §9's first open
+question mechanically: `db-add-user` validates against `MEMBER_COLORS`, so any
+of the eight names is legal, and the choice is taste.
+
+### 10.10 SUGGEST — counts, names and a doc to update
+
+- §1's *"53 lines across 11 files"*: twelve files match today, and the number
+  will be different by the time anyone reads it. Drop the counts; "fully
+  contained in scrabble" is the claim, and it holds (the two hits in
+  `src/common` are comments).
+- §6 quotes *"coexist deliberately"* as from `common.sql`. The phrase is in the
+  common MIGRATION beside `current_turn_user_id`, and `docs/common.md` says
+  unifying the two pointers is out of scope. If §6 lands, that doc sentence is
+  what to rewrite.
+- The bots' display name today is `AI ${i + 1}` by position among AI seats,
+  while the synthetic id is `ai:${seat}` by absolute seat. The two differ when
+  a human sits between bots. Both go in phase 4; noting it so the log's actor
+  lookup is rewritten from the profile, not from either of them.

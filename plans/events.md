@@ -17,6 +17,10 @@ dual-running code paths.
 
 Order: **events → scrabble-ai-players → event-log.**
 
+> **Review notes at the end of this file (§14) — read them before starting any
+> phase.** They are feedback from a second reader, not rulings, and several of
+> them correct what this plan says about the code.
+
 ## 1. Why — we are finishing a convention, not inventing one
 
 Ten games keep a chronological log of what happened, under four different table
@@ -199,7 +203,7 @@ that is a check, not a given. stackdown had no answer at all until Joel gave one
 | **psychicnum** | `guesses` → `events` | uuid → bigint | `guessed_at` | guess · hint · **spoiler** | — | an accepted, non-terminal `guess` |
 | **wordle** | `guesses` → `events` | **composite** → bigint | `guessed_at` | **guess** (new) | drop | an accepted, non-terminal `guess` |
 | **connections** | `guesses` → `events` | uuid → bigint | `guessed_at` | **guess** (new) | — | an accepted, non-terminal `guess` (both the correct-not-final and the wrong-not-4th branches) |
-| **letterboxed** | — | — (bigint) | — | **word** · **undo** · **clear** · hint · spoiler | — | a played `word` (non-terminal) **and an `undo`** — the undo costing your turn is what stops it being a free reroll |
+| **letterboxed** | — | — (bigint) | — | **word** · **undo** · **clear** · hint · spoiler | — | a played `word`, an `undo` (costing your turn is what stops it being a free reroll), **and a `clear`** — Joel, 2026-09-17: *"yes, it uses a turn and it can't be played in turn-by-turn coop."* The two facts sit together: a clear is a turn wherever it can happen, and turn-by-turn coop is where it cannot (PN411) |
 | **setgame** | — | — (bigint) | — | claim · hint | — | an accepted, non-terminal `claim` |
 | **strands** | — | uuid → bigint | — | guess · hint | — | a `guess` whose result is `theme`, `spangram` or `hint_word` — a rejected trace is "a misfire, not a turn" |
 | **stackdown** | `submissions` → `events` | **composite** → bigint | `submitted_at` | word · hint · **spoiler** | drop | **`word` (accepted or refused) and `spoiler`** — Joel, 2026-09-17: *"stackdown uses a turn on word and spoiler. a good or bad word still uses a turn."* Not derivable from code: stackdown has no rotation (see below), so nothing ever had to rule on it |
@@ -408,6 +412,200 @@ starting here:
 
 - [scrabble-ai-players.md](scrabble-ai-players.md) §9 — the bots' dot colors, and
   what else reads presence once a bot holds a `game_players` row.
-- [event-log.md](event-log.md) §D — `boardIsShown`'s new name, whether a compete
-  log offers `#N` on a row it cannot resolve, and the history banner's wording
-  for somebody else's board.
+- [event-log.md](event-log.md) §E — `boardIsShown`'s new name and the history
+  banner's wording for somebody else's board. (Its third item, the unresolvable
+  `#N`, was ruled moot 2026-09-17.)
+
+## 14. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+**What this section is.** A second reader (Claude Fable) checked this plan
+against the code on 2026-09-17, after Joel and Opus wrote it and before any
+phase started. Every note below is feedback for the implementer:
+
+- A note tagged **WRONG** says the plan's claim about the code is false. The
+  file is named; the claim was verified there. Correct the plan text above
+  before building from it, so the plan and the code agree.
+- A note tagged **ASK JOEL** is a question this reader could not answer from the
+  code or the plan. It is Joel's to rule on. Ask him; do not pick.
+- A note tagged **TRAP** is something that will bite during a phase even though
+  the plan is right.
+- A note tagged **SUGGEST** is optional.
+
+Line numbers here are as of 2026-09-17 and will rot; what is named is what to
+look for.
+
+### 14.1 WRONG — the publication guard already exists
+
+§7 says *"There is no guard that a log table is published. Add one"* and §11
+lists *"A publication assertion"* as new work. Both are wrong.
+`supabase/tests/common/realtime_publication_test.sql` is a bidirectional
+`set_eq` over `pg_publication_tables` for the whole `supabase_realtime`
+publication, and its expected list names every one of the ten log tables by
+schema and table name (`('psychicnum', 'guesses')` and so on).
+
+What this changes: the assertion is already there, and it is stricter than the
+one §11 asks for (an EXTRA published table fails it too). Each phase edits the
+expected pair for its game, and the test going red at the rename until that
+edit lands is exactly the check the plan wanted. Do not write a second guard.
+Phase 0's "publication assertion" reduces to: know this file exists.
+
+### 14.2 WRONG — "each game's schema test names its columns"
+
+§11 says *"each game's schema test names its columns, so each phase updates
+one."* Only wordiply has a `schema_test.sql`. What DOES name log-table columns,
+and so must change with its game's phase:
+
+- direct inserts in `supabase/tests/{wordiply,stackdown,connections,strands}/rls_test.sql`
+  and `supabase/tests/wordiply/schema_test.sql` and `gameplay_test.sql`;
+- one e2e fixture: `seedWaffleSwapLog` in `e2e/helpers/fixtures.ts` inserts
+  into `waffle.swaps` naming `seq`. This is outside the "frontend data access"
+  list in §10 and the waffle phase must carry it.
+
+So the per-game column assertion the plan is counting on does not exist for
+nine games; the skeleton guard in §11 is that assertion. Write it first.
+
+### 14.3 WRONG — §6's `took_turn` column contradicts §8
+
+Nine rows of the §6 table say `took_turn` is true for *"an accepted,
+**non-terminal** guess"* (claim, swap, word). §8 says the opposite: *"Under the
+rule, the terminal move is `true`"*, and the backfill is the rotation branches
+*"plus the terminal branch of the same move kind."* An implementer building
+from the table will write the wrong CASE.
+
+Rewrite the §6 column to the rule: drop "non-terminal" from every row. Under
+§8, strands' solving trace, wordiply's fifth valid word, letterboxed's
+twelfth-letter word, scrabble's going-out word, scrabble's blocked-end `pass`
+(the one that calls `_finish(…, 'blocked')`), connections' fourth group and
+fourth mistake, wordle's winning or last guess, and waffle's solving or last
+swap are all `true`.
+
+This also matters for how the column is WRITTEN, not just backfilled: wordle and
+waffle insert the log row BEFORE they compute `out_terminal`
+(`supabase/sql/wordle.sql`, insert near line 632 and the terminal decision near
+645; `supabase/sql/waffle.sql`, insert near 825 and terminal near 840). A
+"non-terminal" definition would force a post-insert UPDATE in every move RPC.
+Under the §8 rule the value is knowable at insert time (rejects `raise` and
+write nothing), so `took_turn` is a literal in the insert. One more reason §8
+is the definition and §6 is the evidence.
+
+One sentence worth adding to §6 while there: setgame's `record_hint` is gated
+by `_require_turn` but never advances (its comment: a hint is *"part of YOUR
+TURN"*). §6 already says only `claim` is a turn; say why, so a backfill
+reviewer does not read the gate as evidence of a turn.
+
+### 14.4 WRONG — three `kind` defaults, not one
+
+§2 says stackdown's word insert is the one that *"relies on the column's
+`default 'word'`"*. That is true of the INSERT, but three tables declare a
+default on `kind`: stackdown (`'word'`), psychicnum (`'guess'`) and strands
+(`'guess'`). The skeleton in §2 has no default. The sweep should drop all three,
+not just stackdown's; letterboxed and setgame are the model.
+
+### 14.5 WRONG — wordle's `seq` has a SQL reader §5 misses
+
+§5's wordle row says `seq` is *"the key + the read order + the peer-dedup key"*
+and *"all three become `id`"*. There is a fourth: the club-list subtitle in
+`supabase/sql/wordle.sql` picks the latest guess with `order by gx.seq desc
+limit 1`, twice (the coop arm and the terminal-compete arm). Both become
+`order by id desc`. scrabble has the same shape (`string_agg(… order by
+p.seq)` in its status view). When a game's `seq` goes, grep that game's sql file
+for it, not just the frontend.
+
+Also in this family: every `useGame` hook orders its log fetch today, by five
+different columns (`guessed_at` ×3, `seq` ×3, `submitted_at`, `created_at`,
+`id` ×2). The `.order('id')` change is part of each phase's "data access"
+(§10), and event-log.md §B.2 should not claim it.
+
+### 14.6 TRAP — an identity column backfills in scan order, not by time
+
+§2's rule is *"read `order by id`, never by the timestamp."* That is only true
+of backfilled rows if the backfill MADE it true. Verified on the local database
+2026-09-17, in a rolled-back transaction: `alter table t add column n bigint
+generated always as identity` on three rows whose timestamps were inserted out
+of order gave `n = 1, 2, 3` in INSERTION order, ignoring the timestamp. For an
+insert-only table that usually matches the old order. "Usually" is not a
+self-check, and wordiply's log is not insert-only (three no-op `update … set
+user_id = user_id` realtime touches; it already has identity, so no id backfill
+there, but it is why the scan cannot be trusted as a rule).
+
+The recipe that worked, for the three uuid tables (psychicnum, connections,
+strands):
+
+```sql
+alter table g.t add column new_id bigint;
+update g.t t set new_id = r.rn
+  from (select id, row_number() over (order by <old timestamp>, id) rn from g.t) r
+ where r.id = t.id;
+alter table g.t alter column new_id set not null;
+alter table g.t drop constraint <old pkey>;
+alter table g.t drop column id;
+alter table g.t rename column new_id to id;
+alter table g.t alter column id add generated always as identity;
+alter table g.t add primary key (id);
+select setval(pg_get_serial_sequence('g.t', 'id'), (select max(id) from g.t));
+```
+
+For the four composite-key tables the order is `(<old timestamp>, seq)`. Add to
+§9's self-check: the `id` order equals the old order, asserted before the
+`set not null`. The three uuid tables have no `seq` to break a timestamp tie;
+the `, id` above tie-breaks on the uuid, which is arbitrary but stable. Say in
+the migration that it is arbitrary.
+
+Small cousin: an identity sequence is named at creation and does NOT rename
+with its table. wordiply's stays `wordiply.guesses_id_seq` after the rename.
+Rename it (`alter sequence … rename to events_id_seq`) or leave it and say so;
+either way the choice should be the same for letterboxed and setgame, whose
+sequences are already `events_id_seq`.
+
+### 14.7 TRAP — the rehearsal harness mostly exists
+
+§9's Phase 0 asks for *"one Make target: dump prod structure + data into a
+scratch local database, apply the pending migration."* Two of its three parts
+are already in the Makefile: `db-backup` (pg_dump `-Fc` of auth plus every app
+schema, data only, dictionary bulk excluded) and `db-restore` (data-only
+pg_restore with an FK-ordered TOC, single transaction). What Phase 0 adds is
+the sequencing, and it has one non-obvious step: the local database must be at
+the OLD shape when the dump is restored, which means the pending migration file
+must be absent while `db-schema-sql ENV=local` runs, then restored to
+`supabase/migrations/` and applied on its own with `supabase migration up`.
+Then `npm run test:db` and the row counts. Do not run `db-seed` or `db-data`
+after the restore (the restore target's own comment says why: `db-data`'s
+stackdown reload deletes restored boards). The dump holds real accounts, so
+confirm `backups/` is gitignored before the first run.
+
+### 14.8 ASK JOEL — letterboxed `clear` has no `took_turn` value
+
+§6's letterboxed row rules on `word`, `undo`, `hint` and `spoiler` and is silent
+on `clear`. There is no rotation evidence to read: `clear_chain` is forbidden in
+turn-by-turn coop (`PN411`, *"turn-by-turn coop offers undo, not clear"*), so
+`cleared` rows exist only in free-for-all and compete, where nothing ever had
+to rule. §8 says every row gets an answer anyway.
+
+Two readings, both defensible:
+
+- **a clear is a turn** — it changes the board, like the undo that "costs your
+  go";
+- **a clear is not a turn** — the game itself withholds it from turn coop
+  because it is housekeeping, not a move.
+
+This reader leans to *not a turn*, for the second reason.
+
+**RULED 2026-09-17 — a clear IS a turn.** Joel: *"yes, it uses a turn and it
+can't be played in turn-by-turn coop."* Recorded in §6's letterboxed row. The
+two halves are not in tension: it takes a turn wherever it can be played, and
+turn-by-turn coop is the one place it cannot.
+
+### 14.9 SUGGEST — the skeleton could name the read index too
+
+letterboxed and setgame both carry `create index … on <game>.events (game_id,
+id)`, which is the index an `order by id` read within one game wants. The older
+seven have `(game_id)` or nothing. If the skeleton guard in §11 names that
+index, the seven get it in their phase and the shape stays uniform.
+
+### 14.10 SUGGEST — a stale name in `common.sql`
+
+The rotation header comment in `supabase/sql/common.sql` (the block that says
+the two pointers *"coexist deliberately"*) calls scrabble's pointer function
+`scrabble._advance_turn`. It is `scrabble._advance_seat`. Fix it in whichever
+phase touches that block; scrabble-ai-players.md §6 may retire the function
+anyway.

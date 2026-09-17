@@ -9,6 +9,10 @@ This is where the task that started the whole conversation finally lands:
 `history-always-available`, which was §3's next area and is now phase B of this
 plan. Its old row in [app-audit.md](app-audit.md) §3 points here.
 
+> **Review notes at the end of this file (§F) — read them before starting
+> either phase.** They are feedback from a second reader, not rulings. One is a
+> game this plan never mentions.
+
 ## A. The vocabulary — `turn-log` → `event-log`
 
 A row is an **event** and the table is `events`, so a component called
@@ -178,7 +182,29 @@ Whether the right name is `canOpenHistory` (what the call sites ask) or
 becomes openable — which B.2 answers: it does. Decide the name in this phase,
 with the seven call sites in front of you.
 
-## C. Verification
+## C. wordiply gets a viewer
+
+**Ruled 2026-09-17** (§F.1). wordiply is the one log game with no turn-history
+viewer at all — no `lib/history.ts`, no `#N` — and it stays that way through
+phase B, which re-keys viewers that exist. Joel wants it anyway, for consistency
+rather than for use: *"for UI consistency, though, it will get it, even if its
+pretty much useless."*
+
+It is genuinely new work, not a re-keying:
+
+- a new `src/wordiply/lib/history.ts` — the board at row N, folded from the
+  `valid` rows up to that id (five slots, so the "board" is the first N accepted
+  words);
+- `TurnLogNumber` gains its `#N` and `onShowHistory` in wordiply's
+  `GameTurnLog.tsx`, which passes neither today;
+- the game's `PlayArea` wires `useHistoryViewer` and a `<HistoryBanner>` label,
+  neither of which it has.
+
+**This phase may be deferred past all three plans** without holding anything up
+— it is the only one that may. Joel: *"this can be after-these-plans if that
+makes sense."*
+
+## D. Verification
 
 **An e2e that a realtime subscription is live.** Joel: *"an e2e for
 realtime-subscription-is-live seems like a great idea."* The frontend subscribes
@@ -196,11 +222,128 @@ Otherwise: every game's `PlayArea` and `GameTurnLog` tests, the `turn-log` folde
 tests renamed with their subjects, and the board-geometry baseline left alone (it
 is gitignored and unrelated).
 
-## D. Open
+## E. Open
 
 1. **`boardIsShown`'s new name** (§B.5).
-2. **Whether a compete log offers `#N` on an opponent's row mid-game** — it
-   cannot resolve (the row is hidden), so the handle should be absent rather than
-   dead; confirm that is the behavior wanted rather than a disabled number.
+2. ~~**Whether a compete log offers `#N` on an opponent's row mid-game.**~~
+   **MOOT, ruled 2026-09-17** (§F.7): the row never renders, so there is nothing
+   to put a handle on.
 3. **The `<HistoryBanner>` label's wording** for someone else's board — "moth's
    board · GUESS 3"? Sketch it before the phase, not during.
+
+## F. Review notes — 2026-09-17 (FEEDBACK, not rulings)
+
+**What this section is.** A second reader (Claude Fable) checked this plan
+against the code on 2026-09-17, before either phase started. The tags mean the
+same as in [events.md](events.md) §14: **WRONG** is a false claim about the
+code, verified at the file named, and the plan text should be corrected before
+building; **ASK JOEL** is a question only he can answer, so ask and do not
+pick; **TRAP** will bite even though the plan is right; **SUGGEST** is
+optional. Line numbers are as of 2026-09-17 and will rot.
+
+### F.1 ASK JOEL — wordiply is not in this plan at all
+
+wordiply has a `GameTurnLog.tsx` and no viewer: no `lib/history.ts`, no
+`TurnLogNumber`, no `#N` (its own docstring says so). §A counts it among the
+eleven logs to rename; §B never names it, and §B.3's table of "ten builders"
+lists ten games without it. app-audit.md's row for `history-always-available`
+records Joel on exactly this: *"setgame and wordiply shouldn't need to be
+different around this stuff."*
+
+So: does phase B give wordiply a viewer? If yes, it is a new snapshot builder
+(a five-slot board at row N, from the `valid` rows up to that id), not a
+re-keying like the other nine, and it belongs in §B.3's table and §D's tests.
+If no, say so in §B so the omission reads as a decision.
+
+**RULED 2026-09-17 — yes, and it may come last.** Joel: *"yes; this can be
+after-these-plans if that makes sense. for UI consistency, though, it will get
+it, even if its pretty much useless."* So it is phase C below: real new work, not
+a re-keying, and the only phase in these three plans that may be deferred
+without holding anything else up.
+
+### F.2 WRONG — seven games, and waffle is one of them
+
+§B.1 says *"Six games pass the index of the filtered array"* and lists waffle
+among the games that get it right, *"by accident."* Seven games pass the
+filtered index: connections, letterboxed, psychicnum, stackdown, strands,
+waffle, wordle. waffle is not right by accident; it is the seventh instance of
+the bug plus a mismatch of its own. Its `GameTurnLog` prints `n={s.seq}` (the
+swapper's own count) but passes `onShowHistory(i)` (the filtered position), and
+its comment says as much: *"Identified by POSITION in the log … shown as
+seq."* In compete the printed number and the handle already disagree. Rewrite
+that paragraph: the games that address a row stably today are scrabble (`seq`,
+game-wide) and codenamesduet (`turn_number`); setgame indexes into the
+UNFILTERED list, which is why its handles stay live but is still a position.
+
+### F.3 WRONG — what `turn-log/doc.md` says, and where
+
+§B.2 says the reversed decision lives in setgame's comment *"and any echo of it
+in `turn-log/doc.md`."* There is no echo of the "identity" sentence in
+`doc.md`. What `doc.md` has is the OPPOSITE convention stated as the norm, in
+two places: *"`boardIsShown` is false more often than it looks … the filtered
+list's row 3 is not the board's turn 3"*, and *"scrabble and codenamesduet name
+a turn by a game-wide ordinal, everyone else by its position in the log."*
+Those two passages are what phase B rewrites, along with the `Id` docstring in
+`useHistoryViewer.ts` (*"stackdown's log position"*) and the four builder
+docstrings that say the caller must pass the displayed list (wordle, strands,
+waffle, letterboxed).
+
+### F.4 WRONG — the orderings belong to events.md, and there are more of them
+
+§B.2 says `order by id` *"replaces three different frontend orderings today."*
+Ten hooks order by five columns: `guessed_at` (psychicnum, connections,
+wordiply), `seq` (wordle, scrabble, waffle), `submitted_at` (stackdown),
+`created_at` (strands), `id` (letterboxed, setgame). And events.md §10 puts each
+hook's select and order change in that game's phase, as "data access". Say
+here that by the time this plan starts, every hook already orders by `id`, so
+nobody does it twice or forgets one.
+
+### F.5 TRAP — the history handle is not a number everywhere
+
+§B.3 says the shared hook needs *"a narrower"* shape because *"every game's
+handle becomes the same type."* scrabble's stays an object:
+`useHistoryViewer<HistoryTarget>()` where the target is `{ kind: 'turn'; seq }`
+or `{ kind: 'peerPreview'; … }`, because peer preview rides the same hook. It
+narrows to `{ kind: 'turn'; id }`, not to a number. Also, scrabble's builder is
+`historyBoard` in `lib/play.ts`; it has no `lib/history.ts`, so §B.3's "each
+game's `lib/history.ts`" is nine games and one `play.ts`.
+
+### F.6 WRONG — the e2e rule's citation, and two specs the plan does not list
+
+§D says *"Ask before running any e2e ([docs/testing.md])."* That rule is Joel's
+standing instruction to the assistant; `docs/testing.md` says only that e2e
+needs the local stack and is not part of `npm test`. Keep the rule, fix the
+citation.
+
+Two things to add under §D:
+
+- `e2e/codenamesduet-history.e2e.ts` and `e2e/stackdown-history.e2e.ts`
+  exercise the `#N` handle. When the handle becomes a row id they are the
+  specs most likely to go red, and stackdown's is the one that proves the
+  filtered-index bug is gone. List them.
+- The "subscription is live" spec has precedent in the same folder:
+  `wordwheel.e2e.ts` and `psychicnum-turn-order.e2e.ts` each assert that an
+  update arrives by realtime, not by refetch. The new spec is that shape, once
+  per renamed table. The shared factory to read first is
+  `src/common/realtime/useRealtimeRefetch.ts` (`TableSubscription` is the
+  `{ schema, table, filter }` triple); connections hand-rolls its three
+  `postgres_changes` handlers and is the one to check separately.
+
+### F.7 SUGGEST — §E.2 may answer itself
+
+§E asks whether a compete log offers `#N` on an opponent's row mid-game.
+Mid-game the opponent's rows are RLS-hidden, so they are not in the list the
+log renders; there is no row to put a handle on, live or dead. The only case is
+at terminal, where every row is visible and §B.4 already says the handle opens
+their board. Suggest confirming with Joel that D.2 is moot rather than
+designing a disabled number for a row that never renders.
+
+**RULED 2026-09-17 — moot.** Joel: *"in a compete game, how would we even KNOW
+there was a row to number?"* We would not: RLS filters the opponent's rows out of
+the query result, so the client holds no row, no placeholder and no count, and
+the log renders only what it has. There is never a row needing a handle that
+cannot work. (The one degenerate exception, recorded so nobody rediscovers it as
+a leak: with `bigint identity` ids a player could notice GAPS in their own ids
+and infer that somebody wrote something in between. It needs devtools to see and
+nothing in this design reads or exposes it — the trust model's "friends, not
+strangers" covers it.) §E.2 is struck.
