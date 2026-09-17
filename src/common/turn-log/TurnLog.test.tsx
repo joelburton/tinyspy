@@ -5,10 +5,10 @@
  *
  * One behavior, and it is the one a caller can silently break: the panel snaps
  * its box to the newest row when the log GROWS, and leaves the scroll alone on
- * any other render. Six games used to pass the rows array, which is a fresh
- * object every render, so a game with a clock re-snapped the log once a second
- * and scrolling back was impossible. `entryCount` is a number so that an
- * unchanged log compares equal and the effect doesn't run.
+ * any other render. Key the snap on the rows array instead — a fresh object every
+ * render — and a game with a clock re-snaps the log once a second, so scrolling
+ * back is impossible. `entryCount` is a number so that an unchanged log compares
+ * equal and the effect doesn't run.
  *
  * jsdom does no layout, so `scrollHeight` is 0 — the snap is observable as
  * "scrollTop was put back to 0", which is all this needs to tell the two cases
@@ -26,10 +26,9 @@ const rows = (n: number) =>
     </tr>
   ))
 
-/** The scroll box — the panel's second child, under the heading row. (It was
- *  `section > div` until the heading row stopped being conditional; that selector
- *  then picked up the HEADER, and the first spec below passed for the wrong
- *  reason because a header never scrolls.) */
+/** The scroll box — the panel's SECOND child, under the heading row. A bare
+ *  `section > div` would pick up the heading row instead, and the first spec below
+ *  would then pass for the wrong reason, because a header never scrolls. */
 const box = (c: HTMLElement) =>
   c.querySelector('section > div:nth-of-type(2)') as HTMLDivElement
 

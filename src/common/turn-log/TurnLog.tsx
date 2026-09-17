@@ -17,12 +17,12 @@ import history from './historyViewer.module.css'
  *
  * **The panel owns no row.** Its children ARE the `<tr>`s the game renders, built
  * from this folder's atoms (`<TurnLogBar>`, `<TurnLogNumber>`, `<TurnLogActor>`)
- * and the sizing/emphasis classes in `TurnLog.module.css`. The only shared
+ * and the sizing/emphasis classes in `gameTurnLog.module.css`. The only shared
  * contract is "a turn-log item is a `<tr>` inside this table" — doc.md says why.
  *
  * **Pass the picker itself**, not its pieces: the dropdown on the heading row,
  * the empty state and its wording all come out of `useTurnLogPlayerPicker`, and
- * every game wired the same three by hand until they didn't (doc.md → Details).
+ * the panel draws both itself, so there is nothing to wire (doc.md → Details).
  *
  *     const turnLogPicker = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
  *     const shown = turnLogPicker.filter(rows)
@@ -44,7 +44,7 @@ export function TurnLog({
   // The entries on show — whatever the game will render as rows. The panel reads
   // only its LENGTH: empty when it is 0, and the scroll-to-newest key otherwise.
   // Taking the list rather than a count is what makes the count impossible to
-  // mis-wire (a fresh array every render used to re-snap the log every second).
+  // mis-wire: a fresh array as the key would re-snap the log on every render.
   shown: readonly unknown[]
   // Override for a game whose log grows by something other than one per entry.
   // codenamesduet is the case: an entry there is a TURN, and guesses land inside
@@ -55,10 +55,10 @@ export function TurnLog({
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
 
-  // Snap the box to the latest row whenever the log grows — same UX as ChatBody.
-  // Simple: doesn't preserve a manual scroll-up (rarely felt, since the player is
-  // usually watching their own action land). A render that adds no entry leaves the
-  // scroll where the player put it.
+  // Snap the box to the latest row whenever the log GROWS — same UX as ChatBody.
+  // Growth wins over a manual scroll-up (rarely felt, since the player is usually
+  // watching their own action land); any other render leaves the scroll where the
+  // player put it, which is why the key is a count and not the rows.
   useEffect(
     function scrollToLatest() {
       const el = boxRef.current
@@ -171,6 +171,12 @@ export function TurnLogNumber({
   )
 }
 
+/**
+ * The turn-log **"who" cell** — the right-aligned `<td>` (the `.who` column, which
+ * shrinks to its content so the discs line up down the log) wrapping the shared
+ * `<ActorDot>`. Every game's row ends this way, so the column and the tag are
+ * single-sourced together. Props forward straight to `<ActorDot>`.
+ */
 export function TurnLogActor(props: ComponentProps<typeof ActorDot>) {
   return (
     <td className={styles.who}>

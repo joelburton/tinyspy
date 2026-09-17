@@ -41,7 +41,7 @@ export type TurnLogPlayerPicker<R extends ActorRow> = {
  *
  * The aggregate comes first and is the default everywhere EXCEPT compete — there
  * each player has their own board, so your own log is the thing you came to read
- * (`competeSharesOneGame` opts scrabble back out of that). The per-player entries
+ * (`competeSharesOneGame` opts a one-board race back out of that). The per-player entries
  * are for pulling one thread out of the whole: "what did Leah actually play?".
  * Everyone is named by handle, you included. doc.md → Details says why all six
  * results travel together rather than being re-derived per game.
@@ -64,9 +64,10 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   mode: 'coop' | 'compete'
   // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
   isTerminal: boolean
-  // True when compete is still ONE shared game. scrabble's race is turn-based on a
-  // single public board, so `All` is literally what you're looking at and the dropdown
-  // defaults there; the per-player entries are the extra ("just my own plays").
+  // True when compete is still ONE shared game — a race on a single public board
+  // (scrabble's turn-based race, setgame's contended board), so `All` is literally
+  // what you're looking at and the dropdown defaults there; the per-player entries
+  // are the extra ("just my own plays").
   competeSharesOneGame?: boolean
   // Override for a game whose rows aren't "turns" (wordle says "guesses").
   label?: string

@@ -431,7 +431,7 @@ src/codenamesduet/
                           fire while typing a clue.
     GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
                           codenamesduet renders its OWN rows (row anatomy is the
-                          game's — see ui.md → Turn log): a TWO-<tr> turn per
+                          game's — see playarea.md → Turn log): a TWO-<tr> turn per
                           turn_number (grouped client-side). Row 1 = real columns
                           [<TurnLogBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
                           history handle, keyed by turn_number — click to replay that

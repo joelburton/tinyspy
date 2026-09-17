@@ -103,8 +103,8 @@ a second name for a list that already exists and a narrower one — and it was
 load-bearing in the wrong direction: `warning` being unsayable in a log is why
 several games logged a hint as `near`, so their logs and their pills said
 different words about the same turn. `TurnLog.module.css` carries a bar class
-per outcome. Which games still owe that correction is in
-[`src/common/turn-log/todo.md`](../src/common/turn-log/todo.md).
+per outcome. Where games still log help as `near`, and why that is not fixed
+word by word, is in [`src/common/turn-log/todo.md`](../src/common/turn-log/todo.md).
 
 ### Boards and tiles
 

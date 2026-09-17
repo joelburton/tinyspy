@@ -4,9 +4,8 @@
  * Tests for <HistoryBanner> — the viewer's "you are looking at a past turn" strip.
  *
  * Its whole contract is three things, and the ✕ is the one nothing else covers:
- * the six `*-history.e2e.ts` exercise the keystroke and the click-away exits, but
- * none of them clicks the ✕. It was hand-written in nine games until this
- * component took it over, which is exactly how a control ends up untested.
+ * the `*-history.e2e.ts` specs exercise the keystroke and the click-away exits,
+ * and none of them clicks the ✕.
  */
 
 import { render, screen } from '@testing-library/react'
@@ -34,7 +33,7 @@ describe('HistoryBanner', () => {
     const onExit = vi.fn()
     render(<HistoryBanner label="Cleared CLEAR" onExit={onExit} />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Exit viewing' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Exit history' }))
 
     expect(onExit).toHaveBeenCalledTimes(1)
   })

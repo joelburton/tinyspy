@@ -510,7 +510,7 @@ pill.
   order, so an ambiguous letter can't pick for you). No match shows a local
   **error** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
   ("N 'X' tiles are on top — click one") AND briefly outlines the candidate tiles
-  in red (a `highlight` set passed to `Board`). Keys aimed at chat or an input
+  in red (an `ambiguousTiles` set passed to `Board`). Keys aimed at chat or an input
   never reach an action at all — that gate is the dispatcher's.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)

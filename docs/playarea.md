@@ -395,20 +395,24 @@ consistent without imposing structure:
   than a structural `:has()` selector — readability over cleverness. Single-row
   turns carry neither.
 - **Column-sizing classes** — a small model for a row's cells: an optional
-  `<TurnLogBar>` (col 0), an optional **`.meta`** (a turn number — muted, shrinks,
-  space-free so it never wraps), one or more content columns, and **`.who`**
-  (right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column
+  `<TurnLogBar>` (col 0), an optional **`<TurnLogNumber>`** (the turn number —
+  muted, shrinks, never wraps; a live handle or a plain number, see the viewer
+  below), one or more content columns, and **`<TurnLogActor>`** (the who cell:
+  right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column
   is **`.main`** (`width: 100%` — it absorbs the row's slack so it's least likely
   to wrap; put it where the gap should land, typically the last content cell
-  before `.who`); any other content columns are **`.other`** (sized to fit, one
+  before the actor); any other content columns are **`.other`** (sized to fit, one
   line). These carry **sizing only, no emphasis** — compose a look on top (e.g.
-  `cls(turnLog.other, turnLog.primary)` for a bold word). The slack lives in
-  `.main`, **not** `.who` — a `width: 100%` on `.who` would steal it and wrap a
-  sibling (the connections "Not a match" bug).
-- **Emphasis class** — `.primary` (the bold lead value) — plus the shared
-  [`<ActorDot>`](ui.md#player-identity--a-colored-disc) for the actor (name + identity
-  disc). Bare names, read as `turnLog.primary` (namespaced by the import alias).
-  Reach for an existing class/component before inventing one.
+  `cls(gameTurnLog.other, gameTurnLog.primary)` for a bold word). The slack lives
+  in `.main`, **not** the who cell — a `width: 100%` there would steal it and wrap
+  a sibling (the connections "Not a match" bug).
+- **Emphasis classes** — `.primary` (the bold lead value) and `.muted`
+  (de-emphasized text inside a row: "(no guesses)", a `Hint:` label) — plus the
+  shared [`<ActorDot>`](ui.md#player-identity--a-colored-disc) for the actor (name +
+  identity disc). The game-side classes live in `gameTurnLog.module.css` under
+  bare names, read as `gameTurnLog.primary` (namespaced by the import alias); what
+  the atoms draw themselves is `TurnLog.module.css`, which no game imports. Reach
+  for an existing class/component before inventing one.
 - **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
   frame, not a hairline) that stays the same height whether empty or full and
   auto-snaps to the newest row; the table scrolls inside it.
@@ -443,12 +447,12 @@ row read as a different *kind* of thing from everyone else's; a list of handles 
 one list. You're still ordered first.
 
 Six things travel with the hook, and re-deriving any of them per game is how they
-drift: the `<select>`, its default selection, the aggregate label (mode-dependent),
+drift: the dropdown, its default selection, the aggregate label (mode-dependent),
 the row filter, whether `#N` may be a live history handle, and the empty-state
 wording. **The panel takes the hook's result whole** — `<TurnLog picker={turnLogPicker}
 shown={shown}>` — rather than being handed the control and the wording
 separately, so there is one way to wire it and nothing to get out of step. What
-stays the game's is `shown`: nine build it with `who.filter`, scrabble filters by
+stays the game's is `shown`: most build it with `turnLogPicker.filter`, scrabble filters by
 hand (a bot's play has `user_id: null`), and codenamesduet filters turn numbers
 rather than rows. Two of the six need care:
 
@@ -463,10 +467,10 @@ rather than rows. Two of the six need care:
   replaying the wrong turn. scrabble and codenamesduet address a turn by `seq` /
   `turn_number` instead, so filtering can't misaddress them and they ignore it.
 
-Two games bend the defaults, both documented at their call site:
+Some games bend the defaults, each documented at its call site:
 
-- **scrabble** passes `competeSharesOneGame` — even its compete race happens on
-  one public board, so `All` is what you're actually looking at. It also makes
+- **scrabble and setgame** pass `competeSharesOneGame` — their compete race
+  happens on one public board, so `All` is what you're actually looking at. scrabble also makes
   **AI seats pickable people**, keyed by the synthetic `ai:<seat>` id (a bot's
   play has `user_id: null`).
 - **codenamesduet** files a turn under its **clue-giver** — the person the row's
@@ -598,10 +602,10 @@ looks identical everywhere:
   (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
   box — a single small handle stays crisp regardless. It's a `<span>`, not a
   `<button>` (a focused button re-fires its click on Space, and Space is a viewer
-  exit), and it carries `data-turn-number` so the click-to-exit handler can tell
-  "select a turn" from "click away."
+  exit), and it carries `data-history-handle` so the click-to-exit handler can tell
+  "open a turn" from "click away."
 - **The framed board.** While viewing, the board wears the shared
-  `historyViewer.module.css → .frame` (a "viewing" outline in the history blue +
+  `historyViewer.module.css → .historyFrame` (a "viewing" outline in the history blue +
   banner, input frozen to the eye — it stays mounted underneath, so an in-progress
   entry survives) and the open turn's `#N` wears `.historyNumber` (the matching ring).
   `.historyFrame` also sets `pointer-events: none`, so a board click falls through to the
@@ -611,7 +615,7 @@ looks identical everywhere:
   handle, which switches turns) are intrinsic to the hook — a game wires neither.
   The third is the banner **✕**, which `<HistoryBanner>` draws and the game points
   at `exitHistory`.
-- **On a phone, opening a turn leaves the info page.** `select` clears the info-sheet
+- **On a phone, opening a turn leaves the info page.** `showHistory` clears the info-sheet
   flag (`setInfoSheetOpen(false)`) as well as setting the viewed turn, because below
   the breakpoint the `#N` handle lives in the turn log — which is *on* the off-canvas
   info page, while the board it replays is on the other one. Without it the viewer
@@ -848,23 +852,25 @@ adding a viewer to a new game:
   column added to its two-`<tr>` log.
 - **wordle** — keyed by **log position**; **inclusive / add-style**: the snapshot
   (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed in the
-  history blue (`Board` gains `isViewingHistory` + `highlightRow`). Twist: the log has a
+  history blue (`Board` gains `isViewingHistory` + `historyLitBoardRow`). Twist: the log has a
   **"whose board" picker**, so the `#N` handle is a live control ONLY when the log shows
   the board that replays (coop team / my own — the picker's `boardIsShown`); an
   opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
 - **psychicnum** — keyed by **log position**; add-style; the guessed tile shows its
   green/red outcome color + a ring in the history blue.
+- **strands** — keyed by **log position**; **inclusive** fold over the rows so far;
+  `historyLitTiles` = the viewed word's tiles, ringed in the history blue.
 - **codenamesduet** — keyed by **`turn_number`** (game-wide ordinal, like scrabble's
   `seq`, not log position); the snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
   (the guess is a board click; `CluePanel` keeps the clue RPCs).
-- **waffle** — keyed by **log position**; `highlight` = a viewed swap's neutral cell ring.
+- **waffle** — keyed by **log position**; `historyLitTiles` = a viewed swap's neutral cell ring.
 - **setgame** — keyed by **log position**, and the one viewer that is a pure
   **lookup**: the event row carries `board_after`, so `lib/history.ts` reads the
   board out rather than replaying anything. Deliberate — replaying setgame's
   deal rule on the FE would be a second implementation of the subtlest logic in
-  that game, with nothing testing that the two agree. `highlight` = the viewed
+  that game, with nothing testing that the two agree. `historyLitCards` = the viewed
   event's own cards, which for a hint row is one, two or three of them.
 - **letterboxed** — keyed by **log position**; **inclusive** fold over the event
   stream (`historyChainAt` in `lib/history.ts`: played pushes, undone pops, cleared
@@ -875,7 +881,7 @@ adding a viewer to a new game:
   (`boardIsShown`). **The only game whose frame wraps more than the board**: the
   chain strip and the board are two views of one state (the strip lists the
   words, the board shows which letters they covered), so `BoardCol` groups them
-  in a `.snapshot` box and puts `.historyFrame` on that. Framing just the board left the
+  in a `.historyFramed` box and puts `.historyFrame` on that. Framing just the board left the
   strip live while the board rolled back — the two then showed a combination that
   never existed. One box rather than two also avoids stacking `.historyFrame`'s 3px-offset
   outlines a few pixels apart. Row COUNT for the strip still comes from the LIVE
@@ -941,12 +947,12 @@ already knew. Drift here causes real head-scratching.
     instead because its condition is *broader* (per-player-board race: solved / out of
     swaps / conceded); the different name flags the different meaning. Don't "unify"
     these — the split is the point.
-  - **Deliberate, documented divergences** (same idea, different name because the
-    meaning genuinely differs): `historyId` (log position — stackdown/waffle) vs
-    `historyId` (stable turn `seq` — scrabble, which `historyBoard` indexes by);
-    `greenTiles`/`green` (a viewed turn's played-word ring, colored green — stackdown)
-    vs `highlight` (a viewed swap's neutral cell ring — waffle). Both aliases of the
-    shared history hook's neutral `historyId`.
+  - **Same name, different id, on purpose:** `historyId` is a log position in
+    most games and a stable `seq` / `turn_number` in scrabble / codenamesduet. The
+    hook is generic over `Id`, so the name is shared and what it indexes is each
+    game's `lib/history` (scrabble's `historyBoard`). The viewed turn's marks are
+    `historyLit…` everywhere — `historyLitTiles` in stackdown and waffle alike,
+    whatever color each game rings them in — never a name for the color.
   - **Snapshot ownership is NOT uniform, on purpose.** stackdown/waffle compute the
     historical board in PlayArea and hand a ready board *down* (the load-bearing
     contract); scrabble's fat BoardCol takes the raw `plays` + `historyId` and runs
@@ -1041,9 +1047,9 @@ extracting `InfoCol`/`BoardCol` for the next game.
   Three exits, all shared: (1) a **keystroke** — the hook binds `act-exit-history`,
   whose any-key wildcard consumes the press while a turn is open; (2) a **click
   anywhere** — a document-level listener *inside the hook* that exits on any click
-  except one on a `#N` handle (`[data-turn-number]`, which selects that turn); (3)
+  except one on a `#N` handle (`[data-history-handle]`, which opens that turn); (3)
   the banner **✕** (the shared `<HistoryBanner>`). For the click path to also cover
-  the board, `historyViewer.module.css → .frame` sets `pointer-events: none` (a framed board is
+  the board, `historyViewer.module.css → .historyFrame` sets `pointer-events: none` (a framed board is
   a read-only snapshot), so a board click falls through to the document listener.
   Verified in a real browser (`e2e/codenamesduet-history.e2e.ts` exercises Space, a
   board click, and an info-column click).

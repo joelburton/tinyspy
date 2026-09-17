@@ -188,7 +188,7 @@ it can't quietly stop being true.
 viewer re-ring a past hint exactly as it looked; the word is withheld because a
 hint has never said it, and the log is the one place that would outlive the
 on-board ring being retired. They go to `HistorySnapshot.hintCoords`, kept separate
-from `highlight` so the board draws them as *rings with no connecting line* —
+from `historyLitTiles` so the board draws them as *rings with no connecting line* —
 replaying a hint as a traced route would show an order the hint never gave.
 
 The one thing this discloses that nothing else did: **the location of a hinted

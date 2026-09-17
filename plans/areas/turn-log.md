@@ -4,18 +4,20 @@ The folders it reads: `turn-log`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN, audited 2026-09-16.** Roster agreed (Joel: *"audit this area"*)
-and stamped `cs-met-turn-log`; every file read, and the docs and games around it
-read as evidence. Twenty-two findings — seventeen from the audit, and F-18, F-20,
-F-21 and F-22 found afterwards, by Joel reading the work and by the re-read of
-this file against it.
+**Status: OPEN, audited 2026-09-16, re-read 2026-09-16.** Roster agreed (Joel:
+*"audit this area"*) and stamped `cs-met-turn-log`; every file read, and the docs
+and games around it read as evidence. Thirty-one findings — seventeen from the
+audit; F-18, F-20, F-21 and F-22 found afterwards, by Joel reading the work and
+by the re-read of this file against it; and F-23 … F-31 from the closing re-read
+([below](#the-closing-re-read)), eight of them this area's own findings standing
+in a sibling file.
 
 | | |
 |---|---|
-| **worked** (17) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-21 · F-22 |
+| **worked** (26) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-21 · F-22 · F-23 … F-31 (the closing re-read) |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
 | **skipped** (3) | F-12 → `z-index` · F-17 → `outcome-fix` · F-20 → `history-always-available` — each caused or helped cause the area it went to (plan §3 rows 41, 40, 39) |
-| **open** (0) | — every finding is worked, closed or skipped |
+| **open** (0) | — every finding is worked, closed or skipped; only the blessing remains |
 
 ## The roster
 
@@ -381,8 +383,9 @@ Options: (1) `var(--z-board)` — the banner is part of the play surface;
 (2) measure whether anything under it is positioned with a z-index at all and
 drop the declaration if not; (3) leave. Recommend (2) then (1): measure first.
 
-**SKIPPED 2026-09-16 — it belongs to the `z-index` area, scheduled next (plan
-§3 row 39) out of this finding.** The measuring was done, and it overturned the
+**SKIPPED 2026-09-16 — it belongs to the `z-index` area, scheduled out of this
+finding (plan §3 row 41 — it was row 39 until `history-always-available` and
+`outcome-fix` were inserted ahead of it).** The measuring was done, and it overturned the
 recorded recommendation, which is why the finding could not be worked here:
 
 - **`var(--z-board)` would have been wrong.** `base.css` rules that layering
@@ -403,7 +406,7 @@ recorded recommendation, which is why the finding could not be worked here:
 - **The audit it produced** — 38 declarations across `src/`, six on a rung,
   thirty legitimate locals, and two real offenders (the drag ghost at `1000` in
   bananagrams and `100` in scrabble, one element at two numbers, with
-  `--z-ghost` waiting) — is written into the plan's row 39 so the area starts
+  `--z-ghost` waiting) — is written into the plan's `z-index` row so the area starts
   from it. One live defect was fixed on the way past: `dragGhost.module.css`
   pointed at `docs/css-audit.md`, which does not exist.
 
@@ -583,7 +586,8 @@ strands' `neutral` case decided in the same pass; (2) each game at its own
 area; (3) leave. Recommend (1).
 
 **SKIPPED 2026-09-16 — it belongs to the `outcome-fix` area, scheduled out of
-this finding at plan §3 row 39, ahead of `z-index`.** Joel refused the shape the
+this finding at plan §3 row 40 (row 39 until `history-always-available` went in
+ahead of it), ahead of `z-index`.** Joel refused the shape the
 options offered: *"i don't want this to be anything like a search-and-place of
 'near' to 'warning'."* The rule instead:
 
@@ -1143,6 +1147,160 @@ With the row unconditional, that selector returns the HEADER, and "leaves a
 scrolled-up box alone" was asserting that a header does not scroll. The helper
 takes `:nth-of-type(2)` now, and the planting was redone against the fix.
 
+## The closing re-read
+
+Done 2026-09-16, after F-22, in one sitting: every roster file top to bottom, then
+one grep per worked finding over the folder, the ten games' log and column files,
+the six `*-history.e2e.ts`, `docs/` and the three guards that name the folder —
+the method [[feedback_reread_checks_siblings_for_the_same_defect]] describes.
+Nine findings, and the pattern held for the fifth area running: **eight of the
+nine are this area's own findings standing in a file next door**, most of them in
+prose the area wrote the same day. F-16 (the stylesheet split) left the most
+behind, F-19 (the history names) the widest spread.
+
+### F-turn-log-23 · `f16-left-its-headers` · The stylesheet split moved six classes and left every header describing the old file
+
+- `TurnLog.module.css`'s own header listed `.primary / .meta / .other / .main /
+  .who` as this file's bare content classes — four of the five are in the other
+  file and `.meta` exists nowhere — and said "the `.divider` line … below" twice.
+  Its whole "Content library" block (the column-sizing model, `.meta`,
+  `cls(turnLog.other, turnLog.primary)`) still sat above `.who`, the one class
+  left, nearly verbatim the header `gameTurnLog.module.css` already carries.
+  `TurnLog.tsx`'s docstring sent a reader to "the sizing/emphasis classes in
+  `TurnLog.module.css`".
+- The games: codenamesduet (its `GameTurnLog.module.css` header and a JSX
+  comment), scrabble (docstring) and waffle (docstring and stylesheet header)
+  described a `.meta` column and a `.who` class a game writes — five sites naming
+  a class that no longer exists.
+- `docs/playarea.md` → Turn log: the column-sizing bullet had `.meta` and `.who`
+  as classes a game composes, and the alias `turnLog.` twice where every game
+  imports `gameTurnLog`.
+
+**WORKED 2026-09-16.** The header says what the file holds and points at the
+other file for the rest; the duplicated block is gone and `.who` has a section
+rule like the other atoms; the five game sites name `<TurnLogNumber>` and
+`<TurnLogActor>`; playarea.md's row model lists the two atoms and puts `.muted`
+beside `.primary`.
+
+### F-turn-log-24 · `f22-left-headeraction` · The prop F-22 deleted, still explaining the heading row
+
+`TurnLog.module.css` explained the heading row as the one "a `headerAction`
+renders into"; `playarea.md` → Whose turns? said the games build `shown` with
+`who.filter` (the local is `turnLogPicker`, by F-22's own ruling) and called the
+dropdown "the `<select>`" it deliberately is not; `docs/games/wordle.md` described
+a `<TurnLog headerAction>` slot and a "You" label the picker stopped drawing on
+2026-08-02.
+
+**WORKED 2026-09-16.** All four.
+
+### F-turn-log-25 · `f19-left-viewer-names` · Names F-19 renamed, still standing in prose
+
+`viewer.select(id)` in `doc.md`'s render tree and `select` in playarea.md's phone
+paragraph; the spec title `select opens a turn` (the string-literal restore F-19
+records put the OLD title back); `data-turn-number` twice and
+`historyViewer.module.css → .frame` twice in playarea.md — one bullet named
+`.frame` and `.historyFrame` three lines apart; `highlightRow` and `highlight` (×2)
+in the per-game section and letterboxed's `.snapshot` box; the "deliberate
+divergences" bullet under Prop conventions, whose two examples (`green` vs
+`highlight`) are both `historyLitTiles` now, so it documented a divergence that
+no longer exists; `useHistoryViewer.ts`'s `historyId` comment ("wire to the turn
+log's highlight"); `deferred.md`'s dismiss item naming `historyViewer .bannerExit`;
+and in the game docs, `strands.md`'s `highlight` (now `historyLitTiles`) and
+`stackdown.md`'s `highlight` for the live ambiguous-pick flash (now
+`ambiguousTiles`), plus `waffle.md`'s pre-reorg path to this folder's stylesheet.
+
+**WORKED 2026-09-16.** Every site, and the divergences bullet rewritten as what IS
+true: same name, different id, and the marks `historyLit…` everywhere whatever
+color a game rings them in.
+
+### F-turn-log-26 · `f14-left-the-game-drawing-the-x` · Two sentences still had the game drawing the ✕
+
+`doc.md`'s intro: the ✕ "is the game's own button calling the hook's
+`exitHistory`"; `useHistoryViewer`'s docstring: "which the game draws and points
+at `exitHistory`". `<HistoryBanner>` draws it; the game places it. And `doc.md`
+said every viewer game has a `lib/history.ts` — scrabble's builder is
+`historyBoard` in `lib/play.ts`, which F-19 had already had to rename there.
+
+**WORKED 2026-09-16.**
+
+### F-turn-log-27 · `turnlogactor-docstring-dropped` · F-15's fold lost a docstring
+
+`TurnLogActor.tsx` had a docstring; folding it into `TurnLog.tsx` kept the
+function and dropped the block, so it was the one export in the file without one.
+
+**WORKED 2026-09-16.** Restored, and it now says why the column shrinks (the discs
+line up down the log) rather than only what it wraps.
+
+### F-turn-log-28 · `the-one-that-is-two` · `competeSharesOneGame` is documented as scrabble's alone
+
+The hook's docstring: "opts scrabble back out of that"; the param comment explains
+only scrabble's race; `playarea.md`: "Two games bend the defaults". setgame passes
+it too, and its call site says why (a contended board is one shared game). This
+file's own "What checked out" knew of two readers.
+
+**WORKED 2026-09-16.** The condition is named (a race on one public board) and
+both games with it.
+
+### F-turn-log-29 · `archaeology-written-this-week` · Sentences about how it used to be, all written by this area
+
+`TurnLog.tsx` ("wired the same three by hand until they didn't"; "used to re-snap
+the log every second"), `HistoryBanner.tsx` ("the specs matched `[title=…]` until
+the title went"), `historyViewer.module.css` ("Replaces an earlier whole-row
+outline"), `TurnLog.test.tsx` (the helper's "It was `section > div` until…" and
+the header's "Six games used to pass the rows array"), `HistoryBanner.test.tsx`
+("hand-written in nine games until this component took it over"). Each was
+written while working F-9, F-10, F-14 or F-22 — the rationale-in-a-docstring rule
+the process says the closing pass exists for.
+
+**WORKED 2026-09-16.** Each says the present-tense fact instead — what a
+fresh-array key DOES, why the selector is `:nth-of-type(2)`, that the e2e specs
+never click the ✕ — and the record of what was is this file.
+
+### F-turn-log-30 · `exit-viewing-aria-label` · The banner's ✕ says "viewing"
+
+`HistoryBanner`'s ✕ carries `aria-label="Exit viewing"` — the word F-19 ruled out
+of every history name — and it is read as the handle by its own spec and by
+waffle's and scrabble's PlayArea specs (`getByLabelText('Exit viewing')`, six
+lookups in four files). Options: (1) `Exit history`, the label and the six
+lookups; (2) leave — an aria-label is a test handle and player-facing text, not a
+name, and F-19's rule was stated for props, state, classes, tokens and the
+binding. Recommend (1): a spec finds the ✕ by what it says, which is the argument
+for it saying what the thing is.
+
+**WORKED 2026-09-16, option (1)** — Joel: *"'Exit history' is fine."* The
+attribute and the six lookups (its own spec, waffle's and scrabble's PlayArea
+specs); nothing else in `src/` or `e2e/` carried the string.
+
+### F-turn-log-31 · `counts-and-rows` · Four claims that were true when typed
+
+`gameTurnLog.module.css`: "read by eleven games" (a tally). This file's F-12 and
+F-17 both cite "plan §3 row 39" — true when written, wrong once
+`history-always-available` was inserted ahead of both (41 and 40 now; the status
+table had them right and the findings did not). `playarea.md`'s per-game viewer
+section listed nine of the ten games (no strands). `outcomes.md` promised "which
+games still owe that correction" is in the todo, which since `b4bb0968` says
+explicitly it is not a list.
+
+**WORKED 2026-09-16.** The condition instead of the count; the rows corrected,
+with a note that they moved; strands' row added; outcomes.md's sentence says what
+the todo holds.
+
+### What the greps came back clean on
+
+`act-exit-viewer`; the eight old viewer spellings and the old class and token
+names; `scrollKey`, `emptyText=`, `headerAction` (in `src/`); a `TurnLogActor.tsx`
+import; the two tooltip strings; `Turn-history:` where the name now says it (the
+five left are section headers in prose); "yellow" (only the legitimate ones —
+waffle's flash, spellingbee's center, and the stylesheet paragraph on why the
+frame is NOT yellow); pre-reorg paths for this folder (the one in
+`docs/games/waffle.md` is fixed under F-25); `/**` on a member anywhere in the folder; every date in the
+area's files against `git log` (58 commits dated 2026-09-16, none ahead of it);
+and the stamps — every file in the folder carries `cs-met-turn-log`, the three
+this area wrote included. Left as they are: the ref-sync effect is still bare
+(F-13's ruling), and `deferred.md`'s "19 importers" for `historyViewer.module.css`
+is a count that will rot, but it illustrates the naming rule in game-page's item
+rather than deciding anything, so it was not re-measured here.
+
 ## What checked out
 
 - The `<span>`-not-`<button>` rule for `#N` is the same in `TurnLog.tsx`, the
@@ -1195,8 +1353,9 @@ allowlist line that went stale when a fix landed.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group — with the
-      effect-name grep over every file touched
+- [x] the whole area re-read in one sitting after the last group — with the
+      effect-name grep over every file touched (2026-09-16, F-23 … F-31; the
+      greps that came back clean are listed under the re-read)
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (the
       prose pass, 2026-09-16)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file

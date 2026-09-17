@@ -21,8 +21,7 @@ import styles from './historyViewer.module.css'
 export function HistoryBanner({ label, onExit }: { label: ReactNode; onExit: () => void }) {
   return (
     // `data-history-banner` is the spec handle (the repo's `[data-board]` /
-    // `[data-cell]` convention). The specs matched `[title="Click to exit"]`
-    // until the title went, which is a brittle way to find anything.
+    // `[data-cell]` convention), so no spec has to match the label's wording.
     <div className={styles.historyBanner} onClick={onExit} data-history-banner>
       <span className={styles.historyBannerLabel}>{label}</span>
       <button
@@ -34,7 +33,7 @@ export function HistoryBanner({ label, onExit }: { label: ReactNode; onExit: () 
           e.stopPropagation()
           onExit()
         }}
-        aria-label="Exit viewing"
+        aria-label="Exit history"
       >
         ✕
       </button>

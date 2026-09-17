@@ -588,7 +588,7 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
     expect(cell0()).toHaveTextContent('B')
 
     // The ✕ returns to live.
-    await user.click(screen.getByLabelText('Exit viewing'))
+    await user.click(screen.getByLabelText('Exit history'))
     expect(cell0()).toHaveTextContent('A')
     expect(screen.queryByText('#1: D (C1) ↔ C (D1)')).not.toBeInTheDocument()
   })
@@ -599,10 +599,10 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
     render(<WithKeys {...makeCtx({ players: twoMembers })} />)
 
     await user.click(screen.getByText('#2', { exact: true, selector: 'span' }))
-    expect(screen.getByLabelText('Exit viewing')).toBeInTheDocument()
+    expect(screen.getByLabelText('Exit history')).toBeInTheDocument()
 
     await user.keyboard('x')
-    expect(screen.queryByLabelText('Exit viewing')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Exit history')).not.toBeInTheDocument()
   })
 })
 

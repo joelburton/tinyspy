@@ -1,10 +1,10 @@
 /* cs-unmet */
 
 /* waffle-specific bits of the turn log. The panel chrome (heading + scroll box),
- * the row look (outcome bar, divider lines), and the content classes `.meta` (the
- * #N column) + `.who` (the right-aligned actor column) come from the shared
- * common/turn-log/TurnLog (the swapper name + disc is the shared <ActorDot>);
- * only the move cell — "A (A1) ↔ B (C2)" — is waffle's. */
+ * the row look (outcome bar, divider lines), the #N column (<TurnLogNumber>) and
+ * the right-aligned actor column (<TurnLogActor>, wrapping the shared <ActorDot>)
+ * all come from common/turn-log; only the move cell — "A (A1) ↔ B (C2)" — is
+ * waffle's. */
 
 /* A swap is opened on the board viewer by clicking its "#N" handle (the shared
  * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and

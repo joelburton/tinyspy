@@ -27,11 +27,12 @@ The viewer is the other half, and it is one piece of state: which past turn, if
 any, is open on the board. Clicking a turn's `#N` opens it, and three things
 close it again: a keystroke and a click anywhere that isn't another `#N`, both
 built into the hook so a game adopting the viewer wires neither, and the
-banner's ✕, which is the game's own button calling the hook's `exitHistory`.
-What a past board should look like stays the game's business (each one has a
-`lib/history.ts`); what it wears while you are looking at it is this folder's: a
-blue frame around the board, a matching ring on the open `#N`, and an opaque
-banner naming the turn over the game's input area.
+banner's ✕, which this folder's `<HistoryBanner>` draws where the game places it,
+calling the hook's `exitHistory`. What a past board should look like stays the
+game's business (each one has a `lib/history.ts`, or scrabble's `lib/play.ts`);
+what it wears while you are looking at it is this folder's: a blue frame around
+the board, a matching ring on the open `#N`, and an opaque banner naming the turn
+over the game's input area.
 
 Between the two halves sits one question the picker answers: is the log you are
 looking at the same sequence the board would replay? A game that addresses a
@@ -115,7 +116,7 @@ GameTurnLog                           the GAME's file, one per log game
     │                   dropdown (a <FilterSelect>, lists/) and its empty line
     └── children      = the game's <tr>s, built from
           ├── TurnLogBar              the outcome bar cell
-          ├── TurnLogNumber           the #N handle  → viewer.select(id)
+          ├── TurnLogNumber           the #N handle  → showHistory(id)
           └── TurnLogActor            the who cell, wrapping <ActorDot> (members/)
 
 PlayArea                              holds useHistoryViewer — the one flag

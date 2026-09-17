@@ -216,7 +216,7 @@ describe('scrabble PlayArea — render smoke', () => {
     await user.click(screen.getByText('#1'))
     // The banner's compact label, e.g. "#1 me: +10 CAT".
     expect(screen.getByText(/me: \+10 CAT/)).toBeInTheDocument()
-    await user.click(screen.getByLabelText('Exit viewing'))
+    await user.click(screen.getByLabelText('Exit history'))
     expect(screen.queryByText(/me: \+10 CAT/)).not.toBeInTheDocument()
   })
 
@@ -404,7 +404,7 @@ describe('scrabble PlayArea — show a move (coop)', () => {
     )
     // The share banner: "● moth showing: +5 AB".
     expect(screen.getByText(/moth showing: \+5 AB/)).toBeInTheDocument()
-    await user.click(screen.getByLabelText('Exit viewing'))
+    await user.click(screen.getByLabelText('Exit history'))
     expect(screen.queryByText(/moth showing: \+5 AB/)).not.toBeInTheDocument()
   })
 

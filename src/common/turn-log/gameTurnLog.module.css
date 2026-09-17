@@ -1,8 +1,8 @@
 /* cs-met-turn-log */
 
 /* The row vocabulary — what a GAME's `GameTurnLog.tsx` puts on the `<tr>`s and
- * `<td>`s it renders inside a `<TurnLog>`. Lowercase, because it is read by
- * eleven games rather than owned by one component (docs/deferred.md → Common /
+ * `<td>`s it renders inside a `<TurnLog>`. Lowercase, because it is read by every
+ * game with a log rather than owned by one component (docs/deferred.md → Common /
  * architecture: capital means one component's, lowercase means shared).
  *
  * `TurnLog.module.css` is the other half and is NOT this: it holds what

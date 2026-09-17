@@ -7,7 +7,7 @@ import { useBoundAction } from '../actions/useBoundAction'
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
   // The turn currently open on the board (a game-wide `seq`, or a log index), or
-  // null = live. Wire to the turn log's highlight.
+  // null = live. Wire to each `<TurnLogNumber>`'s `isOpenInHistory`.
   historyId: Id | null
   // A ref tracking `historyId`, for stable-closure handlers that must read the
   // current value WITHOUT re-subscribing (e.g. scrabble's board-drag pointerdown,
@@ -39,8 +39,9 @@ export interface HistoryViewer<Id> {
  *
  * Two of the three exits need no wiring at all: a keystroke (the hook binds
  * `act-exit-history`, whose any-key wildcard consumes the press while a turn is open)
- * and a click anywhere that isn't another `#N` handle. The third is the banner's ✕,
- * which the game draws and points at `exitHistory`. doc.md carries the seam.
+ * and a click anywhere that isn't another `#N` handle. The third is the banner's ✕:
+ * the game places `<HistoryBanner>` and hands it `exitHistory`. doc.md carries the
+ * seam.
  */
 export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   const [historyId, setHistoryId] = useState<Id | null>(null)

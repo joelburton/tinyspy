@@ -51,8 +51,8 @@
 }
 
 /* Recolor the frame + banner for scrabble's coop "showing a move" preview — the
- * SAME overlay chrome as history, but with its own tinkerable accent (theme.css →
- * --peer-preview-color). Applied to the board column so the var cascades to both
+ * SAME overlay chrome as history, but with its own tinkerable accent (the theme's
+ * `--peer-preview-color`). Applied to the board column so the var cascades to both
  * the board frame and the banner. The `.historyNumber` #N ring stays history-only
  * (a shared move has no log handle). */
 /* @@ */ .peerPreview {
@@ -62,8 +62,8 @@
 /* The "#N" turn handle whose turn is currently open in the viewer — a blue ring
  * around the number (mirrors the board `.historyFrame`), applied by the shared
  * <TurnLogNumber>. A small positive offset sits the ring just outside the number
- * chip. Replaces an earlier whole-row outline: many games render a turn as several
- * <tr>s, where a row outline draws a broken box — a single #N handle stays crisp. */
+ * chip. The number and not the row: many games render a turn as several <tr>s,
+ * where a row outline draws a broken box — a single #N handle stays crisp. */
 /* @@ */ .historyNumber {
   outline: 2px solid var(--history-color);
   outline-offset: 1px;

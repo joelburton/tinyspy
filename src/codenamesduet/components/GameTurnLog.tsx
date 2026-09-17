@@ -144,8 +144,8 @@ export function GameTurnLog({
         const inProgress = turnGuesses.length === 0 && t === currentTurn && !gameOver
         return (
           <Fragment key={t}>
-            {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (`.meta`) | count
-                WORD (`.main`, absorbs the slack) | clue-giver (`.who`, shrinks to
+            {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<TurnLogNumber>) | count
+                WORD (`.main`, absorbs the slack) | clue-giver (<TurnLogActor>, shrinks to
                 the username). `.divider` draws the line above this turn
                 (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
                 together. The `#N` handle is the turn-viewer control (see the note). */}

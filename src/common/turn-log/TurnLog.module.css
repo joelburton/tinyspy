@@ -2,18 +2,18 @@
 
 /* The shared turn log — a per-turn history in an evident, fixed-height scroll
  * box. It's a <table> so each game's row pieces line up in columns across rows,
- * but the ROW anatomy is the game's (see TurnLog.tsx): this file styles only the
- * shared PANEL + the composable atoms a game drops into its own rows. Rows are
- * flat (no card border): a game's turn carries its outcome as a colored LEFT BAR
- * (<TurnLogBar>, inset so the bars read as individual segments) and the
- * `.divider` line between turns; no vertical borders between cells. See
- * TurnLog.tsx and docs/playarea.md → "Turn log".
+ * but the ROW anatomy is the game's (see TurnLog.tsx): this file styles only what
+ * `<TurnLog>` and its atoms draw THEMSELVES — the panel, the table's cell default,
+ * the outcome bar, the turn number, the who column — and no game imports it. Rows
+ * are flat (no card border): a game's turn carries its outcome as a colored LEFT
+ * BAR (<TurnLogBar>, inset so the bars read as individual segments) and a divider
+ * line between turns; no vertical borders between cells. See TurnLog.tsx and
+ * docs/playarea.md → "Turn log".
  *
- * Class vocabulary: the STRUCTURE is `turnLog`-prefixed (.turnLog / .turnLogBox /
- * .turnLogTable …) so the source reads as one system; the small COMPOSABLE
- * content classes (.primary / .meta / .other / .main / .who) keep bare names —
- * consumers read them as `turnLog.primary`, already namespaced by the import
- * alias. */
+ * The classes a GAME puts on its own rows — the divider, the sizing and emphasis
+ * classes, the multi-row hug — are the other file, `gameTurnLog.module.css`.
+ * Here the STRUCTURE is `turnLog`-prefixed (.turnLog / .turnLogBox /
+ * .turnLogTable …) so the source reads as one system. */
 
 /* The panel root. `flex: 1` is the shared column-fill EVERY consumer wants — it
  * grows to fill the info column's remaining height so the inner box scrolls
@@ -28,10 +28,9 @@
   min-height: 0;
 }
 
-/* (The heading itself is the shared `infoPanel.heading`, and the heading ROW a
- * `headerAction` renders into is `infoPanel.headerRow` — the word list wears the
- * same pair. This module styles only the box's interior and the row vocabulary
- * below it.) */
+/* (The heading itself is the shared `infoPanel.heading`, and the heading ROW the
+ * picker's dropdown sits on is `infoPanel.headerRow` — the word list wears the
+ * same pair. This module styles only the box's interior and the atoms below.) */
 
 /* The log's interior: it scrolls vertically. The frame — flex sizing, and the 2px
  * medium-gray border that makes the box read as a contained, scrollable region — is
@@ -49,7 +48,7 @@
  * consistent padding/size without each needing a class. `:where()` holds this at
  * single-ELEMENT specificity (0,0,1), so any game cell class — or the bar atom's
  * `.bar` — overrides it without a specificity fight. No vertical borders between
- * cells; the only divider is `.divider` below. */
+ * cells; the only divider is the game-applied `.divider` (gameTurnLog.module.css). */
 /* @@ */ :where(.turnLogTable) td {
   padding: 0.6rem 0.4rem;
   vertical-align: middle;
@@ -118,26 +117,11 @@
   background: var(--outcomes-neutral-bar-color);
 }
 
-/* ─── Content library ────────────────────────────────────────────────────
- * Compose row cells from these so similar pieces look the same across games,
- * instead of each game styling its own. Bare names (read as `turnLog.primary`
- * at the call site). The set grows as new shapes recur. (The actor name + disc
- * cluster moved to the shared <ActorDot>.)
- *
- * The COLUMN-SIZING classes form a small model for a row's cells: an optional
- * `<TurnLogBar>` (col 0), an optional `.meta` (a turn number, …), one (or more)
- * content column, and `.who`. Exactly ONE content column should be `.main` (it
- * absorbs the row's slack so it's least likely to wrap); any others are `.other`
- * (sized to their content). `.who` and `.meta`/`.other` all shrink to fit, so the
- * slack lands in `.main` and `.who` sits snug at the right. These classes carry
- * SIZING only — no emphasis — so a game composes its own look on top
- * (e.g. `cls(turnLog.other, turnLog.primary)` for a bold word). */
-
-
-/* The right-aligned "who" column. Shrinks to its content (the `<ActorDot>`'s
+/* ─── The who cell (<TurnLogActor>) ─────────────────────────────────────────
+ * The right-aligned "who" column. Shrinks to its content (the `<ActorDot>`'s
  * "name ●"), so the discs line up at the right edge across rows and the slack
- * goes to `.main` instead — NOT `width: 100%`, which would steal the slack and
- * wrap a sibling. Never wraps the name. */
+ * goes to the game's `.main` instead — NOT `width: 100%`, which would steal the
+ * slack and wrap a sibling. Never wraps the name. */
 /* @@ */ .who {
   text-align: right;
   white-space: nowrap;

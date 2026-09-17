@@ -26,7 +26,7 @@ describe('useHistoryViewer', () => {
     expect(result.current.isViewingHistory).toBe(false)
   })
 
-  it('select opens a turn; exitHistory returns to live', () => {
+  it('showHistory opens a turn; exitHistory returns to live', () => {
     const { result } = renderHook(() => useHistoryViewer())
 
     act(() => result.current.showHistory(3))

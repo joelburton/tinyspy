@@ -437,7 +437,7 @@ Mirrors the other game folders:
   that swap (each swap is a reversible transposition), colors it via `lib/colors`,
   and rings the two moved cells. **Coop only** — compete writes no swap log.
   Clicking a `GameTurnLog` row opens that swap on the board (the shared "viewing"
-  frame + banner from the shared `common/components/game/lists/historyViewer.module.css`, input
+  frame + banner from the shared `src/common/turn-log/historyViewer.module.css`, input
   frozen; a keystroke / board click / the ✕ returns to live), mirroring
   scrabble/stackdown's history viewer.
 

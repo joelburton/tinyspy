@@ -17,8 +17,8 @@ const aiId = (seat: number | null) => `ai:${seat}`
  * games use). Each play is its OWN single `<tr>` (the shared layer no longer owns
  * row shape — docs/playarea.md → Turn log): the outcome bar (green for a
  * played word, neutral for an exchange / pass, red for a coop forfeit), the turn
- * number ("#<seq>") in the muted `.meta` column, the move in `.main`, and the
- * actor's `<ActorDot>` right-aligned in `.who`. Newest at the bottom; the shared
+ * number ("#<seq>", the shared `<TurnLogNumber>`), the move in `.main`, and the
+ * actor right-aligned in `<TurnLogActor>`. Newest at the bottom; the shared
  * `<TurnLog>` auto-snaps to the latest row.
  *
  * A word reads "+<score> <WORD> …" — the score green, each word bold and
