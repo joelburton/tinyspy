@@ -32,7 +32,6 @@ export function TurnLog({
   picker,
   shown,
   entryCount = shown.length,
-  className,
   children,
 }: {
   heading: string
@@ -50,10 +49,6 @@ export function TurnLog({
   // codenamesduet is the case: an entry there is a TURN, and guesses land inside
   // a turn that already exists, so its turns alone would miss the snap.
   entryCount?: number
-  // Optional extra class merged onto the root. The panel already fills its flex
-  // parent (`flex: 1` on `.turnLog`); this is only for a per-game override (a
-  // different width/flex).
-  className?: string
   // The game's `<tr>` rows (it owns their structure — see the component note).
   children: ReactNode
 }) {
@@ -72,7 +67,7 @@ export function TurnLog({
   )
 
   return (
-    <section className={cls(styles.turnLog, className)}>
+    <section className={styles.turnLog}>
       {/* Heading + the dropdown on one line. */}
       <div className={infoPanel.headerRow}>
         <h3 className={infoPanel.heading}>{heading}</h3>

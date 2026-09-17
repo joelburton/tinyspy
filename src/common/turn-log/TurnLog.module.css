@@ -17,9 +17,9 @@
 
 /* The panel root. `flex: 1` is the shared column-fill EVERY consumer wants — it
  * grows to fill the info column's remaining height so the inner box scrolls
- * rather than growing the page. (Lives here, not per-game, so `<TurnLog>` needs
- * no `className` for the common case — the className prop is for the rare
- * override.) */
+ * rather than growing the page. It lives here rather than per-game, which is why
+ * the panel takes no class from outside at all: there is nothing left for one to
+ * say. */
 /* @@ */ .turnLog {
   flex: 1;
   display: flex;

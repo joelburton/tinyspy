@@ -12,8 +12,8 @@ F-4 turned up: every file in the repo that called the shared history marker
 yellow. **F-9, F-14 and F-19 are worked** (2026-09-16) — the area's one real
 bug, the banner component, and the history vocabulary — the last including its
 ten-game meaning-based sweep. **F-22 is worked too**, and it CLOSED F-6 and F-7
-by deleting the props they were about. **Ten findings wait for a decision
-each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
+by deleting the props they were about, and **F-8** is worked. **Nine findings
+wait for a decision each**: F-18, F-20 and F-21 were found after the audit, by Joel reading the work
 and by the re-read of this file against it.
 
 ## The roster
@@ -275,6 +275,13 @@ picker's `emptyLabel` is the one place the word is decided.
 No `<TurnLog>` site passes `className`. The docstring describes the override
 that would use it (a different width or flex) and none exists. Options:
 (1) drop the prop and the `cls` around the root; (2) leave. Recommend (1).
+
+**WORKED 2026-09-16, option (1).** Re-verified first: still eleven sites, still
+none passing it, before F-22 or after — and F-22 had left it as the only
+optional prop without a caller (`entryCount` has one, and a reason). The root is
+`<section className={styles.turnLog}>` now, and the stylesheet stopped promising
+the override: `flex: 1` lives there rather than per-game, which is why the panel
+takes no class from outside at all — there is nothing left for one to say.
 
 ### F-turn-log-9 · `scroll-key-fresh-array` · Six games snap the log to the bottom on every render
 
