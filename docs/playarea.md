@@ -916,6 +916,21 @@ already knew. Drift here causes real head-scratching.
   already has under some name, REUSE that name; only diverge when the meaning truly
   differs, and say so. Treat this list as the seed glossary; grow it as games land.
   Easy to re-drift, so worth calling out:
+  - **The turn-history viewer passes ONE prop that says whether it is open, and
+    the flag is DERIVED, never passed.** A column that takes both a
+    `historyLabel` and an `isViewingHistory` has two values that cannot disagree
+    and a guard that re-checks what it already knows. So the column writes
+    `const isViewingHistory = historyLabel !== null` at the top of its body, and
+    the PlayArea passes the viewer as `historyLabel` + `onExitHistory` (+ that
+    game's `historyLit…` marks). Settled 2026-09-16, when ten games had four
+    different answers: five passed the flag, three derived it from the label, one
+    from its snapshot, and one never named it and tested `historyLabel !== null`
+    at seven separate places. **Two columns take a whole snapshot instead of the
+    label** — connections and wordle, because their board data comes out of it
+    too — and derive from that (`historySnap !== null`); **scrabble takes
+    `historyTarget`**, a union of a past turn and a peer preview, because its
+    column owns the plays the banner's label is built from. The rule is the
+    derivation, not which prop carries the answer.
   - **Below-board feedback is the slot, under its one name:** a column takes
     **`localFeedbackSlot`** (`FeedbackSlot`), shows its own results into it and
     draws it with `<FeedbackPill>`; there is no folded pill prop and no

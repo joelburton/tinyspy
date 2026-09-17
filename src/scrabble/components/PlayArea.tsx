@@ -128,7 +128,6 @@ export function PlayArea({
   const {
     historyId: historyTarget,
     historyIdRef: historyTargetRef,
-    isViewingHistory,
     showHistory,
     exitHistory,
   } = useHistoryViewer<HistoryTarget>()
@@ -613,7 +612,6 @@ type Suggested =
         localFeedbackSlot={localFeedbackSlot}
         plays={plays}
         historyTarget={historyTarget}
-        isViewingHistory={isViewingHistory}
         historyTargetRef={historyTargetRef}
         onExitHistory={exitHistory}
         nameOf={nameOf}

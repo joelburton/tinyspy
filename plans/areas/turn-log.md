@@ -12,10 +12,10 @@ this file against it.
 
 | | |
 |---|---|
-| **worked** (15) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-19 (including its ten-game meaning-based sweep) · F-22 |
+| **worked** (16) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
 | **skipped** (2) | F-12 → `z-index` · F-17 → `outcome-fix` — each caused the area it went to (plan §3 rows 40 and 39) |
-| **open** (3) | F-18 · F-20 · F-21 |
+| **open** (2) | F-20 · F-21 |
 
 ## The roster
 
@@ -630,6 +630,43 @@ one prop, `historyLabel: string | null`, and `const isViewingHistory =
 historyLabel != null` inside the column. Options: (1) the two games take one
 prop, like the other two; (2) leave. Recommend (1) — the invariant becomes true
 by construction instead of re-checked at the banner.
+
+**WORKED 2026-09-16 — and it was never two games.** Joel: *"why are the games
+different in how they handle this? it seems like the problem is much bigger than
+2 games… we have a shared hook."* He was right; the hook was never the cause.
+Every game gets the same five values from it and then invented its own way to
+hand them down — **four different contracts for one feature**:
+
+| how the flag reached the column | games |
+|---|---|
+| passed as a prop | codenamesduet, connections, psychicnum, scrabble, strands |
+| derived from `historyLabel` | setgame, stackdown, waffle |
+| derived from `historySnap` | wordle |
+| never named — `historyLabel !== null` inlined SEVEN times | letterboxed |
+
+So the recorded finding ("two games pass both") was a symptom. The finding is
+that the viewer had no prop contract, and each game answered independently
+because nothing said what to pass — against a rule `docs/playarea.md` already
+states: *"a `BoardCol`/`InfoCol` prop that means the same thing in two games MUST
+be spelled the same… Drift here causes real head-scratching."*
+
+**The single rule, now written into that section: one prop says whether history
+is open, and the flag is DERIVED, never passed.** All ten columns write
+`const isViewingHistory = <that prop> !== null` at the top of the body, and no
+PlayArea passes a flag. What the columns use it for was identical in all ten
+before the change, which is why one rule covers them: the board's frame, the
+input gate, the `historyBannerHost` class, and the banner's guard.
+
+**Two exceptions that follow the rule rather than breaking it:** connections and
+wordle take the whole `historySnap` (their board data comes out of it too) and
+derive from that; scrabble takes `historyTarget`, its union of a past turn and a
+peer preview, because its column owns the plays the label is built from. The rule
+is the derivation, not which prop carries the answer.
+
+**One thing had to be fixed first:** strands typed its label `string` and passed
+`?? ''`, where everyone else passes `?? null` — so `!== null` would have been
+permanently true there. Found by re-verifying rather than by the change failing,
+since an always-open viewer type-checks perfectly.
 
 ### F-turn-log-19 · `history-names-say-history` · Nothing about the viewer said "history"
 

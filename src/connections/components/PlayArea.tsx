@@ -200,7 +200,7 @@ export function PlayArea({
   // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
   // banner ✕, or any key — the hook binds `act-exit-history` itself, and the
   // board's own commands hide while a turn is open so the key reaches it).
-  const { isViewingHistory, historyId, showHistory, exitHistory } =
+  const { historyId, showHistory, exitHistory } =
     useHistoryViewer<number>()
 
   // ─── Coop peer events (group feedback) ─────────────────
@@ -619,7 +619,6 @@ export function PlayArea({
         unmatched={unmatched}
         solutionShown={solutionShown}
         historySnap={historySnap}
-        isViewingHistory={isViewingHistory}
         showInput={showInput}
         isMyTurn={isMyTurn}
         notMyTurn={waiting}

@@ -98,6 +98,9 @@ export function BoardCol({
   chainEditable: boolean
   busy: boolean
 }) {
+  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
+  // conventions: one prop says so, and the flag is derived, never passed).
+  const isViewingHistory = historyLabel !== null
   const seed = tailLetter(liveChain) ?? ''
   const word = seed + draft
 
@@ -190,7 +193,7 @@ export function BoardCol({
           `.historyFrame` also makes the whole region click-through, so a click on
           either falls to useHistoryViewer's click-anywhere-to-exit. */}
       <div
-        className={cls(styles.historyFramed, historyLabel !== null && history.historyFrame)}
+        className={cls(styles.historyFramed, isViewingHistory && history.historyFrame)}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
             letter the next word must start with. On a phone the info column is
@@ -204,15 +207,15 @@ export function BoardCol({
         <ChainStrip
           chain={chain}
           onRemoveLast={onRemoveLast}
-          disabled={!chainEditable || historyLabel !== null}
+          disabled={!chainEditable || isViewingHistory}
         />
 
         <Board
           sides={sides}
           chain={chain}
-          word={historyLabel !== null ? '' : word}
+          word={isViewingHistory ? '' : word}
           onPick={onPick}
-          disabled={entryDisabled || historyLabel !== null}
+          disabled={entryDisabled || isViewingHistory}
           shakeNonce={refused && refused.word === word ? refused.nonce : null}
         />
       </div>
@@ -230,10 +233,10 @@ export function BoardCol({
           // The banner is `inset: 0`, so its host must be positioned — but only
           // while viewing, so a `position` this box doesn't otherwise want
           // isn't sitting on it during play (historyViewer.module.css says so).
-          historyLabel !== null && history.historyBannerHost,
+          isViewingHistory && history.historyBannerHost,
         )}
       >
-        {historyLabel !== null && (
+        {isViewingHistory && (
           <HistoryBanner label={historyLabel} onExit={onExitHistory} />
         )}
         <EntryRow
@@ -248,7 +251,7 @@ export function BoardCol({
           // Also hard-off while a past move is open: freezing capture lets the
           // viewer's `act-exit-history` consume the keystroke (back to live)
           // instead of editing the live draft behind the banner.
-          disabled={entryDisabled || historyLabel !== null}
+          disabled={entryDisabled || isViewingHistory}
           busy={busy}
           onAnyKey={localFeedbackSlot.dismiss}
           charFor={charFor}

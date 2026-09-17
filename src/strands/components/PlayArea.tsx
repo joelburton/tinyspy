@@ -858,9 +858,8 @@ export function PlayArea(ctx: GamePageCtx) {
         // turn-gated (a team decision, not a move), so waiting must not dim
         // it — but replaying history must, or a click meant to exit the viewer
         // would irreversibly spend a hint.
-        isViewingHistory={historyViewer.isViewingHistory}
         historyLitTiles={historySnap?.historyLitTiles ?? []}
-        historyLabel={historySnap?.historyLabel ?? ''}
+        historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={historyViewer.exitHistory}
         // The word being traced. Shares its slot with the feedback pill — you
         // are either building a word or reading what the last one did.

@@ -377,7 +377,7 @@ export function PlayArea({
   // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds
   // an any-key action that CONSUMES the press, so the key that brings the board
   // back doesn't also play on it.
-  const { isViewingHistory, historyId, showHistory, exitHistory } = useHistoryViewer<number>()
+  const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
 
   // End / Concede / Restart come from the shared `useStandardGameActions` as
   // bound actions — the menu row, the button and ⌥⌫ are all the same binding, so
@@ -631,7 +631,6 @@ export function PlayArea({
         decidedBy={game.mode === 'coop' && players.length > 1 ? decidedBy : null}
         historyLitWord={historySnap?.historyLitWord ?? null}
         // ── History viewer ──
-        isViewingHistory={isViewingHistory}
         historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──

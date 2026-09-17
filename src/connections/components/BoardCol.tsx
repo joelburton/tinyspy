@@ -78,7 +78,6 @@ export function BoardCol({
   unmatched,
   solutionShown,
   historySnap,
-  isViewingHistory,
   showInput,
   isMyTurn,
   notMyTurn,
@@ -116,7 +115,6 @@ export function BoardCol({
   solutionShown: boolean
   // The viewed turn's snapshot, or null when live — PlayArea reconstructs it.
   historySnap: HistorySnapshot | null
-  isViewingHistory: boolean
   // May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
   // Participant-level (terminal / eliminated / conceded) — NOT turn-aware.
   showInput: boolean
@@ -165,6 +163,9 @@ export function BoardCol({
   mistakeCount: number
   mistakeBudget: number
 }) {
+  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
+  // conventions: one prop says so, and the flag is derived, never passed).
+  const isViewingHistory = historySnap !== null
   const [submitting, setSubmitting] = useState(false)
   // On a phone the below-board commit row is tight: the Clear/Submit buttons go
   // icon-only (the shared buttons support it) and the mistakes label shortens to

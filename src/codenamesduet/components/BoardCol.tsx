@@ -77,7 +77,6 @@ export function BoardCol({
   readOnly,
   historyLitTiles,
   // ── History viewer (its overlay lives in the below-board region) ──
-  isViewingHistory,
   historyLabel,
   onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
@@ -115,8 +114,6 @@ export function BoardCol({
   // The positions the viewed turn decided — ringed (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
 
-  // ── History viewer ──
-  isViewingHistory: boolean
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
   historyLabel: string | null
@@ -142,6 +139,9 @@ export function BoardCol({
   // which renders the panel high in the tree so react-rnd positions it on-screen).
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
+  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
+  // conventions: one prop says so, and the flag is derived, never passed).
+  const isViewingHistory = historyLabel !== null
   // Phase-clickability, the positive of the `readOnly` gate. Reintroduced (rather
   // than flipping every internal use) so the leaf `<Board>`'s `cellsClickable`
   // prop + the `isViewingHistory` interplay below stay byte-identical — the prop-name
@@ -241,7 +241,7 @@ export function BoardCol({
           {/* The shared banner overlays this below-board slot while a past turn is
               open — the CluePanel / pill stays mounted underneath, so an in-progress
               clue survives. */}
-          {isViewingHistory && historyLabel && (
+          {isViewingHistory && (
             <HistoryBanner label={historyLabel} onExit={onExitHistory} />
           )}
           {top !== null ? (

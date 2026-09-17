@@ -61,7 +61,6 @@ export function BoardCol({
   results,
   historyLitWord,
   // ── History viewer (its overlay lives in the below-board region) ──
-  isViewingHistory,
   historyLabel,
   onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
@@ -90,8 +89,6 @@ export function BoardCol({
   // Turn-history: the word the viewed turn decided — ring its tile (null live).
   historyLitWord: string | null
 
-  // ── History viewer ──
-  isViewingHistory: boolean
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
   historyLabel: string | null
@@ -124,6 +121,9 @@ export function BoardCol({
   // Guesses the server has recorded — the CAUSE the attention flash reads.
   moveCount: number
 }) {
+  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
+  // conventions: one prop says so, and the flag is derived, never passed).
+  const isViewingHistory = historyLabel !== null
   // The pending guess, shared by the board tiles and the entry below the board.
   const [pending, setPending] = useState('')
   // The last submitted guess, kept so ArrowUp can recall it into the entry.
@@ -298,7 +298,7 @@ export function BoardCol({
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
           {/* The shared banner overlays this slot while a past turn is open — the
               entry / pill stays mounted underneath, its capture frozen. */}
-          {isViewingHistory && historyLabel && (
+          {isViewingHistory && (
             <HistoryBanner label={historyLabel} onExit={onExitHistory} />
           )}
           {/* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only

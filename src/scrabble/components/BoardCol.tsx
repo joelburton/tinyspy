@@ -190,7 +190,6 @@ export function BoardCol({
   localFeedbackSlot,
   plays,
   historyTarget,
-  isViewingHistory,
   historyTargetRef,
   onExitHistory,
   nameOf,
@@ -229,8 +228,6 @@ export function BoardCol({
   // The read-only overlay open on the board (a past turn OR a teammate's shared
   // move), or null when live.
   historyTarget: HistoryTarget | null
-  // historyTarget !== null.
-  isViewingHistory: boolean
   // A ref to historyTarget, read by the once-registered board-drag pointerdown.
   historyTargetRef: RefObject<HistoryTarget | null>
   // Return to the live board (a board interaction / a keystroke / a new move).
@@ -255,6 +252,9 @@ export function BoardCol({
   // register shape).
   registerSuggestionApplier: (fn: ((placements: Placement[]) => void) | null) => void
 }) {
+  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
+  // conventions: one prop says so, and the flag is derived, never passed).
+  const isViewingHistory = historyTarget !== null
   const [staged, setStaged] = useState<Staged[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
   const [order, setOrder] = useState<number[]>([])

@@ -320,7 +320,7 @@ export function PlayArea({
   // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
   // the effect deps honest: `exitHistory` is a stable useCallback, so the effect
   // below re-arms only when `isViewingHistory` flips.
-  const { isViewingHistory, historyId, showHistory, exitHistory } =
+  const { historyId, showHistory, exitHistory } =
     useHistoryViewer<number>()
   // A bare keystroke (nothing focused) returns to the live board — the shared
   // "type anywhere to exit" — the hook binds `act-exit-history` itself, and the
@@ -592,7 +592,6 @@ export function PlayArea({
         readOnly={!cellsClickable}
         historyLitTiles={historySnap?.historyLitTiles}
         // ── History viewer ──
-        isViewingHistory={isViewingHistory}
         historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) — and the slot its

@@ -24,12 +24,11 @@ type Props = {
   hintCoords: Coord[] | null
   onTileClick: (at: Coord) => void
   disabled: boolean
-  // Replaying a past turn.
-  isViewingHistory: boolean
   // The viewed turn's traced cells, ringed.
   historyLitTiles: Coord[]
-  // What the banner says about the viewed turn.
-  historyLabel: string
+  // What the banner says about the viewed turn — NULL when live, which is what
+  // "am I viewing history?" is derived from (docs/playarea.md → Prop conventions).
+  historyLabel: string | null
   onExitHistory: () => void
   // The word being traced, as text. Empty when nothing is selected.
   echo: string
@@ -73,7 +72,6 @@ export function BoardCol({
   hintCoords,
   onTileClick,
   disabled,
-  isViewingHistory,
   historyLitTiles,
   historyLabel,
   onExitHistory,
@@ -87,6 +85,7 @@ export function BoardCol({
   hintShowing,
   actHint,
 }: Props) {
+  const isViewingHistory = historyLabel !== null
   const top = useTopFeedbackMessage(localFeedbackSlot)
   return (
     <div className={shared.boardCol}>
