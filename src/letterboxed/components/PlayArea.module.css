@@ -77,7 +77,7 @@
  *
  * No width: the column already sets `width: var(--side)` on ITSELF, and a flex
  * child stretches, so the board still sizes from the column exactly as before. */
-/* @@ */ .snapshot {
+/* @@ */ .historyFramed {
   display: flex;
   flex-direction: column;
   gap: inherit;

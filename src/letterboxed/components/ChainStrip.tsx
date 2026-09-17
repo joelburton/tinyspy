@@ -28,7 +28,7 @@ export function ChainStrip({
 }: {
   chain: string[]
   onRemoveLast: () => void
-  /** Terminal / conceded / not my turn: the × is inert. */
+  // Terminal / conceded / not my turn: the × is inert.
   disabled: boolean
 }) {
   return (

@@ -35,20 +35,20 @@ export function Board({
   disabled,
   shakeNonce = null,
 }: {
-  /** Twelve letters in side order. */
+  // Twelve letters in side order.
   sides: string
-  /** Words played so far — drives the "covered" marking. */
+  // Words played so far — drives the "covered" marking.
   chain: string[]
-  /** The word being built (may be empty). */
+  // The word being built (may be empty).
   word: string
-  /** Append this letter, or submit if it's the word's current last letter. */
+  // Append this letter, or submit if it's the word's current last letter.
   onPick: (letter: string) => void
-  /** Terminal / not my turn / conceded: the board is inert. */
+  // Terminal / not my turn / conceded: the board is inert.
   disabled: boolean
-  /** Set when the word on the board was just refused: its letters shake, which
-   *  is what side to side means everywhere in this app. The number is a replay
-   *  nonce — the letters are keyed on it, so refusing the same word twice shakes
-   *  twice (a CSS animation only restarts on a new element). */
+  // Set when the word on the board was just refused: its letters shake, which
+  // is what side to side means everywhere in this app. The number is a replay
+  // nonce — the letters are keyed on it, so refusing the same word twice shakes
+  // twice (a CSS animation only restarts on a new element).
   shakeNonce?: number | null
 }) {
   const nodes = useMemo(() => layout(sides), [sides])

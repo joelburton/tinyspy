@@ -72,8 +72,6 @@ const KNOWN: string[] = [
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
   'src/scrabble/manifest.ts › labelFor',
-  // → setgame
-  'src/setgame/components/Card.tsx › flash',
   // → src/guards
   'src/guards/callSiteShape.test.ts › it',
   'src/guards/cssTokens.test.ts › describe',

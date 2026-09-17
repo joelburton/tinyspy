@@ -678,7 +678,36 @@ The four games whose names already turned out to be lying go first.
       in `--setgame-hint-ring` (a green) rather than the shared `--history-color`,
       so its frame and `#N` say history while its cards say hint. A look
       decision, not a naming one.
-- [ ] **letterboxed**
+- [x] **letterboxed** — read 2026-09-16, the last row. Three things:
+      - a THIRD `historyId: historyId` self-alias (stackdown and waffle had the
+        others) — the rename's litter, three games' worth, all found by reading.
+      - **`.snapshot` → `.historyFramed`.** The grouping box around the chain
+        strip and the board exists for one reason, which its own comment states:
+        *"it exists so ONE viewing outline can wrap both"*. Its name said
+        neither history nor what it does.
+      - the `/**`-on-props pass: 17 members across `Board.tsx`, `BoardCol.tsx`
+        and `ChainStrip.tsx` — and `ChainStrip` is the second leaf below a Board
+        to need it, after setgame's `Card`.
+      No `snap` local here: letterboxed has no snapshot object, just
+      `historyChainAt` / `historyLabelAt`. Left, like the other games' "board to
+      show" values: `shownChain` is the live chain when not viewing.
+
+**The sweep is done: all ten rows read.** Two guards caught what the reads
+missed, both by the shrinking-allowlist pattern: `cssClasses.test.ts` found the
+e2e selector strands' rename broke, and `orphanedDocstrings.test.ts` failed
+because `setgame/components/Card.tsx › flash` — a known orphan it had been
+carrying — was fixed during the setgame row and its allowlist line went stale.
+That line is deleted.
+
+**What the ten rows add up to**, which is the argument for reading over
+grepping: the pattern pass found `viewing*`/`viewed*`/`select*`, and the reads
+found ten more names it could never have reached — `green` (stackdown's history
+ring), `viewingCells`, `turnSummary`, `sharedTent`, `kind: 'shared'` (scrabble),
+`.discViewed` (strands), `hinted` (setgame), `.snapshot` (letterboxed), plus a
+`snap` local in six games and three `historyId: historyId` self-aliases the
+rename itself left. It also found two things that were WRONG rather than vague:
+setgame's `isViewingHistory` holding a snapshot object, and scrabble's Board
+claiming a "green frame" for a blue one.
 
 The known four are listed as each row's starting content deliberately, and are
 NOT fixed ahead of the read — a read graded against a list finds the list.

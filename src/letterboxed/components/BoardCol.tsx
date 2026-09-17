@@ -60,41 +60,41 @@ export function BoardCol({
 }: {
   // ── Board & chain ──
   sides: string
-  /** Words to DRAW — a past move's chain while the history viewer is open, the
-   *  live one otherwise. */
+  // Words to DRAW — a past move's chain while the history viewer is open, the
+  // live one otherwise.
   chain: string[]
-  /** The real chain, always. The entry's seed letter and the × come off this,
-   *  never off a historical snapshot: reviewing a past move must not change
-   *  what your next move is. */
+  // The real chain, always. The entry's seed letter and the × come off this,
+  // never off a historical snapshot: reviewing a past move must not change
+  // what your next move is.
   liveChain: string[]
   // ── Turn-history viewer ──
-  /** The viewed move's one-line description (drives the banner + the frame), or
-   *  null when live. */
+  // The viewed move's one-line description (drives the banner + the frame), or
+  // null when live.
   historyLabel: string | null
   onExitHistory: () => void
   // ── Entry ──
-  /** The word this player just had refused, with its replay nonce — the board
-   *  shakes its letters. Handed on only while it still describes what is in the
-   *  box: edit a letter and the answer is about a word that no longer exists. */
+  // The word this player just had refused, with its replay nonce — the board
+  // shakes its letters. Handed on only while it still describes what is in the
+  // box: edit a letter and the answer is about a word that no longer exists.
   refused: { word: string; nonce: number } | null
-  /** Only the letters the PLAYER added — the seed is derived, see above. */
+  // Only the letters the PLAYER added — the seed is derived, see above.
   draft: string
   onDraftChange: (next: string) => void
   onSubmit: () => void
-  /** A letter was clicked on the board. */
+  // A letter was clicked on the board.
   onPick: (letter: string) => void
-  /** The × on the chain's last word. */
+  // The × on the chain's last word.
   onRemoveLast: () => void
-  /** PlayArea's below-board slot — the entry row draws its top in place of
-   *  the controls, and a keystroke is the player's next move, so it dismisses
-   *  a gesture-cleared message. */
+  // PlayArea's below-board slot — the entry row draws its top in place of
+  // the controls, and a keystroke is the player's next move, so it dismisses
+  // a gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
   // ── Gates ──
-  /** Terminal / conceded / not my turn / chain full: board + entry are inert. */
+  // Terminal / conceded / not my turn / chain full: board + entry are inert.
   entryDisabled: boolean
-  /** May the chain still be edited? Deliberately NOT `!entryDisabled`: when the
-   *  chain is full the entry freezes but the × must stay live, since taking a
-   *  word back is then the only move on the board. */
+  // May the chain still be edited? Deliberately NOT `!entryDisabled`: when the
+  // chain is full the entry freezes but the × must stay live, since taking a
+  // word back is then the only move on the board.
   chainEditable: boolean
   busy: boolean
 }) {
@@ -190,7 +190,7 @@ export function BoardCol({
           `.historyFrame` also makes the whole region click-through, so a click on
           either falls to useHistoryViewer's click-anywhere-to-exit. */}
       <div
-        className={cls(styles.snapshot, historyLabel !== null && history.historyFrame)}
+        className={cls(styles.historyFramed, historyLabel !== null && history.historyFrame)}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
             letter the next word must start with. On a phone the info column is
