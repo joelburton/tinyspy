@@ -14,8 +14,8 @@ this file against it.
 |---|---|
 | **worked** (16) | F-1 … F-5 (the prose pass, one commit — and the sibling sweep F-4 grew into: every file in the repo that called the shared history marker yellow) · F-8 · F-9 · F-10 · F-11 · F-13 · F-14 · F-15 · F-16 · F-18 · F-19 (including its ten-game meaning-based sweep) · F-22 |
 | **closed by F-22** (2) | F-6 · F-7 — the props they were about no longer exist |
-| **skipped** (2) | F-12 → `z-index` · F-17 → `outcome-fix` — each caused the area it went to (plan §3 rows 40 and 39) |
-| **open** (2) | F-20 · F-21 |
+| **skipped** (3) | F-12 → `z-index` · F-17 → `outcome-fix` · F-20 → `history-always-available` — each caused or helped cause the area it went to (plan §3 rows 41, 40, 39) |
+| **open** (1) | F-21 |
 
 ## The roster
 
@@ -997,6 +997,30 @@ the mechanism (a filtered log's row 3 is not the board's turn 3) and clumsier;
 (3) leave. Recommend (1). The doc.md Details paragraph "`boardIsShown` is false
 more often than it looks" moves with it, as does `playarea.md` → Whose turns?,
 which explains it under that name.
+
+**SKIPPED 2026-09-16 — to the `history-always-available` area (plan §3 row 39),
+which this finding helped cause.** Joel: *"it's a terrible variable name. should
+we punt this to the history-is-always-available area, so we have a single answer
+for compete history and the names around it?"* The name depends on what the thing
+becomes: if that work makes an unmatched log openable, `canOpenHistory` is wrong
+the day it ships, and if the flag splits into its two conditions, no single name
+covers both.
+
+**What the re-verification established, for the area to start from.** After F-16
+the value has exactly ONE use, and it is the same line in all seven readers:
+`onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}`.
+The two games that ignore it say so in their docstrings, and setgame's comment
+explains why the others need it — so a value whose entire documentation, in three
+files, is about who consults it for one purpose is named for something else.
+
+**And the name is worse than vague: its plain reading is always TRUE.** There is
+always a board shown. Joel asked for one English sentence explaining when it
+holds, and writing it is what showed the value is a property of the PAIR rather
+than of the board — *"true when the log shows every move made on the board you're
+looking at, and nothing else"* — false in exactly three situations: coop with one
+player picked, compete showing All, compete showing an opponent. `boardIsShown`
+names only the board half of that sentence, which is the half that is never in
+doubt.
 
 ### F-turn-log-21 · `turn-number-is-the-history-control` · The `#N` handle's three names say "turn number", and one of them exists only for the viewer
 
