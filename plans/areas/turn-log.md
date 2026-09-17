@@ -653,7 +653,12 @@ The four games whose names already turned out to be lying go first.
         directly on a prop named `…Tiles`, so the comment now matches the name
         beside it. The other ~141 `cell` identifiers in this game are the
         sweep's, not this row's.
-- [ ] **psychicnum**
+- [x] **psychicnum** — read 2026-09-16. `snap` → `historySnap`,
+      `HistorySnapshot.description` → `historyLabel`, the `/**`-on-props pass
+      (27 members), and five `Turn-history:` prefixes. No stray `view`
+      identifier at all — the only game with a clean grep on the first pass.
+      This is one of F-18's two games: its `BoardCol` takes `isViewingHistory`
+      AND `historyLabel`, and guards the banner on both.
 - [ ] **setgame**
 - [ ] **letterboxed**
 

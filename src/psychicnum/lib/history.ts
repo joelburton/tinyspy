@@ -34,11 +34,11 @@ export interface HistorySnapshot {
    *  wears its green/red outcome color). Null for a hint / reveal turn (no tile). */
   historyLitWord: string | null
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
-  description: string
+  historyLabel: string
 }
 
 /**
- * Reconstruct the results + lit word + description for the turn at `index`. Folds
+ * Reconstruct the results + lit word + historyLabel for the turn at `index`. Folds
  * every guess (kind `'guess'`) up to and including `index` into the results map
  * (INCLUSIVE), and picks that turn's own guessed word as the lit one.
  */
@@ -53,7 +53,7 @@ export function historySnapshot(
   }
   const turn = guesses[index]
   const historyLitWord = turn && turn.kind === 'guess' ? turn.word : null
-  return { results, historyLitWord, description: describe(turn) }
+  return { results, historyLitWord, historyLabel: describe(turn) }
 }
 
 /** The kind-aware turn label. A guess reads as its outcome; a reveal names the answer

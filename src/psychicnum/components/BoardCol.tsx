@@ -76,52 +76,52 @@ export function BoardCol({
   moveCount,
 }: {
   // ── Mobile-only status strip ──
-  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
-   *  above the board ONLY below the `--mobile` breakpoint — where the info
-   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
-   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
+  // above the board ONLY below the `--mobile` breakpoint — where the info
+  // column is off-canvas in the InfoSheet and would otherwise take a tap to
+  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
   mobileStatus: ReactNode
 
   // ── Board to render ──
-  /** The board words (the shuffle source + the client-side board-word check). */
+  // The board words (the shuffle source + the client-side board-word check).
   words: string[]
-  /** Guessed words → was-it-a-secret — the live map OR a snapshot's (PlayArea picks). */
+  // Guessed words → was-it-a-secret — the live map OR a snapshot's (PlayArea picks).
   results: ReadonlyMap<string, boolean>
-  /** Turn-history: the word the viewed turn decided — ring its tile (null live). */
+  // Turn-history: the word the viewed turn decided — ring its tile (null live).
   historyLitWord: string | null
 
   // ── History viewer ──
   isViewingHistory: boolean
-  /** The viewed turn's description while inspecting history (drives the banner), or
-   *  null when live. */
+  // The viewed turn's description while inspecting history (drives the banner), or
+  // null when live.
   historyLabel: string | null
-  /** Return to the live board (the banner click / ✕). */
+  // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
   // ── Guess dispatch ──
   gameId: string
-  /** Am I a live participant? Picks the entry (vs a waiting / terminal pill) — the
-   *  play-vs-done LOOK. NOT turn-aware: a waiting player is still a participant. */
+  // Am I a live participant? Picks the entry (vs a waiting / terminal pill) — the
+  // play-vs-done LOOK. NOT turn-aware: a waiting player is still a participant.
   isStillPlaying: boolean
-  /** Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
-   *  false the entry stays visible but inert (the tiles + capture are frozen); the
-   *  InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
-   *  `isStillPlaying` so a non-current turn doesn't read as "out of guesses". */
+  // Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
+  // false the entry stays visible but inert (the tiles + capture are frozen); the
+  // InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
+  // `isStillPlaying` so a non-current turn doesn't read as "out of guesses".
   isMyTurn: boolean
-  /** PlayArea's below-board slot. This column shows the guess results into it
-   *  (Correct / Incorrect / a rejected guess) and the entry row draws its top. */
+  // PlayArea's below-board slot. This column shows the guess results into it
+  // (Correct / Incorrect / a rejected guess) and the entry row draws its top.
   localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks (see `<Board>`) ──
-  /** Who decided each tile, for the identity dot — null outside coop. */
+  // Who decided each tile, for the identity dot — null outside coop.
   decidedBy: ReadonlyMap<string, Actor | undefined> | null
-  /** The game is finished, and how — bands the board in that outcome's gray. */
+  // The game is finished, and how — bands the board in that outcome's gray.
   gameOver: TerminalOutcome | null
-  /** Turn-order coop: a teammate holds the move, so the board dims. */
+  // Turn-order coop: a teammate holds the move, so the board dims.
   notMyTurn: boolean
-  /** True for a beat as the turn becomes mine — the frame flashes. */
+  // True for a beat as the turn becomes mine — the frame flashes.
   myTurnJustStarted: boolean
-  /** Guesses the server has recorded — the CAUSE the attention flash reads. */
+  // Guesses the server has recorded — the CAUSE the attention flash reads.
   moveCount: number
 }) {
   // The pending guess, shared by the board tiles and the entry below the board.

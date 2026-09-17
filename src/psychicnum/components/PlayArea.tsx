@@ -586,10 +586,10 @@ export function PlayArea({
   const shown = new Map(results)
   if (secretsShown) for (const w of game.secrets ?? []) if (!shown.has(w)) shown.set(w, true)
 
-  // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
+  // When a past turn is open, `historySnap` is that turn's board (else null =
   // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
   // a later realtime guess only grows the log past historyId, so a past turn holds.
-  const snap = historyId !== null ? historySnapshot(guesses, historyId) : null
+  const historySnap = historyId !== null ? historySnapshot(guesses, historyId) : null
 
   // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
   // correct guesses are visible); compete = the caller's own count.
@@ -622,17 +622,17 @@ export function PlayArea({
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={game.words}
-        results={snap ? snap.results : shown}
+        results={historySnap ? historySnap.results : shown}
         // Who decided each tile — only where the answer can differ: a SHARED
         // board (compete shows you nobody's guesses but your own) with more than
         // one player on it (in a solo game every tile has the same one possible
         // author, so a dot per tile is a label that says "you" nine times). A
         // history snapshot carries the same rows, so it keeps its dots.
         decidedBy={game.mode === 'coop' && players.length > 1 ? decidedBy : null}
-        historyLitWord={snap?.historyLitWord ?? null}
+        historyLitWord={historySnap?.historyLitWord ?? null}
         // ── History viewer ──
         isViewingHistory={isViewingHistory}
-        historyLabel={snap?.description ?? null}
+        historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}

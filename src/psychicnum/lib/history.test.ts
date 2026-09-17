@@ -49,13 +49,13 @@ describe('historySnapshot', () => {
     expect(s1.historyLitWord).toBeNull()
     // The hint added nothing — only APPLE (from turn 0) is decided.
     expect(s1.results.size).toBe(1)
-    expect(s1.description).toBe('Hint: a fruit')
+    expect(s1.historyLabel).toBe('Hint: a fruit')
   })
 
   it('describes a guess by its outcome, a reveal by its answer', () => {
-    expect(historySnapshot(GUESSES, 0).description).toBe('APPLE — a secret!')
-    expect(historySnapshot(GUESSES, 2).description).toBe('BERRY — not a secret')
-    expect(historySnapshot([g({ word: 'cherry', kind: 'reveal' })], 0).description).toBe(
+    expect(historySnapshot(GUESSES, 0).historyLabel).toBe('APPLE — a secret!')
+    expect(historySnapshot(GUESSES, 2).historyLabel).toBe('BERRY — not a secret')
+    expect(historySnapshot([g({ word: 'cherry', kind: 'reveal' })], 0).historyLabel).toBe(
       'Revealed CHERRY',
     )
   })

@@ -13,51 +13,51 @@ import history from '@/common/turn-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 type Props = {
-  /** The board words (5..20), shown as clickable tiles. Lowercase; displayed
-   *  uppercased via CSS. Three of them are the hidden secrets. */
+  // The board words (5..20), shown as clickable tiles. Lowercase; displayed
+  // uppercased via CSS. Three of them are the hidden secrets.
   words: string[]
-  /** Guessed words → was-it-a-secret. A guessed tile colors **permanently**
-   *  green (true) / red (false) and can't be re-picked. In compete RLS scopes
-   *  this to the viewer's own guesses; in coop it's the shared board. While
-   *  viewing history this is the snapshot's results (guesses up to that turn). */
+  // Guessed words → was-it-a-secret. A guessed tile colors **permanently**
+  // green (true) / red (false) and can't be re-picked. In compete RLS scopes
+  // this to the viewer's own guesses; in coop it's the shared board. While
+  // viewing history this is the snapshot's results (guesses up to that turn).
   results: ReadonlyMap<string, boolean>
-  /** The currently-picked word (highlighted), or null. Kept in sync with the
-   *  word entry by the parent. */
+  // The currently-picked word (highlighted), or null. Kept in sync with the
+  // word entry by the parent.
   selected: string | null
-  /** Pick a word tile. Omitted when the board is non-interactive (terminal, the
-   *  viewer is out of guesses, or viewing history) — tiles render inert then. */
+  // Pick a word tile. Omitted when the board is non-interactive (terminal, the
+  // viewer is out of guesses, or viewing history) — tiles render inert then.
   onPick?: (word: string) => void
-  /** Turn-history: render read-only under the blue viewer frame (a past turn's
-   *  board). Off during live play. */
+  // Render read-only under the blue viewer frame (a past turn's
+  // board). Off during live play.
   isViewingHistory?: boolean
-  /** Turn-history: the word the viewed turn's guess decided — ring its tile
-   *  history-blue (just OUTSIDE the tile, clear of its green/red fill). Null / omitted when live. */
+  // The word the viewed turn's guess decided — ring its tile
+  // history-blue (just OUTSIDE the tile, clear of its green/red fill). Null / omitted when live.
   historyLitWord?: string | null
-  /** WHO decided each tile — its guesser's identity dot, in the bottom-right
-   *  corner. Null outside coop: in compete you only ever see your own guesses, so
-   *  a dot would be decoration.
-   *
-   *  A REVEALED secret is deliberately absent from this map (nobody guessed it),
-   *  which is what keeps found-vs-peeked readable without toggling the reveal off:
-   *  a green tile with a dot was found, a green tile without one was shown. */
+  // WHO decided each tile — its guesser's identity dot, in the bottom-right
+  // corner. Null outside coop: in compete you only ever see your own guesses, so
+  // a dot would be decoration.
+  //
+  // A REVEALED secret is deliberately absent from this map (nobody guessed it),
+  // which is what keeps found-vs-peeked readable without toggling the reveal off:
+  // a green tile with a dot was found, a green tile without one was shown.
   decidedBy?: ReadonlyMap<string, Actor | undefined> | null
-  /** The word currently with the server — its tile takes the in-flight dim. */
+  // The word currently with the server — its tile takes the in-flight dim.
   inFlightWord?: string | null
-  /** The game is finished, and how it ended — the board takes a band in that
-   *  outcome's gray (neutral for a game merely ended). Null while it's live. */
+  // The game is finished, and how it ended — the board takes a band in that
+  // outcome's gray (neutral for a game merely ended). Null while it's live.
   gameOver?: TerminalOutcome | null
-  /** A teammate holds the move (turn-order coop): dim the whole board. */
+  // A teammate holds the move (turn-order coop): dim the whole board.
   notMyTurn?: boolean
-  /** True for a beat at the moment the turn becomes mine — flash the frame. */
+  // True for a beat at the moment the turn becomes mine — flash the frame.
   myTurnJustStarted?: boolean
-  /** Guesses the server has recorded. The CAUSE the attention flash reads: a
-   *  board that changed while this stood still was revealed or re-dealt, not
-   *  played into. */
+  // Guesses the server has recorded. The CAUSE the attention flash reads: a
+  // board that changed while this stood still was revealed or re-dealt, not
+  // played into.
   moveCount: number
-  /** A control floated over the board's top-right (the Shuffle button). Rendered
-   *  INSIDE the board root — the root is the `position: relative` anchor — so it
-   *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
-   *  column's top, which the vertically-centered board no longer touches. */
+  // A control floated over the board's top-right (the Shuffle button). Rendered
+  // INSIDE the board root — the root is the `position: relative` anchor — so it
+  // hugs the VISUAL board. Anchoring to the column instead would strand it at the
+  // column's top, which the vertically-centered board no longer touches.
   floatingControl?: ReactNode
 }
 
@@ -194,7 +194,7 @@ export function Board({
                 // red back. The red is the half that survives reduced motion,
                 // and a correct guess never shakes.
                 shaking.has(word) && shared.verdictShake,
-                // Turn-history: this tile is the guess the viewed turn decided.
+                // This tile is the guess the viewed turn decided.
                 historyLitWord === word && styles.historyTile,
               )}
               disabled={guessed || !onPick}

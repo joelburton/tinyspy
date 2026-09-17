@@ -155,7 +155,7 @@
   z-index: 1;
 }
 
-/* Turn-history: the tile the VIEWED past turn guessed — the shared history BLUE
+/* The tile the VIEWED past turn guessed — the shared history BLUE
  * (`--history-color`), the same signal the board frame + viewed log #N wear.
  *
  * OUTSIDE the tile, like every other history ring in the app (the board `.historyFrame`
