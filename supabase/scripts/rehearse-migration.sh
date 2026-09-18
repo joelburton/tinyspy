@@ -134,8 +134,13 @@ supabase migration up --local
 
 count_rows > "$WORK/after.tsv"
 echo "── now $(awk -F'\t' '{n += $2} END {print n+0}' "$WORK/after.tsv") rows in $(wc -l < "$WORK/after.tsv" | tr -d ' ') tables"
+# Collected before it is tested, not tested by the pipeline's exit status:
+# under `pipefail` a diff that FINDS differences exits 1, so `if diff | grep`
+# would print the changes and then announce that there were none.
+changes=$(diff -U 0 "$WORK/before.tsv" "$WORK/after.tsv" | grep -E '^[-+][a-z]' || true)
 echo "── what the migration(s) did to the row counts:"
-if diff -U 0 "$WORK/before.tsv" "$WORK/after.tsv" | grep -E '^[-+][a-z]' ; then
+if [[ -n "$changes" ]]; then
+  echo "$changes"
   echo "   (a rename reads as one '-' and one '+' with the SAME count)"
 else
   echo "   nothing — every table kept its name and its rows"
