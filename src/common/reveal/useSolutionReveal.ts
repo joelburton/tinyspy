@@ -10,10 +10,6 @@ export interface SolutionReveal {
   revealed: boolean
   // The button's onClick — show it, or put it away again.
   toggle: () => void
-  // Put it away without asking whether it's open.
-  hide: () => void
-  // Forget my choice entirely, handing control back to `impliedBy`.
-  reset: () => void
   // Is the answer on screen because I SOLVED it, with no choice of mine
   // involved? Drives the disabled Reveal button + its "Solution already shown"
   // words — there is nothing for the control to do.
@@ -23,19 +19,21 @@ export interface SolutionReveal {
 /**
  * "Did I produce the solution?" — the predicate a game passes as `impliedBy`.
  *
- * **Compete** asks the caller's own per-player bit: solving is personal there,
- * and the game's verdict is not a proxy for it (wordle writes `won_compete`
- * when SOMEONE wins, and the racer three guesses off never produced the word).
+ * Only the games where a player's own finished board IS the puzzle-solution
+ * call this: wordle can only be finished by typing the target. Where the two
+ * are different things — crosswords' author grid, codenamesduet's partner key
+ * card, wordiply's best word, letterboxed's seeded pair — no result puts the
+ * puzzle-solution on screen, so there is nothing to compute and the game passes
+ * no `impliedBy` at all. Both terms: `common/reveal/doc.md`.
  *
- * **Coop asks the GAME**, because there is one board and one outcome: if the
- * table solved it, every player is looking at the solution. It is also the only
- * question coop can answer in every game, since three of them write no usable
- * per-player bit there:
+ * **Compete: pass your own per-player solved bit.** The game's verdict is no
+ * proxy for it — wordle writes `won_compete` when SOMEONE wins, and the racer
+ * three guesses off never produced the word.
  *
- *   - stackdown writes `players.solved` only `when mode = 'compete'`;
- *   - strands' coop branch ends the game directly and never touches it;
- *   - psychicnum counts `found_secrets_count` per CALLER, so two teammates
- *     finding 2 and 1 leaves neither at three.
+ * **Coop ignores `mine` and asks the game**, because one board means one
+ * answer: if the table solved it, every player is looking at the solution. Pass
+ * whatever the game has; it is not read. (Why a per-player row can't stand in
+ * for the game here: `common/reveal/doc.md`.)
  *
  * `playState === 'won'` is the coop win in the shared vocabulary (docs/states.md);
  * 'ended' and 'lost' are terminals nobody solved.
@@ -59,15 +57,22 @@ export function solvedByMe({
  * and my looking opens nothing on anybody else's screen. `toggle` goes both
  * ways, so a game whose reveal rewrites the board can always put back the one
  * the players finished with.
+ *  
+ * `impliedBy` says this player is looking at the answer already, so the control
+ * has nothing left to do. It means one thing: **their own board-solution IS the
+ * puzzle-solution** — wordle's typed target, waffle's solved grid. Those games
+ * pass `solvedByMe(...)`; their solver starts revealed and `impliedBySolve`
+ * stays true until they choose otherwise, which is what the game's Reveal
+ * button reads to go inert. A game whose puzzle-solution is a distinct artifact
+ * (the author's grid, the partner's key card) passes nothing — no way of
+ * finishing puts that in front of anyone.
  *
- * `impliedBy` is "did I SOLVE it" — pass `solvedByMe(...)` from a game you can
- * only finish by producing the answer. Its player then starts with the answer
- * shown, and `impliedBySolve` stays true until they make a choice of their own,
- * which is what the game's Reveal button reads to go inert. A game whose win
- * does not mean you saw the answer passes nothing.
+ * A restart needs nothing from the caller: `GamePage` keys the play surface on
+ * `common.games.restarts`, so the replayed run mounts a fresh hook and starts
+ * blind.
  *
- * Why the reveal is personal and temporary, and which games pass what:
- * `src/common/reveal/doc.md`.
+ * The two terms, why the reveal is personal and temporary, and which games pass
+ * what: `src/common/reveal/doc.md`.
  */
 export function useSolutionReveal({ impliedBy = false }: { impliedBy?: boolean } = {}): SolutionReveal {
   // NULL = "no opinion, follow `impliedBy`"; only an explicit press writes here.
@@ -78,7 +83,5 @@ export function useSolutionReveal({ impliedBy = false }: { impliedBy?: boolean }
   const [pick, setPick] = useState<boolean | null>(null)
   const revealed = pick ?? impliedBy
   const toggle = useCallback(() => setPick((p) => !(p ?? impliedBy)), [impliedBy])
-  const hide = useCallback(() => setPick(false), [])
-  const reset = useCallback(() => setPick(null), [])
-  return { revealed, toggle, hide, reset, impliedBySolve: impliedBy && pick === null }
+  return { revealed, toggle, impliedBySolve: impliedBy && pick === null }
 }

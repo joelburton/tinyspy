@@ -357,8 +357,8 @@ describe('wordle PlayArea — terminal flow', () => {
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
-    // The same word, hunted again. Nothing on the server remembers the reveal
-    // for us any more, so the re-hide is local and explicit (onRestarted).
+    // The same word, hunted again — and the answer is gone from the client with
+    // it, since `_target_for` stops sending a target the run has not finished.
     h.result = loaded({ ...game, target: null })
     rerender(<PlayArea {...makeCtx()} />)
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()

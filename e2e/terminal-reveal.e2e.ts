@@ -82,9 +82,9 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(words).toHaveCount(0)
   await expect(revealRow).toBeVisible()
 
-  // Restart re-hides too. Nothing on the server remembers the reveal any more,
-  // so this is the game's own onRestarted doing it — the one thing every game
-  // had to be given explicitly when the shared flag went away.
+  // Restart re-hides too, and no game does anything to make that happen:
+  // `GamePage` keys the play surface on `common.games.restarts`, so the
+  // replayed run mounts a fresh surface and the reveal goes with the old one.
   await revealRow.click()
   await expect(words).toBeVisible()
   await actionButton(page, 'act-restart').click()

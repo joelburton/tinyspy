@@ -34,8 +34,12 @@ describe('solvedByMe', () => {
 
 /**
  * The reveal's two halves: the player's own choice, and the default a CLEAR WIN
- * implies. Everything here is about how those two interact, because that's where
- * the bugs live — a frozen initializer, or a Restart that quietly records "no".
+ * implies. Everything here is about how those two interact, because that's
+ * where the bugs live — a frozen initializer above all.
+ *
+ * A restart is not one of them: `GamePage` keys the play surface on
+ * `common.games.restarts`, so the replayed run mounts a fresh hook with no
+ * choice in it (`GamePage.test.tsx` pins that remount).
  */
 describe('useSolutionReveal', () => {
   it('starts hidden and toggles both ways', () => {
@@ -74,27 +78,6 @@ describe('useSolutionReveal', () => {
     expect(result.current.impliedBySolve).toBe(false)
     act(() => result.current.toggle())
     expect(result.current.revealed).toBe(true)
-  })
-
-  /**
-   * Restart's case, and the reason `reset` exists apart from `hide`. Using
-   * `hide()` here would record an explicit "no", which outranks the implied
-   * default forever — so solving the REPLAYED board wouldn't show the answer,
-   * and the player would be left pressing a Reveal button to see something they
-   * just earned.
-   */
-  it('reset hands control back to impliedBy; hide would not', () => {
-    const { result, rerender } = renderHook(({ solved }) => useSolutionReveal({ impliedBy: solved }), {
-      initialProps: { solved: true },
-    })
-    act(() => result.current.hide()) // an explicit "no"
-    rerender({ solved: false }) // …the replay starts
-    expect(result.current.revealed).toBe(false)
-    rerender({ solved: true }) // …and is solved again
-    expect(result.current.revealed).toBe(false) // the stale "no" still wins
-
-    act(() => result.current.reset())
-    expect(result.current.revealed).toBe(true) // now the win speaks for itself
   })
 
   it('impliedBySolve is false when nothing was solved', () => {

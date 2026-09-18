@@ -392,8 +392,8 @@ export function PlayArea({
   // is the player's next action, so it dismisses a lingering result — the
   // verdict itself leaves by its own effect when the terminal state ends).
   //
-  // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
-  //  server-side, so the same three secrets are hunted blind again.)
+  // (Nothing un-rings the secrets here: a restart remounts the play surface, so
+  //  the reveal goes with it and the same three are hunted blind again.)
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,

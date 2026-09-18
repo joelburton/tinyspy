@@ -294,9 +294,8 @@ export function PlayArea({
   // The byte-identical shared handlers (useStandardGameActions); wordle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss a lingering result — a restart is the player's next
-  // action; the verdict leaves by its own effect — and re-hide the answer so
-  // the new run starts blind). New game + Reveal answer stay below — their
-  // paths diverge (new game is a direct create_game).
+  // action; the verdict leaves by its own effect). New game + Reveal answer
+  // stay below — their paths diverge (new game is a direct create_game).
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,

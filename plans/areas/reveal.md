@@ -4,8 +4,8 @@ The folders it reads: `reveal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18; the prose pass done 2026-09-18 (F-1 to
-F-7); F-8 and F-9 await a decision, F-10 is ruled and unworked.** Roster agreed
+**Status: OPEN — audited 2026-09-18; the prose pass and F-10 done 2026-09-18.
+Eight of ten findings worked; F-8 and F-9 await a decision.** Roster agreed
 2026-09-18 (Joel: *"this is a tiny section, just do the audit"*) and the two
 code files stamped `cs-audited-reveal`. Taken in order after `terminal` (row
 44); this is row 45.
@@ -40,6 +40,7 @@ taxonomy; it was built three weeks before the row was written (F-7).
 ```
 <PlayArea>                              ten of sixteen games
 └── useSolutionReveal({ impliedBy? })    LOCAL, per-player, unpersisted: { revealed, toggle, hide, reset, impliedBySolve }
+                                         (`hide` and `reset` left with F-10)
      ├── impliedBy: solvedByMe({ isCompete, playState, mine })   the six clear-win games
      └── act-reveal's describe()          impliedBySolve → disabled "Solution already shown"
                                           revealed → "Hide …" + IconHideSolution
@@ -242,7 +243,7 @@ uniform — and in two of them it disagrees with the game's own live label.)
 Whichever way it goes, the inert face has to follow it: "Solution already
 shown" is hard-coded in all six clear-win games and contradicts two of them.
 
-### F-reveal-10 · `reset-and-hide-have-no-caller` · `reset` and `hide` are dead since the restart key, and the docstring argues a distinction nothing uses
+### F-reveal-10 · `reset-and-hide-have-no-caller` · `reset` and `hide` are dead since the restart key, and the docstring argues a distinction nothing uses — WORKED
 
 Joel's question at the audit: *"i suspect the 'reset' prop in SolutionReveal
 is no longer needed, since restart now is a re-render, right?"* Right. Since
@@ -266,17 +267,67 @@ The fix: `reset` and `hide` leave the interface, the hook, the docstring and
 the test; `SolutionReveal` is `{ revealed, toggle, impliedBySolve }`; ui.md's
 sentence says a restart mounts a new surface and the reveal goes with it.
 
+**Worked 2026-09-18.** Premise re-verified first, both halves: no call site
+destructures either name (all ten take `revealed` + `toggle`, six take
+`impliedBySolve`), and `GamePage.tsx` keys the surface on
+`commonGame.restarts`, which `GamePage.test.tsx` pins by counting mounts. The
+hook is six lines. The test case went rather than being rewritten — a
+replacement asserting "a fresh mount has no choice in it" would have restated
+the file's first test, and the remount itself is GamePage's to pin; what the
+case knew is now the `describe` header's second paragraph and a `## Details`
+item in `doc.md`. The "no way to put the choice back" reasoning survives in
+both, since it is the answer to the obvious question about the shape.
+
+The five surviving `onRestarted` sentences went with it: `docs/ui.md` (both the
+"still owe" bullet and the `reset()`/`hide()` paragraph), `docs/games/wordle.md`,
+`docs/games/psychicnum.md`, `wordle/PlayArea.tsx`'s restart comment and
+`wordle/PlayArea.test.tsx`'s — that last one doubly wrong, since what clears the
+word there is `_target_for` no longer sending it. Two more the grep for the
+callback did not reach: psychicnum's *"No reveal-flag reset here"* comment (the
+Notes item below, fixed here rather than handed on — it names a column dropped
+2026-08-15 and would have read as live code) and `e2e/terminal-reveal.e2e.ts`,
+which credited "the game's own onRestarted" for a re-hide the remount does.
+
 ## Notes
 
-- **psychicnum, handed on:** the *"No reveal-flag reset here"* comment (F-10)
-  names a column that no longer exists. Its own area.
-- **`onRestarted` survives in five sentences and nothing else** — no such
-  callback exists anywhere in `src`. `docs/ui.md` ("what each game does still
-  owe is dropping the local reveal in its `onRestarted`"), `docs/games/wordle.md`
-  and `docs/games/psychicnum.md`, `wordle/PlayArea.tsx`'s restart comment and
-  `wordle/PlayArea.test.tsx`'s. Left standing on purpose: they are F-10's, and
-  F-10 is ruled but unworked. `docs/games/stackdown.md`'s went with the sentence
-  F-6 rewrote around it.
+- **crosswords keeps its reveal, and it is not an `impliedBy` candidate** —
+  Joel, 2026-09-18, ending the question the prose pass raised: *"crosswords will
+  continue to have reveal; the author's solution is distinct."* A fully-correct
+  fill is not the author's grid (rebuses, quantum clues), and the reveal grays
+  his letters in over the player's, so it reads as a diff. No todo filed.
+- **The area's vocabulary, Joel's, 2026-09-18: PUZZLE-SOLUTION and
+  BOARD-SOLUTION.** The puzzle-solution is the puzzle's own answer, fixed at
+  generation, the same for everybody, and what the control shows; a
+  board-solution is what one player's finished board amounts to, per player and
+  per run. `impliedBy` is one sentence over the two: *this player's
+  board-solution IS the puzzle-solution* (Joel: *"in wordle, a board-solution
+  IS the puzzle-solution … in crosswords, a board-solution ISN'T the
+  puzzle-solution"*). It is in `ui.md`, `doc.md` and both docstrings, and the
+  reason it was worth the search is that `impliedBy` is a hard name to read
+  cold (Joel: *"the 'impliedBy' name is tricky to understand, so getting some
+  of this language in will help"*).
+
+  **Three namings were tried and rejected first**, each failing on a game:
+  *clear win* (borrowed from `docs/features.md` → *Clear win condition in
+  compete*, a list of ELEVEN games about how a race is decided — it includes
+  crosswords, so it read as a contradiction; features.md keeps the phrase for
+  its own meaning, and the reveal's docs no longer use it); *perfect / imperfect
+  solve* (a codenamesduet win contacts all fifteen agents and nothing beats
+  that, yet it still cannot imply — and "perfect solve" already reads as "no
+  hints, no mistakes" in strands, connections and wordle); and *best solution /
+  any solution* (`win-lose.md` has already spent **best** on the race-vs-best
+  finish line, where strands is a "best" game with exactly one solution).
+  Joel's pair survives all four hard cases because it names two OBJECTS and
+  makes the rule their comparison, rather than sorting the games directly.
+
+- **psychicnum:** the *"No reveal-flag reset here"* comment named a column
+  dropped 2026-08-15. Fixed with F-10 rather than handed on — a comment that
+  tells the next reader a server RPC handles this is worse than a wrong date.
+- **`onRestarted` named a callback that exists nowhere in `src`**, in five
+  sentences plus an e2e comment; all gone with F-10, and stackdown.md's went
+  with the sentence F-6 rewrote around it. The phrase is worth a grep at the
+  closing re-read: it outlived the code by three days and was restated in a
+  test comment that had a different explanation available.
 - The `[[…]]` memory link in the hook (F-2) is the only one in `src/`;
   `grep -rn '\[\[' src` finds no other.
 - The six per-game `// impliedBy is the exception: …` comments beside the
@@ -293,7 +344,8 @@ sentence says a restart mounts a new surface and the reveal goes with it.
 ## Predicted test breaks
 
 - F-10: `useSolutionReveal.test.ts` loses its `reset`/`hide` case; nothing
-  outside the folder references either.
+  outside the folder references either. Confirmed — `tsc -b` clean and 1266
+  tests green across the ten games plus the guards.
 - F-1 to F-7: none — prose, a plan row, and a guard list entry
   (`folderDocs.test.ts` `INTROS_OWED` loses `common/reveal`; the guard then
   requires the intro F-5 writes). Confirmed: `tsc -b` clean and the three games
