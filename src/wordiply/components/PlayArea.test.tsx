@@ -539,9 +539,12 @@ describe('wordiply PlayArea — the entry keys', () => {
     expect(typedLength()).toBe('')
   })
 
-  it('a finished game takes no letters', async () => {
+  // `disabled`, not `hidden`: typing IS one of this game's keys, and Help
+  // teaches a game's keys rather than mirroring what is pressable this instant,
+  // so the row stays in the list after the game ends. What it cannot do is act.
+  it('a finished game takes no letters, and still lists the key', async () => {
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })} />)
-    expect(stateOf('act-type-letter')).toBe('hidden')
+    expect(stateOf('act-type-letter')).toBe('disabled')
     await press({ key: 'b' })
     expect(typedLength()).toBe('')
   })

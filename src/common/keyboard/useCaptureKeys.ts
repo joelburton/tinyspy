@@ -99,9 +99,12 @@ export function useCaptureKeys({
   maxLength = 16,
   submitDisabled = false,
 }: CaptureKeysOptions): CaptureKeysActions {
-  // The entry is gone (terminal / loading) vs briefly frozen (mid-submit). Gone
-  // takes its keys off the list entirely; frozen keeps them there and grays them.
-  const editState: ActionState = disabled ? 'hidden' : busy ? 'disabled' : 'active'
+  // Both gates mean "can't act", and both answer `disabled` rather than
+  // `hidden`, because Help's key list TEACHES a game's keys rather than
+  // mirroring what is pressable this instant (Joel, 2026-09-18): typing, ⌫ and
+  // ↵ are keys this game has, and a player reading Help after it ends should
+  // still learn them. `hidden` is for a key a game does not have at all.
+  const editState: ActionState = disabled || busy ? 'disabled' : 'active'
 
   useBoundAction('act-type-letter', {
     describe: () => editState,

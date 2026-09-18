@@ -5,10 +5,10 @@ import { useBoundAction, type ActionState } from '../actions/useBoundAction'
 export type ArrowHistoryOptions = {
   // Whether this entry keeps a history at all. False says the game has no last
   // entry to bring back — letterboxed, where a submitted word joins the chain
-  // rather than going away — and takes BOTH arrows off the key list. Both, and
-  // `hidden` rather than `disabled`, because Help draws a disabled key exactly
-  // like a live one (`actions/KeyList`), so a listed key that can never act
-  // reads as one that works. Default true.
+  // rather than going away — and takes BOTH arrows off the key list, since a
+  // key the game hasn't got is nothing for Help to teach. This is the one thing
+  // `hidden` means here; every other reason the arrows are off is `disabled`.
+  // Default true.
   hasHistory?: boolean
   // The last submitted value, restored by **ArrowUp** (add an 'S' to your last
   // word, fix a typo, re-guess). The game tracks it in its submit handler (so
@@ -18,10 +18,10 @@ export type ArrowHistoryOptions = {
   // Set the pending text — ArrowUp restores `recall` into it, ArrowDown clears it.
   onChange: (next: string) => void
   // Hard-off: the entry is not here at all (loading / terminal). Both arrows
-  // leave the key list. Default false.
+  // stay listed and gray — they are still this game's keys. Default false.
   disabled?: boolean
-  // Soft-busy: mid-submit. Both arrows stay listed and grayed rather than
-  // leaving, since the freeze lasts one RPC. Default false.
+  // Soft-busy: mid-submit. Same answer as `disabled` for these two; the props
+  // stay separate because the row's other keys read them apart. Default false.
   busy?: boolean
 }
 
@@ -50,13 +50,11 @@ export function useArrowHistory({
   busy = false,
   hasHistory = true,
 }: ArrowHistoryOptions): void {
-  // The same two gates the capture core reads, answered with the same two
-  // words, so the four keys on one row never disagree about a freeze. GONE
-  // (loading / terminal, or a game with no history at all) takes the arrows off
-  // the list; FROZEN keeps them there and grays them — which for these two is
-  // what stops a submit blinking two rows out of Help and back, and what keeps
-  // the key from falling through to the browser mid-RPC.
-  const editState: ActionState = !hasHistory || disabled ? 'hidden' : busy ? 'disabled' : 'active'
+  // The same gates the capture core reads, answered the same way, so the four
+  // keys on one row never disagree. `hidden` says this game does not have the
+  // key — nothing for Help to teach; `disabled` says it does and can't act
+  // right now, which is every other reason the arrows are off.
+  const editState: ActionState = !hasHistory ? 'hidden' : disabled || busy ? 'disabled' : 'active'
 
   useBoundAction('act-recall-last', {
     // Nothing submitted yet, nothing to bring back.

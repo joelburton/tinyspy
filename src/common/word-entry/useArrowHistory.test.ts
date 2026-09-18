@@ -91,13 +91,13 @@ describe('useArrowHistory', () => {
   })
 
   describe('what the two arrows say about themselves', () => {
-    // The two gates say different things, exactly as the capture core's do:
-    // gone takes the keys off the list, frozen keeps them there and grays them.
-    // Same words for all four keys on the row, so a submit neither blinks two
-    // rows out of Help nor drops the arrows through to the browser.
-    it('both hidden while the entry is gone (disabled)', () => {
+    // Both gates mean "can't act", and both say `disabled` — the arrows are
+    // keys this game HAS, and Help teaches a game's keys rather than mirroring
+    // the instant. `hidden` is reserved for the game that hasn't got the key,
+    // below.
+    it('both disabled while the entry is gone (disabled)', () => {
       setup({ recall: 'crane', disabled: true })
-      expect(states()).toEqual({ recall: 'hidden', clear: 'hidden' })
+      expect(states()).toEqual({ recall: 'disabled', clear: 'disabled' })
     })
 
     it('both disabled while a submit is in flight (busy)', () => {

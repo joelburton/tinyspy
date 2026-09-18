@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3), F-4, F-5 and F-6 worked 2026-09-18.** Roster
+F-3) and F-4 … F-7 worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -253,19 +253,22 @@ actually costs is two things, and the second is not in the finding at all:
 Recommend (a) — **Joel chose (a), 2026-09-18.**
 
 **Shipped:** `ArrowHistoryOptions` takes `disabled` / `busy` in place of
-`enabled`, and one `editState` is computed the way `useCaptureKeys` computes
-its own — `!hasHistory || disabled ? 'hidden' : busy ? 'disabled' : 'active'` —
-with `act-recall-last` narrowing it to `disabled` when there is nothing to
-bring back and `act-clear-entry` taking it as-is. `EntryRow` forwards the two
+`enabled`, and computes one `editState` the way `useCaptureKeys` computes its
+own, so the four keys on the row can't disagree. `EntryRow` forwards the two
 props it already holds (one boolean fewer at the call site); wordiply's call
-becomes `disabled: entryDisabled`. The hook now says GONE for the two permanent
-facts — over, or no history here — and FROZEN for the momentary one, which is
-`actions/doc.md`'s distinction word for word.
+becomes `disabled: entryDisabled`.
 
-**Tests:** the predicted split happened — "both hidden while the arrows are off"
-is now `disabled` → hidden and `busy` → disabled — and the run-level case split
-the same way. Planted: collapsing `busy` back into `hidden` fails the busy
-state case.
+**What that expression says was then changed by F-word-entry-7**, hours later.
+As shipped here it was `!hasHistory || disabled ? 'hidden' : busy ? 'disabled' :
+'active'` — gone for the two permanent facts, frozen for the momentary one.
+F-7's ruling made hard-off `disabled` too, leaving `hidden` for `hasHistory`
+alone; the mirroring this finding is about survived the change, since both hooks
+moved together. Of the two arguments made for it here, the browser fall-through
+one holds and the blinking one is weakened — Joel's ruling is that nobody
+watches the key list change.
+
+**Tests:** the predicted split happened, and F-7 then merged the two halves back
+onto `disabled`.
 
 ### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it — WORKED as (c)
 
@@ -321,7 +324,7 @@ EntryBox-only history arrows are a separate layer"*. Fixed with the rest. Two
 `cs-blessed-keyboard` files carry a conformance edit each, under §4 → not a
 fence.
 
-### F-word-entry-7 · `disabled-removes-the-buttons` · A hard-off row draws no buttons, and its prop says they are disabled
+### F-word-entry-7 · `disabled-removes-the-buttons` · A hard-off row draws no buttons, and its prop says they are disabled — WORKED, and it turned into a ruling
 
 Probe: `disabled` → zero buttons. `useCaptureKeys` answers `hidden` for both
 entry actions at `disabled` (deliberately — *"Gone takes its keys off the list
@@ -349,8 +352,45 @@ two ends do.
   in the help list of a finished game, which the blessed keyboard folder chose
   against.
 
-Recommend (a); (b) only if the history-view look asks for it, which wants
-looking at rather than reasoning about.
+Recommended (a). **What actually happened is (c), because the reason (c) was
+recorded against turned out to be wrong.**
+
+**The finding's "where it shows" was wrong.** The history banner is `inset: 0`
+with an opaque fill over the whole slot, so nothing of the row is visible while
+viewing a past turn. And every other hard-off state across the five games puts a
+message on the slot — the waiting note, the terminal verdict, "Chain is full" —
+and a message makes `EntryRow` return the pill INSTEAD of the row. So the
+buttonless row is a state the code can reach and a player cannot, with one
+possible exception: the verdict goes up in a `useEffect`, which runs after
+paint, so there may be one frame at game over where it is drawn. Never observed.
+
+**stackdown does not belong in this finding** (Joel): it renders `<MoveRow>`,
+but `MoveRow` decides nothing — it places two bound actions and `ActionButton`
+draws what each says. `EntryRow`'s buttons carry `useCaptureKeys`' answer;
+stackdown binds its own actions and answers for itself. Two callers deciding for
+their own actions is the component working, which its docstring already says.
+
+**The ruling that settled it** (Joel, 2026-09-18), after asking why the buttons
+hide rather than gray: *"it should show those as keys. the help was never meant
+to be 'exactly right now, what keys are available'. when players read the help,
+they're hoping to learn the keys useful for the game. they're not keeping it
+open to watch it change."*
+
+**Shipped.** `useCaptureKeys`' `editState` is `disabled || busy ? 'disabled' :
+'active'` — hard-off no longer hides — and `useArrowHistory` mirrors it, keeping
+`hidden` for the one thing it now means: `hasHistory: false`, a key this game
+hasn't got. So a finished word game still lists `A–Z`, `⌫`, `↵` and the arrows
+in Help; the buttons gray instead of vanishing, which closes the one-frame risk
+without reserving anything; and the keys are swallowed at terminal rather than
+falling through to the browser. Two tests moved, both to `disabled`:
+`useArrowHistory.test.ts`'s gone-case and wordiply's "a finished game takes no
+letters", which now also asserts the key stays listed.
+
+**Recorded in `common/actions/todo.md`, not decided here:** the ruling's reach
+past the entry keys (every play-only action still leaves Help at terminal), and
+that the never-widen constraint asserted at `useBoundAction.ts:233` is an
+invention of the implementing session rather than Joel's — he proposed the asker
+parameter, not the rule on it.
 
 ### F-word-entry-8 · `local-feedback-class-home` · Whose class is `.localFeedback`?
 

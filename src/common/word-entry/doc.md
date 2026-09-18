@@ -75,22 +75,22 @@ follows without a second knob. That token and a `className` are the whole of the
 per-game tuning; everything else about how an entry looks is the same in every
 game on purpose.
 
-**The row has two gates, and all four keys answer them the same way.** The host
-passes `disabled` — the entry is not here at all, loading or over — and `busy`,
-which is the moment a submit is in flight. Gone takes a key off the list;
-frozen keeps it there and grays it. Both hooks read both gates and use those two
-words, so ⌫ and ↵ can't say *frozen* while ↑ and ↓ say *gone* for the same
-instant. It matters more than it looks: the Keys list in Help is live, so a
-one-word difference blinks rows out and back on every submit, and a key that
-answers `hidden` falls through to the browser rather than being swallowed.
+**A key the game HASN'T GOT is hidden; a key it can't use right now is gray.**
+The host passes two gates — `disabled`, the entry is not here at all, and
+`busy`, the moment a submit is in flight — and both hooks answer both of them
+with `disabled`, so all four keys on the row say the same thing at the same
+time. None of them leaves the key list for either gate, because Help teaches
+what keys a game has rather than what is pressable this instant: typing, ⌫ and ↵
+are still spellingbee's keys after the game ends, and a player reading Help then
+should still learn them.
 
-**A game with no history hides both arrows rather than graying them.** `↑` and
-`↓` have no buttons anywhere — the only place they appear is the "Keys" list in
-Help, and that list draws a `disabled` key exactly like a live one, filtering
-only `hidden` ([`common/actions`](../actions/doc.md) → the key list). So a key
-that can never act has to be `hidden`, or it reads as one that works. That is
-what `hasHistory: false` says, and it is a different statement from `recall: ''`
-— which means the game does offer recall and nothing has been submitted yet.
+The one thing that does leave is `hasHistory: false` — letterboxed has no recall
+at all, so there is nothing about ↑ or ↓ to teach there. That is a different
+statement from `recall: ''`, which says the game does offer recall and nothing
+has been submitted yet. Worth knowing when reading these two apart: `↑` and `↓`
+have no buttons anywhere, so the key list is the whole of what their state is
+for — while ⌫ and ↵ are also the buttons in the row, which is why hiding those
+two would empty the row's ends.
 
 **What may be entered is the game's, and it is the only per-game rule.**
 `charFor` maps a pressed key to the character to append — letters in the stored

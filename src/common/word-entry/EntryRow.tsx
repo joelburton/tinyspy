@@ -32,12 +32,12 @@ type Props = {
   // through the swap is what lets that keystroke reach the slot: the
   // capture hook below stays live and `onAnyKey` is its `dismiss`.
   localFeedbackSlot: FeedbackSlot
-  // Hard-off, for loading / terminal: capture is a no-op, and the entry keys
-  // leave the key list entirely — so the two buttons, which ARE those keys,
-  // are not drawn at all and the box sits alone between them.
+  // Hard-off, for loading / terminal: capture is a no-op, and the buttons gray.
+  // It also stops the any-key feedback dismissal, so a terminal pill isn't
+  // wiped by a stray key — which `busy` does not.
   disabled?: boolean
-  // Mid-submit: capture blocks edits and submits, and both buttons stay drawn
-  // and gray, since the freeze is momentary.
+  // Mid-submit: capture blocks edits and submits and the buttons gray, but a
+  // key still dismisses feedback, since the freeze lasts one RPC.
   busy?: boolean
   // The current value can't be submitted, but editing stays live — Enter is a
   // no-op and the Submit button is gray, while typing/Delete keep working so
@@ -55,8 +55,9 @@ type Props = {
   // Last submitted value, restored by ArrowUp (see `./useArrowHistory`).
   recall?: string
   // False where a submitted word doesn't come back at all (letterboxed: it
-  // joins the chain), which takes both arrows off the key list. Default true —
-  // a game that offers recall leaves this alone and passes `recall`.
+  // joins the chain), which takes both arrows off the key list — this game
+  // hasn't got them. Default true; a game that offers recall leaves this alone
+  // and passes `recall`.
   hasHistory?: boolean
   // Extra class on the row — e.g. a per-game `--entryBox-font-size` override.
   className?: string
