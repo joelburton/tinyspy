@@ -298,8 +298,7 @@ export function BoardCol({
   // off the shared capture CORE — so wordle can't drift from the modifier bail /
   // focused-input guard / any-key-dismiss that the EntryBox games get. wordle is NOT an
   // EntryBox (letters land on the Board, not a box), so it uses useCaptureKeys
-  // ALONE — no ArrowUp-recall / ArrowDown-clear (those are useArrowHistory, layered on
-  // by <EntryRow> for the EntryBox games only).
+  // ALONE.
   const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value: current,
     onChange: setCurrent,

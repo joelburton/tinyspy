@@ -26,18 +26,22 @@ export type ArrowHistoryOptions = {
 }
 
 /**
- * The **EntryBox history arrows** — the last-move affordance specific to the
- * single-word `<EntryBox>`: `ArrowUp` recalls your last entry, `ArrowDown` clears
- * the current one. Layered on top of the generic `useCaptureKeys` core by
- * `<EntryRow>`, so it applies to every game that renders an `<EntryRow>` and
- * ONLY them — a key-capture game that isn't an EntryBox (wordle)
- * uses the core alone and never wires this, so it gets no arrow behavior. Keeping
- * it separate is what makes that boundary obvious (docs/playarea.md → Text entry).
+ * The **history arrows** — `ArrowUp` recalls your last entry, `ArrowDown` clears
+ * the one you're typing. Reach for it when your game keeps a whole last entry
+ * worth bringing back: the next guess is so often the last one plus a letter.
+ *
+ * `<EntryRow>` composes it over the `useCaptureKeys` core already, so a typing
+ * game gets the arrows by rendering that; a game running its own capture loop
+ * calls this directly. A game whose submitted entry doesn't come back at all
+ * passes `hasHistory: false` and gets neither arrow.
+ *
+ * Separate from the core because it is a different question — the core is about
+ * the characters going in, this is about the whole entry coming back — and a
+ * game may want one without the other.
  *
  * Two bound actions, so the arrows appear in the game's key list beside its
  * commands, and so an arrow that has nothing to do says so: recall with no last
- * entry is disabled rather than silently inert. A game that keeps no history at
- * all passes `hasHistory: false` and gets neither arrow.
+ * entry is disabled rather than silently inert.
  */
 export function useArrowHistory({
   recall,

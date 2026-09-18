@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3), F-4 and F-5 worked 2026-09-18.** Roster
+F-3), F-4, F-5 and F-6 worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -267,7 +267,7 @@ is now `disabled` → hidden and `busy` → disabled — and the run-level case 
 the same way. Planted: collapsing `busy` back into `hidden` fails the busy
 state case.
 
-### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it
+### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it — WORKED as (c)
 
 `useArrowHistory`'s docstring: *"it applies to every game that renders an
 `<EntryRow>` and ONLY them — a key-capture game that isn't an EntryBox (wordle)
@@ -281,6 +281,12 @@ since the next guess is often the last one plus a letter"*. Its
 and the tree says "any capture game whose last entry is a whole string worth
 bringing back".
 
+**Wrong in BOTH directions by the time it was presented.** At the audit only
+the "ONLY them" half was false (wordiply). F-4 falsified the other half the same
+day: letterboxed renders an `<EntryRow>` and, with `hasHistory={false}`, has no
+arrows. A rule that names a roster had been outrun by the tree twice in one
+sitting.
+
 **Options:**
 
 - **(a) the prose moves to what the tree does.** The arrows are the
@@ -293,7 +299,27 @@ bringing back".
   EntryBox-only boundary. A behavior change in a game for the sake of a
   sentence, against a reason that game wrote down.
 
-Recommend (a).
+- **(c) the docstrings stop naming games at all** — say what the hook is FOR
+  and what `hasHistory` means; let a reader answer "does my game keep a last
+  entry worth bringing back" instead of looking themselves up on a list. The
+  standing rule behind it: a "who uses this" always rots.
+
+Recommended (c); **Joel chose (c), 2026-09-18.**
+
+**Shipped.** The hook's docstring now opens on what it is for and says
+`<EntryRow>` composes it while a game with its own capture loop calls it
+directly. The other statements: the hook's test header, `EntryRow`'s inline
+comment, `useCaptureKeys`' **Layering** paragraph, `docs/playarea.md → Text
+entry`, and wordle's `BoardCol` comment — which now says only that wordle
+doesn't wire the arrows, and why (a played guess is on the board in front of
+you), instead of legislating for every game. `playarea.md` keeps the examples,
+since illustrating a rule is not the same as listing its members.
+
+**A SIXTH statement the audit missed**, found by grepping the phrasings rather
+than the files: `common/keyboard/useCaptureKeys.test.ts`'s header, *"The
+EntryBox-only history arrows are a separate layer"*. Fixed with the rest. Two
+`cs-blessed-keyboard` files carry a conformance edit each, under §4 → not a
+fence.
 
 ### F-word-entry-7 · `disabled-removes-the-buttons` · A hard-off row draws no buttons, and its prop says they are disabled
 
@@ -348,7 +374,27 @@ states that half of the rule), and `EntryRow` is one wearer.
   `EntryRow` returns the bare pill. It unbundles the one thing the row
   bundles (the swap), and the host would need the row's `top !== null`.
 
-Recommend (a). `terminal` and `info-sheet` hold the same question about other
+- **(c) the docstrings stop naming games at all** — say what the hook is FOR
+  and what `hasHistory` means; let a reader answer "does my game keep a last
+  entry worth bringing back" instead of looking themselves up on a list. The
+  standing rule behind it: a "who uses this" always rots.
+
+Recommended (c); **Joel chose (c), 2026-09-18.**
+
+**Shipped.** The hook's docstring now opens on what it is for and says
+`<EntryRow>` composes it while a game with its own capture loop calls it
+directly. The other statements: the hook's test header, `EntryRow`'s inline
+comment, `useCaptureKeys`' **Layering** paragraph, `docs/playarea.md → Text
+entry`, and wordle's `BoardCol` comment — which now says only that wordle
+doesn't wire the arrows, and why (a played guess is on the board in front of
+you), instead of legislating for every game. `playarea.md` keeps the examples,
+since illustrating a rule is not the same as listing its members.
+
+**A SIXTH statement the audit missed**, found by grepping the phrasings rather
+than the files: `common/keyboard/useCaptureKeys.test.ts`'s header, *"The
+EntryBox-only history arrows are a separate layer"*. Fixed with the rest. Two
+`cs-blessed-keyboard` files carry a conformance edit each, under §4 → not a
+fence. `terminal` and `info-sheet` hold the same question about other
 classes and answer for themselves.
 
 ### F-word-entry-9 · `raw-values` · Five literals, one of them a vocabulary value already
@@ -395,9 +441,9 @@ F-word-entry-4, and the `.localFeedback` question is F-word-entry-8. Both
 items leave `todo.md` when their finding is worked.
 
 **Evidence, not roster.** `useCaptureKeys` was read against every claim here
-and quoted in F-word-entry-5, 6 and 7; it keeps `cs-blessed-keyboard`.
-F-word-entry-6 (a) touches one sentence of its docstring — a conformance edit
-this area owns the rule for, under §4 → not a fence.
+and quoted in F-word-entry-5, 6 and 7; it and its test keep
+`cs-blessed-keyboard`. F-word-entry-6 edited one paragraph of each — a
+conformance edit this area owns the rule for, under §4 → not a fence.
 
 **Where the font-size token is set is not a finding.** psychicnum sets
 `--entryBox-font-size` on the row and strands on the box; a custom property
@@ -405,7 +451,7 @@ cascades, so both reach `.box` and the caret alike. Only the two comments
 disagree (F-word-entry-2).
 
 **Three games that render this folder carry their own stale sentence about
-it** and are not this area's to fix: wordle's `BoardCol` comment (F-word-entry-6),
+it**: wordle's `BoardCol` comment (fixed by F-word-entry-6),
 stackdown's "both buttons stay mounted" (true for stackdown, and the contrast
 F-word-entry-7 turns on), and the `.inputButton` connections still writes
 (F-word-entry-3).

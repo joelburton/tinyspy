@@ -102,10 +102,9 @@ export function EntryRow({
 }: Props) {
   // Always called (never behind the early return below), so the keyboard stays
   // live while a message is shown — the next keystroke dismisses it. The
-  // generic capture core + the EntryBox-only history arrows are two layers:
-  // useCaptureKeys handles letters/Backspace/Enter; useArrowHistory adds the
-  // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
-  // EntryRow IS the EntryBox). Both read the same two gates and answer them the
+  // capture core and the history arrows are two layers: useCaptureKeys handles
+  // the characters going in (letters/Backspace/Enter), useArrowHistory the
+  // whole entry coming back. Both read the same two gates and answer them the
   // same way, so the four keys on this row never disagree about a freeze.
   //
   // `submitDisabled` vetoes only the submit, not editing — and it goes to the

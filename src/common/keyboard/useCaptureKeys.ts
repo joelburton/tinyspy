@@ -82,11 +82,11 @@ export type CaptureKeysOptions = {
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits,
  * the stored case).
  *
- * **Layering** (docs/playarea.md → Text entry): the EntryBox-only history arrows —
- * `ArrowUp` recalls the last entry, `ArrowDown` clears it — are NOT here; they're
- * the separate `useArrowHistory`, layered on top by `<EntryRow>` (which every
- * EntryBox game renders). A key-capture game that ISN'T an EntryBox (wordle:
- * letters land on a grid, no box) uses this core ALONE and gets no arrow behavior.
+ * **Layering** (docs/playarea.md → Text entry): the history arrows — `ArrowUp`
+ * recalls the last entry, `ArrowDown` clears it — are NOT here. They are the
+ * separate `word-entry/useArrowHistory`, a different question (the whole entry
+ * coming back, rather than the characters going in) that a game may want without
+ * this core or with it; `<EntryRow>` composes the two.
  */
 export function useCaptureKeys({
   value,

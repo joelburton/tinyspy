@@ -272,16 +272,20 @@ The contract for the capture model:
   Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
   for every key-capture game. The **last-move history** — `ArrowUp` recalls the
   `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,
-  which `<EntryRow>` composes on top of the core; it's specific to the single-word
-  EntryBox, so it applies to those games and **only** them. A game supplies *what
+  because it answers a different question: the core is about the characters going
+  IN, the arrows about the whole entry coming BACK, and a game may want either
+  without the other. `<EntryRow>` composes both, so a typing game gets the arrows
+  by rendering it and opts out with `hasHistory={false}` where a submitted entry
+  doesn't come back (letterboxed: the word joins the chain); a game running its
+  own capture loop calls `useArrowHistory` directly if recall helps it (wordiply,
+  whose next guess is often the last one plus a letter), and simply doesn't if it
+  doesn't (wordle, where a played guess is on the board in front of you). A game
+  supplies *what
   may be entered* — `charFor` (letters vs digits + the stored case; the exported
   `asciiLetters('lower' | 'upper')` covers the word games) — plus the `recall`
   value (for the ArrowUp layer), and the `disabled` (loading / terminal) / `busy`
   (mid-submit) gates; a board key like shuffle (`⌥Z`) is the board's own action,
-  not the entry's. Every game that renders `<EntryRow>` is an EntryBox game
-  (core + arrows). **wordle uses the core ALONE** — its letters land on the
-  Board, not an EntryBox, so it gets the shared guards / letter / dismiss but
-  **no arrow behavior**. The board-cursor games (bananagrams, scrabble) are a
+  not the entry's. The board-cursor games (bananagrams, scrabble) are a
   different capture shape again — a 2-D cursor where arrows *move* it — with their
   own shared hook, **`useBoardCursorKeys`** (four bound actions): it
   owns the arrows→cursor / letter / Backspace / Enter dispatch, and each game

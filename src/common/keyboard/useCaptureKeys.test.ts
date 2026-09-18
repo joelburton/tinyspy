@@ -5,8 +5,8 @@
  * game relies on (so they can't drift): the letter append, Backspace, Enter, the
  * length cap, the stored case, the disabled/busy gating, and what the Submit
  * binding says about itself. The hook binds actions, and the keys reach them
- * through the action dispatcher (mounted here). The EntryBox-only history
- * arrows are a separate layer — see useArrowHistory.test.ts.
+ * through the action dispatcher (mounted here). The history arrows are a
+ * separate layer — see useArrowHistory.test.ts.
  */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

@@ -37,7 +37,11 @@ keyboard, which is the reason the two are separate components rather than one.
 ## Details
 
 **The pieces compose one way down.** `<EntryRow>` is the assembled thing and
-each layer under it is separately usable:
+each layer under it is separately usable — and the separations are not
+hypothetical: a game takes the row without the keyboard (its entry isn't typed),
+or the arrows without the row (it captures keys its own way but still has a last
+entry worth bringing back). That is why the arrows are a hook rather than
+another branch inside `<EntryRow>`.
 
 ```
 <EntryRow>                    a typing game's whole below-board control
