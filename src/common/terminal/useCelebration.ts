@@ -15,7 +15,7 @@ import { useState } from 'react'
  *      lands on every connected client via the common realtime refetch, so the
  *      whole group celebrates together — no broadcast needed.
  *   3. **One-shot until re-armed.** Closing it doesn't re-pop; a flip back to
- *      false (waffle's replay-board un-terminals the game) re-arms it, so
+ *      false (like restarting a game) re-arms it, so
  *      win → restart → win celebrates again.
  *
  * Rule 1 is what makes the `won` expression load-bearing: gate it ONLY on values
