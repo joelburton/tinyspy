@@ -129,14 +129,14 @@ create policy players_select on scrabble.players
     )
   );
 
-grant select on scrabble.plays to authenticated;
-drop policy if exists plays_select on scrabble.plays;
-create policy plays_select on scrabble.plays
+grant select on scrabble.events to authenticated;
+drop policy if exists events_select on scrabble.events;
+create policy events_select on scrabble.events
   for select to authenticated
   using (
     exists (
       select 1 from scrabble.games g
-       where g.id = plays.game_id
+       where g.id = events.game_id
          and common.is_club_member(g.club_handle)
     )
   );
@@ -302,12 +302,12 @@ stable
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
-  select string_agg(upper(p.words[1]), '-' order by p.seq)
+  select string_agg(upper(p.words[1]), '-' order by p.id)
     from (
-      select seq, words
-        from scrabble.plays
+      select id, words
+        from scrabble.events
        where game_id = g_id and kind = 'word' and words is not null
-       order by seq
+       order by id
        limit 3
     ) p;
 $$;
@@ -776,7 +776,6 @@ declare
   v_ndraw      int;
   v_drawn      text[];
   v_new_rack   text[];
-  v_seq        int;
   v_terminal   boolean := false;
   v_went_out   boolean;
 begin
@@ -908,9 +907,8 @@ begin
   v_drawn := g.bag[1:v_ndraw];
   v_new_rack := v_rack || v_drawn;
 
-  v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seat, seq, kind, placements, words, score)
-  values (target_game, v_user, p_seat, v_seq, 'word', p_placements, p_words, p_score);
+  insert into scrabble.events (game_id, user_id, seat, kind, placements, words, score, took_turn)
+  values (target_game, v_user, p_seat, 'word', p_placements, p_words, p_score, true);
 
   if g.mode = 'coop' then
     update scrabble.games
@@ -1094,7 +1092,6 @@ declare
   v_bag      text[];
   v_n        int;
   v_drawn    text[];
-  v_seq      int;
   v_terminal boolean := false;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -1159,9 +1156,8 @@ begin
   v_bag   := v_bag[v_n+1:];
   v_rack  := v_rack || v_drawn;
 
-  v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seat, seq, kind, tile_count)
-  values (target_game, v_user, p_seat, v_seq, 'exchange', v_n);
+  insert into scrabble.events (game_id, user_id, seat, kind, tile_count, took_turn)
+  values (target_game, v_user, p_seat, 'exchange', v_n, true);
 
   if g.mode = 'coop' then
     update scrabble.games set shared_rack = v_rack, bag = v_bag, version = version + 1
@@ -1295,7 +1291,6 @@ declare
   v_user     uuid;
   g          scrabble.games%rowtype;
   play_state text;
-  v_seq      int;
   v_active   int;
   v_terminal boolean := false;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
@@ -1338,9 +1333,8 @@ begin
       detail = 'another seat holds the turn';
   end if;
 
-  v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seat, seq, kind)
-  values (target_game, v_user, p_seat, v_seq, 'pass');
+  insert into scrabble.events (game_id, user_id, seat, kind, took_turn)
+  values (target_game, v_user, p_seat, 'pass', true);
 
   update scrabble.games
      set version = version + 1,
@@ -1623,7 +1617,7 @@ grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 -- there: ending with tiles still in hand FORFEITS their value from the team
 -- score (so a solo/coop team is pushed to find plays for its last tiles rather
 -- than just stopping — the same leftover-tile penalty a natural end applies).
--- It runs final scoring through _finish and logs a 'forfeit' row with the lost
+-- It runs final scoring through _finish and logs a 'leftovers' row with the lost
 -- value as a negative score. COMPETE ends flat: everyone {won:false}, no
 -- scoring, no leaderboard. Idempotent.
 drop function if exists scrabble.end_game(uuid);
@@ -1642,7 +1636,6 @@ declare
   cur_state      text;
   player_results jsonb;
   v_leftover     int;
-  v_seq          int;
 begin
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -1666,10 +1659,11 @@ begin
     v_leftover := coalesce((select sum(scrabble._tile_value(t))
                               from unnest(g.shared_rack) t), 0);
     if v_leftover > 0 then
-      v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-      insert into scrabble.plays (game_id, user_id, seat, seq, kind, score, tile_count)
-      values (target_game, caller_id, v_seat, v_seq, 'forfeit', -v_leftover,
-              coalesce(array_length(g.shared_rack, 1), 0));
+      -- `took_turn` false: no player made this move. end_game writes it when
+      -- the table stops with tiles still in the rack.
+      insert into scrabble.events (game_id, user_id, seat, kind, score, tile_count, took_turn)
+      values (target_game, caller_id, v_seat, 'leftovers', -v_leftover,
+              coalesce(array_length(g.shared_rack, 1), 0), false);
     end if;
     perform scrabble._finish(target_game, 'manual', null);
   else
@@ -1895,8 +1889,8 @@ grant execute on function scrabble.get_ai_context(uuid) to authenticated;
 --     opener without re-reading `setup.first_turn_user_id`. A free-for-all
 --     game has a null pointer and stays null.
 --
--- No realtime touch needed: the games/players update + plays delete wake
--- useGame (subscribed to scrabble.{games,players,plays}), and
+-- No realtime touch needed: the games/players update + events delete wake
+-- useGame (subscribed to scrabble.{games,players,events}), and
 -- reset_game's common.games write wakes useCommonGame.
 drop function if exists scrabble.replay_board(uuid);
 
@@ -1933,7 +1927,7 @@ begin
   select array_agg(t order by random()) into v_bag from unnest(scrabble._new_bag()) t;
   select jsonb_agg(null::jsonb) into v_board from generate_series(1, 225);
 
-  delete from scrabble.plays where game_id = target_game;
+  delete from scrabble.events where game_id = target_game;
 
   if g_row.mode = 'compete' then
     -- Re-deal every seat in seat order, threading the bag down (create_game's

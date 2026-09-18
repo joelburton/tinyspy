@@ -143,10 +143,10 @@ describe('tilesUsed', () => {
 
 describe('historyBoard (turn-viewer replay)', () => {
   const plays = [
-    { seq: 1, kind: 'word', placements: [at(7, 7, 'C'), at(8, 7, 'A'), at(9, 7, 'T')] },
-    { seq: 2, kind: 'pass', placements: null },
-    { seq: 3, kind: 'word', placements: [at(8, 8, 'B'), at(8, 9, 'E')] }, // off the A, downward
-    { seq: 4, kind: 'exchange', placements: null },
+    { id: 1, kind: 'word', placements: [at(7, 7, 'C'), at(8, 7, 'A'), at(9, 7, 'T')] },
+    { id: 2, kind: 'pass', placements: null },
+    { id: 3, kind: 'word', placements: [at(8, 8, 'B'), at(8, 9, 'E')] }, // off the A, downward
+    { id: 4, kind: 'exchange', placements: null },
   ]
 
   it('replays only word plays up to and including the given seq', () => {
@@ -168,7 +168,7 @@ describe('historyBoard (turn-viewer replay)', () => {
   })
 
   it('preserves a blank tile declared letter + flag', () => {
-    const withBlank = [{ seq: 1, kind: 'word', placements: [at(7, 7, 'M', true)] }]
+    const withBlank = [{ id: 1, kind: 'word', placements: [at(7, 7, 'M', true)] }]
     expect(historyBoard(withBlank, 1)[cellIndex(7, 7)]).toEqual({ l: 'M', b: true })
   })
 })

@@ -49,7 +49,7 @@ select pg_temp.envelope_is(
   'a wrong base_version is rejected as a race');
 select is((select version from scrabble.games where id = (select id from ga)), 0,
   'a stale play leaves version untouched');
-select is((select count(*)::int from scrabble.plays where game_id = (select id from ga)), 0,
+select is((select count(*)::int from scrabble.events where game_id = (select id from ga)), 0,
   'a stale play writes no log row');
 
 -- Happy path: CAT across the center.
@@ -80,8 +80,9 @@ select is((select coalesce(array_length(bag,1),0) from scrabble.games where id =
   0, 'the 3-tile bag is now empty');
 select is((select acc.res -> 'data' -> 'drawn' from acc), '["X","Y","Z"]'::jsonb,
   'play_word returns the newly-drawn tiles');
-select is((select string_agg(seq||':'||kind, ',') from scrabble.plays where game_id = (select id from ga)),
-  '1:word', 'one word play is logged');
+select is((select string_agg(kind || ':' || took_turn, ',' order by id)
+             from scrabble.events where game_id = (select id from ga)),
+  'word:true', 'one word play is logged, and it spent a turn');
 select is((select title from common.games where id = (select id from ga)),
   'CAT', 'the game title becomes the first word played');
 
@@ -120,14 +121,14 @@ create temp table inv on commit drop as
 reset role;
 select is((select res -> 'data' ->> 'result' from inv), 'invalid', 'a non-word is rejected (free)');
 -- The refusal's outcome, which no row can carry: a rejected word writes nothing
--- to `scrabble.plays`, so the pill and the red tile flash are its only surfaces
+-- to `scrabble.events`, so the pill and the red tile flash are its only surfaces
 -- and this envelope is the only place the word is said.
 select is((select res ->> 'outcome' from inv), 'lost', 'a refused word is lost');
 select is((select inv.res -> 'data' -> 'bad_words' from inv), '["ZXQJ"]'::jsonb,
   'the rejecting word is reported');
 select is((select version from scrabble.games where id = (select id from gb)), 0,
   'a rejected word leaves version untouched (no state change)');
-select is((select count(*)::int from scrabble.plays where game_id = (select id from gb)), 0,
+select is((select count(*)::int from scrabble.events where game_id = (select id from gb)), 0,
   'a rejected word writes no log row');
 
 -- Tile-not-in-rack guard: a B isn't in the rigged rack.

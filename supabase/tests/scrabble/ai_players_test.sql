@@ -108,10 +108,10 @@ select is((select current_seat from scrabble.games where id = (select id from ga
   'the turn advances to the human seat');
 select is((select score from scrabble.players where game_id = (select id from gai) and seat = 1),
   10, 'the AI seat banks its score');
-select is((select seat from scrabble.plays where game_id = (select id from gai) and seq = 1),
+select is((select seat from scrabble.events where game_id = (select id from gai) order by id limit 1),
   1, 'the play is attributed to the AI seat');
-select is((select user_id from scrabble.plays where game_id = (select id from gai) and seq = 1),
-  null, 'an AI play has a null user_id');
+select is((select user_id from scrabble.events where game_id = (select id from gai) order by id limit 1),
+  null, 'an AI play has a null user_id — the one nullable column in any events table');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(

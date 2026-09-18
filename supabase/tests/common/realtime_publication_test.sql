@@ -107,7 +107,7 @@ select set_eq(
       -- scrabble
       ('scrabble', 'games'),
       ('scrabble', 'players'),
-      ('scrabble', 'plays'),
+      ('scrabble', 'events'),
       -- boggle
       ('boggle', 'games'),
       ('boggle', 'found_words'),

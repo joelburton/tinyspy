@@ -223,20 +223,21 @@ export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvalua
 
 /**
  * Replay the board as it stood **after a given turn** — fold every WORD play's
- * placements with `seq ≤ target` onto an empty grid (exchange / pass / forfeit
+ * placements with `id ≤ target` onto an empty grid (exchange / pass / leftovers
  * place no tiles). Used by the turn-viewer: the board is *defined* as the
  * accumulation of placements (the server builds it the same way), so this is a
  * pure FE replay — no per-turn board snapshot to store. Blanks survive (the
  * placement carries its declared `letter` + `blank` flag). `plays` need not be
- * sorted (we filter, not slice).
+ * sorted (we filter, not slice): every row written at or before `id` counts,
+ * and the database hands ids out in the order rows were written.
  */
 export function historyBoard(
-  plays: ReadonlyArray<{ seq: number; kind: string; placements: Placement[] | null }>,
-  seq: number,
+  plays: ReadonlyArray<{ id: number; kind: string; placements: Placement[] | null }>,
+  id: number,
 ): Cell[] {
   const cells: Cell[] = new Array(BOARD_SIZE * BOARD_SIZE).fill(null)
   for (const p of plays) {
-    if (p.seq > seq || p.kind !== 'word' || !p.placements) continue
+    if (p.id > id || p.kind !== 'word' || !p.placements) continue
     for (const pl of p.placements) cells[cellIndex(pl.x, pl.y)] = { l: pl.letter, b: pl.blank }
   }
   return cells

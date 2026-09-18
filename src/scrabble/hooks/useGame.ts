@@ -22,20 +22,24 @@ export type PlayerRow = {
   ai_level: string | null
 }
 
-/** One row from `scrabble.plays` — the public move log. */
+/** One row from `scrabble.events` — the public move log. */
 export type PlayRow = {
+  /** The row's own id, and the order of play: the database hands them out in
+   *  the order the rows were written, which is what the read below orders by.
+   *  It replaced a game-wide `seq` that said the same thing in a second
+   *  column. */
+  id: number
   /** Null for an AI seat's play; `seat` is the real attribution key. */
   user_id: string | null
   seat: number
-  seq: number
-  /** 'forfeit' = a coop game ended with tiles in hand; `score` is the
-   *  (negative) leftover-tile value lost. */
-  kind: 'word' | 'exchange' | 'pass' | 'forfeit'
+  /** 'leftovers' = a coop game ended with tiles in hand; `score` is the
+   *  (negative) leftover-tile value lost. No player made that move. */
+  kind: 'word' | 'exchange' | 'pass' | 'leftovers'
   placements: { x: number; y: number; letter: string; blank: boolean }[] | null
   words: string[] | null
   score: number | null
   tile_count: number | null
-  played_at: string
+  created_at: string
 }
 
 export type ScrabbleGame = {
@@ -92,7 +96,7 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'scrabble', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'scrabble', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'scrabble', table: 'plays', filter: `game_id=eq.${gameId}` },
+      { schema: 'scrabble', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'scrabble',
     id: gameId,
@@ -116,10 +120,10 @@ export function useGame(gameId: string): {
         ),
         readRows(
           db
-            .from('plays')
-            .select('user_id, seat, seq, kind, placements, words, score, tile_count, played_at')
+            .from('events')
+            .select('id, user_id, seat, kind, placements, words, score, tile_count, created_at')
             .eq('game_id', gameId)
-            .order('seq', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
       ])
       if (!mounted()) return

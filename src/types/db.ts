@@ -2067,6 +2067,63 @@ export type Database = {
   }
   scrabble: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          placements: Json | null
+          score: number | null
+          seat: number
+          tile_count: number | null
+          took_turn: boolean
+          user_id: string | null
+          words: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          placements?: Json | null
+          score?: number | null
+          seat: number
+          tile_count?: number | null
+          took_turn?: boolean
+          user_id?: string | null
+          words?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          placements?: Json | null
+          score?: number | null
+          seat?: number
+          tile_count?: number | null
+          took_turn?: boolean
+          user_id?: string | null
+          words?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           bag: string[]
@@ -2150,60 +2207,6 @@ export type Database = {
           },
           {
             foreignKeyName: "players_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      plays: {
-        Row: {
-          game_id: string
-          kind: string
-          placements: Json | null
-          played_at: string
-          score: number | null
-          seat: number
-          seq: number
-          tile_count: number | null
-          user_id: string | null
-          words: string[] | null
-        }
-        Insert: {
-          game_id: string
-          kind: string
-          placements?: Json | null
-          played_at?: string
-          score?: number | null
-          seat: number
-          seq: number
-          tile_count?: number | null
-          user_id?: string | null
-          words?: string[] | null
-        }
-        Update: {
-          game_id?: string
-          kind?: string
-          placements?: Json | null
-          played_at?: string
-          score?: number | null
-          seat?: number
-          seq?: number
-          tile_count?: number | null
-          user_id?: string | null
-          words?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "plays_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "plays_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games_state"

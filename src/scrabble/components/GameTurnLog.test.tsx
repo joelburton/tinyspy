@@ -29,21 +29,21 @@ const AI: Member[] = [{ user_id: 'ai:2', username: 'AI 1', color: 'green' }]
 const play = (o: Partial<PlayRow>): PlayRow => ({
   user_id: 'u1',
   seat: 0,
-  seq: 1,
+  id: 1,
   kind: 'word',
   placements: null,
   words: ['QUARTZ'],
   score: 30,
   tile_count: null,
-  played_at: '2026-08-02T18:00:00Z',
+  created_at: '2026-08-02T18:00:00Z',
   ...o,
 })
 
 const PLAYS: PlayRow[] = [
-  play({ seq: 1, user_id: 'u1', seat: 0, words: ['ADAWORD'] }),
-  play({ seq: 2, user_id: 'u2', seat: 1, words: ['BEAWORD'] }),
+  play({ id: 1, user_id: 'u1', seat: 0, words: ['ADAWORD'] }),
+  play({ id: 2, user_id: 'u2', seat: 1, words: ['BEAWORD'] }),
   // A bot's play — no user_id at all, attributed by seat.
-  play({ seq: 3, user_id: null, seat: 2, words: ['BOTWORD'] }),
+  play({ id: 3, user_id: null, seat: 2, words: ['BOTWORD'] }),
 ]
 
 function renderLog(mode: 'coop' | 'compete' = 'compete') {

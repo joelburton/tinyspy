@@ -4,7 +4,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { PlayRow } from '../hooks/useGame'
 
 /**
- * What a turn was — the four things a `scrabble.plays` row can record, and the
+ * What a turn was — the four things a `scrabble.events` row can record, and the
  * row's own `kind` column is already the key.
  *
  * The DICTIONARY REFUSAL is deliberately absent, and it is the one absence worth
@@ -28,7 +28,7 @@ export type Answer = PlayRow['kind']
  *     is a turn that counted and that nothing adjudicates. Calling it `won`
  *     would make trading tiles read like scoring.
  *   - a **pass** is the same shape with nothing bought.
- *   - a **forfeit** is the row `end_game` writes when a coop table stops with
+ *   - **leftovers** is the row `end_game` writes when a coop table stops with
  *     tiles still in hand, carrying their value as a negative score. It is
  *     `neutral` too: the table decided to stop, which is not a defeat, and the
  *     negative number in the row already says what it cost.
@@ -40,5 +40,5 @@ export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   word: 'won',
   exchange: 'neutral',
   pass: 'neutral',
-  forfeit: 'neutral',
+  leftovers: 'neutral',
 }

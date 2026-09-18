@@ -87,13 +87,13 @@ function wordPlay(over: Partial<PlayRow> = {}): PlayRow {
   return {
     user_id: 'u1',
     seat: 0,
-    seq: 1,
+    id: 1,
     kind: 'word',
     placements: [{ x: 7, y: 7, letter: 'C', blank: false }, { x: 8, y: 7, letter: 'A', blank: false }, { x: 9, y: 7, letter: 'T', blank: false }],
     words: ['cat'],
     score: 10,
     tile_count: null,
-    played_at: '2026-01-01',
+    created_at: '2026-01-01',
     ...over,
   }
 }

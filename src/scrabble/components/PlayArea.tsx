@@ -133,7 +133,7 @@ export function PlayArea({
     exitHistory,
   } = useHistoryViewer<HistoryTarget>()
   // Only a TURN is highlighted in the Moves log (`#N`) — a shared move has no row.
-  const historyId = historyTarget?.kind === 'turn' ? historyTarget.seq : null
+  const historyId = historyTarget?.kind === 'turn' ? historyTarget.id : null
 
   // Show-a-move transport (coop only): a teammate's broadcast opens a read-only
   // preview of their staged tiles. Ignore a stale one (their board version no
@@ -267,17 +267,17 @@ export function PlayArea({
   // move that lands while I'm looking elsewhere — especially an AI's, which has
   // no visible human actor — gets noticed. Seeded to the current tail on the
   // first run so the existing log isn't replayed.
-  const announcedSeqRef = useRef<number | null>(null)
+  const announcedIdRef = useRef<number | null>(null)
   useEffect(function announceOpponentMoves() {
     if (!game || !isCompete) return
-    const tailSeq = plays.length ? plays[plays.length - 1].seq : 0
-    if (announcedSeqRef.current === null) {
-      announcedSeqRef.current = tailSeq // seed once — don't announce prior history
+    const tailId = plays.length ? plays[plays.length - 1].id : 0
+    if (announcedIdRef.current === null) {
+      announcedIdRef.current = tailId // seed once — don't announce prior history
       return
     }
-    if (tailSeq <= announcedSeqRef.current) return
-    const fresh = plays.filter((p) => p.seq > (announcedSeqRef.current ?? 0))
-    announcedSeqRef.current = tailSeq
+    if (tailId <= announcedIdRef.current) return
+    const fresh = plays.filter((p) => p.id > (announcedIdRef.current ?? 0))
+    announcedIdRef.current = tailId
     // The newest OPPONENT move in this batch (mine already showed in the commit slot).
     const latest = fresh.filter((p) => p.user_id !== session.user.id).at(-1)
     if (!latest) return
@@ -457,7 +457,7 @@ type Suggested =
           ? `${game.bagCount} tiles in the bag`
           : `Team score: ${game.teamScore ?? 0} · ${game.bagCount} tiles in the bag`,
         board: game.board,
-        moves: plays.map((p) => ({ seq: p.seq, who: nameOf(p.user_id), text: moveText(p) })),
+        moves: plays.map((p, i) => ({ seq: i + 1, who: nameOf(p.user_id), text: moveText(p) })),
         rack,
         rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
         // Relevant setup only — the dictionary bands (the timer isn't relevant
@@ -653,7 +653,7 @@ type Suggested =
           aiMemberOfSeat={aiMemberOfSeat}
           plays={plays}
           historyId={historyId}
-          onShowHistory={(seq: number) => showHistory({ kind: 'turn', seq })}
+          onShowHistory={(id: number) => showHistory({ kind: 'turn', id })}
         />
       </InfoSheet>
 

@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: nine of ten (stackdown awaiting review); scrabble is the last.** Agreed with Joel
+**Status: ALL TEN GAMES CONVERTED (scrabble awaiting review). Next plan: scrabble-ai-players.md.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -660,6 +660,38 @@ that plan tightens it as its closing proof.
 > row's kind is `spoiler` now, and psychicnum's `request_reveal` became
 > `request_spoiler` on exactly this argument. Left alone pending his word, since
 > `docs/naming.md` treats stackdown's `_next_` names as deliberate.
+
+> **scrabble built 2026-09-17, and that is the tenth.**
+> `supabase/migrations/20260917000009_scrabble_events.sql`: the rename, the
+> composite key `(game_id, seq)` → a bigint identity, `created_at`, `forfeit` →
+> `leftovers`, `took_turn`, and `seq` gone. Production holds NO scrabble rows
+> yet, so the backfill met none — the shape is proved by `db-drift`, not by data.
+>
+> **`took_turn` needs no mode branch here**, which §6's "coop: word + exchange;
+> compete: word + exchange + pass" phrasing had implied it would. Confirmed
+> against the code, as §6 says each phase must: `current_seat` is set only in
+> `create_game`'s compete arm, and `_commit_pass` gates on it unconditionally,
+> so a coop pass raises PN457 instead of writing a row. Every pass in this table
+> is a compete pass and moved the seat on. So the rule is simply: every move is
+> a turn, `leftovers` is not — no player made it, `end_game` did.
+>
+> `seq` was already the row's position in the log under another name —
+> `max(seq) + 1` over the whole game, assigned to every row — so `id` says the
+> same thing with one column instead of two. Its three readers each wanted
+> something simpler: `_title_for` sorts (now by `id`), the log numbers the rows
+> it is showing, and `announcedSeqRef` is a watermark (now `announcedIdRef`).
+> The history target narrows from `{kind:'turn', seq}` to `{kind:'turn', id}`,
+> keeping its object shape because coop's peer preview rides the same hook.
+>
+> **The skeleton guard's assertion 2 gained its one exception**, in the shape
+> phase 0 left room for: `is_empty` became a `set_eq` whose expected list is the
+> exception list — `scrabble.user_id`, and nothing else. An AI seat holds a seat
+> and plays like anyone else, and no profile row answers for it.
+> `scrabble-ai-players.md` empties that list and the assertion goes back to
+> `is_empty`.
+>
+> Also fixed here: §14.10's stale name — `supabase/sql/common.sql`'s rotation
+> header called scrabble's pointer `_advance_turn`; it is `_advance_seat`.
 
 **Each phase STOPS for Joel's review before its commit** (Joel, 2026-09-17:
 *"make sure you stop at end of each game, so i can review before i tell you to

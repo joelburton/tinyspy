@@ -55,9 +55,9 @@ reset role;
 -- Preconditions: terminal, a play logged, tiles on the board, title rewritten.
 select ok((select is_terminal from common.games where id = (select id from g1)),
   'coop: precondition — the ended game is terminal');
--- TWO rows: the played word, plus the 'forfeit' row coop's end_game writes for
+-- TWO rows: the played word, plus the 'leftovers' row coop's end_game writes for
 -- the leftover-tile penalty (see end_game_test.sql).
-select is((select count(*) from scrabble.plays where game_id = (select id from g1)),
+select is((select count(*) from scrabble.events where game_id = (select id from g1)),
   2::bigint, 'coop: precondition — the play + the end-game forfeit are logged');
 select isnt((select title from common.games where id = (select id from g1)),
   'New game', 'coop: precondition — the title was rewritten to the played word');
@@ -74,7 +74,7 @@ select is((select play_state from common.games where id = (select id from g1)),
   'playing', 'coop: replay → play_state back to playing');
 select ok((select not is_terminal from common.games where id = (select id from g1)),
   'coop: replay → is_terminal cleared');
-select is((select count(*) from scrabble.plays where game_id = (select id from g1)),
+select is((select count(*) from scrabble.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the move log is cleared');
 select is(
   (select count(*) from jsonb_array_elements(

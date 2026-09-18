@@ -207,7 +207,7 @@ Two natural end triggers, plus the universal manual / timeout paths:
   for a natural finish vs a plain `Ended:` for a manual stop.
   **Manual end is NOT neutral in coop**:
   ending with tiles still in hand forfeits their value from the team score
-  (logged as a `'forfeit'` play, a "−N tiles unplayed" line in the log — the
+  (logged as a `'leftovers'` row, a "−N tiles unplayed" line in the log — the
   negative number carries the cost; the bar does not, since stopping was the
   table's decision and not a defeat). This is
   deliberate — it pushes a solo/coop team to find plays for its last tiles
@@ -295,7 +295,7 @@ stackdown's `20260626`).
 |---|---|---|
 | `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_seat int` (whose turn — by **seat**, not user, so a seat may be an AI) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
 | `players` | PK `(game_id, seat)` — `seat` is the turn order (compete) **and the identity key**: a seat may be an AI player, which has no profile, so `user_id` is **nullable** and an `ai_level` column names the AI's strength. The `players_human_xor_ai` check pins exactly one of `user_id`/`ai_level` per row (a seat is human XOR AI). `score` (compete per-seat). **Compete:** `rack` (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded (`ai_level` public — the FE labels AI seats) |
-| `plays` | durable move log, PK `(game_id, seq)`. Each row carries `seat` (always set — the real attribution key; the FE labels an AI seat "AI 1"…) and a nullable `user_id` (the human actor, null for an AI seat). `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
+| `events` | durable move log, keyed by a `bigint identity` and read `order by id`. Each row carries `seat` (always set — the real attribution key; the FE labels an AI seat "AI 1"…) and a **nullable `user_id`** (the human actor, null for an AI seat — the one nullable column in any game's events table). `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'leftovers'` (`tile_count` returned, negative `score` for the leftover penalty). `took_turn` is true on the three moves and false on `leftovers`, which no player made. | club members, both modes |
 
 **Why `plays` is public in both modes** (unlike spellingbee's mid-game-private
 `found_words`): every committed word is *on the shared board*, which is public —
@@ -521,7 +521,7 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 `submit_timeout` is countdown expiry and always runs final scoring
 ([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop and **serves
 both modes** — the RPC branches. **Coop** runs final scoring with a
-leftover-tile **forfeit** (a `'forfeit'` play row with the negative value lost,
+leftover-tile penalty (a `'leftovers'` row with the negative value lost,
 `play_state 'ended'`, `outcome 'manual'`). **Compete** is the uniform neutral
 stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player
 `{won: false}` and **no scoring** — the group agreeing there's no result.

@@ -1125,7 +1125,7 @@ revoke execute on function common.require_game_player(uuid) from public;
 -- games.current_turn_user_id), so every gametype inherits it without a per-game
 -- turn table — even wordiply, which has no players table of its own. This is
 -- the common port of scrabble compete's own seat system (scrabble.games.
--- current_seat + scrabble._advance_turn); scrabble compete keeps that, coop
+-- current_seat + scrabble._advance_seat); scrabble compete keeps that, coop
 -- uses this, and the two coexist deliberately.
 
 -- Seat the rotation for a freshly-created turn game. Seat 0 = the chosen

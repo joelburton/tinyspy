@@ -175,8 +175,8 @@ a turn by POSITION in the displayed rows** (`historySnapshot(rows, index)`,
 every render and then indexing into the merge, with cross-table ordering ties
 left nondeterministic — plus a second publication entry, a second policy, and a
 second delete in `replay_board`. One table keeps the log a single sequence.
-`scrabble.plays` is the same pattern (`kind in ('word','exchange','pass',
-'forfeit')`).
+`scrabble.events` is the same pattern (`kind in ('word','exchange','pass',
+'leftovers')`).
 
 The shape that makes it cheap: **`result` is null on a hint row**, and every
 query in `supabase/sql/strands.sql` filters on `result` — so a hint is invisible

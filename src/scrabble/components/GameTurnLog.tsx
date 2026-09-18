@@ -18,7 +18,7 @@ const aiId = (seat: number | null) => `ai:${seat}`
  * row shape — docs/playarea.md → Turn log): the outcome bar (green for a
  * played word, neutral for an exchange, a pass or a coop forfeit — the words
  * `lib/answer.ts` gives the row's `kind`), the turn
- * number ("#<seq>", the shared `<TurnLogNumber>`), the move in `.main`, and the
+ * number ("#N", the shared `<TurnLogNumber>`), the move in `.main`, and the
  * actor right-aligned in `<TurnLogActor>`. Newest at the bottom; the shared
  * `<TurnLog>` auto-snaps to the latest row.
  *
@@ -38,7 +38,7 @@ const aiId = (seat: number | null) => `ai:${seat}`
  *     mints — which lets "how did AI 1 play?" be a filter like any other.
  *
  * It ignores the hook's `boardIsShown`: scrabble's `#N` handle addresses a play
- * by `seq`, not by log position, so filtering can't misaddress it (unlike the
+ * by the row's `id`, not by log position, so filtering can't misaddress it (unlike the
  * position-indexed logs, where a filtered row 3 isn't the board's turn 3).
  */
 export function GameTurnLog({
@@ -62,7 +62,7 @@ export function GameTurnLog({
   /** The turn currently open in the board viewer (highlights its row), or null. */
   historyId: number | null
   /** Open a turn in the board viewer (click a row). */
-  onShowHistory: (seq: number) => void
+  onShowHistory: (id: number) => void
 }) {
   const turnLogPicker = useTurnLogPlayerPicker({
     // Humans and bots in one roster — the hook orders them (you first, then by
@@ -88,18 +88,19 @@ export function GameTurnLog({
 
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
-      {shown.map((p) => (
-        <tr key={p.seq} className={gameTurnLog.divider}>
+      {shown.map((p, i) => (
+        <tr key={p.id} className={gameTurnLog.divider}>
           {/* The bar's word is `lib/answer.ts`'s — the log names none of its
               own, so it cannot disagree with a teammate's line about the same
               turn, which is exactly what a forfeit used to do. */}
           <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[p.kind]} />
-          {/* Turn number — the play's 1-based seq; the shared handle opens that
-              turn on the board viewer and rings itself while it's open. */}
+          {/* Turn number — the row's position in the list on show; the shared
+              handle opens that turn on the board viewer, addressed by the row's
+              own id, and rings itself while it's open. */}
           <TurnLogNumber
-            n={p.seq}
-            isOpenInHistory={historyId === p.seq}
-            onShowHistory={() => onShowHistory(p.seq)}
+            n={i + 1}
+            isOpenInHistory={historyId === p.id}
+            onShowHistory={() => onShowHistory(p.id)}
           />
           <td className={gameTurnLog.main}>
             {p.kind === 'word' && (
@@ -115,7 +116,7 @@ export function GameTurnLog({
             )}
             {p.kind === 'exchange' && <span>Exchanged {p.tile_count} tiles</span>}
             {p.kind === 'pass' && <span>Passed</span>}
-            {p.kind === 'forfeit' && (
+            {p.kind === 'leftovers' && (
               <>
                 <span className={styles.scoreNeg}>{p.score}</span> tiles unplayed
               </>

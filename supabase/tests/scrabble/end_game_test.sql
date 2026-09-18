@@ -5,7 +5,7 @@
 -- ============================================================
 -- The PLAYER-INITIATED ends (this file), as opposed to the game's own
 -- automatic terminals in auto_finish_test.sql. COOP end_game FORFEITS the
--- leftover-tile value from the team score (a penalty, logged as a 'forfeit'
+-- leftover-tile value from the team score (a penalty, logged as a 'leftovers'
 -- row) so a team is pushed to play its last tiles; a realtime touch wakes
 -- the FE. submit_timeout runs final scoring.
 
@@ -50,9 +50,10 @@ select is((select status->>'outcome' from common.games where id = (select id fro
   'manual', 'status.outcome is manual');
 select is((select team_score from scrabble.games where id = (select id from gm)),
   -6, 'leftover tiles (Q+A = 11) are forfeited: 5 − 11 = −6');
-select is((select kind || ':' || score from scrabble.plays
-           where game_id = (select id from gm) and kind = 'forfeit'),
-  'forfeit:-11', 'the forfeit is logged with the negative value lost');
+select is((select kind || ':' || score || ':' || took_turn from scrabble.events
+           where game_id = (select id from gm) and kind = 'leftovers'),
+  'leftovers:-11:false',
+  'the leftover tiles are logged with the negative value lost — and spent no turn, because no player made that move');
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'false', 'nobody wins a coop table — the score, not a verdict, is the result');

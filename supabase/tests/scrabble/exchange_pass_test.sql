@@ -63,7 +63,7 @@ select is((select array_length(bag, 1) from scrabble.games where id = (select id
   10, 'the bag count is unchanged (2 returned, 2 drawn)');
 select is((select version from scrabble.games where id = (select id from gco)), 1,
   'exchange bumps version');
-select is((select kind || ':' || tile_count from scrabble.plays
+select is((select kind || ':' || tile_count from scrabble.events
            where game_id = (select id from gco)), 'exchange:2',
   'the exchange is logged with its tile count');
 

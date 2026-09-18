@@ -59,7 +59,7 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  * as `useHistoryViewer<HistoryTarget>`, and this switches on `kind` to render.
  */
 export type HistoryTarget =
-  | { kind: 'turn'; seq: number }
+  | { kind: 'turn'; id: number }
   | { kind: 'peerPreview'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
 /** The board cell under a screen point (via data-cell), or null. */
@@ -82,16 +82,20 @@ const NO_TENT: Map<number, Tentative> = new Map()
  *  passed", "#5 moth exchanged 3 tiles") for the others. Every other game returns
  *  this as its snapshot's `historyLabel`; scrabble builds it here because `plays`
  *  already lives in this column. */
-function historyLabelFor(p: PlayRow, nameOf: (id: string | null) => string): string {
+function historyLabelFor(
+  p: PlayRow,
+  n0: number,
+  nameOf: (id: string | null) => string,
+): string {
   const who = nameOf(p.user_id)
-  const n = `#${p.seq}`
+  const n = `#${n0}`
   if (p.kind === 'word') {
     const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
     return `${n} ${who}: +${p.score ?? 0} ${words}`
   }
   if (p.kind === 'exchange') return `${n} ${who} exchanged ${p.tile_count} tiles`
   if (p.kind === 'pass') return `${n} ${who} passed`
-  return `${n} ${who} ended — ${-(p.score ?? 0)} tiles unplayed` // forfeit
+  return `${n} ${who} ended — ${-(p.score ?? 0)} tiles unplayed` // leftovers
 }
 
 /**
@@ -156,7 +160,7 @@ function nextRackOrder(
  *     scrabble takes the raw `plays` + `historyId` and runs `historyBoard` (and
  *     builds the banner via `historyLabelFor`) in here, since `plays` is already the
  *     input the live board reads.
- *   - **It keys the viewer by `seq`, not log position.** The shared history hook
+ *   - **It keys the viewer by the row's `id`, not log position.** The shared history hook
  *     returns a neutral `historyId`; scrabble aliases it to `historyId` (a stable
  *     turn number `historyBoard` indexes by), where stackdown/waffle alias it to
  *     `historyId` (an array position). Same hook, deliberately different key.
@@ -859,10 +863,16 @@ export function BoardCol({
   //     on as tentative, those cells outlined.
   const historyTurn = historyTarget?.kind === 'turn' ? historyTarget : null
   const peerPreview = historyTarget?.kind === 'peerPreview' ? historyTarget : null
-  const historyPlayRow: PlayRow | null = historyTurn
-    ? (plays.find((p) => p.seq === historyTurn.seq) ?? null)
-    : null
-  const renderBoard = historyTurn ? historyBoard(plays, historyTurn.seq) : board
+  // The banner's "#N" is the row's position in `plays` — the whole game's
+  // moves, which is the sequence this viewer replays. (The log beside it
+  // numbers whatever its player filter is showing, so the two can differ once
+  // a filter is on; each names the list it belongs to.)
+  const historyPlayIndex = historyTurn
+    ? plays.findIndex((p) => p.id === historyTurn.id)
+    : -1
+  const historyPlayRow: PlayRow | null =
+    historyPlayIndex >= 0 ? plays[historyPlayIndex] : null
+  const renderBoard = historyTurn ? historyBoard(plays, historyTurn.id) : board
   // The previewed move's tiles, as a tentative map over the live board (stable ref
   // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
   const peerPreviewTent = useMemo(() => {
@@ -923,7 +933,7 @@ export function BoardCol({
                       : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
                   </>
                 ) : (
-                  historyLabelFor(historyPlayRow!, nameOf)
+                  historyLabelFor(historyPlayRow!, historyPlayIndex + 1, nameOf)
                 )
               }
             />
