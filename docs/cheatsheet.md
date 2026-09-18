@@ -129,11 +129,16 @@ gmake db-add-user ENV=prod \                 # provision a REAL player ahead of 
   EMAIL=sam@x.com HANDLE=sam COLOR=green     #   sign-in: handle + color + solo club, so a
                                              #   magic link lands them past the claim screen.
                                              #   COLOR optional (deterministic default);
-                                             #   DRY=1 to preview. Friend clubs: use the app
+                                             #   DRY=1 to preview; AI=1 marks the profile a bot
+                                             #   (what db-bots below runs). Friend clubs: the app
 gmake db-bots ENV=prod                       # scrabble's three AI opponents as real accounts
                                              #   (ada-bot, bjarne-bot, claude-bot). Chained into
                                              #   db-reset locally; on prod it is run once, by
-                                             #   hand — it is not part of deploy or db-data
+                                             #   hand — it is not part of deploy or db-data.
+                                             #   BEFORE the deploy, not after: the migration that
+                                             #   makes scrabble.players.user_id NOT NULL backfills
+                                             #   a bot onto every AI seat dealt before the bots
+                                             #   were accounts, and refuses if there are none
 gmake db-drift ENV=prod                      # does that database's SHAPE match the migration
                                              # baselines? (edited-in-place baselines don't ship
                                              # via db push — this makes the divergence visible)

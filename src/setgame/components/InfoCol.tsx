@@ -46,7 +46,9 @@ type Props = {
   hintsUsed: number
   // ── Event log ──
   historyId: number | null
-  onShowHistory: (index: number | null) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
   // ── Actions ──
   /** End the game for the whole table — coop's exit; it hides itself in a race. */
   actEndGame: BoundAction

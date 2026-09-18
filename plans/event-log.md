@@ -1,6 +1,6 @@
 # event-log — the frontend vocabulary, and turn history in compete
 
-**Status: A, B and C are built. What is left is §D's verification.** Agreed with Joel
+**Status: A, B, C and D are built and verified.** Agreed with Joel
 2026-09-17. The last of three; see [events.md](events.md) for the framing and
 the deploy rule. **Both phases here depend on every game's events table
 existing**, so this plan started when events.md finished.

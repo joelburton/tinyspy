@@ -67,7 +67,9 @@ type Props = {
   actBackToClub: BoundAction
   // ── Turn-history viewer ──
   historyId: number | null
-  onShowHistory: (index: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**

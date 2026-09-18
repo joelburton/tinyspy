@@ -46,7 +46,7 @@ describe('historySnapshot', () => {
     expect(historySnapshot(GUESSES, 13).historyLitWord).toBe('berry')
   })
 
-  it('marks no tile and highlights nothing for a hint / reveal turn', () => {
+  it('marks no tile and highlights nothing for a hint / spoiler turn', () => {
     const s1 = historySnapshot(GUESSES, 12) // the hint
     expect(s1.historyLitWord).toBeNull()
     // The hint added nothing — only APPLE (from turn 0) is decided.

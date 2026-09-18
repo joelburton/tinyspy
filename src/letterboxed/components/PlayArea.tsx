@@ -150,8 +150,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // Turn-history viewer, keyed by POSITION in the rows the log is showing (the
-  // log hands them up, so both sides index the same list).
+  // Turn-history viewer, addressed by the row's own id — the board folds the
+  // chain of whoever wrote that row, which is a different list from the one the
+  // log is showing.
   // BoardCol freezes the entry's capture while viewing, so the viewer's own
   // any-key action has the keys to itself: any keystroke returns to the live
   // board instead of typing behind the banner (the hook binds

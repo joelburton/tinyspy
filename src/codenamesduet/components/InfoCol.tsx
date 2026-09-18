@@ -109,7 +109,9 @@ export function InfoCol({
   gameOver: boolean
   /** The turn currently open in the board viewer (by turn_number), or null. */
   historyId: number | null
-  onShowHistory: (turnNumber: number) => void
+  /** Straight through to the log. A duet turn is addressed by its `turn_number`,
+   *  which is also the `#N` the log prints, so both arguments are that number. */
+  onShowHistory: (turnNumber: number, n: number) => void
 }) {
   return (
     <div className={shared.infoCol}>

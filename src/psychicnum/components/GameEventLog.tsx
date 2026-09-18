@@ -19,15 +19,16 @@ type Props = {
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
-  /** The turn currently open in the board viewer (by log position),
-   *  or null when live. Its `#N` handle wears the shared history-blue ring. */
+  /** The turn currently open in the board viewer — the row's own id — or null
+   *  when live. Its `#N` handle wears the shared history-blue ring. */
   historyId: number | null
-  /** Open a turn in the board viewer (click its `#N`). */
-  onShowHistory: (index: number) => void
+  /** Open a turn in the board viewer (click its `#N`) — the row's id, and the
+   *  `#N` this log printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**
- * psychicnum's event log — its turns (guesses, hints, reveals) rendered with the
+ * psychicnum's event log — its turns (guesses, hints, spoilers) rendered with the
  * shared `<EventLog>` table. (Named GameEventLog, not GuessHistory: it's this
  * game's event log, and a turn isn't always a guess — see EventLog.tsx.)
  *
@@ -91,7 +92,7 @@ export function GameEventLog({
     <EventLogNumber
       n={i + 1}
       isOpenInHistory={historyId === row.id}
-      onShowHistory={() => onShowHistory(row.id)}
+      onShowHistory={() => onShowHistory(row.id, i + 1)}
     />
   )
 

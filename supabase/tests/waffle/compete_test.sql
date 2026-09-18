@@ -93,7 +93,7 @@ select ok(
 -- decides: every compete player solves the same puzzle from the same scramble,
 -- so replaying an opponent's swaps rebuilds their board — and their green tiles
 -- are correct letter positions. A readable log would hand an honest player the
--- answer, which is why swaps_select gates on it. ada sees her own swap only.
+-- answer, which is why events_select gates on it. ada sees her own swap only.
 select is(
   (select count(*) from waffle.events where game_id = (select id from g)),
   1::bigint,

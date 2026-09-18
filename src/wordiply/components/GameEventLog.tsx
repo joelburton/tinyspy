@@ -22,7 +22,9 @@ type Props = {
   isTerminal: boolean
   /** The row open in the board viewer, or null. */
   historyId: number | null
-  onShowHistory: (id: number) => void
+  /** Open a row in the board viewer — the row's id, and the `#N` this log
+   *  printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /** What each rejected row says, in the log's terse voice. The pill that fired
@@ -88,7 +90,7 @@ export function GameEventLog({
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === g.id}
-            onShowHistory={() => onShowHistory(g.id)}
+            onShowHistory={() => onShowHistory(g.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {g.valid ? (

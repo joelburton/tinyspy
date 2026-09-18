@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: DONE — all ten games converted, and the durable half now lives in [docs/supabase.md](../docs/supabase.md#every-games-log-is-gameevents) (§11). The other two plans are built too; what is left for the sprint is event-log.md §D's verification.** Agreed with Joel
+**Status: DONE — all ten games converted, and the durable half now lives in [docs/supabase.md](../docs/supabase.md#every-games-log-is-gameevents) (§11). All three plans are built and verified; what is left for the sprint is the setgame bug `e2e/setgame-flash` caught, filed in [src/setgame/todo.md](../src/setgame/todo.md).** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -756,9 +756,9 @@ starting here:
 
 - [scrabble-ai-players.md](scrabble-ai-players.md) §9 — the bots' dot colors, and
   what else reads presence once a bot holds a `game_players` row.
-- [event-log.md](event-log.md) §E — `boardIsShown`'s new name and the history
-  banner's wording for somebody else's board. (Its third item, the unresolvable
-  `#N`, was ruled moot 2026-09-17.)
+- [event-log.md](event-log.md) §E — all three items are closed: `boardIsShown`
+  was deleted rather than renamed, the banner's wording for somebody else's
+  board was ruled (`● moth: GUESS 3`), and the unresolvable `#N` was moot.
 
 ## 14. Review notes — 2026-09-17 (FEEDBACK, not rulings)
 

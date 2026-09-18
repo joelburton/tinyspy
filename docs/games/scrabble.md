@@ -294,7 +294,7 @@ stackdown's `20260626`).
 | table | what it holds | visibility |
 |---|---|---|
 | `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_seat int` (whose turn — by **seat**, not user, so a seat may be an AI) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
-| `players` | PK `(game_id, seat)` — `seat` is the turn order (compete) **and the identity key**: a seat may be an AI player, which has no profile, so `user_id` is **nullable** and an `ai_level` column names the AI's strength. The `players_human_xor_ai` check pins exactly one of `user_id`/`ai_level` per row (a seat is human XOR AI). `score` (compete per-seat). **Compete:** `rack` (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded (`ai_level` public — the FE labels AI seats) |
+| `players` | PK `(game_id, user_id)` — a player is in a game once. `seat` is the turn order (compete) and owns the rack, under its own unique `(game_id, seat)`. Every seat has a player, bot or person; `ai_level` is non-null on a seat playing at an AI strength, which is a fact about the GAME rather than about the account sitting there. `score` (compete per-seat). **Compete:** `rack` (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded (`ai_level` public — the FE marks which seats play at an AI strength) |
 | `events` | durable move log, keyed by a `bigint identity` and read `order by id`. Each row carries `seat` (the seat that played it — the rack's owner and the display order) and `user_id`, the player who made the move: a person or one of the bots, which hold profiles like anyone. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'leftovers'` (`tile_count` returned, negative `score` for the leftover penalty). `took_turn` is true on the three moves and false on `leftovers`, which no player made. | club members, both modes |
 
 **Why `plays` is public in both modes** (unlike spellingbee's mid-game-private
@@ -678,7 +678,7 @@ commit wins").
 [playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer).
 scrabble's snapshot semantics: the board swaps to the **replayed historical state**
 (`historyBoard` in `lib/play.ts` — a pure fold of every word play's `placements`
-with `seq ≤ target`; no per-turn snapshot stored, since the board *is* the
+up to and including the row being viewed; no per-turn snapshot stored, since the board *is* the
 accumulation of placements). The tiles *that turn placed* take the warm-yellow
 **attention** face (`--scrabble-tile-attention`, the same overlay a just-placed tile
 wears) plus a **success-green outline** (only word turns light up, not a pass); the
@@ -828,14 +828,15 @@ The `status` jsonb (written by the state-transition RPCs) drives the club-list
   `complete` / `timeout` / `manual` at terminal).
 - **Compete, mid-game:** `{ mode:'compete', current_seat, bag_count,
   leaderboard:[{seat, user_id, ai_level, score}] }` — the leaderboard is
-  seat-keyed (an AI seat has a null `user_id` and its `ai_level`) and drives the
+  seat-keyed (every entry names its player, bot or person, plus the seat's
+  `ai_level` when it is playing at one) and drives the
   in-game `OpponentStrip` (scores aren't hidden — the board reveals them).
 - **Compete, terminal** (`scrabble._finish`): adds `outcome` plus the winner
-  quartet — `winner_user_id` (a *human* winner's uuid; null if an AI won or on
-  a tie), `winner_seat` (the winning seat, human or AI; null on a tie),
-  `winner_username` (the display name — a human's username or `"AI k"`; **NULL
-  on a tie** / all-conceded), and `winner_score` (the top score, denormalized so
-  the label needn't scan the leaderboard).
+  quartet — `winner_user_id` (the winner's uuid, bot or person; null on a tie),
+  `winner_seat` (the winning seat; null on a tie), `winner_username` (the
+  winner's handle — a bot has one like anyone; **NULL on a tie** /
+  all-conceded), and `winner_score` (the top score, denormalized so the label
+  needn't scan the leaderboard).
 
 `labelFor` builds the club-card line from those keys. **Mid-game:** the tiles
 left in the bag, coop prepending the team score — `Playing · 152 pts · 7 tiles
@@ -991,13 +992,16 @@ Distinct from the always-best suggester above: an autonomous **AI player** you
 can seat in a **compete** game — 0–3 of them, all at one chosen skill level —
 built on the same engine.
 
-**Seat-based, scrabble-local.** Turns key on `scrabble.games.current_seat` (an
-int), not a user id, so a seat can be an AI. AI seats are rows in
-`scrabble.players` with a null `user_id` + an `ai_level`, and are **not** in
-`common.game_players` / `common.profiles` — so presence-pause and the club
-roster ignore them for free. `create_game` seats humans then AI; `_advance_seat`
-/ `_finish` / the turn checks all rotate + resolve by seat (an AI can win — the
-terminal reads "AI 1"). (The helper is deliberately named `_advance_seat`, not
+**Seat-based, and the bot is an account.** Turns key on
+`scrabble.games.current_seat` (an int), not a user id, which is what lets a seat
+be played by something that never signs in. An AI seat is a row in
+`scrabble.players` carrying an `ai_level` and held by one of the three bots —
+ordinary accounts with `common.profiles.ai_member` set, seated in
+`common.game_players` like any player but in **no human's club**, which is what
+keeps them off the club roster. Presence-pause skips them by the same mark.
+`create_game` seats humans then bots; `_advance_seat` / `_finish` / the turn
+checks all rotate + resolve by seat, and a bot wins by uuid and handle like
+anyone. (The helper is deliberately named `_advance_seat`, not
 `_advance_turn`: `common._advance_turn` — the coop turn-order pointer — is
 called nearby in the same file, and the rename [2026-08-02] stops the two
 shadowing each other.) The human move RPCs (`play_word` / `exchange_tiles` /
@@ -1048,7 +1052,7 @@ no *strategic* exchange — the AI only swaps when it has no legal play at all.
 **Surfacing.** Solo clubs get the compete Start button (`scrabble_compete`'s
 `min_players` is 1 — you race the AI alone), badged **"AI Compete"** by
 `ModeBadge`. Each opponent's committed move (human OR AI) is announced in the
-global header as a `peer` message ("● AI 1 played COATS (+18)"); an AI seat's score shows in
+global header as a `peer` message ("● ada-bot played COATS (+18)"); an AI seat's score shows in
 a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).
 

@@ -13,6 +13,7 @@ import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
+import type { Actor } from '@/common/members/member'
 import styles from './PlayArea.module.css'
 
 /** A generous cap on a single guess (the longest possible words are ~30). */
@@ -45,6 +46,7 @@ export function BoardCol({
   flash,
   isViewingHistory,
   historyLabel,
+  historyActor,
   onExitHistory,
 }: {
   base: string
@@ -72,6 +74,8 @@ export function BoardCol({
    *  banner overlays the input area, which stays mounted underneath. */
   isViewingHistory: boolean
   historyLabel: string
+  /** Whose board is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   onExitHistory: () => void
 }) {
   // On-screen key → append/backspace (updater form, so it reads the latest
@@ -122,7 +126,7 @@ export function BoardCol({
           (the viewer's click-away and keystroke exits do the rest). */}
       <div className={cls(styles.inputArea, isViewingHistory && history.historyBannerHost)}>
         {isViewingHistory && (
-          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
         {isTerminal ? (
           <div className={styles.verdictSlot}>

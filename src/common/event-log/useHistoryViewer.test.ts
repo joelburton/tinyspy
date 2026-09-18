@@ -29,7 +29,7 @@ describe('useHistoryViewer', () => {
   it('showHistory opens a turn; exitHistory returns to live', () => {
     const { result } = renderHook(() => useHistoryViewer())
 
-    act(() => result.current.showHistory(3))
+    act(() => result.current.showHistory(3, 1))
     expect(result.current.historyId).toBe(3)
     expect(result.current.isViewingHistory).toBe(true)
 
@@ -38,17 +38,38 @@ describe('useHistoryViewer', () => {
     expect(result.current.isViewingHistory).toBe(false)
   })
 
+  it('remembers the #N the row was wearing, and lets go of it on exit', () => {
+    const { result } = renderHook(() => useHistoryViewer())
+    expect(result.current.historyN).toBeNull()
+
+    // Row id 3 was printed as "#1" — a filtered log numbers what it shows, so
+    // the two are different values and the banner owes the reader the second.
+    act(() => result.current.showHistory(3, 1))
+    expect(result.current.historyN).toBe(1)
+
+    act(() => result.current.exitHistory())
+    expect(result.current.historyN).toBeNull()
+  })
+
+  it('takes a null number, for an opening that came from no log row', () => {
+    const { result } = renderHook(() => useHistoryViewer())
+    // scrabble's peer preview: a move shared over Broadcast, never in the log.
+    act(() => result.current.showHistory(9, null))
+    expect(result.current.isViewingHistory).toBe(true)
+    expect(result.current.historyN).toBeNull()
+  })
+
   it('keeps historyIdRef in sync with historyId', () => {
     const { result } = renderHook(() => useHistoryViewer())
     expect(result.current.historyIdRef.current).toBeNull()
 
-    act(() => result.current.showHistory(5))
+    act(() => result.current.showHistory(5, 2))
     expect(result.current.historyIdRef.current).toBe(5)
   })
 
   it('a click anywhere returns to live while viewing', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.showHistory(2))
+    act(() => result.current.showHistory(2, 1))
 
     const elsewhere = document.createElement('div')
     document.body.appendChild(elsewhere)
@@ -59,7 +80,7 @@ describe('useHistoryViewer', () => {
 
   it('a click on a turn-# handle does NOT exit (so you can switch turns)', () => {
     const { result } = renderHook(() => useHistoryViewer())
-    act(() => result.current.showHistory(2))
+    act(() => result.current.showHistory(2, 1))
 
     // The shared <EventLogNumber> marks its handles with data-history-handle.
     const handle = document.createElement('button')
@@ -97,7 +118,7 @@ describe('useHistoryViewer — act-exit-history', () => {
       useActionDispatcher()
       return useHistoryViewer()
     })
-    act(() => result.current.showHistory(1))
+    act(() => result.current.showHistory(1, 1))
 
     await press()
     expect(result.current.historyId).toBeNull()
@@ -112,7 +133,7 @@ describe('useHistoryViewer — act-exit-history', () => {
     const exit = () => liveBindings().find((b) => b.id === 'act-exit-history')
     expect(exit()?.describe('button').state).toBe('hidden')
 
-    act(() => result.current.showHistory(1))
+    act(() => result.current.showHistory(1, 1))
     expect(exit()?.describe('button').state).toBe('active')
   })
 })

@@ -67,9 +67,18 @@ describe('historySnapshot', () => {
     expect(historySnapshot(GUESSES, BOARD, 12).result).toBe('wrong')
   })
 
-  it('describes a correct turn by its category, the others by the canonical copy', () => {
+  it('describes a correct turn by its category, the others by the canonical text', () => {
     expect(historySnapshot(GUESSES, BOARD, 11).historyLabel).toBe('Matched FRUIT')
     expect(historySnapshot(GUESSES, BOARD, 12).historyLabel).toBe('Not a match')
     expect(historySnapshot([g({ id: 7, outcome: 'near', result: 'oneAway', matched: false })], BOARD, 7).historyLabel).toBe('One away!')
+  })
+
+  it('an id these rows do not hold replays nothing', () => {
+    // A compete opponent's guess, against your own board: nothing of theirs is
+    // in this list, so the grid comes back untouched and no tiles are lit.
+    const snap = historySnapshot(GUESSES, BOARD, 99)
+    expect(snap.matched).toHaveLength(0)
+    expect(snap.tiles).toHaveLength(16)
+    expect(snap.historyLitTiles.size).toBe(0)
   })
 })

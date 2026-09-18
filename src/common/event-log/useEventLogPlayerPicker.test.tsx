@@ -6,9 +6,9 @@
  *
  * The vocabulary IS the feature (one list, every game), so most of these assert
  * the option list itself. The rest cover the pieces a re-derivation gets subtly
- * wrong: the default selection, when `#N` may drive the board, and the honest
- * empty line — an opponent's log is empty mid-game because RLS hides it, not
- * because they haven't played, and saying "nothing yet" there would be a lie.
+ * wrong: the default selection, the row filter, and the honest empty line — an
+ * opponent's log is empty mid-game because RLS hides it, not because they
+ * haven't played, and saying "nothing yet" there would be a lie.
  */
 
 import { render, renderHook, screen } from '@testing-library/react'

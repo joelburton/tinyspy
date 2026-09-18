@@ -831,7 +831,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const viewedRows =
     isCompete && historyRow ? events.filter((e) => e.user_id === historyRow.user_id) : historyRows
   const historySnap =
-    historyViewer.historyId !== null ? historySnapshot(viewedRows, historyViewer.historyId) : null
+    historyViewer.historyId !== null
+      ? historySnapshot(viewedRows, historyViewer.historyId, historyViewer.historyN)
+      : null
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.
   const historyActor =

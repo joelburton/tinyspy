@@ -134,9 +134,11 @@ export function InfoCol({
 
   // ── Turn-history log (Moves) ──
   plays: EventRow[]
-  /** The play currently open in the board viewer (by seq), or null. */
+  /** The play currently open in the board viewer, or null. */
   historyId: number | null
-  onShowHistory: (seq: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   // ── The score strip's roster: every seat, in seat order ──
   // A bot is a player like anyone, so `players` already holds it; what the

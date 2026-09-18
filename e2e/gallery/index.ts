@@ -186,7 +186,7 @@ export function renderIndex(
      whose entire job is "look carefully at these images and read what's under
      them" has no business making any of its labels harder to read than the
      rest. Structure is carried by weight, size, borders and spacing, which
-     cost no contrast. If something here needs de-emphasising, change its SIZE
+     cost no contrast. If something here needs de-emphasizing, change its SIZE
      or WEIGHT — do not reach for gray. */
   :root { color-scheme: light; }
   body { margin: 0; padding: 1.5rem; background: #ffffff;

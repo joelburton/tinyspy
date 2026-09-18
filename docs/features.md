@@ -195,9 +195,11 @@ Variable N players (1–8; MW WW PP SB HT cap at 6), full shared info in coop:  
 Fixed 2 seats, asymmetric info (each partner sees a different key):  TS
 
 ## History log in the info column
-EventLog (chronological turns):  PN TS WK RA SD SS WN PP SB HT
+EventLog (chronological turns):  PN TS WK RA SD SS WN WW PP SB HT
 WordList (alphabetical finds):  MC FB MW
-Neither:  MG CP WW (WW's five guess rows on the board ARE the record)
+Neither:  MG CP
+(WW's log is the record its board is not: the board shows five accepted words,
+the log shows every try with its reason.)
 (HT's rows are PICTURES of the three cards, not text — a set has no name. Its
 heading borrows the WordList counts idea: "Found: 7 · Hints: 3".)
 

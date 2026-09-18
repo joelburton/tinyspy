@@ -417,7 +417,7 @@ slots and drop the arithmetic.
 **WORKED 2026-09-11.** The docstring names all five slots in order and says a
 field gets every slot by forwarding the words it was given.
 
-## F-forms-15 · `british-spelling-past-the-guard` · "SPECIALISED" in `TextField.tsx`
+## F-forms-15 · `british-spelling-past-the-guard` · "SPECIALIZED" in `TextField.tsx`
 
 Line 25, in the docstring this area rewrote: the British `-ised` spelling of
 "specialized". The spelling guard lists the bare verb and matches it between

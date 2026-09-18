@@ -1,6 +1,6 @@
 # scrabble-ai-players — the three bots become real users
 
-**Status: DONE — all four phases built; 3 and 4 awaiting review.** Agreed with Joel 2026-09-17. The
+**Status: DONE — all four phases built and reviewed.** Agreed with Joel 2026-09-17. The
 middle plan of three; see [events.md](events.md) for the framing and the deploy
 rule (nothing ships until all three are done).
 

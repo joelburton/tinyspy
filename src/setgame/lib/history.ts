@@ -44,20 +44,26 @@ export type HistorySnapshot = {
  * slots they occupied being empty rather than around them. That is honest: it
  * shows the table the moment after, which is what `board_after` means.
  */
-export function historySnapshot(rows: readonly HistoryRow[], id: number): HistorySnapshot | null {
+export function historySnapshot(
+  rows: readonly HistoryRow[],
+  id: number,
+  n: number | null,
+): HistorySnapshot | null {
   // Addressed by the ROW'S ID. setgame's snapshot is the `board_after` stored on
   // the row itself, so any row can be opened whoever played it — the position it
-  // happens to sit at in some filtered view names nothing.
-  const index = rows.findIndex((r) => r.id === id)
-  const row = index >= 0 ? rows[index] : undefined
+  // happens to sit at in some filtered view names nothing. `n` is the `#N` the
+  // log was printing on the clicked row, so the banner says the number the
+  // reader saw; null drops it.
+  const row = rows.find((r) => r.id === id)
   if (!row) return null
 
+  const turn = n === null ? 'Turn' : `Turn ${n}`
   return {
     board: row.board_after,
     historyLitCards: row.cards,
     historyLabel:
       row.kind === 'claim'
-        ? `Turn ${index + 1} — set claimed`
-        : `Turn ${index + 1} — hint (${row.cards.length} of 3)`,
+        ? `${turn} — set claimed`
+        : `${turn} — hint (${row.cards.length} of 3)`,
   }
 }

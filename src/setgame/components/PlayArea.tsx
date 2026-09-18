@@ -597,7 +597,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The past turn being replayed, or null for the live board.
   const historySnap =
-    historyViewer.historyId === null ? null : historySnapshot(events, historyViewer.historyId)
+    historyViewer.historyId === null
+      ? null
+      : historySnapshot(events, historyViewer.historyId, historyViewer.historyN)
 
   return (
     <div
@@ -643,7 +645,7 @@ export function PlayArea(ctx: GamePageCtx) {
           lastClaim={lastClaim}
           events={events}
           historyId={historyViewer.historyId}
-          onShowHistory={(index) => (index === null ? historyViewer.exitHistory() : historyViewer.showHistory(index))}
+          onShowHistory={historyViewer.showHistory}
           players={players}
           selfId={selfId}
           foundByUser={foundByUser}

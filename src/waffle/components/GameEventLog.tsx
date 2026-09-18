@@ -17,10 +17,11 @@ type Props = {
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
-  /** The swap currently open in the board viewer (by log position), or null. */
+  /** The swap currently open in the board viewer — the row's own id — or null. */
   historyId: number | null
-  /** Open a swap in the board viewer (click a row). */
-  onShowHistory: (index: number) => void
+  /** Open a swap in the board viewer (click a row) — the row's id, and the `#N`
+   *  this log printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**
@@ -47,10 +48,11 @@ type Props = {
  *
  * **Both modes** since 2026-08-02 (compete used to write no swaps at all). Whose
  * swaps show is picked by the shared `useEventLogPlayerPicker` — solo is your
- * handle, coop is "Team" plus each player, compete is "All" plus each player. In compete an opponent's rows are
- * RLS-hidden during play and open at terminal, which is exactly what the
- * picker's empty text says; the gate is load-bearing, since replaying someone's
- * swaps from the shared scramble rebuilds their board.
+ * handle, coop is "Team" plus each player, compete is "All" plus each player. In
+ * compete an opponent's rows are RLS-hidden during play and open at terminal,
+ * which is exactly what the picker's empty text says — and opening one of theirs
+ * then rebuilds THEIR board from the shared scramble, which is the point of
+ * having their swaps at all.
  *
  * Stateless + presentational — the shared `<EventLog>` snaps to the latest row.
  */
@@ -92,7 +94,7 @@ export function GameEventLog({
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyId === s.id}
-              onShowHistory={() => onShowHistory(s.id)}
+              onShowHistory={() => onShowHistory(s.id, i + 1)}
             />
             <td className={gameEventLog.main}>
               <span className={styles.move}>

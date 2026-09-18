@@ -45,7 +45,7 @@ type Config = {
   /** One table or several. Multiple tables fan into the same
    *  `load()` — convenient when the per-game "game row + child
    *  rows" pair both need to drive the same refetch (see
-   *  psychicnum/useGame: subscribes to `games` AND `guesses`,
+   *  psychicnum/useGame: subscribes to `games` AND `events`,
    *  same handler). For different per-table handlers, use two
    *  separate `useRealtimeRefetch` calls instead. */
   tables: TableSubscription | TableSubscription[]

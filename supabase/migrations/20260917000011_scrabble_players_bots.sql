@@ -21,6 +21,6 @@
 --
 -- `user_id` stays nullable here, for the games that already exist: a game
 -- dealt before this migration has AI seats with no user, and it has to keep
--- being playable. New games fill it. The column tightens in the phase that
--- also tightens `scrabble.events.user_id`, once nothing old is left.
+-- being playable. New games fill it. The column tightens two migrations on,
+-- which backfills those seats with bots before it does.
 alter table scrabble.players drop constraint players_human_xor_ai;

@@ -14,10 +14,11 @@
  * bystander on one seat's key may be the other's agent, so a neutral only locks the
  * guesser's direction — the Duet per-direction rule; see docs/games/codenamesduet.md).
  *
- * **Keyed by `turn_number`, not log position.** Unlike stackdown/waffle (whose
- * per-user / per-swap ordinals forced a log-index id), codenamesduet has one clue
- * per turn under a game-wide `unique (game_id, turn_number)` — a stable turn ordinal,
- * like scrabble's `seq`. The log renders "#N" = turn_number, so the viewer keys by it.
+ * **Keyed by `turn_number`, not by a row's id.** Every other game's log lists
+ * ROWS and addresses one by its `events.id`; duet's lists TURNS, and a turn is
+ * one clue plus however many guesses answered it, under a game-wide
+ * `unique (game_id, turn_number)`. The log renders "#N" = turn_number, so here
+ * the number on screen and the handle behind it really are the same value.
  *
  * **The boundary is INCLUSIVE**: viewing turn N shows the board AFTER turn N's
  * guesses, with those cells ringed — "this is what turn N did" (a green/neutral

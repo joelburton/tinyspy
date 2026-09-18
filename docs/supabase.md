@@ -212,7 +212,13 @@ because he used fewer turns') or turn-by-turn coop, but we still track the
   schema.** stackdown spends a turn on a spoiler where psychicnum does not, and
   Joel expects that to change ("we may change a game so that getting a hint is a
   player's turn"). So there is no CHECK and no generated column: the RPC writes
-  the literal, and changing the rule is an edit to `supabase/sql/`.
+  the value at the insert, and changing the rule is an edit to `supabase/sql/`.
+  Usually that value is `true` or `false` spelled out, because the branch already
+  knows which it is; where one insert serves several verdicts it is an expression
+  over the verdict instead (strands writes
+  `v_result in ('theme', 'spangram', 'hint_word')`, wordiply
+  `reject_reason in ('too_short', 'missing_base')`). Both say the same thing —
+  the column holds this RPC's judgment of this event.
 - **It cannot be derived.** wordiply is the proof: `too_short` and `missing_base`
   rejects cost the player their go, `not_a_word` does not, and all three are
   `kind='guess'` rows with `valid=false`. Unlike `kind`, it may not be knowable

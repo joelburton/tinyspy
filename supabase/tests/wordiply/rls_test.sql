@@ -4,7 +4,7 @@
 -- Test: wordiply RLS — club gating + the compete-mode guess policy
 -- ============================================================
 --
--- The guesses_select policy is the load-bearing piece for compete, and it
+-- The events_select policy is the load-bearing piece for compete, and it
 -- encodes a GAME RULE, not just privacy: during a compete game a player
 -- sees only their OWN guess words (the FE shows opponents' guesses as
 -- lengths only). A regression here leaks the words. wordiply shipped without

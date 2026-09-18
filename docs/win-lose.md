@@ -225,7 +225,7 @@ roster's compete stances, verified against the SQL and game docs:
 | crosswords | check / reveal | check yes; reveal **banned** ("reveal-all would trivially win the compete race") | check deliberately free: "wrong is self-informative, not answer-leaking" |
 | letterboxed | hint / spoiler | **banned** (`hints_used` is a coop-only tally) | — |
 | setgame | the hint ladder | **banned** (`record_hint` raises `hint-in-compete`; the button still renders, disabled, saying why) | — |
-| psychicnum | hint / reveal | **yes, both, free** (`_unfound_secret` scopes to the compete caller) | ⚠ **un-priced** |
+| psychicnum | hint / spoiler | **yes, both, free** (`_unfound_secret` scopes to the compete caller) | ⚠ **un-priced** |
 
 The principle the deliberate rows share: **a hint in compete must be priced** —
 **banned**, **earned**, **scored** into the ranking, or free only when

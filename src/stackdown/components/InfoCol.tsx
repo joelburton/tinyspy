@@ -117,11 +117,13 @@ export function InfoCol({
   actReveal: BoundAction
 
   // ── Turn-history log (GameEventLog) ──
-  /** The submission log the log renders + the viewer indexes (by position). */
+  /** Every row the log renders and the viewer replays. */
   submissions: EventRow[]
   /** The log row currently open in the board viewer, or null. */
   historyId: number | null
-  onShowHistory: (index: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   const self = playerStates.find((p) => p.user_id === selfId)
 

@@ -116,7 +116,8 @@ create policy games_select on scrabble.games
   for select to authenticated
   using (common.is_club_member(club_handle));
 
--- Everything except the hidden `rack` (ai_level is public — the FE labels AI seats).
+-- Everything except the hidden `rack` (ai_level is public — the FE marks which
+-- seats are playing at an AI strength).
 grant select (game_id, user_id, seat, score, ai_level) on scrabble.players to authenticated;
 drop policy if exists players_select on scrabble.players;
 create policy players_select on scrabble.players
@@ -160,12 +161,11 @@ $$;
 revoke execute on function scrabble._bag_count_for(uuid) from public;
 grant execute on function scrabble._bag_count_for(uuid) to authenticated;
 
--- A seat's rack: revealed to its owner (the human at that seat) always, to
--- everyone once the game is terminal (the end-of-game leftover-tile reveal),
--- hidden otherwise. Keyed by SEAT, not user, so an AI seat (null user_id) also
--- reveals its leftovers at terminal (never to a "self" mid-game — nobody owns
--- it). `pl.user_id = auth.uid()` is null-safe: an AI seat's null user never
--- equals the caller, so it stays hidden until is_terminal.
+-- A seat's rack: revealed to its owner always, to everyone once the game is
+-- terminal (the end-of-game leftover-tile reveal), hidden otherwise. Keyed by
+-- SEAT, not user, which is how the caller asks for it. A bot's rack is hidden
+-- mid-game like anyone's — nobody signs in as a bot, so `pl.user_id =
+-- auth.uid()` is never true for one.
 create or replace function scrabble._rack_for(g_id uuid, p_seat int)
 returns text[]
 language sql
@@ -185,7 +185,7 @@ $$;
 revoke execute on function scrabble._rack_for(uuid, int) from public;
 grant execute on function scrabble._rack_for(uuid, int) to authenticated;
 
--- A seat's tile COUNT is always public ("Bea: 7 tiles" / "AI 1: 7 tiles").
+-- A seat's tile COUNT is always public ("Bea: 7 tiles" / "ada-bot: 7 tiles").
 create or replace function scrabble._rack_count_for(g_id uuid, p_seat int)
 returns int
 language sql
@@ -336,10 +336,12 @@ begin
   select current_seat into cur_seat from scrabble.games where id = g_id;
   -- Walk forward to the next seat whose occupant hasn't CONCEDED — a drop-out is
   -- skipped in the turn order (with no conceders this is just seat+1). Humans
-  -- track concede in common.game_players; an AI seat has no game_players row
-  -- (LEFT JOIN → gp null → never conceded, it plays every turn it's dealt). We
-  -- never loop forever: scrabble.concede ends the game before the last active
-  -- player is gone, so at least one non-conceded seat always exists here.
+  -- Concede is tracked in common.game_players, which every seat has — a bot's
+  -- row is simply never set (nothing concedes on a bot's behalf), so it plays
+  -- every turn it's dealt. LEFT JOIN + coalesce so a seat missing that row
+  -- still reads as active rather than vanishing from the rotation. We never
+  -- loop forever: scrabble.concede ends the game before the last active player
+  -- is gone, so at least one non-conceded seat always exists here.
   next_seat := null;
   for i in 1..n_players loop
     select p.seat into next_seat
@@ -440,9 +442,9 @@ begin
     end if;
 
     -- Winner = highest score among NON-conceded seats — a drop-out forfeits any
-    -- win regardless of the score they'd banked. Humans track concede in
-    -- game_players; an AI seat has no gp row (LEFT JOIN → never conceded), and
-    -- an AI can win. v_max is NULL if everyone conceded (won:false for all).
+    -- win regardless of the score they'd banked. A bot never concedes, and a
+    -- bot can win. LEFT JOIN + coalesce so a seat missing its game_players row
+    -- reads as active. v_max is NULL if everyone conceded (won:false for all).
     select max(p.score) into v_max
       from scrabble.players p
       left join common.game_players gp
@@ -479,17 +481,10 @@ begin
 
     -- The winner's display name (NULL on a tie / all-conceded): the winner's
     -- username, bot or person — a bot is an account with a handle like anyone
-    -- else. The "AI k" fallback below is for games dealt BEFORE the bots were
-    -- accounts, whose AI seats have no user to name; it goes when nothing that
-    -- old is left.
+    -- else. `v_winner_user` comes from a not-null column, so a winning seat
+    -- always has someone to name.
     if v_winner_seat is not null then
-      if v_winner_user is not null then
-        select username into v_winner_name from common.profiles where user_id = v_winner_user;
-      else
-        select 'AI ' || count(*) into v_winner_name
-          from scrabble.players
-         where game_id = g_id and ai_level is not null and seat <= v_winner_seat;
-      end if;
+      select username into v_winner_name from common.profiles where user_id = v_winner_user;
     end if;
 
     v_status := jsonb_build_object(
@@ -594,8 +589,8 @@ begin
   end if;
 
   -- AI players (compete only; docs/scrabble-ai-strength.md). 0..3 AI seats, all
-  -- at the single `ai_level`; they're scrabble-local (never in
-  -- common.game_players / profiles) and seated AFTER the humans.
+  -- at the single `ai_level`, seated AFTER the humans. `ai_level` is the SEAT's
+  -- strength for this game; who sits there is a bot account, picked below.
   v_ai_count := coalesce((setup->>'ai_count')::int, 0);
   if v_ai_count < 0 or v_ai_count > 3 then
     raise exception 'BUG: AI count of %', v_ai_count
@@ -793,7 +788,7 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   g            scrabble.games%rowtype;
-  v_user       uuid;      -- the acting seat's user (null for an AI seat)
+  v_user       uuid;      -- the acting seat's user, bot or person
   play_state   text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_rack       text[];   -- the acting rack (compete: the seat's; coop: shared)
@@ -1378,9 +1373,9 @@ begin
   -- The threshold is the number of seats that can still take a turn, so it
   -- tracks drop-outs: in a 3-player game where one conceded, two passes end it
   -- (_advance_seat skips conceders, so a conceded seat can never contribute a
-  -- pass and would otherwise make the streak unreachable). LEFT JOIN because an
-  -- AI seat has no common.game_players row — it holds a seat and passes like
-  -- anyone else.
+  -- pass and would otherwise make the streak unreachable). LEFT JOIN + coalesce
+  -- so a seat missing its game_players row reads as active; a bot holds a seat
+  -- and passes like anyone else, and never concedes.
   select count(*) into v_active
     from scrabble.players p
     left join common.game_players gp

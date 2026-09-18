@@ -18,7 +18,7 @@ import history from './historyViewer.module.css'
  * **The panel owns no row.** Its children ARE the `<tr>`s the game renders, built
  * from this folder's atoms (`<EventLogOutcomeBar>`, `<EventLogNumber>`, `<EventLogActor>`)
  * and the sizing/emphasis classes in `gameEventLog.module.css`. The only shared
- * contract is "a event-log item is a `<tr>` inside this table" — doc.md says why.
+ * contract is "an event-log item is a `<tr>` inside this table" — doc.md says why.
  *
  * **Pass the picker itself**, not its pieces: the dropdown on the heading row,
  * the empty state and its wording all come out of `useEventLogPlayerPicker`, and
@@ -146,8 +146,9 @@ export function EventLogNumber({
   isOpenInHistory = false,
   onShowHistory,
 }: {
-  // The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
-  // codenamesduet's `turn_number`, stackdown/waffle's 1-based log position).
+  // The ordinal shown after the "#": the row's place in the list the log is
+  // SHOWING, so a filter renumbers it. (codenamesduet is the exception — it
+  // prints its `turn_number`, because a duet turn is what its log lists.)
   n: number
   // Is this the turn currently open in the board viewer? Rings the number blue.
   // Meaningless without `onShowHistory`, since an inert number opens nothing.

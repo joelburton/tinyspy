@@ -85,8 +85,9 @@ describe('GameEventLog — a spent hint', () => {
     const rows = screen.getAllByRole('row')
     within(rows[1]).getByText('#2').click()
     // The NUMBER is the row's place in the list on show; the HANDLE is its own
-    // id. #2 is the hint, and what it opens is the hint's row.
-    expect(onShowHistory).toHaveBeenCalledWith(rows_[1].id)
+    // id. #2 is the hint, and what it opens is the hint's row — and the number
+    // rides along, because the banner shows back what was clicked.
+    expect(onShowHistory).toHaveBeenCalledWith(rows_[1].id, 2)
   })
 
   it('still counts as a turn for the empty state', () => {

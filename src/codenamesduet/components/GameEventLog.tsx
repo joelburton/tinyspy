@@ -33,7 +33,9 @@ type Props = {
   // live. That turn's `#N` handle wears the shared viewing ring.
   historyId: number | null
   // Open a turn in the board viewer — click (or Enter/Space) any of its rows.
-  onShowHistory: (turnNumber: number) => void
+  // The turn number is both halves here: it addresses the turn AND is the `#N`
+  // this log prints, which is what the banner shows back.
+  onShowHistory: (turnNumber: number, n: number) => void
 }
 
 /**
@@ -155,7 +157,7 @@ export function GameEventLog({
               <EventLogNumber
                 n={t}
                 isOpenInHistory={historyId === t}
-                onShowHistory={() => onShowHistory(t)}
+                onShowHistory={() => onShowHistory(t, t)}
               />
               <td className={gameEventLog.main}>
                 <span className={styles.clueWord}>

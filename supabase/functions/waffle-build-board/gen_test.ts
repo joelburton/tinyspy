@@ -37,7 +37,7 @@ Deno.test('minSwaps: handles duplicate letters optimally', () => {
   eq(minSwaps('aab', 'aba'), 1, 'one swap')
   // 'badc' → 'abcd' is two disjoint transpositions a greedy scan would
   // merge into one long cycle and over-count.
-  eq(minSwaps('badc', 'abcd'), 2, 'maximises cycles')
+  eq(minSwaps('badc', 'abcd'), 2, 'maximizes cycles')
 })
 
 Deno.test('minSwaps: ignores holes on a full 25-char board', () => {

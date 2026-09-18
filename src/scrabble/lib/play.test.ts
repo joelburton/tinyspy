@@ -149,7 +149,7 @@ describe('historyBoard (turn-viewer replay)', () => {
     { id: 4, kind: 'exchange', placements: null },
   ]
 
-  it('replays only word plays up to and including the given seq', () => {
+  it('replays only word plays up to and including the given row', () => {
     const b1 = historyBoard(plays, 1)
     expect(b1[cellIndex(7, 7)]).toEqual({ l: 'C', b: false })
     expect(b1[cellIndex(9, 7)]).toEqual({ l: 'T', b: false })
@@ -161,7 +161,7 @@ describe('historyBoard (turn-viewer replay)', () => {
     expect(historyBoard(plays, 4)).toEqual(historyBoard(plays, 3)) // exchange adds nothing
   })
 
-  it('includes every earlier word play by the latest seq', () => {
+  it('includes every earlier word play by the row being viewed', () => {
     const b = historyBoard(plays, 3)
     expect(b[cellIndex(7, 7)]).toEqual({ l: 'C', b: false }) // turn 1
     expect(b[cellIndex(8, 9)]).toEqual({ l: 'E', b: false }) // turn 3

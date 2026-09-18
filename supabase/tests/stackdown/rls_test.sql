@@ -10,7 +10,7 @@
 --
 --   games_select       club-member gate (both modes identical).
 --   players_select     club-member gate (found_count/solved are public tallies).
---   submissions_select  the load-bearing mode-aware one (mirrors wordle.events):
+--   events_select       the load-bearing mode-aware one (mirrors wordle.events):
 --        (a) mode = 'coop'          — the whole log is club-readable (shared board)
 --        (b) user_id = auth.uid()   — compete: own rows only, mid-game
 --        (c) is_terminal = true     — compete: opponents' words reveal post-game

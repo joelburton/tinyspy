@@ -10,19 +10,19 @@
  * colored band (they leave the grid); a wrong / one-away guess leaves the board
  * unchanged. That makes it the removal-style twin of stackdown (a guess "consumes"
  * tiles into a band like stackdown clears a word off the stack) — so this uses the
- * same **strictly-before** boundary: the snapshot for the turn at `index` shows the
- * bands matched by correct guesses at positions `< index`, and every other tile
+ * same **strictly-before** boundary: a turn's snapshot shows the
+ * bands matched by correct guesses strictly before it, and every other tile
  * still on the grid. That leaves THIS turn's own 4 tiles on the board (even a
  * correct guess's — they haven't collapsed yet), which is exactly what we want,
  * because we then ring + tint those 4 in the turn's outcome color ("this is the
  * group this turn guessed, and here's how it went").
  *
- * **Keyed by log position** (a guess has no per-turn ordinal; the rows come
- * ordered by `id`). The log renders "#N" = position.
+ * **Addressed by the row's own id**, resolved against the list being folded. The
+ * `#N` the log prints counts the rows it is SHOWING, which a filter moves.
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
- * Compete's `guesses` are RLS-scoped to the caller, so a compete viewer replays only
- * their own board — the projection degenerates naturally.
+ * Which rows are folded is PlayArea's: the rows of whoever wrote the row opened,
+ * so a compete terminal can replay an opponent's board as easily as your own.
  */
 import type { Board, Category } from './board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
@@ -46,9 +46,9 @@ export interface HistorySnapshot {
 }
 
 /**
- * Reconstruct the board + lit tiles + historyLabel for the turn at `index`. Folds
- * every CORRECT guess strictly before it into the matched bands, and marks that
- * event's own 4 tiles as the lit ones.
+ * Reconstruct the board + lit tiles + historyLabel for the turn with this `id`.
+ * Folds every CORRECT guess strictly before it into the matched bands, and marks
+ * that event's own 4 tiles as the lit ones.
  *
  * Addressed by the ROW'S ID, resolved against the list being folded — the log's
  * number is a position in what is SHOWN, and a filter moves it.
@@ -84,7 +84,7 @@ export function historySnapshot(
 }
 
 /** The verdict label — a correct guess names the category it matched; the other two
- *  carry the NYT-canonical short copy (matching the event log's `verdictLabel`). */
+ *  carry the NYT-canonical short text (matching the event log's `verdictLabel`). */
 function describe(turn: EventRow | undefined, board: Board): string {
   if (!turn) return 'This turn'
   if (turn.matched) {

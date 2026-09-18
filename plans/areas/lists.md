@@ -53,7 +53,7 @@ rule this area shipped broke four of their cases, which stayed red until the
 **Callers, for evidence (read, not stamped).** `SelectionList`: `HomePage`
 (clubs), `ClubPage` (start list + games list), crosswords' three picker modals.
 Every one is the "do now" kind. `SimpleScrollableList`: `AnagramDialog`, alone.
-`FilterSelect`: `useWordListFilter` (two), `useTurnLogPlayerPicker`, and the
+`FilterSelect`: `useWordListFilter` (two), `useEventLogPlayerPicker`, and the
 club page's `GametypeFilter`. `filterSelectHelpers`: six test files.
 
 ## Findings

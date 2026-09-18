@@ -424,6 +424,54 @@ describe('wordiply PlayArea — event log', () => {
     // …and the banner names what that row was.
     expect(screen.getByText('ARQQQ — not a word')).toBeInTheDocument()
   })
+
+  it("at a compete terminal, an opponent's #N replays THEIR board and the banner names them", async () => {
+    const user = userEvent.setup()
+    h.result = {
+      game: loadedGame({ mode: 'compete' }),
+      // Two parallel boards: mine holds CART, moth's holds STARS then HANGARS.
+      guesses: [
+        guess('cart', 1, 'u1'),
+        guess('stars', 2, 'u2'),
+        guess('hangars', 3, 'u2'),
+      ],
+      loading: false,
+    }
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: twoMembers,
+          isTerminal: true,
+          playState: 'lost_compete',
+          status: { outcome: 'complete', leaderboard: [] },
+        })}
+      />,
+    )
+    const board = () => document.querySelector('[data-board]') as HTMLElement
+    const lengths = () =>
+      within(board())
+        .queryAllByLabelText(/letters$/)
+        .map((el) => el.textContent)
+
+    // Live, the board is MINE — compete is parallel boards, and the picker
+    // defaults to my own rows for the same reason.
+    expect(lengths()).toEqual(['4'])
+
+    // Switch the log to moth, whose rows the terminal has just opened up.
+    await user.click(screen.getByRole('button', { name: /whose guesses/i }))
+    await user.click(screen.getByRole('button', { name: 'moth' }))
+
+    // moth's second row — #2 under this filter, and a row I never wrote.
+    await user.click(screen.getByText('#2'))
+
+    // The board is moth's, folded from moth's own rows rather than mine.
+    expect(lengths()).toEqual(['5', '7'])
+    // The banner says whose, then what — "● moth: HANGARS — 7 letters". Read as
+    // one string because the actor and the label are siblings in one line.
+    const banner = document.querySelector('[data-history-banner]') as HTMLElement
+    expect(banner.textContent).toContain('moth')
+    expect(banner.textContent).toContain('HANGARS — 7 letters')
+  })
 })
 
 /**

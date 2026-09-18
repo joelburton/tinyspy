@@ -526,8 +526,8 @@ src/codenamesduet/
                           denormalized board state: the GLOBAL `revealed_as` ('G'/'A') plus the
                           PER-SEAT `neutral_a`/`neutral_b` (a neutral only locks the guesser's
                           direction — the Duet per-direction rule). Keyed by **`turn_number`**
-                          (a game-wide turn ordinal, like scrabble's `seq` — not log position),
-                          which is the `#N` the log shows. Clicking a `GameEventLog` `#N` opens
+                          (a game-wide turn ordinal — duet's log is a table of TURNS, not of
+                          rows), which is the `#N` the log shows. Clicking a `GameEventLog` `#N` opens
                           that turn on the board via the shared viewer.
     history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```

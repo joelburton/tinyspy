@@ -59,11 +59,12 @@ export function GameEventLog({
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
   /** The turn currently open in the board viewer (highlights its row), or null.
-   *  Identified by log POSITION, not seq — stackdown's seq is per-user (see
-   *  lib/history). */
+   *  The row's own id (see lib/history). */
   historyId: number | null
-  /** Open a turn in the board viewer (click any row — words, misses, cheats). */
-  onShowHistory: (index: number) => void
+  /** Open a turn in the board viewer (click any row — words, misses, cheats) —
+   *  the row's id, and the `#N` this log printed beside it, which is what the
+   *  banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
@@ -82,18 +83,17 @@ export function GameEventLog({
           // Every submission is its own one-row "turn"; the divider draws the
           // between-rows line (:first-child suppresses it on the first row). The
           // "#N" handle opens that turn on the board viewer (words / misses /
-          // cheats all viewable), keyed by log POSITION — stackdown's seq is
-          // per-user (see lib/history).
+          // cheats all viewable), addressed by the row's own id (see lib/history).
           <tr key={s.id} className={gameEventLog.divider}>
             <EventLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(s)]} />
-            {/* The "#N" handle opens that turn on the board viewer — live only
-                when the rows on show ARE the board's sequence. The viewer
-                indexes by log POSITION, so a filtered list's row 3 isn't the
-                board's turn 3; there it degrades to a plain number. */}
+            {/* The "#N" handle opens that turn on the board viewer. The number
+                counts the rows on show — a filter renumbers them — while the
+                handle is the row's own id, so it always opens the row its
+                number sits beside. */}
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyId === s.id}
-              onShowHistory={() => onShowHistory(s.id)}
+              onShowHistory={() => onShowHistory(s.id, i + 1)}
             />
             <td className={gameEventLog.main}>
               {isRequest ? (

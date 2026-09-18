@@ -34,19 +34,14 @@ what it wears while you are looking at it is this folder's: a blue frame around
 the board, a matching ring on the open `#N`, and an opaque banner naming the turn
 over the game's input area.
 
-Between the two halves sits the distinction the whole thing rests on: **the
-number and the link are different values.** The number is the row's place in
-the list you are looking at — it counts 1, 2, 3 under whatever filter is
-applied, which from your seat is honest. The link is the row's own id, resolved
-by the builder against the list it is folding. Two lists, two lookups, and a
-filter can move one without touching the other.
-
-That is also what makes compete history work: at a compete terminal a `#N` on an
-opponent's row replays THEIR board, because the game resolves the row first and
-folds the rows of whoever wrote it. The banner then says whose board it is —
-`<HistoryBanner>`'s optional `actor`, drawn as the DotActor ahead of the game's
-usual label. It is passed only in compete, and only for a row that is not yours:
-coop is one shared board.
+Between the two halves sits the distinction the whole thing rests on: the
+number and the link are different values. The number is the row's place in the
+list you are looking at — it counts 1, 2, 3 under whatever filter is applied,
+which from your seat is honest. The link is the row's own id, resolved by the
+builder against the list it is folding. Two lists, two lookups, and a filter can
+move one without touching the other — which is what lets a compete terminal open
+an opponent's row and replay THEIR board, and what makes the number something
+the log has to hand over rather than a thing the board can work out.
 
 ## Details
 
@@ -61,23 +56,28 @@ a game's own class, which is why the default sits on `:where(.eventLogTable) td`
 **What stays the game's, on the viewer's side of the seam.** How a snapshot is
 computed from the open turn (the board shape differs per game, and it is derived
 after the loading guard where the log lives); how a row is identified, which is
-why the hook is generic — scrabble names one by its game-wide `seq` and
-codenamesduet by a turn number, everyone else by the events row's own id; and
-where the banner hangs, since the below-board region each game gives it is its
+why the hook is generic — every game names one by the events row's own id, and
+codenamesduet by a turn number; and where the banner hangs, since the below-board region each game gives it is its
 own.
 
-**Every handle is live, and that is new.** The log used to carry a
-`boardIsShown` flag: picking one player out of a shared coop log narrowed the
-rows, the filtered row 3 was not the board's turn 3, and the handle had to go
-inert rather than replay the wrong turn. Addressing a row by its id removes the
-question — a filtered log renumbers what it shows and still opens exactly the
-row the number sits beside — so the flag has no readers and is gone.
+**Every handle is live, under every filter.** A filtered log renumbers what it
+shows and still opens exactly the row its number sits beside, because the number
+and the link are two values.
 
 **A builder resolves, and an id it does not hold replays nothing.** The list a
 game folds is the board being looked at; the list the log shows is the picker's.
 Ask for a row the folded list does not contain — a compete opponent's guess,
 against your own board — and what comes back is the empty board and a neutral
 label, not somebody else's game.
+
+**The banner says the number that was clicked, and whose board it is.** The `#N`
+travels up with the row's id when a handle is pressed — `showHistory(id, n)`,
+back out of the hook as `historyN` — because only the log knows what number it
+printed; a game's label builder is folding the other list and would count a
+different one. Beside it, `<HistoryBanner>`'s optional `actor` names the player
+when the board on screen is not the viewer's own, which only a compete terminal
+can be: coop is one shared board, and naming a teammate there would claim it
+belonged to them.
 
 **The picker hands back everything that travels with the choice**, because
 re-deriving any one of them per game is how the games drift apart: the control,
@@ -107,7 +107,7 @@ the classes in the old single file, thirteen were read only by the components,
 six only by the games, and two by both — and both of those turned out to be one
 thing each wearing a shared name. `.who` was the components' (a docstring
 mentioned it, no game used it), and `.meta` was doing two jobs at once: the turn
-number's column, and de-emphasised text inside a row. It is two classes now,
+number's column, and de-emphasized text inside a row. It is two classes now,
 `.turnNumber` and `.muted`, in the two files.
 
 **One file holds four components, and the other concern's files say so.**

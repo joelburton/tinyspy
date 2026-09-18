@@ -66,9 +66,21 @@
 --   eda     A second outsider, for the rare test that needs
 --           two non-members. Same role as dee, different person.
 --
+--   abe-bot A BOT, not a person: an ordinary account marked
+--           `common.profiles.ai_member`, in no human's club.
+--           scrabble seats one when a setup asks for an AI
+--           opponent, picking `ai_member` profiles by username,
+--           so a suite with no bot in it cannot create an AI
+--           game at all (create_game raises PN496). It sorts
+--           ahead of the environment's own bots (ada-bot,
+--           bjarne-bot, claude-bot from `gmake db-bots`), so
+--           the seat a test gets is the same whether or not
+--           that target has been run here.
+--
 -- The mnemonic: ada/bea/cade are *inside* (alphabetically
 -- adjacent, easy to bracket as "the in-club trio"); dee/eda are
--- *outside* (next two letters, the outside pair).
+-- *outside* (next two letters, the outside pair); abe-bot is
+-- nobody's friend.
 --
 -- ============================================================
 -- Fixtures
@@ -76,14 +88,19 @@
 --
 -- UUIDs embed the persona name in the first hex block, padded out
 -- to 8 hex chars with the block's repeated digit. The pattern is
--- '<name><padding>-<N>-<N>-<N>-<N x 12>' where <N> is 1..5 for
--- ada/bea/cade/dee/eda respectively. So:
+-- '<name><padding>-<N>-<N>-<N>-<N x 12>' where <N> is 1..6 for
+-- ada/bea/cade/dee/eda/abe-bot respectively. So:
 --
 --   ada11111-1111-1111-1111-111111111111
 --   bea22222-2222-2222-2222-222222222222
 --   cade3333-3333-3333-3333-333333333333
 --   dee44444-4444-4444-4444-444444444444
 --   eda55555-5555-5555-5555-555555555555
+--   abe66666-6666-6666-6666-666666666666
+--
+-- (The first block is hex, so a persona's name is spelled in
+-- a-f — which is why the bot is abe-bot rather than a name with
+-- a letter no UUID can hold.)
 --
 -- The point is self-evidence. A failing test referencing
 -- 'ada11111-...' immediately tells you ada is the actor, without
@@ -100,7 +117,11 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
   ('dee44444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'dee@test.local',  now(), now(), now()),
   ('eda55555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'eda@test.local',  now(), now(), now());
+   'authenticated', 'authenticated', 'eda@test.local',  now(), now(), now()),
+  -- `.invalid` is the reserved TLD that can never resolve, which is what
+  -- `gmake db-bots` gives the real bots too: a bot never signs in.
+  ('abe66666-6666-6666-6666-666666666666', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'abe-bot@bots.invalid', now(), now(), now());
 
 -- Manually materialize what common.claim_username would have
 -- produced for each persona: a common.profiles row, a solo club
@@ -129,23 +150,37 @@ insert into common.profiles (user_id, username, color) values
   ('dee44444-4444-4444-4444-444444444444', 'dee',  common.color_for_username('dee')),
   ('eda55555-5555-5555-5555-555555555555', 'eda',  common.color_for_username('eda'));
 
+-- The bot's profile, with the `ai_member` mark that is the only thing telling
+-- it from a person. `db-add-user AI=1` sets it in a second statement after the
+-- claim, because claim_username is the sign-in path and stays ignorant of
+-- bots; here it is one insert.
+insert into common.profiles (user_id, username, color, ai_member) values
+  ('abe66666-6666-6666-6666-666666666666', 'abe-bot',
+   common.color_for_username('abe-bot'), true);
+
 insert into common.clubs (handle, name, created_by) values
   ('=ada',  'ada',  'ada11111-1111-1111-1111-111111111111'),
   ('=bea',  'bea',  'bea22222-2222-2222-2222-222222222222'),
   ('=cade', 'cade', 'cade3333-3333-3333-3333-333333333333'),
   ('=dee',  'dee',  'dee44444-4444-4444-4444-444444444444'),
-  ('=eda',  'eda',  'eda55555-5555-5555-5555-555555555555');
+  ('=eda',  'eda',  'eda55555-5555-5555-5555-555555555555'),
+  -- The bot gets a solo club because claim_username gives everyone one, and
+  -- `db-add-user AI=1` runs that same RPC. Nothing seats a bot from it — a bot
+  -- is seated by the game that offers it — so this is fidelity to the real
+  -- account shape, not a fixture any test reaches for.
+  ('=abe-bot', 'abe-bot', 'abe66666-6666-6666-6666-666666666666');
 
 insert into common.clubs_members (club_handle, user_id) values
   ('=ada',  'ada11111-1111-1111-1111-111111111111'),
   ('=bea',  'bea22222-2222-2222-2222-222222222222'),
   ('=cade', 'cade3333-3333-3333-3333-333333333333'),
   ('=dee',  'dee44444-4444-4444-4444-444444444444'),
-  ('=eda',  'eda55555-5555-5555-5555-555555555555');
+  ('=eda',  'eda55555-5555-5555-5555-555555555555'),
+  ('=abe-bot', 'abe66666-6666-6666-6666-666666666666');
 
 insert into common.clubs_gametypes (club_handle, gametype)
   select c.handle, gt.gametype
-    from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda')) as c(handle)
+    from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda'), ('=abe-bot')) as c(handle)
    cross join lateral common.default_gametypes_for_club(c.handle) as gt(gametype);
 
 -- ============================================================

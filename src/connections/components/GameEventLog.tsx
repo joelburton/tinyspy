@@ -25,11 +25,12 @@ type Props = {
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
-  // The turn currently open in the board viewer (by log position), or null when
-  // live. Its `#N` handle wears the shared history ring.
+  // The turn currently open in the board viewer — the row's own id — or null
+  // when live. Its `#N` handle wears the shared history ring.
   historyId: number | null
-  // Open a turn in the board viewer (click its `#N`).
-  onShowHistory: (index: number) => void
+  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
+  // `#N` this log printed beside it, which is what the banner shows back.
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**
@@ -95,14 +96,14 @@ export function GameEventLog({
               on the board viewer. */}
           <tr className={cls(gameEventLog.divider, gameEventLog.entryHead)}>
             <EventLogOutcomeBar outcome={g.outcome} rowSpan={2} />
-            {/* The `#N` handle replays that turn on the board — live ONLY when the
-                rows on show ARE the board's (my own, or coop's shared game). On an
-                opponent's log, or the All view, the board still shows mine, so the
-                number stays a plain read-only marker. */}
+            {/* The `#N` handle replays that turn on the board. The number counts
+                the rows on show; the handle is the row's own id, and PlayArea
+                folds the rows of whoever wrote it — so an opponent's row at a
+                compete terminal replays THEIR board. */}
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyId === g.id}
-              onShowHistory={() => onShowHistory(g.id)}
+              onShowHistory={() => onShowHistory(g.id, i + 1)}
             />
             <td className={gameEventLog.main}>{verdictLabel(g, nameByRank)}</td>
             <EventLogActor actor={memberById(players, g.user_id)} />

@@ -119,9 +119,11 @@ export function InfoCol({
   /** Terminal yet? The log's player picker uses it to distinguish an opponent's
    *  RLS-hidden rows (during play) from a genuinely empty log (at terminal). */
   isTerminal: boolean
-  /** The turn currently open in the board viewer (by log position), or null. */
+  /** The turn currently open in the board viewer, or null. */
   historyId: number | null
-  onShowHistory: (index: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }) {
 
   // The exit — error-toned (red), and BOTH are placed: compete's CONCEDE (drop

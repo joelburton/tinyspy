@@ -13,8 +13,8 @@ import styles from './GameEventLog.module.css'
  * scrabble's move log — the shared `<EventLog>` table (same chrome the other v3
  * games use). Each play is its OWN single `<tr>` (the shared layer no longer owns
  * row shape — docs/playarea.md → Event log): the outcome bar (green for a
- * played word, neutral for an exchange, a pass or a coop forfeit — the words
- * `lib/answer.ts` gives the row's `kind`), the turn
+ * played word, neutral for an exchange, a pass or the leftover-tiles row — the
+ * words `lib/answer.ts` gives the row's `kind`), the turn
  * number ("#N", the shared `<EventLogNumber>`), the move in `.main`, and the
  * actor right-aligned in `<EventLogActor>`. Newest at the bottom; the shared
  * `<EventLog>` auto-snaps to the latest row.
@@ -52,10 +52,11 @@ export function GameEventLog({
   mode: 'coop' | 'compete'
   /** The turn currently open in the board viewer (highlights its row), or null. */
   historyId: number | null
-  /** Open a turn in the board viewer (click a row). */
-  onShowHistory: (id: number) => void
+  /** Open a turn in the board viewer (click a row) — the row's id, and the `#N`
+   *  this log printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }) {
-  const eventLogPicker = useEventLogPlayerPicker({
+  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     // Humans and bots in one roster — the hook orders them (you first, then by
     // handle), so a bot takes its alphabetical place rather than being
     // segregated. It plays like anyone else; it reads back like anyone else.
@@ -69,9 +70,7 @@ export function GameEventLog({
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })
-  const shown = plays.filter(
-    (p) => eventLogPicker.showsEveryone || eventLogPicker.picked === p.user_id,
-  )
+  const shown = eventLogPicker.filter(plays)
 
   return (
     <EventLog heading="Turns" picker={eventLogPicker} shown={shown}>
@@ -79,7 +78,7 @@ export function GameEventLog({
         <tr key={p.id} className={gameEventLog.divider}>
           {/* The bar's word is `lib/answer.ts`'s — the log names none of its
               own, so it cannot disagree with a teammate's line about the same
-              turn, which is exactly what a forfeit used to do. */}
+              turn. */}
           <EventLogOutcomeBar outcome={ANSWER_OUTCOME[p.kind]} />
           {/* Turn number — the row's position in the list on show; the shared
               handle opens that turn on the board viewer, addressed by the row's
@@ -87,7 +86,7 @@ export function GameEventLog({
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === p.id}
-            onShowHistory={() => onShowHistory(p.id)}
+            onShowHistory={() => onShowHistory(p.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {p.kind === 'word' && (

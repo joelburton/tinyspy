@@ -18,7 +18,7 @@ import type { EventRow } from '../hooks/useGame'
  *   clear → empty it
  *   hint / spoiler → nothing changed; neither one moves the chain
  *
- * **The boundary is INCLUSIVE**: viewing the move at `index` shows the chain
+ * **The boundary is INCLUSIVE**: viewing a move shows the chain
  * *after* it — "this is what move #N did", which is the natural way to review a
  * move, and the only reading that makes an `undo` row show anything at all
  * (its whole content is the word no longer being there).

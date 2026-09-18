@@ -39,7 +39,7 @@ export type EventLogPlayerPicker<R extends ActorRow> = {
  * each player has their own board, so your own log is the thing you came to read
  * (`competeSharesOneGame` opts a one-board race back out of that). The per-player entries
  * are for pulling one thread out of the whole: "what did Leah actually play?".
- * Everyone is named by handle, you included. doc.md → Details says why all six
+ * Everyone is named by handle, you included. doc.md → Details says why the
  * results travel together rather than being re-derived per game.
  *
  *     const eventLogPicker = useEventLogPlayerPicker({ players, selfId, mode, isTerminal })

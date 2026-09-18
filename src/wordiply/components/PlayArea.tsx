@@ -124,24 +124,13 @@ export function PlayArea(ctx: GamePageCtx) {
         : validGuesses,
     [validGuesses, game?.mode, session.user.id],
   )
-  // The same rows INCLUDING the rejects — what the viewer folds. A reject fills
-  // no board slot but IS a row you can open, and the builder needs it in the
-  // list to find it at all.
-  const myRows = useMemo<EventRow[]>(
-    () =>
-      game?.mode === 'compete'
-        ? guesses.filter((g) => g.user_id === session.user.id)
-        : guesses,
-    [guesses, game?.mode, session.user.id],
-  )
   const boardRows = useMemo(() => myGuesses.map((g) => ({ word: g.word, length: g.length })), [myGuesses])
 
   // The board viewer. wordiply's board is five rows all on screen, so replaying
   // an ACCEPTED word shows what you can already see — but most of this log is
   // REJECTS, which are on no board at all, and opening one is the only way to
-  // see the table as it stood when that word was tried. The list it folds is
-  // `myRows`, the board being looked at with its rejects, which in compete is
-  // mine alone.
+  // see the table as it stood when that word was tried. So the list it folds
+  // includes rejects; which player's rows those are is settled below.
   // (Above the loading guard, like every other hook here.)
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
   const guessesUsed = boardRows.length
@@ -570,7 +559,23 @@ export function PlayArea(ctx: GamePageCtx) {
   const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.length_score ?? 0]))
 
   const active = !isTerminal && !myConceded && guessesUsed < MAX_GUESSES
-  const historySnap = historyId !== null ? historySnapshot(myRows, historyId) : null
+
+  // WHOSE board a `#N` replays is the row's own author's. Mid-game compete that
+  // is always me — RLS shows me nothing else — but at TERMINAL every player's
+  // rows arrive, and a `#N` on one of theirs replays THEIR five slots. Coop is
+  // one shared track, so the filter is a no-op there. Rejects stay in the list
+  // either way: the builder has to find the row to fold up to it.
+  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRows =
+    isCompete && historyRow ? guesses.filter((g) => g.user_id === historyRow.user_id) : guesses
+  const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board, so a teammate's row replays the
+  // board you are already looking at.
+  const historyActor =
+    isCompete && historyRow && historyRow.user_id !== session.user.id
+      ? players.find((p) => p.user_id === historyRow.user_id)
+      : undefined
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -579,6 +584,7 @@ export function PlayArea(ctx: GamePageCtx) {
         guesses={historySnap?.rows ?? boardRows}
         isViewingHistory={historySnap !== null}
         historyLabel={historySnap?.historyLabel ?? ''}
+        historyActor={historyActor}
         onExitHistory={exitHistory}
         // `!isMyTurn` folds in turn-order (coop only): a waiting player's entry
         // freezes. Always true for free-for-all / solo.

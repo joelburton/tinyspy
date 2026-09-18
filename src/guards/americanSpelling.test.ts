@@ -109,6 +109,24 @@ const PAIRS: Record<string, string> = {
   utilise: 'utilize', emphasise: 'emphasize', analyse: 'analyze', analysed: 'analyzed',
   analyses: 'analyzes', analysing: 'analyzing', paralyse: 'paralyze',
   synthesise: 'synthesize', synthesised: 'synthesized', synthesising: 'synthesizing',
+  // The inflections, spelled out like the rest: `\b` ends a match at the
+  // stem, so listing `emphasise` alone never matches `emphasised` — which is
+  // how one reached a doc.md and sat there.
+  emphasised: 'emphasized', emphasises: 'emphasizes', emphasising: 'emphasizing',
+  specialised: 'specialized', specialises: 'specializes', specialising: 'specializing',
+  standardised: 'standardized', standardising: 'standardizing',
+  utilised: 'utilized', utilises: 'utilizes', utilising: 'utilizing',
+  paralysed: 'paralyzed', paralyses: 'paralyzes', paralysing: 'paralyzing',
+  apologises: 'apologizes', apologising: 'apologizing',
+  summarises: 'summarizes', summarising: 'summarizing',
+  categorises: 'categorizes', categorising: 'categorizing',
+  normalises: 'normalizes', normalising: 'normalizing',
+  initialises: 'initializes', initialising: 'initializing',
+  minimises: 'minimizes', minimising: 'minimizing',
+  maximises: 'maximizes', maximising: 'maximizing',
+  optimises: 'optimizes', optimising: 'optimizing',
+  prioritises: 'prioritizes', prioritising: 'prioritizing',
+  licences: 'licenses', defences: 'defenses', offences: 'offenses',
   // -ce → -se
   licence: 'license', defence: 'defense', offence: 'offense', pretence: 'pretense',
   // doubled l where American keeps one

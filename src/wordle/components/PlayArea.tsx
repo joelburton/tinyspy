@@ -107,11 +107,11 @@ export function PlayArea({
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click an event-log #N to replay that turn's board (the guess rows up to that turn,
-  // with that turn's row ringed in the history blue). Keyed by log position. Exit is
+  // with that turn's row ringed in the history blue), addressed by the row's id. Exit is
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
   // BoardCol freezes its capture while viewing, so the viewer's own any-key
   // action (bound by the hook) has the keys to itself.
-  const { isViewingHistory, historyId, showHistory, exitHistory } =
+  const { isViewingHistory, historyId, historyN, showHistory, exitHistory } =
     useHistoryViewer<number>()
 
   // ─── Coop-win celebration ──────────────────────────────
@@ -470,7 +470,9 @@ export function PlayArea({
       ? guesses.filter((g) => g.user_id === historyRow.user_id)
       : guesses
   const historySnap =
-    isViewingHistory && historyId !== null ? historySnapshot(historyRows, historyId) : null
+    isViewingHistory && historyId !== null
+      ? historySnapshot(historyRows, historyId, historyN)
+      : null
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board, so a teammate's row replays the
   // board you are already looking at.

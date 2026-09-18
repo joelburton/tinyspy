@@ -53,7 +53,7 @@ export function SetupForm({
   // The section's summary carries its own value, so a closed section still
   // shows what's set (SetupSection's contract). CANONICAL, not the raw text:
   // the summary is the board as the app writes it everywhere else, and a
-  // half-typed board summarises honestly ("Board: ABC-DE").
+  // half-typed board summarizes honestly ("Board: ABC-DE").
   const customSides = s.custom_sides ?? ''
   const customSidesLabel = customSides
     ? `Board: ${formatSides(customSides)}`

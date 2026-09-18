@@ -129,10 +129,11 @@ export function InfoCol({
   /** The RAW guesses (not the viewer's own) — the log's dropdown switches whose show. */
   guesses: EventRow[]
   mode: 'coop' | 'compete'
-  /** The open turn (by log position), or null when live. */
+  /** The open turn, or null when live. */
   historyId: number | null
-  /** Open a turn on the board viewer (click its `#N`). */
-  onShowHistory: (index: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   // Both exits, error-toned (red), placed together and each hiding itself in the
   // mode that isn't its own: compete CONCEDES (drop out of the race →
@@ -188,7 +189,7 @@ export function InfoCol({
         {/* Action row — three states. Terminal: the outcome line + back-to-club.
             Locally terminal (compete, I'm done while others race): the terminal LOOK —
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
-            hint/reveal). */}
+            hint or spoiler). */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): restart this

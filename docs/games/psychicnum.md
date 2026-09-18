@@ -500,10 +500,10 @@ src/psychicnum/
                           map as of that turn — ADD-style (a guess only ever ADDS a permanent
                           green/red mark, so a past board is the guesses folded up to that
                           turn), boundary **inclusive** (viewing turn N shows the board AFTER
-                          N's guess, with N's guessed tile ringed). Hint / reveal turns mark no
-                          tile. Keyed by **log position** (the `#N` the log shows). Clicking a
+                          N's guess, with N's guessed tile ringed). Hint / spoiler turns mark no
+                          tile. Addressed by the **row's own id**. Clicking a
                           `GameEventLog` `#N` opens that turn on the board via the shared viewer.
-    history.test.ts       Unit tests for the fold + inclusive boundary + hint/reveal no-ops.
+    history.test.ts       Unit tests for the fold + inclusive boundary + hint/spoiler no-ops.
 ```
 
 ### `PlayArea`

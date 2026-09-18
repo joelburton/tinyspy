@@ -26,7 +26,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | stackdown | ✅ | track family — a board per player; the stack drawn in layer order, white fill IS the occlusion |
 | strands | ✅ | **track family** — one track per board; color encoded as shape |
 | waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
-| wordiply | ✅ | event-log family — the only printer with **no board**: its page *is* the log |
+| wordiply | ✅ | event-log family — the page *is* the log: wordiply's five slots hold only accepted words, so a printed board would leave out most of what happened |
 | wordle | ✅ | **track family** — board + QWERTY keyboard + guesses, per player |
 | wordwheel | ✅ | word-list family (forked from spellingbee's printer) |
 

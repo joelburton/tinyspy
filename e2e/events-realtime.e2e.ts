@@ -36,9 +36,16 @@ import { signIn } from './helpers/session'
  *
  * **The row is written from OUTSIDE the browser**, through the game's own RPC
  * as the signed-in player. The page did nothing: it never submitted, so no local
- * state, no optimistic update and no post-RPC refetch can explain the row
- * appearing. Only the postgres-changes event can. (None of the ten `PlayArea`s
- * calls `load()` after a move anyway — every one of them waits for the event.)
+ * state and no optimistic update can explain the row appearing. (None of the ten
+ * `PlayArea`s calls `load()` after a move either — every one of them waits for
+ * the event.)
+ *
+ * **What that proves is a live binding on the named table**, which is the bug
+ * being hunted — not that a postgres-changes event specifically delivered the
+ * row. `useRealtimeRefetch` also refetches when the server confirms the attach,
+ * so a write that lands before that confirmation is picked up by the refetch.
+ * Either way a wrong table name fails the channel join, and then NOTHING
+ * arrives: no attach, no event, no row.
  *
  * The assertion is the same everywhere: the log's `#N` handle
  * (`[data-history-handle]`) goes from absent to present. It is the one marker

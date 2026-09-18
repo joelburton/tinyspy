@@ -649,8 +649,8 @@ rather than a verdict — every word from `lib/answer.ts` (§6). Every word is
 click-to-define. The shared whose-moves picker applies (coop "Team" + players;
 compete "All", defaulting to you; a rival's rows fill in at terminal).
 
-**Turn-history replay** — the shared `#N` handle + `useHistoryViewer`, keyed by
-**log position**. The snapshot
+**Turn-history replay** — the shared `#N` handle + `useHistoryViewer`, addressed
+by the **row's own id**. The snapshot
 ([`lib/history.ts`](../../src/letterboxed/lib/history.ts)) is a **fold**, which
 is the payoff of the events table being append-only: a chain isn't a board that
 accumulates, it's a stack that can also shrink, so `historyChainAt` just runs the four

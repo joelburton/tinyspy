@@ -23,11 +23,12 @@ type Props = {
   /** Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
    *  a genuinely empty one (at terminal, when their guesses reveal). */
   isTerminal: boolean
-  /** The turn currently open in the board viewer (by log position),
-   *  or null when live. Its `#N` handle wears the shared yellow ring. */
+  /** The turn currently open in the board viewer — the row's own id — or null
+   *  when live. Its `#N` handle wears the shared yellow ring. */
   historyId: number | null
-  /** Open a turn in the board viewer (click its `#N`). */
-  onShowHistory: (index: number) => void
+  /** Open a turn in the board viewer (click its `#N`) — the row's id, and the
+   *  `#N` this log printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**
@@ -70,8 +71,8 @@ export function GameEventLog({
   onShowHistory,
 }: Props) {
   // Whose guesses to show. The control, its default, the aggregate label, the row
-  // filter, the `#N`-handle gate and the honest empty line all come from the
-  // shared hook — see useEventLogPlayerPicker.
+  // filter and the honest empty line all come from the shared hook — see
+  // useEventLogPlayerPicker.
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
     selfId,
@@ -82,12 +83,10 @@ export function GameEventLog({
   })
   const shown = eventLogPicker.filter(guesses)
 
-  // The turn-history `#N` is a LIVE (clickable) control only when the log is showing
-  // the same board that replays on the main grid — the coop team board, or my own
-  // board (compete). In those cases the displayed rows ARE the board's rows, so log
-  // position lines up 1:1 with the board row and clicking `#N` opens the right turn.
-  // When an OPPONENT's board is picked (compete, at terminal), the main grid still
-  // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
+  // Every `#N` is a live handle, whatever the filter shows: the NUMBER counts the
+  // rows on show, the HANDLE is the row's own id, and PlayArea folds the rows of
+  // whoever wrote the row that was clicked. So an opponent's `#N` at a compete
+  // terminal replays THEIR six rows, not a misaddressed turn of mine.
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
@@ -99,7 +98,7 @@ export function GameEventLog({
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === g.id}
-            onShowHistory={() => onShowHistory(g.id)}
+            onShowHistory={() => onShowHistory(g.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {/* The whole guess is one definable word — every wordle guess is a

@@ -202,7 +202,7 @@ select pg_temp.envelope_is(
 -- opponent's guesses are their strategy. Once the game has ENDED
 -- there's nothing left to protect, and the event log's "whose
 -- turns?" picker exists precisely to read the other player's game
--- back — so guesses_select carries an `or cg.is_terminal` arm
+-- back — so events_select carries an `or cg.is_terminal` arm
 -- (2026-08-02, matching stackdown / connections / waffle).
 --
 -- Deliberately LAST: ending comp_g would change what the earlier

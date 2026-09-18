@@ -81,21 +81,25 @@ const NO_TENT: Map<number, Tentative> = new Map()
  *  long words: "#1 moth: +10 APPLE, BERRY" for a word, or the action ("#5 moth
  *  passed", "#5 moth exchanged 3 tiles") for the others. Every other game returns
  *  this as its snapshot's `historyLabel`; scrabble builds it here because `plays`
- *  already lives in this column. */
+ *  already lives in this column.
+ *
+ *  `n0` is the `#N` the log printed on the clicked row, not this list's index:
+ *  the log numbers what its filter is showing, and the banner owes the reader
+ *  the number they saw. */
 function historyLabelFor(
   p: EventRow,
-  n0: number,
+  n0: number | null,
   nameOf: (id: string | null) => string,
 ): string {
   const who = nameOf(p.user_id)
-  const n = `#${n0}`
+  const n = n0 === null ? '' : `#${n0} `
   if (p.kind === 'word') {
     const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
-    return `${n} ${who}: +${p.score ?? 0} ${words}`
+    return `${n}${who}: +${p.score ?? 0} ${words}`
   }
-  if (p.kind === 'exchange') return `${n} ${who} exchanged ${p.tile_count} tiles`
-  if (p.kind === 'pass') return `${n} ${who} passed`
-  return `${n} ${who} ended — ${-(p.score ?? 0)} tiles unplayed` // leftovers
+  if (p.kind === 'exchange') return `${n}${who} exchanged ${p.tile_count} tiles`
+  if (p.kind === 'pass') return `${n}${who} passed`
+  return `${n}${who} ended — ${-(p.score ?? 0)} tiles unplayed` // leftovers
 }
 
 /**
@@ -160,10 +164,11 @@ function nextRackOrder(
  *     scrabble takes the raw `plays` + `historyId` and runs `historyBoard` (and
  *     builds the banner via `historyLabelFor`) in here, since `plays` is already the
  *     input the live board reads.
- *   - **It keys the viewer by the row's `id`, not log position.** The shared history hook
- *     returns a neutral `historyId`; scrabble aliases it to `historyId` (a stable
- *     turn number `historyBoard` indexes by), where stackdown/waffle alias it to
- *     `historyId` (an array position). Same hook, deliberately different key.
+ *   - **Its `historyId` is a union, not a row id.** The shared hook is generic
+ *     over the id, and scrabble's carries two things the board can show: a past
+ *     turn (`{kind: 'turn', id}`) and a teammate's shared move
+ *     (`{kind: 'peerPreview', …}`), which arrives over Broadcast and belongs to
+ *     no log row. PlayArea aliases it `historyTarget` for that reason.
  */
 /**
  * What the three move RPCs answer. Every one of them keeps `version`, and
@@ -194,6 +199,7 @@ export function BoardCol({
   localFeedbackSlot,
   plays,
   historyTarget,
+  historyN,
   historyTargetRef,
   onExitHistory,
   nameOf,
@@ -232,6 +238,10 @@ export function BoardCol({
   // The read-only overlay open on the board (a past turn OR a teammate's shared
   // move), or null when live.
   historyTarget: HistoryTarget | null
+  // The `#N` the Moves log was printing on the row that opened this, so the
+  // banner shows the number the reader clicked. Null for a shared move, which
+  // arrives over Broadcast and has no log row.
+  historyN: number | null
   // A ref to historyTarget, read by the once-registered board-drag pointerdown.
   historyTargetRef: RefObject<HistoryTarget | null>
   // Return to the live board (a board interaction / a keystroke / a new move).
@@ -863,15 +873,8 @@ export function BoardCol({
   //     on as tentative, those cells outlined.
   const historyTurn = historyTarget?.kind === 'turn' ? historyTarget : null
   const peerPreview = historyTarget?.kind === 'peerPreview' ? historyTarget : null
-  // The banner's "#N" is the row's position in `plays` — the whole game's
-  // moves, which is the sequence this viewer replays. (The log beside it
-  // numbers whatever its player filter is showing, so the two can differ once
-  // a filter is on; each names the list it belongs to.)
-  const historyEventIndex = historyTurn
-    ? plays.findIndex((p) => p.id === historyTurn.id)
-    : -1
   const historyEventRow: EventRow | null =
-    historyEventIndex >= 0 ? plays[historyEventIndex] : null
+    (historyTurn && plays.find((p) => p.id === historyTurn.id)) || null
   const renderBoard = historyTurn ? historyBoard(plays, historyTurn.id) : board
   // The previewed move's tiles, as a tentative map over the live board (stable ref
   // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
@@ -933,7 +936,7 @@ export function BoardCol({
                       : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
                   </>
                 ) : (
-                  historyLabelFor(historyEventRow!, historyEventIndex + 1, nameOf)
+                  historyLabelFor(historyEventRow!, historyN, nameOf)
                 )
               }
             />

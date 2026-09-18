@@ -34,7 +34,7 @@ select is(
 -- matching `ok` (docs/envelopes.md → Choosing which `ok` branch).
 select is(
   (select stackdown.reveal_next_word((select id from g))->'data'->>'result'),
-  'reveal', 'the reveal answer names its case');
+  'spoiler', 'the spoiler answer names its case, in the row''s own word');
 -- A spoiler is RED and a hint is amber (asserted in the envelope below) — the
 -- two halves of the hint/spoiler ruling. src/stackdown/lib/answer.ts says the
 -- same two words for the rows these write, which is this test's other language.

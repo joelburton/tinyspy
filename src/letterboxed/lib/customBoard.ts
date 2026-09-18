@@ -61,7 +61,7 @@ export function cleanSides(raw: string): string {
  * reformatting under a moving cursor is worse than reading a plain string.
  *
  * Chunks whatever it is given rather than assuming twelve, so a half-typed
- * board summarises honestly as `ABC-DE` instead of throwing.
+ * board summarizes honestly as `ABC-DE` instead of throwing.
  */
 export function formatSides(sides: string): string {
   const groups: string[] = []

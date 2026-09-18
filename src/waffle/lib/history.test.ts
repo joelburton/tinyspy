@@ -37,7 +37,7 @@ describe('historyBoardAfter — inclusive replay', () => {
 
 describe('historySnapshot', () => {
   it('viewing the last swap shows the solved board, all green, with its cells ringed', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, 2)
     expect(snap.board).toBe(SOLUTION)
     // Solved → every filled cell green, holes '.'.
     expect(snap.colors).toBe(
@@ -47,8 +47,18 @@ describe('historySnapshot', () => {
     expect(snap.historyLabel).toBe('#2: B (A1) ↔ A (B1)')
   })
 
+  it('labels with the number it was GIVEN — the log numbers what it shows', () => {
+    // Swap 12 sits second in this list; a log filtered to one player printed it
+    // as "#1", and the banner echoes what the reader clicked.
+    expect(historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, 1).historyLabel)
+      .toBe('#1: B (A1) ↔ A (B1)')
+    // No number at all when the opening carried none.
+    expect(historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, null).historyLabel)
+      .toBe('B (A1) ↔ A (B1)')
+  })
+
   it('viewing an earlier swap shows the board AS OF that swap, colored for that state', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 11)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 11, 1)
     // Board after only the 2↔3 swap: cells 0,1 still wrong.
     expect(snap.board).toBe('bacdef.g.hijklmn.o.pqrstu')
     // Cells 0,1 yellow (in-word, wrong spot), everything else green.
@@ -60,7 +70,7 @@ describe('historySnapshot', () => {
   })
 
   it('no solution → letters replay but colors are null (graceful)', () => {
-    const snap = historySnapshot(SCRAMBLE, null, SWAPS, 12)
+    const snap = historySnapshot(SCRAMBLE, null, SWAPS, 12, 2)
     expect(snap.board).toBe(SOLUTION)
     expect(snap.colors).toBeNull()
   })
@@ -68,7 +78,7 @@ describe('historySnapshot', () => {
   it('an id this list does not hold replays nothing', () => {
     // A compete opponent's swap, against your own board: none of it is here, so
     // the scramble comes back untouched rather than fully solved.
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 99)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 99, 1)
     expect(snap.board).toBe(SCRAMBLE)
     expect(snap.historyLitTiles.size).toBe(0)
     expect(snap.historyLabel).toBe('This swap')
@@ -83,10 +93,8 @@ describe('historySnapshot', () => {
  * pin what that filtering has to achieve.
  */
 describe('compete: one player’s swaps at a time', () => {
-  // Both players solve the same puzzle, so their logs interleave in the table
-  // and each counts its OWN seq from 1.
-  // One game-wide sequence, two players interleaved in it — which is what ids
-  // are now, where a per-player count used to restart at 1 for each of them.
+  // Both players solve the same puzzle, so their rows interleave in the table:
+  // one game-wide sequence of ids, two players' independent boards inside it.
   const MIXED: EventRow[] = [
     swap({ user_id: 'u1', id: 21, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
     swap({ user_id: 'u2', id: 22, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
@@ -115,7 +123,7 @@ describe('compete: one player’s swaps at a time', () => {
 
   it('historySnapshot resolves the id against the FILTERED list', () => {
     const mine = MIXED.filter((s) => s.user_id === 'u1')
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, mine, 21)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, mine, 21, 1)
     // My first swap is 2↔3 — NOT the opponent's 4↔5, which sits between them in
     // the unfiltered table.
     expect(snap.historyLitTiles).toEqual(new Set([2, 3]))

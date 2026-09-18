@@ -8,16 +8,18 @@
 -- carries both its user_id and the game's `ai_level`. What is still
 -- scrabble-local is the SEAT — turns are seat-based in compete.
 --
--- The bots are environment, like the word list: `gmake db-bots` provisions
--- them and `db-reset` chains it. These tests name them by `ai_member` and
--- alphabetical order rather than by uuid, which is how create_game picks.
+-- The suite carries its own bot — `abe-bot`, a persona in `_shared/setup.psql`
+-- alongside ada and bea. These tests name the seat's holder by `ai_member` and
+-- alphabetical order rather than by uuid, which is how create_game picks, so
+-- they read the same on a database where `gmake db-bots` has also provisioned
+-- the environment's three.
 -- Covers:
 --   - create_game seats the AI (ai_count + ai_level), and rejects a dictionary
 --     narrower than the AI's band / bad counts / coop
 --   - get_ai_context is the definer door to the AI seat's hidden rack + bands
 --     (member-gated, AI-seat-only, its-turn-only)
 --   - ai_play_word / ai_pass_turn drive the AI seat through the shared commit core
---   - _finish crowns an AI winner (winner_seat + "AI 1", no human uuid)
+--   - _finish crowns an AI winner by uuid and handle, like any other winner
 -- ============================================================
 
 begin;

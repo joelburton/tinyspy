@@ -16,15 +16,14 @@
  * `waffle.events` can hold several players' independent sequences interleaved in
  * one game-wide order. Applying a mixed list to the scramble would
  * produce a board nobody ever saw, so **callers pass an already-filtered list**:
- * coop's shared log, or one player's own. Given that, a swap's position in the
- * list IS its chronological order and we index it directly.
+ * coop's shared log, or the rows of whoever wrote the swap being opened.
  *
  * What makes logging compete swaps safe at all is the RLS, not this file: an
- * opponent's rows are invisible until the game ends, because replaying them from
- * the shared scramble rebuilds their board — and their green tiles are correct
- * letter positions. See the `swaps_select` policy.
+ * opponent's rows are invisible until the game ends — replaying them from the
+ * shared scramble rebuilds their board, and their green tiles are correct letter
+ * positions. See the `events_select` policy.
  *
- * **The boundary is INCLUSIVE**: viewing the swap at `index` shows the board *after*
+ * **The boundary is INCLUSIVE**: viewing a swap shows the board *after*
  * that swap, with the two cells it moved ringed — "this is what swap #N did", the
  * natural way to review a move (the cells look identical before a swap; the swap IS
  * the event). Contrast stackdown, which showed the pre-move board because a cleared
@@ -77,6 +76,7 @@ export function historySnapshot(
   solution: string | null,
   swaps: ReadonlyArray<EventRow>,
   id: number,
+  n: number | null,
 ): HistorySnapshot {
   // -1 when the id names a row this list does not hold — a compete opponent's
   // swap, against your own board. The scramble comes back untouched.
@@ -87,19 +87,20 @@ export function historySnapshot(
     board,
     colors: solution ? computeColors(board, solution) : null,
     historyLitTiles: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
-    historyLabel: describe(swap, index + 1),
+    historyLabel: describe(swap, n),
   }
 }
 
 /**
  * The swap label — "#N: A (A1) ↔ B (C2)", matching the log row's
- * letters-and-coords. `n` is the row's position in the list being shown, which
- * is the same number the log prints beside it: the caller passes the list and
- * the index, so the two cannot disagree.
+ * letters-and-coords. `n` is the `#N` the log was PRINTING on the row that was
+ * clicked, handed down from the viewer, so the banner echoes the number the
+ * reader saw rather than counting this list for itself — the two lists differ
+ * the moment a filter is on. Null drops the number.
  */
-function describe(swap: EventRow | undefined, n: number): string {
+function describe(swap: EventRow | undefined, n: number | null): string {
   if (!swap) return 'This swap'
   const a = `${swap.letter_a.toUpperCase()} (${coord(swap.pos_a)})`
   const b = `${swap.letter_b.toUpperCase()} (${coord(swap.pos_b)})`
-  return `#${n}: ${a} ↔ ${b}`
+  return n === null ? `${a} ↔ ${b}` : `#${n}: ${a} ↔ ${b}`
 }

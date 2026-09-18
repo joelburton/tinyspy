@@ -553,10 +553,11 @@ begin
   -- `result` names the case even though there is only one today: a call site
   -- may not take an `ok` branch by merely matching `ok` (docs/envelopes.md →
   -- Choosing which `ok` branch), because a second answer added here would then
-  -- be rendered as this one, silently. It borrows the `kind` vocabulary the
-  -- submissions row already uses for the same request.
+  -- be rendered as this one, silently. The word is the row's own `kind`, so the
+  -- envelope and the row it wrote say the same thing — and "reveal" is taken on
+  -- this page by the action that shows the WHOLE solution at game over.
   return common.ok_envelope(
-    jsonb_build_object('result', 'reveal', 'word', next_word), 'lost');
+    jsonb_build_object('result', 'spoiler', 'word', next_word), 'lost');
 
 exception when others then
   get stacked diagnostics

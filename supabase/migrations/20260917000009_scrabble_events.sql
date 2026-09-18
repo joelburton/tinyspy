@@ -41,6 +41,7 @@ create temporary table _scrabble_before on commit drop as
 -- ── the name ────────────────────────────────────────────────
 alter table scrabble.plays rename to events;
 alter table scrabble.events rename constraint plays_game_id_fkey to events_game_id_fkey;
+alter table scrabble.events rename constraint plays_user_id_fkey to events_user_id_fkey;
 drop policy if exists plays_select on scrabble.events;
 
 -- ── created_at ──────────────────────────────────────────────

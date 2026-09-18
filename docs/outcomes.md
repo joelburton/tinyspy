@@ -175,10 +175,10 @@ words — whatever its rows and its RPC already call them, never a new set — a
 one table from those to outcomes:
 
 ```ts
-export type Answer = 'accepted' | 'invalid' | 'hint' | 'reveal'
+export type Answer = 'accepted' | 'invalid' | 'hint' | 'spoiler'
 
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
-  accepted: 'won', invalid: 'lost', hint: 'warning', reveal: 'lost',
+  accepted: 'won', invalid: 'lost', hint: 'warning', spoiler: 'lost',
 }
 ```
 

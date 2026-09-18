@@ -129,7 +129,7 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
 `_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
-| `waffle.events` PK `(id)`, a `bigint identity` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `kind` ('swap' — the only one this game has), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `took_turn` (true on every row: only an accepted swap is written, and a swap spends one of the budget), `created_at`. Read `order by id` — one game-wide order, which in compete interleaves two players' swaps by when they happened. The caller's own count is `players.swaps_used`. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
+| `waffle.events` PK `(id)`, a `bigint identity` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `kind` ('swap' — the check allows no other value), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `took_turn` (true on every row: only an accepted swap is written, and a swap spends one of the budget), `created_at`. Read `order by id` — one game-wide order, which in compete interleaves two players' swaps by when they happened. The caller's own count is `players.swaps_used`. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
 
 ### Views (`security_invoker`)
 
@@ -156,7 +156,7 @@ are correct letter positions. A club-wide readable log wouldn't be so much a
 cheating opportunity as a **spoiler handed to an honest player** who just reads
 the event log.
 
-So `swaps_select` mirrors `_board_visible`, and the two must agree or the weaker
+So `events_select` mirrors `_board_visible`, and the two must agree or the weaker
 one decides what's actually secret:
 
     coop                 →  shared, like the board

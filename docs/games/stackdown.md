@@ -271,10 +271,10 @@ creation, so it's self-contained; `board_id` is provenance only.
   stackdown doesn't pass).
   So the `stackdown_compete | ended — manual end` labels row is server-reachable
   but has no FE button today — same posture as scrabble.
-- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `events` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
+- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `events` row (words AND the hint/spoiler cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
 - **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 - **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
-  envelope carrying `{result: 'reveal', word}` — the next solution word the
+  envelope carrying `{result: 'spoiler', word}` — the next solution word the
   caller still has to clear (`solution[cleared + 1]`) — defeating the
   hidden-solution invariant on
   purpose. The `lost` outcome rides with it, painting the pill red: a spoiler
@@ -295,8 +295,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   (writing its answer to the **local** below-board feedback slot — it's the
   player's own request). It also **logs the request** — a `kind='spoiler'`
   submission row storing the revealed word (shown in the log as "Spoiler:
-  <WORD>"; the stored `kind` stays `'reveal'` — renaming it would be a migration
-  for a label) so the ask persists in the game log; deduped
+  <WORD>") so the ask persists in the game log; deduped
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
   the games-row `for update` lock, which is what keeps two coop players from
   clearing the same word.

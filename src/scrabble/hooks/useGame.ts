@@ -26,9 +26,7 @@ export type PlayerRow = {
 /** One row from `scrabble.events` — the public move log. */
 export type EventRow = {
   /** The row's own id, and the order of play: the database hands them out in
-   *  the order the rows were written, which is what the read below orders by.
-   *  It replaced a game-wide `seq` that said the same thing in a second
-   *  column. */
+   *  the order the rows were written, which is what the read below orders by. */
   id: number
   /** Who played it — a person or a bot, both of them on the common roster.
    *  `seat` says which seat they were sitting in. */
@@ -59,15 +57,16 @@ export type ScrabbleGame = {
   teamScore: number | null
   /** Compete: whose SEAT's turn it is. Null in coop. */
   currentSeat: number | null
-  /** Compete: the user_id at `currentSeat` — null in coop, and also null when
-   *  it's an AI seat's turn (an AI has no user). Derived from the players. */
+  /** Compete: the user_id at `currentSeat` — null in coop. A bot's seat names
+   *  the bot, like any other. Derived from the players; which seats are AI is
+   *  `ai_level`, and that is what the AI poke asks. */
   currentUserId: string | null
 }
 
 /**
  * scrabble's per-gametype data hook — a postgres-changes realtime hook
  * (docs/code-conventions.md → "Realtime data hooks", Pattern A) via the shared
- * `useRealtimeRefetch` factory: reloads games_state / players_state / plays on
+ * `useRealtimeRefetch` factory: reloads games_state / players_state / events on
  * any change. There's no Broadcast — tentative placements are local to the
  * PlayArea (private until a commit), exactly like stackdown's private
  * in-progress word; the only cross-client state is the committed rows.
@@ -90,7 +89,7 @@ export function useGame(gameId: string): {
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
-  // Subscribe to the base tables (games / players / plays); `load` reads the
+  // Subscribe to the base tables (games / players / events); `load` reads the
   // VIEWS (games_state / players_state) so the bag stays a count and a compete
   // opponent's rack reads null until terminal. No Broadcast — tentative
   // placements are local to the PlayArea until a commit.

@@ -557,7 +557,7 @@ that read it — takes the row vocabulary.
   wordle — in a DOCSTRING. Its markup uses `<TurnLogActor>` like everyone else.
 - **`.meta` was doing two jobs**: the turn number's column (seven games writing
   `<td className={turnLog.meta}>#{i + 1}</td>` by hand as the inert fallback) and
-  de-emphasised text inside a row ("(no guesses)", a `Hint:` label, `3/12`, a
+  de-emphasized text inside a row ("(no guesses)", a `Hint:` label, `3/12`, a
   reason after a word). It is two classes now — **`.turnNumber`** with the
   components, **`.muted`** with the games. Joel: *"`.meta` is a dumb name for the
   turn-numbers"*, and `.muted` earns its vagueness only where there is no

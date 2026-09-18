@@ -13,12 +13,11 @@
  * overwrites. Hint / spoiler turns mark no tile (they decide nothing), so they leave
  * the map unchanged and light nothing.
  *
- * **Keyed by log position, not a stored id.** psychicnum's `events` carries no
- * per-turn ordinal the FE indexes by; the log renders "#N" = the row's position in
- * the `id`-ordered log, which is unambiguous and chronological — exactly what a
- * shared-board replay needs.
+ * **Addressed by the row's own id**, resolved against the list being folded. The
+ * `#N` the log prints is that row's place in whatever the log is SHOWING, which a
+ * filter moves; the rows the board replays are a different list.
  *
- * **The boundary is INCLUSIVE**: viewing the turn at `index` shows the board AFTER
+ * **The boundary is INCLUSIVE**: viewing a turn shows the board AFTER
  * that turn's guess, with the guessed tile ringed — "this is the tile this turn
  * decided" (the natural way to review it; the reveal IS the event). Matches
  * waffle/scrabble/codenamesduet.
@@ -32,7 +31,7 @@ export interface HistorySnapshot {
    *  straight to `<Board results>`. */
   results: Map<string, boolean>
   /** The board word this turn's guess decided — ring it history-blue (it already
-   *  wears its green/red outcome color). Null for a hint / reveal turn (no tile). */
+   *  wears its green/red outcome color). Null for a hint / spoiler turn (no tile). */
   historyLitWord: string | null
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   historyLabel: string

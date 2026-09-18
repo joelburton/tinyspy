@@ -40,8 +40,8 @@ export type WordlePlayerState = {
 export type EventRow = {
   /** The row's own id, and the order of play — the database hands them out in
    *  the order the rows were written, which is what the read below orders by.
-   *  It replaced a per-guesser `seq`, whose live count is
-   *  `players.guesses_used`. */
+   *  How many goes a player has spent is `players.guesses_used`, not a count of
+   *  these. */
   id: number
   user_id: string
   guess: string

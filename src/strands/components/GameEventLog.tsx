@@ -24,10 +24,11 @@ type Props = {
   selfId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  /** The turn open in the board viewer (by log position), or null when live. */
+  /** The turn open in the board viewer — the row's own id — or null when live. */
   historyId: number | null
-  /** Open a turn on the board. */
-  onShowHistory: (index: number) => void
+  /** Open a turn on the board — the row's id, and the `#N` this log printed
+   *  beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }
 
 /**
@@ -82,16 +83,16 @@ const BODY: Partial<Record<GuessResult, string>> = {
  * **Spent hints are rows too**, for the same reason and one more: a hint is the
  * one thing besides a find that changes the board, and in compete it IS the
  * ranking metric. It takes an ordinary numbered row rather than an interstitial
- * divider, so `#N` keeps meaning "position in this log" — which is precisely
- * what the history viewer indexes by, and what lets a hint turn replay its ring.
+ * divider, so a hint gets a `#N` like any other turn — which is what lets one
+ * replay its ring on the board.
  *
  * **Coop shows everyone's rows.** Joel's ruling: a peer sees your word when you
  * submit it, so there is no per-player split to make here. Compete's rows are
  * scoped to your own mid-race by the mode-aware RLS arm (and open up at
  * terminal — which is why PlayArea filters `historyRows` explicitly).
  *
- * A row's `#N` is the turn-history handle (shared `EventLogNumber`), offered
- * when the visible rows are the viewer's own sequence.
+ * A row's `#N` is the turn-history handle (shared `EventLogNumber`), offered on
+ * every row under every filter.
  */
 export function GameEventLog({
   events,
@@ -116,7 +117,6 @@ export function GameEventLog({
   })
   const shown = eventLogPicker.filter(events)
 
-  // `#N` is a LIVE handle only when the rows on show ARE the board's own
   // The number counts the rows on show; the handle carries the row's own id, so
   // filtering the log renumbers it without ever changing which event it opens.
 
@@ -144,7 +144,7 @@ export function GameEventLog({
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === row.id}
-            onShowHistory={() => onShowHistory(row.id)}
+            onShowHistory={() => onShowHistory(row.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             {/* Fixed-width slot, so every word starts at the same x no

@@ -52,7 +52,7 @@ export interface HistorySnapshot {
    *  row's. Feed straight to `<Board offBoard>`. */
   offBoard: Set<number>
   /** Tiles to ring green: this turn's OWN word tiles, but only when the turn is a
-   *  valid word (a hint / reveal / rejected attempt cleared nothing, so this is
+   *  valid word (a hint / spoiler / rejected attempt cleared nothing, so this is
    *  empty). These tiles are still present in `offBoard`'s complement — the whole
    *  point of the strictly-before boundary. */
   historyLitTiles: Set<number>
@@ -62,9 +62,9 @@ export interface HistorySnapshot {
 }
 
 /**
- * Reconstruct the board + historyLabel for the turn at `index` within the
- * submissions visible to the caller (the same chronological list the log shows —
- * coop = everyone's, compete = the caller's own, so the mode split is free).
+ * Reconstruct the board + historyLabel for the turn with this `id`, within the
+ * rows it is resolved against — coop's shared log, or the rows of whoever wrote
+ * the row being opened.
  *
  * An `id` this list does not hold — a compete opponent's word, against your own
  * board — yields an empty green set and a neutral historyLabel, and an empty
@@ -90,7 +90,7 @@ export function historySnapshot(submissions: ReadonlyArray<Submission>, id: numb
 
 /**
  * The kind-aware turn label. A valid word "cleared" its letters; a rejected word
- * was "entered … — not a word"; a hint / reveal names the text it surfaced (both
+ * was "entered … — not a word"; a hint / spoiler names the text it surfaced (both
  * store their revealed text in `word` — the clue for a hint, the word itself for
  * a spoiler). Falls back gracefully if a row is missing its text.
  */

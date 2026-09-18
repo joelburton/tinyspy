@@ -197,7 +197,7 @@ export function PlayArea({
   // ─── Turn-history viewer ───────────────────────────────
   // Click an event-log #N to replay that turn (the bands matched before it + this
   // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
-  // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
+  // Addressed by the row's id. Exit is intrinsic to the hook (a click anywhere, the
   // banner ✕, or any key — the hook binds `act-exit-history` itself, and the
   // board's own commands hide while a turn is open so the key reaches it).
   const { historyId, showHistory, exitHistory } =

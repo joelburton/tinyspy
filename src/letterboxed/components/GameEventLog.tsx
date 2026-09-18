@@ -52,8 +52,9 @@ export function GameEventLog({
   isTerminal: boolean
   /** The move open in the board viewer, or null when live. */
   historyId: number | null
-  /** Open a move on the board (click its `#N`). */
-  onShowHistory: (index: number) => void
+  /** Open a move on the board (click its `#N`) — the row's id, and the `#N` this
+   *  log printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
@@ -65,23 +66,22 @@ export function GameEventLog({
   })
   const shown = eventLogPicker.filter(events)
 
-  // The viewer addresses a row by its own id, and PlayArea folds the board it is
-  // looking at (`boardRows`: coop = all events, compete = own) resolving that id
-  // against it. The two lists need not match, which is why the handle no longer
-  // has to be gated on their matching.
+  // The viewer addresses a row by its own id, and PlayArea folds the rows of
+  // whoever wrote it, resolving that id against them. The list the log shows and
+  // the list the board replays need not match, so every handle is live.
 
   return (
     <EventLog heading="Moves" picker={eventLogPicker} shown={shown}>
       {shown.map((e, i) => (
         <tr key={e.id} className={gameEventLog.divider}>
           <EventLogOutcomeBar outcome={ANSWER_OUTCOME[e.kind]} />
-          {/* A live handle only when the rows on show ARE the board's rows —
-              otherwise a click would replay someone else's chain onto your
-              board. */}
+          {/* The number counts the rows on show; the handle is the row's own
+              id, so a click replays that row's author's chain rather than
+              somebody else's onto your board. */}
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === e.id}
-            onShowHistory={() => onShowHistory(e.id)}
+            onShowHistory={() => onShowHistory(e.id, i + 1)}
           />
           <td className={gameEventLog.main}>
             <Move event={e} />

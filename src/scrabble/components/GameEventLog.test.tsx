@@ -6,8 +6,9 @@
  *
  *   1. It defaults to the aggregate in BOTH modes. Even compete is one shared
  *      board, so "All" is what you're actually looking at.
- *   2. **AI seats are pickable people.** A bot's play carries `user_id: null`,
- *      so rows are keyed by a synthetic `ai:<seat>` id.
+ *   2. **AI seats are pickable people.** A bot is an account with a profile and
+ *      a `game_players` row, so its plays carry its user_id and it takes its
+ *      alphabetical place in the dropdown like anyone else.
  *
  * A pure presentational component — no supabase mocking, just RTL with props.
  * The definition popover and the `#N` viewer handle are exercised elsewhere.
@@ -89,7 +90,7 @@ describe('scrabble GameEventLog — the whose-moves picker', () => {
     expect(screen.queryByText('BOTWORD')).not.toBeInTheDocument()
   })
 
-  it('narrows to the BOT’s plays — the `ai:<seat>` key, since user_id is null', async () => {
+  it('narrows to the BOT’s plays — by its user_id, like any other player', async () => {
     renderLog()
     await pickFilter('ada-bot')
     expect(screen.getByText('BOTWORD')).toBeInTheDocument()

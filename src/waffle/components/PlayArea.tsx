@@ -68,8 +68,9 @@ type SwapAnswer = {
  *
  * Mode is read from `game.mode`. Moves go through `waffle.submit_swap`; board/colors
  * update via the realtime refetch in `useGame` (Pattern A) — a live swap needs no
- * optimistic local state. Turn-history (coop only) replays past boards, coloring them
- * on the FE (see lib/history + lib/colors). See docs/playarea.md.
+ * optimistic local state. Turn-history replays past boards, coloring them on the
+ * FE (see lib/history + lib/colors); at a compete terminal it replays an
+ * opponent's board as readily as your own. See docs/playarea.md.
  *
  * **Feedback split** (docs/deferred.md → Feedback channels): the player's OWN
  * not-oks (a refused swap, a failed End) show in BoardCol's below-board slot; the
@@ -113,13 +114,13 @@ export function PlayArea({
   // even though waffle has no keyboard entry (swaps are clicks).
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // ─── Turn-history viewer (coop only) ───────────────────
-  // The shared coordination state: which swap-log row (by POSITION in the coop log)
-  // is open on the board, or null = live. When set, PlayArea feeds BoardCol that
-  // swap's historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
-  // and freezes input. Only coop can reach it (compete renders no swap log). Any key
-  // returns to live: the hook binds `act-exit-history` itself, so nothing is wired here.
-  const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
+  // ─── Turn-history viewer ───────────────────────────────
+  // The shared coordination state: which swap-log row (by its own id) is open on
+  // the board, or null = live. When set, PlayArea feeds BoardCol that swap's
+  // historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
+  // and freezes input. Any key returns to live: the hook binds `act-exit-history`
+  // itself, so nothing is wired here.
+  const { historyId, historyN, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
 
   // Mobile: below --mobile the board fills the screen and the whole info column
   // slides in as an off-canvas sheet from a "Game info" menu item (the shared
@@ -560,7 +561,7 @@ export function PlayArea({
       : replaySwaps
   const historySnap =
     historyId !== null
-      ? historySnapshot(game.scramble, game.solution, historySwaps, historyId)
+      ? historySnapshot(game.scramble, game.solution, historySwaps, historyId, historyN)
       : null
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.

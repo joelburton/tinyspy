@@ -47,6 +47,11 @@ const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
   invalid: 'not a word',
 }
 
+/** The label's leading "#N " — empty when the opening carried no log number. */
+function numbered(n: number | null): string {
+  return n === null ? '' : `#${n} `
+}
+
 /**
  * strands' turn-history replay: the board as it stood at a past submission.
  *
@@ -65,10 +70,15 @@ const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
  *
  * Addressed by the ROW'S ID, resolved against `rows` — the board's own
  * sequence. The number the log prints counts what the log is SHOWING, which a
- * filter changes; `rows` does not, so the two are separate lookups. An id these
- * rows do not hold replays nothing.
+ * filter changes; `rows` does not, so the two are separate lookups. `n` is that
+ * printed number, handed down so the banner echoes what the reader clicked; null
+ * drops it from the label. An id these rows do not hold replays nothing.
  */
-export function historySnapshot(rows: readonly HistoryRow[], id: number): HistorySnapshot {
+export function historySnapshot(
+  rows: readonly HistoryRow[],
+  id: number,
+  n: number | null,
+): HistorySnapshot {
   const index = rows.findIndex((r) => r.id === id)
   const upTo = index >= 0 ? rows.slice(0, index + 1) : []
   const viewed = index >= 0 ? rows[index] : undefined
@@ -87,7 +97,7 @@ export function historySnapshot(rows: readonly HistoryRow[], id: number): Histor
         // No word, by design — so the banner names the ACT, and the ring on the
         // board says the rest. "a word" rather than "a theme word": which word
         // it was is exactly what a hint withholds.
-        ? `#${index + 1} Hint — a word was revealed`
-        : `#${index + 1} ${viewed.word.toUpperCase()} — ${BODY[viewed.result]}`,
+        ? `${numbered(n)}Hint — a word was revealed`
+        : `${numbered(n)}${viewed.word.toUpperCase()} — ${BODY[viewed.result]}`,
   }
 }

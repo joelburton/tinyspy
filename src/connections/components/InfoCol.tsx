@@ -127,9 +127,11 @@ export function InfoCol({
 
   // ── Turn-history log (GameEventLog) ──
   guesses: EventRow[]
-  /** The turn currently open in the board viewer (by log position), or null. */
+  /** The turn currently open in the board viewer, or null. */
   historyId: number | null
-  onShowHistory: (index: number) => void
+  /** Straight through to the log: opening a `#N` hands up the row's id and the
+   *  number the log printed beside it. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   // Both exits are placed and each hides itself in the mode that isn't its own
   // (compete CONCEDES — drop out of the race; coop ENDS — a mutual "we're done"),

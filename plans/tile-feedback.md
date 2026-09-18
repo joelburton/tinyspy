@@ -1287,7 +1287,7 @@ the background. Pick the next one up from the "forces" column.
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
 | spellingbee | tf0 | — | hexes: not squares, packed edge to edge. Its press, hover and selected edge are the shared ones now, and a refused word answers on the board (the hive head-shakes, the word's letters take the outcome's fill) — but that was a pass through the MARKS, not the framework |
 | wordwheel | tf0 | — | circles, packed edge to edge in a mustard tray. Its press, hover and spent-tile mark are the shared ones now, and its board left SVG for boxes — but that was a pass through the MARKS, not the framework |
-| wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
+| wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorizing until its turn |
 
 ### The sanity check: a converted game should have LESS CSS
 

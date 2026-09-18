@@ -49,9 +49,11 @@ export function GameEventLog({
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** The event currently open in the board viewer (highlights its row), or
-   *  null. Identified by log POSITION — see lib/history.ts. */
+   *  null. The row's own id — see lib/history.ts. */
   historyId: number | null
-  onShowHistory: (index: number | null) => void
+  /** Open an event in the board viewer — the row's id, and the `#N` this log
+   *  printed beside it, which is what the banner shows back. */
+  onShowHistory: (id: number, n: number) => void
 }) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
@@ -90,7 +92,7 @@ export function GameEventLog({
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyId === event.id}
-              onShowHistory={() => onShowHistory(event.id)}
+              onShowHistory={() => onShowHistory(event.id, i + 1)}
             />
             <td className={styles.cards}>
               {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}

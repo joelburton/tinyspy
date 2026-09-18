@@ -124,6 +124,7 @@ export function PlayArea({
   // shared move. A new committed move (the version effect in BoardCol) exits either.
   const {
     historyId: historyTarget,
+    historyN,
     historyIdRef: historyTargetRef,
     showHistory,
     exitHistory,
@@ -141,13 +142,18 @@ export function PlayArea({
     onReceive: useCallback(
       (p: SharedMovePayload) => {
         if (!game || p.baseVersion !== game.version) return
-        showHistory({
-          kind: 'peerPreview',
-          placements: p.placements,
-          sharerId: p.sharerId,
-          words: p.words,
-          score: p.score,
-        })
+        // No `#N`: a shared move arrives over Broadcast, not from a log row, and
+        // its banner names the sharer instead of a number.
+        showHistory(
+          {
+            kind: 'peerPreview',
+            placements: p.placements,
+            sharerId: p.sharerId,
+            words: p.words,
+            score: p.score,
+          },
+          null,
+        )
       },
       [game, showHistory],
     ),
@@ -482,24 +488,18 @@ type Suggested =
   // returns because effects must be.
 
   // The terminal message, memoized on primitives so the verdict effect sees
-  // one object per outcome. The compete winner is a human from the common
-  // roster, or — when `winner_seat` names an AI seat — the synthetic "AI n"
-  // member; either way reduced to name + color for the identity dot. Undefined
-  // on a tie / all-conceded / coop, where nobody is named.
+  // one object per outcome. The compete winner is whoever holds `winner_user_id`
+  // — bot or person, one roster, one lookup — reduced to name + color for the
+  // identity dot. Undefined on a tie / all-conceded / coop, where nobody is
+  // named. `winner_username` covers the roster arriving a beat late.
   const statusOutcome = (status?.outcome as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
-  const winnerSeat = (status?.winner_seat as number | null | undefined) ?? null
-  // A bot wins by uuid like anyone, so one lookup covers both. The seat is
-  // still read below for `hasWinner`, because a game that ended before the
-  // bots were accounts has a winning seat and no winning uuid.
-  const winnerMember =
-    players.find((m: Member) => m.user_id === winnerId) ??
-    (winnerSeat != null ? memberOfSeat(winnerSeat) : undefined)
+  const winnerMember = players.find((m: Member) => m.user_id === winnerId)
   const winnerName =
     winnerMember?.username ??
-    (winnerId !== null || winnerSeat !== null ? (status?.winner_username as string | undefined) : undefined)
+    (winnerId !== null ? (status?.winner_username as string | undefined) : undefined)
   const winnerColor = winnerMember?.color
-  const hasWinner = winnerId !== null || winnerSeat !== null
+  const hasWinner = winnerId !== null
   const teamScore = game?.teamScore ?? null
   const over = useMemo(
     () =>
@@ -602,6 +602,7 @@ type Suggested =
         localFeedbackSlot={localFeedbackSlot}
         plays={plays}
         historyTarget={historyTarget}
+        historyN={historyN}
         historyTargetRef={historyTargetRef}
         onExitHistory={exitHistory}
         nameOf={nameOf}
@@ -639,7 +640,7 @@ type Suggested =
           setupRows={summaryRows}
           plays={plays}
           historyId={historyId}
-          onShowHistory={(id: number) => showHistory({ kind: 'turn', id })}
+          onShowHistory={(id, n) => showHistory({ kind: 'turn', id }, n)}
         />
       </InfoSheet>
 

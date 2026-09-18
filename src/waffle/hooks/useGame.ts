@@ -49,8 +49,8 @@ export type EventRow = {
   user_id: string
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is what the read below orders by.
-   *  It replaced a per-swapper `seq`, whose live count is
-   *  `players.swaps_used`. */
+   *  How many swaps a player has spent is `players.swaps_used`, not a count of
+   *  these. */
   id: number
   pos_a: number
   pos_b: number

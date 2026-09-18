@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { historySnapshot, type Submission } from './history'
 
 /**
- * A four-event log covering every kind the viewer must handle, in chronological
- * (submitted_at) order — the order the PlayArea passes it. Tile ids are arbitrary
+ * A four-event log covering every kind the viewer must handle, in `id` order —
+ * the order the PlayArea passes it. Tile ids are arbitrary
  * small integers; the replay only unions/compares ids, never board geometry.
  *
  *   index 0  word  LEMON  valid    → clears tiles 10..14
@@ -79,7 +79,7 @@ describe('historySnapshot — coop interleaving', () => {
   ]
   it('replays every earlier valid word regardless of who played it', () => {
     // Viewing the third row: BOTH LEMON and BOARD are already cleared, even though
-    // they were played by different players (and share a per-user seq of 1).
+    // they were played by different players — a coop board is one board.
     expect(historySnapshot(coop, 23).offBoard).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
   })
 })

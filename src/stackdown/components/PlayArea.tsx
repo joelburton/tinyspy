@@ -60,7 +60,7 @@ type WordAnswer = {
  *  and `result` names it anyway: a call site may not take an `ok` branch by
  *  merely matching `ok` (docs/envelopes.md → Choosing which `ok` branch), or a
  *  second answer added to either RPC would be drawn as this one, silently. */
-type RevealAnswer = { result: 'reveal'; word: string }
+type SpoilerAnswer = { result: 'spoiler'; word: string }
 type HintAnswer = { result: 'hint'; hint: string }
 
 /**
@@ -301,11 +301,11 @@ export function PlayArea({
   // Surfaced in the LOCAL feedback slot (the player's own request) as a `hint`,
   // which leaves only by its × — it lingers while they hunt for the tiles.
   const spoilNext = useCallback(async () => {
-    const res = await runRpc<RevealAnswer>(db.rpc('reveal_next_word', { target_game: gameId }))
+    const res = await runRpc<SpoilerAnswer>(db.rpc('reveal_next_word', { target_game: gameId }))
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'reveal' && res.outcome !== null) {
+    } else if (res.type === 'ok' && res.data.result === 'spoiler' && res.outcome !== null) {
       // The server sends no sentence — the word IS the answer, and only the
       // surface knows it belongs in a "Next word:" line rather than, say, a
       // PDF. What it does send is how that reads, so the outcome is the other
@@ -690,8 +690,7 @@ export function PlayArea({
     : submissions
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
-  // `historyId` indexes `logWords` — the same chronological list the GameEventLog log
-  // shows — so coop replays the shared board and compete the caller's own, for free.
+  // `historyId` is the row's own id, resolved against the rows being folded below.
   // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
   //
   // WHOSE board it replays is the row's own author's. Mid-game compete that is

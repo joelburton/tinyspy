@@ -603,9 +603,10 @@ count different things on purpose.
 [`useEventLogPlayerPicker`](../../src/common/event-log/useEventLogPlayerPicker.tsx)
 for the whose-guesses dropdown. Rejects show struck through with their reason
 instead of a length, and aren't click-to-define (a lookup of a just-rejected word
-dead-ends). There is deliberately **no `#N` history handle**: wordiply has no
-turn-history viewer and doesn't want one — its board is five rows all visible at
-once, so "replay turn 3" would be "look at rows 1-3, already on your screen".
+dead-ends). Each row carries the `#N` history handle, and what makes it worth
+having here is the rejects: an accepted word replays five slots you can already
+see, but a reject is on no board at all, so opening its `#N` is the only way to
+see the table as it stood when that word was tried.
 
 ## 7c. Printing the log (PDF)
 
@@ -634,7 +635,7 @@ What prints:
 
 Two details that fall out of the log carrying rejects:
 
-- **Rows are numbered by log position, not by anything stored.** A reject occupies
+- **Rows are numbered by their place in the printed list, not by anything stored.** A reject occupies
   no board row, and a printed wordiply has no board for the numbers to line up with
   anyway — `#3` means "the third thing that happened".
 - **Accepted vs rejected reads in black and white** without a mark, because the text
@@ -666,7 +667,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   dedup) reject **without inserting or spending budget**; dictionary legality is trusted
   from the FE (guesses in the test are synthetic non-words), so a non-word is a **Vitest**
   concern, not a pgTAP one; the 5-guess budget — **coop shared vs compete per-user**.
-- `rls_test` — the compete `guesses_select` policy is a **game rule**, not just privacy:
+- `rls_test` — the compete `events_select` policy is a **game rule**, not just privacy:
   mid-game a player reads only their OWN guess rows (opponents surface as counts);
   everyone's open at terminal; coop shows all. Direct-INSERT setup so the read policy is
   exercised in isolation.
