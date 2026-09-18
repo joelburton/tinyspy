@@ -32,7 +32,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(21);
+select plan(22);
 
 -- The envelope assertions only; setup.psql is skipped for the reason above.
 \ir ../_shared/envelope.psql
@@ -163,6 +163,16 @@ select pg_temp.envelope_is(
   common.claim_username('fia', 'blue'),
   '{"type": "ok", "data": {"result": "claimed", "username": "fia"}}'::jsonb,
   'claim_username: valid claim answers ok/claimed, and hands back the name'
+);
+
+-- A person, not a bot. `ai_member` marks scrabble's AI opponents, and the
+-- sign-in path has no business knowing they exist: the provisioning script
+-- marks a bot AFTER calling this, so what this RPC makes is always a player.
+select is(
+  (select ai_member from common.profiles
+    where user_id = 'f1a66666-6666-6666-6666-666666666666'),
+  false,
+  'a claimed profile is a person — claim_username never makes a bot'
 );
 
 select is(

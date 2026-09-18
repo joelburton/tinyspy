@@ -69,7 +69,15 @@
  * default to the local stack; `gmake db-add-user ENV=prod` supplies the hosted
  * values via supabase/deploy/env.sh.
  *
- * Usage:  EMAIL=… HANDLE=… [COLOR=…] [DRY=1] npm run _user:add
+ * ── Provisioning a BOT ─────────────────────────────────────────────────────
+ * AI=1 marks the finished profile `ai_member`, which is how scrabble's AI
+ * opponents become real players rather than ids the frontend mints per seat.
+ * Everything else about the run is identical — a bot is an account like any
+ * other, down to the solo club claim_username makes it. The mark is a
+ * separate step because `claim_username` is the real sign-in RPC and has no
+ * business knowing about bots.
+ *
+ * Usage:  EMAIL=… HANDLE=… [COLOR=…] [AI=1] [DRY=1] npm run _user:add
  *         (public entry: `gmake db-add-user ENV=… EMAIL=… HANDLE=…`)
  */
 
@@ -101,6 +109,8 @@ const HANDLE = (process.env.HANDLE ?? '').trim().toLowerCase()
 // renames it on the way in.
 const COLOR = (process.env.PLAYER_COLOR ?? '').trim().toLowerCase()
 const DRY = !!process.env.DRY
+// A bot, not a friend: the finished profile is marked `ai_member`.
+const AI = !!process.env.AI
 
 /** The same regex common.claim_username enforces — 3–15 chars, letter-first. */
 const HANDLE_RE = /^[a-z][a-z0-9-]{2,14}$/
@@ -130,6 +140,20 @@ function queryScalar(sql: string): string {
   return execFileSync('psql', [DB_URL, '-X', '-tA', '-v', 'ON_ERROR_STOP=1', '-c', sql], {
     encoding: 'utf8',
   }).trim()
+}
+
+/**
+ * Run one statement for effect. The only write this script makes over psql —
+ * everything else here reads (see "Two connections, on purpose" above), and
+ * the exception is narrow on purpose: `common.profiles` has no UPDATE policy
+ * and `service_role` has no grant on it, so marking a bot cannot go through
+ * the API at all. A definer RPC would be the alternative, and a permanent
+ * piece of API surface for a provisioning step that runs three times.
+ */
+function execute(sql: string): void {
+  execFileSync('psql', [DB_URL, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-c', sql], {
+    stdio: 'ignore',
+  })
 }
 
 /** Quote a value as a SQL string literal (doubling any embedded quote). */
@@ -186,6 +210,7 @@ async function main() {
   console.log(`    email   : ${EMAIL}${existingUser ? '   ALREADY EXISTS' : ''}`)
   console.log(`    handle  : ${HANDLE}${takenBy ? '   ALREADY TAKEN' : ''}`)
   console.log(`    color   : ${color}${COLOR ? '' : '   (deterministic default)'}`)
+  if (AI) console.log('    kind    : BOT — the profile will be marked ai_member')
 
   if (existingUser) {
     // If they already have an account AND a profile there's nothing to do; if
@@ -207,7 +232,7 @@ async function main() {
   if (DRY) {
     console.log('\n  DRY RUN — nothing written. Would create:')
     console.log(`    auth user   ${EMAIL} (confirmed, no password)`)
-    console.log(`    profile     ${HANDLE} (${color})`)
+    console.log(`    profile     ${HANDLE} (${color})${AI ? ', ai_member' : ''}`)
     console.log(`    solo club   =${HANDLE}`)
     return
   }
@@ -269,15 +294,33 @@ async function main() {
     )
   }
 
+  // ── mark the bot, once the profile it marks exists ──
+  // After the claim rather than inside it: claim_username is the real
+  // sign-in path and stays ignorant of bots.
+  if (AI) {
+    execute(
+      `update common.profiles set ai_member = true where user_id = ${lit(userId)}`,
+    )
+  }
+
   // ── report what actually landed, read back rather than assumed ──
   const count = queryScalar(
     `select count(*) from common.clubs_gametypes where club_handle = ${lit('=' + HANDLE)}`,
   )
 
-  console.log(`── handle      ${HANDLE} (${color})`)
+  const kind = queryScalar(
+    `select case when ai_member then 'bot' else 'player' end
+       from common.profiles where user_id = ${lit(userId)}`,
+  )
+  console.log(`── handle      ${HANDLE} (${color}, ${kind})`)
   console.log(`── solo club   =${HANDLE} — ${count} gametypes`)
-  console.log(`\n  Next: add ${HANDLE} to a club in the app's "New club" dialog.`)
-  console.log(`  They sign in with a magic link to ${EMAIL} and land straight in.`)
+  if (AI) {
+    console.log(`\n  ${HANDLE} is a bot: it is seated by the game that offers it, never`)
+    console.log('  added to a club, and it will never sign in.')
+  } else {
+    console.log(`\n  Next: add ${HANDLE} to a club in the app's "New club" dialog.`)
+    console.log(`  They sign in with a magic link to ${EMAIL} and land straight in.`)
+  }
 }
 
 main()

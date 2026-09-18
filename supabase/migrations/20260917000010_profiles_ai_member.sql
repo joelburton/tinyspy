@@ -1,0 +1,31 @@
+-- cs-unmet
+
+-- ============================================================
+-- common.profiles.ai_member — a bot is a player, and says so
+-- ============================================================
+-- scrabble can seat up to three AI opponents. They are about to become real
+-- accounts with real profiles rather than synthetic ids the frontend mints
+-- per seat, and this column is what tells them apart from the friends.
+--
+-- A COLUMN, not a name pattern: `ada-bot` reads as a bot to a person, and
+-- that is the suffix's job, but no query should ever have to ask whether a
+-- username ends in `-bot`. Two readers are waiting for it — the presence
+-- filter (a bot never connects, so a game with one must not sit behind the
+-- pause overlay) and `common.create_game`'s club-membership gate (a bot
+-- belongs to no human's club).
+--
+-- Public in the same sense `color` and `theme` are, which is what the
+-- standing rule above `profiles_select_authenticated` requires of any column
+-- added to this table: a club member already reads every row's handle and
+-- dot color, and "this player is a bot" is the least private thing about
+-- them — the whole point is that it shows.
+--
+-- Set by this migration's default, by provisioning (`gmake db-add-user …
+-- AI=1`), or by a definer RPC. There is no UPDATE policy on this table, so
+-- nothing else can write it.
+--
+-- ADD COLUMN, which appends — and the frozen baseline is not edited, so the
+-- column order `db-drift` compares takes care of itself. Do not tidy this
+-- into the baseline next to `color`.
+alter table common.profiles
+  add column ai_member boolean not null default false;

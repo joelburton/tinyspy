@@ -67,7 +67,7 @@ target. Five families:
 |---|---|
 | `g-` | one game's data or assets — `g-stackdown-puzzles`, `g-boggle-trie` |
 | `all-` | cross-game — `all-words`, `all-pangrams`, `all-tries` |
-| `db-` | the database — `db-schema`, `db-sql`, `db-schema-sql`, `db-data`, `db-seed`, `db-reset`, `db-psql`, `db-add-user` |
+| `db-` | the database — `db-schema`, `db-sql`, `db-schema-sql`, `db-data`, `db-seed`, `db-reset`, `db-bots`, `db-psql`, `db-add-user` |
 | `deploy-` | pushing to a target — `deploy-funcs`, `deploy-func-<name>`, `deploy-fe` |
 | `dev-` | the local loop — `dev-lint`, `dev-types` |
 | `project-` | the hosted project itself — `project-link`, `project-config-auth`, `project-bootstrap` |
@@ -124,12 +124,16 @@ gmake db-schema-sql ENV=local                # structure only — an EMPTY datab
 gmake db-schema ENV=local                    # migrations only
 gmake db-sql ENV=local                       # supabase/sql/ only — how an RPC change ships
 gmake db-data ENV=local                      # every table's DATA (no structure)
-gmake db-reset ENV=local                     # db + the dev personas
+gmake db-reset ENV=local                     # db + the dev personas + the bots
 gmake db-add-user ENV=prod \                 # provision a REAL player ahead of their first
   EMAIL=sam@x.com HANDLE=sam COLOR=green     #   sign-in: handle + color + solo club, so a
                                              #   magic link lands them past the claim screen.
                                              #   COLOR optional (deterministic default);
                                              #   DRY=1 to preview. Friend clubs: use the app
+gmake db-bots ENV=prod                       # scrabble's three AI opponents as real accounts
+                                             #   (ada-bot, bjarne-bot, claude-bot). Chained into
+                                             #   db-reset locally; on prod it is run once, by
+                                             #   hand — it is not part of deploy or db-data
 gmake db-drift ENV=prod                      # does that database's SHAPE match the migration
                                              # baselines? (edited-in-place baselines don't ship
                                              # via db push — this makes the divergence visible)

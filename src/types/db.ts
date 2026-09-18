@@ -799,6 +799,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_member: boolean
           can_edit_words: boolean
           color: string
           created_at: string
@@ -807,6 +808,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          ai_member?: boolean
           can_edit_words?: boolean
           color: string
           created_at?: string
@@ -815,6 +817,7 @@ export type Database = {
           username: string
         }
         Update: {
+          ai_member?: boolean
           can_edit_words?: boolean
           color?: string
           created_at?: string

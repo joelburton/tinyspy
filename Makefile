@@ -423,10 +423,32 @@ db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
 # interpolated into a command line, so an address with a `+` or a shell
 # metacharacter can't be mangled or re-parsed.
 .PHONY: db-add-user
-db-add-user: ## create a player account ahead of their first sign-in (EMAIL, HANDLE, COLOR, DRY=1)
+db-add-user: ## create a player account ahead of their first sign-in (EMAIL, HANDLE, COLOR, AI=1, DRY=1)
 	@$(PRELUDE)
 	echo "── add user → $(ENV)"
-	EMAIL='$(EMAIL)' HANDLE='$(HANDLE)' PLAYER_COLOR='$(COLOR)' DRY='$(DRY)' npm run --silent _user:add
+	EMAIL='$(EMAIL)' HANDLE='$(HANDLE)' PLAYER_COLOR='$(COLOR)' AI='$(AI)' DRY='$(DRY)' npm run --silent _user:add
+
+# scrabble's three AI opponents, as real accounts. They are ordinary players
+# made the ordinary way — db-add-user, which drives the Admin API rather than
+# fabricating auth rows — and marked `ai_member` so nothing has to recognize a
+# bot by its name. `.invalid` is the IANA-reserved TLD that can never resolve,
+# which is the right address for a mailbox that must never receive anything.
+#
+# Local: chained into db-reset, because a reset deletes them along with
+# everyone else and scrabble would then have nobody to seat. Prod: three runs,
+# once, by hand — `db-data` is not part of `deploy` and this is not part of
+# `db-data` either.
+#
+# Not idempotent, deliberately: db-add-user refuses an email it has already
+# provisioned and says which, and a provisioning script that shrugged at
+# "this account exists" is one that could quietly do nothing.
+.PHONY: db-bots
+db-bots: ## seat scrabble's three AI opponents as real accounts (ada-bot, bjarne-bot, claude-bot)
+	@$(PRELUDE)
+	echo "── bots → $(ENV)"
+	EMAIL=ada-bot@bots.invalid    HANDLE=ada-bot    PLAYER_COLOR=brown  AI=1 npm run --silent _user:add
+	EMAIL=bjarne-bot@bots.invalid HANDLE=bjarne-bot PLAYER_COLOR=purple AI=1 npm run --silent _user:add
+	EMAIL=claude-bot@bots.invalid HANDLE=claude-bot PLAYER_COLOR=pink   AI=1 npm run --silent _user:add
 
 # An interactive shell on whichever database ENV names — the thing you reach
 # for when a target did something surprising. SQL="..." runs one statement and
@@ -605,10 +627,11 @@ db-drift: ## report schema drift: ENV's database vs the migration baselines
 	  || echo "   none — $(ENV)'s shape matches the baselines"
 
 .PHONY: db-reset
-db-reset: ## local only: db (structure + data) + the dev personas
+db-reset: ## local only: db (structure + data) + the dev personas + the bots
 	@[[ "$(ENV)" == "local" ]] || { echo "REFUSED: db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
 	$(MAKE) db ENV=local
 	$(MAKE) db-seed ENV=local
+	$(MAKE) db-bots ENV=local
 
 # ════════════════════════════════════════════════════════════════
 # Deploy

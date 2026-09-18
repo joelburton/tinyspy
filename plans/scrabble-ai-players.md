@@ -1,8 +1,8 @@
 # scrabble-ai-players — the three bots become real users
 
-**Status: NOT STARTED.** Agreed with Joel 2026-09-17. The middle plan of three;
-see [events.md](events.md) for the framing and the deploy rule (nothing ships
-until all three are done).
+**Status: phase 1 built, awaiting review.** Agreed with Joel 2026-09-17. The
+middle plan of three; see [events.md](events.md) for the framing and the deploy
+rule (nothing ships until all three are done).
 
 > **Review notes at the end of this file (§10) — read them before starting any
 > phase.** They are feedback from a second reader, not rulings. Two of them are
@@ -243,6 +243,32 @@ takes care of itself — just do not tidy it into the frozen baseline next to
 `color` is, the way `theme`'s comment does. There is no UPDATE policy on
 `profiles`, so `ai_member` is set only by the migration, the seed, or a definer
 RPC.
+
+> **Phase 1 built 2026-09-17.**
+> `supabase/migrations/20260917000010_profiles_ai_member.sql` adds the column,
+> and the three bots are provisioned by the script that already existed:
+> `gmake db-add-user` gained an `AI=1` flag that marks the finished profile.
+>
+> **The mark is a psql UPDATE, and it is the script's only write over that
+> connection** — everything else there reads, by a rule its header states.
+> There is no other path: `common.profiles` has no UPDATE policy and
+> `service_role` has no grant on it, so the API cannot do it at all. A definer
+> RPC would be permanent API surface for a step that runs three times per
+> environment. Said so where the function is defined.
+>
+> **`gmake db-bots`** runs the three, and `db-reset` chains it: a local reset
+> deletes the bots along with everyone else, and scrabble would then have
+> nobody to seat. On prod it is three runs by hand, once — `db-data` is not
+> part of `deploy`, and this is not part of `db-data`. Deliberately not
+> idempotent: `db-add-user` refuses an email it has already provisioned and
+> says which.
+>
+> Their addresses are at `bots.invalid` — the IANA-reserved TLD that can never
+> resolve, which is the right mailbox for an account that will never sign in.
+>
+> `claim_username_test.sql` now pins that a claimed profile is NOT a bot: the
+> sign-in RPC has no business knowing bots exist, which is why the mark happens
+> after it rather than inside it.
 
 **Phase 2 — seating AND presence, in one phase.** `create_game`'s one `or`; bots
 into `common.game_players`; `scrabble.create_game` resolving `ai_count` → bot ids
