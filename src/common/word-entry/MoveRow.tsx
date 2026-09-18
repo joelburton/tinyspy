@@ -7,15 +7,15 @@ import type { BoundAction } from '../actions/useBoundAction'
 import styles from './MoveRow.module.css'
 
 type Props = {
-  /** The entry display this row wraps — an `<EntryBox>`, a grid of slots, … */
+  // The entry display this row wraps — an `<EntryBox>`, a grid of slots, …
   children: ReactNode
-  /** Take back the last thing entered (a character, a tile, a traced cell) —
-   *  the same binding as the `⌫` key, so the two cannot disagree about when
-   *  there is anything to take back. */
+  // Take back the last thing entered (a character, a tile, a traced cell) —
+  // the same binding as the `⌫` key, so the two cannot disagree about when
+  // there is anything to take back.
   actDelete: BoundAction
-  /** Commit what's entered — the same binding as `Enter`. */
+  // Commit what's entered — the same binding as `Enter`.
   actSubmit: BoundAction
-  /** Extra class on the row — e.g. a per-game font-size override. */
+  // Extra class on the row — e.g. a per-game font-size override.
   className?: string
 }
 
@@ -26,7 +26,7 @@ type Props = {
  *
  * This is the LAYOUT half of word entry, split out from `<EntryRow>` so the
  * games that can't use EntryRow's *keyboard* half can still be the same control.
- * Three surfaces render it and they are entering genuinely different things:
+ * The surfaces that render it are entering genuinely different things:
  *
  *   - **EntryRow** (every typing game) — an `<EntryBox>` over a text buffer,
  *     with `useCaptureKeys` + the history arrows layered on.
@@ -40,14 +40,10 @@ type Props = {
  * **The two buttons ARE the two keys.** Each takes the bound action its key
  * fires, so "is there anything to delete?" and "may this submit?" are answered
  * once, by the action, rather than by a `deleteDisabled` prop the caller works
- * out again — which is what let a button and its key disagree.
+ * out again — which is how a button and its key come to disagree.
  *
- * Extracted rather than copied because the copies had already started: the row
- * is three files' worth of "which button on which side, what gap, when is each
- * disabled", and that is exactly the kind of agreement that drifts silently
- * (see the setup-recap sweep in docs/pdf.md for the same lesson). Anything that
- * varies — what's being entered, what a keystroke means, whether a feedback pill
- * replaces this row or sits below it — stays with the caller.
+ * Anything that varies — what's being entered, what a keystroke means, whether
+ * a feedback pill replaces this row or sits below it — stays with the caller.
  */
 export function MoveRow({ children, actDelete, actSubmit, className }: Props) {
   return (

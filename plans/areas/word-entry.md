@@ -4,7 +4,8 @@ The folders it reads: `word-entry`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, eleven findings, none worked.** Roster
+**Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
+F-3) worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -76,7 +77,7 @@ The probe that settled three claims below (a throwaway test, run and deleted):
 one, no prefix means OPEN. The first three are the prose pass; the rest wait
 for a decision or a word.)*
 
-### F-word-entry-1 · `props-take-double-slash` · Every props and options block in the folder wears `/**`
+### F-word-entry-1 · `props-take-double-slash` · Every props and options block in the folder wears `/**` — WORKED
 
 `EntryBox` (four props), `EntryRow` (twelve), `MoveRow` (four) and
 `useArrowHistory`'s options (three) all mark each member with `/**`. The
@@ -87,7 +88,7 @@ docstring that answers *how do I call this* is the component's own. Mechanical,
 one read per file; the test helpers (`action`, `glyphIn`, `press`, `setup`,
 `states`) are whole declarations and keep theirs.
 
-### F-word-entry-2 · `stale-claims` · What the files say that the tree no longer bears out
+### F-word-entry-2 · `stale-claims` · What the files say that the tree no longer bears out — WORKED
 
 Per file, each anchored by what the code IS:
 
@@ -143,7 +144,7 @@ Per file, each anchored by what the code IS:
 Owed with the pass, not a finding: the `## Intro to area` (`INTROS_OWED` lists
 `common/word-entry`) and a `## Details` with the render tree above.
 
-### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes an `EntryRow` that no longer exists
+### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes an `EntryRow` that no longer exists — WORKED
 
 The section every file in this folder cites (or means to — F-word-entry-2) is
 itself behind, in four places:
@@ -374,6 +375,6 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Intro written; its row off `INTROS_OWED`
+- [x] the folder's `doc.md` Intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

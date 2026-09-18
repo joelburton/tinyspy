@@ -11,58 +11,57 @@ import { MoveRow } from './MoveRow'
 import shared from '../game-page/playArea.module.css'
 
 type Props = {
-  /** The pending entry text. */
+  // The pending entry text.
   value: string
-  /** Set the pending text (the capture hook + Delete button both call this). */
+  // Set the pending text (the capture hook + Delete button both call this).
   onChange: (next: string) => void
-  /** Commit the current value (Enter, or the Submit button). */
+  // Commit the current value (Enter, or the Submit button).
   onSubmit: () => void
-  /** Faint hint shown when empty. */
+  // Faint hint shown when empty.
   placeholder?: ReactNode
-  /** Custom per-character rendering of the value inside the EntryBox
-   *  (spellingbee's `<TypedWord>` dims out-of-puzzle letters). Plain text if omitted. */
+  // Custom per-character rendering of the value inside the EntryBox
+  // (spellingbee's `<TypedWord>` dims out-of-puzzle letters). Plain if omitted.
   children?: ReactNode
-  /**
-   * The game's below-board slot. While it holds a message, the pill
-   * **replaces** the input controls in the same slot — an own-move result,
-   * the whose-turn note, the terminal verdict, a not-ok, whatever is on top.
-   * A message leaves the way its KIND says and no other way: a ×-only
-   * message stays over the controls however much is typed, and only a
-   * gesture-cleared result yields to typing — because the keystroke
-   * dismisses it, not because the row hides it. Keeping the row mounted
-   * through the swap is what lets that keystroke reach the slot: the
-   * capture hook below stays live and `onAnyKey` is its `dismiss`.
-   */
+  // The game's below-board slot. While it holds a message, the pill
+  // **replaces** the input controls in the same slot — an own-move result,
+  // the whose-turn note, the terminal verdict, a not-ok, whatever is on top.
+  // A message leaves the way its KIND says and no other way: a ×-only
+  // message stays over the controls however much is typed, and only a
+  // gesture-cleared result yields to typing — because the keystroke
+  // dismisses it, not because the row hides it. Keeping the row mounted
+  // through the swap is what lets that keystroke reach the slot: the
+  // capture hook below stays live and `onAnyKey` is its `dismiss`.
   localFeedbackSlot: FeedbackSlot
-  /** Loading / terminal: capture is a hard no-op and the buttons are disabled. */
+  // Hard-off, for loading / terminal: capture is a no-op, and the entry keys
+  // leave the key list entirely — so the two buttons, which ARE those keys,
+  // are not drawn at all and the box sits alone between them.
   disabled?: boolean
-  /** Mid-submit: capture blocks edits/submit and the Submit button is disabled. */
+  // Mid-submit: capture blocks edits and submits, and both buttons stay drawn
+  // and gray, since the freeze is momentary.
   busy?: boolean
-  /**
-   * The current value can't be submitted, but editing stays live — Enter is a
-   * no-op and the Submit button is disabled, while typing/Delete keep working so
-   * the player can fix it. Distinct from `disabled`/`busy` (which freeze the
-   * whole row): this is a per-value veto. wordwheel uses it so a word that can't
-   * be spelled from the wheel's tiles never submits + reads as "not a word".
-   */
+  // The current value can't be submitted, but editing stays live — Enter is a
+  // no-op and the Submit button is gray, while typing/Delete keep working so
+  // the player can fix it. Distinct from `disabled`/`busy` (which freeze the
+  // whole row): this is a per-value veto. wordwheel uses it so a word that
+  // can't be spelled from the wheel's tiles never submits + reads as "not a
+  // word".
   submitDisabled?: boolean
-  /** The player's next action, on any keystroke and on a Delete click — pass
-   *  the slot's `dismiss`, so a gesture-cleared message leaves the same way
-   *  from the keyboard and the button. */
+  // The player's next action, on any keystroke and on a Delete click — pass
+  // the slot's `dismiss`, so a gesture-cleared message leaves the same way
+  // from the keyboard and the button.
   onAnyKey?: () => void
-  /** What may be entered (default lowercase A–Z). spellingbee/boggle pass upper. */
+  // What may be entered (default lowercase A–Z). spellingbee/boggle pass upper.
   charFor?: (key: string) => string | null
-  /** Last submitted value, for ArrowUp recall (the universal last-move history). */
+  // Last submitted value, restored by ArrowUp (see `./useArrowHistory`).
   recall?: string
-  /** Extra class on the row — e.g. a per-game `--entryBox-font-size` override. */
+  // Extra class on the row — e.g. a per-game `--entryBox-font-size` override.
   className?: string
 }
 
 /**
- * The shared **capture-entry row** — the one word-entry control every EntryBox
- * game uses, so the entry looks + behaves identically across games (and any future
- * word game gets it for free). It bundles the three things that were being
- * duplicated:
+ * The shared **capture-entry row** — the whole below-board control for a game
+ * where the player types a word, so the entry looks and behaves identically
+ * everywhere and a new word game gets it for free. It bundles three things:
  *
  *   1. the **capture keyboard** (`useCaptureKeys` — letters/Backspace/Enter;
  *      `useArrowHistory` — the ArrowUp-recall / ArrowDown-clear history);
@@ -73,16 +72,13 @@ type Props = {
  *      unmounting (so the capture stays live and a keystroke dismisses a
  *      gesture-cleared message — the one kind that yields to typing).
  *
- * **This is the TYPING half.** The row itself is `<MoveRow>`, split out because
- * two games need the same control without this keyboard: stackdown enters TILES
- * (no text buffer at all), and strands enters a PATH (its string is derived from
- * the trace, so `value`/`onChange` run backwards). Reach for MoveRow directly
- * when a keystroke doesn't mean "append this character"; reach for EntryRow when
- * it does.
+ * **This is the TYPING half.** Reach for it when a keystroke means "append this
+ * character"; when it doesn't, reach for `<MoveRow>` directly and bring your own
+ * keyboard (stackdown enters TILES, strands enters a PATH).
  *
  * What stays with the host: the below-board *slot* (its board-matched width +
  * reserved height), the capture *values* (`value`/`onSubmit`/`charFor`/…), and
- * which messages go into the slot. See docs/ui.md → "Text entry".
+ * which messages go into the slot. See docs/playarea.md → "Text entry".
  */
 export function EntryRow({
   value,

@@ -287,11 +287,10 @@
      mixed rows like EntryRow — retune if the button padding changes. */
   --iconButton-size:  2.05rem;
 
-  /* The shared <EntryBox> text size (placeholder + entered word).
-     Default here; a consumer raises it by re-setting the token on its
-     own EntryBox element . A
-     token rather than a literal so the override wins regardless of
-     stylesheet order. The caret height tracks it (1.15em). */
+  /* The shared <EntryBox> text size (placeholder + entered word). Default
+     here; a consumer raises it by re-setting the token on the EntryBox or any
+     ancestor of it. A token rather than a literal so the override wins
+     regardless of stylesheet order. The caret height tracks it. */
   --entryBox-font-size:  1.5rem;
 
   /* ── Feedback timings ──────────────────────────────────────────

@@ -1,10 +1,10 @@
 // cs-audited-word-entry
 
 /**
- * Tests for the EntryBox-only history arrows (split out of useCaptureKeys): ArrowUp
- * recalls the last entry, ArrowDown clears it, both no-op while disabled, they
- * inherit the dispatcher's focused-field gate, and each says the right thing
- * about itself. These apply to the EntryBox games only — a key-capture game that
+ * Tests for the EntryBox-only history arrows: ArrowUp recalls the last entry,
+ * ArrowDown clears it, both no-op while disabled, they inherit the
+ * dispatcher's focused-field gate, and each says the right thing about
+ * itself. These apply to the EntryBox games only — a key-capture game that
  * isn't an EntryBox (wordle) never wires this.
  *
  * The arrows are bound actions, so the harness mounts the app's key dispatcher

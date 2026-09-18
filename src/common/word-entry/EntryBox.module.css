@@ -3,27 +3,26 @@
 /* The capture-input display. A plain <div> — the game captures keystrokes off
  * the window rather than into a focusable field. Deliberately CHROME-LESS: no
  * border / background / padding box, just large centered text with the simulated
- * caret, so the typed word reads as the focus rather than as a form field. (The
- * caret's `1.15em` height tracks this font-size.) Per-game appearance (how it
- * sits in a row, its width) comes from a `className` the consumer appends; the
- * *entered-text* look — bold, uppercase, lightly letter-spaced — is common here,
- * so it's uniform across every consumer (docs/playarea.md → Text entry — WordInput /
- * EntryBox). Shared by psychicnum + spellingbee + boggle — change here flows to all. */
+ * caret, so the typed word reads as the focus rather than as a form field.
+ * Per-game appearance (how it sits in a row, its width) comes from a `className`
+ * the consumer appends; the *entered-text* look — bold, uppercase, lightly
+ * letter-spaced — is common here, so it's uniform wherever the box is rendered
+ * (docs/playarea.md → Text entry). */
 /* @@ */ .box {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* STRETCH to fill the row. The box grows to take all the width the input row
-   * leaves between the flanking buttons (the model psychicnum already used — now
-   * the shared default for every EntryBox game), so there's always ample room for
-   * the longest word (the entry is capped at 16 chars by useCaptureKeys) and the
+  /* STRETCH to fill the row. The box grows to take all the width the move row
+   * leaves between the flanking buttons, so there's always ample room for the
+   * longest word (the entry is capped at 16 chars by useCaptureKeys) and the
    * typed text centers in it. `min-width: 0` lets it shrink with a narrow row
    * instead of forcing overflow. */
   flex: 1 1 auto;
   min-width: 0;
   /* Size is a per-game knob — the default lives at :root in core-css/base.css;
-     a consumer raises it by re-setting --entryBox-font-size on an ANCESTOR of
-     its EntryBox. The caret's 1.15em height tracks this. */
+     a consumer raises it by re-setting --entryBox-font-size on the EntryBox or
+     any ancestor of it (psychicnum sets it on the row, strands on the box; a
+     custom property cascades, so both reach here). The caret tracks it. */
   font-size: var(--entryBox-font-size);
   /* The shared entered-text look: bold, all-caps, slightly letter-spaced. On
      `.box` (not `.value`) so it also reaches a consumer that renders the value
@@ -58,6 +57,8 @@
 /* @@ */ .caret {
   display: inline-block;
   width: 2px;
+  /* In `em`, so the bar grows with --entryBox-font-size instead of needing a
+     second per-game knob. A shade taller than the text it stands beside. */
   height: 1.15em;
   background: var(--chrome-caret-color);
   margin: 0 1px;

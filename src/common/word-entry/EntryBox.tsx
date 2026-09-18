@@ -6,42 +6,35 @@ import { useGameHasKeyboard } from '../keyboard/useGameHasKeyboard'
 import styles from './EntryBox.module.css'
 
 type Props = {
-  /** The text currently entered. Empty string shows the placeholder. */
+  // The text currently entered. Empty string shows the placeholder.
   value: string
-  /** Faint hint shown when `value` is empty (e.g. "type 1–20"). */
+  // Faint hint shown when `value` is empty (e.g. "type 1–20").
   placeholder?: ReactNode
-  /**
-   * Optional custom rendering of the entered value — e.g. per-character
-   * styling (spellingbee dims letters not in the puzzle). When omitted, the
-   * raw `value` string renders as plain text. The caret still sits after it.
-   */
+  // Custom rendering of the entered value — e.g. per-character styling
+  // (spellingbee dims letters not in the puzzle). When omitted, the raw `value`
+  // string renders as plain text. The caret still sits after it.
   children?: ReactNode
-  /** Appended to the base box class for per-game appearance (size, layout). */
+  // Appended to the base box class for per-game appearance (size, layout).
   className?: string
 }
 
 /**
  * The shared **capture-input display**: large centered text with a blinking
- * caret, holding no `<input>`. The capture-input games read keystrokes off the
- * window (the entry actions `useCaptureKeys` binds) and feed the pending value here; there's
- * no focusable field, so clicking a board tile never blurs the entry and
- * interrupts typing.
+ * caret, and no `<input>` behind it. The capture-input games read keystrokes
+ * off the window and feed the pending value here, so there is no focusable
+ * field — clicking a board tile never blurs the entry and stops typing.
  *
- * What this component owns — the *invariant* part:
- *   - the chrome-less display (no border/background — just large centered text,
- *     so the typed word reads as the focus, not as a form field);
- *   - the **simulated caret**, shown only once something's typed AND while the
- *     game owns the keyboard (via `useGameHasKeyboard`) — the affordance a real
- *     input's cursor would give, kept honest so it never duels with the chat
- *     box's cursor (and stays out of an empty field, which the placeholder owns);
- *   - placeholder-when-empty slotting.
+ * Pass the pending `value`, a `placeholder` for the empty box, `children` to
+ * render the value per-character (spellingbee's `<TypedWord>`), and
+ * `className` for per-game size or layout. The rest is the box's own and is
+ * identical in every game: the chrome-less look, the caret's two conditions,
+ * the placeholder slot.
  *
- * What the *consumer* owns — the parts that vary:
- *   - **what can be entered** → the game's `useCaptureKeys` `charFor` (digits vs
- *     letters, the stored case); the universal keys — Backspace / Enter / the
- *     ArrowUp-recall + ArrowDown-clear last-move history — are built into the hook;
- *   - **appearance** (font size, layout beyond the shared fill-the-row width) → `className`;
- *   - **value rendering** (plain vs per-character styling) → `children`.
+ * This DISPLAYS; it never changes the value. The keys that do are the
+ * caller's — `keyboard/useCaptureKeys` types, deletes and submits, and
+ * `./useArrowHistory` adds the ↑/↓ recall. `<EntryRow>` is the three of them
+ * assembled (doc.md → Intro to area); reach for the box alone only when
+ * something other than typing produces the string.
  */
 export function EntryBox({ value, placeholder, children, className }: Props) {
   const gameHasKeyboard = useGameHasKeyboard()

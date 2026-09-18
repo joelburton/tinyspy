@@ -5,9 +5,8 @@
  *
  * Worth its own test because the failure is SILENT — a `<StandardButton>` with
  * no glyph falls back to a generic square, so an action that forgot its icon
- * still renders a perfectly good-looking button that says nothing. That shipped
- * for a few minutes when the entry keys became actions, and Joel caught it by
- * looking rather than by any test failing.
+ * still renders a perfectly good-looking button that says nothing, and only a
+ * person looking at the row would notice.
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

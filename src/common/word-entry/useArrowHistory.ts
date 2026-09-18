@@ -3,16 +3,14 @@
 import { useBoundAction } from '../actions/useBoundAction'
 
 export type ArrowHistoryOptions = {
-  /**
-   * The last submitted value, restored by **ArrowUp** (add an 'S' to your last
-   * word, fix a typo, re-guess). The game tracks it in its submit handler (so it
-   * covers both Enter and the Submit button) and passes it here. Omit / '' makes
-   * ArrowUp a no-op.
-   */
+  // The last submitted value, restored by **ArrowUp** (add an 'S' to your last
+  // word, fix a typo, re-guess). The game tracks it in its submit handler (so
+  // it covers both Enter and the Submit button) and passes it here. Omit / ''
+  // makes ArrowUp a no-op.
   recall?: string
-  /** Set the pending text — ArrowUp restores `recall` into it, ArrowDown clears it. */
+  // Set the pending text — ArrowUp restores `recall` into it, ArrowDown clears it.
   onChange: (next: string) => void
-  /** When false the arrows do nothing (e.g. terminal / mid-submit). Default true. */
+  // When false the arrows do nothing (e.g. terminal / mid-submit). Default true.
   enabled?: boolean
 }
 
@@ -23,7 +21,7 @@ export type ArrowHistoryOptions = {
  * `<EntryRow>`, so it applies to every game that renders an `<EntryRow>` and
  * ONLY them — a key-capture game that isn't an EntryBox (wordle)
  * uses the core alone and never wires this, so it gets no arrow behavior. Keeping
- * it separate is what makes that boundary obvious (docs/ui.md → Text entry).
+ * it separate is what makes that boundary obvious (docs/playarea.md → Text entry).
  *
  * Two bound actions, so the arrows appear in the game's key list beside its
  * commands, and so an arrow that has nothing to do says so: recall with no last
