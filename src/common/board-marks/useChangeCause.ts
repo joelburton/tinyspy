@@ -27,6 +27,15 @@ export type ChangeCause<T> =
  * nothing. `moveCount` is a monotone marker of the last move the server has
  * recorded: the move log's length, or the last move's id.
  *
+ * `ready` is the caller saying whether it has data to compare at all. A caller
+ * mounted inside its game's loaded tree is always ready and passes `true`; one
+ * that renders above its own loading guard passes `game != null`, and must —
+ * otherwise its first render seeds the comparison with a placeholder (an empty
+ * board, no move) and the arrival of the real data reads as a move, because the
+ * content changed and the marker advanced in the same render. While `ready` is
+ * false the hook remembers nothing; when content first arrives where there was
+ * none it reports a change that no move caused, which is what it is.
+ *
  * Two requirements on the caller's data path, and this cannot check either. The
  * key and the marker must arrive TOGETHER, so that within a render a board that
  * has moved always carries the row that moved it. And a re-deal must DROP the
@@ -50,8 +59,29 @@ export function useChangeCause<T>(
   content: T,
   contentKey: string,
   moveCount: number,
+  ready: boolean,
 ): ChangeCause<T> | null {
-  const [seen, setSeen] = useState({ key: contentKey, moves: moveCount, content })
+  // Null is "nothing remembered yet". A caller ready on its first render seeds
+  // through the initializer, exactly as before — which is why mount is silent
+  // for it, however long the log already is.
+  const [seen, setSeen] = useState<{ key: string; moves: number; content: T } | null>(() =>
+    ready ? { key: contentKey, moves: moveCount, content } : null,
+  )
+
+  // No data to compare. Forget what was remembered, so that whenever the data
+  // does arrive it is seeded fresh rather than diffed against a board that is
+  // no longer on screen.
+  if (!ready) {
+    if (seen !== null) setSeen(null)
+    return null
+  }
+
+  // Content where there was none. Nobody played it — the caller simply had
+  // nothing to show until now — so it is a change, and not a move.
+  if (seen === null) {
+    setSeen({ key: contentKey, moves: moveCount, content })
+    return { byMove: false }
+  }
 
   // Nothing moved — the common case, and the only one that returns early.
   if (seen.key === contentKey && seen.moves === moveCount) return null

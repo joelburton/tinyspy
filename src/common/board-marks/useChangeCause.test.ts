@@ -14,11 +14,15 @@ import { useChangeCause, type ChangeCause } from './useChangeCause'
  * The content is the board string and its own key — the shape connections and
  * setgame use, where "changed" is the whole of it.
  */
-function harness(initial: { board: string; moves: number }) {
+function harness(initial: { board: string; moves: number; ready?: boolean }) {
   const answers: ChangeCause<string>[] = []
   const view = renderHook(
-    function useRecordedAnswers({ board, moves }: { board: string; moves: number }) {
-      const cause = useChangeCause(board, board, moves)
+    function useRecordedAnswers({
+      board,
+      moves,
+      ready = true,
+    }: { board: string; moves: number; ready?: boolean }) {
+      const cause = useChangeCause(board, board, moves, ready)
       if (cause) answers.push(cause)
       return cause
     },
@@ -64,5 +68,36 @@ describe('useChangeCause', () => {
     rerender({ board: 'wxyz', moves: 0 }) // a re-deal
     rerender({ board: 'wxYz', moves: 1 }) // a move on the new board
     expect(answers).toEqual([{ byMove: false }, { byMove: true, before: 'wxyz' }])
+  })
+
+  /**
+   * A caller that renders ABOVE its own loading guard — setgame's PlayArea. Its
+   * first renders carry a placeholder (no board, no move), and the render where
+   * the real data lands changes the content AND advances the marker, which is
+   * the exact shape of a move. Readiness is what keeps that from being read as
+   * one.
+   */
+  describe('a caller that renders before its data', () => {
+    it('says nothing while it has none, and calls the arrival a change no move caused', () => {
+      const { rerender, answers } = harness({ board: '', moves: 0, ready: false })
+      // The game loads: twelve cards and a log full of somebody else's claims.
+      rerender({ board: 'abcdefghijkl', moves: 7, ready: true })
+      expect(answers).toEqual([{ byMove: false }])
+    })
+
+    it('and the NEXT move still diffs against what arrived', () => {
+      const { rerender, answers } = harness({ board: '', moves: 0, ready: false })
+      rerender({ board: 'abcdefghijkl', moves: 7, ready: true })
+      rerender({ board: 'abcdefghijXX', moves: 8, ready: true })
+      expect(answers).toEqual([{ byMove: false }, { byMove: true, before: 'abcdefghijkl' }])
+    })
+
+    it('forgets a board that went away, so its return is not a move either', () => {
+      const { rerender, answers } = harness({ board: '', moves: 0, ready: false })
+      rerender({ board: 'abcdefghijkl', moves: 7, ready: true })
+      rerender({ board: '', moves: 0, ready: false }) // the read failed; no game
+      rerender({ board: 'abcdefghijkl', moves: 9, ready: true }) // and it came back
+      expect(answers).toEqual([{ byMove: false }, { byMove: false }])
+    })
   })
 })

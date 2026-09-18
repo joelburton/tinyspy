@@ -11,25 +11,6 @@
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
 
-- **Opening a game that already has claims flashes all twelve cards as freshly
-  arrived.** `useChangeCause` is called in `PlayArea`, which renders before the
-  game has loaded: `board` is `[]` and there is no claim, so it seeds
-  `{key: '', moves: 0}`. The first LOADED render then looks exactly like a move
-  — the content changed AND the marker advanced — so the hold-then-swap lights
-  the whole board. The hook cannot tell that transition from a claim; it is the
-  caller's job not to ask until it has data, which is why waffle, connections
-  and psychicnum are unaffected: each calls `useMoveAttention` inside its
-  `Board`, mounted after the loading guard, so its first render already has the
-  real board.
-
-  So the fix is structural rather than a condition: the flash machinery
-  (`useChangeCause` + `shown` / `depart` / `arriving`) has to live in something
-  mounted once the game is loaded. Found 2026-09-17 by the `event-log` sprint's
-  e2e pass; the line itself is `5a280a12` (2026-09-15, the move-flash
-  adoption), and `e2e/setgame-flash.e2e.ts` → "an ended game just appears; it
-  does not deal itself out" is RED on it — it was written for this exact bug in
-  an earlier form, and it is right.
-
 ## Soon
 
 - **The live hint's ring is GREEN, and a hint is amber everywhere else.**

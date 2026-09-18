@@ -60,7 +60,11 @@ export function useMoveAttention<Content, Id>({
 }: MoveAttention<Content, Id>): ReadonlySet<Id> {
   const [hot, setHot] = useState<ReadonlySet<Id>>(NOTHING)
 
-  const cause = useChangeCause(content, contentKey, moveCount)
+  // Always ready: this hook is called from a game's Board, which is mounted
+  // after that game's loading guard, so its first render already holds the real
+  // board. A game that renders its differ above the guard calls
+  // `useChangeCause` directly and passes its own readiness.
+  const cause = useChangeCause(content, contentKey, moveCount, true)
   if (cause?.byMove && !quiet) {
     const fresh = changed(cause.before, content)
     // An empty diff is a move that changed nothing anyone can see (a game whose

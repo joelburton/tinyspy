@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: DONE — all ten games converted, and the durable half now lives in [docs/supabase.md](../docs/supabase.md#every-games-log-is-gameevents) (§11). All three plans are built and verified; what is left for the sprint is the setgame bug `e2e/setgame-flash` caught, filed in [src/setgame/todo.md](../src/setgame/todo.md).** Agreed with Joel
+**Status: DONE — all ten games converted, and the durable half now lives in [docs/supabase.md](../docs/supabase.md#every-games-log-is-gameevents) (§11). All three plans are built and verified, and the full e2e suite is green (245 specs), including the setgame deal-flash bug its verification pass caught.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 

@@ -111,7 +111,12 @@ test.describe('setgame — opening a finished game', () => {
     await boardReady(page, cards.first())
 
     // The whole board is there IMMEDIATELY — not filling in one card at a time.
-    expect(await cards.count(), 'the board is complete on arrival').toBe(12)
+    // Measured against what the server settled on, not against twelve: two
+    // claims run `setgame._deal_to_playable`, which appends three more whenever
+    // the board it would leave holds no set. That is a real shuffle outcome a
+    // few percent of the time, and the sibling test above allows for it too.
+    const settled = (await boardOf(alice, id)).length
+    expect(await cards.count(), 'the board is complete on arrival').toBe(settled)
     expect(
       await page.locator('button[class*="arriving"]').count(),
       'and nothing flashes',

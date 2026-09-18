@@ -135,10 +135,17 @@ gmake db-bots ENV=prod                       # scrabble's three AI opponents as 
                                              #   (ada-bot, bjarne-bot, claude-bot). Chained into
                                              #   db-reset locally; on prod it is run once, by
                                              #   hand — it is not part of deploy or db-data.
-                                             #   BEFORE the deploy, not after: the migration that
-                                             #   makes scrabble.players.user_id NOT NULL backfills
-                                             #   a bot onto every AI seat dealt before the bots
-                                             #   were accounts, and refuses if there are none
+                                             #   AFTER the deploy: AI=1 writes profiles.ai_member,
+                                             #   a column a migration creates, and the write lands
+                                             #   after add-user's rollback — run it too early and
+                                             #   the three accounts exist UNMARKED and a re-run
+                                             #   refuses them. Exception: a database with AI seats
+                                             #   dealt before the bots were accounts needs them
+                                             #   FIRST (the migration that makes
+                                             #   scrabble.players.user_id NOT NULL backfills those
+                                             #   seats and refuses if there are no bots). Push
+                                             #   through the ai_member migration, run this, then
+                                             #   push the rest
 gmake db-drift ENV=prod                      # does that database's SHAPE match the migration
                                              # baselines? (edited-in-place baselines don't ship
                                              # via db push — this makes the divergence visible)

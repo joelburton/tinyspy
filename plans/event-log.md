@@ -386,11 +386,19 @@ is gitignored and unrelated).
 > `ada-bot`. The spec asserts the bot's name now — which is the feature, not a
 > workaround.
 >
-> **`setgame-flash` is left RED on purpose — it is catching a real bug**, and it
-> is setgame's, not this sprint's. Opening a game that already has claims
-> flashes all twelve cards as freshly arrived. Filed with the diagnosis in
-> [src/setgame/todo.md](../src/setgame/todo.md) → Bugs, which is the file the fix
-> would be made in.
+> **`setgame-flash` caught a real bug, setgame's rather than this sprint's, and
+> it is fixed.** Opening a game that already had claims flashed all twelve cards
+> as freshly arrived: setgame's `PlayArea` calls `useChangeCause` ABOVE its own
+> loading guard, so the hook seeded on a placeholder (no board, no claim) and the
+> render where the real data landed changed the content and advanced the marker
+> at once — the exact shape of a claim. The hook now takes a `ready` flag: while
+> it is false it remembers nothing, and content arriving where there was none is
+> a change no move caused, which is what setgame already draws as "just show the
+> board". The other three games that mark a move were never affected — each calls
+> `useMoveAttention` from inside its `Board`, mounted after the guard.
+>
+> **Verified by planting**: passing `true` for readiness reproduces the original
+> failure exactly (twelve cards marked `arriving`), and the flag removes it.
 
 ## E. Open
 

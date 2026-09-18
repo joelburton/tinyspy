@@ -145,9 +145,15 @@ export function PlayArea(ctx: GamePageCtx) {
   //
   // The claim's id is the move marker `useChangeCause` reads, and the board and
   // the events arrive in ONE fetch (useGame's single `Promise.all`), so within a
-  // render they cannot disagree. Opening a finished game says nothing: the hook
-  // seeds on its first render, and you cannot claim from nothing.
-  const cause = useChangeCause(board, boardKey, lastClaim?.id ?? 0)
+  // render they cannot disagree.
+  //
+  // `game != null` is the readiness flag, and it is load-bearing here in a way
+  // it is not for the games that mark a move from inside their `Board`: this
+  // block sits ABOVE the loading guard below, so its first renders have no board
+  // and no claim. Without it the hook would seed on that placeholder, and the
+  // render where the real board lands would look exactly like a claim — content
+  // changed, marker advanced — lighting the whole table on arrival.
+  const cause = useChangeCause(board, boardKey, lastClaim?.id ?? 0, game != null)
   if (cause?.byMove) {
     // `shown` deliberately stays put: the old cards are what we are holding, and
     // they are what the departing set is measured against — not the board the
