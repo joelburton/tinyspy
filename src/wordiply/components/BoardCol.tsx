@@ -103,7 +103,7 @@ export function BoardCol({
   // ArrowUp recalls the last guess, ArrowDown clears — handy here since the
   // next guess is often the last one plus a letter (the shared history hook,
   // the same one <EntryRow> uses).
-  useArrowHistory({ recall: lastWord, onChange, enabled: !entryDisabled })
+  useArrowHistory({ recall: lastWord, onChange, disabled: entryDisabled })
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>

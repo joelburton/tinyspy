@@ -105,7 +105,8 @@ export function EntryRow({
   // generic capture core + the EntryBox-only history arrows are two layers:
   // useCaptureKeys handles letters/Backspace/Enter; useArrowHistory adds the
   // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
-  // EntryRow IS the EntryBox). They gate together: no arrows while disabled/busy.
+  // EntryRow IS the EntryBox). Both read the same two gates and answer them the
+  // same way, so the four keys on this row never disagree about a freeze.
   //
   // `submitDisabled` vetoes only the submit, not editing — and it goes to the
   // hook rather than being applied here, so the key and the button read the one
@@ -113,7 +114,7 @@ export function EntryRow({
   const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
-  useArrowHistory({ recall, onChange, enabled: !disabled && !busy, hasHistory })
+  useArrowHistory({ recall, onChange, disabled, busy, hasHistory })
   const top = useTopFeedbackMessage(localFeedbackSlot)
 
   // Whatever is on top takes the controls' place. No second gate on the

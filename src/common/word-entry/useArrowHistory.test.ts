@@ -2,10 +2,11 @@
 
 /**
  * Tests for the EntryBox-only history arrows: ArrowUp recalls the last entry,
- * ArrowDown clears it, both no-op while disabled or where the game keeps no
- * history at all, they inherit the dispatcher's focused-field gate, and each
- * says the right thing about itself. These apply to the EntryBox games only —
- * a key-capture game that isn't an EntryBox (wordle) never wires this.
+ * ArrowDown clears it, both no-op while the entry is gone or frozen or where
+ * the game keeps no history at all, they inherit the dispatcher's focused-field
+ * gate, and each says the right thing about itself. These apply to the EntryBox
+ * games only — a key-capture game that isn't an EntryBox (wordle) never wires
+ * this.
  *
  * The arrows are bound actions, so the harness mounts the app's key dispatcher
  * beside the hook and presses real keydowns.
@@ -62,8 +63,15 @@ describe('useArrowHistory', () => {
     expect(onChange).toHaveBeenCalledWith('')
   })
 
-  it('does nothing while disabled (enabled: false — terminal / mid-submit)', async () => {
-    const { onChange } = setup({ recall: 'crane', enabled: false })
+  it('does nothing while the entry is gone (disabled — loading / terminal)', async () => {
+    const { onChange } = setup({ recall: 'crane', disabled: true })
+    await press('ArrowUp')
+    await press('ArrowDown')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('does nothing while a submit is in flight (busy)', async () => {
+    const { onChange } = setup({ recall: 'crane', busy: true })
     await press('ArrowUp')
     await press('ArrowDown')
     expect(onChange).not.toHaveBeenCalled()
@@ -85,9 +93,18 @@ describe('useArrowHistory', () => {
   })
 
   describe('what the two arrows say about themselves', () => {
-    it('both hidden while the arrows are off', () => {
-      setup({ recall: 'crane', enabled: false })
+    // The two gates say different things, exactly as the capture core's do:
+    // gone takes the keys off the list, frozen keeps them there and grays them.
+    // Same words for all four keys on the row, so a submit neither blinks two
+    // rows out of Help nor drops the arrows through to the browser.
+    it('both hidden while the entry is gone (disabled)', () => {
+      setup({ recall: 'crane', disabled: true })
       expect(states()).toEqual({ recall: 'hidden', clear: 'hidden' })
+    })
+
+    it('both disabled while a submit is in flight (busy)', () => {
+      setup({ recall: 'crane', busy: true })
+      expect(states()).toEqual({ recall: 'disabled', clear: 'disabled' })
     })
 
     it('recall is disabled and clear is active with nothing to bring back', () => {

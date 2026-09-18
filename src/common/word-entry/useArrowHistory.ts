@@ -1,6 +1,6 @@
 // cs-audited-word-entry
 
-import { useBoundAction } from '../actions/useBoundAction'
+import { useBoundAction, type ActionState } from '../actions/useBoundAction'
 
 export type ArrowHistoryOptions = {
   // Whether this entry keeps a history at all. False says the game has no last
@@ -17,8 +17,12 @@ export type ArrowHistoryOptions = {
   recall?: string
   // Set the pending text — ArrowUp restores `recall` into it, ArrowDown clears it.
   onChange: (next: string) => void
-  // When false the arrows do nothing (e.g. terminal / mid-submit). Default true.
-  enabled?: boolean
+  // Hard-off: the entry is not here at all (loading / terminal). Both arrows
+  // leave the key list. Default false.
+  disabled?: boolean
+  // Soft-busy: mid-submit. Both arrows stay listed and grayed rather than
+  // leaving, since the freeze lasts one RPC. Default false.
+  busy?: boolean
 }
 
 /**
@@ -38,19 +42,28 @@ export type ArrowHistoryOptions = {
 export function useArrowHistory({
   recall,
   onChange,
-  enabled = true,
+  disabled = false,
+  busy = false,
   hasHistory = true,
 }: ArrowHistoryOptions): void {
+  // The same two gates the capture core reads, answered with the same two
+  // words, so the four keys on one row never disagree about a freeze. GONE
+  // (loading / terminal, or a game with no history at all) takes the arrows off
+  // the list; FROZEN keeps them there and grays them — which for these two is
+  // what stops a submit blinking two rows out of Help and back, and what keeps
+  // the key from falling through to the browser mid-RPC.
+  const editState: ActionState = !hasHistory || disabled ? 'hidden' : busy ? 'disabled' : 'active'
+
   useBoundAction('act-recall-last', {
     // Nothing submitted yet, nothing to bring back.
-    describe: () => (!enabled || !hasHistory ? 'hidden' : recall ? 'active' : 'disabled'),
+    describe: () => (editState === 'active' && !recall ? 'disabled' : editState),
     run: () => {
       if (recall) onChange(recall)
     },
   })
 
   useBoundAction('act-clear-entry', {
-    describe: () => (enabled && hasHistory ? 'active' : 'hidden'),
+    describe: () => editState,
     run: () => onChange(''),
   })
 }

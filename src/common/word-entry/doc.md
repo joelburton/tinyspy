@@ -71,6 +71,15 @@ follows without a second knob. That token and a `className` are the whole of the
 per-game tuning; everything else about how an entry looks is the same in every
 game on purpose.
 
+**The row has two gates, and all four keys answer them the same way.** The host
+passes `disabled` — the entry is not here at all, loading or over — and `busy`,
+which is the moment a submit is in flight. Gone takes a key off the list;
+frozen keeps it there and grays it. Both hooks read both gates and use those two
+words, so ⌫ and ↵ can't say *frozen* while ↑ and ↓ say *gone* for the same
+instant. It matters more than it looks: the Keys list in Help is live, so a
+one-word difference blinks rows out and back on every submit, and a key that
+answers `hidden` falls through to the browser rather than being swallowed.
+
 **A game with no history hides both arrows rather than graying them.** `↑` and
 `↓` have no buttons anywhere — the only place they appear is the "Keys" list in
 Help, and that list draws a `disabled` key exactly like a live one, filtering

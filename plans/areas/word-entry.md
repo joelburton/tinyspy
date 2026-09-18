@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3) and F-4 worked 2026-09-18.** Roster
+F-3), F-4 and F-5 worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -214,7 +214,7 @@ PlayArea and asserts both bindings answer `hidden` to the `help` asker. Both
 planted: the hook pair fails without the flag in `describe`, the letterboxed one
 without the prop at the call site.
 
-### F-word-entry-5 · `busy-hides-the-arrows` · Mid-submit, ⌫ and ↵ gray while ↑ and ↓ vanish
+### F-word-entry-5 · `busy-hides-the-arrows` · Mid-submit, ⌫ and ↵ gray while ↑ and ↓ vanish — WORKED as (a)
 
 `EntryRow` gates the arrows with one boolean — `enabled: !disabled && !busy`
 — and the hook maps `!enabled` to `hidden`. `useCaptureKeys` next to it maps
@@ -226,6 +226,21 @@ no arrows while disabled/busy"* — describes the run, not the answer, which is
 where the two differ. `wordiply` passes `enabled: !entryDisabled` and has no
 busy, so it is untouched either way.
 
+**Two corrections to the consequence, found at the re-verify.** The finding said
+the help list shows *a gray ⌫ and ↵* — it does not: `KeyList` draws a disabled
+row exactly like a live one (the same fact F-4 turned on). What the difference
+actually costs is two things, and the second is not in the finding at all:
+
+- **The Keys list blinks.** It is live (`useBoundActions` → `useSyncExternalStore`),
+  so the ↑ and ↓ rows leave and come back on every submit while the rest sit
+  still — a reflow on state change.
+- **The keys fall through to the browser.** The dispatcher skips a hidden
+  binding entirely and, matching nothing, lets the key go; a `disabled` one
+  `preventDefault`s. Nothing else binds a bare ↑/↓ in these five games, so
+  mid-submit they reach the page. The dispatcher's own comment names this as
+  the reason `disabled` behaves that way — *"Space with no legal peel must not
+  scroll the page."*
+
 **Options:**
 
 - **(a) the same two props as the core** — `useArrowHistory({ recall, onChange,
@@ -235,8 +250,22 @@ busy, so it is untouched either way.
   to both hooks. Fewer words, but `useCaptureKeys` is blessed and does not take
   one, so the two hooks would still read differently.
 
-Recommend (a). Works with F-word-entry-4, now shipped: the describe becomes one
-expression over `disabled`, `busy`, `recall` and `hasHistory`.
+Recommend (a) — **Joel chose (a), 2026-09-18.**
+
+**Shipped:** `ArrowHistoryOptions` takes `disabled` / `busy` in place of
+`enabled`, and one `editState` is computed the way `useCaptureKeys` computes
+its own — `!hasHistory || disabled ? 'hidden' : busy ? 'disabled' : 'active'` —
+with `act-recall-last` narrowing it to `disabled` when there is nothing to
+bring back and `act-clear-entry` taking it as-is. `EntryRow` forwards the two
+props it already holds (one boolean fewer at the call site); wordiply's call
+becomes `disabled: entryDisabled`. The hook now says GONE for the two permanent
+facts — over, or no history here — and FROZEN for the momentary one, which is
+`actions/doc.md`'s distinction word for word.
+
+**Tests:** the predicted split happened — "both hidden while the arrows are off"
+is now `disabled` → hidden and `busy` → disabled — and the run-level case split
+the same way. Planted: collapsing `busy` back into `hidden` fails the busy
+state case.
 
 ### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it
 
@@ -389,8 +418,9 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
   answer (`disabled`) because (b) left `recall` alone, so the predicted split
   was two ADDED cases instead, plus one in `letterboxed/PlayArea.test.tsx`.
   `wordiply/PlayArea.test.tsx` did not move, as predicted.
-- F-word-entry-5: `useArrowHistory.test.ts` → "both hidden while the arrows are
-  off" becomes two cases (`disabled` → hidden, `busy` → disabled).
+- F-word-entry-5 — HAPPENED exactly as predicted, and nothing else moved:
+  wordiply's own tests pass unchanged through the `enabled` → `disabled`
+  rename at its call site.
 - F-word-entry-9: `vocabularies.test.ts` — the `MoveRow.module.css` `pending`
   row must go with the conversion (a listed value that is no longer written
   fails from the other side).
