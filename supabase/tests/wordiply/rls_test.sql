@@ -10,7 +10,7 @@
 -- lengths only). A regression here leaks the words. wordiply shipped without
 -- this test; it mirrors wordwheel/spellingbee's rls_test shape.
 --
--- Two layers of access control on wordiply.guesses:
+-- Two layers of access control on wordiply.events:
 --   1. Outer gate: must be a club member of the game's club.
 --   2. Inner gate (three OR branches, mirrors wordwheel.found_words_select):
 --         (a) mode = 'coop'          — everyone in the club sees all guesses
@@ -67,10 +67,10 @@ values (
 );
 
 -- One guess per player. Branch (a) (coop) means each member sees ALL three.
-insert into wordiply.guesses (game_id, user_id, word, length, seq) values
-  ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'bar',  3, 1),
-  ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'cars', 4, 1),
-  ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'arcs', 4, 1);
+insert into wordiply.events (game_id, user_id, kind, word, length, took_turn) values
+  ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'guess', 'bar', 3, true),
+  ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
+  ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);
 
 -- ============================================================
 -- Coop mode: everyone in the club sees everyone's guesses (branch a)
@@ -78,14 +78,14 @@ insert into wordiply.guesses (game_id, user_id, word, length, seq) values
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from coop_game)),
+  (select count(*) from wordiply.events where game_id = (select id from coop_game)),
   3::bigint,
   'coop / ada (member): sees all 3 guesses including bea''s + cade''s'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from coop_game)),
+  (select count(*) from wordiply.events where game_id = (select id from coop_game)),
   3::bigint,
   'coop / bea (member): sees all 3 guesses including ada''s + cade''s'
 );
@@ -104,9 +104,9 @@ select is(
 );
 
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from coop_game)),
+  (select count(*) from wordiply.events where game_id = (select id from coop_game)),
   0::bigint,
-  'dee (outsider): zero rows from wordiply.guesses'
+  'dee (outsider): zero rows from wordiply.events'
 );
 
 select is(
@@ -123,13 +123,13 @@ select is(
 
 select throws_ok(
   format(
-    $$ insert into wordiply.guesses (game_id, user_id, word, length, seq)
-       values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 'sneak', 5, 1) $$,
+    $$ insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
+       values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 'guess', 'sneak', 5, true) $$,
     (select id from coop_game)
   ),
   '42501',
-  'permission denied for table guesses',
-  'direct INSERT into wordiply.guesses is blocked for authenticated'
+  'permission denied for table events',
+  'direct INSERT into wordiply.events is blocked for authenticated'
 );
 
 select throws_ok(
@@ -177,21 +177,21 @@ values (
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
-insert into wordiply.guesses (game_id, user_id, word, length, seq) values
-  ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 'bar',  3, 1),
-  ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'cars', 4, 1),
-  ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'arcs', 4, 1);
+insert into wordiply.events (game_id, user_id, kind, word, length, took_turn) values
+  ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 'guess', 'bar', 3, true),
+  ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'guess', 'cars', 4, true),
+  ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'guess', 'arcs', 4, true);
 
 -- Ada sees only her one row (branch b): opponents' words stay hidden.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from compete_game)),
+  (select count(*) from wordiply.events where game_id = (select id from compete_game)),
   1::bigint,
   'compete mid-game / ada: sees only her own guess (branch b: user_id = auth.uid())'
 );
 
 select is(
-  (select user_id from wordiply.guesses where game_id = (select id from compete_game)),
+  (select user_id from wordiply.events where game_id = (select id from compete_game)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'compete mid-game / ada: the row she sees IS her own'
 );
@@ -199,7 +199,7 @@ select is(
 -- Bea symmetrically sees only her one row.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from compete_game)),
+  (select count(*) from wordiply.events where game_id = (select id from compete_game)),
   1::bigint,
   'compete mid-game / bea: sees only her own guess'
 );
@@ -214,7 +214,7 @@ update common.games set is_terminal = true, play_state = 'won_compete'
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from compete_game)),
+  (select count(*) from wordiply.events where game_id = (select id from compete_game)),
   3::bigint,
   'compete post-terminal / ada: sees all 3 guesses (branch c: is_terminal)'
 );

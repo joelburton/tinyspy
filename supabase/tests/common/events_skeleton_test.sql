@@ -51,7 +51,7 @@ insert into roster values
   ('wordle',      'events',      true),
   ('connections', 'events',      true),
   ('waffle',      'events',      true),
-  ('wordiply',    'guesses',     false),
+  ('wordiply',    'events',      true),
   ('stackdown',   'submissions', false),
   ('scrabble',    'plays',       false),
   ('strands',     'events',      true),

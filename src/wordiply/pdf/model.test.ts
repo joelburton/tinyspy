@@ -22,8 +22,7 @@ const row = (over: Partial<GuessRow> & { word: string }): GuessRow => ({
   length: over.word.length,
   valid: true,
   reason: null,
-  seq: 1,
-  guessed_at: '2026-01-01T00:00:00Z',
+  created_at: '2026-01-01T00:00:00Z',
   ...over,
 })
 
@@ -94,9 +93,9 @@ describe('buildWordiplyPrintModel — the turn log', () => {
       ...base,
       guesses: [
         row({ word: 'hangars', id: 1 }),
-        row({ word: 'arqqq', id: 2, valid: false, reason: 'not_a_word', seq: null }),
-        row({ word: 'zzzz', id: 3, valid: false, reason: 'missing_base', seq: null }),
-        row({ word: 'ar', id: 4, valid: false, reason: 'too_short', seq: null }),
+        row({ word: 'arqqq', id: 2, valid: false, reason: 'not_a_word' }),
+        row({ word: 'zzzz', id: 3, valid: false, reason: 'missing_base' }),
+        row({ word: 'ar', id: 4, valid: false, reason: 'too_short' }),
       ],
     })
     expect(m.turns.map((t) => t.text)).toEqual([
@@ -107,14 +106,14 @@ describe('buildWordiplyPrintModel — the turn log', () => {
     ])
   })
 
-  it('numbers by LOG POSITION, not seq (rejects have none)', () => {
+  it('numbers by LOG POSITION — a reject occupies no board row', () => {
     const m = buildWordiplyPrintModel({
       ...base,
       guesses: [
-        row({ word: 'hangars', id: 1, seq: 1 }),
-        row({ word: 'arqqq', id: 2, valid: false, reason: 'not_a_word', seq: null }),
+        row({ word: 'hangars', id: 1 }),
+        row({ word: 'arqqq', id: 2, valid: false, reason: 'not_a_word' }),
         // Board row 2 — but the third thing that happened.
-        row({ word: 'arcs', id: 3, seq: 2 }),
+        row({ word: 'arcs', id: 3 }),
       ],
     })
     expect(m.turns.map((t) => t.seq)).toEqual([1, 2, 3])
@@ -131,10 +130,10 @@ describe('buildWordiplyPrintModel — the turn log', () => {
 
 describe('buildWordiplyPrintModel — compete', () => {
   const competeGuesses = [
-    row({ word: 'arcs', id: 1, user_id: 'u2', guessed_at: '2026-01-01T00:00:01Z' }),
-    row({ word: 'arbs', id: 2, user_id: 'u1', guessed_at: '2026-01-01T00:00:02Z' }),
-    row({ word: 'arts', id: 3, user_id: 'u2', guessed_at: '2026-01-01T00:00:03Z' }),
-    row({ word: 'army', id: 4, user_id: 'u1', guessed_at: '2026-01-01T00:00:04Z' }),
+    row({ word: 'arcs', id: 1, user_id: 'u2', created_at: '2026-01-01T00:00:01Z' }),
+    row({ word: 'arbs', id: 2, user_id: 'u1', created_at: '2026-01-01T00:00:02Z' }),
+    row({ word: 'arts', id: 3, user_id: 'u2', created_at: '2026-01-01T00:00:03Z' }),
+    row({ word: 'army', id: 4, user_id: 'u1', created_at: '2026-01-01T00:00:04Z' }),
   ]
 
   it('groups the log by player (self first), not chronologically', () => {

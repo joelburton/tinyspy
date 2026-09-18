@@ -109,13 +109,13 @@ export function buildWordiplyPrintModel(o: {
             if (b.user_id === o.selfId) return 1
             return nameOf(a.user_id).localeCompare(nameOf(b.user_id))
           }
-          return a.guessed_at.localeCompare(b.guessed_at)
+          return a.id - b.id
         })
       : o.guesses
 
-  // Numbered by LOG POSITION, not `seq`: rejects have no seq (they occupy no
-  // board row), and a printed wordiply has no board for the numbers to line up
-  // with anyway. So `#3` means "the third thing that happened".
+  // Numbered by LOG POSITION: a reject occupies no board row, and a printed
+  // wordiply has no board for the numbers to line up with anyway. So `#3`
+  // means "the third thing that happened".
   const turns: TurnRow[] = ordered.map((g, i) => ({
     seq: i + 1,
     who: nameOf(g.user_id),

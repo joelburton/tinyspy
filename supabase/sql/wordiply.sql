@@ -23,14 +23,14 @@ grant usage on schema wordiply to service_role;
 
 -- All columns readable by club members (no hidden columns — see header).
 -- Explicit list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
--- included so the games_state view's g.mode + the guesses_select RLS
+-- included so the games_state view's g.mode + the events_select RLS
 -- policy's fg.mode resolve for `authenticated`.
 grant select
   (id, club_handle, mode, base, difficulty,
    max_word_length, longest_words, legal_words, created_at)
   on wordiply.games to authenticated;
 
-grant select on wordiply.guesses to authenticated;
+grant select on wordiply.events to authenticated;
 
 -- Membership-gated read on games (both modes identical: anyone in the
 -- club sees the game header — base word, bands, the length bar's target).
@@ -48,18 +48,18 @@ create policy games_select on wordiply.games
 --   (3) is_terminal — once the game ends, everyone sees everyone's
 --       guesses (the compete reveal; harmless in coop).
 -- Mirrors wordwheel.found_words_select.
-drop policy if exists guesses_select on wordiply.guesses;
-create policy guesses_select on wordiply.guesses
+drop policy if exists events_select on wordiply.events;
+create policy events_select on wordiply.events
   for select to authenticated
   using (
     exists (
       select 1 from wordiply.games fg
        join common.games cg on cg.id = fg.id
-       where fg.id = guesses.game_id
+       where fg.id = events.game_id
          and common.is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
-            or guesses.user_id = (select auth.uid())
+            or events.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )
@@ -509,7 +509,7 @@ begin
 
   select coalesce(max(length), 0), coalesce(sum(length), 0), count(*)
     into team_longest, team_letters, team_guesses
-    from wordiply.guesses where game_id = target_game and valid;
+    from wordiply.events where game_id = target_game and valid;
 
   ls := wordiply._length_score(team_longest, g_row.max_word_length);
 
@@ -586,9 +586,9 @@ begin
            coalesce(max(gg.length), 0) as longest,
            coalesce(sum(gg.length), 0) as letter_count,
            count(gg.id) as guesses_used,
-           max(gg.guessed_at) as finished_at
+           max(gg.created_at) as finished_at
       from common.game_players gp
-      left join wordiply.guesses gg
+      left join wordiply.events gg
         on gg.game_id = target_game and gg.user_id = gp.user_id and gg.valid
      where gp.game_id = target_game
      group by gp.user_id, gp.conceded
@@ -695,7 +695,7 @@ revoke execute on function wordiply._finish_compete(uuid, text, boolean) from pu
 --   4. records the guess, updates status, and checks the end condition
 --      (coop: team's 5th guess; compete: every active player has spent 5).
 -- Every submission is RECORDED, valid or not — this table is the turn log
--- (see the wordiply.guesses header). `fe_legal` is the FE's dictionary
+-- (see the wordiply.events header). `fe_legal` is the FE's dictionary
 -- verdict: false means "I checked the shipped legal list and this isn't on
 -- it". Trusting that is no weaker than trusting its accepts, which we
 -- already do. The server's own free guards still run FIRST and can reject
@@ -777,14 +777,14 @@ begin
   w_lower := lower(coalesce(word, ''));
 
   -- ─── Budget (mode-aware; the FE gates, so this only fires on a race) ─
-  -- `valid` only: a reject costs no budget, and track_count also feeds the
-  -- new row's seq (the board slot), which rejects don't occupy.
+  -- `valid` only: a reject costs no budget, and track_count is also how many
+  -- of the five board slots are filled — which rejects don't occupy.
   if g_row.mode = 'coop' then
     select count(*) into track_count
-      from wordiply.guesses where game_id = target_game and valid;
+      from wordiply.events where game_id = target_game and valid;
   else
     select count(*) into track_count
-      from wordiply.guesses where game_id = target_game and user_id = caller_id and valid;
+      from wordiply.events where game_id = target_game and user_id = caller_id and valid;
   end if;
   if track_count >= 5 then
     raise exception 'No guesses left'
@@ -800,10 +800,10 @@ begin
   -- tried that" answer.
   if g_row.mode = 'coop' then
     select count(*) into dup_count
-      from wordiply.guesses fw where fw.game_id = target_game and fw.word = w_lower;
+      from wordiply.events fw where fw.game_id = target_game and fw.word = w_lower;
   else
     select count(*) into dup_count
-      from wordiply.guesses fw
+      from wordiply.events fw
      where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
   -- A RACE, and the one branch here that records NOTHING: `useWordSubmit` dedups
@@ -852,10 +852,15 @@ begin
         using errcode = 'PN367', hint = 'fault', column = '_',
         detail = 'commit sent fe_legal true for a word that is ' || reject_reason;
     end if;
-    insert into wordiply.guesses (game_id, user_id, word, length, valid, reason, seq)
-      values (target_game, caller_id, w_lower, ins_length, false, reject_reason, null);
-    -- A rules error costs your go; a dictionary miss doesn't. No-op outside
-    -- turn-by-turn coop (the pointer is null).
+    -- A rules error costs your go; a dictionary miss doesn't. That judgment
+    -- is THIS function's — no predicate over the row recovers it, which is
+    -- why `took_turn` is stored rather than derived — and the `_advance_turn`
+    -- below is the same rule moving the coop pointer (a no-op outside
+    -- turn-by-turn coop, where it is null).
+    insert into wordiply.events
+      (game_id, user_id, kind, word, length, valid, reason, took_turn)
+      values (target_game, caller_id, 'guess', w_lower, ins_length, false,
+              reject_reason, reject_reason in ('too_short', 'missing_base'));
     if reject_reason in ('too_short', 'missing_base') then
       perform common._advance_turn(target_game);
     end if;
@@ -868,8 +873,9 @@ begin
   end if;
 
   -- ─── Accepted (trusted word) ─────────────────────────────
-  insert into wordiply.guesses (game_id, user_id, word, length, seq)
-    values (target_game, caller_id, w_lower, ins_length, track_count + 1);
+  -- An accepted word always spends the go, the fifth included.
+  insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
+    values (target_game, caller_id, 'guess', w_lower, ins_length, true);
 
   -- ─── Recompute status + terminal check ───────────────────
   if g_row.mode = 'coop' then
@@ -898,7 +904,7 @@ begin
         'leaderboard', (
           select coalesce(jsonb_agg(jsonb_build_object(
                    'user_id', gp.user_id,
-                   'guesses_used', (select count(*) from wordiply.guesses gg
+                   'guesses_used', (select count(*) from wordiply.events gg
                                      where gg.game_id = target_game and gg.user_id = gp.user_id
                                        and gg.valid)
                  )), '[]'::jsonb)
@@ -907,7 +913,7 @@ begin
 
     -- Terminal when every ACTIVE (non-conceded) player has spent 5.
     select bool_and(used >= 5) into all_done from (
-      select (select count(*) from wordiply.guesses gg
+      select (select count(*) from wordiply.events gg
                where gg.game_id = target_game and gg.user_id = gp.user_id
                  and gg.valid) as used
         from common.game_players gp
@@ -922,7 +928,7 @@ begin
   -- The caller's track totals (coop: team; compete: this player).
   select count(*), coalesce(sum(length), 0), coalesce(max(length), 0)
     into used_now, letters_now, longest_now
-    from wordiply.guesses
+    from wordiply.events
    where game_id = target_game and valid
      and (g_row.mode = 'coop' or user_id = caller_id);
 
@@ -1003,7 +1009,7 @@ begin
   end if;
 
   -- Realtime touch so peers refetch the now-visible opponents' guesses.
-  update wordiply.guesses set user_id = user_id where game_id = target_game;
+  update wordiply.events set user_id = user_id where game_id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1061,7 +1067,7 @@ begin
     perform wordiply._finish_compete(target_game, 'manual', false);
   end if;
 
-  update wordiply.guesses set user_id = user_id where game_id = target_game;
+  update wordiply.events set user_id = user_id where game_id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1115,7 +1121,7 @@ begin
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
   perform common.require_game_player(target_game);
 
-  delete from wordiply.guesses where game_id = target_game;
+  delete from wordiply.events where game_id = target_game;
 
   if g_row.mode = 'coop' then
     new_status := jsonb_build_object(
@@ -1204,7 +1210,7 @@ begin
   if (select play_state from common.games where id = target_game) = 'playing'
      and coalesce((
        select bool_and(used >= 5) from (
-         select (select count(*) from wordiply.guesses gg
+         select (select count(*) from wordiply.events gg
                   where gg.game_id = target_game and gg.user_id = gp.user_id
                     and gg.valid) as used
            from common.game_players gp
@@ -1218,9 +1224,9 @@ begin
   -- If the game is now terminal — via common.concede's last-racer path OR the
   -- all-finishers check above — wake the guesses subscription so remaining
   -- clients refetch the now-visible opponents' guesses (common.* and
-  -- _finish_compete both write only common.games, not wordiply.guesses).
+  -- _finish_compete both write only common.games, not wordiply.events).
   if (select play_state from common.games where id = target_game) <> 'playing' then
-    update wordiply.guesses set user_id = user_id where game_id = target_game;
+    update wordiply.events set user_id = user_id where game_id = target_game;
   end if;
 
   return v_res;

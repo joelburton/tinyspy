@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: seven of ten done (waffle awaiting review); wordiply finishes phase 4.** Agreed with Joel
+**Status: phase 4 done (wordiply awaiting review); stackdown and scrabble are left.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -604,6 +604,29 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 > counts, where `.order('id')` is the order things actually happened. And the
 > e2e fixture §11 warned about, `seedWaffleSwapLog`, named the table and the
 > column; it writes `kind` and `took_turn` now.
+
+> **wordiply built 2026-09-17** —
+> `supabase/migrations/20260917000007_wordiply_events.sql`. The key was already
+> a bigint identity, so nothing was renumbered; what moved is the name (with the
+> unique constraint and the identity SEQUENCE, which is named at creation and
+> does not follow its table), `created_at`, a one-value `kind`, `took_turn`, and
+> `seq`.
+>
+> **This is the game `took_turn` exists for.** One submit, one `guess` row
+> whatever happens, and whether it cost the player their go depends on the
+> reason the server computed: `too_short` and `missing_base` spend it,
+> `not_a_word` does not. No predicate over the row recovers that, which is why
+> it is written down — and the RPC already had the rule, in the `_advance_turn`
+> it calls for exactly those two reasons. 21 production rows: 14 accepted and
+> one `missing_base` charged a turn, six `not_a_word` not.
+>
+> `seq` was the five-slot board index, null on a reject — the same fact as
+> `valid` being false, which the valid-shape constraint said twice. It says it
+> once now, and a board slot is a position among the accepted rows.
+>
+> The turn rule's two halves are asserted where each has a row to assert it on:
+> `gameplay_test.sql` has the two rules-breaks, `turn_order_test.sql` has the
+> dictionary miss beside the pointer assertions it mirrors.
 
 **Phase 5** — stackdown and scrabble. Last because scrabble carries the
 `leftovers` rename and is the game whose `user_id` cannot be `not null` until

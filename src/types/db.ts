@@ -3670,6 +3670,60 @@ export type Database = {
   }
   wordiply: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          length: number
+          reason: string | null
+          took_turn: boolean
+          user_id: string
+          valid: boolean
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          length: number
+          reason?: string | null
+          took_turn?: boolean
+          user_id: string
+          valid?: boolean
+          word: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          length?: number
+          reason?: string | null
+          took_turn?: boolean
+          user_id?: string
+          valid?: boolean
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           base: string
@@ -3705,57 +3759,6 @@ export type Database = {
           mode?: string
         }
         Relationships: []
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          id: number
-          length: number
-          reason: string | null
-          seq: number | null
-          user_id: string
-          valid: boolean
-          word: string
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          id?: never
-          length: number
-          reason?: string | null
-          seq?: number | null
-          user_id: string
-          valid?: boolean
-          word: string
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          id?: never
-          length?: number
-          reason?: string | null
-          seq?: number | null
-          user_id?: string
-          valid?: boolean
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {

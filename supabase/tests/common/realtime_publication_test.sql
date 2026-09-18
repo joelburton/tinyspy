@@ -118,7 +118,7 @@ select set_eq(
       ('wordwheel', 'found_words'),
       -- wordiply
       ('wordiply', 'games'),
-      ('wordiply', 'guesses'),
+      ('wordiply', 'events'),
       -- strands (useGame refetch: games + players + events)
       ('strands', 'games'),
       ('strands', 'players'),

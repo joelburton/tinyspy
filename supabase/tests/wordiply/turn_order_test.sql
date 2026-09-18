@@ -27,7 +27,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(16);
+select plan(17);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -135,9 +135,21 @@ select is(
 
 -- Neither reject spent budget: the board still holds only the accepted pair.
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from g) and valid),
+  (select count(*) from wordiply.events where game_id = (select id from g) and valid),
   2::bigint,
   'turns: neither reject spent a guess'
+);
+
+-- `took_turn` is the same two judgments, written on the rows. The pointer
+-- assertions above are about turn-by-turn coop; the column is true in every
+-- mode, which is why it is stored rather than read back off the rotation.
+select is(
+  (select array_agg(coalesce(reason, 'accepted') || ':' || took_turn
+                    order by coalesce(reason, 'accepted') || ':' || took_turn)
+     from (select distinct reason, took_turn from wordiply.events
+            where game_id = (select id from g)) d),
+  array['accepted:true', 'missing_base:true', 'not_a_word:false'],
+  'turns: took_turn records the same rule the pointer follows'
 );
 
 -- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──

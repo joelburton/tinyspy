@@ -57,9 +57,7 @@ export type GuessRow = {
   valid: boolean
   /** null iff valid; else which guard caught it. */
   reason: 'missing_base' | 'too_short' | 'not_a_word' | null
-  /** The 1..5 board-row index — null on a rejected row. */
-  seq: number | null
-  guessed_at: string
+  created_at: string
 }
 
 /**
@@ -150,7 +148,7 @@ export function useGame(gameId: string): {
 
   useRealtimeRefetch({
     tables: [
-      { schema: 'wordiply', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      { schema: 'wordiply', table: 'events', filter: `game_id=eq.${gameId}` },
       // The games row never changes mid-play — this subscription exists for
       // replay_board's realtime TOUCH (see the hook header).
       { schema: 'wordiply', table: 'games', filter: `id=eq.${gameId}` },
@@ -160,10 +158,10 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const res = await readRows(
         db
-          .from('guesses')
-          .select('id, game_id, user_id, word, length, valid, reason, seq, guessed_at')
+          .from('events')
+          .select('id, game_id, user_id, word, length, valid, reason, created_at')
           .eq('game_id', gameId)
-          .order('guessed_at', { ascending: true }),
+          .order('id', { ascending: true }),
       )
       if (!mounted()) return
       if (res.type === 'not-ok') {

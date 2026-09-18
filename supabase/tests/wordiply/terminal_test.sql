@@ -139,7 +139,7 @@ select is(
 );
 
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from end_g)),
+  (select count(*) from wordiply.events where game_id = (select id from end_g)),
   0::bigint,
   'replay_board: the guesses log is wiped'
 );

@@ -11,7 +11,7 @@
 --
 -- What this file covers:
 --   1. Both gametypes (wordiply_coop + wordiply_compete) are registered.
---   2. wordiply.games + wordiply.guesses exist with RLS ENABLED and the
+--   2. wordiply.games + wordiply.events exist with RLS ENABLED and the
 --      authenticated SELECT grants the FE needs.
 --   3. Nothing is hidden: the games_state view exposes base / difficulty /
 --      max_word_length / longest_words / legal_words (the "reveal scores at
@@ -53,9 +53,9 @@ select is(
 
 select is(
   (select relrowsecurity from pg_class
-    where oid = 'wordiply.guesses'::regclass),
+    where oid = 'wordiply.events'::regclass),
   true,
-  'RLS is enabled on wordiply.guesses'
+  'RLS is enabled on wordiply.events'
 );
 
 -- ============================================================
@@ -101,12 +101,12 @@ values (
   '["bar","car","arc","hangars"]'::jsonb
 );
 
--- A guess row so the guesses grant is exercised too.
-insert into wordiply.guesses (game_id, user_id, word, length, seq)
+-- A guess row so the events grant is exercised too.
+insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
 values (
   (select id from common_g),
   'ada11111-1111-1111-1111-111111111111',
-  'hangars', 7, 1
+  'guess', 'hangars', 7, true
 );
 
 -- ============================================================
@@ -128,9 +128,9 @@ select is(
 );
 
 select is(
-  (select word from wordiply.guesses where game_id = (select id from common_g)),
+  (select word from wordiply.events where game_id = (select id from common_g)),
   'hangars',
-  'authenticated CAN SELECT wordiply.guesses rows (club member, coop)'
+  'authenticated CAN SELECT wordiply.events rows (club member, coop)'
 );
 
 -- ============================================================

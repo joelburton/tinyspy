@@ -162,7 +162,7 @@ column — `max_word_length`, `longest_words`, `legal_words` — to club members
 The "scores + longest word only at the end" rule is enforced in the **FE render**, not the
 schema (see §2).
 
-### `wordiply.guesses` (the wordwheel `found_words` analog)
+### `wordiply.events` (the wordwheel `found_words` analog)
 
 | column | type | notes |
 |---|---|---|
@@ -171,8 +171,9 @@ schema (see §2).
 | `user_id` | uuid | who guessed |
 | `word` | text not null | the full guessed word (lowercase) |
 | `length` | int not null | `char_length(word)` — stored so max/sum are trivial |
-| `seq` | smallint | 1..5 within the track (coop: shared 1..5; compete: per-user 1..5) |
-| `guessed_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
+| `kind` | text not null, check `in ('guess')` | one value: every row is a submission |
+| `took_turn` | boolean not null | whether the submission cost the player their go — true on an accepted word and on a rules break (`too_short` / `missing_base`), false on a dictionary miss |
+| `created_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
 
 - Backstop unique `(game_id, user_id, word)`; **mode-aware dedup** is enforced in
   `submit_guess` (coop dedups across the whole team, compete per-user) — a partial index
@@ -181,16 +182,16 @@ schema (see §2).
 ### RLS + realtime
 
 - `games_select` — club members.
-- `guesses_select` — **mode + terminal aware**, copied from `wordwheel.found_words_select`:
+- `events_select` — **mode + terminal aware**, copied from `wordwheel.found_words_select`:
   coop → all members see all rows; compete → a player sees only their own rows **mid-game**,
   everyone's **at terminal** (the reveal).
 - **⚠ Realtime publication invariant (load-bearing — see the memory + CLAUDE.md).** BOTH
   tables must be in `supabase_realtime`:
   ```sql
   alter publication supabase_realtime add table wordiply.games;
-  alter publication supabase_realtime add table wordiply.guesses;
+  alter publication supabase_realtime add table wordiply.events;
   ```
-  `useGame` subscribes to `guesses` (live guesses) **and** `games` (replay/terminal touch);
+  `useGame` subscribes to `events` (live guesses) **and** `games` (replay/terminal touch);
   if either is missing the updated Realtime image drops the **whole** subscription and live
   updates silently die. Both memberships are pinned by the central
   `supabase/tests/common/realtime_publication_test.sql` (which `schema_test.sql`
@@ -486,7 +487,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   (the coop free-for-all vs turn-by-turn picker, which also seeds `first_turn_user_id`).
   No rank picker, no base band. The field is labeled **Starter**, not "base": the schema
   says `base` but every player-facing string in this game says starter.
-- **`hooks/useGame.ts`** — subscribe to `wordiply.guesses` (+ `wordiply.games` for the
+- **`hooks/useGame.ts`** — subscribe to `wordiply.events` (+ `wordiply.games` for the
   replay/terminal touch), fetch `games_state` + guesses; derive per-track length score +
   letter count (or read `status.leaderboard`).
 - **Submit engine — reuse `useWordSubmit`.** Because the legal list ships to the FE, submit
@@ -555,7 +556,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 ## 7b. The turn log — and why rejects are stored
 
-`wordiply.guesses` is the **turn log**, not a list of scored words: every
+`wordiply.events` is the **turn log**, not a list of scored words: every
 submission lands a row, accepted or not. `valid` splits them, and everything that
 computes a score filters `where valid`. That's the same shape
 `psychicnum.events` (`is_correct`) and `connections.events` (`result`) use.
@@ -591,10 +592,10 @@ a new turn, so re-submitting must not log twice, advance the turn, or re-report
 the original guard's reason — `duplicate` *is* the "you already tried that"
 answer, and it falls out of the existing `unique (game_id, user_id, word)`.
 
-**`seq` is the accepted-guess index (1–5), null on rejects.** It is not a turn
-number: rejects get rows too, and letting them advance `seq` would put row 7 on a
-five-row board. The log
-orders by `guessed_at`.
+**A board slot is a position among the ACCEPTED rows**, which is why a reject
+occupies none: five slots, and only a valid word fills one. The log itself
+orders by `id` and shows every row, rejects included — the board and the log
+count different things on purpose.
 
 **The log itself** is `GameTurnLog` in the info column, using the shared
 [`useTurnLogPlayerPicker`](../../src/common/turn-log/useTurnLogPlayerPicker.tsx)

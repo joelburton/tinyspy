@@ -4,7 +4,7 @@ import { supabase } from '@/common/supabase/supabase'
 
 /**
  * wordiply-schema-scoped supabase client. Imported by every wordiply-side
- * query (`.from('games_state')`, `.from('guesses')`) and RPC call
+ * query (`.from('games_state')`, `.from('events')`) and RPC call
  * (`.rpc('submit_guess', ...)`) so the schema is applied uniformly without
  * each call site repeating it.
  *

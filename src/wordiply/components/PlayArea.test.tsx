@@ -65,13 +65,13 @@ function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {
 function guess(word: string, i: number, userId = 'u1'): GuessRow {
   return {
     id: i, game_id: 'g1', user_id: userId, word, length: word.length,
-    valid: true, reason: null, seq: i,
-    guessed_at: `2026-01-01T00:0${i}:00Z`,
+    valid: true, reason: null,
+    created_at: `2026-01-01T00:0${i}:00Z`,
   }
 }
 
 /** A REJECTED submission — in the turn log, but off the board and off every
- *  score. `seq` is null: rejects occupy no board row. */
+ *  score: a reject occupies no board row. */
 function reject(
   word: string,
   i: number,
@@ -80,8 +80,8 @@ function reject(
 ): GuessRow {
   return {
     id: i, game_id: 'g1', user_id: userId, word, length: word.length,
-    valid: false, reason, seq: null,
-    guessed_at: `2026-01-01T00:0${i}:00Z`,
+    valid: false, reason,
+    created_at: `2026-01-01T00:0${i}:00Z`,
   }
 }
 

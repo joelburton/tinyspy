@@ -8,7 +8,7 @@
 -- "final score"):
 --   1. higher length_score wins  (length_score = round(100*longest/max))
 --   2. tie → higher letter_count wins  (letter_count = sum of guess lengths)
---   3. still tied AND timed → earlier finish wins  (min max(guessed_at))
+--   3. still tied AND timed → earlier finish wins  (min max(created_at))
 --   4. still tied (untimed, or timed-and-simultaneous) → co-winners
 -- Terminal state 'won_compete'; common.game_players.result->>'won' true for
 -- every winner. status.winner_user_id names the winner when there is exactly
@@ -21,7 +21,7 @@
 -- Auto-terminal note: a compete game ends the instant EVERY non-conceded
 -- player has spent 5 guesses. So the "each spends 5" scenarios resolve
 -- automatically on the last guess. The timed-tiebreak scenario deliberately
--- has each player spend only 4 (so it stays playing), controls guessed_at
+-- has each player spend only 4 (so it stays playing), controls created_at
 -- directly, then fires submit_timeout to resolve on current scores.
 
 begin;
@@ -147,7 +147,7 @@ select is(
 -- length_score AND letter_count. We then set ada's guesses earlier than
 -- bea's (now() is transaction-constant, so we control created_at directly),
 -- and fire submit_timeout — the comparator's timed branch breaks the tie by
--- earliest finish (min of each player's max(guessed_at)) → ada wins.
+-- earliest finish (min of each player's max(created_at)) → ada wins.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
@@ -173,12 +173,12 @@ select wordiply.submit_guess((select id from g3), 'arbb');
 select wordiply.submit_guess((select id from g3), 'arcb');
 select wordiply.submit_guess((select id from g3), 'ardb');
 
--- Make ada finish EARLIER (her max guessed_at < bea's).
+-- Make ada finish EARLIER (her max created_at < bea's).
 reset role;
-update wordiply.guesses set guessed_at = now() - interval '10 seconds'
+update wordiply.events set created_at = now() - interval '10 seconds'
  where game_id = (select id from g3)
    and user_id = 'ada11111-1111-1111-1111-111111111111';
-update wordiply.guesses set guessed_at = now() - interval '5 seconds'
+update wordiply.events set created_at = now() - interval '5 seconds'
  where game_id = (select id from g3)
    and user_id = 'bea22222-2222-2222-2222-222222222222';
 
@@ -351,7 +351,7 @@ select is(
 );
 -- And the rows are all there — the log kept them, the score ignored them.
 select is(
-  (select count(*) from wordiply.guesses
+  (select count(*) from wordiply.events
     where game_id = (select id from g7) and not valid),
   3::bigint,
   'rejects: all three are still in the turn log'

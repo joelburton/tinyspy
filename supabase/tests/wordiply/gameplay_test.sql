@@ -84,7 +84,7 @@ select is(
 );
 
 select is(
-  (select count(*) from wordiply.guesses
+  (select count(*) from wordiply.events
     where game_id = (select id from g) and word = 'arxxxxx'),
   1::bigint,
   'submit_guess: accepted guess inserts one guesses row'
@@ -101,7 +101,7 @@ select is(
 -- ============================================================
 -- Since 2026-08-02 `guesses` is the TURN LOG, so a rejection lands a row with
 -- valid=false + its reason. What it must NOT do is spend budget or take a
--- board slot (seq stays null) — the scores and the five rows are valid-only.
+-- board slot — the scores and the five rows are valid-only.
 
 -- too_short: a word not longer than the base ('ar' is exactly base length).
 -- `fe_legal false` because this is `recordReject`'s call: the FE has already
@@ -132,28 +132,30 @@ select pg_temp.envelope_is(
 
 -- Both rejections ARE logged, as invalid rows carrying their reason...
 select is(
-  (select count(*) from wordiply.guesses
+  (select count(*) from wordiply.events
     where game_id = (select id from g) and not valid),
   2::bigint,
   'free-guard rejections are RECORDED as invalid rows'
 );
 select is(
-  (select array_agg(reason order by reason) from wordiply.guesses
+  (select array_agg(reason order by reason) from wordiply.events
     where game_id = (select id from g) and not valid),
   array['missing_base', 'too_short'],
   'each invalid row carries the guard that caught it'
 );
--- ...and a rejected row takes no board slot: seq is the accepted-guess index,
--- so letting rejects advance it would put row 7 on a five-row board.
+-- ...and both of these cost the player their go, invalid though they are: a
+-- word that breaks the base rules is a move that went wrong, not a misfire.
+-- (The other half of that rule — a dictionary miss costs nothing — is in
+-- turn_order_test.sql, where a not_a_word row is made.)
 select is(
-  (select count(*) from wordiply.guesses
-    where game_id = (select id from g) and not valid and seq is not null),
-  0::bigint,
-  'an invalid row has no seq (it occupies no board row)'
+  (select array_agg(distinct reason || ':' || took_turn order by reason || ':' || took_turn)
+     from wordiply.events where game_id = (select id from g) and not valid),
+  array['missing_base:true', 'too_short:true'],
+  'a rules break spends the go'
 );
 -- The valid count is what everything downstream reads.
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from g) and valid),
+  (select count(*) from wordiply.events where game_id = (select id from g) and valid),
   1::bigint,
   'free-guard rejections do not add to the VALID guesses'
 );
@@ -187,11 +189,11 @@ select pg_temp.envelope_is(
 -- 6th must throw.
 
 reset role;
-insert into wordiply.guesses (game_id, user_id, word, length, seq)
+insert into wordiply.events (game_id, user_id, kind, word, length, took_turn)
 select (select id from g),
        'ada11111-1111-1111-1111-111111111111'::uuid,
-       w, char_length(w), gi
-  from (values ('arb', 2), ('arc', 3), ('ard', 4), ('are', 5)) t(w, gi);
+       'guess', w, char_length(w), true
+  from (values ('arb'), ('arc'), ('ard'), ('are')) t(w);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -330,7 +332,7 @@ select wordiply.submit_guess((select id from rls_g), 'arbb');
 -- cade (no guesses) sees zero mid-game (own list empty; can't see peers).
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from rls_g)),
+  (select count(*) from wordiply.events where game_id = (select id from rls_g)),
   0::bigint,
   'rls (compete mid-game): cade (no guesses) sees zero rows'
 );
@@ -342,7 +344,7 @@ update common.games set is_terminal = true, play_state = 'ended'
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from rls_g)),
+  (select count(*) from wordiply.events where game_id = (select id from rls_g)),
   2::bigint,
   'rls (compete post-terminal): cade sees both ada''s + bea''s guesses'
 );
@@ -364,7 +366,7 @@ select wordiply.submit_guess((select id from coop_rls), 'arxx');
 -- bea sees ada's guess mid-game (coop is shared).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from coop_rls)),
+  (select count(*) from wordiply.events where game_id = (select id from coop_rls)),
   1::bigint,
   'rls (coop mid-game): bea sees ada''s guess (coop is a shared board)'
 );

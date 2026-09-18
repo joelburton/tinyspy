@@ -60,7 +60,7 @@ select is(
   (select is_terminal from common.games where id = (select id from g1)),
   true, 'precondition — manually ended game is terminal');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from g1)),
+  (select count(*) from wordiply.events where game_id = (select id from g1)),
   2::bigint, 'precondition — the two guesses were recorded');
 -- Age the shared clock so the replay's clock-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
@@ -76,7 +76,7 @@ select is(
   (select is_terminal from common.games where id = (select id from g1)),
   false, 'replay → is_terminal cleared');
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from g1)),
+  (select count(*) from wordiply.events where game_id = (select id from g1)),
   0::bigint, 'replay → the guesses log is cleared');
 select is(
   (select status->>'guesses_used' from common.games where id = (select id from g1)),
