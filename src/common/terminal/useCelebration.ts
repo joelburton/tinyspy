@@ -20,15 +20,15 @@ import { useState } from 'react'
  *
  * Rule 1 is what makes the `won` expression load-bearing: gate it ONLY on values
  * that are correct on the FIRST render (the `common.games` row — `playState`,
- * `status.*` — plus the roster, all of which GamePage awaits before rendering a
- * PlayArea). Anything that arrives later flips false→true after mount and pops
- * confetti at someone merely reviewing a finished game.
+ * `status.*` — plus the roster, all of which `GamePageLoader` awaits before the
+ * PlayArea mounts). Anything that arrives later flips false→true after mount
+ * and pops confetti at someone merely reviewing a finished game.
  *
- * Usage:
+ * Usage (waffle's):
  *
- *     const { show, close } = useCelebration(mode === 'coop' && playState === 'won')
+ *     const celebration = useCelebration(playState === 'won')
  *     ...
- *     {show && <CelebrationBlockingModal onClose={close} />}
+ *     {celebration.show && <CelebrationBlockingModal title="Solved it! 🧇" onClose={celebration.close} />}
  */
 export function useCelebration(won: boolean): {
   show: boolean

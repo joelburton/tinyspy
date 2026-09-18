@@ -13,8 +13,9 @@
 
 /* Centering, plus the one thing this card needs that the others don't: HEADROOM.
    The confetti pieces jump ABOVE their own box (`.piece`'s `pieceJump` lifts
-   0.4em, and `pieceIn` drops in from 1.6em higher still), so the card family's
-   1rem would clip the top of the arc. This adds half a rem to reach 1.5rem. */
+   0.4em, and `pieceIn` drops in from 1.6em higher still), so the arc needs room
+   over the card family's 1rem: this half rem, plus `.confetti`'s own top
+   margin under it. */
 /* @@ */ .content {
   text-align: center;
   padding-top: 0.5rem;
@@ -56,6 +57,10 @@
   25%      { transform: translateY(0) rotate(-8deg); }
   55%      { transform: translateY(-0.4em) rotate(9deg); }
   80%      { transform: translateY(0) rotate(-4deg); }
+}
+
+/* @@ */ .title {
+  font-size: 1.5rem;
 }
 
 /* @@ */ .subline {

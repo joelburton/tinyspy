@@ -360,7 +360,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/GameEntry.module.css': ['1rem', '1.25rem', '0.85rem'],
       'src/common/club/ClubGameDeleteButton.module.css': ['0.85rem'],
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
-      'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem'],
+      'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
       'src/common/lists/FilterSelect.module.css': ['0.8rem'],

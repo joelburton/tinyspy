@@ -4,12 +4,14 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — the roster is blessed, and that is NOT a close.** Seven files
+**Status: CLOSED 2026-09-18** (Joel: *"close the area and commit"*, after the
+re-read's report named the four blessed files it had changed). Seven files
 `cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18) and
-**all fourteen findings worked**: ten prose in one pass, then F-11 to F-14 one
-at a time, every one answered as (a). Roster agreed and stamped 2026-09-18
-(Joel: *"list is good"*); taken out of order after `word-entry`, so §3's next in
-sequence is row 42, `word-list`.
+**all twenty-two findings worked**: ten prose in one pass, F-11 to F-14 one at
+a time, every one answered as (a), then the re-read's eight with Joel's three
+rulings. Roster agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken
+out of order after `word-entry`, so §3's next in sequence is row 42,
+`word-list`.
 
 **This file said CLOSED for one commit, and it was wrong.** Joel asked for the
 blessing and nothing else; Claude inferred the close from it and from
@@ -17,13 +19,29 @@ blessing and nothing else; Claude inferred the close from it and from
 you to close it?"*, then *"re-open the area; that was ENTIRELY WRONG."* A
 blessing is Joel's reading of the files; a close is a separate word he says.
 
-**What is owed before this area can close: the whole-area re-read in one
-sitting.** It has never been done here — the blessing came straight after F-14,
-and after Joel's own edits (`91e67ce8` "Tweaking celebration modal",
-`64bf03bd` "Tweak comments"). What those changed is under Notes, including the
-question they leave open: the celebration's heading is an `<h1>` now, so neither
-`base.css` nor `docs/ui.md` says any more what level a dialog title takes. The
-`title`-required rider under F-13 is the other open item.
+**The whole-area re-read was done 2026-09-18, in one sitting, after Joel's own
+edits** (`91e67ce8` "Tweaking celebration modal", `64bf03bd` "Tweak comments").
+Eight more findings, F-15 to F-22: six prose and two decisions, all worked. Four
+of the six were written by this area's own day — the doc.md tree drew the title
+Joel had already changed, a test counted callers the way F-7 had just stopped
+ui.md doing, ui.md kept two phrases F-2 had removed from the docstring, and the
+hook's usage example matched no caller. Two of the worked findings changed
+blessed files after the blessing (`useCelebration.ts`, the modal's test); the
+stamps stand and the diff is for Joel to read.
+
+**Nothing is open.** F-22 was ruled remove (*"remove both, since they're not
+used"*): `title` is required, `primary` is gone.
+
+**Ruled at the re-read:** the title is an **`h2` at `1.5rem`** — Joel:
+*"changing the celebrationmodal to an h1 is annoying to your guard and doc
+system. change it back to an h2, but keep it the current size"*, then *"i like
+the celebrationmodal as it is, with the 1.5rem literal. do whatever you need so
+you'll stop complaining about it."* So F-12 ends as its option (b) after all:
+`.title { font-size: 1.5rem }` is back, uncommented (Joel: a comment explaining why a title was resized is junk),
+the file's row in `vocabularies.test.ts` excuses the literal again, `docs/ui.md`
+→ The heading levels names it as the one heading not taking its level's size,
+and `base.css`'s *"the game play surface has no h1"* is true again. F-21 was
+ruled keep (*"don't change it"*); the comment says what is there.
 
 ## The roster
 
@@ -95,7 +113,7 @@ The folder's tests are green (4 files, 16 tests); `tsc -b` is clean.
 
 *(`F-terminal-1 · slug · title`, one heading each, with its status after it when
 it has one; no status means OPEN. F-1 to F-10 are the prose pass; F-11 to F-14
-wait for a decision.)*
+were the decisions; F-15 to F-22 are the closing re-read.)*
 
 ### F-terminal-1 · `props-take-double-slash` · Five props wear `/**` — WORKED
 
@@ -317,8 +335,11 @@ element's size and states only spacing.
   thing on screen at that moment; the comment says so and the ui.md table
   stops naming it as its example.
 
-**Joel: *"a"*.** The `font-size` line is gone, so the title takes h2's
-`1.25rem` and the comment states what IS — the size comes from the element, and
+**Joel: *"a"* — and then, at the blessing and the re-read, the other way: see
+the status paragraph. The title is an h2 at `1.5rem`, option (b), with the
+comment and the guard row (b) described.** What (a) did while it stood: the
+`font-size` line went, so the title took h2's `1.25rem` and the comment stated
+what WAS — the size comes from the element, and
 what is loud at that moment is the confetti above it. Two consequences worth
 recording: `todo.md`'s remaining item was this question, so the file is now
 empty in all four sections; and `vocabularies.test.ts` failed until its pending
@@ -402,20 +423,117 @@ annotation, and it now warns about the separator collision outright.
 collision scrabble's comment describes. Changing a screen from here is not this
 area's call; their own areas have the files open.
 
+### F-terminal-15 · `doc-tree-draws-an-h2` · `doc.md`'s render tree still drew the title as an `<h2>` — WORKED
+
+Written at F-10, before Joel's edit made the heading an `<h1>`; the tree in
+`## Details` was never followed. One character.
+
+### F-terminal-16 · `hook-usage-is-invented` · `useCelebration`'s usage example matched no caller, and named the wrong awaiter — WORKED
+
+`useCelebration(mode === 'coop' && playState === 'won')` — nine games write
+`playState === 'won'` bare, since `won` is coop-only by the states vocabulary,
+and none writes the mode check; `{show && <CelebrationBlockingModal
+onClose={close} />}` passes no title, which every one of the fourteen does. It
+is now waffle's two lines, verbatim. Same paragraph: *"all of which GamePage
+awaits before rendering a PlayArea"* — the awaiting has been `GamePageLoader`'s
+since `game-page` split the route (2026-09-15); `doc.md` had the right name and
+the hook did not. `docs/ui.md` → Terminal results carried the same `<GamePage>`
+claim one paragraph after the one F-17 fixes; both say `GamePageLoader` now.
+
+### F-terminal-17 · `ui-md-keeps-what-f2-removed` · `docs/ui.md` → Terminal results kept the two phrases F-2 took out of the docstring — WORKED
+
+*"ported from crossplay"* (archaeology) and *"**the only modal a terminal game
+pops**"* (a count, and F-2's exact words) stood in the doc's paragraph on the
+component after the docstring lost them. The paragraph now says it as the rule
+the docstring does: it pops for a win and for nothing else, and a terminal game
+pops no other modal, its verdict being in-page.
+
+### F-terminal-18 · `nice-is-full-width` · `docs/ui.md` → Dialog buttons gave "Nice!" as its example of a right-justified lone button — WORKED
+
+Joel's edit gave "Nice!" `fullWidth` (`width: 100%` on the `StandardButton`),
+so it fills the action row rather than sitting at its right; every real
+celebration is single-button, none passing `primary`. The re-read first
+rewrote the sentence to name the celebration as the exception; Joel struck it
+instead: *"the 'rule' that a dialog with a single button right-justifies it
+shouldn't be considered a rule. there are times i may make the buttons
+full-width; we need no rule to explain this."* The sentence is gone.
+
+### F-terminal-19 · `test-counts-the-callers` · The test written at F-13 counts games, and one test name keeps a default that F-13 removed — WORKED
+
+*"Four games take this shape."* — a census, written the same day F-7 stopped
+`docs/ui.md` counting celebrating games; it now names the condition (a game
+whose title says it all passes no body). `it('renders overridden title/body')`
+— there is no default body to override; it is *renders the title and body it is
+given*.
+
+### F-terminal-20 · `psychicnum-todo-points-at-settled-items` · `src/psychicnum/todo.md` said its area would answer the two `CelebrationBlockingModal` items in this folder's `todo.md` — WORKED
+
+*"Being first, it also answers what was punted to 'the first game area': the
+two `CelebrationBlockingModal` items in `src/common/terminal/todo.md` (its title
+at h1's size, its re-declared focus ring)."* Both were settled here — the size
+by F-12 and then Joel's `<h1>`, the ring by F-8 (gone since 2026-08-25) — and
+this folder's `todo.md` is empty. The sentence came out; the bullet's first
+sentence (the control game for the audit) stands.
+
+### F-terminal-21 · `headroom-comment-after-the-margin` · `.content`'s half-rem of padding is explained by a number that is no longer true — WORKED as (b)
+
+The comment on `.content`: *"the card family's 1rem would clip the top of the
+arc. This adds half a rem to reach 1.5rem."* Joel's edit put
+`margin-top: var(--spacer-2)` (1rem) on `.confetti`, directly under that
+padding, so the arc now has 2.5rem of room and the half-rem's stated reason —
+reaching 1.5rem — no longer describes what the rule does.
+
+**Decision:**
+
+- **(a) drop the half rem and its comment** — the confetti's own margin is the
+  headroom now, and one rule does the job. Half a rem less above the confetti
+  than today.
+- **(b) keep it; the comment says what IS** — the room above the arc is the
+  card's padding plus this half rem plus the confetti's margin. No pixel moves.
+
+**Joel: *"the celebration modal now looks the way want. so don't change it."***
+The comment now says the room over the arc is this half rem plus the
+confetti's own top margin; the padding is untouched.
+
+### F-terminal-22 · `props-no-game-passes` · `title`'s default and `primary` have no caller — WORKED as (b)
+
+The rider F-13 left open, with a second prop beside it. All fourteen callers
+pass a `title`, so `'Congratulations!'` is dead; none passes `primary`, so the
+"exactly one primary, never two" JSX and its focus rule are exercised by this
+folder's unit test alone. Neither was removed — that is Joel's call, and the
+`primary` shape was built for a "Play again" no game has offered.
+
+**Decision:**
+
+- **(a) `title` required, `primary` stays** — the default goes, the type says
+  what every caller already does; `primary` keeps its place for the game that
+  offers an action from the card.
+- **(b) `title` required, `primary` removed** — the component is what the
+  fourteen sites use: title, optional body, "Nice!". The test's fourth case
+  goes with it.
+- **(c) leave both** — nothing is wrong on screen.
+
+**Joel: *"remove both, since they're not used."*** `title` is required and
+has no default; `primary` is gone with its focus rule, its JSX comment and the
+test's fourth case. `primary` had been the "Play again" half of the 2026-07-08
+port's game-agnostic shape ("optional primary action, overridable copy,
+toggleable sound"), and no game ever passed it: a game's actions after a win
+live in the info column's action row, and the card offers only the way out.
+"Nice!" is the lone button and the filled one; its `ref` and `weight` are no
+longer conditional.
+
 ## Notes
 
 - **Joel's own edits at the blessing** (`91e67ce8`, `64bf03bd`), recorded
   because two of them move what this file says:
-  - the title is an **`<h1>`** with its class dropped, so it takes the element's
-    1.5rem and the `.title` rule is gone from the stylesheet. That answers F-12
-    a third way — not an h2 at h1's size, and not an h2, but an h1. Both places
-    that gave this component as their **h2** example stopped: Joel's call for
-    `base.css` (*"base.css doesn't need an example of what an h2 is for; remove
-    that comment"* — the whole example column for that one level is gone), and
-    `docs/ui.md`'s heading table dropped the name, which was simply false there.
-    **Neither now says what level a modal title takes at all** — listing it
-    under h1 would contradict that level's stated meaning ("the PAGE's title"),
-    and that is a ruling nobody has made.
+  - the title became an **`<h1>`** with its class dropped, taking the element's
+    1.5rem, and the `.title` rule left the stylesheet. Both places that gave
+    this component as their **h2** example stopped: Joel's call for `base.css`
+    (*"base.css doesn't need an example of what an h2 is for; remove that
+    comment"* — the whole example column for that one level is gone), and
+    `docs/ui.md`'s heading table dropped the name. The re-read raised what that
+    left unstated (an h1 on the play surface contradicts base.css and the
+    table), and the ruling is in the status paragraph: an h2 at 1.5rem.
   - `.confetti` gained a 1rem margin top and bottom, `.subline` lost its
     1.4rem, and the shared `modalActions` row went `--spacer-1` → `--spacer-2`
     (1.5rem → 1rem above every dialog's buttons, app-wide).
@@ -479,9 +597,17 @@ area's call; their own areas have the files open.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — 2026-09-18,
+      F-15 to F-22; the per-finding sibling greps (`§`, `crossplay`, `copy`,
+      `lib/`, `only form`, the censuses, `1.5rem`, `modal-normal`) ran over the
+      folder and `docs/`
 - [x] the folder's `doc.md` written (lede + `## Intro to area` + `## Details`
-      with the render tree); its row is off `INTROS_OWED` — re-read at the close,
-      since F-11 and F-13 could change what it should say
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+      with the render tree); its row is off `INTROS_OWED` — re-read at the close
+      (F-15 was in it)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — nothing is owed: every re-read item was ruled, and `todo.md` is empty
+- [x] every file on the roster blessed, or its stamp says why not — seven
+      `cs-blessed-terminal`, on Joel's word; four of them
+      (`CelebrationBlockingModal.tsx`, its `.module.css` and `.test.tsx`,
+      `useCelebration.ts`) changed at the re-read, after the blessing, and the
+      close was asked for with that named

@@ -45,12 +45,12 @@ why the two live side by side here and neither is written in terms of the other.
 ```
 <PlayArea>                     every game's play surface
 ├── useCelebration(won)        the flip, off values GamePageLoader already awaited
-│    └── {show && <CelebrationBlockingModal title body primary onClose>}
+│    └── {show && <CelebrationBlockingModal title body onClose>}
 │          └── <BlockingModal>       floating-panels/ — scrim, card, Escape
 │                └── <FloatingPanel>
 │                      ├── <div .content role="dialog" aria-label={title}>
-│                      │     └── confetti row · <h2> title · sub-line
-│                      └── actions slot: [primary] + "Nice!"
+│                      │     └── confetti row · <h2 .title> at h1's size · sub-line
+│                      └── actions slot: "Nice!"
 ├── buildOver() → TerminalMessage    the game's own words, written per game
 │     ├── FeedbackMessage.terminalVerdict(over) → <FeedbackPill>   feedback/
 │     └── <InfoActionsRow message={{text, outcome}}>   info-sheet/

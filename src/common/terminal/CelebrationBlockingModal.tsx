@@ -10,16 +10,13 @@ import { StandardButton } from '../buttons/StandardButton'
 const CONFETTI = ['🎉', '🎊', '✨', '🥳', '🎈', '⭐']
 
 type Props = {
-  // Headline. Defaults to a generic win message.
-  title?: string
+  // Headline — the game's own words for its win.
+  title: string
   // Sub-line under the headline. Omit it and the card is title + confetti: there
   // is no default, because no one sentence is true of every game's win.
   body?: string
   // Dismiss the dialog — Esc or a button, never the scrim; see `BlockingModal`.
   onClose: () => void
-  // Optional primary action (e.g. "Play again"). When present it renders as the
-  // focused button; otherwise the (always-present) "Nice!" close button takes focus.
-  primary?: { label: string; onClick: () => void }
   // Play the celebratory jingle on mount. Defaults to true.
   playSound?: boolean
 }
@@ -39,19 +36,13 @@ type Props = {
  * desktop — and gets no titlebar, which suits a celebration better than a gray
  * strip with a ✕ would (docs/ui.md → Floating panels).
  *
- * Focus moves to the primary (or close) button on mount so a keyboard
- * player can Enter through it; Esc dismisses. The jingle is best-effort —
+ * Focus moves to the "Nice!" button on mount so a keyboard player can Enter
+ * through it; Esc dismisses. The jingle is best-effort —
  * browsers block autoplay outside a user-gesture window, and jsdom doesn't
  * implement media playback at all, so any failure is swallowed and the
  * visual celebration still happens.
  */
-export function CelebrationBlockingModal({
-  title = 'Congratulations!',
-  body,
-  onClose,
-  primary,
-  playSound = true,
-}: Props) {
+export function CelebrationBlockingModal({ title, body, onClose, playSound = true }: Props) {
   const focusRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
@@ -86,31 +77,9 @@ export function CelebrationBlockingModal({
     <BlockingModal
       onClose={onClose}
       actions={
-        <>
-          {primary && (
-            <StandardButton
-              show="label"
-              label={primary.label}
-              ref={focusRef}
-              weight="primary"
-              onClick={primary.onClick}
-            />
-          )}
-          {/* "Nice!" is the DISMISS when there's an action beside it, and the
-              ACTION when it's alone — so the dialog always has exactly one
-              primary and never offers two. Same rule as every other dialog
-              (docs/ui.md → Dialog buttons): the thing you're being offered is
-              filled, the way out is the outline. A celebration with only a
-              gray outline button undersells itself. */}
-          <StandardButton
-            show="label"
-            label="Nice!"
-            fullWidth
-            ref={primary ? undefined : focusRef}
-            weight={primary ? 'secondary' : 'primary'}
-            onClick={onClose}
-          />
-        </>
+        // The way out is the only button, so it is the filled one: a
+        // celebration with a lone gray outline button undersells itself.
+        <StandardButton show="label" label="Nice!" fullWidth ref={focusRef} weight="primary" onClick={onClose} />
       }
     >
       {/* The title is rendered HERE rather than passed to `<BlockingModal>`
@@ -125,7 +94,7 @@ export function CelebrationBlockingModal({
             </span>
           ))}
         </div>
-        <h1>{title}</h1>
+        <h2 className={styles.title}>{title}</h2>
         {body && <p className={styles.subline}>{body}</p>}
       </div>
     </BlockingModal>

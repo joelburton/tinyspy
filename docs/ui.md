@@ -213,9 +213,9 @@ Neither replaces the page: it stays in *review mode* (the final board, connectio
 
 **Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. Rows place `<ActionButton action={menu.actBackToClub}>` — the same binding as the menu row, whose terminal branch is direct navigation.
 
-**The moment — `<CelebrationBlockingModal>`.** `common/terminal/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle, ported from crossplay) is **the only modal a terminal game pops**, and only for a win. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
+**The moment — `<CelebrationBlockingModal>`.** `common/terminal/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle) pops for a win and for nothing else, and **a terminal game pops no other modal** — its verdict is in-page. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
 
-**Gate it only on values that are correct on the FIRST render** — the `common.games` row (`playState`, `status.*`) plus the roster, all of which `<GamePage>` awaits before rendering a PlayArea. Anything fetched by the game's own hook is null while it loads, so the fetch landing fakes a false→true flip and pops confetti at someone merely reviewing a finished game. (Caught live by an e2e; unit tests with synchronous mocks miss it.)
+**Gate it only on values that are correct on the FIRST render** — the `common.games` row (`playState`, `status.*`) plus the roster, all of which `GamePageLoader` awaits before the PlayArea mounts. Anything fetched by the game's own hook is null while it loads, so the fetch landing fakes a false→true flip and pops confetti at someone merely reviewing a finished game. (Caught live by an e2e; unit tests with synchronous mocks miss it.)
 
 **Which win counts is per-game, and the first-render rule is the whole test.** Most games celebrate the coop win (`playState === 'won'`; coop-only by the states vocabulary, since compete writes `won_compete`). A game celebrates a **compete** win when its own `common.games` row or its roster names the winner that early — the self-vs-other test it can afford on the first render — and a game that can read both flips that way celebrates both (the coop solve and first-past-the-bar, a timed-out race's co-winners included, read off the per-row `won` flags). Where the win can only be known after a later fetch, or where a mode has no win state at all, nothing pops: the alternative is confetti at someone merely reviewing a finished game.
 
@@ -317,7 +317,7 @@ game's callback.
 
 ### Dialog buttons
 
-macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. A single-button dialog (the `<CelebrationBlockingModal>`'s "Nice!") right-justifies the lone button. One shared rule draws the row — [`modalActions.module.css`](../src/common/floating-panels/modalActions.module.css), imported directly and applied as `actionRow.modalActions` — carrying the `0.75rem` gap and the `6rem` button floor for every dialog. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
+macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. One shared rule draws the row — [`modalActions.module.css`](../src/common/floating-panels/modalActions.module.css), imported directly and applied as `actionRow.modalActions` — carrying the `0.75rem` gap and the `6rem` button floor for every dialog. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
 
 The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only Help button — `act-help`, the same command the in-game menu's Help row is — is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
 
@@ -1680,7 +1680,8 @@ them lie about what pressing a segment does.
 
 Four levels, each with a meaning, declared in
 [`base.css`](../src/common/core-css/base.css). **The level is the decision** — a heading
-takes no class to be the right size.
+takes no class to be the right size. (The celebration's title, an `h2` drawn at
+`1.5rem`, is the exception.)
 
 | | meaning | size | margin |
 |---|---|---|---|
