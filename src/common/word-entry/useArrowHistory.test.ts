@@ -1,4 +1,4 @@
-// cs-met-word-entry
+// cs-audited-word-entry
 
 /**
  * Tests for the EntryBox-only history arrows (split out of useCaptureKeys): ArrowUp

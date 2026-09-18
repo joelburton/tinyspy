@@ -1,4 +1,4 @@
-// cs-met-word-entry
+// cs-audited-word-entry
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'

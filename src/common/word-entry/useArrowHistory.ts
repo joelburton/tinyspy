@@ -1,4 +1,4 @@
-// cs-met-word-entry
+// cs-audited-word-entry
 
 import { useBoundAction } from '../actions/useBoundAction'
 

@@ -1,4 +1,4 @@
-// cs-met-word-entry
+// cs-audited-word-entry
 
 /**
  * The move row draws the two things it is: a take-back and a commit.
