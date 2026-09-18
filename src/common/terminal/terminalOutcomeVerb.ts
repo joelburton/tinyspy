@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-terminal
 
 import type { GamePlayer } from '../members/member'
 

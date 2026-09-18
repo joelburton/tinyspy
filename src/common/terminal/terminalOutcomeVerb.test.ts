@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-terminal
 
 import { describe, expect, it } from 'vitest'
 import { terminalOutcomeVerb } from './terminalOutcomeVerb'

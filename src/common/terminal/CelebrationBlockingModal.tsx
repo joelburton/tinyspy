@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-terminal
 
 import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'
