@@ -4,14 +4,14 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, eleven worked.** Roster
+**Status: OPEN — audited 2026-09-18, fourteen findings, twelve worked.** Roster
 agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
 after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
 Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
-(2026-09-18, Joel: *"do the prose pass"*), and **F-11 answered as (a)** — the
-code is right and the three sentences were fixed. Three findings still wait for
-a decision: F-12 the `.title` size, F-13 the defaults, F-14 scrabble's
-lowercased verb. The prose pass pre-empted none of them.
+(2026-09-18, Joel: *"do the prose pass"*), **F-11 answered as (a)** — the code
+is right and the three sentences were fixed — and **F-12 as (a)**, the title
+dropping to h2's size. Two findings still wait for a decision: F-13 the
+defaults, F-14 scrabble's lowercased verb.
 
 ## The roster
 
@@ -287,7 +287,7 @@ working them turned up that the ui.md paragraph had rotted in BOTH halves:
 - `BlockingModal.tsx`'s docstring drops the celebration from its
   `modal-normal` list (blessed file, prose only).
 
-### F-terminal-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size
+### F-terminal-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size — WORKED as (a)
 
 `todo.md`'s first item. `base.css` gives h2 `1.25rem` so the four levels
 descend; `.title` overrides to `1.5rem`, h1's size. `docs/ui.md` → The heading
@@ -304,6 +304,17 @@ element's size and states only spacing.
 - **(b) keep `1.5rem` and say why** — the celebration's title is the loudest
   thing on screen at that moment; the comment says so and the ui.md table
   stops naming it as its example.
+
+**Joel: *"a"*.** The `font-size` line is gone, so the title takes h2's
+`1.25rem` and the comment states what IS — the size comes from the element, and
+what is loud at that moment is the confetti above it. Two consequences worth
+recording: `todo.md`'s remaining item was this question, so the file is now
+empty in all four sections; and `vocabularies.test.ts` failed until its pending
+row for this file dropped `1.5rem`, which is the guard working as designed — a
+literal excused on that list has to be deleted from the row the moment it stops
+being written. The second citation the audit had not named: `base.css`'s own
+heading-block comment gives this component as its h2 example too, alongside
+`docs/ui.md` — both are true again rather than one of them being fixed.
 
 ### F-terminal-13 · `defaults-are-decisions` · `title` defaults to a string every caller replaces, and `body` to a sentence that is false for scrabble
 

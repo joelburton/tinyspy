@@ -57,14 +57,10 @@
   80%      { transform: translateY(0) rotate(-4deg); }
 }
 
-/* ⚠️ An <h2> rendering at h1's size: `1.5rem` is exactly what base.css gives
-   h1, where h2 is 1.25rem — so here the level and the size disagree. It may be
-   earned, a celebration's title being the loudest thing on screen at that
-   moment, but it should be a decision. Open in todo.md: drop to the h2 size, or
-   keep it and say why here. */
+/* Size comes from the element: an h2 is 1.25rem like every other card's
+   heading. What is loud at this moment is the 2.4rem confetti above it. */
 /* @@ */ .title {
   margin: 0.2rem 0 0.3rem;
-  font-size: 1.5rem;
   color: var(--page-text-color);
 }
 
