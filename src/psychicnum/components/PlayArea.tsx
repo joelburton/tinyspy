@@ -73,9 +73,9 @@ type HintAnswer = {
   hint: string
 }
 
-/** What `request_reveal` answers: one `ok`, carrying the spoiled secret. */
-type RevealAnswer = {
-  result: 'reveal'
+/** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
+type SpoilerAnswer = {
+  result: 'spoiler'
   word: string
 }
 
@@ -273,9 +273,9 @@ export function PlayArea({
   // ─── The hint and the spoiler ──────────────────────────
   // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
   // via realtime; coop teammates get a header message. Nothing to do with the
-  // return value here — those rows arrive over the subscription. The RPC
-  // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
-  // on this page means the whole solution at game-over.
+  // return value here — those rows arrive over the subscription. "Reveal" on
+  // this page means one thing only: the whole solution at game-over, which is
+  // local FE state and no RPC at all.
   //
   // Both are useCallbacks up here (not plain functions below the early returns)
   // because the bindings below close over them, and a binding is what the
@@ -302,18 +302,18 @@ export function PlayArea({
 
   const getSpoiler = useCallback(async () => {
     setSpoiling(true)
-    const res = await runRpc<RevealAnswer>(db.rpc('request_reveal', { target_game: gameId }))
+    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { target_game: gameId }))
     setSpoiling(false)
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
-    } else if (res.type === 'ok' && res.data.result === 'reveal') {
-      // Same as the hint: the word arrives as a `kind = 'reveal'` row and the
+    } else if (res.type === 'ok' && res.data.result === 'spoiler') {
+      // Same as the hint: the word arrives as a `kind = 'spoiler'` row and the
       // turn log is where it belongs — a spoiler you asked for should stay
       // readable, not flash past.
       return
     } else {
-      reportUnhandled('request_reveal', res)
+      reportUnhandled('request_spoiler', res)
       return
     }
   }, [gameId, localFeedbackSlot])
@@ -329,13 +329,13 @@ export function PlayArea({
   usePeerFeedback({
     enabled: mode === 'coop',
     items: guesses,
-    keyOf: (g) => g.id,
+    keyOf: (g) => String(g.id),
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local
       const member = memberById(players, g.user_id)
       // A hint, or a spoiler. (A reveal logs the answer word, but we narrate it without
       // naming the word — "revealed a word", not which one.)
-      if (g.kind === 'hint' || g.kind === 'reveal') {
+      if (g.kind === 'hint' || g.kind === 'spoiler') {
         return FeedbackMessage.peer(
           member,
           ANSWER_OUTCOME[g.kind],

@@ -16,10 +16,10 @@ import { buildPsychicnumPrintModel } from './model'
 import type { GuessRow } from '../hooks/useGame'
 
 const g = (over: Partial<GuessRow> & Pick<GuessRow, 'user_id' | 'word'>): GuessRow => ({
-  id: 'g1',
+  id: 1,
   is_correct: false,
   kind: 'guess',
-  guessed_at: '2026-01-01T00:00:00Z',
+  created_at: '2026-01-01T00:00:00Z',
   ...over,
 })
 

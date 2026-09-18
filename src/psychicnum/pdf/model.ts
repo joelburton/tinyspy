@@ -45,7 +45,7 @@ function boardOf(words: readonly string[], guesses: readonly GuessRow[]): PrintT
   }))
 }
 
-/** The on-screen turn-log wording, one row per guess/hint/reveal. */
+/** The on-screen turn-log wording, one row per guess/hint/spoiler. */
 function turnsOf(guesses: readonly GuessRow[], whoOf: (g: GuessRow) => string): TurnRow[] {
   return guesses.map((g, i) => ({
     seq: i + 1,
@@ -53,7 +53,7 @@ function turnsOf(guesses: readonly GuessRow[], whoOf: (g: GuessRow) => string): 
     text:
       g.kind === 'hint'
         ? `Hint: ${g.word}`
-        : g.kind === 'reveal'
+        : g.kind === 'spoiler'
           ? `${g.word.toUpperCase()} — Answer`
           : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Incorrect'}`,
   }))

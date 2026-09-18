@@ -81,7 +81,7 @@ select set_eq(
       -- psychicnum
       ('psychicnum', 'games'),
       ('psychicnum', 'players'),
-      ('psychicnum', 'guesses'),
+      ('psychicnum', 'events'),
       -- connections
       ('connections', 'games'),
       ('connections', 'players'),

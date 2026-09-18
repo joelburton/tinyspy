@@ -10,12 +10,13 @@
  * a guess only ever ADDS a permanent green/red mark, so a past board is the guesses
  * up to that turn folded into the same `word → is_correct` map the live board uses.
  * A word is guessable only once (the server rejects re-guesses), so the fold never
- * overwrites. Hint / reveal turns mark no tile (they decide nothing), so they leave
+ * overwrites. Hint / spoiler turns mark no tile (they decide nothing), so they leave
  * the map unchanged and light nothing.
  *
- * **Keyed by log position, not a stored id.** psychicnum's `guesses` has no per-turn
- * ordinal the FE indexes by; the log renders "#N" = its `guessed_at`-sorted position,
- * which is unambiguous and chronological — exactly what a shared-board replay needs.
+ * **Keyed by log position, not a stored id.** psychicnum's `events` carries no
+ * per-turn ordinal the FE indexes by; the log renders "#N" = the row's position in
+ * the `id`-ordered log, which is unambiguous and chronological — exactly what a
+ * shared-board replay needs.
  *
  * **The boundary is INCLUSIVE**: viewing the turn at `index` shows the board AFTER
  * that turn's guess, with the guessed tile ringed — "this is the tile this turn
@@ -56,12 +57,12 @@ export function historySnapshot(
   return { results, historyLitWord, historyLabel: describe(turn) }
 }
 
-/** The kind-aware turn label. A guess reads as its outcome; a reveal names the answer
+/** The kind-aware turn label. A guess reads as its outcome; a spoiler names the answer
  *  word; a hint carries its clue text in `word` (never the secret — no leak). */
 function describe(turn: GuessRow | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`
-  if (turn.kind === 'reveal') return `Revealed ${word}`
+  if (turn.kind === 'spoiler') return `Revealed ${word}`
   return turn.is_correct ? `${word} — a secret!` : `${word} — not a secret`
 }

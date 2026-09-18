@@ -292,8 +292,8 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
       players: [me],
       failure: null,
       guesses: [
-        { id: 'g-1', user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', guessed_at: '2026-07-02' },
-        { id: 'h-1', user_id: 'u1', word: 'a paid assassin', is_correct: false, kind: 'hint', guessed_at: '2026-07-02' },
+        { id: 1, user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', created_at: '2026-07-02' },
+        { id: 2, user_id: 'u1', word: 'a paid assassin', is_correct: false, kind: 'hint', created_at: '2026-07-02' },
       ],
       loading: false,
     }
@@ -339,7 +339,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     menuItems(ctx).get('act-hint')?.run()
     expect(rpc).toHaveBeenCalledWith('request_hint', { target_game: 'g1' })
     menuItems(ctx).get('act-spoiler')?.run()
-    expect(rpc).toHaveBeenCalledWith('request_reveal', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('request_spoiler', { target_game: 'g1' })
 
     // Out of budget: disabled, but STILL THERE — a grayed row still teaches its
     // glyph, which is why the pair is never dropped.

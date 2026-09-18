@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: phase 0 built, awaiting review; psychicnum next.** Agreed with Joel
+**Status: phase 0 and psychicnum built, awaiting review; wordle next.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -437,6 +437,37 @@ the game i best understand and can read the code/schema for, and its our normal
 testbed for rolling things out."* It exercises five of the seven moves: the table
 rename, uuid → bigint, `created_at`, the `reveal` → `spoiler` kind rename, and a
 `took_turn` backfill with real turn-order to reason about.
+
+> **Built 2026-09-17.** `supabase/migrations/20260917000000_psychicnum_events.sql`
+> — the rename, uuid → bigint, `created_at`, `reveal` → `spoiler`, the dropped
+> `kind` default, `took_turn`, and the `(game_id, id)` index — plus
+> `supabase/sql/psychicnum.sql`, its pgTAP, the publication test's pair, the
+> skeleton roster's first converted row, the frontend's data access, and the
+> game's doc. 86 local rows survived with `took_turn` true on all 81 guesses
+> and neither the hint nor the spoiler. `gmake db-drift ENV=local` reports the
+> local shape matches the baselines, so the migration builds the same table by
+> mutation and from scratch.
+>
+> **One rule came out of it, and it applies to every later phase: a migration
+> may only touch what MIGRATIONS own.** The first draft renamed the RLS policy
+> with the table, which fails on any migrations-only build (a local `db reset`,
+> the `db-drift` shadow) because a policy belongs to `supabase/sql/` — while
+> succeeding on a deployed database, where the policy exists. The fix is
+> `drop policy if exists <old name>` in the migration and let the repeatable
+> half create the new one. Written up in
+> [docs/supabase.md](../docs/supabase.md#schema-vs-code).
+>
+> **`request_reveal` → `request_spoiler` came with it** (Joel, 2026-09-17, on
+> the condition it is really the per-move spoiler: it is — it hands over ONE
+> unfound secret mid-game, and the whole-solution Reveal has had no RPC at all
+> since `common.reveal_solution` was dropped, being local frontend state). The
+> envelope's `result` moved with the name, and the old function's
+> `drop function if exists` stays in `supabase/sql/psychicnum.sql` for good —
+> that file is the entire definition, so nothing else would ever remove it from
+> a deployed database.
+>
+> One thing deliberately not done: the frontend does not select `took_turn` —
+> nothing reads it yet, and the budget counters remain what the screen shows.
 
 **Phase 2 — wordle.** Covers the two psychicnum doesn't: adding a `kind` column
 where none exists, and dropping a `seq` that is also half the primary key.

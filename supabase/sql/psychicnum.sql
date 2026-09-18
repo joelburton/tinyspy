@@ -60,16 +60,16 @@ create policy players_select on psychicnum.players
 -- rule (their guesses are their strategy); hiding them after the
 -- game has ended just withholds the interesting part. Same shape
 -- as stackdown / connections / waffle.
-drop policy if exists guesses_select on psychicnum.guesses;
-create policy guesses_select on psychicnum.guesses
+drop policy if exists events_select on psychicnum.events;
+create policy events_select on psychicnum.events
   for select to authenticated
   using (
     exists (
       select 1 from psychicnum.games g
        join common.games cg on cg.id = g.id
-       where g.id = guesses.game_id
+       where g.id = events.game_id
          and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or guesses.user_id = (select auth.uid()) or cg.is_terminal)
+         and (g.mode = 'coop' or events.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 
@@ -86,7 +86,7 @@ grant select
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.players to authenticated;
-grant select on psychicnum.guesses to authenticated;
+grant select on psychicnum.events to authenticated;
 
 -- ============================================================
 -- psychicnum.games_state — FE-ready read view
@@ -538,7 +538,7 @@ begin
   -- Reject a word already taken (in scope: coop = anyone's, compete =
   -- caller's). Hint rows are excluded — a hinted word can still be guessed.
   if exists (
-    select 1 from psychicnum.guesses
+    select 1 from psychicnum.events
      where game_id = target_game and kind = 'guess' and word = w
        and (g.mode = 'coop' or user_id = caller_id)
   ) then
@@ -553,8 +553,8 @@ begin
 
   is_correct := (w = any(g.secrets));
 
-  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
-  values (target_game, caller_id, w, is_correct, 'guess');
+  insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
+  values (target_game, caller_id, w, is_correct, 'guess', true);
 
   -- ─── Budget decrement: coop = everyone, compete = caller ─
   if g.mode = 'coop' then
@@ -587,13 +587,13 @@ begin
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the found_secrets_count tally.
-  -- `guesses.is_correct` is QUALIFIED on purpose: this function also holds a
+  -- `events.is_correct` is QUALIFIED on purpose: this function also holds a
   -- local `is_correct` for the caller's own verdict, and PL/pgSQL treats an
   -- unqualified match as an error rather than picking one. (The column was
   -- `was_correct` until 2026-08-01, which is what hid the collision.)
   select count(distinct word) into found_count
-    from psychicnum.guesses
-   where game_id = target_game and kind = 'guess' and guesses.is_correct
+    from psychicnum.events
+   where game_id = target_game and kind = 'guess' and events.is_correct
      and (g.mode = 'coop' or user_id = caller_id);
   required_secrets_count := array_length(g.secrets, 1);
 
@@ -859,7 +859,7 @@ grant execute on function psychicnum.concede(uuid) to authenticated;
 -- ============================================================
 -- psychicnum._unfound_secret — pick an as-yet-unfound secret
 -- ============================================================
--- Shared by request_hint + request_reveal: a secret the player
+-- Shared by request_hint + request_spoiler: a secret the player
 -- (compete) / team (coop) hasn't found yet, at random. NULL when
 -- all are found (shouldn't happen mid-game — the game would be
 -- won — but the callers guard for it).
@@ -872,7 +872,7 @@ as $$
   select s
     from unnest(g.secrets) as s
    where s not in (
-     select word from psychicnum.guesses
+     select word from psychicnum.events
       where game_id = g.id and kind = 'guess' and is_correct
         and (g.mode = 'coop' or user_id = caller_id)
    )
@@ -882,13 +882,13 @@ $$;
 revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) from public;
 
 -- ============================================================
--- psychicnum.request_reveal — show an answer (a secret word)
+-- psychicnum.request_spoiler — hand over an answer (a secret word)
 -- ============================================================
 -- Reveals one of the player's (compete) / team's (coop) unfound
--- secret WORDS — the answer. Logged as a `kind = 'reveal'` row so
+-- secret WORDS — the answer. Logged as a `kind = 'spoiler'` row so
 -- it flows into the turn log over realtime (red), and so coop
--- teammates get a "X revealed a word" pill (in compete the guesses
--- RLS scopes the row to the caller — reveals are private there).
+-- teammates get a "X revealed a word" pill (in compete the events
+-- RLS scopes the row to the caller — spoilers are private there).
 -- Costs no budget and does NOT find the secret: it just shows it, so
 -- the player still has to guess (or doesn't bother — it's a cheat).
 --
@@ -901,9 +901,13 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- `create or replace` cannot change a function's return type, and this one
 -- became jsonb. `if exists` because this file is re-applied in full on every
 -- deploy, so the drop has to be a no-op the second time.
+drop function if exists psychicnum.request_spoiler(uuid);
+-- The name this RPC had until the row it writes became a `spoiler`. It stays
+-- here for good: this file is the whole definition, and a database that has
+-- the old function has nothing else that would ever remove it.
 drop function if exists psychicnum.request_reveal(uuid);
 
-create or replace function psychicnum.request_reveal(target_game uuid)
+create or replace function psychicnum.request_spoiler(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -913,7 +917,7 @@ declare
   caller_id uuid;
   g psychicnum.games%rowtype;
   current_play_state text;
-  reveal_word text;
+  secret_word text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g from psychicnum.games
@@ -937,8 +941,8 @@ begin
       detail = 'play_state is not an active state';
   end if;
 
-  reveal_word := psychicnum._unfound_secret(g, caller_id);
-  if reveal_word is null then
+  secret_word := psychicnum._unfound_secret(g, caller_id);
+  if secret_word is null then
     -- UNREACHABLE, which is what makes it a fault rather than a refusal.
     -- `_unfound_secret` comes back null only when every secret this caller can
     -- still find HAS been found, and submit_guess ends the game the moment
@@ -951,13 +955,13 @@ begin
       detail = 'psychicnum._unfound_secret found no unfound secret for this caller';
   end if;
 
-  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
-  values (target_game, caller_id, reveal_word, true, 'reveal');
+  insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
+  values (target_game, caller_id, secret_word, true, 'spoiler', false);
 
   -- A spoiler is RED. Its price is the whole hunt for that secret — there is
   -- nothing left to find — so it does not wear the amber a hint does. The frontend's lib/answer.ts says the same word for this row.
   return common.ok_envelope(
-    jsonb_build_object('result', 'reveal', 'word', reveal_word), 'lost');
+    jsonb_build_object('result', 'spoiler', 'word', secret_word), 'lost');
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -972,13 +976,13 @@ exception when others then
 end;
 $$;
 
-revoke execute on function psychicnum.request_reveal(uuid) from public;
-grant execute on function psychicnum.request_reveal(uuid) to authenticated;
+revoke execute on function psychicnum.request_spoiler(uuid) from public;
+grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
 
 -- ============================================================
 -- psychicnum.request_hint — show a clue for an unfound secret
 -- ============================================================
--- Picks an unfound secret (like request_reveal) but logs its CLUE
+-- Picks an unfound secret (like request_spoiler) but logs its CLUE
 -- (`common.words.hint`) rather than the word — a nudge, not the
 -- answer. Many words have no clue (the hint set is roughly
 -- 5-letter common words), so a missing clue logs the literal
@@ -1039,7 +1043,7 @@ begin
 
   secret_word := psychicnum._unfound_secret(g, caller_id);
   if secret_word is null then
-    -- UNREACHABLE — see the same check in request_reveal (PN395) for why the
+    -- UNREACHABLE — see the same check in request_spoiler (PN395) for why the
     -- terminal transition in submit_guess always gets here first.
     raise exception 'BUG: a hint with every secret already found'
       using errcode = 'PN392', hint = 'fault', column = '_',
@@ -1054,8 +1058,8 @@ begin
   select hint into dict_hint from common.words where word = secret_word;
   clue_text := coalesce(dict_hint, 'No hint available');
 
-  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
-  values (target_game, caller_id, clue_text, true, 'hint');
+  insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
+  values (target_game, caller_id, clue_text, true, 'hint', false);
 
   return common.ok_envelope(
     jsonb_build_object(
@@ -1345,7 +1349,7 @@ begin
          found_secrets_count = 0
    where game_id = target_game;
 
-  delete from psychicnum.guesses where game_id = target_game;
+  delete from psychicnum.events where game_id = target_game;
 
   -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
   -- no-op) in a free-for-all game, whose pointer is null.

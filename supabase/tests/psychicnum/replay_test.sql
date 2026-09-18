@@ -58,7 +58,7 @@ reset role;
 
 select ok((select is_terminal from common.games where id = (select id from g1)),
   'coop: precondition — the out-of-budget game is terminal');
-select is((select count(*) from psychicnum.guesses where game_id = (select id from g1)),
+select is((select count(*) from psychicnum.events where game_id = (select id from g1)),
   3::bigint, 'coop: precondition — three guesses are logged');
 
 update common.timers set ticks = 99 where game_id = (select id from g1);
@@ -71,7 +71,7 @@ select is((select play_state from common.games where id = (select id from g1)),
   'playing', 'coop: replay → play_state back to playing');
 select ok((select not is_terminal from common.games where id = (select id from g1)),
   'coop: replay → is_terminal cleared');
-select is((select count(*) from psychicnum.guesses where game_id = (select id from g1)),
+select is((select count(*) from psychicnum.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from psychicnum.players

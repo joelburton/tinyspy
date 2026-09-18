@@ -59,7 +59,7 @@ export type PsychicnumGame = {
  * Always visible to the whole club regardless of mode — the
  * "opponents see my remaining budget but not my guesses" rule
  * is enforced by giving this table club-wide RLS while
- * `psychicnum.guesses` gets user-scoped RLS in compete mode.
+ * `psychicnum.events` gets user-scoped RLS in compete mode.
  */
 export type PlayerRow = {
   user_id: string
@@ -70,28 +70,32 @@ export type PlayerRow = {
 }
 
 /**
- * One row from `psychicnum.guesses`. In coop the FE receives
+ * One row from `psychicnum.events`. In coop the FE receives
  * every player's guess; in compete the RLS policy filters
  * server-side so the FE only ever receives its own user_id's
  * rows. PlayArea renders them the same way either way; the
  * filtering is invisible to the FE.
  */
 export type GuessRow = {
-  id: string
+  /** The row's own id, and the order of play: the database hands them out in
+   *  the order the rows were written, which is why the read below orders by
+   *  it rather than by the timestamp. Two rows written in one transaction tie
+   *  on `created_at`. */
+  id: number
   user_id: string
-  /** The text this row carries. For 'guess'/'reveal' it's a board word
+  /** The text this row carries. For 'guess'/'spoiler' it's a board word
    *  (lowercase); for 'hint' it's the CLUE text (or "No hint available"). */
   word: string
   is_correct: boolean
   /** 'guess' = a real guess (colors the board, counts toward the win);
-   *  'reveal' = a revealed secret word (the answer);
+   *  'spoiler' = a secret word handed over (the answer);
    *  'hint' = a clue for a secret.
    *
    *  What each is WORTH is `lib/answer.ts`'s to say — and `kind` has to be read
-   *  before `is_correct`, because a hint and a reveal are both written
+   *  before `is_correct`, because a hint and a spoiler are both written
    *  `is_correct = true`. */
-  kind: 'guess' | 'hint' | 'reveal'
-  guessed_at: string
+  kind: 'guess' | 'hint' | 'spoiler'
+  created_at: string
 }
 
 /**
@@ -130,7 +134,7 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'psychicnum', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'psychicnum', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'psychicnum', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      { schema: 'psychicnum', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'psychicnum',
     id: gameId,
@@ -174,10 +178,10 @@ export function useGame(gameId: string): {
         ),
         readRows(
           db
-            .from('guesses')
-            .select('id, user_id, word, is_correct, kind, guessed_at')
+            .from('events')
+            .select('id, user_id, word, is_correct, kind, created_at')
             .eq('game_id', gameId)
-            .order('guessed_at', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
       ])
       if (!mounted()) return

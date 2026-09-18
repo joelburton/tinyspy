@@ -359,7 +359,7 @@ create policy games_select on common.games
 
 -- Game-player records inherit visibility from their parent game.
 -- The EXISTS subquery mirrors the per-gametype `*_select` policy
--- shape (psychicnum.guesses, connections.guesses, etc.).
+-- shape (psychicnum.events, connections.guesses, etc.).
 drop policy if exists game_players_select on common.game_players;
 create policy game_players_select on common.game_players
   for select to authenticated
@@ -1942,7 +1942,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 --   - common.game_players      (game_id FK, ON DELETE CASCADE)
 --   - <gametype>.games         (id FK,      ON DELETE CASCADE)
 --     ⤷ which cascades to per-gametype child tables
---        (codenamesduet.words/clues, psychicnum.guesses, connections.guesses)
+--        (codenamesduet.words/clues, psychicnum.events, connections.guesses)
 -- So one DELETE on common.games removes the whole subtree.
 --
 -- This RPC does NOT handle "tell peers viewing the game to

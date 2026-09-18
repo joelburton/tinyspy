@@ -95,7 +95,7 @@ changing an RPC adds no migration. You edit the game's one file, and
 Roughly two-thirds of each game's SQL is code by line count (scrabble 69%,
 wordle 63%, common 38%), so the part that accumulates is the small part.
 
-**Three rules that make it work:**
+**The rules that make it work:**
 
 - **Order inside a file is load-bearing.** A policy can only reference a
   function that already exists, and a function can only select from a view that
@@ -109,6 +109,18 @@ wordle 63%, common 38%), so the part that accumulates is the small part.
   above the create and leave it there — the file runs against databases of every
   age. [`supabase/tests/common/function_overloads_test.sql`](../supabase/tests/common/function_overloads_test.sql)
   fails if one ever slips through.
+- **A migration may only touch what migrations own.** Shape — tables,
+  constraints, indexes, the publication — is there whenever migrations run.
+  Everything in `supabase/sql/` is NOT: a local `db reset` and the shadow
+  database `gmake db-drift` builds apply migrations alone, so a migration that
+  says `alter policy … rename` or `alter function …` fails outright on a fresh
+  build while succeeding on a database that has been deployed to. The
+  asymmetry is the trap — the statement works where you first try it. Where a
+  migration has to clear something the repeatable half owns (an object under
+  an old name, which `supabase/sql/` can create but never remove), write
+  `drop … if exists`: a no-op on the fresh build, and the cleanup on the
+  deployed one.
+
 - **Views, policies and triggers are dropped, not replaced.** `create or replace
   view` can't drop or reorder columns, and policies/triggers have no replace
   form, so each is preceded by its `drop … if exists`. Functions use

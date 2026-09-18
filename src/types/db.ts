@@ -1861,6 +1861,54 @@ export type Database = {
   }
   psychicnum: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          is_correct: boolean
+          kind: string
+          took_turn: boolean
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          is_correct: boolean
+          kind: string
+          took_turn?: boolean
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          is_correct?: boolean
+          kind?: string
+          took_turn?: boolean
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           club_handle: string
@@ -1887,51 +1935,6 @@ export type Database = {
           words?: string[]
         }
         Relationships: []
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          id: string
-          is_correct: boolean
-          kind: string
-          user_id: string
-          word: string
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          id?: string
-          is_correct: boolean
-          kind?: string
-          user_id: string
-          word: string
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          id?: string
-          is_correct?: boolean
-          kind?: string
-          user_id?: string
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       players: {
         Row: {
@@ -2022,7 +2025,7 @@ export type Database = {
       end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       request_hint: { Args: { target_game: string }; Returns: Json }
-      request_reveal: { Args: { target_game: string }; Returns: Json }
+      request_spoiler: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json

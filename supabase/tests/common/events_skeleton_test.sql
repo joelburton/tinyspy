@@ -47,7 +47,7 @@ select plan(7);
 -- later.
 create temporary table roster (schema text, log_table text, converted boolean);
 insert into roster values
-  ('psychicnum',  'guesses',     false),
+  ('psychicnum',  'events',      true),
   ('wordle',      'guesses',     false),
   ('connections', 'guesses',     false),
   ('waffle',      'swaps',       false),

@@ -14,8 +14,8 @@ import type { GuessRow } from '../hooks/useGame'
 
 function g(o: Partial<GuessRow>): GuessRow {
   return {
-    id: 'id', user_id: 'u', word: 'apple', is_correct: false,
-    kind: 'guess', guessed_at: '2026-06-12T18:00:00Z', ...o,
+    id: 1, user_id: 'u', word: 'apple', is_correct: false,
+    kind: 'guess', created_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
 
@@ -52,10 +52,10 @@ describe('historySnapshot', () => {
     expect(s1.historyLabel).toBe('Hint: a fruit')
   })
 
-  it('describes a guess by its outcome, a reveal by its answer', () => {
+  it('describes a guess by its outcome, a spoiler by its answer', () => {
     expect(historySnapshot(GUESSES, 0).historyLabel).toBe('APPLE — a secret!')
     expect(historySnapshot(GUESSES, 2).historyLabel).toBe('BERRY — not a secret')
-    expect(historySnapshot([g({ word: 'cherry', kind: 'reveal' })], 0).historyLabel).toBe(
+    expect(historySnapshot([g({ word: 'cherry', kind: 'spoiler' })], 0).historyLabel).toBe(
       'Revealed CHERRY',
     )
   })

@@ -59,7 +59,7 @@ select psychicnum.submit_guess((select id from coop_g), 'delta');
 
 -- (1) ada sees her own guess
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from coop_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from coop_g)),
   1,
   'coop: ada sees her own guess (1 row)'
 );
@@ -67,7 +67,7 @@ select is(
 -- (2) bea sees ada's guess too (coop = club-wide visibility)
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from coop_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from coop_g)),
   1,
   'coop: bea sees ada''s guess (club-wide RLS)'
 );
@@ -75,7 +75,7 @@ select is(
 -- (3) dee sees nothing
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from coop_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from coop_g)),
   0,
   'coop: dee (non-member) sees zero guesses'
 );
@@ -109,14 +109,14 @@ select psychicnum.submit_guess((select id from comp_g), 'echo');
 -- (4) ada sees only HER own guess (1 row)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   1,
   'compete: ada sees only her own guess (1 of 2 rows visible)'
 );
 
 -- (5) ada specifically does NOT see bea's guess
 select is(
-  (select count(*)::int from psychicnum.guesses
+  (select count(*)::int from psychicnum.events
     where game_id = (select id from comp_g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   0,
@@ -126,7 +126,7 @@ select is(
 -- (6) bea sees only her own (1 row)
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   1,
   'compete: bea sees only her own guess'
 );
@@ -134,7 +134,7 @@ select is(
 -- (7) ground-truth (postgres bypass) confirms both rows actually exist
 reset role;
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   2,
   'compete: both rows exist in storage (postgres bypass confirms)'
 );
@@ -179,9 +179,9 @@ select is(
   'dee cannot SELECT psychicnum.players (RLS)'
 );
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   0,
-  'dee cannot SELECT psychicnum.guesses (RLS)'
+  'dee cannot SELECT psychicnum.events (RLS)'
 );
 select is(
   (select count(*)::int from psychicnum.games_state where id = (select id from comp_g)),
@@ -213,7 +213,7 @@ select psychicnum.end_game((select id from comp_g));
 
 -- (15) ada now sees BOTH guesses — hers and bea's
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   2,
   'compete: ada sees both guesses once the game is terminal'
 );
@@ -221,7 +221,7 @@ select is(
 -- (16) and bea sees ada's, symmetrically
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*)::int from psychicnum.guesses
+  (select count(*)::int from psychicnum.events
     where game_id = (select id from comp_g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
@@ -232,7 +232,7 @@ select is(
 -- widens the MODE gate, not the club gate.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  (select count(*)::int from psychicnum.events where game_id = (select id from comp_g)),
   0,
   'compete: terminal does NOT open guesses to non-members'
 );

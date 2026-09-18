@@ -344,7 +344,7 @@ All three tables (`games`, `players`, `guesses`) have RLS enabled.
 
 - **`games`** + **`players`** are club-wide visible: `using (common.is_club_member(club_handle))` (games) / EXISTS via `connections.games` join (players). Every club member sees every player's mistake_count in both modes — that's the "opponents see remaining mistakes but not guesses" property.
 
-- **`guesses`** is mode-aware, mirroring `psychicnum.guesses_select`:
+- **`guesses`** is mode-aware, mirroring `psychicnum.events_select`:
 
   ```sql
   create policy guesses_select on connections.guesses

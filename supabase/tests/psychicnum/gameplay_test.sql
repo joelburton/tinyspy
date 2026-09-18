@@ -31,8 +31,8 @@
 --     players.found_secrets_count
 --   - re-guessing a taken word (game-wide) is rejected
 --   - request_hint logs a kind='hint' row with the secret's CLUE (or the
---     "No hint available" fallback), outcome `warning`; request_reveal logs a
---     kind='reveal' row with the answer WORD, outcome `lost`; neither spends
+--     "No hint available" fallback), outcome `warning`; request_spoiler logs a
+--     kind='spoiler' row with the answer WORD, outcome `lost`; neither spends
 --     budget or finds the secret
 --   - finding the LAST secret carries `found_all` true, play_state='won', team won
 --   - the last-budget wrong guess → play_state='lost'
@@ -49,7 +49,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(39);
+select plan(40);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -160,36 +160,48 @@ select pg_temp.envelope_is(
 -- (8) the hint is logged as a kind='hint' row...
 reset role;
 select is(
-  (select count(*)::int from psychicnum.guesses
+  (select count(*)::int from psychicnum.events
     where game_id = (select id from coop_g) and kind = 'hint'),
   1,
   'coop: request_hint logs a kind=hint row'
 );
 
--- (9) request_reveal returns an unfound secret WORD (the answer)...
+-- (9) request_spoiler returns an unfound secret WORD (the answer)...
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  psychicnum.request_reveal((select id from coop_g)),
-  '{"type":"ok","outcome":"lost","data":{"result":"reveal"}}'::jsonb,
-  'coop: request_reveal answers ok/reveal'
+  psychicnum.request_spoiler((select id from coop_g)),
+  '{"type":"ok","outcome":"lost","data":{"result":"spoiler"}}'::jsonb,
+  'coop: request_spoiler answers ok/spoiler'
 );
 -- The WORD it spoiled is one of the two still unfound — asserted separately,
 -- because which one it picks is random and only its membership is a rule.
 select ok(
-  (select word from psychicnum.guesses
-    where game_id = (select id from coop_g) and kind = 'reveal'
-    order by guessed_at desc limit 1) = any(array['zbravo','zcharlie']),
-  'coop: request_reveal spoils an as-yet-unfound secret word'
+  (select word from psychicnum.events
+    where game_id = (select id from coop_g) and kind = 'spoiler'
+    order by id desc limit 1) = any(array['zbravo','zcharlie']),
+  'coop: request_spoiler hands over an as-yet-unfound secret word'
 );
 
--- (10) ...logged as a kind='reveal' row (and it does NOT find the secret —
+-- (10) ...logged as a kind='spoiler' row (and it does NOT find the secret —
 -- bea still guesses zbravo + zcharlie below to win)
 reset role;
 select is(
-  (select count(*)::int from psychicnum.guesses
-    where game_id = (select id from coop_g) and kind = 'reveal'),
+  (select count(*)::int from psychicnum.events
+    where game_id = (select id from coop_g) and kind = 'spoiler'),
   1,
-  'coop: request_reveal logs a kind=reveal row'
+  'coop: request_spoiler logs a kind=spoiler row'
+);
+
+-- (10b) `took_turn` — the fact the log records about every row: did this
+-- event use up one of the actor's goes? Here that is an accepted guess and
+-- nothing else. Nothing in psychicnum READS the column (the per-player budget
+-- counters do that); it is what a later "who took fewer turns" comparison
+-- counts, and it has to be right at write time or it never will be.
+select is(
+  (select array_agg(distinct kind order by kind) from psychicnum.events
+    where game_id = (select id from coop_g) and took_turn),
+  array['guess'],
+  'coop: took_turn is true on guesses, and on neither the hint nor the spoiler'
 );
 
 -- (11) neither the hint nor the spoiler spent any budget (still 3 each: one
@@ -198,7 +210,7 @@ select is(
   (select array_agg(guesses_remaining order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
   array[3, 3],
-  'coop: request_hint / request_reveal do not decrement the budget'
+  'coop: request_hint / request_spoiler do not decrement the budget'
 );
 
 -- (10) bea finds zbravo, then zcharlie (the last) → team wins

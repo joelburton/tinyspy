@@ -115,8 +115,8 @@ export function GameTurnLog({
             </tr>
           )
         }
-        // A guess (right or wrong), or a reveal — the answer, handed over.
-        const isReveal = g.kind === 'reveal'
+        // A guess (right or wrong), or a spoiler — the answer, handed over.
+        const isSpoiler = g.kind === 'spoiler'
         return (
           <tr key={g.id} className={gameTurnLog.divider}>
             {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
@@ -129,7 +129,7 @@ export function GameTurnLog({
             <td className={cls(gameTurnLog.other, gameTurnLog.primary)}>
               <DefinableWord word={g.word} />
             </td>
-            <td className={gameTurnLog.main}>{isReveal ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
+            <td className={gameTurnLog.main}>{isSpoiler ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
           </tr>
         )
