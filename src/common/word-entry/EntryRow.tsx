@@ -54,6 +54,10 @@ type Props = {
   charFor?: (key: string) => string | null
   // Last submitted value, restored by ArrowUp (see `./useArrowHistory`).
   recall?: string
+  // False where a submitted word doesn't come back at all (letterboxed: it
+  // joins the chain), which takes both arrows off the key list. Default true —
+  // a game that offers recall leaves this alone and passes `recall`.
+  hasHistory?: boolean
   // Extra class on the row — e.g. a per-game `--entryBox-font-size` override.
   className?: string
 }
@@ -93,6 +97,7 @@ export function EntryRow({
   onAnyKey,
   charFor,
   recall,
+  hasHistory = true,
   className,
 }: Props) {
   // Always called (never behind the early return below), so the keyboard stays
@@ -108,7 +113,7 @@ export function EntryRow({
   const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
   })
-  useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
+  useArrowHistory({ recall, onChange, enabled: !disabled && !busy, hasHistory })
   const top = useTopFeedbackMessage(localFeedbackSlot)
 
   // Whatever is on top takes the controls' place. No second gate on the

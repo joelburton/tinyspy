@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3) worked 2026-09-18.** Roster
+F-3) and F-4 worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -167,30 +167,52 @@ itself behind, in four places:
 Outside the roster (a doc), fixed by this area under §4 → not a fence; the
 `connections` half (`.inputButton`) is that game's.
 
-### F-word-entry-4 · `recall-undefined-vs-empty` · ↑ answers `disabled` where a caller offers no recall at all
+### F-word-entry-4 · `recall-undefined-vs-empty` · ↑ answers `disabled` where a caller offers no recall at all — WORKED as (b), both arrows
 
 From `todo.md` → Bugs, and confirmed by the probe: `recall` omitted →
-`act-recall-last` says `disabled`. `useArrowHistory` reads `recall ? 'active' :
+`act-recall-last` says `disabled`. `useArrowHistory` read `recall ? 'active' :
 'disabled'`, so `undefined` (not offered — letterboxed, whose `handleChange`
-keeps the seed letter and whose doc says "No ↑/↓ recall") and `''` (offered,
-nothing submitted yet) answer the same word, and letterboxed's Help lists a
-permanently gray ↑ row. The option's note — *"Omit / '' makes ArrowUp a
-no-op"* — writes the conflation down as if it were the design.
+keeps the seed letter and whose doc says "No ↑ recall") and `''` (offered,
+nothing submitted yet) answered the same word.
 
-**Options:**
+**The consequence the finding stated was wrong, and the truth is worse.** It
+said letterboxed's Help lists a *permanently gray* ↑ row. `KeyList` filters
+`hidden` and then draws every remaining row identically — there is no state
+class and `KeyList.module.css` has no disabled rule, which `actions/doc.md`
+states as the design ("the bound actions that have a key and are not hidden").
+So the row was not gray: it read exactly like a working key, in a game with no
+recall. Nothing else reads these two bindings — **neither arrow has a button
+anywhere** (`MoveRow` places `actDelete` + `actSubmit` only, and the registry
+gives the arrows no icon), so the key list is the whole of what the state is
+for.
 
-- **(a) `undefined` → hidden, `''` → disabled.** The todo's ask. `recall?:
-  string` keeps its type; `describe` reads `recall === undefined ? 'hidden' :
-  recall ? 'active' : 'disabled'`; the test's "pins what the code does TODAY"
-  case splits in two as its comment already promises.
-- **(b) make recall a separate switch** — an `offersRecall` flag beside
-  `recall`. More explicit, but it adds a prop every caller must remember for a
-  distinction the value already carries.
+**Joel's ruling (2026-09-18), on the options as recorded:** (a) is out — *"i
+don't like (a); it packs a distinct message into undefined, which is always
+confusing."* (b), and since ↓ rides in the same hook, the flag answers for both
+arrows. Given the KeyList fact above, `false` means **`hidden` for both**: a
+`disabled` ↓ would still be listed, still look live, and would now not run at
+all, where today's ↓ at least clears letterboxed's first word (`seed` is `''`
+before a chain exists).
 
-Recommend (a). Letterboxed's sibling — ↓ half-works there because `''` is
-refused once the chain carries a seed — is in `src/letterboxed/todo.md` → Bugs
-and is that game's; whether ↓ should be offered at all there is the same
-question as ↑, and (a) answers only ↑.
+**Shipped:** `hasHistory?: boolean` (default true) on `ArrowHistoryOptions` and
+on `EntryRow`, which forwards it; `act-recall-last` → `!enabled || !hasHistory ?
+'hidden' : recall ? 'active' : 'disabled'`, `act-clear-entry` → `enabled &&
+hasHistory ? 'active' : 'hidden'`. letterboxed passes `hasHistory={false}`; the
+four games that offer recall are untouched. `recall`'s note drops the "Omit /
+''" sentence and says `''` means nothing submitted yet.
+
+**The two todo items this closes**, both deleted: `word-entry/todo.md` → Bugs
+(the ↑ item), and `src/letterboxed/todo.md` → Bugs (*"`↓` half-works"*, whose
+first named option — *"the binding is not offered here"* — is what shipped).
+`docs/games/letterboxed.md` now says neither arrow is bound and why.
+
+**Tests:** `useArrowHistory.test.ts` keeps the `''` → disabled case (its "pins
+what the code does TODAY" comment goes, since today is the answer) and gains
+two — both arrows hidden at `hasHistory: false`, and neither acting. A
+game-level one in `letterboxed/components/PlayArea.test.tsx` mounts the real
+PlayArea and asserts both bindings answer `hidden` to the `help` asker. Both
+planted: the hook pair fails without the flag in `describe`, the letterboxed one
+without the prop at the call site.
 
 ### F-word-entry-5 · `busy-hides-the-arrows` · Mid-submit, ⌫ and ↵ gray while ↑ and ↓ vanish
 
@@ -213,8 +235,8 @@ busy, so it is untouched either way.
   to both hooks. Fewer words, but `useCaptureKeys` is blessed and does not take
   one, so the two hooks would still read differently.
 
-Recommend (a). Works with F-word-entry-4: the describe becomes one expression
-over `disabled`, `busy` and `recall`.
+Recommend (a). Works with F-word-entry-4, now shipped: the describe becomes one
+expression over `disabled`, `busy`, `recall` and `hasHistory`.
 
 ### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it
 
@@ -363,11 +385,12 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 
 *(written when the area starts changing things)*
 
-- F-word-entry-4 / 5: `useArrowHistory.test.ts` → "recall is disabled and
-  clear is active with nothing to bring back" splits (omitted → hidden, `''` →
-  disabled); "both hidden while the arrows are off" becomes two cases
-  (`disabled` → hidden, `busy` → disabled). `wordiply/PlayArea.test.tsx`
-  presses the arrows through `useArrowHistory` and should not move.
+- F-word-entry-4 — WHAT HAPPENED: nothing broke. The `''` case kept its
+  answer (`disabled`) because (b) left `recall` alone, so the predicted split
+  was two ADDED cases instead, plus one in `letterboxed/PlayArea.test.tsx`.
+  `wordiply/PlayArea.test.tsx` did not move, as predicted.
+- F-word-entry-5: `useArrowHistory.test.ts` → "both hidden while the arrows are
+  off" becomes two cases (`disabled` → hidden, `busy` → disabled).
 - F-word-entry-9: `vocabularies.test.ts` — the `MoveRow.module.css` `pending`
   row must go with the conversion (a listed value that is no longer written
   fails from the other side).

@@ -2,10 +2,10 @@
 
 /**
  * Tests for the EntryBox-only history arrows: ArrowUp recalls the last entry,
- * ArrowDown clears it, both no-op while disabled, they inherit the
- * dispatcher's focused-field gate, and each says the right thing about
- * itself. These apply to the EntryBox games only — a key-capture game that
- * isn't an EntryBox (wordle) never wires this.
+ * ArrowDown clears it, both no-op while disabled or where the game keeps no
+ * history at all, they inherit the dispatcher's focused-field gate, and each
+ * says the right thing about itself. These apply to the EntryBox games only —
+ * a key-capture game that isn't an EntryBox (wordle) never wires this.
  *
  * The arrows are bound actions, so the harness mounts the app's key dispatcher
  * beside the hook and presses real keydowns.
@@ -69,6 +69,13 @@ describe('useArrowHistory', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('neither arrow acts for a game that keeps no history', async () => {
+    const { onChange } = setup({ hasHistory: false })
+    await press('ArrowUp')
+    await press('ArrowDown')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('ignores arrows aimed at a focused text field (chat / a game input)', async () => {
     const { onChange } = setup({ recall: 'crane' })
     const input = document.createElement('input')
@@ -83,10 +90,6 @@ describe('useArrowHistory', () => {
       expect(states()).toEqual({ recall: 'hidden', clear: 'hidden' })
     })
 
-    // Pins what the code does TODAY. `todo.md` in this folder records that a
-    // caller offering no recall at all (`recall` omitted) should get `hidden`
-    // here rather than `disabled`; when that lands, this case splits in two —
-    // omitted → hidden, '' → disabled.
     it('recall is disabled and clear is active with nothing to bring back', () => {
       setup({ recall: '' })
       expect(states()).toEqual({ recall: 'disabled', clear: 'active' })
@@ -95,6 +98,20 @@ describe('useArrowHistory', () => {
     it('both active once there is a last entry', () => {
       setup({ recall: 'WORD' })
       expect(states()).toEqual({ recall: 'active', clear: 'active' })
+    })
+
+    // The distinction `recall` alone cannot draw: '' above is "offered, nothing
+    // yet", while a game with no history at all wants both keys GONE — Help
+    // draws a disabled key like a live one, so a listed key that can never act
+    // reads as one that works.
+    it('both hidden for a game that keeps no history', () => {
+      setup({ hasHistory: false })
+      expect(states()).toEqual({ recall: 'hidden', clear: 'hidden' })
+    })
+
+    it('a history game with nothing submitted yet is NOT the no-history case', () => {
+      setup({ recall: '', hasHistory: true })
+      expect(states().recall).toBe('disabled')
     })
   })
 })

@@ -626,8 +626,10 @@ at the seed**. Two more entry gates: only the twelve board letters are typeable
 (`charFor` swallows everything else), and an appended letter that can't legally
 follow the previous one (same side) **never enters the field** — refusing the
 keystroke says "wrong" immediately, instead of letting you finish typing a word
-you can already see is illegal. There's no `↑` recall — a submitted word goes
-into the chain, not away.
+you can already see is illegal. **Neither history arrow is bound here** — the
+`<EntryRow>` takes `hasHistory={false}`, so `↑` and `↓` are off the key list
+entirely: a submitted word goes into the chain rather than away, and `↓` could
+only clear back to the locked seed, which the gate above refuses anyway.
 
 **The board** is an SVG on a 0–100 square (`lib/board.ts → layout`), the twelve
 letters laid clockwise from the top-left so the four sides read as one loop.

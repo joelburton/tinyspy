@@ -480,6 +480,16 @@ describe('letterboxed PlayArea — the hint corpus when clean_words is empty', (
  * runs the same call the button does.
  */
 describe('letterboxed PlayArea — the keys', () => {
+  // `hidden`, not `disabled`: Help's key list draws a disabled key exactly like
+  // a live one, so a listed ↑ here would read as a recall this game doesn't
+  // have. Both arrows go, since ↓ could only clear back to the locked seed.
+  it('neither history arrow is offered — a word joins the chain, not a history', () => {
+    render(<WithKeys {...makeCtx()} />)
+
+    expect(bound('act-recall-last').describe('help').state).toBe('hidden')
+    expect(bound('act-clear-entry').describe('help').state).toBe('hidden')
+  })
+
   it('+ at terminal starts the next game with no question', async () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })

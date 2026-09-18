@@ -71,6 +71,14 @@ follows without a second knob. That token and a `className` are the whole of the
 per-game tuning; everything else about how an entry looks is the same in every
 game on purpose.
 
+**A game with no history hides both arrows rather than graying them.** `↑` and
+`↓` have no buttons anywhere — the only place they appear is the "Keys" list in
+Help, and that list draws a `disabled` key exactly like a live one, filtering
+only `hidden` ([`common/actions`](../actions/doc.md) → the key list). So a key
+that can never act has to be `hidden`, or it reads as one that works. That is
+what `hasHistory: false` says, and it is a different statement from `recall: ''`
+— which means the game does offer recall and nothing has been submitted yet.
+
 **What may be entered is the game's, and it is the only per-game rule.**
 `charFor` maps a pressed key to the character to append — letters in the stored
 case for most, digits for psychicnum — and the length cap, the ⌫, the ↵ and the

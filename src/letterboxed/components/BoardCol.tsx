@@ -259,6 +259,10 @@ export function BoardCol({
           busy={busy}
           onAnyKey={localFeedbackSlot.dismiss}
           charFor={charFor}
+          // No history here: a submitted word joins the chain rather than going
+          // away, so there is nothing for ↑ to bring back — and ↓ could only
+          // clear back to the seed, which the gate above refuses anyway.
+          hasHistory={false}
         />
       </div>
     </div>
