@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: phase 0, psychicnum and wordle built (wordle awaiting review); phase 3 next.** Agreed with Joel
+**Status: through letterboxed (awaiting review); setgame and strands finish phase 3.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -499,6 +499,27 @@ Those two are the whole pattern. The rest is repetition:
 
 **Phase 3** — the three that need no rename: letterboxed (three kind renames),
 setgame (nothing but the skeleton), strands (uuid → bigint).
+
+> **letterboxed built 2026-09-17.**
+> `supabase/migrations/20260917000002_letterboxed_events.sql` — the smallest
+> migration of the three so far, because letterboxed arrived in this shape:
+> already `events`, already a bigint identity, already `created_at`, already
+> carrying the read index. What was left was `took_turn` and the three kind
+> renames (`played` → `word`, `undone` → `undo`, `cleared` → `clear`), which is
+> the whole phase.
+>
+> Rehearsed on production's rows: **198 events — 160 words, 35 undos, 2 hints,
+> 1 spoiler, 0 clears** — with `took_turn` true on the 195 moves and false on
+> the 3 asks.
+>
+> **The envelopes were deliberately NOT moved**, and this is the difference from
+> psychicnum: `undo_word` and `clear_chain` answer `{result: 'undone'}` /
+> `{result: 'cleared'}`, but that is the envelope's own vocabulary, not the
+> kind's — `submit_word` answers `accepted` or `solved`, never `played`, and the
+> rest of the file says `created`, `ended`, `replayed`. Two of the seven
+> happened to coincide with a kind. `ANSWER_OUTCOME` is only ever indexed by a
+> row's `kind`, never by an envelope's `result`, so the two vocabularies do not
+> meet.
 
 **Phase 4** — connections, waffle, wordiply: rename, add `kind`, drop `seq`.
 

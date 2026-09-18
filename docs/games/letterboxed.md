@@ -136,7 +136,7 @@ every deploy).
 | `seeds` | The board-seed pool (§7): a chained word **pair** — `last(word_a) = first(word_b)` — whose letters union to exactly twelve. PK is the twelve letters **sorted** (`char(12)`; the board is a set, never a multiset, so the sorted string and the bitmask are equivalent keys and the string is the readable one); `mask` is a generated column for the builder's subset query. `difficulty` is the band of the easiest solving pair; **the importer keeps only band ≤ 2 seeds**, so the guaranteed solution is always two words a person might think of. Every stored row is **partitionable by construction** (§7). |
 | `games` | One row per playthrough. `sides` is the twelve letters **in side order** — positions 1–3 one side, 4–6 the next, and so on — so the partition lives *in* the string and can't drift from it. `playable_words` (jsonb) is every word playable on this board at `legal_band`, computed once by the builder and shipped to the FE. `solution` is the seeded pair, copied on so the board stays self-contained if the seed table is re-imported. `max_words` (2..7, resolved from `extra_words`), `legal_band`, denormalized `mode` + `club_handle`. |
 | `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (a coop-only tally of both rungs), `solved` / `solved_at`. |
-| `events` | The append-only game log, kinds `played` / `undone` / `cleared` / `hint` / `spoiler`. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the turn log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
+| `events` | The append-only game log, kinds `word` / `undo` / `clear` / `hint` / `spoiler`, with `took_turn` true on the three moves and false on the two asks. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the turn log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
 
 ### RLS
 
@@ -251,8 +251,8 @@ either way.
 
 ### The one outcome decision (`lib/answer.ts`)
 
-Every turn letterboxed can produce is one of five answers — `played`, `undone`,
-`cleared`, `hint`, `spoiler` — and the `events` row's own `kind` column is
+Every turn letterboxed can produce is one of five answers — `word`, `undo`,
+`clear`, `hint`, `spoiler` — and the `events` row's own `kind` column is
 already the key, so nothing translates. `lib/answer.ts` says what each is
 worth: `won` · `noted` · `noted` · `warning` · `lost`.
 
@@ -654,9 +654,9 @@ compete "All", defaulting to you; a rival's rows fill in at terminal).
 ([`lib/history.ts`](../../src/letterboxed/lib/history.ts)) is a **fold**, which
 is the payoff of the events table being append-only: a chain isn't a board that
 accumulates, it's a stack that can also shrink, so `historyChainAt` just runs the four
-rules forward — `played` push, `undone` pop, `cleared` empty, a hint or a spoiler nothing. The
+rules forward — `word` push, `undo` pop, `clear` empty, a hint or a spoiler nothing. The
 boundary is **inclusive** (viewing move N shows the chain *after* it — the only
-reading that makes an `undone` row show anything at all, since its whole content
+reading that makes an `undo` row show anything at all, since its whole content
 is the word no longer being there). `#N` is live only when the shown rows are
 the board's own sequence (`boardIsShown`); any key or click exits, per the
 shared viewer contract.

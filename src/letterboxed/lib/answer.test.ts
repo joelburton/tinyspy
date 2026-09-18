@@ -20,9 +20,9 @@ import { ANSWER_OUTCOME } from './answer'
 describe('ANSWER_OUTCOME', () => {
   it('gives each answer its ruled word', () => {
     expect(ANSWER_OUTCOME).toEqual({
-      played: 'won',
-      undone: 'noted',
-      cleared: 'noted',
+      word: 'won',
+      undo: 'noted',
+      clear: 'noted',
       hint: 'warning',
       spoiler: 'lost',
     })

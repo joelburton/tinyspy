@@ -601,9 +601,9 @@ export function PlayArea(ctx: GamePageCtx) {
         )
       }
       const what =
-        e.kind === 'played'
+        e.kind === 'word'
           ? `${e.word?.toUpperCase() ?? ''} (${e.letters_covered}/${BOARD_SIZE})`
-          : e.kind === 'undone'
+          : e.kind === 'undo'
             ? // Named, not "the last word": the peers' boards just lost it, so
               // say WHICH word came off (the log's "took back GJB" agrees).
               `undid ${e.word?.toUpperCase() ?? 'the last word'}`

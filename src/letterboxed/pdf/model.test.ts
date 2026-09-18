@@ -52,7 +52,7 @@ describe('buildLetterboxedPrintModel', () => {
       solutionRevealed: false,
       players: [player(ALICE, 'alice'), player(BEA, 'bea')],
       playerRows: [row(ALICE, ['adg']), row(BEA, ['adg'])],
-      events: [ev(ALICE, 'played', 'adg')],
+      events: [ev(ALICE, 'word', 'adg')],
     })
     expect(m.tracks).toHaveLength(1)
     expect(m.tracks[0].who).toBe('Team')
@@ -66,7 +66,7 @@ describe('buildLetterboxedPrintModel', () => {
       solutionRevealed: false,
       players: [player(ALICE, 'alice'), player(BEA, 'bea')],
       playerRows: [row(ALICE, ['adg']), row(BEA, ['gjb', 'beh'])],
-      events: [ev(ALICE, 'played', 'adg'), ev(BEA, 'played', 'gjb'), ev(BEA, 'played', 'beh')],
+      events: [ev(ALICE, 'word', 'adg'), ev(BEA, 'word', 'gjb'), ev(BEA, 'word', 'beh')],
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['alice', 'bea'])
     expect(m.tracks[0].turns).toHaveLength(1)
@@ -82,7 +82,7 @@ describe('buildLetterboxedPrintModel', () => {
       solutionRevealed: false,
       players: [player(ALICE, 'alice'), player(BEA, 'bea')],
       playerRows: [row(ALICE, ['adg']), row(BEA, null)],
-      events: [ev(ALICE, 'played', 'adg')],
+      events: [ev(ALICE, 'word', 'adg')],
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['alice'])
   })
@@ -121,7 +121,7 @@ describe('buildLetterboxedPrintModel', () => {
       solutionRevealed: false,
       players: [player(ALICE, 'alice')],
       playerRows: [row(ALICE, [])],
-      events: [ev(ALICE, 'undone', 'adg'), ev(ALICE, 'hint', 'kcfil'), ev(ALICE, 'spoiler', 'kcfil')],
+      events: [ev(ALICE, 'undo', 'adg'), ev(ALICE, 'hint', 'kcfil'), ev(ALICE, 'spoiler', 'kcfil')],
     })
     expect(m.tracks[0].turns.map((t) => t.text)).toEqual([
       'took back ADG',

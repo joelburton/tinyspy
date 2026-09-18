@@ -13,14 +13,14 @@ import type { EventRow } from '../hooks/useGame'
  * accumulates, it's a stack that can also shrink, so the log has to record the
  * shrinking too. Replaying it is then just running the same four rules forward:
  *
- *   played  → push the word
- *   undone  → pop the last one
- *   cleared → empty it
+ *   word  → push it
+ *   undo  → pop the last one
+ *   clear → empty it
  *   hint / spoiler → nothing changed; neither one moves the chain
  *
  * **The boundary is INCLUSIVE**: viewing the move at `index` shows the chain
  * *after* it — "this is what move #N did", which is the natural way to review a
- * move, and the only reading that makes an `undone` row show anything at all
+ * move, and the only reading that makes an `undo` row show anything at all
  * (its whole content is the word no longer being there).
  *
  * **One player's moves at a time.** In compete each player builds a separate
@@ -33,9 +33,9 @@ export function historyChainAt(events: readonly EventRow[], index: number): stri
   const chain: string[] = []
   for (let i = 0; i <= index && i < events.length; i++) {
     const e = events[i]
-    if (e.kind === 'played' && e.word) chain.push(e.word)
-    else if (e.kind === 'undone') chain.pop()
-    else if (e.kind === 'cleared') chain.length = 0
+    if (e.kind === 'word' && e.word) chain.push(e.word)
+    else if (e.kind === 'undo') chain.pop()
+    else if (e.kind === 'clear') chain.length = 0
   }
   return chain
 }
@@ -46,11 +46,11 @@ export function historyLabelAt(events: readonly EventRow[], index: number): stri
   if (!e) return null
   const word = e.word?.toUpperCase() ?? ''
   switch (e.kind) {
-    case 'played':
+    case 'word':
       return `Played ${word}`
-    case 'undone':
+    case 'undo':
       return `Took back ${word}`
-    case 'cleared':
+    case 'clear':
       return 'Started the chain over'
     case 'hint':
       return 'Took a hint'

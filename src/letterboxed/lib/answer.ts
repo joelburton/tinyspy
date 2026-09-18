@@ -11,7 +11,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
  * only outcome surface (the board mark beside it is a shake, which carries no
  * word).
  */
-export type Answer = 'played' | 'undone' | 'cleared' | 'hint' | 'spoiler'
+export type Answer = 'word' | 'undo' | 'clear' | 'hint' | 'spoiler'
 
 /**
  * The outcome of every answer, in one place.
@@ -40,9 +40,9 @@ export type Answer = 'played' | 'undone' | 'cleared' | 'hint' | 'spoiler'
  *   - a spoiler IS the word. There is nothing left to find, so it is red.
  */
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
-  played: 'won',
-  undone: 'noted',
-  cleared: 'noted',
+  word: 'won',
+  undo: 'noted',
+  clear: 'noted',
   hint: 'warning',
   spoiler: 'lost',
 }

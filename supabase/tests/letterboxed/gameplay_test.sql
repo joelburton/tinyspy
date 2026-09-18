@@ -26,7 +26,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(32);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -114,7 +114,7 @@ select ok(
 select is(
   (select kind || ':' || word || ':' || letters_covered::text
      from letterboxed.events where game_id = (select id from g)),
-  'played:adg:3',
+  'word:adg:3',
   'the move is logged with its coverage'
 );
 
@@ -180,7 +180,7 @@ select is(
 select is(
   (select kind || ':' || word from letterboxed.events
     where game_id = (select id from g) order by id desc limit 1),
-  'undone:gjb',
+  'undo:gjb',
   'the retreat is logged rather than deleting the played row'
 );
 
@@ -204,8 +204,18 @@ select ok(
 select is(
   (select kind || ':' || coalesce(word, '(none)') from letterboxed.events
     where game_id = (select id from g) order by id desc limit 1),
-  'cleared:(none)',
+  'clear:(none)',
   'a clear logs no word — it is about the whole chain'
+);
+
+-- Every move spends a go and neither rung does: the word, the undo (which is
+-- what stops it being a free reroll) and the clear are turns; a hint and a
+-- spoiler are asks.
+select is(
+  (select array_agg(distinct kind order by kind) from letterboxed.events
+    where game_id = (select id from g) and took_turn),
+  array['clear', 'undo', 'word'],
+  'took_turn is the three moves, and only those'
 );
 
 -- ── 6. Covering all twelve wins it ──────────────────────────

@@ -50,11 +50,11 @@ export type LetterboxedPrintModel = PrintHeader & {
 function describe(e: EventRow): string {
   const word = e.word?.toUpperCase() ?? ''
   switch (e.kind) {
-    case 'played':
+    case 'word':
       return `${word} (${e.letters_covered}/${BOARD_SIZE})`
-    case 'undone':
+    case 'undo':
       return `took back ${word}`
-    case 'cleared':
+    case 'clear':
       return 'started over'
     case 'hint':
       return 'took a hint'

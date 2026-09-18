@@ -1006,8 +1006,8 @@ begin
   v_chain := v_chain || v_word;
   v_covered := letterboxed._covered(v_chain);
 
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, 'played', v_word, v_covered);
+  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  values (target_game, caller_id, 'word', v_word, v_covered, true);
 
   -- ─── Did that finish it? ─────────────────────────────────
   if v_covered = 12 then
@@ -1178,8 +1178,10 @@ begin
   end if;
 
   v_covered := letterboxed._covered(v_chain);
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, 'undone', v_popped, v_covered);
+  -- An undo spends a go, which is exactly what stops it being a free reroll —
+  -- and why turn-by-turn coop can offer it at all.
+  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  values (target_game, caller_id, 'undo', v_popped, v_covered, true);
 
   perform common._advance_turn(target_game);
   perform letterboxed._sync_status(target_game);
@@ -1274,8 +1276,8 @@ begin
      where game_id = target_game and user_id = caller_id;
   end if;
 
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, 'cleared', null, 0);
+  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
+  values (target_game, caller_id, 'clear', null, 0, true);
 
   perform letterboxed._sync_status(target_game);
 
@@ -1376,9 +1378,10 @@ begin
     from letterboxed.players p
    where p.game_id = target_game and p.user_id = caller_id;
 
-  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
+  -- Neither rung takes a turn: both are coop-only asks rather than moves.
+  insert into letterboxed.events (game_id, user_id, kind, word, letters_covered, took_turn)
   values (target_game, caller_id, log_hint_or_spoiler.kind, lower(trim(word_shown)),
-          letterboxed._covered(v_chain));
+          letterboxed._covered(v_chain), false);
 
   -- No outcome: the FE has already shown the hint or the word itself, in its own pill, and
   -- this answer only says the log agrees. Its job is to be a not-ok when the

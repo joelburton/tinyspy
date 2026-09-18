@@ -117,11 +117,11 @@ function Move({ event }: { event: EventRow }) {
   const word = event.word ? <DefinableWord word={event.word} /> : null
 
   switch (event.kind) {
-    case 'played':
+    case 'word':
       return <span className={styles.logWord}>{word}</span>
-    case 'undone':
+    case 'undo':
       return <span className={styles.logRetreat}>took back {word}</span>
-    case 'cleared':
+    case 'clear':
       return <span className={styles.logRetreat}>started over</span>
     case 'hint':
       return (

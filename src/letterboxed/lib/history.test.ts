@@ -12,37 +12,37 @@ const ev = (kind: EventRow['kind'], word: string | null): EventRow => ({
 
 describe('historyChainAt', () => {
   it('replays plays in order, inclusive of the viewed move', () => {
-    const evs = [ev('played', 'adg'), ev('played', 'gjb'), ev('played', 'beh')]
+    const evs = [ev('word', 'adg'), ev('word', 'gjb'), ev('word', 'beh')]
     expect(historyChainAt(evs, 0)).toEqual(['adg'])
     expect(historyChainAt(evs, 1)).toEqual(['adg', 'gjb'])
     expect(historyChainAt(evs, 2)).toEqual(['adg', 'gjb', 'beh'])
   })
 
   it('a retreat SHRINKS the chain — the reason the log records it at all', () => {
-    const evs = [ev('played', 'adg'), ev('played', 'gjb'), ev('undone', 'gjb')]
+    const evs = [ev('word', 'adg'), ev('word', 'gjb'), ev('undo', 'gjb')]
     expect(historyChainAt(evs, 1)).toEqual(['adg', 'gjb'])
     expect(historyChainAt(evs, 2)).toEqual(['adg'])
   })
 
   it('a clear empties it', () => {
-    const evs = [ev('played', 'adg'), ev('played', 'gjb'), ev('cleared', null)]
+    const evs = [ev('word', 'adg'), ev('word', 'gjb'), ev('clear', null)]
     expect(historyChainAt(evs, 2)).toEqual([])
   })
 
   it('a hint or spoiler does not move the chain', () => {
-    const evs = [ev('played', 'adg'), ev('hint', 'gjb'), ev('spoiler', 'gjb')]
+    const evs = [ev('word', 'adg'), ev('hint', 'gjb'), ev('spoiler', 'gjb')]
     expect(historyChainAt(evs, 2)).toEqual(['adg'])
   })
 
   it('clamps past the end rather than throwing', () => {
-    expect(historyChainAt([ev('played', 'adg')], 99)).toEqual(['adg'])
+    expect(historyChainAt([ev('word', 'adg')], 99)).toEqual(['adg'])
     expect(historyChainAt([], 0)).toEqual([])
   })
 })
 
 describe('historyLabelAt', () => {
   it('names each kind', () => {
-    const evs = [ev('played', 'adg'), ev('undone', 'adg'), ev('cleared', null), ev('spoiler', 'kcfil')]
+    const evs = [ev('word', 'adg'), ev('undo', 'adg'), ev('clear', null), ev('spoiler', 'kcfil')]
     expect(historyLabelAt(evs, 0)).toBe('Played ADG')
     expect(historyLabelAt(evs, 1)).toBe('Took back ADG')
     expect(historyLabelAt(evs, 2)).toBe('Started the chain over')
