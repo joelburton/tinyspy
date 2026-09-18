@@ -7,7 +7,7 @@ import type { BoundAction } from '../actions/useBoundAction'
 import styles from './WordEntryRow.module.css'
 
 type Props = {
-  // The entry display this row wraps — an `<WordEntryInput>`, a grid of slots, …
+  // The entry display this row wraps — a `<WordEntryInput>`, a grid of slots, …
   children: ReactNode
   // Take back the last thing entered (a character, a tile, a traced cell) —
   // the same binding as the `⌫` key, so the two cannot disagree about when
@@ -20,7 +20,7 @@ type Props = {
 }
 
 /**
- * The **move row**: `⌫ | whatever you're entering | Submit`, on one centered
+ * The **word-entry row**: `⌫ | whatever you're entering | Submit`, on one centered
  * line. The two icon-only buttons at the ends, the display flex-filling between
  * them.
  *
@@ -28,11 +28,11 @@ type Props = {
  * games that can't use WordEntryArea's *keyboard* half can still be the same control.
  * The surfaces that render it are entering genuinely different things:
  *
- *   - **WordEntryArea** (every typing game) — an `<WordEntryInput>` over a text buffer,
+ *   - **WordEntryArea** (every typing game) — a `<WordEntryInput>` over a text buffer,
  *     with `useCaptureKeys` + the history arrows layered on.
  *   - **stackdown** — five slots holding picked-up TILES. There's no text
  *     buffer at all: a letter names a tile, and a word is exactly five of them.
- *   - **strands** — an `<WordEntryInput>`, but its string is *derived from the traced
+ *   - **strands** — a `<WordEntryInput>`, but its string is *derived from the traced
  *     path*, never typed into. A keystroke there resolves to a CELL (which one
  *     of the three `A`s?), so the string is an output, and WordEntryArea's
  *     string-in/string-out contract runs backwards.

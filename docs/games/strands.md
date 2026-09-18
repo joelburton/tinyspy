@@ -412,12 +412,12 @@ for the next letter would fire a half-built word at the server. It truncates
 like any other selected tile — clicking *any*
 letter in the trace, the last one included, backs up to just before it — and
 the two deliberate routes (Enter, the Submit button) carry submission alone.
-That makes the move row load-bearing rather than a convenience, since a phone
+That makes the word-entry row load-bearing rather than a convenience, since a phone
 has no Enter key. The last tile keeps its second ring: it marks where the trace
 ends, which is what tells you which neighbors are live and what Backspace will
 take.
 
-**The move row** is the shared `<WordEntryRow>` (⌫ | the traced word in an
+**The word-entry row** is the shared `<WordEntryRow>` (⌫ | the traced word in a
 `<WordEntryInput>` | Submit) — the same control every other game's entry wears. strands
 can't use `<WordEntryArea>`: its string is *derived* from the path (`wordFromPath`),
 so WordEntryArea's `value`/`onChange` contract runs backwards. The buttons are the

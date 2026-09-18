@@ -78,7 +78,7 @@ takes focus, so it never trips that gate at all.
 
 Two consequences worth knowing:
 
-- **The blinking caret is honest.** The simulated caret in an `<WordEntryInput>` shows
+- **The blinking caret is honest.** The simulated caret in a `<WordEntryInput>` shows
   only while the game actually owns the keyboard
   ([`useGameHasKeyboard`](../src/common/keyboard/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
@@ -423,8 +423,8 @@ its key can't disagree about whether the move is available. The 26 letter caps
 stay plain buttons — a letter cap is a key, not a command, and the one action
 behind them is the pattern that is handed whichever letter fired it.
 
-There is **no** `↑`/`↓` history here — that's an WordEntryInput affordance and wordle
-isn't one. Capture freezes while viewing history so a keystroke returns you to
+There is **no** `↑`/`↓` history here — wordle wires no arrows, since a played
+guess is on the board in front of you. Capture freezes while viewing history so a keystroke returns you to
 live instead of typing behind the banner.
 
 ## wordiply

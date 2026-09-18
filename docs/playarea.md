@@ -232,7 +232,7 @@ keystroke there doesn't mean "append this character":
 | | what's being entered | why not `<WordEntryArea>` |
 |---|---|---|
 | **stackdown** | five slots holding picked-up **tiles** | no text buffer at all — a letter names a tile |
-| **strands** | an `<WordEntryInput>` over the **traced path** | the string is *derived* from the path, so `value`/`onChange` run backwards |
+| **strands** | a `<WordEntryInput>` over the **traced path** | the string is *derived* from the path, so `value`/`onChange` run backwards |
 
 Reach for `<WordEntryArea>` when a keystroke appends a character; reach for
 `<WordEntryRow>` directly when it doesn't. Both games bring their own keyboard and

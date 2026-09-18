@@ -470,7 +470,7 @@ board), swapped in for spellingbee's hex flower.
     `<WordEntryInput>` display, same as spellingbee): window key-capture, letters stored
     UPPERCASE, the icon-only `act-delete-last` + `act-submit-entry` flanking the box. Enter
     submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
-    clears (the universal `useCaptureKeys` last-move history). Words can also be built
+    clears (`useArrowHistory`, which `<WordEntryArea>` layers on). Words can also be built
     by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
     [mobile.md](../mobile.md)); the traced word drives the same `word`/`onChange` engine,
     and typing clears the path. A TYPED word lights the tiles its letters could

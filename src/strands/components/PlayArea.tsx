@@ -364,7 +364,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // presence is fixed for the game's life, no reflow. (wordle's shape.)
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
 
-  // ⌫ and Enter, as the two bindings the move row places. ONE gate for both:
+  // ⌫ and Enter, as the two bindings the word-entry row places. ONE gate for both:
   // with nothing traced there is nothing to take back OR submit, and a frozen
   // board freezes them too. They go DISABLED rather than hidden, so the row
   // keeps its slot and never reflows — and a disabled action leaves its key for

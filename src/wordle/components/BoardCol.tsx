@@ -296,9 +296,9 @@ export function BoardCol({
   // ─── Physical keyboard ────────────────────────────────────────
   // Drives the same pending-guess state (`current`) as the on-screen <Keyboard> below,
   // off the shared capture CORE — so wordle can't drift from the modifier bail /
-  // focused-input guard / any-key-dismiss that the WordEntryInput games get. wordle is NOT an
+  // focused-input guard / any-key-dismiss that the WordEntryInput games get. wordle has no
   // WordEntryInput (letters land on the Board, not a box), so it uses useCaptureKeys
-  // ALONE.
+  // ALONE â no arrows, since a played guess is on the board in front of you.
   const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value: current,
     onChange: setCurrent,

@@ -403,7 +403,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
 two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.noShrinkRow`). The board column holds the stacked-tile
-board, the **move row**, and a fixed-height **local feedback slot**; the
+board, the **word-entry row**, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in
 that fixed order. Feedback is **split** the canonical way: the player's OWN move
 results (a rejected word, a keystroke matching no/too-many exposed tiles — all
@@ -416,12 +416,14 @@ accepted / rejected word additionally flashes its letters green/red in the
 `WordEntry` ring (strong outcome colors) — so the local slot carries only the
 results a ring can't.
 
-**The move row** is `⌫ | the five-slot WordEntry | Submit` — the arrangement the
-shared `<WordEntryArea>` gives every typing game ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)),
-rebuilt locally rather than reused, because stackdown's "entry" is a grid of
-picked-up **tiles**, not a text buffer: `WordEntryArea`'s capture keyboard,
-arrow-history and string `value` have nothing to bind to. The two buttons ARE the
-shared ones, so the control reads as the same control it is elsewhere.
+**The word-entry row** is the shared `<WordEntryRow>` around stackdown's own
+five-slot `WordEntry` — `⌫ | the five slots | Submit`, the same control every
+typing game wears ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)).
+What stackdown cannot use is `<WordEntryArea>`, the row with the capture keyboard
+attached: its "entry" is a grid of picked-up **tiles**, not a text buffer, so
+`WordEntryArea`'s capture keyboard, arrow-history and string `value` have nothing
+to bind to. stackdown binds its own ⌫ and ↵ and hands the row those two
+bindings, which is what makes its buttons the same buttons as everywhere else.
 
 - **Filling the fifth slot does not submit.** You commit deliberately — the
   Submit button or `Enter` — so a wrong fifth tile is recoverable rather than
@@ -595,7 +597,7 @@ fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
 Vitest above.
 
 **e2e** (`e2e/stackdown-*.e2e.ts`): history (the turn viewer), mobile, print, and
-**entry** — the move row's affordance. That last one is e2e rather than unit
+**entry** — the word-entry row's affordance. That last one is e2e rather than unit
 because what it pins is spread across three places that only exist together in a
 document: the fifth tile no longer submitting (the click handler), the buttons'
 enabled-ness (derived state), and `Enter` (the bound submit action). A unit test

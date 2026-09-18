@@ -1,7 +1,7 @@
 // cs-audited-word-entry
 
 /**
- * The move row draws the two things it is: a take-back and a commit.
+ * The word-entry row draws the two things it is: a take-back and a commit.
  *
  * Worth its own test because the failure is SILENT — a `<StandardButton>` with
  * no glyph falls back to a generic square, so an action that forgot its icon

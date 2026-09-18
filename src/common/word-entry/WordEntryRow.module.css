@@ -1,6 +1,6 @@
 /* cs-audited-word-entry */
 
-/* The shared move row (WordEntryRow.tsx): an icon-only Delete button | whatever is
+/* The shared word-entry row (WordEntryRow.tsx): an icon-only Delete button | whatever is
  * being entered | an icon-only Submit button, on one centered line. The display
  * between them flex-fills where it can (see WordEntryInput.module.css → `.box
  * { flex: 1 }`); the buttons keep their intrinsic icon-square size at the ends.

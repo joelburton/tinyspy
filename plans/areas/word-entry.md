@@ -4,16 +4,17 @@ The folders it reads: `word-entry`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — all eleven findings worked 2026-09-18, and all three
-components renamed.** Roster
+**Status: OPEN — all eleven findings worked 2026-09-18, all three components
+renamed, and the closing re-read done the same day: six more findings
+(F-word-entry-12 to 17), four worked, two waiting on a word.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
-§3's next in sequence is row 42, `word-list`. Nine files
+§3's next in sequence is row 42, `word-list`. Ten files
 `cs-audited-word-entry`.
 
 ## The roster
 
-`src/common/word-entry/` — nine files `cs-audited-word-entry`, plus the folder's
+`src/common/word-entry/` — ten files `cs-audited-word-entry`, plus the folder's
 own two docs (not stamped; the script's scope is files with a first-line
 comment):
 
@@ -70,7 +71,7 @@ Four exports, and every word game's below-board row is made of them:
           └── <WordEntryInput>      the box: value or placeholder, the caret while the game owns the keyboard
                 └── children  a game's <TypedWord> (spellingbee · boggle · wordwheel · letterboxed), or the plain value
 
-<WordEntryRow> alone               stackdown (five tile slots) · strands (an <WordEntryInput> echoing the traced path)
+<WordEntryRow> alone               stackdown (five tile slots) · strands (a <WordEntryInput> echoing the traced path)
 useArrowHistory alone         wordiply (a <GuessBoard>, no box — see F-word-entry-6)
 useCaptureKeys alone          wordle (letters land on the grid; no arrows)
 ```
@@ -123,7 +124,7 @@ Per file, each anchored by what the code IS:
 - **`WordEntryArea.tsx`**: *"See docs/ui.md → 'Text entry'"* — `ui.md` has no such
   section; the section is `docs/playarea.md → Text entry`. *"It bundles the
   three things that were being duplicated"* is archaeology. The `recall` prop's
-  *"the universal last-move history"* — letterboxed renders an `WordEntryArea` and
+  *"the universal last-move history"* — letterboxed renders a `WordEntryArea` and
   offers no recall. The `disabled` prop's *"the buttons are disabled"* — they are
   not drawn at all (F-word-entry-7). The `busy` prop's *"the Submit button is
   disabled"* — both buttons gray (the probe above).
@@ -138,10 +139,10 @@ Per file, each anchored by what the code IS:
   <WordEntryArea>), by stackdown's five tile slots and by strands' traced-word echo"*
   is a census.
 - **`useArrowHistory.ts`**: *"(docs/ui.md → Text entry)"*, the same dead cite;
-  and *"every game that renders an `<WordEntryArea>` and ONLY them"* is false
+  and *"every game that renders a `<WordEntryArea>` and ONLY them"* is false
   (F-word-entry-6).
 - **`useArrowHistory.test.ts`** header: *"(split out of useCaptureKeys)"* is
-  archaeology; *"a key-capture game that isn't an WordEntryInput (wordle) never wires
+  archaeology; *"a key-capture game that isn't a WordEntryInput (wordle) never wires
   this"* is F-word-entry-6 again.
 - **`WordEntryRow.test.tsx`** header: *"That shipped for a few minutes when the entry
   keys became actions, and Joel caught it by looking rather than by any test
@@ -161,7 +162,7 @@ Per file, each anchored by what the code IS:
 Owed with the pass, not a finding: the `## Intro to area` (`INTROS_OWED` lists
 `common/word-entry`) and a `## Details` with the render tree above.
 
-### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes an `WordEntryArea` that no longer exists — WORKED
+### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes a `WordEntryArea` that no longer exists — WORKED
 
 The section every file in this folder cites (or means to — F-word-entry-2) is
 itself behind, in four places:
@@ -289,8 +290,8 @@ onto `disabled`.
 
 ### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "WordEntryInput games and ONLY them"; wordiply is neither and wires it — WORKED as (c)
 
-`useArrowHistory`'s docstring: *"it applies to every game that renders an
-`<WordEntryArea>` and ONLY them — a key-capture game that isn't an WordEntryInput (wordle)
+`useArrowHistory`'s docstring: *"it applies to every game that renders a
+`<WordEntryArea>` and ONLY them — a key-capture game that isn't a WordEntryInput (wordle)
 uses the core alone"*. The test header, `useCaptureKeys`' docstring
 ("Layering"), `docs/playarea.md → Text entry` and wordle's `BoardCol` comment
 all repeat the boundary. Wordiply renders no `WordEntryArea` and no `WordEntryInput` —
@@ -303,7 +304,7 @@ bringing back".
 
 **Wrong in BOTH directions by the time it was presented.** At the audit only
 the "ONLY them" half was false (wordiply). F-4 falsified the other half the same
-day: letterboxed renders an `<WordEntryArea>` and, with `hasHistory={false}`, has no
+day: letterboxed renders a `<WordEntryArea>` and, with `hasHistory={false}`, has no
 arrows. A rule that names a roster had been outrun by the tree twice in one
 sitting.
 
@@ -332,7 +333,9 @@ directly. The other statements: the hook's test header, `WordEntryArea`'s inline
 comment, `useCaptureKeys`' **Layering** paragraph, `docs/playarea.md → Text
 entry`, and wordle's `BoardCol` comment — which now says only that wordle
 doesn't wire the arrows, and why (a played guess is on the board in front of
-you), instead of legislating for every game. `playarea.md` keeps the examples,
+you), instead of legislating for every game. **Corrected at the re-read:** the
+commit only cut the old sentence and wrote no why into wordle's comment;
+F-word-entry-15 added it. `playarea.md` keeps the examples,
 since illustrating a rule is not the same as listing its members.
 
 **A SIXTH statement the audit missed**, found by grepping the phrasings rather
@@ -519,7 +522,7 @@ keyboard AND something is typed; the value wrapper is unconditional whichever
 path renders it; the placeholder shows only when empty and supplied — and no
 spec in the folder exercises any of them. They are pinned from outside, by
 accident of other tests: `entry-value` is read by boggle's `PlayArea.test` and
-by three e2e files, and none looks at the caret. A file per unit: an
+by three e2e files, and none looks at the caret. A file per unit: a
 `WordEntryInput.test.tsx` covering the three rules, the caret gate driven by focusing
 an `<input>` (jsdom fires `focusin`, which is what `useGameHasKeyboard`
 tracks). Mechanical once F-word-entry-2's docstring says what the box owns.
@@ -535,6 +538,126 @@ board) returns the keyboard to the game, and the caret with it.
 value wrapper conditional on `children`, and dropping the
 `placeholder !== undefined` check failed exactly three cases, one per rule, and
 no others.
+
+### The closing re-read — 2026-09-18
+
+*(One sitting over the ten roster files, the two docs, and every file outside
+the folder that names one of its exports. The method from the last five
+re-reads: take each worked finding and grep its defect across the siblings —
+the old names, the article before a renamed name, the phrasings F-2 and F-6
+deleted, the dates. Six findings; four were the day's own work standing next
+door.)*
+
+### F-word-entry-12 · `rename-articles` · The rename left "an" in front of every renamed name — WORKED
+
+`EntryBox` and `EntryRow` took "an"; `WordEntryInput` and `WordEntryArea` take
+"a", and the sweep replaced the name and not the article. Ten sites outside
+this file, two of them wrapped across a line break where a one-line grep
+cannot see them: `WordEntryRow.tsx` (three, two in its own docstring),
+`docs/playarea.md`'s table, `docs/keyboard-shortcuts.md` (two),
+`docs/games/strands.md`, wordle's `BoardCol` comment and its `PlayArea.test`
+(two). And this file, which claims to be written in the new names throughout —
+nine more. All fixed. The grep that finds the wrapped ones is a multi-line
+one (`perl -0ne`), which is worth remembering: BSD `grep` has no `-P`, and a
+line-anchored grep reported eight where there were ten.
+
+### F-word-entry-13 · `move-row-in-prose` · The row is still "the move row" in prose, in the roster and in every host — WORKED
+
+Joel renamed `MoveRow` because "move" was the wrong word — *"it's not just
+about a move; it's about a word-entry. a move can be clicking on a tile"* — and
+the rename changed the identifier and left the phrase. In the roster:
+`WordEntryRow.tsx`'s docstring lede (*"The **move row**"*),
+`WordEntryRow.module.css`'s header, `WordEntryRow.test.tsx`'s header, and
+`WordEntryInput.module.css`'s stretch comment. Outside it, naming this
+component: `useCaptureKeys.test.ts` (blessed keyboard, one phrase), stackdown's
+`BoardCol.tsx`, `BoardCol.module.css` (three) and `WordEntry.module.css`,
+strands' `BoardCol.tsx` (four) and `PlayArea.tsx`, `docs/games/stackdown.md`
+(three), `docs/games/strands.md` (two), and `docs/common-folders.md`'s
+*"move-entry box"*. All say **the word-entry row** now — Joel's own words for
+it — as the tail of the rename, which §4 says ships with the area that renamed.
+
+**Left alone, on purpose:** letterboxed's *"a move row"* (`pdf/model.ts`) and
+*"the move rows"* (`useGame.ts`) are rows of the event log — a move per row —
+and not this component. And `.moveArea` stays: it is the class for a game's
+move controls whatever they are (wordle's keyboard, connections' pair), and
+`docs/playarea.md → Locked names` defines it that way.
+
+### F-word-entry-14 · `stackdown-doc-rebuilt-locally` · `docs/games/stackdown.md` says the row is "rebuilt locally rather than reused" — WORKED
+
+The doc's paragraph on the row: *"the arrangement the shared `<WordEntryArea>`
+gives every typing game, rebuilt locally rather than reused"*. stackdown's
+`BoardCol.tsx` imports and renders the shared `<WordEntryRow>` around its own
+five slots — the row IS reused; what it cannot use is `<WordEntryArea>`, the row
+with the capture keyboard attached. The paragraph now says that, and that the
+buttons are the same buttons because stackdown hands the row its own two
+bindings. Outside the roster, a game's doc — fixed under §4 → not a fence,
+since it is a false claim about this folder's component.
+
+### F-word-entry-15 · `boundary-restated` · F-2's and F-6's deleted claims standing in four more places — WORKED
+
+The re-read's grep for the *phrasings* rather than the listed files:
+
+- **F-6's boundary, twice more.** `docs/keyboard-shortcuts.md` → wordle:
+  *"that's an WordEntryInput affordance and wordle isn't one"* — the exact rule
+  F-6 removed from six files. And wordle's `PlayArea.test` names its case
+  *"wordle is not an WordEntryInput"* and explains *"In an WordEntryInput game
+  ArrowDown would clear"* — the same rule as a test title. Both say now that
+  wordle wires no arrows (and the doc says why: a played guess is on the board
+  in front of you).
+- **F-2's "the arrows are built into `useCaptureKeys`", once more.**
+  `docs/games/boggle.md`: *"the universal `useCaptureKeys` last-move history"*.
+  It is `useArrowHistory`, which `<WordEntryArea>` layers on. Fixed.
+- **F-6's own record overstated wordle.** This file said the wordle comment
+  *"now says only that wordle doesn't wire the arrows, and why"*; `de482411`
+  cut the old sentence and wrote no why. The comment carries it now, and F-6's
+  entry above says what happened.
+- **`docs/ui.md`'s exempt-glyph table** names *"the shared `WordEntryArea`"* as
+  where the ⌫ and ↵ glyphs are placed. `WordEntryRow` places them, for
+  stackdown and strands as much as for the typing games. Fixed.
+
+### F-word-entry-16 · `who-renders-the-row` · The docstring and `playarea.md` both list who renders `<WordEntryRow>`
+
+F-2 deleted *"Three surfaces render it"* as a count and left the three-bullet
+list under it — **WordEntryArea** (every typing game) · **stackdown** ·
+**strands** — which is the census with the number taken off. `docs/playarea.md
+→ Text entry` carries the same list as a table, opened with *"two games need
+that exact control"*. The rule the list illustrates is one sentence, already
+the docstring's: reach for the row alone when a keystroke doesn't mean "append
+this character". And `doc.md`'s Intro already names both games as its examples.
+
+**Options:**
+
+- **(a) leave both.** They are examples, not a roster — the same reading F-6
+  gave `playarea.md`'s arrow examples (*"illustrating a rule is not the same as
+  listing its members"*). A third non-typing game would be added by hand, and a
+  list that is one game short misleads nobody, since the rule sits beside it.
+- **(b) the docstring keeps the rule and loses the three bullets** — the
+  examples are `doc.md`'s (Intro to area) and `playarea.md`'s; the docstring is
+  the hover, and twelve of its twenty-six lines are the list. `playarea.md`
+  drops the number ("two games need") and keeps its table.
+
+Recommended (b). Waiting on Joel.
+
+### F-word-entry-17 · `capture-input-vs-capture-entry` · Two adjectives for the one model
+
+The repo says **capture-input** in six places (`WordEntryInput.tsx` twice,
+`WordEntryInput.module.css`, `StandardButton.tsx`, `PageHeaderButton.tsx`,
+`daylight.css`'s caret token) and **capture-entry** in four (`WordEntryArea.tsx`'s
+lede, `useCaptureKeys.ts`'s lede — blessed — `docs/playarea.md`,
+`docs/games/psychicnum.md`), for the same thing: the games that read keys off
+the window instead of focusing a field. `docs/playarea.md`'s own name for it is
+**the capture model**. Two roster files sit on opposite sides.
+
+**Options:**
+
+- **(a) leave it.** Both read clearly in context; the noun that follows
+  (display / keys / row / games) carries the meaning and the adjective is a
+  modifier on it.
+- **(b) one word, and it is `capture-entry`** — the keyboard folder's blessed
+  lede already says it, `word-entry` is the folder, and "input" is the thing
+  this model deliberately has none of. Six sites, none of them identifiers.
+
+Recommended (b). Waiting on Joel.
 
 ## Notes
 
@@ -576,7 +699,8 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — 2026-09-18,
+      F-word-entry-12 to 17
 - [x] the folder's `doc.md` Intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

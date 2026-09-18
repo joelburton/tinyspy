@@ -96,7 +96,7 @@ The rules that have bitten before:
 - **Every field is in `fields/`** — including the three only a setup form
   renders today. `fields/` is the repo of fields; the setup dialog is one
   consumer. The form frame itself (`StandardForm`, `formState`) is `forms/`.
-- The **in-game move-entry box** is NOT a form field → `word-entry/`. It has no
+- The **in-game word-entry box** is NOT a form field → `word-entry/`. It has no
   `<input>`; it reads keystrokes off the window.
 - A **toast** (bottom-right announcement) is NOT feedback → `toasts/`.
   **Feedback** is specifically the near-input validity pill and its

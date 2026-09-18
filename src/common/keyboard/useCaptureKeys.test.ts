@@ -22,7 +22,7 @@ async function press(key: string) {
 }
 
 /** Render the hook with stable mock callbacks; returns them + a rerender helper,
- *  and the two bindings the hook hands back for the move row's buttons. */
+ *  and the two bindings the hook hands back for the word-entry row's buttons. */
 function setup(initial: Partial<CaptureKeysOptions> = {}) {
   const onChange = vi.fn()
   const onSubmit = vi.fn()

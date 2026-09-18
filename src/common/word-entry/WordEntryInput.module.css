@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* STRETCH to fill the row. The box grows to take all the width the move row
+  /* STRETCH to fill the row. The box grows to take all the width the word-entry row
    * leaves between the flanking buttons, so there's always ample room for the
    * longest word (the entry is capped at 16 chars by useCaptureKeys) and the
    * typed text centers in it. `min-width: 0` lets it shrink with a narrow row

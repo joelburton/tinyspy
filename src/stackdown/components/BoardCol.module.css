@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /* stackdown's board column — the square stacked-tile canvas plus the below-board
- * region (the move row — ⌫ + the five-slot WordEntry + Submit — and the
+ * region (the word-entry row — ⌫ + the five-slot WordEntry + Submit — and the
  * local-feedback slot), on the shared scaffold's `.boardCol`. This is the
  * visual half of <BoardCol>, which also owns
  * the live input engine (tile clicks / keyboard word-building). See
@@ -16,9 +16,9 @@
 /* @@ */   --side: min(var(--avail-w), var(--avail-h), 620px);
 }
 
-/* Everything under the board: the move row, then the fixed-height local feedback
+/* Everything under the board: the word-entry row, then the fixed-height local feedback
  * slot. Pinned to the board's --side so a long feedback pill can't widen the
- * column and shift the board; centered so the move row + pill sit under it. */
+ * column and shift the board; centered so the word-entry row + pill sit under it. */
 /* @@ */ .belowBoard {
   width: var(--side);
   display: flex;

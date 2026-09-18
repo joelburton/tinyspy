@@ -2137,8 +2137,8 @@ computer, and a row for them would pad every menu to teach nothing.
 |---|---|
 | Shuffle / rotate (`IconShuffle`) | boggle, connections, psychicnum, scrabble, spellingbee, wordwheel, bananagrams |
 | Pause | the `GamePage` header, every game |
-| Delete / backspace (`IconDelete`) | the shared `WordEntryArea` |
-| Submit — the up-arrow (`IconSubmit`) | `WordEntryArea`, and each game's commit button |
+| Delete / backspace (`IconDelete`) | the shared `WordEntryRow` |
+| Submit — the up-arrow (`IconSubmit`) | `WordEntryRow`, and each game's commit button |
 
 The test is whether the glyph is a *convention* — a backspace arrow and a pause
 bar mean the same thing in every app the friends already use — not whether it's

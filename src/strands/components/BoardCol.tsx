@@ -42,7 +42,7 @@ type Props = {
   // Cells a typed letter matched when it matched several — ringed red for a beat.
   ambiguous: Coord[]
   // PlayArea's below-board slot. While it holds a message — a move's result,
-  // the theme clue, whose turn, the verdict — the pill takes the move row's
+  // the theme clue, whose turn, the verdict — the pill takes the word-entry row's
   // place.
   localFeedbackSlot: FeedbackSlot
   // ── Hint economy ──
@@ -54,9 +54,9 @@ type Props = {
 }
 
 /**
- * strands' board column: the grid, the move-row/verdict slot, and the hint bar.
+ * strands' board column: the grid, the word-entry-row / verdict slot, and the hint bar.
  *
- * The **move row and the pill share one fixed-height slot** because they are
+ * The **word-entry row and the pill share one fixed-height slot** because they are
  * mutually exclusive in time — you are either building a word or reading what
  * the last one did. (The same swap `<WordEntryArea>` makes; stackdown, whose pill
  * has a separate reserved row, is the odd one out.) Fixed height because the
@@ -123,7 +123,7 @@ export function BoardCol({
         ) : top !== null ? (
           <FeedbackPill slot={localFeedbackSlot} />
         ) : (
-          /* The shared move row (docs/playarea.md → Text entry) around the
+          /* The shared word-entry row (docs/playarea.md → Text entry) around the
              traced word. strands can't use <WordEntryArea>: its string is DERIVED
              from the path (`wordFromPath`), so `value`/`onChange` run backwards
              — a keystroke here resolves to a CELL, not to a character. What it

@@ -250,7 +250,7 @@ export function BoardCol({
         {isViewingHistory && (
           <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
-        {/* The shared move row (docs/playarea.md → Text entry) around the five
+        {/* The shared word-entry row (docs/playarea.md → Text entry) around the five
             slots. stackdown can't use <WordEntryArea> — its "entry" is a grid of
             picked-up TILES, so WordEntryArea's capture keyboard, arrow-history and
             string `value` have nothing to bind to — but the ROW is the same row,
