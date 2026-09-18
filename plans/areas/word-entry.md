@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3) and F-4 … F-8 worked 2026-09-18.** Roster
+F-3) and F-4 … F-9 worked 2026-09-18, and all three components renamed.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -455,7 +455,7 @@ returns a bare pill.
 `terminal` and `info-sheet` hold the same question about other classes and
 answer for themselves.
 
-### F-word-entry-9 · `raw-values` · Five literals, one of them a vocabulary value already
+### F-word-entry-9 · `raw-values` · Five literals, one of them a vocabulary value already — WORKED
 
 The a/b/c pass over the two stylesheets:
 
@@ -468,9 +468,34 @@ The a/b/c pass over the two stylesheets:
 | `.caret` | `animation: caretBlink 1.1s` | none (`animation` is unswept) | the only motion in the folder |
 | `.box` | `letter-spacing: 0.05em` | letter-spacing (`pending`) | the ramp is `-label` 0.03em and `-wide` 0.2em; the typed word is neither a label nor tile-spaced — surface |
 
-**Decisions:** the letter-spacing (add a step / fit to `-label` / bespoke) and
-whether a caret's three numbers are one bespoke rule left as-is with a marker.
-The gap is not a decision.
+**Two of the five turned out not to be the guard's business at all**: `width`
+and `animation` are unswept properties, so the caret's `2px` bar and its `1.1s`
+blink were never pending anything. `height: 1.15em` is governed by no ramp and
+already explains itself in the file.
+
+**Joel's decisions, 2026-09-18.** The letter-spacing takes **(b), name the
+band**, at 0.05em, named **`--letter-spacing-display`** — the axis between it
+and `-label` is SIZE and not case, since both are uppercase: `label` is the hair
+that makes a small uppercase label legible, `display` is caps set large where
+that hair would vanish. The caret's `margin: 0 1px` **stays** and is recorded
+rather than converted: the ramp's smallest step is `--spacer-5` (0.25rem), which
+beside a 2px bar is a gap and not a hairline. The gap converted silently to
+`--spacer-4`.
+
+**Scope Joel set explicitly:** nothing outside this folder. `OpponentStrip`
+(0.04em), `WordList` (0.02em) and `playArea` (0.03em) keep their `pending` rows
+for their own areas — *"we'll tackle those when we hit those areas."*
+
+**A correction I owed on my own evidence.** Presenting the options I said four
+files sat in this band, implying they would be the new step's readers. On
+inspection: `OpponentStrip`'s is a SMALL uppercase label and belongs on
+`-label`; `WordList`'s is not uppercase at all; `playArea`'s is `-label`'s value
+unconverted. So the step lands with `.box` as its only reader today — which is
+not unusual here (`--letter-spacing-label` itself has none and is
+declared-ahead) but is not what my framing implied.
+
+**Planted:** writing `0.05em` back into `.box` fails the letter-spacing guard by
+name.
 
 ### F-word-entry-10 · `move-row-test-fixture` · `WordEntryRow.test` hand-rolls the fixture that names it
 
@@ -526,9 +551,9 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 - F-word-entry-5 — HAPPENED exactly as predicted, and nothing else moved:
   wordiply's own tests pass unchanged through the `enabled` → `disabled`
   rename at its call site.
-- F-word-entry-9: `vocabularies.test.ts` — the `WordEntryRow.module.css` `pending`
-  row must go with the conversion (a listed value that is no longer written
-  fails from the other side).
+- F-word-entry-9 — HAPPENED as predicted: `WordEntryRow.module.css`'s `pending`
+  row had to go with the conversion, and `WordEntryInput.module.css`'s
+  letter-spacing row with it. Its `1px` spacer row stays, annotated.
 
 ## Closing
 

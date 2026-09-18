@@ -30,7 +30,7 @@
      opts out below — it's a calm hint, not entered text. */
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-display);
   /* tabular figures so the caret doesn't jitter as digit widths change
      (harmless for alpha entry — only affects digit glyphs) */
   font-variant-numeric: tabular-nums;

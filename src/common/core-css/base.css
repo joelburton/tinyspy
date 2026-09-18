@@ -206,12 +206,17 @@
   --transition-duration-nudge:   80ms;
   --transition-duration-travel:  180ms;
 
-  /* LETTER SPACING — two, and both are for text that is not being read
-     as prose. `label` is the hair of extra room that makes a small
-     uppercase label legible; `wide` is the deliberate spread of
-     letters presented as objects rather than as a word. */
-  --letter-spacing-label:  0.03em;
-  --letter-spacing-wide:   0.2em;
+  /* LETTER SPACING — three, none of them for text being read as prose.
+     The ramp is how far apart the letters stand, and each step says what
+     the text IS: `label` is the hair of extra room that makes a small
+     uppercase label legible; `display` is caps set LARGE, where the same
+     hair would vanish and the word wants to read letter by letter (the
+     typed word in a word-entry box); `wide` is the deliberate spread of
+     letters presented as objects rather than as a word. So the axis
+     between the first two is SIZE, not case — both are uppercase. */
+  --letter-spacing-label:    0.03em;
+  --letter-spacing-display:  0.05em;
+  --letter-spacing-wide:     0.2em;
 
   /* BORDER WIDTH, named by what the line SAYS:
 
