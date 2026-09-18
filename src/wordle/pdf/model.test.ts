@@ -15,7 +15,7 @@ import { buildWordlePrintModel } from './model'
 import type { GuessRow } from '../hooks/useGame'
 
 const g = (over: Partial<GuessRow> & Pick<GuessRow, 'guess' | 'colors'>): GuessRow => ({
-  user_id: 'u1', seq: 1, is_correct: false, ...over,
+  user_id: 'u1', id: 1, is_correct: false, ...over,
 })
 
 const base = {

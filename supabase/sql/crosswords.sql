@@ -53,7 +53,7 @@ create policy games_select on crosswords.games
 
 grant select on crosswords.cells to authenticated;
 
--- Mode-aware visibility (modeled on wordle.guesses_select): coop — any
+-- Mode-aware visibility (modeled on wordle.events_select): coop — any
 -- club member reads the shared grid; compete — you see only your own
 -- rows until the game is terminal, when opponents' grids open up. NOTE:
 -- this gates the RLS-filtered READ, not the Realtime payload — the FE's

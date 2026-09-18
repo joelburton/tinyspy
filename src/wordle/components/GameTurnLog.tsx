@@ -92,7 +92,7 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Guesses" picker={turnLogPicker} shown={shown}>
       {shown.map((g, i) => (
-        <tr key={`${g.user_id}-${g.seq}`} className={gameTurnLog.divider}>
+        <tr key={g.id} className={gameTurnLog.divider}>
           {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
               own to disagree with the pill about the same guess. */}
           <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect']} />

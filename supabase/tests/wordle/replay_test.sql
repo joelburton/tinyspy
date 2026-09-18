@@ -93,7 +93,7 @@ select is(
   (select (status->>'guesses_used')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → status.guesses_used reset to 0');
 select is(
-  (select count(*) from wordle.guesses where game_id = (select id from g1)),
+  (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from wordle.players
@@ -122,7 +122,7 @@ select wordle.submit_guess((select id from g1), (select word from valw where rn 
 select wordle.replay_board((select id from g1));
 reset role;
 select is(
-  (select count(*) from wordle.guesses where game_id = (select id from g1)),
+  (select count(*) from wordle.events where game_id = (select id from g1)),
   0::bigint, 'mid-game replay → the fresh guess is wiped too');
 
 -- ── Non-player rejected ─────────────────────────────────────

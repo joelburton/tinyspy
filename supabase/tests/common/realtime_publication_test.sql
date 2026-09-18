@@ -99,7 +99,7 @@ select set_eq(
       -- wordle
       ('wordle', 'games'),
       ('wordle', 'players'),
-      ('wordle', 'guesses'),
+      ('wordle', 'events'),
       -- stackdown
       ('stackdown', 'games'),
       ('stackdown', 'players'),

@@ -80,7 +80,7 @@ player** for compete. Notable shapes:
   `owner_id` disqualifies both a plain PK and a `USING INDEX` identity. The
   logical key is `unique nulls not distinct (…)` (the repo's first use).
 - **`version`** bumped by trigger; the FE reconciles CDC "newer wins".
-- **Mode-aware RLS** modeled on `wordle.guesses_select`: coop — any member reads
+- **Mode-aware RLS** modeled on `wordle.events_select`: coop — any member reads
   the shared grid; compete — only your own rows until terminal. **This gates the
   RLS-filtered READ, not the Realtime payload** — the CDC event for an
   opponent's cell still arrives, so `useCells` drops non-self events in compete

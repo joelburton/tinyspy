@@ -37,7 +37,7 @@ create policy games_select on wordle.games
 grant select on wordle.players to authenticated;
 -- Club-member-wide read: an opponent's guesses_used / solved is visible
 -- (the compete progress strip), but their actual guesses are gated on
--- the wordle.guesses table below.
+-- the wordle.events table below.
 drop policy if exists players_select on wordle.players;
 create policy players_select on wordle.players
   for select to authenticated
@@ -49,23 +49,23 @@ create policy players_select on wordle.players
     )
   );
 
-grant select on wordle.guesses to authenticated;
+grant select on wordle.events to authenticated;
 -- Visibility (mirrors spellingbee.found_words): club membership is the
 -- outer gate; inside, coop shows everyone's guesses, you always see
 -- your own, and once the game ends everyone sees everyone's (the
 -- compete reveal).
-drop policy if exists guesses_select on wordle.guesses;
-create policy guesses_select on wordle.guesses
+drop policy if exists events_select on wordle.events;
+create policy events_select on wordle.events
   for select to authenticated
   using (
     exists (
       select 1 from wordle.games wg
        join common.games cg on cg.id = wg.id
-       where wg.id = guesses.game_id
+       where wg.id = events.game_id
          and common.is_club_member(wg.club_handle)
          and (
                wg.mode = 'coop'
-            or guesses.user_id = (select auth.uid())
+            or events.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )
@@ -105,7 +105,7 @@ grant execute on function wordle._target_for(uuid) to authenticated;
 --   compete, mid-race → "New compete"
 --
 -- Compete gets no mid-game readout on purpose: guesses are private until the
--- end-of-game reveal (see the guesses RLS policy above), and the title is
+-- end-of-game reveal (see the events RLS policy above), and the title is
 -- club-wide readable, so publishing the latest guess would hand a racing
 -- opponent your letters. Compete holds its placeholder for the whole race —
 -- and since that's the label a club list actually sits on, it says which kind
@@ -142,9 +142,9 @@ as $$
            -- which is already on the board in front of the players.
            when wg.mode = 'coop' then coalesce(
              (select upper(gx.guess::text)
-                from wordle.guesses gx
+                from wordle.events gx
                where gx.game_id = g_id
-               order by gx.seq desc
+               order by gx.id desc
                limit 1),
              'New game')
            -- Compete stays deliberately blank WHILE PLAYING: a leader's guess
@@ -152,9 +152,9 @@ as $$
            -- there's nothing left to protect, so it reads like coop's.
            when cg.is_terminal then coalesce(
              (select upper(gx.guess::text)
-                from wordle.guesses gx
+                from wordle.events gx
                where gx.game_id = g_id
-               order by gx.seq desc
+               order by gx.id desc
                limit 1),
              'New compete')
            else 'New compete'
@@ -583,12 +583,12 @@ begin
   -- ambiguous with the `guess` column.
   if g_row.mode = 'coop' then
     select exists (
-      select 1 from wordle.guesses gx
+      select 1 from wordle.events gx
        where gx.game_id = target_game and gx.guess = norm
     ) into is_dup;
   else
     select exists (
-      select 1 from wordle.guesses gx
+      select 1 from wordle.events gx
        where gx.game_id = target_game and gx.user_id = caller_id and gx.guess = norm
     ) into is_dup;
   end if;
@@ -629,10 +629,13 @@ begin
   did_solve := (norm = lower(g_row.target));
   new_used  := p_used + 1;
 
-  insert into wordle.guesses
-    (game_id, user_id, seq, guess, colors, is_correct)
+  -- `took_turn` is a literal, not a branch: only an ACCEPTED guess reaches
+  -- here (both soft rejects returned above without writing), and an accepted
+  -- guess spends a go in either mode — the solving one included.
+  insert into wordle.events
+    (game_id, user_id, guess, colors, is_correct, kind, took_turn)
   values
-    (target_game, caller_id, new_used, norm, v_colors, did_solve);
+    (target_game, caller_id, norm, v_colors, did_solve, 'guess', true);
 
   if g_row.mode = 'coop' then
     -- Lock-step: every player's row mirrors the shared count + solved.
@@ -976,8 +979,8 @@ grant execute on function wordle.end_game(uuid) to authenticated;
 -- re-hides on its own: _target_for gates on common.games.is_terminal,
 -- which reset_game clears.
 --
--- No realtime touch needed: the players update + guesses delete wake
--- useGame (subscribed to wordle.{games,players,guesses}), and
+-- No realtime touch needed: the players update + events delete wake
+-- useGame (subscribed to wordle.{games,players,events}), and
 -- reset_game's common.games write wakes useCommonGame — the board,
 -- log, and terminal state all reset live for every player.
 drop function if exists wordle.replay_board(uuid);
@@ -1014,7 +1017,7 @@ begin
          solved_at = null
    where game_id = target_game;
 
-  delete from wordle.guesses where game_id = target_game;
+  delete from wordle.events where game_id = target_game;
 
   -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
   -- no-op) in a free-for-all game, whose pointer is null.

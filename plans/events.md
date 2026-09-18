@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: phase 0 and psychicnum built, awaiting review; wordle next.** Agreed with Joel
+**Status: phase 0, psychicnum and wordle built (wordle awaiting review); phase 3 next.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -473,6 +473,29 @@ rename, uuid → bigint, `created_at`, the `reveal` → `spoiler` kind rename, a
 where none exists, and dropping a `seq` that is also half the primary key.
 
 Those two are the whole pattern. The rest is repetition:
+
+> **Built 2026-09-17.** `supabase/migrations/20260917000001_wordle_events.sql`
+> and everything downstream. The two moves psychicnum did not have both landed:
+> a `kind` column added, filled and pinned by a one-value check, and the end of
+> a `seq` that was the key, the read order and the club-list subtitle's sort.
+> `players.guesses_used` is what still holds the live count.
+>
+> Rehearsed on production's real rows (the local database was still the restored
+> dump): **176 guesses over 41 games**, renumbered 1..176, monotonic against
+> `created_at`, `took_turn` true on all of them. `db-drift` confirms the same
+> shape builds from scratch.
+>
+> The frontend's `GuessRow` keys on `id` where it keyed on `seq`, and the
+> fixture rows in `PlayArea.test.tsx` had to become DISTINCT ids rather than the
+> `seq: 0` placeholder most of them used — the row id is the React key and the
+> peer-feedback seen-set key, so two rows sharing one is two rows the feedback
+> hook narrates once.
+>
+> **A flake in another game, found by running the suite here, NOT fixed:**
+> `supabase/tests/setgame/create_game_test.sql` asserts the opening board holds
+> exactly twelve cards, but `setgame._deal_to_playable` appends three more
+> whenever the first twelve contain no set — which is a real shuffle outcome a
+> few percent of the time. It failed once and passed on the next two runs.
 
 **Phase 3** — the three that need no rename: letterboxed (three kind renames),
 setgame (nothing but the skeleton), strands (uuid → bigint).

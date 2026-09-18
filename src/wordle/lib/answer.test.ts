@@ -6,7 +6,7 @@ import { ANSWER_OUTCOME } from './answer'
 /**
  * wordle's one outcome decision.
  *
- * A `wordle.guesses` row's `is_correct` picks the key, so there is no
+ * A `wordle.events` row's `is_correct` picks the key, so there is no
  * facts-to-answer step to test — what this pins is the table, against the SQL
  * half in `supabase/tests/wordle/gameplay_test.sql`, which asserts
  * `submit_guess` answers `won` for a solving guess and `neutral` for one that

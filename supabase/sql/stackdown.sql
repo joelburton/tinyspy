@@ -45,7 +45,7 @@ create policy players_select on stackdown.players
 grant select on stackdown.submissions to authenticated;
 -- Coop: the whole log is club-readable (shared board). Compete: own rows
 -- only, until the game is terminal (then opponents' words reveal). Mirrors
--- wordle.guesses' mode-aware policy.
+-- wordle.events' mode-aware policy.
 drop policy if exists submissions_select on stackdown.submissions;
 create policy submissions_select on stackdown.submissions
   for select to authenticated

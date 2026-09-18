@@ -32,14 +32,18 @@ export type WordlePlayerState = {
 }
 
 /**
- * One row from `wordle.guesses`. In coop the FE receives every player's
+ * One row from `wordle.events`. In coop the FE receives every player's
  * guess (the shared board); in compete RLS filters server-side so the
  * FE only sees its own rows until the game ends (then opponents open
  * up). `colors` is the 5-char g/y/x feedback.
  */
 export type GuessRow = {
+  /** The row's own id, and the order of play — the database hands them out in
+   *  the order the rows were written, which is what the read below orders by.
+   *  It replaced a per-guesser `seq`, whose live count is
+   *  `players.guesses_used`. */
+  id: number
   user_id: string
-  seq: number
   guess: string
   colors: string
   is_correct: boolean
@@ -48,7 +52,7 @@ export type GuessRow = {
 /**
  * wordle's per-gametype data hook (both modes share it) — the
  * refetch-only realtime pattern. Every guess flows through
- * `wordle.submit_guess`, which writes `wordle.{players, guesses}`; those
+ * `wordle.submit_guess`, which writes `wordle.{players, events}`; those
  * propagate to peers via the postgres-changes subscription and we
  * refetch. Subscribes to the base tables (Realtime watches tables, not
  * views); reads `games_state` (the only path to the gated target).
@@ -72,7 +76,7 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'wordle', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'wordle', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'wordle', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      { schema: 'wordle', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'wordle',
     id: gameId,
@@ -94,10 +98,10 @@ export function useGame(gameId: string): {
         ),
         readRows(
           db
-            .from('guesses')
-            .select('user_id, seq, guess, colors, is_correct')
+            .from('events')
+            .select('id, user_id, guess, colors, is_correct')
             .eq('game_id', gameId)
-            .order('seq', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
       ])
       if (!mounted()) return

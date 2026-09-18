@@ -74,7 +74,7 @@ select is(
 -- ── Opponent visibility mid-game (as bea) ───────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from wordle.guesses
+  (select count(*) from wordle.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0::bigint,
@@ -123,7 +123,7 @@ select is(
 -- ── Post-terminal: the opponent guesses are now revealed ────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from wordle.guesses
+  (select count(*) from wordle.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,

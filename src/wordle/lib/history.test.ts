@@ -7,7 +7,7 @@ import type { GuessRow } from '../hooks/useGame'
 /** A guess row, defaulting the fields the snapshot ignores. */
 const g = (guess: string, colors: string, is_correct = false): GuessRow => ({
   user_id: 'u1',
-  seq: 0,
+  id: 1,
   guess,
   colors,
   is_correct,

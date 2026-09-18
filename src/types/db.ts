@@ -3847,6 +3847,57 @@ export type Database = {
   }
   wordle: {
     Tables: {
+      events: {
+        Row: {
+          colors: string
+          created_at: string
+          game_id: string
+          guess: string
+          id: number
+          is_correct: boolean
+          kind: string
+          took_turn: boolean
+          user_id: string
+        }
+        Insert: {
+          colors: string
+          created_at?: string
+          game_id: string
+          guess: string
+          id?: never
+          is_correct: boolean
+          kind: string
+          took_turn?: boolean
+          user_id: string
+        }
+        Update: {
+          colors?: string
+          created_at?: string
+          game_id?: string
+          guess?: string
+          id?: never
+          is_correct?: boolean
+          kind?: string
+          took_turn?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           club_handle: string
@@ -3876,51 +3927,6 @@ export type Database = {
           target?: string
         }
         Relationships: []
-      }
-      guesses: {
-        Row: {
-          colors: string
-          game_id: string
-          guess: string
-          guessed_at: string
-          is_correct: boolean
-          seq: number
-          user_id: string
-        }
-        Insert: {
-          colors: string
-          game_id: string
-          guess: string
-          guessed_at?: string
-          is_correct: boolean
-          seq: number
-          user_id: string
-        }
-        Update: {
-          colors?: string
-          game_id?: string
-          guess?: string
-          guessed_at?: string
-          is_correct?: boolean
-          seq?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       players: {
         Row: {

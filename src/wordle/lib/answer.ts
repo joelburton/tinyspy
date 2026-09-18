@@ -3,7 +3,7 @@
 import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
- * What an accepted guess was — the two things a `wordle.guesses` row can
+ * What an accepted guess was — the two things a `wordle.events` row can
  * record. The words are `submit_guess`'s own `result`.
  *
  * The two SOFT REJECTS are deliberately absent. A duplicate and a word off the

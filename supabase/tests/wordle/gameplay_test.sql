@@ -14,7 +14,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(20);
+select plan(21);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -68,7 +68,7 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0, 'soft rejects did not burn a guess');
 select is(
-  (select count(*) from wordle.guesses where game_id = (select id from g)),
+  (select count(*) from wordle.events where game_id = (select id from g)),
   0::bigint, 'soft rejects wrote no guess row');
 
 -- ── A valid non-target guess: incorrect, burns one ─────────
@@ -90,9 +90,18 @@ select is(
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   1, 'coop: the guess is shared — bea''s budget moved too (lock-step)');
 select is(
-  (select length(colors) from wordle.guesses
-    where game_id = (select id from g) and seq = 1),
+  (select length(colors) from wordle.events
+    where game_id = (select id from g) order by id limit 1),
   5, 'the guess row stores 5-char colors');
+
+-- Every row here is an accepted guess, so `kind` has one value and
+-- `took_turn` is true — a soft reject returns without writing, which is the
+-- assertion above about no row being written at all.
+select is(
+  (select array_agg(distinct kind || ':' || took_turn) from wordle.events
+    where game_id = (select id from g)),
+  array['guess:true'],
+  'every row is a guess that spent a go');
 -- The club-list title becomes a readout of the shared board: the most recent
 -- guess. (Coop only — compete's guesses are private; see compete_test.)
 select is(

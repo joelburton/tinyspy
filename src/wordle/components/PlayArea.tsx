@@ -169,15 +169,15 @@ export function PlayArea({
   // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth guessed
   // CRANE", in the row's own outcome (`neutral` for an ordinary guess, `won` for the
   // one that solves it) with their identity dot. Only accepted guesses reach here —
-  // `wordle.guesses` holds nothing else (a soft reject writes no row). My own guesses
+  // `wordle.events` holds nothing else (a soft reject writes no row). My own guesses
   // are excluded (they land on the shared board). Compete never narrates a guess: RLS
-  // scopes `guesses` to the caller, and we gate on coop besides. The shared hook's
-  // seen-set (not "the last row") handles coop interleaving two players' rows by
-  // seq, so the newest isn't last.
+  // scopes the log to the caller, and we gate on coop besides. The shared hook's
+  // seen-set (not "the last row") is what handles two coop players' rows arriving
+  // interleaved.
   usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
-    keyOf: (g) => `${g.user_id}-${g.seq}`,
+    keyOf: (g) => String(g.id),
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
       const member = memberById(members, g.user_id)

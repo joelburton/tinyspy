@@ -10,9 +10,9 @@
  * only ever ADDS a colored row to the board, so a past board is simply the first N
  * guess rows. No fold or mutation is needed — the rows ARE the state.
  *
- * **Keyed by log position, not a stored id.** wordle's `guesses` carries a
- * per-player `seq`, but the log renders "#N" = the row's position in the
- * DISPLAYED board (0-based here), which is what a board replay indexes by. The
+ * **Keyed by log position, not a stored id.** wordle's `events` rows each carry
+ * an id, but the log renders "#N" = the row's position in the DISPLAYED board
+ * (0-based here), which is what a board replay indexes by. The
  * viewer only ever replays the board the player is looking at (their own / the coop
  * team board), where log position and board row line up 1:1 — see PlayArea.
  *
