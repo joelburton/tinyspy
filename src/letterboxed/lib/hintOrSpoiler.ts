@@ -3,7 +3,7 @@
 /**
  * ONE definition of what each rung SHOWS, because three surfaces must agree
  * word-for-word: the requester's own pill (`askForHintOrSpoiler`), the
- * teammates' echoed pill (the peer-events narration), and the turn log's
+ * teammates' echoed pill (the peer-events narration), and the event log's
  * lasting record. Drift between them would make the same hint read as
  * different information to different players.
  *

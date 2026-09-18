@@ -48,7 +48,7 @@ export type WordiplyGame = {
  * five board rows, or spend budget; the log shows both. See the migration's
  * table header for why rejects are stored.
  */
-export type GuessRow = {
+export type EventRow = {
   id: number
   game_id: string
   user_id: string
@@ -74,11 +74,11 @@ export type GuessRow = {
  */
 export function useGame(gameId: string): {
   game: WordiplyGame | null
-  /** EVERY row — the turn log, rejects included. Only the log wants these. */
-  guesses: GuessRow[]
+  /** EVERY row — the event log, rejects included. Only the log wants these. */
+  guesses: EventRow[]
   /** Just the accepted ones: the board's five rows, the dedup source, the
    *  scores. Split here so no consumer has to remember the rule. */
-  validGuesses: GuessRow[]
+  validGuesses: EventRow[]
   loading: boolean
   /** True once the guesses rows have loaded at least once — distinct from
    *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
@@ -89,7 +89,7 @@ export function useGame(gameId: string): {
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<WordiplyGame | null>(null)
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
   // TWO failure slots, because the two lifecycles below fail differently. The
@@ -172,13 +172,13 @@ export function useGame(gameId: string): {
       // every realtime event, so an outage that ends should take its sentence
       // with it rather than leaving the surface behind a stale explanation.
       setRowsFailure(null)
-      setGuesses(res.data as GuessRow[])
+      setGuesses(res.data as EventRow[])
       setRowsLoaded(true)
     },
   })
 
   // Split once, here, so no consumer has to remember the rule: the board, the
-  // dedup and every score read `validGuesses`; only the turn log wants them all.
+  // dedup and every score read `validGuesses`; only the event log wants them all.
   const validGuesses = useMemo(() => guesses.filter((g) => g.valid), [guesses])
 
   // The header's wins: it can never be retried, so once it has failed the board

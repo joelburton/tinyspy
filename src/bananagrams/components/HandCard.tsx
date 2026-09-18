@@ -12,7 +12,7 @@ import styles from './PlayerBoard.module.css'
 
 /**
  * bananagrams' info-column VIEW — the HAND card. A plain heading over a bordered box
- * (matching the shared WordList / TurnLog chrome): the dump zone at the top (you dump
+ * (matching the shared WordList / EventLog chrome): the dump zone at the top (you dump
  * one of a few tiles often, so keep the target close), the ⟲ rotate floating over the
  * tiles' corner, and the scrolling hand tiles below.
  *

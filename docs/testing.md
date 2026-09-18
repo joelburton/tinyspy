@@ -31,7 +31,7 @@ Use this when you're about to write a test:
 | Server-side randomness produces the right distribution | pgTAP | codenamesduet's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |
 | A React hook moves through the right states | Vitest | `useSession` flips `loading → session → null` correctly |
-| A component renders the right text given props | Vitest | `GameTurnLog` renders a turn row from props |
+| A component renders the right text given props | Vitest | `GameEventLog` renders a turn row from props |
 | Cross-component integration in the browser | manual smoke test | "Start a game, send a clue, see it appear in partner's window" |
 
 The gray zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/codenamesduet/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
@@ -190,7 +190,7 @@ Stack: [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) +
 | [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
 | [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
 | [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
-| [`src/codenamesduet/components/GameTurnLog.test.tsx`](../src/codenamesduet/components/GameTurnLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
+| [`src/codenamesduet/components/GameEventLog.test.tsx`](../src/codenamesduet/components/GameEventLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 
 The pattern is: **mock at the lowest layer that lets you write the test simply**. For `useSession`, that's the Supabase auth API. For `useBoard`, it's the Supabase client. For a pure function, it's nothing.
 
@@ -218,7 +218,7 @@ A Playwright suite (`e2e/`, `npm run test:e2e`) for the surfaces Vitest and pgTA
 - **realtime / presence / auth (the core)** — member presence dots (a present member's dot fills, a leaving member's goes hollow); the abandoned-game heal (`is_current_view` cleared when the club page loads); pause-on-disconnect (one player disconnects, the other's game pauses); the auth gate (a stale session lands on LoginScreen; an unclaimed session gets the username gate with a working sign-out). These run two real browser contexts.
 - **responsive layout** — the `*-mobile.e2e.ts` specs: at phone viewports the board fills, the page never scrolls, and the info sheet slides in/out. Pure CSS/flex geometry jsdom can't measure (see [verify-layout-headless] in memory / docs/mobile.md).
 - **real PDF generation** — the `*-print.e2e.ts` smokes: the "Print board (PDF)" menu item downloads a `%PDF-` file. jsPDF's runtime is unreachable by the mocked component tests (the `common/pdf/` unit tests use a fake jsPDF; these use the real one).
-- **the turn-history overlay** — the `*-history.e2e.ts` specs: clicking a turn-log `#N` replays it on the board with the frame/banner, and the shared exit paths (key / board click / any click) work. Overlay + no-reflow properties jsdom can't see.
+- **the turn-history overlay** — the `*-history.e2e.ts` specs: clicking a event-log `#N` replays it on the board with the frame/banner, and the shared exit paths (key / board click / any click) work. Overlay + no-reflow properties jsdom can't see.
 - **game-specific browser behavior** — chat unread, clue-form focus traps, tap-to-trace, AI opponent, the bananagrams touch block, etc.
 
 The list is illustrative, not a contract. When you add a spec, add it for a browser-only surface in one of these buckets — not to re-test logic Vitest/pgTAP already own.

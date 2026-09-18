@@ -18,7 +18,7 @@ import type { LetterboxedPrintModel, PrintTrack } from './model'
 /**
  * letterboxed's print-to-PDF.
  *
- * **One track per board**, not the newspaper turn-log flow: in compete each
+ * **One track per board**, not the newspaper event-log flow: in compete each
  * player builds a DIFFERENT chain on the same twelve letters, so a wrapped
  * single stream would file one player's words under another player's board. The
  * shared `common/pdf/columns` lays out up to three per page (see its header for

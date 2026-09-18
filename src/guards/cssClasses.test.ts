@@ -182,7 +182,7 @@ const DEAD_CLASS_PENDING: string[] = [
   // `.clueLabel` — nothing reads it. → the `codenamesduet` area.
   'src/codenamesduet/components/CluePanel.module.css',
   // `.breakdown` + three siblings — the per-player breakdown they styled was
-  // replaced (see that game's GameTurnLog). → the `setgame` area.
+  // replaced (see that game's GameEventLog). → the `setgame` area.
   'src/setgame/components/PlayArea.module.css',
 ]
 

@@ -1,0 +1,78 @@
+/* cs-blessed-event-log */
+
+/* The row vocabulary — what a GAME's `GameEventLog.tsx` puts on the `<tr>`s and
+ * `<td>`s it renders inside a `<EventLog>`. Lowercase, because it is read by every
+ * game with a log rather than owned by one component (docs/deferred.md → Common /
+ * architecture: capital means one component's, lowercase means shared).
+ *
+ * `EventLog.module.css` is the other half and is NOT this: it holds what
+ * `<EventLog>` and its atoms draw themselves — the box, the table, the outcome
+ * bar, the turn number, the who column. A game never imports it.
+ *
+ * Bare names, read at the call site as `gameEventLog.main`, already namespaced by
+ * the import alias.
+ *
+ * The COLUMN-SIZING classes form a small model for a row's cells: an optional
+ * `<EventLogOutcomeBar>` (col 0), an optional `<EventLogNumber>`, one (or more) content
+ * column, and the `<EventLogActor>` who cell. Exactly ONE content column should be
+ * `.main` (it absorbs the row's slack, so it is least likely to wrap); any others
+ * are `.other` (sized to their content). Everything but `.main` shrinks to fit, so
+ * the slack lands there and the actor sits snug at the right. These carry SIZING
+ * only — no emphasis — so a game composes its own look on top (e.g.
+ * `cls(gameEventLog.other, gameEventLog.primary)` for a bold word). */
+
+/* The divider line BETWEEN turns. A game applies this to the FIRST <tr> of each
+ * turn (it alone knows where a turn starts — one row, or several). A top border,
+ * so a multi-row turn gets NO mid-turn line; the very first turn's row is
+ * suppressed by :first-child, so a game can apply it to every turn-start row
+ * unconditionally. Full width, reaching the left edge (over the bar column too). */
+/* @@ */ .divider td {
+  border-top: 1px solid var(--page-divider-color);
+}
+/* @@ */ .divider:first-child td {
+  border-top: none;
+}
+
+/* Multi-row entry: hug its rows together so they read as ONE entry, not several.
+ * The game (which knows the row kinds, since it renders them) tags the entry's
+ * FIRST row `.entryHead` and each CONTINUATION row `.entryCont`; we just trim the
+ * facing padding. (Preferred over a `:has()`/`:not()` selector that re-derives
+ * the row kind from structure — the explicit class names what the component
+ * already knows.) Inert for single-row entries (which carry neither). */
+/* @@ */ .entryHead td {
+  padding-bottom: 0.1rem;
+}
+/* @@ */ .entryCont td {
+  padding-top: 0;
+}
+
+/* The MAIN content column — absorbs the row's slack (so a long value doesn't
+ * wrap). Exactly one cell per row should be `.main`; put it where the slack
+ * should land (typically the last content cell before the actor, so the gap sits
+ * between the content and the disc). */
+/* @@ */ .main {
+  width: 100%;
+}
+
+/* A secondary content column — sized to fit its content, doesn't absorb slack,
+ * stays on one line. No emphasis baked in (a game adds its own). */
+/* @@ */ .other {
+  white-space: nowrap;
+}
+
+/* The lead value of the row — the guessed number, the played word. EMPHASIS, not
+ * sizing: compose with a sizing class (`.main` / `.other`) for the column. */
+/* @@ */ .primary {
+  font-weight: 700;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* De-emphasized text INSIDE a row — "(no guesses)", a `Hint:` label, a letters
+ * covered count, a reason after a word. Muted, and that is all: it says "this is
+ * secondary", never what the thing is. A piece with a consistent meaning gets a
+ * class of its own instead (the turn number is the worked example — it looks the
+ * same and is named for what it is, in `EventLog.module.css`). */
+/* @@ */ .muted {
+  color: var(--page-text-muted-color);
+}

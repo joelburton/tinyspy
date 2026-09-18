@@ -15,7 +15,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildConnectionsPrintModel, RANK_LETTER } from './model'
 import type { Category } from '../lib/board'
-import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { EventRow, MatchedCategory } from '../hooks/useGame'
 
 const CATS: Category[] = [
   { rank: 0, name: 'Starts with A', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
@@ -29,7 +29,7 @@ const matched = (rank: 0 | 1 | 2 | 3): MatchedCategory => ({
   matched_at: '2026-01-01T00:00:00Z',
 })
 
-const guess = (over: Partial<GuessRow> = {}): GuessRow => ({
+const guess = (over: Partial<EventRow> = {}): EventRow => ({
   id: 1,
   user_id: 'u1',
   tiles: ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
@@ -47,7 +47,7 @@ const base = {
   matched: [] as MatchedCategory[],
   unmatched: [] as Category[],
   remainingTiles: [] as string[],
-  guesses: [] as GuessRow[],
+  guesses: [] as EventRow[],
   players: [
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },

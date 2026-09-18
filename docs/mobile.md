@@ -305,8 +305,8 @@ render the name in a real `.name` span rather than baking it into the message
 string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;
 `auto` (the feedback default) hides the name under `@media (--phone)` via one
 rule, so a long username can't overflow a tight header or below-board pill —
-"● moth writing clue" becomes "● writing clue". Turn logs keep their
-names (`TurnLogActor` → `show="both"`).
+"● moth writing clue" becomes "● writing clue". Event logs keep their
+names (`EventLogActor` → `show="both"`).
 
 A message about a person carries them as its `actor`, and the pill draws the
 mention itself (`FeedbackMessage.peer(member, …)`); `usePeerFeedback` dedups on
@@ -629,7 +629,7 @@ mobile pass is now composing them, not copy-paste:
   so a sheet opened on mobile doesn't reappear already-open after a round trip
   through a wide layout. **The sheet is a FLEX COLUMN** whose in-flow child (the
   game's `<InfoCol>`) gets `flex: 1 1 auto; min-height: 0` — that's what gives
-  the info column a definite height to divide up, so its turn log / word list
+  the info column a definite height to divide up, so its event log / word list
   scrolls inside its own bordered box instead of growing tall and making the
   whole sheet scroll. `min-height: 0` is the load-bearing half: a flex item's
   implicit `min-height: auto` refuses to shrink under its content. (This was
@@ -723,7 +723,7 @@ no scroll, sheet works; drag off on touch; a tap-swap commits).
 **connections** was the plain recipe plus a couple of below-board tweaks. The board
 is one grid that fills `--avail-w`, so `mobileFill` fills the phone (no divergence,
 like psychicnum); input is tap-a-tile (touch-native), no keyboard/drag; the info
-column (mistakes/turn-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
+column (mistakes/event-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
 the pure-board games it has a below-board **commit row** (mistakes readout +
 Clear/Submit), which is tight on a phone, so — same treatment as codenamesduet's
 action row — the **buttons go icon-only** (`show={useIsPhone() ? 'icon' : 'both'}` + a `@media
@@ -784,10 +784,10 @@ strands-specific reasoning:
 Guarded by [`strands-mobile.e2e.ts`](../e2e/strands-mobile.e2e.ts) at tall +
 short: no page scroll in either axis, the board's **bounding rect** (frame
 included) inside the viewport, the sheet round-trip, a tapped trace committing,
-and — with the log padded past what any sheet can show — that the turn log's own
+and — with the log padded past what any sheet can show — that the event log's own
 box takes the overflow rather than the sheet. Both halves were verified by
 planting: restoring the un-framed formula fails the width assertion at 415px,
-and making `.turnLogBox` non-scrolling fails the sheet assertion.
+and making `.eventLogBox` non-scrolling fails the sheet assertion.
 
 Landscape phones were checked (844×390) and are fine — no scroll, everything
 reachable — just height-bound to a small board, which is inherent to an 8-row

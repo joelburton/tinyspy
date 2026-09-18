@@ -15,7 +15,7 @@ import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -49,7 +49,7 @@ const SECRET_COUNT = 3
  *
  *   - Header copy + progress: coop shows the team's "found X of 3";
  *     compete shows the caller's own progress + opponents' budgets.
- *   - GameTurnLog: coop shows everyone's guesses (and hints);
+ *   - GameEventLog: coop shows everyone's guesses (and hints);
  *     compete is RLS-scoped to the caller.
  *   - Feedback: coop narrates teammates' guesses (green/red) and
  *     hint requests (amber) in the header; compete narrates an
@@ -271,7 +271,7 @@ export function PlayArea({
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
   // ─── The hint and the spoiler ──────────────────────────
-  // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
+  // Hint (a clue) and spoiler (the answer word itself) both land in the event log
   // via realtime; coop teammates get a header message. Nothing to do with the
   // return value here — those rows arrive over the subscription. "Reveal" on
   // this page means one thing only: the whole solution at game-over, which is
@@ -289,7 +289,7 @@ export function PlayArea({
       return
     } else if (res.type === 'ok' && res.data.result === 'hint') {
       // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
-      // subscription and lands in the turn log, where it stays. A pill would
+      // subscription and lands in the event log, where it stays. A pill would
       // say the same thing twice and then vanish.
       return
     } else if (res.type === 'ok' && res.data.result === 'no-hint') {
@@ -309,7 +309,7 @@ export function PlayArea({
       return
     } else if (res.type === 'ok' && res.data.result === 'spoiler') {
       // Same as the hint: the word arrives as a `kind = 'spoiler'` row and the
-      // turn log is where it belongs — a spoiler you asked for should stay
+      // event log is where it belongs — a spoiler you asked for should stay
       // readable, not flash past.
       return
     } else {
@@ -321,7 +321,7 @@ export function PlayArea({
   // ─── Coop peer events → the header ─────────────────────
   // A teammate's guess (green correct / red not), or their hint or spoiler, is
   // narrated in the header. My own events are excluded — my guesses get the
-  // local slot, my hint shows in my own turn log. Compete never reaches here:
+  // local slot, my hint shows in my own event log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
   // The shared seen-set producer narrates EVERY new peer event (the old
   // hand-rolled version only looked at the latest row, dropping any that
@@ -377,7 +377,7 @@ export function PlayArea({
   }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a turn-log #N to replay that turn's board (the tiles decided up to that
+  // Click a event-log #N to replay that turn's board (the tiles decided up to that
   // turn, with that turn's guessed tile ringed history-blue). Keyed by log
   // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
   // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds

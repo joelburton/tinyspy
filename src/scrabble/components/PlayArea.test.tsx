@@ -26,7 +26,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { PlayRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
+import type { EventRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
@@ -78,12 +78,12 @@ function selfPlayer(over: Partial<PlayerRow> = {}): PlayerRow {
   return { user_id: 'u1', seat: 0, score: null, rack: null, rack_count: 7, ai_level: null, ...over }
 }
 
-function loaded(game: ScrabbleGame, players: PlayerRow[], plays: PlayRow[] = []): GameHook {
+function loaded(game: ScrabbleGame, players: PlayerRow[], plays: EventRow[] = []): GameHook {
   return { game, players, plays, loading: false, failure: null }
 }
 
 /** A committed word play, for the move log / turn viewer. */
-function wordPlay(over: Partial<PlayRow> = {}): PlayRow {
+function wordPlay(over: Partial<EventRow> = {}): EventRow {
   return {
     user_id: 'u1',
     seat: 0,

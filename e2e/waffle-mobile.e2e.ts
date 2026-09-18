@@ -116,12 +116,12 @@ test.describe('waffle mobile', () => {
 })
 
 /**
- * A LONG turn log must scroll inside its own bordered box — the sheet around it
+ * A LONG event log must scroll inside its own bordered box — the sheet around it
  * must not grow and scroll instead.
  *
  * The regression this pins: the off-canvas `<InfoSheet>` used to be a plain
  * `display: block` in its narrow (non-`wide`) form, so the info column inside
- * had no definite height to divide up. `.turnLog`'s `flex: 1; min-height: 0`
+ * had no definite height to divide up. `.eventLog`'s `flex: 1; min-height: 0`
  * then bounded nothing — the log grew to its full content height and the SHEET
  * scrolled, carrying the readouts and the action row off the top. Every
  * narrow-sheet game had it (waffle / wordle / psychicnum / connections /
@@ -130,7 +130,7 @@ test.describe('waffle mobile', () => {
  * Measured, not eyeballed: the log's box must overflow its own client height
  * (so it scrolls), while the sheet's must not.
  */
-test('a long turn log scrolls inside its box, not the sheet', async ({ browser }) => {
+test('a long event log scrolls inside its box, not the sheet', async ({ browser }) => {
   const club = await createSoloClub('wflog')
   const game = await createWaffleGame(club)
   // Far more rows than a real game can produce (a game has par + extra swaps),
@@ -158,7 +158,7 @@ test('a long turn log scrolls inside its box, not the sheet', async ({ browser }
   await page.waitForTimeout(300)
 
   const m = await page.evaluate(() => {
-    const box = document.querySelector('[class*="turnLogBox"]') as HTMLElement | null
+    const box = document.querySelector('[class*="eventLogBox"]') as HTMLElement | null
     const sheet = document.querySelector('[data-info-sheet]') as HTMLElement | null
     return {
       boxScroll: box?.scrollHeight ?? 0,

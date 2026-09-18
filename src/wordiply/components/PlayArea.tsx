@@ -8,7 +8,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
-import { useGame, type GuessRow } from '../hooks/useGame'
+import { useGame, type EventRow } from '../hooks/useGame'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
@@ -115,7 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the caller's own (opponents' rows are RLS-hidden mid-game and, once the
   // reveal opens them at terminal, must NOT crowd my board — my five guesses
   // stay mine). Already ordered by id from useGame.
-  const myGuesses = useMemo<GuessRow[]>(
+  const myGuesses = useMemo<EventRow[]>(
     () =>
       game?.mode === 'compete'
         ? validGuesses.filter((g) => g.user_id === session.user.id)

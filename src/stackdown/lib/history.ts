@@ -38,7 +38,7 @@
 
 /**
  * The submission fields the replay needs — a structural subset of the hook's
- * `SubmissionRow` (kept local so this lib stays free of any React/hook import).
+ * `EventRow` (kept local so this lib stays free of any React/hook import).
  * A `word` submission carries the `tile_ids` it cleared and a `valid` verdict; a
  * `hint` / `spoiler` request carries neither (its `tile_ids` is null).
  */

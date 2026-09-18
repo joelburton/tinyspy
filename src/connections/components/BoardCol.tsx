@@ -23,13 +23,13 @@ import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import type { Answer } from '../lib/answer'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
-import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { ConnectionsGame, EventRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
 import type { HistorySnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -158,7 +158,7 @@ export function BoardCol({
   // ── Guess dispatch ──
   gameId: string
   // The guess log — for FE-side dup detection before firing submit_guess.
-  guesses: GuessRow[]
+  guesses: EventRow[]
 
   // ── Below-board readout ──
   mistakeCount: number

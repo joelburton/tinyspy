@@ -55,7 +55,7 @@ apart.
 - **What is not here, and why.** The line that decides membership is *you pick
   exactly one thing*; docs/ui.md → Selection lists draws it. A menu is actions
   and closes (`common/menu`); a `SelectField` is a real form control that takes
-  focus on purpose (`common/fields`); `WordList` and `TurnLog` are readouts you
+  focus on purpose (`common/fields`); `WordList` and `EventLog` are readouts you
   do not pick from.
 - **Two kinds of cursor.** `SelectionList`'s is a selection cursor, hidden
   until asked for. A board's is geographic, always shown. The taxonomy and the

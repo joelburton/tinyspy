@@ -31,7 +31,7 @@
   /* A spent hint's dashed ring. Neutral on purpose: a hint is not an outcome,
    * so it must not borrow the purple/gold vocabulary of a found word. */
 /* @@ */   --strands-hint-ring: #8a8a94;
-  /* TEXT variants of the two board colors, for the turn log.
+  /* TEXT variants of the two board colors, for the event log.
    *
    * The board colors above are tuned as DISC FILLS with white letters on top,
    * where a lighter, more saturated tone reads best. The same values as TEXT on

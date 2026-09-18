@@ -13,7 +13,7 @@ closeContextsAfterEach()
  * selecting tiles with the mouse, Return did nothing. A window-level handler now
  * fires the guess regardless of focus. We select the 4 A-words of the fixture
  * puzzle (a correct category) and press Enter *without* touching the Submit
- * button — the turn logging is the "the keystroke submitted" signal.
+ * button — the event logging is the "the keystroke submitted" signal.
  */
 test('connections: Enter submits the selected guess (no Submit-button click)', async ({
   browser,
@@ -35,7 +35,7 @@ test('connections: Enter submits the selected guess (no Submit-button click)', a
   await page.getByRole('heading', { name: 'Guesses' }).click()
   await page.keyboard.press('Enter')
 
-  // The turn logs → the guess landed. (A correct guess also collapses the four
+  // The event logs → the guess landed. (A correct guess also collapses the four
   // A-words into a band, but the log handle is the crisp signal.)
   await expect(page.locator('[data-history-handle]')).toBeVisible({ timeout: 15000 })
 })

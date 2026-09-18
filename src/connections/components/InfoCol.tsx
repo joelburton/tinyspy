@@ -9,8 +9,8 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
 import type { Board, CategoryRank } from '../lib/board'
-import type { GuessRow, Player } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import type { EventRow, Player } from '../hooks/useGame'
+import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/game-page/playArea.module.css'
@@ -19,7 +19,7 @@ import shared from '@/common/game-page/playArea.module.css'
 /**
  * connections's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
- * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Shared
+ * OpponentStrip (compete) → action row → help → setup disclosure → event log. Shared
  * between coop and compete: `isCompete` picks the OpponentStrip, and the two exits
  * hide themselves. Every command arrives as a bound action this column simply
  * places — what it does, whether it applies right now and which key also fires it
@@ -125,8 +125,8 @@ export function InfoCol({
   /** The number of board tiles (setup echo). */
   tileCount: number
 
-  // ── Turn-history log (GameTurnLog) ──
-  guesses: GuessRow[]
+  // ── Turn-history log (GameEventLog) ──
+  guesses: EventRow[]
   /** The turn currently open in the board viewer (by log position), or null. */
   historyId: number | null
   onShowHistory: (index: number) => void
@@ -246,10 +246,10 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* Turn log. Coop shows the whole shared game; compete gets the shared
+      {/* Event log. Coop shows the whole shared game; compete gets the shared
           "whose guesses?" picker — an opponent's rows are RLS-hidden during play
           and open at terminal, so the picker is how you compare lines afterwards. */}
-      <GameTurnLog
+      <GameEventLog
         guesses={guesses}
         categories={categories}
         players={players}

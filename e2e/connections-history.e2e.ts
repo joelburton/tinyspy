@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * Turn-history viewer for connections — the feature added on the (still monolithic)
  * PlayArea. connections's board MUTATES (a correct guess collapses 4 tiles into a
  * colored band), so the viewer uses the strictly-before boundary (like stackdown):
- * clicking a turn-log #N replays the board with the bands matched BEFORE that turn,
+ * clicking a event-log #N replays the board with the bands matched BEFORE that turn,
  * every other tile still on the grid, and that turn's 4 guessed tiles ringed in their
  * outcome color. These are real layout/overlay properties jsdom can't see — so a
  * browser check that also pins the shared exit paths + the no-reflow invariant.

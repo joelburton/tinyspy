@@ -24,7 +24,7 @@ const cards = (page: import('@playwright/test').Page) =>
 
 /** The counts row that is actually ON SCREEN.
  *
- * Scoped twice over. The turn log's heading carries the same two numbers
+ * Scoped twice over. The event log's heading carries the same two numbers
  * filtered to whoever is selected, so a bare `getByText('Found: 1')` matches
  * both — hence the class. And there are now TWO counts rows in the DOM: the
  * info column's and the mobile status bar's, the latter hidden by

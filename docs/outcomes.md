@@ -2,7 +2,7 @@
 
 An **outcome** is how a thing turned out — the verdict on a move, or on a
 move-like thing. It is one word, drawn from a closed list, and it is the same
-word wherever that verdict is shown: a feedback pill, a turn-log bar, a board
+word wherever that verdict is shown: a feedback pill, a event-log bar, a board
 tile, a server's answer.
 
 That sameness is the point. A pill reporting a won game and a board showing one
@@ -89,7 +89,7 @@ left bar plus thin sides in the same color — and the outcome says which. See
 [ui.md → the feedback pill](ui.md) for the anatomy; the part that matters here
 is that the outcome chooses the color and nothing else does.
 
-### The turn log
+### The event log
 
 Each row can carry a colored left bar naming that turn's outcome, and it is
 **the same vocabulary** — a log row and a pill reporting the same turn say the
@@ -99,11 +99,11 @@ same word.
 outcome: Outcome
 ```
 
-**Any outcome, and there is no turn-log outcome type.** A narrower list for
+**Any outcome, and there is no event-log outcome type.** A narrower list for
 the log would be a second name for one that already exists, and it is
 load-bearing in the wrong direction: `warning` being unsayable in a log is how
 a hint comes to be logged as `near`, so the log and the pill say different
-words about the same turn. `TurnLog.module.css` carries a bar class per
+words about the same turn. `EventLog.module.css` carries a bar class per
 outcome. A hint is `warning` and a reveal or spoiler is `lost`, and a log
 chooses no word of its own (see below).
 
@@ -143,7 +143,7 @@ sprawling:
 
 Every event a player can see reaches them on up to three surfaces: the **tile
 feedback** on the board (where a game has any), the **pill** (almost always),
-and the **turn log**. All three must say the same word about the same event.
+and the **event log**. All three must say the same word about the same event.
 They kept drifting because each was deriving the outcome for itself — the same
 refused word red in the pill, amber in the log, and unmarked on the board.
 
@@ -158,7 +158,7 @@ outcome is a frontend that will disagree with the log showing the same row.
 alone (a trusting-commit word, a locally-refused guess), or a server answer that
 carries no outcome, is classified in exactly one place — one table, one
 function — and every surface reads it. `lib/answer.ts` maps the game's answers
-to outcomes, and the pill, the row and the turn log all index that table. The
+to outcomes, and the pill, the row and the event log all index that table. The
 shape is written out below.
 
 **3 · So audit a game by asking the same question three times.** For each event
@@ -182,7 +182,7 @@ export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
 }
 ```
 
-**Anything reading a ROW indexes that table** — the turn-log bar, a board mark, a
+**Anything reading a ROW indexes that table** — the event-log bar, a board mark, a
 teammate's line, the PDF, the history viewer. Where a row's answer has to be
 worked out from its columns, one `answerOf(row)` beside the table does it, and
 nothing else asks the columns. (psychicnum is why that function exists: a hint
@@ -243,7 +243,7 @@ Seven roles, each answering "what is this family painting here":
 | `fill` | a solid background |
 | `edge` | a border — the base mixed toward black |
 | `wash` | the family laid over the page as a tint |
-| `bar` | the turn-log row's outcome bar |
+| `bar` | the event-log row's outcome bar |
 | `terminalFrame` | the frame around a board that is no longer a live position |
 
 **The grid is rectangular, and that is enforced.** Every family carries every
@@ -302,7 +302,7 @@ If one is genuinely needed:
    something reads today".
 3. Give it a tone class in `common/game-page/playArea.module.css` and name it in
    `VERDICT_TONE` — that map is total, so this one will not compile until you
-   do. Same for the turn log's bar class. Both are deliberate gates: a new word
+   do. Same for the event log's bar class. Both are deliberate gates: a new word
    that reaches a board or a log before anyone has decided what it looks like
    gets whatever color the nearest branch happened to end on.
 4. Say here what it means and how it differs from the nearest existing word.

@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * Turn-history viewer for psychicnum — the feature added on the (still monolithic)
- * PlayArea. Clicking a turn-log #N replays that turn on the board: the tiles decided
+ * PlayArea. Clicking a event-log #N replays that turn on the board: the tiles decided
  * up to that turn colored, that turn's guessed tile ringed in the history blue (over
  * its green/red outcome color), the board wearing the viewing frame, and a description
  * banner over the below-board slot. These are real layout/overlay properties jsdom

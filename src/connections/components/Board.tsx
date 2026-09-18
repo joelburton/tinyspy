@@ -10,7 +10,7 @@ import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4

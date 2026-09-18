@@ -154,7 +154,7 @@ swap row carries both positions and both letters. So replaying an opponent's log
 forward from the scramble reconstructs their board exactly, and their green tiles
 are correct letter positions. A club-wide readable log wouldn't be so much a
 cheating opportunity as a **spoiler handed to an honest player** who just reads
-the turn log.
+the event log.
 
 So `swaps_select` mirrors `_board_visible`, and the two must agree or the weaker
 one decides what's actually secret:
@@ -252,7 +252,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   frozen puzzle/setup (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
   it. No realtime touch needed — the `players` update + `swaps` delete wake
   `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
-  the board, turn log, and terminal state reset **live for every player**. Two
+  the board, event log, and terminal state reset **live for every player**. Two
   FE entry points, one handler: the game-menu item (any state) and the terminal
   action row's **Restart** (`act-restart`) (`SkipBack` glyph, the normal tone, left of
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
@@ -411,7 +411,7 @@ message (the colors reach everyone together over realtime), no pill reports a
 swap at all, and the log's bar is `neutral` on every row — the word for a turn
 that counted and that nothing adjudicates. One move, one word, one reader, so
 there is no table; the decision is stated where it is made, in
-`GameTurnLog.tsx`. The g/y/x tile colors are the board's own vocabulary, not
+`GameEventLog.tsx`. The g/y/x tile colors are the board's own vocabulary, not
 outcomes. See [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 The FE follows the v3 conventions (see [ui.md](../ui.md)): a refused swap, the
@@ -424,7 +424,7 @@ or out of swaps while others race on) reuses the terminal look (a bold status li
 Concede) and disables the grid — and Concede goes gray once you have SOLVED, since
 conceding would forfeit a win already banked; the `.infoCol` follows the canonical **state →
 opponent strip → action row → help → setup → log** order; the `OpponentStrip` carries
-a `metricLabel="Swaps"`; and the turn log renders its own `<tr>` rows. An opponent
+a `metricLabel="Swaps"`; and the event log renders its own `<tr>` rows. An opponent
 solving reads as `won` (green), the same green a found word always reads as (the
 outcome follows the event, not the viewer's stake).
 
@@ -446,8 +446,8 @@ Mirrors the other game folders:
   `scramble` + the swap log, `historySnapshot(index)` reconstructs the board *after*
   that swap (each swap is a reversible transposition), colors it via `lib/colors`,
   and rings the two moved cells. **Coop only** — compete writes no swap log.
-  Clicking a `GameTurnLog` row opens that swap on the board (the shared "viewing"
-  frame + banner from the shared `src/common/turn-log/historyViewer.module.css`, input
+  Clicking a `GameEventLog` row opens that swap on the board (the shared "viewing"
+  frame + banner from the shared `src/common/event-log/historyViewer.module.css`, input
   frozen; a keystroke / board click / the ✕ returns to live), mirroring
   scrabble/stackdown's history viewer.
 
@@ -482,7 +482,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   answer — the grid renders it all-green for free, with zero FE branching.
 - **Info column** — the shared readouts in canonical order (`.infoState` swap
   tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) → action
-  row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameTurnLog`.
+  row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameEventLog`.
   The swap tally is the shared **`StateLine`** ("Swaps 3/12 (9 left) · Par 10"),
   which `BoardCol` also renders above the board in the shared `<MobileStatusBar>`
   below `--mobile`, where the info column is off-canvas
@@ -504,7 +504,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   action ([common/actions](../../src/common/actions/doc.md)), including
   back-to-club: ONE binding serves both rows, navigating directly at terminal
   and routing through the shell's **suspend-confirm** flow mid-game. Stay-here options sit left of the leave option.
-  `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
+  `GameEventLog` renders its own `<tr>` rows on the shared `<EventLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows
   the shared `common/components/game/OpponentStrip` instead, with `metricLabel="Swaps"`

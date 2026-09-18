@@ -6,7 +6,7 @@ import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 

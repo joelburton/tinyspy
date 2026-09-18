@@ -60,7 +60,7 @@ export type StrandsPrintModel = PrintHeader & {
   tracks: PrintTrack[]
 }
 
-/** The glyph a result earns. Mirrors the on-screen turn log exactly — same
+/** The glyph a result earns. Mirrors the on-screen event log exactly — same
  *  ladder (best > find > ok), same single mark for every rejection. */
 const MARK: Record<GuessResult, PrintTurn['mark']> = {
   spangram: 'best',

@@ -310,7 +310,7 @@
        edge       the border on a piece wearing `fill`. Quiet
                   definition, not a ring.
        wash       a much lighter version: a pill background.
-       bar        a status bar showing an outcome — the turn log's
+       bar        a status bar showing an outcome — the event log's
                   left bar.
        terminalFrame  the band around a board that is no longer a live
                   position. A big area, so it must read as a band
@@ -419,7 +419,7 @@
 /* @@ */   --outcomes-noted-wash-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 20%, var(--default-bg-color));
 /* @@ */   --outcomes-error-wash-color:    color-mix(in oklab, var(--outcomes-error-base-color) 20%, var(--default-bg-color));
 
-  /* BAR — the turn log's left bar. Every cell is `fill` today, so this
+  /* BAR — the event log's left bar. Every cell is `fill` today, so this
      tier is a NAME rather than a new decision, and the name is what it
      is for: a bar is a long thin object in a list of its own kind, and
      wanting a boring turn's neutral bar to sit lighter than a neutral
@@ -487,7 +487,7 @@
      two places; them diverging would be the bug.
 
      The two tones that look least like a board's — `noted` and `error`
-     — are outcomes for a reason each: a turn log wants to say "a turn
+     — are outcomes for a reason each: a event log wants to say "a turn
      that counts without being a verdict", and a move can break rather
      than lose.
 
@@ -638,7 +638,7 @@
 
   /* ══ WORDLE INK ═════════════════════════════════════════════════
      The ink each judged letter surface carries — a board tile, a
-     keycap and a turn-log square alike. The FILLS are in fixed.css and
+     keycap and a event-log square alike. The FILLS are in fixed.css and
      no theme touches them; this is the half that has to move, because
      it is half of a contrast whose other half is the page.
 
@@ -862,7 +862,7 @@
 
   /* ══ INK ════════════════════════════════════════════════════════
      Ink for a filled verdict. The fill itself is not a token of its
-     own: a verdict fills the piece with the SAME color its turn-log
+     own: a verdict fills the piece with the SAME color its event-log
      bar takes, so one guess going wrong is the one red wherever it is
      drawn. Only the ink has to be decided, and the tones don't agree:
      white on the red, dark on the orange and the gold, which is where

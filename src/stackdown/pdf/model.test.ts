@@ -12,11 +12,11 @@
 import { describe, expect, it } from 'vitest'
 import { buildStackdownPrintModel } from './model'
 import type { Tile } from '../lib/board'
-import type { SubmissionRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 const tile = (id: number, x: number, y: number, z = 0, letter = 'A'): Tile => ({ id, x, y, z, letter })
 
-const sub = (over: Partial<SubmissionRow> = {}): SubmissionRow => ({
+const sub = (over: Partial<EventRow> = {}): EventRow => ({
   user_id: 'u1',
   id: 1,
   kind: 'word',
@@ -36,7 +36,7 @@ const base = {
   allTiles: [tile(1, 0, 0), tile(2, 1, 0), tile(3, 2, 0), tile(4, 3, 0), tile(5, 4, 0), tile(6, 5, 0)],
   currentWord: [] as number[],
   solution: null as string[] | null,
-  submissions: [] as SubmissionRow[],
+  submissions: [] as EventRow[],
   players: [
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },

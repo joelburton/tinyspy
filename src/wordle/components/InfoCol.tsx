@@ -10,9 +10,9 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { Member } from '@/common/members/member'
-import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
+import type { WordlePlayerState, EventRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
@@ -21,7 +21,7 @@ import styles from './InfoCol.module.css'
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * OpponentStrip (compete) → action row → help → setup disclosure → terminal answer
- * reveal → the turn log. Every COMMAND arrives as a bound action this column
+ * reveal → the event log. Every COMMAND arrives as a bound action this column
  * places; `onShowHistory` stays a callback, being coordination rather than a
  * command. PlayArea owns the RPCs + the history
  * coordination. Prop names match the other games' columns for the same idea (docs/
@@ -55,7 +55,7 @@ export function InfoCol({
   setupRows,
   // ── Terminal answer reveal ──
   solution,
-  // ── Turn log ──
+  // ── Event log ──
   guesses,
   mode,
   historyId,
@@ -82,7 +82,7 @@ export function InfoCol({
   maxGuesses: number
 
   // ── Opponent strip (compete) ──
-  /** The common roster (identity + concede bits) — the strip + the turn-log picker. */
+  /** The common roster (identity + concede bits) — the strip + the event-log picker. */
   players: Member[]
   selfId: string
   /** Per-player wordle state — the strip reads each peer's `guesses_used`. */
@@ -125,9 +125,9 @@ export function InfoCol({
    *  waffle/stackdown); the value comes from the DB-blessed `game.target`. */
   solution: string | null
 
-  // ── Turn log ──
+  // ── Event log ──
   /** The RAW guesses (not the viewer's own) — the log's dropdown switches whose show. */
-  guesses: GuessRow[]
+  guesses: EventRow[]
   mode: 'coop' | 'compete'
   /** The open turn (by log position), or null when live. */
   historyId: number | null
@@ -250,11 +250,11 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* Bottom region: the turn log. It takes the RAW `guesses` (not the viewer's own)
+      {/* Bottom region: the event log. It takes the RAW `guesses` (not the viewer's own)
           so its header dropdown can switch whose guesses show — coop is one shared
           "Team"; compete defaults to You and lists opponents (their rows fill in once
           the game ends and RLS reveals them). */}
-      <GameTurnLog
+      <GameEventLog
         guesses={guesses}
         players={players}
         selfId={selfId}

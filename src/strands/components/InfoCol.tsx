@@ -12,7 +12,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import type { StrandsSetup } from '../lib/setup'
 import type { EventRow } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
@@ -73,7 +73,7 @@ type Props = {
 /**
  * strands' info column, in the canonical order (docs/playarea.md → Info-column
  * readouts): **state → opponents (compete) → action row → help → setup
- * disclosure → turn log**. The OpponentStrip is compete-only — coop has no
+ * disclosure → event log**. The OpponentStrip is compete-only — coop has no
  * opponents — and shows a rival exactly one number mid-race: hints spent.
  *
  * The **clue** leads the state region. It is the theme PROMPT, not the answer,
@@ -226,7 +226,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         events={events}
         players={players}
         selfId={selfId}

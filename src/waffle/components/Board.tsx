@@ -8,7 +8,7 @@ import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A render's board + colors + the swap it had in flight — what the next render
@@ -178,7 +178,7 @@ export function Board({
     <div className={styles.board}>
       {/* Four marks ride on the board box, all shared: the gray-blue frame of
           "you're viewing a past turn"
-          (common/turn-log/historyViewer.module.css), the dim of "a
+          (common/event-log/historyViewer.module.css), the dim of "a
           teammate holds the move", the yellow flash of "your turn just started",
           and the dark-gray frame of "this game is over". The turn marks can't
           collide with the last one — a finished game has no turn to wait for and

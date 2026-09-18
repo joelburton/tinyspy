@@ -38,7 +38,7 @@ type GameRow = Pick<
   'id' | 'club_handle' | 'mode' | 'board' | 'created_at' | 'puzzle_date'
 >
 
-export type GuessRow = {
+export type EventRow = {
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is what the read below orders by. */
   id: number
@@ -158,7 +158,7 @@ export function useGame(
   gameId: string,
 ): {
   game: ConnectionsGame | null
-  guesses: GuessRow[]
+  guesses: EventRow[]
   matchedCategories: MatchedCategory[]
   mistakeCount: number
   opponentFound: ReadonlyMap<string, number>
@@ -181,7 +181,7 @@ export function useGame(
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [guesses, setGuesses] = useState<EventRow[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [selections, setSelections] = useState<Map<string, string[]>>(
     () => new Map(),

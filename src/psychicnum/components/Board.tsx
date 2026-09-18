@@ -9,7 +9,7 @@ import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useFlash } from '@/common/board-marks/useFlash'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 type Props = {
@@ -212,7 +212,7 @@ export function Board({
                 {word}
               </span>
               {/* WHO decided this tile. The shared identity disc, so a player's
-                  color means the same thing here as in the turn log and the
+                  color means the same thing here as in the event log and the
                   opponent strip — and it brings its paired border shade with it,
                   which is what lets a light color read on a green fill. */}
               {actor !== undefined && (

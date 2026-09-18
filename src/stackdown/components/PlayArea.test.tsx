@@ -26,7 +26,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { StackdownGame, PlayerRow, SubmissionRow } from '../hooks/useGame'
+import type { StackdownGame, PlayerRow, EventRow } from '../hooks/useGame'
 import type { Tile } from '../lib/board'
 import { ATTENTION_FADE_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { db } from '../db'
@@ -87,7 +87,7 @@ function playerRow(user_id: string, over: Partial<PlayerRow> = {}): PlayerRow {
 }
 
 /** The "#N" handle in the log row holding `cell` — by its marker, never by its
- *  wording (the shared `<TurnLogNumber>` sets `data-history-handle`). */
+ *  wording (the shared `<EventLogNumber>` sets `data-history-handle`). */
 const handleIn = (cell: HTMLElement) =>
   within(cell.closest('tr')!).getByText(/^#\d+$/)
 
@@ -292,7 +292,7 @@ describe('stackdown PlayArea — turn-history viewer', () => {
   ]
   // A valid word cleared tiles 1..5 (CLEAR), then a hint was requested. Coop, so
   // the log shows both, in submitted_at order (index 0 = the word, 1 = the hint).
-  const submissions: SubmissionRow[] = [
+  const submissions: EventRow[] = [
     { user_id: 'u2', id: 1, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, created_at: '2026-01-01T00:00:01Z' },
     { user_id: 'u1', id: 1, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, created_at: '2026-01-01T00:00:02Z' },
   ]
@@ -707,7 +707,7 @@ describe('stackdown PlayArea — a teammate’s word on the board', () => {
     { id: 5, x: 8, y: 0, z: 1, letter: 'R' },
     { id: 6, x: 0, y: 0, z: 0, letter: 'Z' },
   ]
-  const peerWord: SubmissionRow = {
+  const peerWord: EventRow = {
     user_id: 'u2',
     id: 1,
     kind: 'word',

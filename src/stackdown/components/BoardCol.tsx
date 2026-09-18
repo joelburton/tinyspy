@@ -15,7 +15,7 @@ import { exposedIds, type Tile } from '../lib/board'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 

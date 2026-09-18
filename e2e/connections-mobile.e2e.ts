@@ -86,7 +86,7 @@ test.describe('connections mobile', () => {
     await page.getByRole('button', { name: 'Submit' }).tap()
 
     // A correct guess resolves the category into a full-width band on the board.
-    // (Scope to the board — the name also appears in the sheet's turn log.)
+    // (Scope to the board — the name also appears in the sheet's event log.)
     await expect(
       page.locator('[data-board]').getByText('Words starting with A'),
     ).toBeVisible({ timeout: 10000 })

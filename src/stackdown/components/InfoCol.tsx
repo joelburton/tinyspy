@@ -10,8 +10,8 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
-import type { PlayerRow, SubmissionRow } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import type { PlayerRow, EventRow } from '../hooks/useGame'
+import { GameEventLog } from './GameEventLog'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
 
@@ -19,7 +19,7 @@ import styles from './InfoCol.module.css'
  * stackdown's info column — near-zero state, just an arrangement of the shared
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
- * words reveal → GameTurnLog log. Every mutation is a named callback up
+ * words reveal → GameEventLog log. Every mutation is a named callback up
  * (`onShowHistory`); every COMMAND arrives as a bound action this column places. PlayArea owns the
  * RPCs and the coordination state. See docs/playarea.md.
  */
@@ -116,9 +116,9 @@ export function InfoCol({
    *  its own faces, the inert "solution already shown" included. */
   actReveal: BoundAction
 
-  // ── Turn-history log (GameTurnLog) ──
+  // ── Turn-history log (GameEventLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
-  submissions: SubmissionRow[]
+  submissions: EventRow[]
   /** The log row currently open in the board viewer, or null. */
   historyId: number | null
   onShowHistory: (index: number) => void
@@ -248,7 +248,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         submissions={submissions}
         players={players}
         selfId={selfId}

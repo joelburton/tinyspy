@@ -64,7 +64,7 @@ In scope today:
 - Same rule drives **New game** in the PlayArea, because it is literally the same function
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-demand at terminal (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). Local + reversible, like every game's ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)); nothing autoreveals
-- Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the turn log's "whose guesses?" picker is how you compare lines afterwards — see [Turn log](#turn-log--whose-guesses)
+- Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the event log's "whose guesses?" picker is how you compare lines afterwards — see [Event log](#event-log--whose-guesses)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
 - Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints** action — a button in the info-column action row and a menu row, one binding)
@@ -173,7 +173,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
-| **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
+| **FE GameEventLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
 | **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes" / "Lost: out of time" (team) — a solve also pops the `<CelebrationBlockingModal>` | "Won: the race" / "Beaten to the punch" / "Lost: out of mistakes" (a self-eliminated loser when someone else won) / "Everyone eliminated" / "Out of time — no winner" (no celebration — see Terminal state) |
 
 The shape that's the same in both modes:
@@ -511,12 +511,12 @@ src/connections/
                           board column (bands + tile grid + floating Shuffle + the Clear/Submit
                           commit row) and a fixed info column (setup disclosure, "N/4 categories
                           found" state, mistakes [coop dots / compete OpponentStrip], help,
-                          Hints+End action row → terminal outcome line, and the TurnLog below).
+                          Hints+End action row → terminal outcome line, and the EventLog below).
                           No outer card — the only divider is the info column's left border.
                           Branches on game.mode for the OpponentStrip + eliminated-spectator
                           state. Mounted by <GamePage> as its play surface. **Decomposed**
                           into `BoardCol` (bands + tile grid + Shuffle + the Clear/Submit input
-                          engine) + `InfoCol` (the readouts + TurnLog); PlayArea is the thin
+                          engine) + `InfoCol` (the readouts + EventLog); PlayArea is the thin
                           coordinator — `useGame`, the guess RPC, and the turn-history
                           `historyId`. The tile SELECTION stays in `useGame` (broadcast-coupled
                           in coop) and passes down to BoardCol.
@@ -537,7 +537,7 @@ src/connections/
                           board OR a history snapshot (PlayArea picks via `snap`).
     InfoCol.tsx           The info column: near-zero state, the shared readouts in the fixed
                           order (state readout → OpponentStrip (compete) → action row → help →
-                          setup disclosure → turn log). Every mutation is a named callback up;
+                          setup disclosure → event log). Every mutation is a named callback up;
                           PlayArea owns the RPCs.
     Board.tsx             The board as ONE grid: solved/revealed categories as full-width
                           colored band rows (grid-column: 1 / -1, sorted by rank — the
@@ -553,17 +553,17 @@ src/connections/
                           (Mistakes are no longer a per-game MistakeDots component: they
                           render via the shared common/components/game/StrikeMarks — a red
                           square-X filling left-to-right, "Mistakes (lose at 4)".)
-    GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
-                          Renders its OWN two-<tr> rows in the shared <TurnLog> panel
-                          (row anatomy is the game's — see playarea.md → Turn log): row 1 =
-                          [<TurnLogOutcomeBar> ⇣rowSpan 2] | `#N` (the shared <TurnLogNumber>
+    GameEventLog.tsx      The append-only log of this game's guesses, in the info column.
+                          Renders its OWN two-<tr> rows in the shared <EventLog> panel
+                          (row anatomy is the game's — see playarea.md → Event log): row 1 =
+                          [<EventLogOutcomeBar> ⇣rowSpan 2] | `#N` (the shared <EventLogNumber>
                           history handle) | verdict | actor (right-aligned via
                           the who column) in REAL <td> columns; row 2 spans those columns
-                          with the 4 guessed tiles. gameTurnLog.divider on row 1 draws
+                          with the 4 guessed tiles. gameEventLog.divider on row 1 draws
                           the between-turns line. No flexbox sub-line in a cell.
                           Stateless/presentational. Clicking a `#N` opens that turn on the
                           board via the shared history viewer (see lib/history.ts).
-    GameTurnLog.module.css
+    GameEventLog.module.css
     HintList.tsx          Reveal-on-demand hint list, rendered INLINE in the info column (the
                           Hints button in the action row toggles it — no FloatingPanel, no
                           modal; a hint reads as one more info-column readout): one row per
@@ -624,7 +624,7 @@ src/connections/
                           haven't collapsed into a band yet), ringed + tinted in the turn's
                           outcome color. The removal-style twin of stackdown (a correct guess
                           "consumes" 4 tiles into a band); keyed by **log position** (guesses have
-                          no per-turn ordinal). Clicking a `GameTurnLog` `#N` opens that turn on
+                          no per-turn ordinal). Clicking a `GameEventLog` `#N` opens that turn on
                           the board via the shared viewer. Compete's `guesses` are RLS-scoped to
                           the caller, so a compete viewer replays only their own board.
     history.test.ts       Unit tests for the snapshot boundary + outcome tinting.
@@ -773,17 +773,17 @@ Two deliberate changes from the screen, both required by
 
 Solved and end-of-game-revealed bands print identically, matching the screen.
 
-One accepted cost: `drawTurnLog`'s move column holds about 38 characters, and
+One accepted cost: `drawEventLog`'s move column holds about 38 characters, and
 four tiles plus a verdict can exceed it, so a category of long words ellipsizes
 its final tile. The verdict leads for that reason — it's the part you can't
 reconstruct from a truncated line. (The on-screen log spends two rows per turn
 to avoid this; matching that on paper would mean giving up the shared
 newspaper flow.)
 
-## Turn log — whose guesses?
+## Event log — whose guesses?
 
-The log carries the shared [`useTurnLogPlayerPicker`](../../src/common/turn-log/useTurnLogPlayerPicker.tsx)
-dropdown — the one **every** turn-log game uses, so the vocabulary is identical
+The log carries the shared [`useEventLogPlayerPicker`](../../src/common/event-log/useEventLogPlayerPicker.tsx)
+dropdown — the one **every** event-log game uses, so the vocabulary is identical
 everywhere: **solo → your handle**, **co-op → "Team" plus each player**,
 **compete → "All" plus each player**, defaulting to your own board. See
 [playarea.md → Whose turns?](../playarea.md#whose-turns--the-shared-player-picker).

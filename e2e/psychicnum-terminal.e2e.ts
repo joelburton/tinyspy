@@ -113,7 +113,7 @@ test.describe('psychicnum replay + new game', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-    // Guess the first board word → a turn-log row appears and the budget ticks.
+    // Guess the first board word → a event-log row appears and the budget ticks.
     await page.locator('[data-board] button').first().click()
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.getByText('No turns yet.')).toBeHidden({ timeout: 10000 })

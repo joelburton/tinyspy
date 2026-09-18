@@ -312,7 +312,7 @@ A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesd
 
 **One component per file — with one exception, and its shape is specific.** A component that stands on its own gets its own file, always: `PlayArea`, `BoardCol` and `InfoCol` are the clear case, and they are separate everywhere because they are large and complex and a reader goes looking for one of them by name. The exception is a set of **subparts that exist only inside one component, and are individually small and straightforward** — then packaging them together is better, because they are one vocabulary and a caller reaches for them together.
 
-`common/turn-log/TurnLog.tsx` is the worked example (settled 2026-09-16): it exports the panel plus `TurnLogOutcomeBar`, `TurnLogNumber` and `TurnLogActor`, the cells a game builds one `<tr>` from. Games import them in a single line and every use site is inside a `<TurnLog>`, so they have no life apart from it — note that "used only by `TurnLog`" means used only *within* it, not that only `TurnLog.tsx` imports them; each has eleven or more callers.
+`common/event-log/EventLog.tsx` is the worked example (settled 2026-09-16): it exports the panel plus `EventLogOutcomeBar`, `EventLogNumber` and `EventLogActor`, the cells a game builds one `<tr>` from. Games import them in a single line and every use site is inside a `<EventLog>`, so they have no life apart from it — note that "used only by `EventLog`" means used only *within* it, not that only `EventLog.tsx` imports them; each has eleven or more callers.
 
 **The exception is about size and dependence, never about subject.** Two components that merely belong to the same feature still get their own files if either could be looked for on its own. The same folder shows the line: `HistoryBanner` is the turn-history viewer's, not the log's, so it is `HistoryBanner.tsx` beside `useHistoryViewer.ts` and `historyViewer.module.css` — a reader hunting the viewer should not have to open a file named for the log. **When a folder holds two concerns, the filenames say which one you are in.**
 
@@ -393,7 +393,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
    - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
    - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
 
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameTurnLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameEventLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
 The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — sixteen are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
@@ -408,7 +408,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<CurrentGameCard>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (every game with a turn log; its "whose turns?" header dropdown is the shared [`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx) — **every** turn-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (every game with a turn-history viewer — scrabble is the exception, its replay is `historyBoard` in `lib/play.ts`).
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameEventLog` (every game with a event log; its "whose turns?" header dropdown is the shared [`useEventLogPlayerPicker`](../src/common/event-log/useEventLogPlayerPicker.tsx) — **every** event-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the event-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (every game with a turn-history viewer — scrabble is the exception, its replay is `historyBoard` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `InfoActionsRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
@@ -417,7 +417,7 @@ A `PlayArea` grew too big to hold in your head (most were 450–900 lines), so e
 standard two-column game now splits it into three layers with one consistent recipe:
 a **`BoardCol`** (the live input engine — drag / cursor / keyboard / word-building —
 plus the below-board feedback slot; it renders the game's `Board`), an **`InfoCol`**
-(the info-column readouts + turn log / word list, near-zero internal state), and a
+(the info-column readouts + event log / word list, near-zero internal state), and a
 thin **`PlayArea`** that owns the game data (`useGame`), the RPCs, and cross-column
 coordination (e.g. the turn-history `historyId`). The load-bearing contract:
 **`BoardCol` owns *editing*; `PlayArea` hands it the *board to show*** (live *or* a
@@ -694,7 +694,7 @@ The codebase has a single canonical identity shape — `Member` in [`src/common/
 Why both names exist for what's often the same shape:
 
 - A reader scanning `ClubPage.tsx` sees `members: Member[]` and reads "people in this club" — the chat sender lookup, the member-list rendering, the setup-form's "who picks first?" picker. Club-wide.
-- A reader scanning `connections/components/GameTurnLog.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
+- A reader scanning `connections/components/GameEventLog.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
 
 The per-game `Player` alias earns its keep even when it's a pure re-export:
 
@@ -719,7 +719,7 @@ Where to use which:
 | Context | Type | Variable name | Examples |
 |---|---|---|---|
 | Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `Chat.members` |
-| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GameTurnLog players={...} />`, `computePause(presentUserIds, players)` |
+| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GameEventLog players={...} />`, `computePause(presentUserIds, players)` |
 
 The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (codenamesduet's seat); otherwise the rename happens at the variable-name level only.
 
@@ -795,7 +795,7 @@ Two hard rules for anything that *sets, holds, renders, or types* one of those m
 
 1. **Bare `feedback` is never a declared name.** The type, the hook and the pill carry the word inside a longer name (`FeedbackMessage`, `useFeedbackSlot`, `FeedbackPill`); a variable holding a message is `feedbackMessage` or `feedbackMsg`; a slot instance is `localFeedbackSlot` or `globalFeedbackSlot`, and those two are the only qualified names. The bare word is what let "feedback" mean five things at once and let a parameter called `feedback` quietly mean "the local one". [`feedbackNames.test.ts`](../src/guards/feedbackNames.test.ts) enforces it, over every file in `src/` and with no allowlist.
 
-   The rule covers the feedback MACHINERY, not every type it happens to hold. A message's `outcome` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, a turn-log row and a server result reach for too — so naming it for feedback would have claimed it for one consumer out of five. And it is `outcome`, never `tone`: that word is a button's or a toast's styling (`caution`, `destructive`, `info`) and not a won/lost value.
+   The rule covers the feedback MACHINERY, not every type it happens to hold. A message's `outcome` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, a event-log row and a server result reach for too — so naming it for feedback would have claimed it for one consumer out of five. And it is `outcome`, never `tone`: that word is a button's or a toast's styling (`caution`, `destructive`, `info`) and not a won/lost value.
 
 2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** How a message leaves — a gesture, a timer, the ×, its owner — is its KIND's property, not something a name should assert.
 

@@ -270,7 +270,7 @@
   /* THE ONE SATELLITE HOST in the app (docs/code-conventions.md → The z-
      layers). A dropdown
      sits just above whatever CONTAINS it, and `<FilterSelect>` — the word-list
-     filter and the turn-log player picker — opens in here. Declaring the column
+     filter and the event-log player picker — opens in here. Declaring the column
      as the host puts those dropdowns at 1301, clear of the local layering the
      column legitimately uses (the history viewer's 5, RankBar's 2).
 
@@ -283,7 +283,7 @@
   flex: 0 0 var(--info-col-width);
   display: flex;
   flex-direction: column;
-  /* Space between the no-shrink rows and the turn log / word list below them. */
+  /* Space between the no-shrink rows and the event log / word list below them. */
   gap: 1rem;
   min-width: 0;
   min-height: 0;
@@ -303,7 +303,7 @@
   }
 }
 
-/* Every row of the info column EXCEPT the turn log / word list: the state line,
+/* Every row of the info column EXCEPT the event log / word list: the state line,
  * the opponent strip, the action row, the help line, a terminal extra, the setup
  * disclosure. What they have in common is the only thing this says — **none of
  * them is squeezed when the column runs short; the log below absorbs it.**
@@ -314,7 +314,7 @@
  * it, `.infoCol` has two children — this, which does not shrink, and the log,
  * which is `flex: 1` — so "the log gives" is structurally true. Without it the
  * column would have seven-odd children and the rule would be
- * `.infoCol > * { flex-shrink: 0 }` against `TurnLog.module.css`'s `flex: 1` at
+ * `.infoCol > * { flex-shrink: 0 }` against `EventLog.module.css`'s `flex: 1` at
  * equal specificity, decided by module import order.
  *
  * **No height is reserved here, deliberately** (Joel, 2026-09-15): the
@@ -422,7 +422,7 @@
  * push the answer down). It is allowed to APPEAR on the play→terminal
  * transition — a DELIBERATE exception to the layout-stability rule (docs/ui.md
  * → "Layout stability") — because by then the play surface is done and the
- * INFO column absorbs it: the board doesn't move, and the scrolling turn log
+ * INFO column absorbs it: the board doesn't move, and the scrolling event log
  * below gives way so the page itself never scrolls. `flex-shrink: 0` keeps its
  * content height wherever it sits (the wrapper already refuses to shrink; the
  * log — flex: 1, min-height: 0 — makes room). */

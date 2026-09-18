@@ -193,9 +193,9 @@
 }
 
 /* ---- info column: the HAND ----
- * Matches the shared WordList / TurnLog chrome: a plain black heading OUTSIDE
+ * Matches the shared WordList / EventLog chrome: a plain black heading OUTSIDE
  * an evident 2px-framed box. Sits BELOW the shared .noShrinkRow and fills the
- * rest of the column height (bananagrams has no turn log / word list — the hand
+ * rest of the column height (bananagrams has no event log / word list — the hand
  * takes that slot). */
 /* @@ */ .handSection {
   flex: 1;
@@ -205,7 +205,7 @@
   gap: 0.5rem;
 }
 /* (The heading is the shared `infoPanel.heading` — same look as WordList /
- * TurnLog, now by construction rather than by hand.) */
+ * EventLog, now by construction rather than by hand.) */
 /* The box's interior: dump zone at the top, the scrolling tiles below. The frame
  * (flex sizing + the 2px border) is the shared `infoPanel.box`, composed
  * alongside this. */

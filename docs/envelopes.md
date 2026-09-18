@@ -200,7 +200,7 @@ An **outcome** is the verdict on a move, or a move-like thing: `won`, `lost`,
 "good move" and "bad move" as often as they are the end of a game.
 
 An `ok` will often carry one. It colors the feedback pill and the verdict
-column in a game's turn log.
+column in a game's event log.
 
 **A `not-ok` can carry one too** — which is what lets one look calm or loud
 independently of how bad it is. See Appearance, below.

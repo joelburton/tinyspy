@@ -9,10 +9,10 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
-import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
+import type { WafflePlayerState, EventRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
 import { StateLine } from './StateLine'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/game-page/playArea.module.css'
 
@@ -122,8 +122,8 @@ export function InfoCol({
    *  or null for one still hidden. Revealed progressively throughout the game. */
   answerWords: (string | null)[]
 
-  // ── Turn-history log (GameTurnLog — both modes) ──
-  swaps: SwapRow[]
+  // ── Turn-history log (GameEventLog — both modes) ──
+  swaps: EventRow[]
   /** The swap currently open in the board viewer (by log position), or null. */
   historyId: number | null
   onShowHistory: (index: number) => void
@@ -264,7 +264,7 @@ export function InfoCol({
           RLS-hidden during play and open at terminal, which is what makes logging
           them safe — replaying someone's swaps from the shared scramble would
           otherwise rebuild their board. Rows are clickable to replay that swap. */}
-      <GameTurnLog
+      <GameEventLog
         swaps={swaps}
         players={players}
         selfId={selfId}

@@ -4,7 +4,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GuessRow } from '../hooks/useBoard'
 
 /**
- * A codenamesduet turn = one clue + its 0..N guesses, rendered as ONE turn-log
+ * A codenamesduet turn = one clue + its 0..N guesses, rendered as ONE event-log
  * row — so the per-turn outcome bar needs a single verdict for a turn that can
  * hold several guesses of mixed result. Precedence (does this turn advance us?):
  *   - any **assassin** → `lost` (it ends the game — the worst result);

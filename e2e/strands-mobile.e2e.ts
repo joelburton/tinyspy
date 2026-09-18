@@ -20,7 +20,7 @@ import { signIn } from './helpers/session'
  *
  * The second spec covers the sheet with a LONG log — the recipe's own failure
  * mode is a flex child that won't shrink, which makes the whole sheet scroll
- * instead of the turn log's box.
+ * instead of the event log's box.
  */
 test.describe('strands mobile', () => {
   for (const [w, h, tag] of [
@@ -128,7 +128,7 @@ test.describe('strands mobile', () => {
     await page.waitForTimeout(400)
 
     // The recipe's failure mode: a flex child that won't shrink makes the SHEET
-    // scroll. It must be the turn log's own box that takes the overflow.
+    // scroll. It must be the event log's own box that takes the overflow.
     const scroll = await page.evaluate(() => {
       const sheet = document.querySelector('[role="dialog"]') as HTMLElement
       const inner = [...sheet.querySelectorAll('*')].some(

@@ -13,8 +13,8 @@ import {
   MOBILE_ROW_BUDGET_REM,
   estimateChainRows,
 } from '../lib/chainRows'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
-import history from '@/common/turn-log/historyViewer.module.css'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 

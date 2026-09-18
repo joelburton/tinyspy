@@ -5,7 +5,7 @@
  * "Layout stability").
  *
  * The OUTCOME color is the WHOLE border: the left side is a thick bar (like
- * the turn-log outcome bars, easy to read at a glance), the other three sides
+ * the event-log outcome bars, easy to read at a glance), the other three sides
  * a uniform thin border in the SAME color. Border WIDTHS are uniform across
  * every outcome and across fill/outline. A kind with `fill` adds the tint;
  * every other kind stays white (`.outline`). */
@@ -78,7 +78,7 @@
   color: var(--pill-lost-ink-color);
 }
 
-/* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
+/* near — a near miss (connections' "one away"), in the GOLD its event-log bar
  * wears. A result, not a caution. */
 /* @@ */ .near {
   border-color: var(--pill-near-color);

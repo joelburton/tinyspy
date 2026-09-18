@@ -8,18 +8,18 @@
  */
 import { describe, it, expect } from 'vitest'
 import { historyBoardAfter, historySnapshot } from './history'
-import type { SwapRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 // Solution with cells 0↔1 and 2↔3 swapped → two swaps from solved.
 const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu'
 
-function swap(over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>): SwapRow {
+function swap(over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>): EventRow {
   return { user_id: 'u1', letter_a: '?', letter_b: '?', ...over }
 }
 
 // The solving sequence, in log order: fix cells 2↔3 first, then 0↔1.
-const SWAPS: SwapRow[] = [
+const SWAPS: EventRow[] = [
   swap({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
   swap({ id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
 ]
@@ -81,7 +81,7 @@ describe('historySnapshot', () => {
 describe('compete: one player’s swaps at a time', () => {
   // Both players solve the same puzzle, so their logs interleave in the table
   // and each counts its OWN seq from 1.
-  const MIXED: SwapRow[] = [
+  const MIXED: EventRow[] = [
     swap({ user_id: 'u1', id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
     swap({ user_id: 'u2', id: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
     swap({ user_id: 'u1', id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),

@@ -4,7 +4,7 @@
  * The OUTCOME vocabulary — the words the app uses for how a thing turned out.
  *
  * Its own file because it is a vocabulary rather than a feature: a pill, a
- * board, a tile, a turn-log row and a server result all reach for the same
+ * board, a tile, a event-log row and a server result all reach for the same
  * words, and none of them should have to import a manifest type to get them.
  *
  * What each word means, and everywhere it is shown, is in docs/outcomes.md.
@@ -12,7 +12,7 @@
 
 /**
  * How a thing turned out. **One list, seven words, no second spelling** — a
- * pill reporting a won game, a board showing one, a turn-log bar and a server
+ * pill reporting a won game, a board showing one, a event-log bar and a server
  * result all name it identically. (The two spellings this list once had,
  * `success` / `error` for won / lost, hid that behind a rename buried in a CSS
  * rule.)

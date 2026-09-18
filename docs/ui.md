@@ -103,7 +103,7 @@ Every constructor takes a trailing `overrides` — any of fill, rank, leaves-by,
 
 The ×-cleared kinds keep the `×` as their only target — a `notOk` or a `hint` is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. The owner-cleared kinds aren't dismissable at all: a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`FeedbackPill.test.tsx`](../src/common/feedback/FeedbackPill.test.tsx) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
-**The look.** Every pill's **whole border is the outcome color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, `--pill-bar-width` and `--pill-border-width`, uniform on every pill. (A pale-gray side border read as no border, so the sides carry the outcome too; `neutral` has no outcome color, so its border is a visible dark gray.) The kind only changes the **background**: a kind with `fill` — the verdict, out-of-race — gets a **lightened-outcome background**, so a final `lost` reads as *more* emphatically lost than a passing one, and everything else stays white. The fill is the "final for you" signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries the actor as the leading name-and-disc mention whatever its kind — the disc, never the fill, says *who* (the rule from [Player identity = a colored disc](#player-identity--a-colored-disc)); on a phone the name drops and the disc stays.
+**The look.** Every pill's **whole border is the outcome color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the event-log outcome bars) plus thin sides in the *same* color, `--pill-bar-width` and `--pill-border-width`, uniform on every pill. (A pale-gray side border read as no border, so the sides carry the outcome too; `neutral` has no outcome color, so its border is a visible dark gray.) The kind only changes the **background**: a kind with `fill` — the verdict, out-of-race — gets a **lightened-outcome background**, so a final `lost` reads as *more* emphatically lost than a passing one, and everything else stays white. The fill is the "final for you" signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries the actor as the leading name-and-disc mention whatever its kind — the disc, never the fill, says *who* (the rule from [Player identity = a colored disc](#player-identity--a-colored-disc)); on a phone the name drops and the disc stays.
 
 **Outcome follows the event, not the viewer's stake.** One event reads as **one color everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the actor already says *who*, so the outcome is free to say only *what happened*.
 
@@ -254,7 +254,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **codenamesduet is gated for a different reason**, and it's the clearest illustration of why the reveal is personal. It has no replay to protect (its board *is* the secret). The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. When the reveal was shared, one player opening the card ended the other's half of that conversation mid-sentence.
 
-**Restart** (`act-restart` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log.
+**Restart** (`act-restart` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's event log.
 
 **All sixteen games have it.** The three that once didn't (restored 2026-08-03) were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
 
@@ -509,7 +509,7 @@ the same element — which is how the setup dialog can be a real form while
 floating over a live game with no special-casing. An audit can start as a grep.
 
 **2. Not forms** — the home page, the club page (its filters and its game list),
-and the whole game surface: boards, info panels, turn logs, word lists, mode
+and the whole game surface: boards, info panels, event logs, word lists, mode
 pills.
 
 No general Tab navigation, and **no focus rings**. SPACE and ENTER are trapped
@@ -885,12 +885,12 @@ collapses to a prefix in the scanner and stops guarding anything.
 | variant | for |
 |---|---|
 | **`-ink`** | text, and thin lines on a light ground: a pill's border, a verdict word, an outline ring. Must stay recognizably ITS color when thin |
-| **`-fill`** | filling a piece: a verdict tile, a turn-log outcome bar. The tier a player meets most often |
+| **`-fill`** | filling a piece: a verdict tile, a event-log outcome bar. The tier a player meets most often |
 | **`-edge`** | the border on a piece wearing `-fill`. Quiet definition, not a ring: barely darker than the fill it edges |
 | **`-terminalFrame`** | the band around a board that is no longer a live position. Big areas, so it reads as a band without shouting the outcome at full saturation |
 | **`-wash`** | a much lighter version of the same message |
 | **`-base`** | the anchor the family was designed from. **Nothing paints it** — every other cell derives from IT rather than from a sibling, so no formula silently carries another's tweak |
-| **`-bar`** | a status bar showing an outcome: the turn log's left bar. Every cell is `fill` today, so it is a name rather than a new decision — wanting a boring turn's neutral bar lighter than a neutral verdict tile is a real want that had nowhere to live |
+| **`-bar`** | a status bar showing an outcome: the event log's left bar. Every cell is `fill` today, so it is a name rather than a new decision — wanting a boring turn's neutral bar lighter than a neutral verdict tile is a real want that had nowhere to live |
 
 **Role names, not lightness names**, for the same reason tokens are semantic:
 `-pale` becomes the *darkest* thing on screen the moment a dark theme lands.
@@ -1396,7 +1396,7 @@ Same principle, applied to components.
 - **The account submenu** ([`useAccountMenuSection`](../src/common/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile**, **Add word** (editors only) and **Log out**.
   - **Inside the page's menu rather than a control of its own.** A fixed chip would cost the header permanently reserved width at every viewport, and that is exactly the width the mobile game header needs for feedback.
   - **User-focused only.** It carries no club- or game-specific items; the two mental models stay separate, by *nesting* rather than by a second menu. Correspondingly, a game menu never puts game actions inside it.
-  - **The label is the username, not "Account"** — "who am I signed in as" is the question a shared laptop raises, and a generic label answers it with nothing. (The color itself is on screen wherever identity matters: the players strip, the club member list, a turn log's actor column.)
+  - **The label is the username, not "Account"** — "who am I signed in as" is the question a shared laptop raises, and a generic label answers it with nothing. (The color itself is on screen wherever identity matters: the players strip, the club member list, a event log's actor column.)
   - **Home carries the same header strip for it** — the square site logo hard against the page's top-left opening the page menu, thin rule beneath, the trigger landing at the same x/y as ClubPage's. It is PAGE chrome, outside home's centered `.card`: inside, it would inherit the card's 2rem padding and border and read as content, lining up with nothing else in the app. The header is also where a future Help or other non-user item goes — home has nowhere else to put one.
 - **The `/` action is hidden on a page with no chat panel mounted.** Chat is club-scoped, so on HomePage `/` would flip the shared open flag and show nothing — a key that silently does nothing is worse than one that isn't bound, because the next person debugging it starts from "chat is broken" rather than "chat isn't here". Unbound, `/` is left to the browser's find-in-page. `?`, `~` and `⌥~` are page-independent and stay on. It is the action's own state (`<Chat>` says it is mounted), not a flag a page passes.
 - `<EditProfileModal>` — the Edit-profile dialog, a `<NormalModal>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a floating panel from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). Today it edits one field — **player color**, via `<ColorChoiceField>` (below), starting on the color you have. Saves via `common.update_profile_color`, then `setProfileColor` tells the shared profile store what the server now holds so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
@@ -1414,7 +1414,7 @@ A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **fi
 
 **The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **edge ring** (`--member-NAME-edge-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in `core-css/fixed.css`). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. A feedback message about a person carries the member as its `actor`, and the pill draws the name-and-disc mention (`<DotActor>`) before the text.
 
-**The name + disc cluster is `<ActorDot>` / `<DotActor>`** (`common/members/ActorMention`): a person's name and their identity disc, the "who did this" marker. The two differ only in ORDER, and each is **named in the order it draws** — `<ActorDot>` is actor-then-dot ("moth ●"), which is what a turn log's rows want; `<DotActor>` is dot-then-actor ("● moth"), which is what a sentence wants. Pass either the resolved member (`<ActorDot actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. Its `show` prop is what lets a tight surface drop the name and keep just the disc on a phone, which is the mobile fallback the first rule below promises. Reach for one before re-rolling a name-span + ● by hand — hand-rolling is how a surface ends up coloring the name text instead, which that same rule forbids.
+**The name + disc cluster is `<ActorDot>` / `<DotActor>`** (`common/members/ActorMention`): a person's name and their identity disc, the "who did this" marker. The two differ only in ORDER, and each is **named in the order it draws** — `<ActorDot>` is actor-then-dot ("moth ●"), which is what a event log's rows want; `<DotActor>` is dot-then-actor ("● moth"), which is what a sentence wants. Pass either the resolved member (`<ActorDot actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. Its `show` prop is what lets a tight surface drop the name and keep just the disc on a phone, which is the mobile fallback the first rule below promises. Reach for one before re-rolling a name-span + ● by hand — hand-rolling is how a surface ends up coloring the name text instead, which that same rule forbids.
 
 Two rules keep the signal clean:
 
@@ -1472,7 +1472,7 @@ is the thing a third game would get wrong: a CSS animation replays only on a
 NEW element, so a counter has to ride in the row's `key`, and a boolean cannot
 distinguish "rejected again" from "still rejected". **What is not shared is
 the mark's LIFETIME**: wordle clears on a timer, while connections has no
-timer at all — the turn log is its clock, clearing when the log shrinks (a
+timer at all — the event log is its clock, clearing when the log shrinks (a
 restart) or grows with someone else's row. One is wall-clock, the other is
 derived from game state, and a shared hook would have to force one or take it
 as a callback and own almost nothing. With a population of two and both
@@ -1520,7 +1520,7 @@ it's never both).
 
 The fill is the game's **result palette at full saturation**, not a washed-out
 pastel — psychicnum's decided tiles use `--outcomes-*-fill-color` (the exact tone
-the TurnLog outcome bars use), and connections' use the four saturated rank
+the EventLog outcome bars use), and connections' use the four saturated rank
 colors of the bands. The rule and the reason live in
 [The seven outcome variants](#the-seven-outcome-variants).
 
@@ -1573,7 +1573,7 @@ tile's size.
 ## The play surface → playarea.md
 
 The play-surface reference — the two-column PlayArea layout, the info-column
-readouts, text entry (capture, not `<input>`), the turn log, the word list (its
+readouts, text entry (capture, not `<input>`), the event log, the word list (its
 two-axis KIND/WHO filter + the both-lists terminal reveal), the turn-history
 viewer, and board sizing — lives in **[playarea.md](playarea.md)**, which also
 documents how each game's PlayArea is decomposed into `BoardCol` / `InfoCol`. This
@@ -1760,7 +1760,7 @@ column of rows", which is what `Menu`, `FilterSelect`, the setup dialog's player
 checkboxes, `ColorChoiceField` and connections' `HintList` all look like from the
 outside without being one. `SelectField` isn't one either — that is the same job
 handed to a native `<select>` on purpose — and neither is any readout
-(`WordList`, `TurnLog`, chat, `RankBar`, board rows, Help's `<ul>`s): you don't
+(`WordList`, `EventLog`, chat, `RankBar`, board rows, Help's `<ul>`s): you don't
 pick from those at all.
 
 **Nowhere in the app selects more than one thing**, so there is no multi-select
@@ -1791,7 +1791,7 @@ different keyboard, not this one with a flag flipped.
   view one club at a time.
 - **A game's status on a row is a corner flag, not a bar** — see
   `ClubGameRow`'s `.openFlag`. It is deliberately more prominent than an outcome
-  bar and is a different thing entirely; don't reach for the turn-log bar
+  bar and is a different thing entirely; don't reach for the event-log bar
   vocabulary here.
 
 **The frame is always drawn, and every no-rows state goes inside it** — the
@@ -1808,7 +1808,7 @@ slant is what separates it from a quiet value: muted color alone reads as a real
 row that happens to be unimportant, where the slant says the list is talking
 about itself. It is self-sufficient — do not also pass `muted`, which loads
 later and would take the font-size back. Everything that draws one uses it:
-`SelectionList`, `SimpleScrollableList`, `WordList` and `TurnLog`.
+`SelectionList`, `SimpleScrollableList`, `WordList` and `EventLog`.
 
 ### The keyboard
 
@@ -1969,13 +1969,13 @@ two-state switch drawn as a button (crosswords' pencil/pen) · `tab` switches
 which view you're looking at (ClubPage's mobile tabs) · `row` a whole list row
 that IS the control (a club-page start or game row, a Menu item, FilterSelect's
 options, the account color swatches) · `handle` a small inline control inside
-content (the turn log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
+content (the event log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
 text that reads as prose or a link (`.link-button`, DefinitionView's
 cross-reference) · `surface` an entire content block that is a button
 (ChatButton, ScratchpadButton).
 
 **A kind is what a control IS, not what element it's built from.** `handle` is
-the case that shows it: the turn log's `#N` is conceptually a button — you press
+the case that shows it: the event log's `#N` is conceptually a button — you press
 it and the board jumps to that turn — but it ships as a clickable `<span>`, on
 purpose. A focused `<button>` re-fires its click on Space, so the shared
 "any key exits the history viewer" would instead re-select the turn you were

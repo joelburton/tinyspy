@@ -1,8 +1,8 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
-import type { GuessRow } from '../hooks/useGame'
+import type { TurnRow } from '@/common/pdf/eventLog'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
@@ -36,7 +36,7 @@ export type PsychicnumPrintModel = PrintHeader & {
 }
 
 /** Fold one set of guesses into the shared words' per-tile states. */
-function boardOf(words: readonly string[], guesses: readonly GuessRow[]): PrintTile[] {
+function boardOf(words: readonly string[], guesses: readonly EventRow[]): PrintTile[] {
   const results = new Map<string, boolean>()
   for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.is_correct)
   return words.map((w) => ({
@@ -45,8 +45,8 @@ function boardOf(words: readonly string[], guesses: readonly GuessRow[]): PrintT
   }))
 }
 
-/** The on-screen turn-log wording, one row per guess/hint/spoiler. */
-function turnsOf(guesses: readonly GuessRow[], whoOf: (g: GuessRow) => string): TurnRow[] {
+/** The on-screen event-log wording, one row per guess/hint/spoiler. */
+function turnsOf(guesses: readonly EventRow[], whoOf: (g: EventRow) => string): TurnRow[] {
   return guesses.map((g, i) => ({
     seq: i + 1,
     who: whoOf(g),
@@ -68,14 +68,14 @@ export function buildPsychicnumPrintModel(o: {
   /** The shared board words (lowercase, as the row stores them). */
   words: readonly string[]
   /** Every guess the viewer can see. Compete mid-game: only their own. */
-  guesses: GuessRow[]
+  guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   setup: SetupRow[]
 }): PsychicnumPrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
-  const track = (who: string, guesses: GuessRow[], whoOf: (g: GuessRow) => string): PrintTrack => {
+  const track = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
     const board = boardOf(o.words, guesses)
     const found = board.filter((t) => t.state === 'correct').length
     const used = guesses.filter((g) => g.kind === 'guess').length

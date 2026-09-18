@@ -43,7 +43,7 @@ test.describe('wordiply live updates', () => {
     // And the guess count advances (also derived from the realtime rows).
     await expect(page.getByText(/1 \/ 5 guesses/)).toBeVisible({ timeout: 10000 })
 
-    // ── The turn log, including a REJECT ──────────────────
+    // ── The event log, including a REJECT ──────────────────
     // A word that isn't on the shipped legal list is recorded as a turn (not a
     // score): it must appear in the log, struck through with its reason, while
     // the guess COUNT stays where it was. This is the whole point of storing

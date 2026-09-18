@@ -5,7 +5,7 @@
  * the game-context superset that adds how their game ended.
  *
  * Reach for this whenever you render a person: a chat sender, a club roster
- * row, a player in an OpponentStrip, a name in a turn log. `Member` is the
+ * row, a player in an OpponentStrip, a name in a event log. `Member` is the
  * three fields you always need; `GamePlayer` adds the three that only exist
  * once someone is seated in a game.
  *
@@ -54,7 +54,7 @@ export type Actor = Pick<Member, 'username' | 'color'>
  * `common.game_players` (as opposed to the profile). Distinct from
  * Member because a chat sender is a Member but never a game player.
  * `GamePlayer` is a superset, so anything typed `Member[]` still
- * accepts `GamePlayer[]` — a game's OpponentStrip / turn-log can keep
+ * accepts `GamePlayer[]` — a game's OpponentStrip / event-log can keep
  * their `Member` props while the PlayArea reads `conceded` off the
  * same roster.
  *

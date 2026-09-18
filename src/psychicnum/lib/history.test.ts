@@ -10,9 +10,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
-function g(o: Partial<GuessRow>): GuessRow {
+function g(o: Partial<EventRow>): EventRow {
   return {
     id: 1, user_id: 'u', word: 'apple', is_correct: false,
     kind: 'guess', created_at: '2026-06-12T18:00:00Z', ...o,
@@ -20,7 +20,7 @@ function g(o: Partial<GuessRow>): GuessRow {
 }
 
 // Turn 0: APPLE is a secret (correct). Turn 1: a hint. Turn 2: BERRY misses.
-const GUESSES: GuessRow[] = [
+const GUESSES: EventRow[] = [
   g({ word: 'apple', is_correct: true, kind: 'guess' }),
   g({ word: 'a fruit', kind: 'hint' }),
   g({ word: 'berry', is_correct: false, kind: 'guess' }),

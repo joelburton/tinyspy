@@ -12,8 +12,8 @@ import type { ScrabbleSetup } from '../lib/setup'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { RankedMove } from '../lib/rank'
-import type { PlayerRow, PlayRow } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import type { PlayerRow, EventRow } from '../hooks/useGame'
+import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
@@ -133,7 +133,7 @@ export function InfoCol({
   setupRows: SetupRow[]
 
   // ── Turn-history log (Moves) ──
-  plays: PlayRow[]
+  plays: EventRow[]
   /** The play currently open in the board viewer (by seq), or null. */
   historyId: number | null
   onShowHistory: (seq: number) => void
@@ -304,7 +304,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         plays={plays}
         players={players}
         selfId={selfId}

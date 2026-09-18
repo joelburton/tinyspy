@@ -25,7 +25,7 @@
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  */
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 export interface HistorySnapshot {
   /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
@@ -44,7 +44,7 @@ export interface HistorySnapshot {
  * (INCLUSIVE), and picks that turn's own guessed word as the lit one.
  */
 export function historySnapshot(
-  guesses: ReadonlyArray<GuessRow>,
+  guesses: ReadonlyArray<EventRow>,
   index: number,
 ): HistorySnapshot {
   const results = new Map<string, boolean>()
@@ -59,7 +59,7 @@ export function historySnapshot(
 
 /** The kind-aware turn label. A guess reads as its outcome; a spoiler names the answer
  *  word; a hint carries its clue text in `word` (never the secret — no leak). */
-function describe(turn: GuessRow | undefined): string {
+function describe(turn: EventRow | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`

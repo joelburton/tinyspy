@@ -1,9 +1,9 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import type { Category, CategoryRank } from '../lib/board'
-import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { EventRow, MatchedCategory } from '../hooks/useGame'
 
 /**
  * Build the connections print model — the pure half, kept away from jsPDF so the
@@ -63,7 +63,7 @@ export type ConnectionsPrintModel = PrintHeader & {
 /**
  * The verdict, kept SHORT on purpose.
  *
- * The coop page's `drawTurnLog` move column holds ~38 characters at 9pt, and
+ * The coop page's `drawEventLog` move column holds ~38 characters at 9pt, and
  * four tiles eat ~30 of them, so every character of prefix costs a character of
  * the guess. Measured against the real renderer: `one away — …` truncated the
  * last tile; `1 away: …` doesn't. A correct guess shows the category's LETTER,
@@ -75,7 +75,7 @@ export type ConnectionsPrintModel = PrintHeader & {
  * turn for exactly this reason). The VERDICT is what can't be reconstructed
  * from a truncated line, so it goes first and always survives.
  */
-function verdict(g: GuessRow): string {
+function verdict(g: EventRow): string {
   if (g.matched) {
     return g.matched_category_rank != null
       ? RANK_LETTER[g.matched_category_rank as CategoryRank]
@@ -100,7 +100,7 @@ export function buildConnectionsPrintModel(o: {
   unmatched: Category[]
   /** Tiles still on the viewer's board, in display order. */
   remainingTiles: string[]
-  guesses: GuessRow[]
+  guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   mode: 'coop' | 'compete'
@@ -113,7 +113,7 @@ export function buildConnectionsPrintModel(o: {
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
   const total = o.categories.length
 
-  const turnsOf = (guesses: GuessRow[], whoOf: (g: GuessRow) => string): TurnRow[] =>
+  const turnsOf = (guesses: EventRow[], whoOf: (g: EventRow) => string): TurnRow[] =>
     guesses.map((g, i) => ({ seq: i + 1, who: whoOf(g), text: `${verdict(g)}: ${g.tiles.join(' · ')}` }))
 
   const resultOf = (found: number, mistakes: number) =>
@@ -125,7 +125,7 @@ export function buildConnectionsPrintModel(o: {
   // 2026-08-02 as imperceptible). The leftover grid excludes banded tiles:
   // before 2026-08-06 the terminal reveal printed every unsolved tile TWICE,
   // once in its revealed band and again below as a leftover.
-  const viewerTrack = (who: string, guesses: GuessRow[], whoOf: (g: GuessRow) => string): PrintTrack => {
+  const viewerTrack = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
     const bands = [...o.matched, ...o.unmatched].map(toBand).sort((a, b) => a.rank - b.rank)
     const banded = new Set(bands.flatMap((b) => b.tiles))
     return {

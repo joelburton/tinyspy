@@ -34,7 +34,7 @@
  */
 import { coord } from './waffle'
 import { computeColors } from './colors'
-import type { SwapRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 export interface HistorySnapshot {
   /** The 25-char board AFTER the viewed swap. Feed straight to `<Board board>`. */
@@ -55,7 +55,7 @@ export interface HistorySnapshot {
  */
 export function historyBoardAfter(
   scramble: string,
-  swaps: ReadonlyArray<SwapRow>,
+  swaps: ReadonlyArray<EventRow>,
   index: number,
 ): string {
   const b = scramble.split('')
@@ -76,7 +76,7 @@ export function historyBoardAfter(
 export function historySnapshot(
   scramble: string,
   solution: string | null,
-  swaps: ReadonlyArray<SwapRow>,
+  swaps: ReadonlyArray<EventRow>,
   index: number,
 ): HistorySnapshot {
   const board = historyBoardAfter(scramble, swaps, index)
@@ -95,7 +95,7 @@ export function historySnapshot(
  * is the same number the log prints beside it: the caller passes the list and
  * the index, so the two cannot disagree.
  */
-function describe(swap: SwapRow | undefined, n: number): string {
+function describe(swap: EventRow | undefined, n: number): string {
   if (!swap) return 'This swap'
   const a = `${swap.letter_a.toUpperCase()} (${coord(swap.pos_a)})`
   const b = `${swap.letter_b.toUpperCase()} (${coord(swap.pos_b)})`

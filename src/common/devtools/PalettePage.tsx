@@ -46,7 +46,7 @@ import styles from './PalettePage.module.css'
  * that.
  *
  * So the examples come back only when they can be the REAL components —
- * <FeedbackPill>, <ActionButton>, <Dot>, <TurnLogOutcomeBar>, the shared `.tile`
+ * <FeedbackPill>, <ActionButton>, <Dot>, <EventLogOutcomeBar>, the shared `.tile`
  * — rendered here rather than reimplemented. Until then, swatches, which cannot
  * lie about anything except by being the wrong token.
  *

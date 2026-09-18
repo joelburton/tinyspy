@@ -1,7 +1,7 @@
 # PlayArea — the shared play surface
 
 This is the reference for the shared **play surface**: the two-column layout, the
-info-column readouts, text entry, the turn log, the turn-history viewer, and board
+info-column readouts, text entry, the event log, the turn-history viewer, and board
 sizing — plus how each game's `PlayArea` is **decomposed** into `BoardCol` /
 `InfoCol`. For the visual language that frames it (theme tokens, tiles, page chrome,
 modals, mode pills, iconography), see [ui.md](ui.md).
@@ -22,7 +22,7 @@ similar games happened to share"; the rest of the roster followed.
 
 - **No whole-page scroll.** The play area fills the viewport —
   `height: calc(100vh - var(--game-chrome-height))` — and only inner regions
-  (the turn log / word list, chat) scroll. The chrome token covers the body
+  (the event log / word list, chat) scroll. The chrome token covers the body
   padding (1rem) + the header + the header→play-area gap; see [Page-height fits the viewport](ui.md#page-height-fits-the-viewport).
 - **Two columns, no chrome around them.** A **board column** (`.boardCol`, left)
   and an **info column** (`.infoCol`, right). No border / margin / padding around
@@ -32,7 +32,7 @@ similar games happened to share"; the rest of the roster followed.
   board side, the info column's `padding-left` on the other).
 - **Info column = fixed width, never grows during play** (the *one* fixed column;
   the board grows, this doesn't). Holds the four **info readouts** (see
-  [Info-column readouts](#info-column-readouts) below) above the **turn log**
+  [Info-column readouts](#info-column-readouts) below) above the **event log**
   (chronological, one entry per turn) or **word list** (alphabetical found-words;
   boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
   may collapse to a popup — so anything *critical to playing* goes in the board
@@ -53,7 +53,7 @@ similar games happened to share"; the rest of the roster followed.
   play area, so `justify-content: center` centers them with equal outer margins.
 
 **Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
-divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
+divider, **event log** (`<EventLog>` — chronological, outcome-bar entries) vs
 **word list** (`<WordList>` — alphabetical, circle markers). Tiles follow
 [Interactive tile states](ui.md#interactive-tile-states); identity uses
 [a colored disc](ui.md#player-identity--a-colored-disc); feedback splits
@@ -65,13 +65,13 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
 result/semantic tile fills, the board tray frame, and game-specific readout
-copy. `<TurnLog>` *is* a shared component (it has behavior); the two-column shell
+copy. `<EventLog>` *is* a shared component (it has behavior); the two-column shell
 is just shared CSS. The shared **`.tile`** chrome lives in the same module.
 
 **Two columns, two components.** The `.boardCol` / `.infoCol` regions here are the
 CSS; each standard game also *splits* its `PlayArea` into a **`BoardCol`** component
 (the input engine + below-board feedback, renders the `Board`) and an **`InfoCol`**
-component (these readouts + the turn log). The board-vs-info CSS split mirrors the
+component (these readouts + the event log). The board-vs-info CSS split mirrors the
 component split. See
 [code-conventions.md → PlayArea decomposition](code-conventions.md#playarea-decomposition--boardcol--infocol)
 and [the decomposition below](#the-boardcol--infocol-decomposition).
@@ -88,7 +88,7 @@ markup is identical everywhere and only its rows differ.
 **The canonical order** (top → bottom), enforced on every standard game: **state
 (`.infoState`) → opponent strip (`<OpponentStrip>`, compete) → action row
 (`.infoActions`) → help (`.infoHelp`) → terminal extra (`.terminalExtra`,
-game-over only) → setup disclosure (`<SetupDisclosure>`) → turn log / word
+game-over only) → setup disclosure (`<SetupDisclosure>`) → event log / word
 list.**
 The terminal extra sits **above** the setup disclosure deliberately (Joel's
 rule, 2026-08-05): the reveal is the payoff, the setup recap is bookkeeping —
@@ -176,7 +176,7 @@ That dual placement is the rule, not redundancy to trim.
   disclosure** (see the canonical order above). It **grows the info column** when
   the game ends: a deliberate exception to [Layout stability](ui.md#layout-stability),
   allowed because the play surface is done, the **board doesn't move**, and the
-  scrolling turn log below gives way so the *page* never scrolls (`flex-shrink: 0`
+  scrolling event log below gives way so the *page* never scrolls (`flex-shrink: 0`
   on it; the log's `flex: 1` + `min-height: 0` absorbs it). Users today: wordle,
   stackdown, letterboxed (its revealed "Solvable in two" pair); reuse it when a
   game needs an end-of-game readout that doesn't fit below the board. (waffle's
@@ -332,20 +332,20 @@ info-column `.outcome`. (Its box differs by placement: a padded board-column chi
 psychicnum, a `flex: 1` span in the `.inputRow` in connections — same text, the
 box fits where it sits.)
 
-## Turn log
+## Event log
 
-The shared **`<TurnLog>`** (`src/common/turn-log/TurnLog.tsx`) is a game's per-turn
+The shared **`<EventLog>`** (`src/common/event-log/EventLog.tsx`) is a game's per-turn
 history — one **item** per turn (= per guess for most games; a codenamesduet turn can
 span a clue + several guesses, so an item is a "turn", never a "guess" in the
 shared vocabulary). It's the chronological counterpart to the alphabetical
 `<WordList>` (spellingbee/boggle); a game has whichever fits.
 
-**The game owns its rows.** `<TurnLog>` is the **panel only** — heading, scroll
+**The game owns its rows.** `<EventLog>` is the **panel only** — heading, scroll
 box, `<table>` — and makes **no** assumption about row shape, because row anatomy
 genuinely differs game to game: a one-row three-column guess, a two-`<tr>`
 clue-then-guesses turn, a row with an inline mini-board. So a game renders its
-**own `<tr>`s** inside `<TurnLog>` (its children *are* the rows). The only shared
-contract is *"a turn-log item is a `<tr>` in this table."* Even the column count
+**own `<tr>`s** inside `<EventLog>` (its children *are* the rows). The only shared
+contract is *"a event-log item is a `<tr>` in this table."* Even the column count
 isn't shared — psychicnum's one-guess row and a future five-column stat row are
 both valid. (Parameterizing one row shape into a shared row component is
 overfitting — it grows a prop per game-shape.)
@@ -365,10 +365,10 @@ consistent without imposing structure:
   `colSpan`) is right only when the row's content is genuinely **one piece** — a
   phrase like psychicnum's hint row (`Hint: <clue>`) or a single joined string —
   never a way to fit two pieces (a verdict *and* an actor) side by side. Default
-  cell padding/size lives on `:where(.turnLogTable) td` (held at single-*element*
+  cell padding/size lives on `:where(.eventLogTable) td` (held at single-*element*
   specificity by `:where()`, so any game cell class or the bar atom overrides it
   without a fight).
-- **`<TurnLogOutcomeBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
+- **`<EventLogOutcomeBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
   row piece common to most logs. It's *optional* (a game's row needn't include
   it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
   class), so a game drops it into whatever row it builds. `outcome` is an
@@ -395,23 +395,23 @@ consistent without imposing structure:
   than a structural `:has()` selector — readability over cleverness. Single-row
   turns carry neither.
 - **Column-sizing classes** — a small model for a row's cells: an optional
-  `<TurnLogOutcomeBar>` (col 0), an optional **`<TurnLogNumber>`** (the turn number —
+  `<EventLogOutcomeBar>` (col 0), an optional **`<EventLogNumber>`** (the turn number —
   muted, shrinks, never wraps; a live handle or a plain number, see the viewer
-  below), one or more content columns, and **`<TurnLogActor>`** (the who cell:
+  below), one or more content columns, and **`<EventLogActor>`** (the who cell:
   right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column
   is **`.main`** (`width: 100%` — it absorbs the row's slack so it's least likely
   to wrap; put it where the gap should land, typically the last content cell
   before the actor); any other content columns are **`.other`** (sized to fit, one
   line). These carry **sizing only, no emphasis** — compose a look on top (e.g.
-  `cls(gameTurnLog.other, gameTurnLog.primary)` for a bold word). The slack lives
+  `cls(gameEventLog.other, gameEventLog.primary)` for a bold word). The slack lives
   in `.main`, **not** the who cell — a `width: 100%` there would steal it and wrap
   a sibling (the connections "Not a match" bug).
 - **Emphasis classes** — `.primary` (the bold lead value) and `.muted`
   (de-emphasized text inside a row: "(no guesses)", a `Hint:` label) — plus the
   shared [`<ActorDot>`](ui.md#player-identity--a-colored-disc) for the actor (name +
-  identity disc). The game-side classes live in `gameTurnLog.module.css` under
-  bare names, read as `gameTurnLog.primary` (namespaced by the import alias); what
-  the atoms draw themselves is `TurnLog.module.css`, which no game imports. Reach
+  identity disc). The game-side classes live in `gameEventLog.module.css` under
+  bare names, read as `gameEventLog.primary` (namespaced by the import alias); what
+  the atoms draw themselves is `EventLog.module.css`, which no game imports. Reach
   for an existing class/component before inventing one.
 - **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
   frame, not a hairline) that stays the same height whether empty or full and
@@ -428,9 +428,9 @@ guesses spanning beneath on row 2 (its per-turn outcome derived in
 
 ### Whose turns? — the shared player picker
 
-Every turn-log game carries the same **"whose turns?"** dropdown in its log
+Every event-log game carries the same **"whose turns?"** dropdown in its log
 header, from
-[`useTurnLogPlayerPicker`](../src/common/turn-log/useTurnLogPlayerPicker.tsx).
+[`useEventLogPlayerPicker`](../src/common/event-log/useEventLogPlayerPicker.tsx).
 One vocabulary, settled 2026-08-02:
 
 | game shape | options |
@@ -449,10 +449,10 @@ one list. You're still ordered first.
 Six things travel with the hook, and re-deriving any of them per game is how they
 drift: the dropdown, its default selection, the aggregate label (mode-dependent),
 the row filter, whether `#N` may be a live history handle, and the empty-state
-wording. **The panel takes the hook's result whole** — `<TurnLog picker={turnLogPicker}
+wording. **The panel takes the hook's result whole** — `<EventLog picker={eventLogPicker}
 shown={shown}>` — rather than being handed the control and the wording
 separately, so there is one way to wire it and nothing to get out of step. What
-stays the game's is `shown`: most build it with `turnLogPicker.filter`, scrabble filters by
+stays the game's is `shown`: most build it with `eventLogPicker.filter`, scrabble filters by
 hand (a bot's play has `user_id: null`), and codenamesduet filters turn numbers
 rather than rows. Two of the six need care:
 
@@ -480,7 +480,7 @@ Some games bend the defaults, each documented at its call site:
 ## Word list
 
 The shared **`<WordList>`** (`common/components/game/lists/WordList.tsx`) is the
-alphabetical counterpart to the turn log, worn by the three word-hunt games —
+alphabetical counterpart to the event log, worn by the three word-hunt games —
 spellingbee, wordwheel, boggle. A column-major grid in a fixed-height card; each
 row leads with a **circle marker** carrying attribution (a filled ● in the finder's
 color for a find, a hollow ○ in gray for a missed word), with the word itself plain
@@ -522,7 +522,7 @@ The list header carries **two** selects, from
 | **WHO** | **All** · Found · Missed · *every player by handle* | yes — see below |
 
 Resting state reads **"Legal · All"**. The aggregates are the defaults in both
-modes (unlike the turn log's compete default — here the list already *is* yours).
+modes (unlike the event log's compete default — here the list already *is* yours).
 
 ### The heading tallies the FILTERED list
 
@@ -570,11 +570,11 @@ the longest tracking the filter.
   offered a `Missed` that resolves to nothing), and the per-player entries only in
   coop or compete-post-terminal, never solo. Because an option that would be
   dishonest simply *isn't offered*, this hook needs no "hidden until the game ends"
-  empty line — unlike the turn log's picker, every empty it explains is a real one.
+  empty line — unlike the event log's picker, every empty it explains is a real one.
 - **The empty line names the axis that emptied the list.** "No words yet" is a lie
   when you've picked Bonus and simply have none.
 
-**Two things it does differently from the turn log's picker**, both deliberate: the
+**Two things it does differently from the event log's picker**, both deliberate: the
 hook is called **inside** `<WordList>` rather than by the game, since nothing
 outside the list consumes the selection (a word list isn't chronological — there's
 no history viewer to misaddress, hence no `boardIsShown` analogue), and keeping it
@@ -596,7 +596,7 @@ psychicnum, codenamesduet, wordle, waffle, strands, letterboxed, setgame) lets y
 **click a past turn to see the board as it was then**. The affordance is shared and
 looks identical everywhere:
 
-- **The `#N` handle** (`<TurnLogNumber>` in `src/common/turn-log/TurnLog.tsx`) — each
+- **The `#N` handle** (`<EventLogNumber>` in `src/common/event-log/EventLog.tsx`) — each
   turn's number cell is the click target; clicking it opens that turn on the board.
   **Not** the whole row: several games render a turn as multiple `<tr>`s
   (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
@@ -617,7 +617,7 @@ looks identical everywhere:
   at `exitHistory`.
 - **On a phone, opening a turn leaves the info page.** `showHistory` clears the info-sheet
   flag (`setInfoSheetOpen(false)`) as well as setting the viewed turn, because below
-  the breakpoint the `#N` handle lives in the turn log — which is *on* the off-canvas
+  the breakpoint the `#N` handle lives in the event log — which is *on* the off-canvas
   info page, while the board it replays is on the other one. Without it the viewer
   opened behind the page you were standing on, and the tap on "Switch views" that
   would have revealed it counted as click-anywhere-to-exit and dropped you back to
@@ -627,7 +627,7 @@ looks identical everywhere:
   only give the two a way to disagree.
 
 The coordination — which turn is open + the enter/exit affordances — is the shared
-**`useHistoryViewer`** hook (`src/common/turn-log/useHistoryViewer.ts`); the `PlayArea`
+**`useHistoryViewer`** hook (`src/common/event-log/useHistoryViewer.ts`); the `PlayArea`
 holds it as its one cross-column "am I viewing" state. What stays **per-game** is how
 a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
 board shape and even the boundary differ: an ADD-style board shows the turn's own
@@ -791,7 +791,7 @@ layout exception — see below):
 |---|---|---|
 | **`Board`** | pure presentation of a board state | state **down**, clicks **up**. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
-| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onShowHistory`, …). Near-zero internal state. |
+| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `EventLog`) around a game-specific readout | props **down** — the bound actions it places among them (`actHint`, `actEndGame`, `actConcede`, …) — + a few named callbacks **up** (`onShowHistory`, …). Near-zero internal state. |
 | **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `historyId`) | wires `BoardCol` ↔ `InfoCol`. |
 
 ### The load-bearing contract
@@ -811,7 +811,7 @@ everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
   (verify via the render tests + `e2e/board-geometry.e2e.ts`); a feature adds
   behavior. Never mix them in one commit.
 - **bananagrams is the v3 layout exception** (board fills / hand+peel+dump in the
-  info area / no turn log). It does NOT map onto the two-column `BoardCol`/`InfoCol`
+  info area / no event log). It does NOT map onto the two-column `BoardCol`/`InfoCol`
   model, because its input engine spans BOTH columns (the hand tiles are drag SOURCES
   into the board; the dump zone is a drop TARGET during a board drag; the derived hand
   is a function of board state; the keyboard cursor types onto the board but checks the
@@ -1031,7 +1031,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **The turn-viewer affordance is the "#N handle", shared across all history games.**
   A turn is opened on the board viewer by clicking its **`#N` number** (the shared
-  `<TurnLogNumber>` in `src/common/turn-log/TurnLog.tsx`), which rings *itself* in
+  `<EventLogNumber>` in `src/common/event-log/EventLog.tsx`), which rings *itself* in
   the history blue while that turn is open — NOT by clicking the whole row. Why:
   several games render a turn as multiple `<tr>`s (codenamesduet's clue + guess rows),
   where a whole-row "viewing" outline draws a broken box and a per-row hover lights
@@ -1058,7 +1058,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **`useHistoryViewer`** (rule of three): once turn-history reached three games the
   coordination itself (the `historyId` + "am I viewing" flags + the enter/exit
-  affordances) lifted into `src/common/turn-log/useHistoryViewer.ts`, pulling that growth
+  affordances) lifted into `src/common/event-log/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
   `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See
   the hook's own docstring.

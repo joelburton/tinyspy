@@ -28,7 +28,7 @@ import { liveBindings } from '@/common/actions/useBoundAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
+import type { WaffleGame, WafflePlayerState, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { edgeFnTransport } from '@/common/supabase/edgeFnTransport'
@@ -102,7 +102,7 @@ function swapped(board: string, a: number, b: number): string {
 
 /** A logged swap — what the server records for every accepted move, and the
  *  CAUSE the attention flash reads (a re-deal deletes these). */
-function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): SwapRow {
+function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): EventRow {
   return {
     user_id: userId,
     id,
@@ -120,7 +120,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 function loaded(
   game: WaffleGame,
   players: WafflePlayerState[] = [me],
-  swaps: SwapRow[] = [],
+  swaps: EventRow[] = [],
 ): GameHook {
   return { game, players, swaps, loading: false, failure: null }
 }
@@ -559,8 +559,8 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
   const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
   const swapRow = (
-    over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>,
-  ): SwapRow => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
+    over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>,
+  ): EventRow => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
   // Solving sequence in log order: fix 2↔3 first, then 0↔1.
   const swaps = [
     swapRow({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),

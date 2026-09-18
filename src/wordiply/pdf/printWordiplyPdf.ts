@@ -9,18 +9,18 @@ import {
   newPrintDoc,
   savePrint,
 } from '@/common/pdf/frame'
-import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
+import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import type { WordiplyPrintModel } from './model'
 
 /**
- * wordiply's print-to-PDF — the **turn-log body family** (docs/pdf.md), composed
- * from the shared helpers: the frame (header / setup / save) plus `drawTurnLog`'s
+ * wordiply's print-to-PDF — the **event-log body family** (docs/pdf.md), composed
+ * from the shared helpers: the frame (header / setup / save) plus `drawEventLog`'s
  * newspaper two-column flow.
  *
  * **The first printer with no board.** scrabble and psychicnum draw a board in
  * the left column and start the log beneath it; wordiply's "board" IS the log —
  * five guess lines with no state of their own — so the log starts at `colTop`
- * and gets the full two columns. `drawTurnLog` needed no change for this; the
+ * and gets the full two columns. `drawEventLog` needed no change for this; the
  * `startY` parameter already allowed it.
  *
  * What it prints, and what it deliberately doesn't, is decided in
@@ -51,7 +51,7 @@ export function printWordiplyPdf(m: WordiplyPrintModel): void {
   if (m.reveal) y = drawReveal(doc, m, leftX, y)
   if (m.scores.length) y = drawScores(doc, m, leftX, colW, y)
 
-  drawTurnLog(pd, {
+  drawEventLog(pd, {
     startY: y,
     // The third column's header. "Guess" (not "Move") — wordiply's turn IS a
     // guess, matching the on-screen log's heading.

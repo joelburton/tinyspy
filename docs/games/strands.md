@@ -455,7 +455,7 @@ word so the two can never disagree about a row.
 **Colors**, and each says one thing: purple = a found theme word, gold = the
 spangram, light purple = the live trace, gray = a word nobody found (drawn at the
 reveal). Green belongs to the hint bar; the `valid word` result is gold, since it is
-progress rather than the goal. The turn log
+progress rather than the goal. The event log
 uses *darker text variants* of purple and gold — a color tuned as a disc fill
 under white letters is not the same color that reads as 15px type on a white row.
 

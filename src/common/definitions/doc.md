@@ -8,7 +8,7 @@ wrong. Where definitions live, how they are fetched, and the curation RPCs are
 
 ## Intro to area
 
-Every word game shows real dictionary words: a turn log, a found-words list, a
+Every word game shows real dictionary words: a event log, a found-words list, a
 revealed answer. A player who meets an unfamiliar one wants to know what it
 means without leaving the game, so the app makes the word itself the control:
 click it and a card appears beneath it with the definition. Nothing about that
@@ -35,7 +35,7 @@ process to fold in later.
 ```
 any surface ──> DefinableWord           a span in the text; a click writes the word and its place into the one-slot store
                                         (word-list's WordList · the anagram finder · waffle's answer reveal ·
-                                         the games' turn logs and info columns)
+                                         the games' event logs and info columns)
 
 App ──> DefinitionHost                  one, at the root beside the other hosts
         └── DefinitionPopover           under the clicked word

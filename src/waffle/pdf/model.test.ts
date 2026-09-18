@@ -10,11 +10,11 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildWafflePrintModel } from './model'
-import type { SwapRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 const MY_BOARD = 'badcef.g.hijklmn.o.pqrstu'
 
-const swap = (over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>): SwapRow => ({
+const swap = (over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>): EventRow => ({
   user_id: 'u1', letter_a: 'a', letter_b: 'b', ...over,
 })
 
@@ -27,7 +27,7 @@ const base = {
   mode: 'compete' as const, isTerminal: false,
   maxSwaps: 12, parSwaps: 7,
   playerBoards: [board('u1'), board('u2')],
-  swaps: [] as SwapRow[],
+  swaps: [] as EventRow[],
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
   selfId: 'u1',
   solutionWords: ['ABCDE', 'FGHIJ'],

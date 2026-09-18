@@ -25,11 +25,11 @@ import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import type { WordiplyGame, GuessRow } from '../hooks/useGame'
+import type { WordiplyGame, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
-type GameHook = { game: WordiplyGame | null; guesses: GuessRow[]; loading: boolean }
+type GameHook = { game: WordiplyGame | null; guesses: EventRow[]; loading: boolean }
 
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 // The real hook derives validGuesses from guesses; mirror that here rather than
@@ -62,7 +62,7 @@ function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {
   }
 }
 
-function guess(word: string, i: number, userId = 'u1'): GuessRow {
+function guess(word: string, i: number, userId = 'u1'): EventRow {
   return {
     id: i, game_id: 'g1', user_id: userId, word, length: word.length,
     valid: true, reason: null,
@@ -70,14 +70,14 @@ function guess(word: string, i: number, userId = 'u1'): GuessRow {
   }
 }
 
-/** A REJECTED submission — in the turn log, but off the board and off every
+/** A REJECTED submission — in the event log, but off the board and off every
  *  score: a reject occupies no board row. */
 function reject(
   word: string,
   i: number,
-  reason: NonNullable<GuessRow['reason']> = 'not_a_word',
+  reason: NonNullable<EventRow['reason']> = 'not_a_word',
   userId = 'u1',
-): GuessRow {
+): EventRow {
   return {
     id: i, game_id: 'g1', user_id: userId, word, length: word.length,
     valid: false, reason,
@@ -184,7 +184,7 @@ describe('wordiply PlayArea — layout stability', () => {
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(boardRowCount(container)).toBe(5)
     // The one live readout — each guess's length badge. Queried by its aria
-    // label, not bare text: the turn log now shows the same lengths in its own
+    // label, not bare text: the event log now shows the same lengths in its own
     // column, so plain getByText('3') matches twice.
     expect(screen.getByLabelText('3 letters')).toBeInTheDocument() // bar
     expect(screen.getByLabelText('5 letters')).toBeInTheDocument() // stars
@@ -195,7 +195,7 @@ describe('wordiply PlayArea — length-only during play', () => {
   it('shows guesses n/5 but NO score % or letter count mid-game', () => {
     h.result = { game: loadedGame(), guesses: [guess('bar', 1)], loading: false }
     render(<PlayArea {...makeCtx()} />)
-    // getAllBy: the turn log's heading is "Guesses" too.
+    // getAllBy: the event log's heading is "Guesses" too.
     expect(screen.getAllByText(/guesses/i).length).toBeGreaterThan(0)
     // The score bar's anchor ("best N / possible M") + the reveal are absent.
     expect(screen.queryByText(/possible/i)).toBeNull()
@@ -356,12 +356,12 @@ describe('wordiply PlayArea — compete terminal verdicts', () => {
 })
 
 /**
- * The turn log — wordiply's answer to "who guessed what?", and the surface that
+ * The event log — wordiply's answer to "who guessed what?", and the surface that
  * makes recording rejects worth doing. What matters is the SPLIT: rejects belong
  * in the log and nowhere else, so a rejected word must never reach the board,
  * the guesses-used count, or any score.
  */
-describe('wordiply PlayArea — turn log', () => {
+describe('wordiply PlayArea — event log', () => {
   it('shows accepted and rejected guesses together, with the reason', () => {
     h.result = {
       game: loadedGame(),

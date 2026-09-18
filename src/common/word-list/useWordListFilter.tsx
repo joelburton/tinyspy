@@ -62,7 +62,7 @@ export type WordListFilter = {
  * honesty rules instead — see the option-set derivation below.
  *
  * Vocabulary note: players are named by **handle, including you**, matching the
- * turn log's picker (settled 2026-08-02) — a list of handles is one list, where
+ * event log's picker (settled 2026-08-02) — a list of handles is one list, where
  * labeling yourself "You" makes your own entry read as a different kind of thing.
  *
  *     const f = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
@@ -116,7 +116,7 @@ export function useWordListFilter({
   ]
 
   // State holds only what the USER picked; the default is DERIVED every render.
-  // Same reasoning as useTurnLogPlayerPicker: the roster arrives asynchronously,
+  // Same reasoning as useEventLogPlayerPicker: the roster arrives asynchronously,
   // so a default frozen at mount would be computed against an empty player list —
   // and a selection that stops being offered (a player who left, or Missed before
   // the reveal lands) degrades to the default instead of filtering to nothing
@@ -192,7 +192,7 @@ export function useWordListFilter({
  * matched none".
  *
  * There's no "hidden until the game ends" case to word carefully here, unlike the
- * turn log's picker: the options that would need one — Missed and the per-player
+ * event log's picker: the options that would need one — Missed and the per-player
  * entries — simply aren't offered until their data is visible, so every empty this
  * has to explain is a genuine empty.
  */

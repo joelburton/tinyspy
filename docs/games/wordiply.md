@@ -121,12 +121,12 @@ The legal predicate (`wordiply.matching_words`) excludes slang / slurs / crude w
 (1..6). Word **length is NOT capped** — a long best word like `compartmentalizations` is a
 legitimate target. Instead the edge builder throws out over-generous bases (see §5).
 
-### A turn log, but no history viewer
+### A event log, but no history viewer
 
-wordiply **does** have a `GameTurnLog` (added 2026-08-02, making it the eighth). The five
+wordiply **does** have a `GameEventLog` (added 2026-08-02, making it the eighth). The five
 board lines show *what* was guessed but not *who* guessed it, which coop can't get any
 other way — and the log is also where **rejected** guesses live, so the team can see that
-someone already tried a word. See [§7b](#7b-the-turn-log--and-why-rejects-are-stored).
+someone already tried a word. See [§7b](#7b-the-event-log--and-why-rejects-are-stored).
 
 It has **no `useHistoryViewer`**, deliberately, and won't get one: the mechanism replays
 board state as of turn N, and wordiply's board is five rows all visible at once — "replay
@@ -554,9 +554,9 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 ---
 
-## 7b. The turn log — and why rejects are stored
+## 7b. The event log — and why rejects are stored
 
-`wordiply.events` is the **turn log**, not a list of scored words: every
+`wordiply.events` is the **event log**, not a list of scored words: every
 submission lands a row, accepted or not. `valid` splits them, and everything that
 computes a score filters `where valid`. That's the same shape
 `psychicnum.events` (`is_correct`) and `connections.events` (`result`) use.
@@ -597,8 +597,8 @@ occupies none: five slots, and only a valid word fills one. The log itself
 orders by `id` and shows every row, rejects included — the board and the log
 count different things on purpose.
 
-**The log itself** is `GameTurnLog` in the info column, using the shared
-[`useTurnLogPlayerPicker`](../../src/common/turn-log/useTurnLogPlayerPicker.tsx)
+**The log itself** is `GameEventLog` in the info column, using the shared
+[`useEventLogPlayerPicker`](../../src/common/event-log/useEventLogPlayerPicker.tsx)
 for the whose-guesses dropdown. Rejects show struck through with their reason
 instead of a length, and aren't click-to-define (a lookup of a just-rejected word
 dead-ends). There is deliberately **no `#N` history handle**: wordiply has no
@@ -608,9 +608,9 @@ once, so "replay turn 3" would be "look at rows 1-3, already on your screen".
 ## 7c. Printing the log (PDF)
 
 `src/wordiply/pdf/` — a **"Print board (PDF)"** GamePage menu item, the eighth game
-to print (docs/pdf.md). wordiply is the **turn-log body family**, and the first
+to print (docs/pdf.md). wordiply is the **event-log body family**, and the first
 printer with **no board**: its five guess lines carry no state of their own, so the
-page *is* the log and `drawTurnLog` starts straight under the header.
+page *is* the log and `drawEventLog` starts straight under the header.
 
 The split is deliberate. `model.ts` is pure — no jsPDF — and holds every judgment;
 `printWordiplyPdf.ts` only draws. That's because the judgment is mostly one rule
@@ -628,7 +628,7 @@ What prints:
 | Header + one-line summary | always (guess count during play; scores at terminal) |
 | **Best possible word** | terminal only |
 | **Final scores** — per player, length score + letters, winner marked | compete at terminal only |
-| The turn log — **rejects included**, each with its reason | always |
+| The event log — **rejects included**, each with its reason | always |
 
 Two details that fall out of the log carrying rejects:
 
@@ -702,7 +702,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 - `PlayArea.test` — renders **5 rows always** (layout stability); each completed row shows
   its **length badge**; **scores stay hidden mid-game** (no `<LengthScoreBar>` / letter-count
   until terminal — only per-row lengths); the terminal reveal renders the bar + letter count,
-  and names the longest word only when asked; the compete terminal verdicts; the turn log
+  and names the longest word only when asked; the compete terminal verdicts; the event log
   shows rejects with their reason and keeps them out of the guesses-used count.
 
 ---
@@ -724,8 +724,8 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").
 - **RPC helpers:** `makeRpcDispatcher`, `invokeStartGameEdgeFn`.
-- **Not applicable:** `useHistoryViewer` (there is a turn log but no history viewer — see
-  "A turn log, but no history viewer" above), `WordList` (the
+- **Not applicable:** `useHistoryViewer` (there is a event log but no history viewer — see
+  "A event log, but no history viewer" above), `WordList` (the
   board rows are the words), PDF print (candidate but deferred — see below).
 
 ---

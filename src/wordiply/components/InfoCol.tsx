@@ -13,9 +13,9 @@ import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 import type { WordiplySetup } from '../lib/setup'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -122,9 +122,9 @@ export function InfoCol({
   setup: WordiplySetup
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
-  /** EVERY row for the turn log — rejects included. Distinct from the accepted
+  /** EVERY row for the event log — rejects included. Distinct from the accepted
    *  guesses the board + the readouts above are built from. */
-  allGuesses: GuessRow[]
+  allGuesses: EventRow[]
 }) {
   return (
     <div className={shared.infoCol}>
@@ -236,12 +236,12 @@ export function InfoCol({
           Renders null in coop / mid-game (opponentReveal is empty). */}
       {isTerminal && <OpponentReveal base={base} opponents={opponentReveal} />}
 
-      {/* Turn log — LAST, per the canonical info-column order (docs/playarea.md).
+      {/* Event log — LAST, per the canonical info-column order (docs/playarea.md).
           Shows rejects as well as accepted guesses: in coop it's the only way to
           see who tried what, and the only way to see that someone already tried
-          a non-word. It scrolls inside its own box (the shared <TurnLog>), so a
+          a non-word. It scrolls inside its own box (the shared <EventLog>), so a
           growing log never moves anything above it. */}
-      <GameTurnLog
+      <GameEventLog
         guesses={allGuesses}
         players={players}
         selfId={selfId}

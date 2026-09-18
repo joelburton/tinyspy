@@ -35,7 +35,7 @@ import { PlayArea } from './PlayArea'
  * playing vs locally-done vs terminal, and the reveal's three faces.
  *
  * `useGame` (realtime + supabase) and `db` are mocked; the board, info column
- * and turn log all render for real.
+ * and event log all render for real.
  */
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>

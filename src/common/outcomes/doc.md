@@ -7,7 +7,7 @@ one, is [docs/outcomes.md](../../../docs/outcomes.md).
 ## Intro to area
 
 Lots of things in this app have to say how something went: a feedback pill after
-a move, a tile that just turned a color, a bar in the turn log, a finished game's
+a move, a tile that just turned a color, a bar in the event log, a finished game's
 verdict, an envelope coming back from the server. Left alone, each of those grows
 its own words — one says `good`, another says `won`, a third says `success` — and
 then no two surfaces can be made to agree, because there is nothing to agree
@@ -15,7 +15,7 @@ then no two surfaces can be made to agree, because there is nothing to agree
 
 It is a folder holding a single type, which looks like overkill until you ask
 where else it could go. Every consumer is a peer: the pill does not own the
-board, the board does not own the turn log, the server envelope owns none of
+board, the board does not own the event log, the server envelope owns none of
 them. Put the list inside whichever one happened to need it first, and naming a
 color now means importing that feature. A folder of its own is what keeps the
 vocabulary from belonging to somebody.

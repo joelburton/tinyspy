@@ -27,7 +27,7 @@
  * just the identity dot — the dot already says which player, and the name is the
  * droppable half (docs/mobile.md → dots-only on mobile). Feedback pills are tight
  * on a narrow header/below-board row, so this keeps them fitting a long username.
- * Turn logs pass `show="both"` and keep their names. */
+ * Event logs pass `show="both"` and keep their names. */
 @media (--phone) {
 /* @@ */   .namePhoneHidden {
     display: none;

@@ -6,7 +6,7 @@ import styles from './PlayArea.module.css'
 /**
  * The game in two fractions — letters covered, and words spent.
  *
- * A hint or spoiler taken is deliberately NOT here: the turn log is its record, and a
+ * A hint or spoiler taken is deliberately NOT here: the event log is its record, and a
  * counter beside the score would read as something the game is holding against
  * you.
  *

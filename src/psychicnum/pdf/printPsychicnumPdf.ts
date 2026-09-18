@@ -11,7 +11,7 @@ import {
   savePrint,
 } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
-import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
+import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import { drawCheck, drawCross } from '@/common/pdf/marks'
 import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
 
@@ -21,7 +21,7 @@ import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
  * where; this file only draws.
  *
  * Two layouts, one per mode:
- *   - **coop** — the classic turn-log family page: the shared board on the
+ *   - **coop** — the classic event-log family page: the shared board on the
  *     left, the newspaper guess flow beside it. One board, because the team
  *     shares one.
  *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
@@ -57,7 +57,7 @@ export function printPsychicnumPdf(m: PsychicnumPrintModel): void {
     const { leftX, colW, colTop } = twoColGeom(pd)
     const t = m.tracks[0]
     const boardH = drawBoard(doc, t.board, m.cols, leftX, colTop, colW)
-    drawTurnLog(pd, {
+    drawEventLog(pd, {
       startY: colTop + boardH + 26,
       moveLabel: 'Guess',
       rows: t.turns,

@@ -340,7 +340,7 @@ The trust model here is "we're not the gatekeeper of cheating" — a clue-giver 
 for its own reason), because nothing here shows a single guess's outcome.
 
 A guess answers with a REVEAL, and the board says it — so the pill deliberately
-stays silent on all five `ok` answers. Where the turn log prints the guessed
+stays silent on all five `ok` answers. Where the event log prints the guessed
 words it draws them in the **key-card palette** (`--codenamesduet-agent` and its
 two siblings), which is this game's own vocabulary and deliberately outside
 `--outcomes-*`; the PDF does the same with its `Mark` (agent / neutral /
@@ -382,7 +382,7 @@ src/codenamesduet/
                           (the Board + the clue move-zone; owns the **guess**
                           `submit_guess` RPC — the guess is a board click, so it stays
                           with the board's input engine, while CluePanel keeps the clue
-                          RPCs) and an `InfoCol` (the shared readouts + GameTurnLog).
+                          RPCs) and an `InfoCol` (the shared readouts + GameEventLog).
                           PlayArea loads via the three hooks, derives phase, and owns the
                           cross-column bits: the below-board local feedback slot (both
                           columns show into it), the header's turn status (`useTurnStatus`),
@@ -391,7 +391,7 @@ src/codenamesduet/
                           (`.infoState` = "{green}/15 agents · n/cap turns spent", then the
                           finished-player banners, `.infoActions` = End, `.infoHelp` =
                           phase copy, and the setup disclosure = turn cap + first
-                          clue-giver) above the GameTurnLog. **Turn-history viewer:**
+                          clue-giver) above the GameEventLog. **Turn-history viewer:**
                           clicking a log `#N` hands Board the `lib/history.ts` board
                           for that turn (its own cells ringed) with input frozen until
                           you leave (a keystroke / click / ✕).
@@ -408,7 +408,7 @@ src/codenamesduet/
                           snapshot — plus `readOnly` while viewing a past turn.
     BoardCol.module.css
     InfoCol.tsx           The info column: the shared readouts (state / finished banners /
-                          End / help / setup) above the GameTurnLog. Near-zero state —
+                          End / help / setup) above the GameEventLog. Near-zero state —
                           arranges shared pieces + emits `onShowHistory` / `onEndGame` up.
     InfoCol.module.css
     StateLine.tsx         The core live-state readout — "3/15 agents · 3/9 turns spent"
@@ -456,32 +456,32 @@ src/codenamesduet/
     CluePanel.test.tsx    Pins the data-game-input tag on both clue inputs
                           (count + word) so the global / ? ~ shortcuts still
                           fire while typing a clue.
-    GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
+    GameEventLog.tsx       Turn-by-turn replay in the shared <EventLog> panel.
                           Its bar's word is lib/turnOutcome.ts's — see "The one
                           outcome decision" above.
                           codenamesduet renders its OWN rows (row anatomy is the
-                          game's — see playarea.md → Turn log): a TWO-<tr> turn per
+                          game's — see playarea.md → Event log): a TWO-<tr> turn per
                           turn_number (grouped client-side). Row 1 = real columns
-                          [<TurnLogOutcomeBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
+                          [<EventLogOutcomeBar> ⇣rowSpan 2] | `#n` (the shared <EventLogNumber>
                           history handle, keyed by turn_number — click to replay that
                           turn on the board) | {count} {WORD} | the
-                          clue-giver via <ActorDot> (right-aligned by <TurnLogActor>);
+                          clue-giver via <ActorDot> (right-aligned by <EventLogActor>);
                           row 2 spans those content columns with the guesses (each
                           in its key-card color: agent / bystander / assassin, not
                           an outcome) — or "(clue given)" while the
                           turn is still live, "(no guesses)" once it ended empty.
-                          gameTurnLog.divider on row 1 draws the between-turns
+                          gameEventLog.divider on row 1 draws the between-turns
                           line. Per-turn outcome from lib/turnOutcome.ts.
                           Header carries the shared "whose turns?" picker
-                          (useTurnLogPlayerPicker — Team + both players; duet is
+                          (useEventLogPlayerPicker — Team + both players; duet is
                           coop-only). A turn is filed under its CLUE-GIVER — the
                           person row 1's actor column already names — so picking
                           someone answers "which clues did I give?". It ignores the
                           hook's boardIsShown: the #n handle addresses a turn by
                           turn_number, not log position, so filtering can't
                           misaddress it.
-    GameTurnLog.module.css
-    GameTurnLog.test.tsx
+    GameEventLog.module.css
+    GameEventLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameModal.
     Help.tsx              Per-game rules modal — opened from the common "Help"
                           item in the GamePage menu. Receives { onClose }.
@@ -511,7 +511,7 @@ src/codenamesduet/
                           neutral / assassin role.
     setup.ts              CodenamesduetSetup type + DEFAULT_CODENAMESDUET_SETUP. PlayArea
                           casts `ctx.setup as CodenamesduetSetup` to read the turn cap.
-    turnOutcome.ts        Pure per-turn outcome verdict for the GameTurnLog bar:
+    turnOutcome.ts        Pure per-turn outcome verdict for the GameEventLog bar:
                           any assassin → lost; only bystanders → lost (a wasted
                           turn is a setback); mixed agent+bystander → near; all
                           agents (≥1) → won; no guesses (passed) → neutral. See
@@ -527,7 +527,7 @@ src/codenamesduet/
                           PER-SEAT `neutral_a`/`neutral_b` (a neutral only locks the guesser's
                           direction — the Duet per-direction rule). Keyed by **`turn_number`**
                           (a game-wide turn ordinal, like scrabble's `seq` — not log position),
-                          which is the `#N` the log shows. Clicking a `GameTurnLog` `#N` opens
+                          which is the `#N` the log shows. Clicking a `GameEventLog` `#N` opens
                           that turn on the board via the shared viewer.
     history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```
@@ -544,7 +544,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
-codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result shows in the local feedback slot (the `<FeedbackPill>` centered in the below-board slot via the shared `.localFeedback`) — not-ok-only here (a rejected guess / clue / pass, or an end-game not-ok, each with its ×), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too, filled. The GamePage **header** (the global slot) reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — a `peerStatus` message, neutral, with a **leading** player-color disc, that an owner effect (`useTurnStatus`) keeps up until the state changes. The text is deliberately **telegraphic** (no verb): the header shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsizes the rest. These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header = leading disc; the turn-log's `<ActorDot>` puts the disc *after* the name — a deliberate placement difference.)
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result shows in the local feedback slot (the `<FeedbackPill>` centered in the below-board slot via the shared `.localFeedback`) — not-ok-only here (a rejected guess / clue / pass, or an end-game not-ok, each with its ×), since a successful guess shows on the board + event log instead; the terminal verdict shows there too, filled. The GamePage **header** (the global slot) reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — a `peerStatus` message, neutral, with a **leading** player-color disc, that an owner effect (`useTurnStatus`) keeps up until the state changes. The text is deliberately **telegraphic** (no verb): the header shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsizes the rest. These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header = leading disc; the event-log's `<ActorDot>` puts the disc *after* the name — a deliberate placement difference.)
 
 **Sudden death** shows below the board and in the info column, and says nothing in the header. The below-board CluePanel replaces itself with a persistent tinted notice (`.suddenDeath`) — there are no more clues, so the strip that normally holds the clue UI has nothing else to show — and the info-column help leads with a red **SUDDEN DEATH:** before the explanation. The header stays out of it on purpose: a message parked there holds for the rest of the game, and while one sits in that slot it outranks chat lines and narrations and keeps the players strip hidden. It deliberately does **not** frame the whole board in red either — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the two redundant signals carry it instead.
 
@@ -633,15 +633,15 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe — plus the failed read: the envelope is kept rather than left as an empty board (verified by planting a swallowed not-ok). |
-| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
+| `src/codenamesduet/components/GameEventLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
 | `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `common/keyboard/editableField.test.ts`; this pins that the actual inputs carry the tag.) |
 
 **Plus four Playwright e2e specs** — each a deliberate, narrow exception to the "e2e = realtime/presence only" charter, guarding real-browser behavior jsdom can't see:
 
 - [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
-- [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: the form declares its two inputs (count + word) as its tab ring, so Tab and Shift+Tab toggle between them and nowhere else — without it, Tab walks off onto the turn-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
-- [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a turn-log row replays that turn's board (the reveal state after that turn's guesses, the history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
+- [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: the form declares its two inputs (count + word) as its tab ring, so Tab and Shift+Tab toggle between them and nowhere else — without it, Tab walks off onto the event-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
+- [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a event-log row replays that turn's board (the reveal state after that turn's guesses, the history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
 - [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 
 ## Printing the board (PDF)
@@ -681,13 +681,13 @@ a printout gets read where nothing else explains them.
 
 ## Deferred
 
-- **BUG — restart leaves the CLUES in the turn log.** Observed on prod by Joel,
+- **BUG — restart leaves the CLUES in the event log.** Observed on prod by Joel,
   2026-08-30; **may already be fixed locally** — hard to confirm, since restart
   needs a second player.
 
   On restarting a game, the reset is partial in a way that shows: every **guess**
   is gone and the turn counter reads **0/11 turns spent**, but the **clues
-  themselves are still listed in the turn log**. So the log carries clues from a
+  themselves are still listed in the event log**. So the log carries clues from a
   game whose guesses and counter say it never happened.
 
   Not investigated; filed only. The shape to check first is which tables the

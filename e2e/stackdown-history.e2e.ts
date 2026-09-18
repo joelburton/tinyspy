@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 import { actionButton } from './helpers/actions'
 
 /**
- * Turn-history viewer for stackdown. Clicking a turn-log #N replays that word on
+ * Turn-history viewer for stackdown. Clicking a event-log #N replays that word on
  * the board (the cleared tiles restored/highlighted at that point) behind the
  * "viewing" frame + a description banner. Real overlay/layout properties jsdom
  * can't see, so a browser check — pinning the no-reflow invariant and the

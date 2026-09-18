@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import { BOARD_SIZE, coveredLetters } from '../lib/board'
 import type { EventRow, PlayerRow } from '../hooks/useGame'
 import type { GamePlayer } from '@/common/members/member'

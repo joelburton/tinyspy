@@ -2,10 +2,10 @@
 
 import { describe, it, expect } from 'vitest'
 import { historySnapshot } from './history'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /** A guess row, defaulting the fields the snapshot ignores. */
-const g = (guess: string, colors: string, is_correct = false): GuessRow => ({
+const g = (guess: string, colors: string, is_correct = false): EventRow => ({
   user_id: 'u1',
   id: 1,
   guess,

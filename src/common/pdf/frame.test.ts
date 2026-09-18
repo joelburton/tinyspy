@@ -155,7 +155,7 @@ describe('drawSetup', () => {
       expect(valueLines(calls)).toHaveLength(1)
     })
 
-    it('is left alone when no width is given (the turn-log caller)', () => {
+    it('is left alone when no width is given (the event-log caller)', () => {
       const { pd, calls } = fakePd()
       drawSetup(pd.doc, LETTERS, 40, 100, 'coop')
       expect(valueLines(calls)).toHaveLength(1)

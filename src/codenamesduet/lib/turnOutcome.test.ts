@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Tests for turnOutcome — the per-turn outcome-bar verdict for the GameTurnLog.
+ * Tests for turnOutcome — the per-turn outcome-bar verdict for the GameEventLog.
  * Pure function over a turn's guesses; the precedence is the contract (the bar
  * color itself is a visual concern verified in the browser).
  */

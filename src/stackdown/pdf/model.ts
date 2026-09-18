@@ -1,9 +1,9 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import { offBoardIds, type Tile } from '../lib/board'
-import type { SubmissionRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the stackdown print model — the pure half, away from jsPDF so the
@@ -53,7 +53,7 @@ export type StackdownPrintModel = PrintHeader & {
  * word stands alone, an invalid one is tagged, and a cheat request is named. No
  * drawn marks needed — same reasoning as wordiply's log.
  */
-function turnText(s: SubmissionRow): string {
+function turnText(s: EventRow): string {
   if (s.kind === 'hint') return `Hint: ${s.word ?? '—'}`
   if (s.kind === 'spoiler') return `Spoiler: ${(s.word ?? '').toUpperCase()}`
   const word = (s.word ?? '').toUpperCase()
@@ -73,7 +73,7 @@ export function buildStackdownPrintModel(o: {
   currentWord: number[]
   /** From `games_state`: the six words, or null while the game is live. */
   solution: string[] | null
-  submissions: SubmissionRow[]
+  submissions: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   mode: 'coop' | 'compete'
@@ -89,7 +89,7 @@ export function buildStackdownPrintModel(o: {
   /** One column: whose it is, which submissions built it, and whether the log
    *  needs to name the player (coop's shared board does; a compete column
    *  doesn't — its heading already says whose it is). */
-  const track = (who: string, rows: SubmissionRow[], logNames: boolean): PrintTrack => {
+  const track = (who: string, rows: EventRow[], logNames: boolean): PrintTrack => {
     const removed = new Set<number>()
     for (const s of rows) {
       if (s.kind === 'word' && s.valid && s.tile_ids) for (const id of s.tile_ids) removed.add(id)

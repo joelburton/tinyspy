@@ -14,7 +14,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
@@ -152,7 +152,7 @@ export function PlayArea({
   // Mobile: below --mobile the board fills the screen and the info column slides in
   // as an off-canvas sheet from a "Game info" menu item (the shared recipe —
   // docs/mobile.md). Plain (not `wide`): the info column is a narrow 22rem readout
-  // + turn log, no multi-column word list. Desktop is untouched.
+  // + event log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
   const { acknowledge, acknowledgeModal } = useAcknowledge()
@@ -195,7 +195,7 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a turn-log #N to replay that turn (the bands matched before it + this
+  // Click a event-log #N to replay that turn (the bands matched before it + this
   // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
   // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
   // banner ✕, or any key — the hook binds `act-exit-history` itself, and the
@@ -208,7 +208,7 @@ export function PlayArea({
   // "Bea found ANIMALS!" (green), one-away → "Bea was one away" (amber),
   // wrong → "Bea guessed wrong" (red). My own guesses are excluded — they
   // get the local commit flash above; my guess also already shows in the
-  // turn log. Compete never reaches here: the guesses log is RLS-scoped to
+  // event log. Compete never reaches here: the guesses log is RLS-scoped to
   // the caller server-side, so no foreign rows arrive, and we gate on coop
   // besides.
   usePeerFeedback({

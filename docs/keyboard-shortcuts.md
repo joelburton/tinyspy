@@ -131,7 +131,7 @@ of games.
 | `⌥⌫` | **End game**, or **Concede** in a race — the two share the chord and are never both available, so the mode picks which one answers. In a race that can also stop the whole table, Concede's question carries both endings rather than a second key existing. Disabled at terminal, and Concede once you have conceded — after which, in a race that offers the whole-table stop, End appears on its own. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
-| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Every game with a turn log has the viewer. Clicking anywhere exits too. |
+| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Every game with a event log has the viewer. Clicking anywhere exits too. |
 | `Tab` | **Caught and consumed** on most boards — the play surface declares an empty ring (`useTabRing([])`), because a board is not a form and native Tab walks focus out to the header and then into the browser's URL bar. Exceptions: crosswords (clue navigation) and codenamesduet (its clue form's two fields are the ring). |
 
 ## Menus, dialogs, and panels

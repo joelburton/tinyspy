@@ -395,7 +395,7 @@ being edited alone.
 **Info column**, in the canonical order: one row of counts (`Found · Deck
 remaining · Hints` — the third only in coop), the turn line (turn games only),
 the **last-set panel**, the OpponentStrip in compete, the actions, the setup
-recap, then the **turn log**. There is deliberately no count of the cards
+recap, then the **event log**. There is deliberately no count of the cards
 face-up: they are right there to be looked at.
 
 ### The one outcome decision (`lib/answer.ts`)
@@ -417,7 +417,7 @@ so there is no pill for it to disagree with.
 The rule this follows is [outcomes.md → One event, one
 outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
-### The turn log
+### The event log
 
 Rows are **pictures**, not text: a set has no name, and spelling one out ("2 red
 striped diamonds · 1 red solid oval · 3 red open squiggles") is three lines of
@@ -569,7 +569,7 @@ the terminal so a cooperative game doesn't become a running scoreboard, and
 nothing is live on paper, so that reason doesn't apply.
 
 The printer draws its own two-column flow rather than composing the shared
-`drawTurnLog`, whose row is `{ seq, who, text }`. The column *geometry* is still
+`drawEventLog`, whose row is `{ seq, who, text }`. The column *geometry* is still
 shared (`twoColGeom`), so the page lines up with every other printout. How the
 cards themselves survive the trip — the clipped hatch, the card size, and two
 geometry mistakes worth not repeating — is in

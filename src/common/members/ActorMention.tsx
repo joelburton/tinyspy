@@ -9,7 +9,7 @@ import styles from './ActorMention.module.css'
  * How much of an actor mention to show:
  *   - `auto`  — name + dot on desktop, but the name is DROPPED on phones (the dot
  *               carries identity; see docs/mobile.md). The default for feedback.
- *   - `both`  — always show both (turn logs, where the name is worth the space).
+ *   - `both`  — always show both (event logs, where the name is worth the space).
  *   - `name`  — just the name.  `dot` — just the disc.  `none` — nothing.
  */
 export type ActorShow = 'auto' | 'both' | 'name' | 'dot' | 'none'
@@ -34,7 +34,7 @@ type Props = {
  * once.
  *
  * **Each is named in the order it draws**, which is the whole way to tell them
- * apart: `<ActorDot>` is actor-then-dot ("moth ●"), what a turn-log row wants
+ * apart: `<ActorDot>` is actor-then-dot ("moth ●"), what a event-log row wants
  * with its discs lined up in a column; `<DotActor>` is dot-then-actor
  * ("● moth is guessing"), what a sentence wants.
  *
@@ -68,7 +68,7 @@ function Mention({
   )
 }
 
-/** Defaults to `show="both"`: its rows are turn logs, which have the width for
+/** Defaults to `show="both"`: its rows are event logs, which have the width for
  *  a name and want it. A caller in a tighter place passes `show="auto"`. */
 export function ActorDot(props: Props) {
   return <Mention {...props} dotFirst={false} show={props.show ?? 'both'} />

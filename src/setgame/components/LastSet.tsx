@@ -21,7 +21,7 @@ import styles from './LastSet.module.css'
  * get wrong here because the empty state is only visible for the first thirty
  * seconds of a game.
  *
- * This is also what stands in for a turn log, which v1 deliberately does not
+ * This is also what stands in for a event log, which v1 deliberately does not
  * have: "what just happened" is answered, "everything that ever happened" is
  * not. See docs/games/setgame.md → Deferred.
  */

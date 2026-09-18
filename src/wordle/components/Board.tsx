@@ -7,7 +7,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */

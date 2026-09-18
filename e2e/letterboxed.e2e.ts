@@ -229,7 +229,7 @@ test.describe('letterboxed', () => {
     await page.getByRole('button', { name: /show the word/i }).click()
     await expect(page.getByText('ADGJBEHK', { exact: true })).toBeVisible({ timeout: 10000 })
 
-    // The turn log is the lasting record of both — the CONTENT, not just the
+    // The event log is the lasting record of both — the CONTENT, not just the
     // fact of the ask (the pills above are transient); there is no counter.
     await expect(page.getByText('Hint: 8 letters: ADG')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Reveal: ADGJBEHK')).toBeVisible({ timeout: 10000 })

@@ -118,7 +118,7 @@ export const FAMILIES: Family[] = [
       'How a move or a game went. `base` is the anchor every other cell derives ' +
       'from and nothing paints. The rest are the shapes an outcome takes: thin ' +
       "lines and text (ink), a filled piece (fill), that piece's border (edge), " +
-      "a much lighter tint (wash), a turn log's left bar (bar), and the band " +
+      "a much lighter tint (wash), a event log's left bar (bar), and the band " +
       'around a board that is no longer a live position (terminalFrame). `noted` ' +
       'and `error` are anchored at INK weight rather than at the 400 the other ' +
       'five use — look for the row whose base and fill are the same color, which ' +

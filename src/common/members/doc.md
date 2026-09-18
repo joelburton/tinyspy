@@ -22,7 +22,7 @@ the person. It also settles arguments that would otherwise be re-had per
 screen, since "should this name be their color?" has one answer everywhere.
 
 That is why the name-and-disc pair lives here rather than with any of the
-screens that render it. A turn-log row, a feedback pill announcing what a
+screens that render it. A event-log row, a feedback pill announcing what a
 teammate found, a winner line and a chat message are all saying the same thing
 — *this person* — and the moment each one assembles its own name-plus-circle,
 they start to differ.
@@ -64,7 +64,7 @@ white is what separates any disc from a strong fill.
 
 **The mention comes in two orders and one of them is not decoration.**
 Each is named in the order it draws: `<ActorDot>` is actor-then-dot, which a
-turn log wants so its discs line up down one column; `<DotActor>` is
+event log wants so its discs line up down one column; `<DotActor>` is
 dot-then-actor, which is what a sentence wants. What makes the pair worth a
 component rather than two spans is the `show` prop: because the name is a real
 element rather than text baked into a string, a phone can drop it globally and

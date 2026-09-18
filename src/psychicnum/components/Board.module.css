@@ -67,7 +67,7 @@
  * word was a secret, red if not — by re-setting the shared tile's --tile-*
  * tokens (so the fill wins regardless of stylesheet order). It uses the
  * SATURATED outcome fills (`--outcomes-*-fill-color`, the same green/red the
- * TurnLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
+ * EventLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
  * tile obviously carries the same green=good / red=bad message as a guess
  * outcome. No dimming/gray: the color IS the "already tried" signal and a record
  * of found vs ruled out. The tile is also `disabled` once guessed, so it never
@@ -87,7 +87,7 @@
  * as an edge; `-ink` is what the feedback pills wear.
  *
  * The fill is `-fill`, the 400 tone. That tier used to be called `-border`, which
- * was a misnomer — it was a background in twelve of its fourteen uses (turn-log
+ * was a misnomer — it was a background in twelve of its fourteen uses (event-log
  * bars, pill tints, tile fills) and an actual border in two — so the sweep renamed
  * it to match its job. `-border` did NOT become `-edge`; the value kept working and
  * got an honest name, while `-edge` was minted alongside it.

@@ -13,7 +13,7 @@ import { findSet, third, type Card } from './cards'
  *
  * The server still hears about it: `record_hint` charges the asker and writes
  * the event, because the ring is transient UI while the ASKING is history and
- * belongs in the turn log. See `supabase/sql/setgame.sql`.
+ * belongs in the event log. See `supabase/sql/setgame.sql`.
  *
  * ── The ladder ──────────────────────────────────────────────────────────────
  * Each press reveals one more card of the SAME set:

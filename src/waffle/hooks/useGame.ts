@@ -45,7 +45,7 @@ export type WaffleGame = {
  * write these, so the array is empty in compete. `letter_a`/`letter_b`
  * are the letters that sat on `pos_a`/`pos_b` before the swap.
  */
-export type SwapRow = {
+export type EventRow = {
   user_id: string
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is what the read below orders by.
@@ -70,7 +70,7 @@ export type SwapRow = {
 export function useGame(gameId: string): {
   game: WaffleGame | null
   players: WafflePlayerState[]
-  swaps: SwapRow[]
+  swaps: EventRow[]
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
@@ -78,7 +78,7 @@ export function useGame(gameId: string): {
 } {
   const [game, setGame] = useState<WaffleGame | null>(null)
   const [players, setPlayers] = useState<WafflePlayerState[]>([])
-  const [swaps, setSwaps] = useState<SwapRow[]>([])
+  const [swaps, setSwaps] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
@@ -165,7 +165,7 @@ export function useGame(gameId: string): {
         solution: (row.solution as string | null) ?? null,
       })
       setPlayers(playersRes.data as WafflePlayerState[])
-      setSwaps(swapsRes.data as SwapRow[])
+      setSwaps(swapsRes.data as EventRow[])
       setLoading(false)
     },
   })

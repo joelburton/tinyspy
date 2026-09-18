@@ -15,7 +15,7 @@ export type Answer =
 /**
  * The outcome of every answer, in one place.
  *
- * **The pill, the guess row and the turn log all read THIS.** They are three
+ * **The pill, the guess row and the event log all read THIS.** They are three
  * views of one event, and deriving the outcome three times is exactly how they
  * drift: a word the dictionary refuses is one answer, and three surfaces each
  * choosing its color are three chances to give it three.

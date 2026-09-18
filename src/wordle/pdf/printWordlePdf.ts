@@ -10,7 +10,7 @@ import type { PrintTrack, WordlePrintModel } from './model'
 /**
  * wordle's print-to-PDF.
  *
- * Not the turn-log family: a wordle page is **one track per board** — grid,
+ * Not the event-log family: a wordle page is **one track per board** — grid,
  * keyboard, then that board's guesses — because in compete each player has their
  * own board and a wrapped single-stream log would file one player's guesses
  * under another player's grid. See `common/pdf/columns.ts`.

@@ -100,7 +100,7 @@ type Props = {
  *
  * **The two-axis filter** (`useWordListFilter`) lives in the heading row: a KIND
  * select (Legal / Required / Bonus) and a WHO select (All / Found / Missed / each
- * player). Unlike the turn log — whose picker is a hook the GAME calls, because
+ * player). Unlike the event log — whose picker is a hook the GAME calls, because
  * the selection also gates its `#N` history handle — this one is called *inside*
  * the component. Nothing outside the list consumes the selection (a word list
  * isn't chronological, so there's no history viewer to misaddress), and keeping it
@@ -155,7 +155,7 @@ export function WordList({
   return (
     <div className={styles.wrapper}>
       {/* Heading + the KIND/WHO selects on one line — the same header-row chrome
-          the turn log's picker wears (`infoPanel.headerRow`). */}
+          the event log's picker wears (`infoPanel.headerRow`). */}
       <div className={infoPanel.headerRow}>
         <h3 className={infoPanel.heading}>
           {`${heading}: ${shown.length}`}
@@ -170,7 +170,7 @@ export function WordList({
         {wordFilter.picker}
       </div>
       {/* The list in a bordered card — the same scroll-box chrome the shared
-          TurnLog uses (a heading over an evident frame). */}
+          EventLog uses (a heading over an evident frame). */}
       <div className={cls(infoPanel.box, styles.box)}>
         <ul
           className={cls(

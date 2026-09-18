@@ -1,10 +1,10 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { colorRank } from '../lib/colors'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the wordle print model — the pure half, away from jsPDF so the judgment
@@ -46,7 +46,7 @@ const BLANK_ROW = (len: number): PrintRow => ({
 })
 
 /** A guess row → its tiles. `colors` is the server's per-letter g/y/x string. */
-function rowOf(g: GuessRow): PrintRow {
+function rowOf(g: EventRow): PrintRow {
   return {
     letters: [...g.guess.toUpperCase()],
     states: [...g.guess].map((_, i) => tileColor(g.colors[i])),
@@ -59,7 +59,7 @@ function rowOf(g: GuessRow): PrintRow {
  * disagree about whether a letter is "still possible". Letters never tried are
  * simply absent, which the renderer draws as the blank (borderless) state.
  */
-function keysOf(guesses: readonly GuessRow[]): Map<string, TileColor> {
+function keysOf(guesses: readonly EventRow[]): Map<string, TileColor> {
   const keys = new Map<string, TileColor>()
   for (const g of guesses) {
     ;[...g.guess].forEach((ch, i) => {
@@ -81,7 +81,7 @@ export function buildWordlePrintModel(o: {
   maxGuesses: number
   wordLength: number
   /** Every guess the viewer can see. Compete mid-game: only their own. */
-  guesses: GuessRow[]
+  guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   /** From the game row — the FE only holds it post-game. */
@@ -100,7 +100,7 @@ export function buildWordlePrintModel(o: {
 }): WordlePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
-  const track = (who: string, guesses: GuessRow[], solved: boolean): PrintTrack => {
+  const track = (who: string, guesses: EventRow[], solved: boolean): PrintTrack => {
     const played = guesses.map(rowOf)
     return {
       who,

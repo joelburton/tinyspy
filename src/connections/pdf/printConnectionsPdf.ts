@@ -11,7 +11,7 @@ import {
   savePrint,
 } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
-import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
+import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import type { CategoryRank } from '../lib/board'
 import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 
@@ -20,8 +20,8 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
  * belong on whose board; this file only draws.
  *
  * Two layouts, one per mode:
- *   - **coop** — the turn-log body family (docs/pdf.md): the shared board in
- *     the left column, `drawTurnLog` beneath it.
+ *   - **coop** — the event-log body family (docs/pdf.md): the shared board in
+ *     the left column, `drawEventLog` beneath it.
  *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
  *     three per page): their own bands, their own leftover tiles, their own
  *     score line and guess list. A merged board is a lie in compete — every
@@ -82,7 +82,7 @@ export function printConnectionsPdf(m: ConnectionsPrintModel): void {
     const { leftX, colW, colTop } = twoColGeom(pd)
     const t = m.tracks[0]
     const y = drawBoard(doc, t, leftX, colTop, colW)
-    drawTurnLog(pd, {
+    drawEventLog(pd, {
       startY: y + 14,
       moveLabel: 'Guess',
       rows: t.turns,

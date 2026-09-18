@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import type { ClueRow } from '../hooks/useClues'
@@ -131,7 +131,7 @@ export function buildDuetPrintModel(o: {
         seq: c.turn_number,
         who: o.nameForSeat(c.by_seat as Seat),
         // The clue leads; it's the part that can't be reconstructed from the
-        // board, and drawTurnLog truncates the tail.
+        // board, and drawEventLog truncates the tail.
         //
         // The separator is '»' (U+00BB), not '→' (U+2192): jsPDF's core fonts
         // are WinAnsi, which HAS the guillemet but not the arrow — U+2192 came

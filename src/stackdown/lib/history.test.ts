@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { historySnapshot, type Submission } from './history'
 
 /**
- * A four-turn log covering every kind the viewer must handle, in chronological
+ * A four-event log covering every kind the viewer must handle, in chronological
  * (submitted_at) order — the order the PlayArea passes it. Tile ids are arbitrary
  * small integers; the replay only unions/compares ids, never board geometry.
  *

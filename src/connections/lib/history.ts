@@ -25,7 +25,7 @@
  * their own board — the projection degenerates naturally.
  */
 import type { Board, Category } from './board'
-import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { EventRow, MatchedCategory } from '../hooks/useGame'
 import type { Answer } from './answer'
 
 export interface HistorySnapshot {
@@ -51,7 +51,7 @@ export interface HistorySnapshot {
  * before), and marks this turn's own 4 tiles as the lit ones.
  */
 export function historySnapshot(
-  guesses: ReadonlyArray<GuessRow>,
+  guesses: ReadonlyArray<EventRow>,
   board: Board,
   index: number,
 ): HistorySnapshot {
@@ -78,8 +78,8 @@ export function historySnapshot(
 }
 
 /** The verdict label — a correct guess names the category it matched; the other two
- *  carry the NYT-canonical short copy (matching the turn log's `verdictLabel`). */
-function describe(turn: GuessRow | undefined, board: Board): string {
+ *  carry the NYT-canonical short copy (matching the event log's `verdictLabel`). */
+function describe(turn: EventRow | undefined, board: Board): string {
   if (!turn) return 'This turn'
   if (turn.matched) {
     const cat =

@@ -76,7 +76,7 @@ export type PlayerRow = {
  * rows. PlayArea renders them the same way either way; the
  * filtering is invisible to the FE.
  */
-export type GuessRow = {
+export type EventRow = {
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is why the read below orders by
    *  it rather than by the timestamp. Two rows written in one transaction tie
@@ -118,7 +118,7 @@ export type GuessRow = {
 export function useGame(gameId: string): {
   game: PsychicnumGame | null
   players: PlayerRow[]
-  guesses: GuessRow[]
+  guesses: EventRow[]
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
@@ -126,7 +126,7 @@ export function useGame(gameId: string): {
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
@@ -211,7 +211,7 @@ export function useGame(gameId: string): {
         created_at: gameData.created_at as string,
       })
       setPlayers(playersRes.data as PlayerRow[])
-      setGuesses(guessesRes.data as GuessRow[])
+      setGuesses(guessesRes.data as EventRow[])
       setLoading(false)
     },
   })

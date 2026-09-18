@@ -32,7 +32,7 @@
 - **`ActorMention.tsx` exports two components**, `ActorDot` and `DotActor`, so
   "the filename is the component" is false in it. They differ only in order and
   share every piece, which is why this wants a look rather than a mechanical
-  split. (The same question is open in `turn-log` for `TurnLog.tsx` and in
+  split. (The same question is open in `event-log` for `EventLog.tsx` and in
   setgame for `Card.tsx`. `game-page` had it too, in `PlayAreaMountLog.tsx`,
   and answered it by finding one of the two components no longer earned its
   keep — worth trying before reaching for a split.)

@@ -136,7 +136,7 @@ every deploy).
 | `seeds` | The board-seed pool (§7): a chained word **pair** — `last(word_a) = first(word_b)` — whose letters union to exactly twelve. PK is the twelve letters **sorted** (`char(12)`; the board is a set, never a multiset, so the sorted string and the bitmask are equivalent keys and the string is the readable one); `mask` is a generated column for the builder's subset query. `difficulty` is the band of the easiest solving pair; **the importer keeps only band ≤ 2 seeds**, so the guaranteed solution is always two words a person might think of. Every stored row is **partitionable by construction** (§7). |
 | `games` | One row per playthrough. `sides` is the twelve letters **in side order** — positions 1–3 one side, 4–6 the next, and so on — so the partition lives *in* the string and can't drift from it. `playable_words` (jsonb) is every word playable on this board at `legal_band`, computed once by the builder and shipped to the FE. `solution` is the seeded pair, copied on so the board stays self-contained if the seed table is re-imported. `max_words` (2..7, resolved from `extra_words`), `legal_band`, denormalized `mode` + `club_handle`. |
 | `players` | One row per (game, player), **one shape for both modes**: coop moves every row in lock-step (each player's row always equals the shared chain), compete moves only the actor's — the mode difference collapses to one WHERE clause, and the FE always reads its own row (strands' pattern). `chain` is **materialized** rather than folded from events on demand: every submit needs only its last element, so keeping the answer costs one array write per move; `events` stays the source of truth for the *log*, this is the cache the rules read. Plus `hints_used` (a coop-only tally of both rungs), `solved` / `solved_at`. |
-| `events` | The append-only game log, kinds `word` / `undo` / `clear` / `hint` / `spoiler`, with `took_turn` true on the three moves and false on the two asks. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the turn log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
+| `events` | The append-only game log, kinds `word` / `undo` / `clear` / `hint` / `spoiler`, with `took_turn` true on the three moves and false on the two asks. A chain can dead-end, so **undo is a first-class move, not an error path** — logging retreats (instead of deleting rows) is what lets the event log show them and keeps the history viewer a fold (§8). `id` is an identity bigint because **order is the state**: replaying the log in id order must reproduce the chain exactly. Each row stores `letters_covered` *after* the event — derivable, but the log prints it on every line and compete's timeout ranks on exactly that number. |
 
 ### RLS
 
@@ -178,7 +178,7 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 | `submit_word(target_game, submitted)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `playable_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). |
 | `undo_word(target_game)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
 | `clear_chain(target_game)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
-| `log_hint_or_spoiler(target_game, word_shown, kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the turn log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
+| `log_hint_or_spoiler(target_game, word_shown, kind)` | Records that a hint or a spoiler was taken (§6). The suggestion is computed on the FE; the server's only job is making the event log agree with what happened. Coop-only — refused in compete, where either rung is a win button. |
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `end_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
 | `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common.require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
@@ -300,7 +300,7 @@ already holding the hint itself when the answer arrives, so the not-ok shows
 over it — and nothing is lost by that, because `log_hint_or_spoiler` can only
 refuse in ways that make the hint moot: one race that fires once the game is over, and
 three faults that mean a broken client. The reasoning that used to justify
-swallowing it — "the turn log keeps the content, so the pill is a convenience
+swallowing it — "the event log keeps the content, so the pill is a convenience
 copy" — is true only when the write SUCCEEDS; a failed write is precisely the
 case where the log has nothing.
 
@@ -308,12 +308,12 @@ The content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line
 naming the act ("● joel got a hint" / "● joel revealed a word") plus the same
 content pill the requester saw, because a hint one player asks for is a hint
-the whole team has; and the turn log's lasting record ("Hint: 8 letters: DEM" /
+the whole team has; and the event log's lasting record ("Hint: 8 letters: DEM" /
 "Reveal: DEMOTIC" — the pills are transient, the log is what's given away on
 the record). All three read from `lib/hintOrSpoiler.ts`'s
 `hintOrSpoilerPillText`/`hintPrefix` so they can't drift. Two event kinds, not one, because "I was told it starts with
 DEM" and "I was told the word" are different admissions. **`hints_used` is tracked server-side but nothing renders
-it** — the turn log's rows are the record players actually read, and
+it** — the event log's rows are the record players actually read, and
 a counter beside the score would read as something the game holds against you
 (neither rung is penalized). The per-player tally stays as the cheap
 number the log would otherwise have to be folded to get.
@@ -640,7 +640,7 @@ full chain freezes the **entry** but leaves the chain **editable** — two
 different gates, deliberately, because taking a word back is then the only move
 on the board.
 
-**Turn log** (`GameTurnLog`): one `<tr>` per event in the shared `<TurnLog>`
+**Event log** (`GameEventLog`): one `<tr>` per event in the shared `<EventLog>`
 atoms, with coverage as its own column (`7/12`) so the numbers line up. Bar
 colors: a **played word is green** (landing a legal word on this board is
 unambiguously progress, unlike a wordle guess), **a hint is amber** and **a

@@ -2,7 +2,7 @@
 
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, drawSetup, newPrintDoc, savePrint } from '@/common/pdf/frame'
-import { twoColGeom } from '@/common/pdf/turnLog'
+import { twoColGeom } from '@/common/pdf/eventLog'
 import { decode, type Card } from '../lib/cards'
 import { CARD_BOX, SYMBOL_ASPECT, SYMBOL_BOX } from '../lib/shapes'
 import type { Palette } from '../lib/setup'
@@ -12,7 +12,7 @@ import type { PrintTurn, SetgamePrintModel } from './model'
  * setgame's print-to-PDF — **the log** (see [`model.ts`](./model.ts) for why
  * there is nothing else worth printing).
  *
- * It draws its own two-column flow rather than composing `drawTurnLog`, because
+ * It draws its own two-column flow rather than composing `drawEventLog`, because
  * that helper's row is `{ seq, who, text }` and setgame's row is a PICTURE. The
  * alternative was writing the sets out — "2 red striped diamonds · 1 red solid
  * oval · 3 red open squiggles" — which is three lines of prose per turn and

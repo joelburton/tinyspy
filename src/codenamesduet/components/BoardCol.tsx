@@ -17,9 +17,9 @@ import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import { Board } from './Board'
 import { CluePanel, type SuggestState } from './CluePanel'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -247,7 +247,7 @@ export function BoardCol({
           {top !== null ? (
             <div className={shared.localFeedback}>
               {/* Own-action feedback is not-ok-only here (a rejected guess /
-                  failed End); the success path shows on the board + turn log
+                  failed End); the success path shows on the board + event log
                   instead. */}
               <FeedbackPill slot={localFeedbackSlot} />
             </div>

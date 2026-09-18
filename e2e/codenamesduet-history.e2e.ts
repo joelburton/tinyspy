@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * Turn-history viewer for codenamesduet — the feature added on the monolithic
  * PlayArea ahead of the BoardCol/InfoCol decomposition (docs/playarea.md).
  *
- * Clicking a turn-log row replays that turn's board: the reveal state after that
+ * Clicking a event-log row replays that turn's board: the reveal state after that
  * turn's guesses, the whole board wearing the history frame, the turn's own
  * cells ringed, and a description banner overlaying the below-board slot. These are
  * real layout/overlay properties jsdom can't see (`getBoundingClientRect` is all
@@ -62,7 +62,7 @@ test.describe('codenamesduet turn-history viewer', () => {
     await pageBob.locator('[data-board] button:not([disabled])').first().click()
     await expect(pageBob.getByText('(clue given)')).toBeHidden({ timeout: 15000 })
 
-    // The turn log now shows turn #1 with the clue word + the guess. Measure the
+    // The event log now shows turn #1 with the clue word + the guess. Measure the
     // board BEFORE opening the viewer (this is the height that must not change).
     const handle = pageBob.locator('[data-history-handle]')
     await expect(handle).toBeVisible({ timeout: 15000 })

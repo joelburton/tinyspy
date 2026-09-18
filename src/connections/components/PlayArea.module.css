@@ -32,7 +32,7 @@
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). connections' right column (setup + "N/4 found" +
- * mistakes + the turn log) fits a narrow column; the shared `.infoCol` reads
+ * mistakes + the event log) fits a narrow column; the shared `.infoCol` reads
  * this. A rem, never a pixel lock. */
 /* @@ */ .layout {
 /* @@ */   --info-col-width: 22rem;
@@ -137,7 +137,7 @@
 
 /* Turn-history: the four tiles the VIEWED past turn guessed. Two parts, composed:
  *   - a TINT by the turn's outcome (green correct / gold one-away / red wrong) —
- *     the same saturated outcome tones the turn-log bars use, set on the shared
+ *     the same saturated outcome tones the event-log bars use, set on the shared
  *     tile's --tile-* tokens so the fill wins (like psychicnum's decided tiles).
  *     A live verdict fills the tile too, and these deliberately sit in the same
  *     family: both are "what that guess turned out to be". They can't be confused

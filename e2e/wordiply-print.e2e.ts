@@ -12,7 +12,7 @@ import { boardReady } from './helpers/ready'
  * — `pdf/model.test.ts` covers the shaping with no renderer — so this drives the
  * real path in a browser.
  *
- * wordiply is the turn-log family's first printer with **no board**: its page is
+ * wordiply is the event-log family's first printer with **no board**: its page is
  * the log, so this makes a couple of guesses (one accepted, one rejected) before
  * printing, and asserts a non-empty `%PDF-` download. A board-less page that
  * still lays out is the thing most likely to break — an empty left column, a

@@ -12,7 +12,7 @@
  * mobile-specific left here. */
 
 /* The info column's width — game-specific (the shared scaffold has no default).
- * psychicnum's right column holds short readouts + the turn log, so a narrow column
+ * psychicnum's right column holds short readouts + the event log, so a narrow column
  * suffices. Both the shared `.infoCol` and the board's `.grid` --avail-w math read
  * it (it cascades from `.layout` to both columns). */
 /* @@ */ .layout {

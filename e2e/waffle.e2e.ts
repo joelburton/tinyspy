@@ -9,7 +9,7 @@ closeContextsAfterEach()
 
 /**
  * "Restart" (the game menu) restarts the same board from scratch: it
- * clears the turn log and resets all progress on the same game row. Solo club
+ * clears the event log and resets all progress on the same game row. Solo club
  * so the game doesn't presence-pause with a single viewer.
  */
 test.describe('waffle replay board', () => {
@@ -31,7 +31,7 @@ test.describe('waffle replay board', () => {
     await page.getByRole('button', { name: /^E \(/ }).click()
     await expect(page.getByText('#1', { exact: true })).toBeVisible({ timeout: 8000 })
 
-    // Replay → the turn log clears (and the board resets to the scramble).
+    // Replay → the event log clears (and the board resets to the scramble).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
     // The styled ConfirmationBlockingModal (mid-game restart wipes the group's progress).

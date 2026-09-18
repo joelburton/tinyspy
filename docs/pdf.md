@@ -15,18 +15,18 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 |---|---|---|
 | bananagrams | ✅ | track family — a board + word list per player, **two** columns (the board is wide) |
 | boggle | ✅ | word-list family |
-| codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
-| connections | ✅ | **both families, by mode**: coop = turn-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are colored **borders** + an A–D letter (see below) |
+| codenamesduet | ✅ | event-log family — three facts per tile, all carried by drawn marks (see below) |
+| connections | ✅ | **both families, by mode**: coop = event-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are colored **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
-| setgame | ✅ | **the log, and only the log** — per-player totals, then every claim and hint in one sequence, each row a PICTURE of its three cards. There is no print-and-play here: a setgame board is a shuffle that turns over every few seconds, so a printed one is a photograph of a moment nobody can return to; what survives the game is what happened. Writing the sets out instead ("2 red striped diamonds · …") is three lines of prose per turn and unreadable down a column, so this printer draws its own two-column flow rather than composing `drawTurnLog` — the column *geometry* is still shared (`twoColGeom`). Cards print in the palette the game was played with; the colorblind one's L\* 46 / 61 / 70 is close enough to this doc's three-shade ramp to survive a mono printer. See **Shading on paper** below |
+| setgame | ✅ | **the log, and only the log** — per-player totals, then every claim and hint in one sequence, each row a PICTURE of its three cards. There is no print-and-play here: a setgame board is a shuffle that turns over every few seconds, so a printed one is a photograph of a moment nobody can return to; what survives the game is what happened. Writing the sets out instead ("2 red striped diamonds · …") is three lines of prose per turn and unreadable down a column, so this printer draws its own two-column flow rather than composing `drawEventLog` — the column *geometry* is still shared (`twoColGeom`). Cards print in the palette the game was played with; the colorblind one's L\* 46 / 61 / 70 is close enough to this doc's three-shade ramp to survive a mono printer. See **Shading on paper** below |
 | letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin gray ring; the chain as a numbered list |
-| psychicnum | ✅ | **both families, by mode**: coop = turn-log (one shared board + the newspaper flow); compete = track family (a board with the player's OWN ✓/✗, their score line and their guess list per track — a merged board is a lie when every player races their own copy) |
-| scrabble | ✅ | turn-log family |
+| psychicnum | ✅ | **both families, by mode**: coop = event-log (one shared board + the newspaper flow); compete = track family (a board with the player's OWN ✓/✗, their score line and their guess list per track — a merged board is a lie when every player races their own copy) |
+| scrabble | ✅ | event-log family |
 | spellingbee | ✅ | word-list family |
 | stackdown | ✅ | track family — a board per player; the stack drawn in layer order, white fill IS the occlusion |
 | strands | ✅ | **track family** — one track per board; color encoded as shape |
 | waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
-| wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
+| wordiply | ✅ | event-log family — the only printer with **no board**: its page *is* the log |
 | wordle | ✅ | **track family** — board + QWERTY keyboard + guesses, per player |
 | wordwheel | ✅ | word-list family (forked from spellingbee's printer) |
 
@@ -55,12 +55,12 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | `common/pdf/columns.ts` | wordle, waffle, strands | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a center + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
-| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
+| `common/pdf/eventLog.ts` | scrabble, psychicnum, wordiply, connections, codenamesduet | `twoColGeom` + `drawEventLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
 | `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` and `emptyText` |
 
 A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, then either
-call `drawTurnLog` under its own board (turn-log family) **or** call `drawWordListBody`
+call `drawEventLog` under its own board (event-log family) **or** call `drawWordListBody`
 with a board-drawing callback (word-list family), and `savePrint`.
 
 ## The aesthetic: clean + printable
@@ -81,7 +81,7 @@ gain), so calibrate line values on an actual printout.
 
 | name | value | used for |
 |---|---|---|
-| **black** | `0` | all real text — titles, data, the turn log, section headings, board words, setup values. The default; most things are black. |
+| **black** | `0` | all real text — titles, data, the event log, section headings, board words, setup values. The default; most things are black. |
 | **dark-gray** | `70` | **real-but-secondary marks** — the **board grid** and the one place text is a label rather than data (a table's `# / Player / …` column headers). Clearly visible, a step down from black, because these still carry the structure. |
 | **medium-gray** | `180` | **minor lines only** — the thin dividers between turn rows, the rule under a table header. Faint on purpose (they just separate; they aren't content). |
 
@@ -239,7 +239,7 @@ Three rules hold the shape:
     no natural length bound — MothCubes' `Letters` prints a whole 6×6 board, the roster
     prints every username — and an over-long value doesn't clip or error, it just draws
     past the edge. Truncating was the alternative and it's wrong here: the Letters row
-    exists to be copied off the paper. The **turn-log** body deliberately doesn't pass a
+    exists to be copied off the paper. The **event-log** body deliberately doesn't pass a
     width — its column layout pre-computes the block's height as one line per row.
 - **The board's own letters are the one allowed non-control row.** The three
   letter games that build a board out of letters — freebee, MooseWheel,
@@ -317,7 +317,7 @@ bananagrams needed an **RLS change** to be printable this way at all: its
 even after the game ended. It now opens at terminal like every other compete
 game's private table. See docs/games/bananagrams.md.
 
-**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, codenamesduet).**
+**Body family 1 — event-log games (`eventLog.ts`; scrabble, psychicnum, wordiply, connections, codenamesduet).**
 connections is the worked example of the color rules two sections up. A solved
 category is a full-bleed colored band on screen; on paper it becomes a **thick
 colored border** (four full-width fills is an enormous amount of ink, and
@@ -325,7 +325,7 @@ colored border** (four full-width fills is an enormous amount of ink, and
 The letter is the load-bearing half: mono flattens all four rank hues to one gray,
 so it's the only thing left saying which category was which. It's a faithful
 stand-in rather than an arbitrary tag — rank 0–3 IS the difficulty order the
-color encodes — and it does double duty in the turn log, where a correct guess
+color encodes — and it does double duty in the event log, where a correct guess
 is labeled by the letter of the band it solved. The screen tokens are re-darkened
 for print (`BORDER_RGB`): they're tuned as pale fills and nearly vanish stroked as
 a line.
@@ -359,14 +359,14 @@ mojibake. `→` did exactly that (as `!'`) and became `->`. `·` is fine; arrows
 checks and crosses are not, which is why `marks.ts` draws them.
 wordiply is the **board-less** case: it has no board worth printing (its five guess
 lines carry no state of their own), so it passes `startY: colTop` and the log begins
-straight under the header. `drawTurnLog` needed no change — the parameter already
+straight under the header. `drawEventLog` needed no change — the parameter already
 allowed it — and any future log-only game can do the same. Its terminal blocks (the
 best-possible-word reveal, and compete's per-player scores) stack above the log. Letter page,
 two columns, newspaper flow: the board (+ the summary) sits at the top of the **left**
-column; the turn log flows down under it and **continues at the top of the right column**,
+column; the event log flows down under it and **continues at the top of the right column**,
 then onto further pages (every PDF lib paginates by page, not column, so it's a
 hand-managed column cursor). The log is titled **"Turns"** (the project's word for a
-turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> table with a
+turn — matches the shared `<EventLog>`), a `#` / `Player` / <what-happened> table with a
 thin rule between turns; the Setup section is appended at the end of the flow.
 
 **Body family 2 — word-list games (`wordListBody.ts` over `wordColumns.ts`; boggle,

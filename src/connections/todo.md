@@ -2,7 +2,7 @@
 
 ## Bugs
 
-- **`matched` on `GuessRow` is now derivable.** It is `result === 'correct'`,
+- **`matched` on `EventRow` is now derivable.** It is `result === 'correct'`,
   and `result` joined the row on 2026-09-17 so the history viewer's three tint
   classes could key on a three-value word instead of a narrowed `Outcome`. Its
   docstring defends it as "the rule, kept separate from the look" — an argument

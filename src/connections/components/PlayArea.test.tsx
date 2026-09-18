@@ -4,7 +4,7 @@
  * Render + concede tests for connections' PlayArea.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the board, strip, turn log, action row — renders
+ * needed; everything else — the board, strip, event log, action row — renders
  * for real. These are deliberately shallow: game logic lives in pgTAP (the RPCs)
  * and `evaluate.test.ts` (the guess evaluator); here we prove the component tree
  * mounts and that the concede wiring (compete → connections.concede; coop → End)

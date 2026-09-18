@@ -31,7 +31,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - A **board of N words** (N = `word_count`, 5–20, chosen at setup), sampled from `common.words` at create-game time under a clean (`crude=0 AND slur=0`) + `american` + non-`slang` + `difficulty ≤ band` filter. **Three of the board words are secret**; the same three for everyone, and players win by finding **all three** (by clicking a word tile or typing the word).
 - The board words are **public** (you see and click them). The three secrets are **hidden server-side** — clients can't tell which words are secret during play even with devtools open — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic) below.
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
-- **A hint and a spoiler, both free + logged in the turn log, neither finds the secret or decrements the budget** (a hint's row is amber, a spoiler's red — see the one outcome decision below):
+- **A hint and a spoiler, both free + logged in the event log, neither finds the secret or decrements the budget** (a hint's row is amber, a spoiler's red — see the one outcome decision below):
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
   - **Spoiler** (`request_spoiler`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." Its button stays the amber bare-eye even though a spoiler's outcome is red — a button's tone is about the move you are about to make, where the outcome is about what happened; the red boxed-eye Reveal is a different thing (the whole board's secrets, terminal only, and local FE state rather than an RPC at all).
   - Both are also **menu rows** ("Hint" / "Spoiler"), grayed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). Row and button are the same bound action ([common/actions](../../src/common/actions/doc.md)), so neither can drift from the other.
@@ -42,7 +42,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 
 - All players share a single guess pool (initial value = `setup.guesses`) **and one board**.
 - Every guess decrements **everyone's** budget — coop budgets always equal each other (the per-player rows just happen to track the same number, decremented in lock-step).
-- Every guess (and hint) is visible to every club member (the turn log shows all of them). A teammate's guess is narrated in the header (green/red) as "● X Correct: WORD" / "● X Wrong: WORD", a teammate's hint as "● X got hint" (amber), and a teammate's spoiler as "● X revealed word" (red — it ends the hunt for that secret).
+- Every guess (and hint) is visible to every club member (the event log shows all of them). A teammate's guess is narrated in the header (green/red) as "● X Correct: WORD" / "● X Wrong: WORD", a teammate's hint as "● X got hint" (amber), and a teammate's spoiler as "● X revealed word" (red — it ends the hunt for that secret).
 - A number already taken (by anyone) can't be re-guessed.
 - **Win:** the team collectively finds all three secrets. Whole team wins.
 - **Lose:** the guess that takes the shared budget to zero before the set is complete. Whole team loses.
@@ -53,7 +53,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - Each player gets their own guess budget (initial value = `setup.guesses` per player) **and their own private board**; each races to find all three themselves.
 - Each guess decrements only the submitter's budget.
 - A player sees:
-  - **Their own** guesses + results + hints (the turn log + board filter server-side via RLS) — until the game ends, when every player's log opens and the turn log's player picker can read them back.
+  - **Their own** guesses + results + hints (the event log + board filter server-side via RLS) — until the game ends, when every player's log opens and the event log's player picker can read them back.
   - **Opponents' remaining budget** (a strip in the action slot) AND a header pill when an opponent finds a secret — "● X guessed a word" — the *count*, never *which* word (`players.found_secrets_count` is public; the values stay hidden).
   - **NOT** opponents' guesses, hints, or which numbers they've found.
 - **Win:** the first player to find all three ends the game for everyone. That player wins; everyone else loses immediately, even if they had budget remaining.
@@ -74,7 +74,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `found_secrets_count` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
-| `events` | Append-only log of every guess, **hint and spoiler**. One row per event, keyed by a `bigint identity` whose order IS the order of play, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'spoiler'), `took_turn` and `created_at`. `'spoiler'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); the turn log renders a hint amber and a spoiler red. `took_turn` is true on an accepted guess and on nothing else — neither helper costs a go. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
+| `events` | Append-only log of every guess, **hint and spoiler**. One row per event, keyed by a `bigint identity` whose order IS the order of play, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'spoiler'), `took_turn` and `created_at`. `'spoiler'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); the event log renders a hint amber and a spoiler red. `took_turn` is true on an accepted guess and on nothing else — neither helper costs a go. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
 
@@ -100,7 +100,7 @@ A consolidated comparison. Anything not listed here is identical across modes.
 | **`submit_timeout` terminal**          | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **listing-label `status.guesses_remaining`** | Shared value (all rows have it; any row works)        | Sum of all rows (the listing label reflects "total remaining budget across the game") |
 | **FE PlayArea header**                 | "X guesses left" (single shared number)                     | Budget strip: "You: X · Bea: Y · Cade: Z"                            |
-| **FE GameTurnLog**                    | "Team" + each player in the shared picker                   | "All" + each player; RLS still hides opponents' rows until terminal |
+| **FE GameEventLog**                    | "Team" + each player in the shared picker                   | "All" + each player; RLS still hides opponents' rows until terminal |
 | **Terminal outcome line** (info column) | "You won!" / "Out of guesses" / "Timer elapsed" (team)      | "You won!" / "${winner} won" (per-self)                              |
 
 The shape that's the same in both modes:
@@ -293,7 +293,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### `psychicnum.request_hint(target_game uuid)` and `request_spoiler(target_game uuid)`
 
-Two RPCs, `request_hint` and `request_spoiler`, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
+Two RPCs, `request_hint` and `request_spoiler`, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the event log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
 
 - **`request_spoiler`** logs a `kind='spoiler'` row with the secret **word** (the answer). Teammate pill: "X revealed a word". Surfaced as the mid-game **Spoiler** button.
 - **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word). Teammate pill: "● X got hint".
@@ -389,7 +389,7 @@ All three tables (`games`, `players`, `events`) have RLS enabled, with SELECT po
     );
   ```
 
-  Coop: any club member sees any guess. Compete: club members see only their own **during play** — and everyone's **once the game is terminal** (2026-08-02, when the turn log gained the shared player picker; the same shape stackdown / connections / waffle use). Hiding an opponent's guesses mid-game is the real rule — their guesses are their strategy — but hiding them afterwards just withholds the interesting part.
+  Coop: any club member sees any guess. Compete: club members see only their own **during play** — and everyone's **once the game is terminal** (2026-08-02, when the event log gained the shared player picker; the same shape stackdown / connections / waffle use). Hiding an opponent's guesses mid-game is the real rule — their guesses are their strategy — but hiding them afterwards just withholds the interesting part.
 
   The `g.mode` read is denormalized expressly to avoid joining `common.games` for the mode; the terminal arm is what forces that join back in, since `is_terminal` lives on `common.games` and there's no point denormalizing a flag that flips mid-game. Guarded by [`rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) — including that terminal widens the *mode* gate, not the *club* gate.
 
@@ -423,7 +423,7 @@ src/psychicnum/
                               (board-visual, not a turn action); always live
                             terminal: outcome line + Reveal / Restart / New game /
                               "‹ club" (all bound actions, in the action row)
-                            GameTurnLog (chronological guess + hint log, auto-scroll)
+                            GameEventLog (chronological guess + hint log, auto-scroll)
                             CelebrationBlockingModal (shared) — pops on a COOP WIN only,
                               once, at the moment it happens; the only modal here
                           Mounted by <GamePage> as its play surface; receives
@@ -451,7 +451,7 @@ src/psychicnum/
                           and click-to-define in the log (the guessed word, not
                           the hint sentence).
     InfoCol.tsx           The info column: setup details / state / Hint / Spoiler / End
-                          action row / GameTurnLog / terminal outcome line.
+                          action row / GameEventLog / terminal outcome line.
     StateLine.tsx         The core live-state readout — "1/3 found · 4/7 guesses
                           used" (per-viewer in compete, team-wide in coop; the
                           caller resolves that and passes numbers). Its own
@@ -461,23 +461,23 @@ src/psychicnum/
                           board.
     Board.tsx         The board of clickable word tiles (with the floating Shuffle),
     Board.module.css  keyed by tile; rings the viewed turn's word in history mode.
-    GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
-                          panel (row anatomy is the game's — see playarea.md → Turn log):
-                          each row = the shared <TurnLogOutcomeBar> cell (its color
+    GameEventLog.tsx      Renders its OWN single-<tr> rows in the shared <EventLog>
+                          panel (row anatomy is the game's — see playarea.md → Event log):
+                          each row = the shared <EventLogOutcomeBar> cell (its color
                           from lib/answer.ts) + `#n` (the shared
-                          <TurnLogNumber> history handle — click to replay that turn
+                          <EventLogNumber> history handle — click to replay that turn
                           on the board) + word + result +
-                          actor with their identity dot, and gameTurnLog.divider
+                          actor with their identity dot, and gameEventLog.divider
                           for the between-turns line. A hint row collapses the
                           word+result columns into a colspan "Hint: <clue>". The
                           guessed/revealed WORD is click-to-define (DefinableWord)
                           — a real dictionary word; the hint's clue sentence is NOT.
                           Header carries the shared "whose turns?" picker
-                          (useTurnLogPlayerPicker — Team/All + each player); when a
+                          (useEventLogPlayerPicker — Team/All + each player); when a
                           single player is filtered out of a shared coop log the
                           `#n` handle goes inert, since the viewer indexes by
                           POSITION and a filtered row 3 isn't the board's turn 3.
-    GameTurnLog.module.css
+    GameEventLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
                           mounted in the common SetupGameModal. (No per-game .module.css.)
     Help.tsx              Per-game rules modal — opened from the common "Help"
@@ -502,13 +502,13 @@ src/psychicnum/
                           turn), boundary **inclusive** (viewing turn N shows the board AFTER
                           N's guess, with N's guessed tile ringed). Hint / reveal turns mark no
                           tile. Keyed by **log position** (the `#N` the log shows). Clicking a
-                          `GameTurnLog` `#N` opens that turn on the board via the shared viewer.
+                          `GameEventLog` `#N` opens that turn on the board via the shared viewer.
     history.test.ts       Unit tests for the fold + inclusive boundary + hint/reveal no-ops.
 ```
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `globalFeedbackSlot` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../playarea.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the verdict pill; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GameTurnLog>` always renders below it. **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)): a dialog would duplicate what the page already says, so the terminal lives entirely in-page (the reveal pill + the outcome line). A **coop win** pops the shared `<CelebrationBlockingModal>` ("You win! 🎉") — once, at the moment the third secret falls, never when opening an already-won game (`useCelebration`). Compete doesn't celebrate: `won_compete` means *someone* won, and telling my own win from a loss needs per-player data that's empty on the first render, so an already-won race would pop confetti at someone merely reviewing it. The below-board pill carries the terse `verdict` ("Won: all found" / "Lost: out of guesses" / "Lost: out of time" / "Won: the race" / "Beaten to the punch"), the shared sweep vocabulary — it only became free to do so when the **secret reveal moved onto the board** (see below). **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess shows "Correct"/"Incorrect" as a `result` in the local feedback slot (`useFeedbackSlot('local')`, drawn by the entry row in the fixed-height `.localFeedback` slot, dismissed on the next move); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are `peer` messages in the header's global slot. The three standing conditions — the verdict, out of guesses, whose turn — are effects on the same local slot, and the slot draws whichever ranks highest. Guessed tiles stay permanently green (secret) / red (miss). **Terminal secret reveal = the BOARD.** At game over `psychicnum.games_state` exposes `secrets`, and `<Board>` rings every secret's tile bright green (`--psychicnum-secret-ring`, an `outline` — the background is untouched, so a found secret keeps its green result fill and a never-guessed one keeps the plain tile: "was it an answer?" and "did we find it?" stay separately legible). This replaced the old below-board word list ("The words were APPLE, RIVER, STONE"), which had no room on a phone and made the player map words back to tiles by eye. Guarded by [`psychicnum-terminal.e2e.ts`](../../e2e/psychicnum-terminal.e2e.ts) (exactly 3 rings, backgrounds unchanged, verdict in the pill). **Mobile status bar.** Below `--mobile` the info column moves off-canvas into the `<InfoSheet>`, taking the state readout with it — so `BoardCol` renders the shared `<MobileStatusBar>` above the board with the same `<StateLine>` the info column uses ("1/3 found · 4/7 guesses used"), one component so the two can't drift ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)). It's CSS-hidden on desktop and costs the board a fixed 1.75rem on a phone. **Decomposed** into a `BoardCol` (the Board + `<EntryRow>` input engine + the below-board feedback + the `submit_guess` dispatch + Shuffle + the mobile status bar) and an `InfoCol` (the readouts + `GameTurnLog`); PlayArea is the thin coordinator (`useGame` + the turn-history `historyId`). **Turn-history viewer:** clicking a log `#N` replays that turn — the guessed tile wears its green/red outcome color plus a ring in the history blue, input freezes until you leave (a keystroke / click / ✕). The snapshot is `lib/history.ts`; the own-move message is the shared `FeedbackMessage.result`. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `globalFeedbackSlot` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../playarea.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the verdict pill; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GameEventLog>` always renders below it. **No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)): a dialog would duplicate what the page already says, so the terminal lives entirely in-page (the reveal pill + the outcome line). A **coop win** pops the shared `<CelebrationBlockingModal>` ("You win! 🎉") — once, at the moment the third secret falls, never when opening an already-won game (`useCelebration`). Compete doesn't celebrate: `won_compete` means *someone* won, and telling my own win from a loss needs per-player data that's empty on the first render, so an already-won race would pop confetti at someone merely reviewing it. The below-board pill carries the terse `verdict` ("Won: all found" / "Lost: out of guesses" / "Lost: out of time" / "Won: the race" / "Beaten to the punch"), the shared sweep vocabulary — it only became free to do so when the **secret reveal moved onto the board** (see below). **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess shows "Correct"/"Incorrect" as a `result` in the local feedback slot (`useFeedbackSlot('local')`, drawn by the entry row in the fixed-height `.localFeedback` slot, dismissed on the next move); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are `peer` messages in the header's global slot. The three standing conditions — the verdict, out of guesses, whose turn — are effects on the same local slot, and the slot draws whichever ranks highest. Guessed tiles stay permanently green (secret) / red (miss). **Terminal secret reveal = the BOARD.** At game over `psychicnum.games_state` exposes `secrets`, and `<Board>` rings every secret's tile bright green (`--psychicnum-secret-ring`, an `outline` — the background is untouched, so a found secret keeps its green result fill and a never-guessed one keeps the plain tile: "was it an answer?" and "did we find it?" stay separately legible). This replaced the old below-board word list ("The words were APPLE, RIVER, STONE"), which had no room on a phone and made the player map words back to tiles by eye. Guarded by [`psychicnum-terminal.e2e.ts`](../../e2e/psychicnum-terminal.e2e.ts) (exactly 3 rings, backgrounds unchanged, verdict in the pill). **Mobile status bar.** Below `--mobile` the info column moves off-canvas into the `<InfoSheet>`, taking the state readout with it — so `BoardCol` renders the shared `<MobileStatusBar>` above the board with the same `<StateLine>` the info column uses ("1/3 found · 4/7 guesses used"), one component so the two can't drift ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)). It's CSS-hidden on desktop and costs the board a fixed 1.75rem on a phone. **Decomposed** into a `BoardCol` (the Board + `<EntryRow>` input engine + the below-board feedback + the `submit_guess` dispatch + Shuffle + the mobile status bar) and an `InfoCol` (the readouts + `GameEventLog`); PlayArea is the thin coordinator (`useGame` + the turn-history `historyId`). **Turn-history viewer:** clicking a log `#N` replays that turn — the guessed tile wears its green/red outcome color plus a ring in the history blue, input freezes until you leave (a keystroke / click / ✕). The snapshot is `lib/history.ts`; the own-move message is the shared `FeedbackMessage.result`. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
@@ -516,7 +516,7 @@ Reads from `psychicnum.games_state` (the view that exposes `secrets` conditional
 
 Drives off the shared [`useRealtimeRefetch`](../../src/common/realtime/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
-The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution comes from `useCommonGame`, via the props GamePage hands the PlayArea.
+The `members` array used by `GameEventLog` for "[ada] guessed 7" attribution comes from `useCommonGame`, via the props GamePage hands the PlayArea.
 
 ### Code-splitting
 
@@ -595,6 +595,6 @@ Decided against, not queued — listed only so reviews don't re-propose them.
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/word-entry/EntryRow.tsx`](../../src/common/word-entry/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the coop-win celebration is the shared `common/terminal/CelebrationBlockingModal.tsx` |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/word-entry/EntryRow.tsx`](../../src/common/word-entry/EntryRow.tsx)) + `GameEventLog.tsx` alongside; the coop-win celebration is the shared `common/terminal/CelebrationBlockingModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Are the secrets really hidden? | column-level grant + `psychicnum.games_state` view with `_secrets_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

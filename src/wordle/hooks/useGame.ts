@@ -37,7 +37,7 @@ export type WordlePlayerState = {
  * FE only sees its own rows until the game ends (then opponents open
  * up). `colors` is the 5-char g/y/x feedback.
  */
-export type GuessRow = {
+export type EventRow = {
   /** The row's own id, and the order of play — the database hands them out in
    *  the order the rows were written, which is what the read below orders by.
    *  It replaced a per-guesser `seq`, whose live count is
@@ -60,7 +60,7 @@ export type GuessRow = {
 export function useGame(gameId: string): {
   game: WordleGame | null
   players: WordlePlayerState[]
-  guesses: GuessRow[]
+  guesses: EventRow[]
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
@@ -68,7 +68,7 @@ export function useGame(gameId: string): {
 } {
   const [game, setGame] = useState<WordleGame | null>(null)
   const [players, setPlayers] = useState<WordlePlayerState[]>([])
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
@@ -151,7 +151,7 @@ export function useGame(gameId: string): {
         target: (row.target as string | null) ?? null,
       })
       setPlayers(playersRes.data as WordlePlayerState[])
-      setGuesses(guessesRes.data as GuessRow[])
+      setGuesses(guessesRes.data as EventRow[])
       setLoading(false)
     },
   })

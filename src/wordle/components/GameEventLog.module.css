@@ -1,0 +1,65 @@
+/* cs-unmet */
+
+/* wordle's event log rides the shared <EventLog> table — the panel border, the
+ * between-turns dividers, the right-aligned who column, and the scroll box all
+ * come from common/event-log/EventLog.module.css. The ONLY wordle-specific bit is
+ * the guess itself, rendered as five colored mini-tiles (the per-letter g/y/x
+ * feedback); that lives here. */
+
+/* @@ */ .squares {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+/* The guess is one definable word, so it wears the same hover underline as every
+ * other — but drawn here rather than by `.definable`'s `text-decoration`, which
+ * paints beneath the squares' own backgrounds and so never shows. A border on the
+ * group, transparent until hover, puts the line below the squares; it is always
+ * present, so hovering never reflows the log.
+ * See common/core-css/utilities.css → `.definable`. */
+/* @@ */ .definable {
+  border-bottom: 2px solid transparent;
+  padding-bottom: 2px;
+}
+/* @@ */ .definable:hover {
+  border-bottom-color: currentColor;
+}
+
+/* @@ */ .sq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  /* The square defaults to the not-in-the-word gray, so it takes the gray's
+     own ink; each colored class below re-states the pair. The ink is per-KIND
+     rather than a generic on-dark white because it is half of a contrast whose
+     other half is the page — see themes/daylight.css → WORDLE INK. */
+  color: var(--wordle-gray-ink-color);
+  border-radius: 3px;
+  background: var(--wordle-gray-fill-color);
+}
+
+/* @@ */ .wordleGreen {
+  background: var(--wordle-green-fill-color);
+  color: var(--wordle-green-ink-color);
+}
+/* @@ */ .wordleYellow {
+  background: var(--wordle-yellow-fill-color);
+  color: var(--wordle-yellow-ink-color);
+}
+/* @@ */ .wordleGray {
+  background: var(--wordle-gray-fill-color);
+  color: var(--wordle-gray-ink-color);
+}
+/* @@ */ .blank {
+  /* A guess's colors are always g/y/x, so this is defensive — keep it readable
+   * (dark text on the neutral surface) if a blank ever slips through. Borrows the
+   * page's own surface rather than the keycap's fill, which it borrowed until the
+   * keyboard's untried key went white and made that a coincidence. */
+  background: var(--default-bg-color);
+  color: var(--page-text-color);
+}
+

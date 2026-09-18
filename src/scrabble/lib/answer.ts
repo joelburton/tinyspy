@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { PlayRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * What a turn was — the four things a `scrabble.events` row can record, and the
@@ -12,7 +12,7 @@ import type { PlayRow } from '../hooks/useGame'
  * a refused word never reaches the log or the board history. The pill and the
  * red tile flash are its only surfaces, and both read that envelope.
  */
-export type Answer = PlayRow['kind']
+export type Answer = EventRow['kind']
 
 /**
  * The outcome of every answer, in one place.

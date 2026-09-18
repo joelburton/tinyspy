@@ -26,7 +26,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
+import type { WordleGame, WordlePlayerState, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { PlayArea } from './PlayArea'
@@ -57,7 +57,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 /** A loaded game-hook result; override the game header + players per test. */
 function loaded(
   game: WordleGame,
-  guesses: GuessRow[] = [],
+  guesses: EventRow[] = [],
   players: WordlePlayerState[] = [me],
 ): GameHook {
   return { game, players, guesses, loading: false, failure: null }
@@ -133,8 +133,8 @@ beforeEach(() => {
 })
 
 describe('wordle PlayArea — render smoke', () => {
-  it('renders the board + a turn-log row in coop play', () => {
-    // A landed guess exercises the GameTurnLog row (squares + who cell), not
+  it('renders the board + a event-log row in coop play', () => {
+    // A landed guess exercises the GameEventLog row (squares + who cell), not
     // just the empty state.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
@@ -553,11 +553,11 @@ describe('wordle PlayArea — opponent picker (compete)', () => {
   })
 })
 
-describe('wordle PlayArea — turn-log picker label', () => {
+describe('wordle PlayArea — event-log picker label', () => {
   it('names the player by HANDLE in a solo game, even when it’s you', async () => {
     // makeCtx defaults to viewer u1 as the only player. The shared vocabulary
     // names everyone the same way — "You" made your own row read as a different
-    // KIND of thing from everyone else's (useTurnLogPlayerPicker).
+    // KIND of thing from everyone else's (useEventLogPlayerPicker).
     render(<PlayArea {...makeCtx()} />)
     expect(await filterOptions()).toContain('me')
     expect(await filterOptions()).not.toContain('You')
@@ -688,13 +688,13 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
   })
 })
 
-describe('wordle PlayArea — click-to-define (turn log)', () => {
+describe('wordle PlayArea — click-to-define (event log)', () => {
   it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     render(<PlayArea {...makeCtx()} />)
-    // The turn-log guess carries the click-to-define affordance, and it rides the
+    // The event-log guess carries the click-to-define affordance, and it rides the
     // whole five-letter word (one define per guess), not an individual cell.
     const define = screen.getByTitle('Click to define')
     expect(define).toHaveTextContent('SLATE')

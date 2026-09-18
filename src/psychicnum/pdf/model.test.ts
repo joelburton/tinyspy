@@ -13,9 +13,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildPsychicnumPrintModel } from './model'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
-const g = (over: Partial<GuessRow> & Pick<GuessRow, 'user_id' | 'word'>): GuessRow => ({
+const g = (over: Partial<EventRow> & Pick<EventRow, 'user_id' | 'word'>): EventRow => ({
   id: 1,
   is_correct: false,
   kind: 'guess',
@@ -30,7 +30,7 @@ const base = {
   mode: 'compete' as const,
   isTerminal: false,
   words: ['apple', 'bread', 'crown', 'delta'],
-  guesses: [] as GuessRow[],
+  guesses: [] as EventRow[],
   players: [
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },

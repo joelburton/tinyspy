@@ -54,7 +54,7 @@ export type EventRow = {
  *
  * All three tables refetch, and all three genuinely move: `games` carries the
  * board itself (every claim rewrites it), `players` carries the counts the
- * opponent strip reads, and `events` is the turn log.
+ * opponent strip reads, and `events` is the event log.
  *
  * **There is no Broadcast channel**, deliberately, and the reason is the
  * opposite of connections'. There, coop players build a guess together, so a
@@ -73,7 +73,7 @@ export function useGame(gameId: string, selfId: string): {
   players: SetgamePlayer[]
   /** The caller's own row. */
   me: SetgamePlayer | null
-  /** Every event, oldest first — the turn log's rows. */
+  /** Every event, oldest first — the event log's rows. */
   events: EventRow[]
   /** Just the claims, oldest first. */
   claims: EventRow[]

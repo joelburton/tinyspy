@@ -26,7 +26,7 @@ import type { EventRow } from '../hooks/useGame'
  * **One player's moves at a time.** In compete each player builds a separate
  * chain from the same twelve letters, so folding a mixed list would produce a
  * chain nobody ever had. Callers pass an already-filtered list — which is
- * exactly the list the turn log is displaying, so a row's position in it IS its
+ * exactly the list the event log is displaying, so a row's position in it IS its
  * index here.
  */
 export function historyChainAt(events: readonly EventRow[], index: number): string[] {

@@ -1,8 +1,8 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
-import type { GuessRow } from '../hooks/useGame'
+import type { TurnRow } from '@/common/pdf/eventLog'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the wordiply print model — the pure half of print-to-PDF, kept away
@@ -28,7 +28,7 @@ export type PrintScore = {
 export type WordiplyPrintModel = PrintHeader & {
   /** The starter fragment every guess had to contain, uppercased. */
   base: string
-  /** The turn log — accepted AND rejected, in play order. */
+  /** The event log — accepted AND rejected, in play order. */
   turns: TurnRow[]
   /**
    * Terminal only (null during play). The longest word that was possible, and
@@ -43,7 +43,7 @@ export type WordiplyPrintModel = PrintHeader & {
 }
 
 /** The reject reasons, in the log's terse voice — same words as on screen. */
-const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
+const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
   missing_base: 'no base',
   too_short: 'too short',
   not_a_word: 'not a word',
@@ -59,7 +59,7 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  * this reason. Here the text already says it (`— not a word`), so no mark is
  * needed; keep it that way rather than adding one.
  */
-const turnText = (g: GuessRow): string =>
+const turnText = (g: EventRow): string =>
   g.valid
     ? `${g.word.toUpperCase()} (${g.length})`
     : `${g.word.toUpperCase()} — ${REJECT_LABEL[g.reason ?? 'not_a_word']}`
@@ -80,7 +80,7 @@ export function buildWordiplyPrintModel(o: {
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** EVERY row the viewer may see — the log prints rejects too. */
-  guesses: GuessRow[]
+  guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   /** Accepted-guess count, the one live readout. */

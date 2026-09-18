@@ -22,7 +22,7 @@ export type PlayerRow = {
  *  AND invalid. Coop RLS shows everyone's; compete RLS shows only the
  *  caller's (until the game is terminal). The right-column log and the
  *  removed-tile set both derive from this. */
-export type SubmissionRow = {
+export type EventRow = {
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is what the read below orders by. */
   id: number
@@ -119,7 +119,7 @@ type WordEvent =
 export function useGame(gameId: string): {
   game: StackdownGame | null
   players: PlayerRow[]
-  submissions: SubmissionRow[]
+  submissions: EventRow[]
   removedTileIds: Set<number>
   currentWord: number[]
   appendTile: (tileId: number) => number[] | null
@@ -133,7 +133,7 @@ export function useGame(gameId: string): {
 } {
   const [game, setGame] = useState<StackdownGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [submissions, setSubmissions] = useState<SubmissionRow[]>([])
+  const [submissions, setSubmissions] = useState<EventRow[]>([])
   const [currentWord, setCurrentWord] = useState<number[]>([])
   // Optimistic removed tiles: an accepted word's tiles are held here
   // from the instant the server says "accepted" until the matching
@@ -248,7 +248,7 @@ export function useGame(gameId: string): {
         solution: row.solution,
       })
       setPlayers(playersRes.data as PlayerRow[])
-      const subs = subsRes.data as unknown as SubmissionRow[]
+      const subs = subsRes.data as unknown as EventRow[]
       setSubmissions(subs)
       // Prune optimistic holds the server has now confirmed: any tile
       // that shows up in a valid submission is durably removed, so it no

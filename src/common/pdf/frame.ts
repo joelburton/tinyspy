@@ -10,7 +10,7 @@ export type { SetupRow }
  * à-la-carte primitives common to ALL printable games — the shade palette, the
  * document + page geometry, the `Brand: title` header, the "Setup" block, text
  * fitting, and the save. A game's `print<Game>Pdf` composes these with its OWN board
- * renderer + body (a turn log via `turnLog.ts`, or a word list via `wordColumns.ts`).
+ * renderer + body (a event log via `eventLog.ts`, or a word list via `wordColumns.ts`).
  *
  * Deliberately a toolkit, not a template: the games' body layouts differ too much
  * (a 2-column newspaper turn flow vs. a board + side-setup + word columns) to share a
@@ -93,7 +93,7 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
  * `maxW` (optional) is the width the block has to live in. Given one, a value
  * too long for the space WRAPS onto further lines, indented under the value so
  * the row still reads as one row. Without it, a long value runs on — which is
- * the historical behavior, kept for `turnLog`'s caller, whose column layout
+ * the historical behavior, kept for `eventLog`'s caller, whose column layout
  * pre-computes the block's height as one line per row.
  *
  * Wrapping isn't hypothetical tidiness: MothCubes' `Letters` row prints the

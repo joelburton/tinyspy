@@ -82,7 +82,7 @@ test.describe('psychicnum turn order (coop)', () => {
     ).toHaveCount(1, { timeout: 15000 })
     // …and dismissing the result — a tap is her next action — uncovers the
     // waiting note that was live underneath it: the slot's copy, the second.
-    // The turn log repeats the word in a cell; the pill is the first match,
+    // The event log repeats the word in a cell; the pill is the first match,
     // since the board column precedes the info column.
     await pageA.getByText(/^(Correct|Incorrect)$/).first().click()
     await expect(

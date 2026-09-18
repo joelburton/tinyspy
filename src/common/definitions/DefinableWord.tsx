@@ -21,7 +21,7 @@ type Props = {
  * A word you can click to see its definition.
  *
  * Use it wherever a real dictionary word is on screen and looking it up would
- * be welcome — a turn log's entry, a found-words list, a revealed answer. There
+ * be welcome — a event log's entry, a found-words list, a revealed answer. There
  * is nothing to wire per surface: the card it opens is mounted once at the root
  * (`<DefinitionHost>`), and this writes the word into the store it reads.
  *

@@ -40,7 +40,7 @@ import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
  * entirely covered); the connecting line alone says both which tiles and in
  * what order, which is more than the screen's discs manage on their own.
  *
- * The turn log's verdict glyphs are the vector marks from `common/pdf/marks`
+ * The event log's verdict glyphs are the vector marks from `common/pdf/marks`
  * for the same reason: jsPDF's core fonts are WinAnsi, so a unicode star or
  * trophy would not render at all.
  */

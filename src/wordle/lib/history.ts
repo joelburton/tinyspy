@@ -22,7 +22,7 @@
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  */
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /** The board row shape `<Board rows>` renders — a guess + its g/y/x colors. */
 export interface HistorySnapshotRow {
@@ -46,7 +46,7 @@ export interface HistorySnapshot {
  * first `index + 1` guesses (INCLUSIVE) as the board's rows and rings the last one.
  */
 export function historySnapshot(
-  guesses: ReadonlyArray<GuessRow>,
+  guesses: ReadonlyArray<EventRow>,
   index: number,
 ): HistorySnapshot {
   const rows = guesses

@@ -67,7 +67,7 @@ export type PlayerRow = {
   solved_at: string | null
 }
 
-/** One row of `letterboxed.events` — the turn log, retreats included. */
+/** One row of `letterboxed.events` — the event log, retreats included. */
 export type EventRow = {
   id: number
   game_id: string
@@ -101,7 +101,7 @@ export function useGame(gameId: string, selfId: string): {
   playerRows: PlayerRow[]
   /** The caller's own row — the chain the board renders. */
   myRow: PlayerRow | null
-  /** The turn log, oldest first. */
+  /** The event log, oldest first. */
   events: EventRow[]
   loading: boolean
   /** True once the move rows have loaded at least once — distinct from

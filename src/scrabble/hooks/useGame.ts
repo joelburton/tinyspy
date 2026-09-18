@@ -24,7 +24,7 @@ export type PlayerRow = {
 }
 
 /** One row from `scrabble.events` — the public move log. */
-export type PlayRow = {
+export type EventRow = {
   /** The row's own id, and the order of play: the database hands them out in
    *  the order the rows were written, which is what the read below orders by.
    *  It replaced a game-wide `seq` that said the same thing in a second
@@ -78,7 +78,7 @@ export type ScrabbleGame = {
 export function useGame(gameId: string): {
   game: ScrabbleGame | null
   players: PlayerRow[]
-  plays: PlayRow[]
+  plays: EventRow[]
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
    *  The surface renders this instead of "Game not found." */
@@ -86,7 +86,7 @@ export function useGame(gameId: string): {
 } {
   const [game, setGame] = useState<ScrabbleGame | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [plays, setPlays] = useState<PlayRow[]>([])
+  const [plays, setPlays] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
@@ -184,7 +184,7 @@ export function useGame(gameId: string): {
         currentUserId,
       })
       setPlayers(playerRows)
-      setPlays(playsRes.data as PlayRow[])
+      setPlays(playsRes.data as EventRow[])
       setLoading(false)
     },
   })

@@ -17,7 +17,7 @@ import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -106,7 +106,7 @@ export function PlayArea({
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a turn-log #N to replay that turn's board (the guess rows up to that turn,
+  // Click a event-log #N to replay that turn's board (the guess rows up to that turn,
   // with that turn's row ringed in the history blue). Keyed by log position. Exit is
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
   // BoardCol freezes its capture while viewing, so the viewer's own any-key
@@ -537,7 +537,7 @@ export function PlayArea({
         setupRows={summaryRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
         solution={answerShown ? game.target : null}
-        // ── Turn log ──
+        // ── Event log ──
         guesses={guesses}
         mode={game.mode}
         historyId={historyId}

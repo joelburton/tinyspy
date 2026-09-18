@@ -33,7 +33,7 @@ import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbac
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -75,7 +75,7 @@ type HintAnswer = { result: 'hint'; hint: string }
  *     render (live OR a historical snapshot) + `readOnly`; emits the completed word
  *     up (`onSubmitWord`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
- *     disclosure, terminal words reveal, and the GameTurnLog log. Every command
+ *     disclosure, terminal words reveal, and the GameEventLog log. Every command
  *     arrives as a bound action it places; the one callback up is `onShowHistory`.
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
@@ -689,7 +689,7 @@ export function PlayArea({
     : submissions
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
-  // `historyId` indexes `logWords` — the same chronological list the GameTurnLog log
+  // `historyId` indexes `logWords` — the same chronological list the GameEventLog log
   // shows — so coop replays the shared board and compete the caller's own, for free.
   // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
   const historySnap = historyId !== null ? historySnapshot(logWords, historyId) : null

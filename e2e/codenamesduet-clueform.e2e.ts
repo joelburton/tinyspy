@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * The clue form keeps Tab to itself. codenamesduet's clue-giver form is two plain
- * `<input>`s (count + word); without help, Tab walks off them onto the turn-log
+ * `<input>`s (count + word); without help, Tab walks off them onto the event-log
  * `#N` handles, page links, and the browser tab bar. The two inputs ARE the form's
  * tab ring, so Tab — and Shift+Tab — toggle between them and nowhere else, and
  * the ring is innermost while the form is up. Native Tab traversal is a

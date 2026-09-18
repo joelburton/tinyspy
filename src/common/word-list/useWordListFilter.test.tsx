@@ -3,7 +3,7 @@
 /**
  * Tests for useWordListFilter — the word list's two-axis KIND/WHO filter.
  *
- * Like the turn log's picker, the vocabulary IS the feature, so most of these
+ * Like the event log's picker, the vocabulary IS the feature, so most of these
  * assert the offered options themselves. The rest cover what a re-derivation gets
  * subtly wrong: which axis is gated and which isn't, the multi-finder match that
  * keeps compete honest, and an empty line that names whichever axis emptied the
@@ -71,7 +71,7 @@ describe('useWordListFilter — the two axes', () => {
   })
 
   it('names players by handle, including the viewer, self first', async () => {
-    // Same ruling as the turn log's picker: a list of handles is one list, where
+    // Same ruling as the event log's picker: a list of handles is one list, where
     // labeling yourself "You" makes your own entry a different kind of thing.
     const { result } = setup({ players: [two[1], two[0]] }) // deliberately not self-first
     render(<>{result.current.picker}</>)

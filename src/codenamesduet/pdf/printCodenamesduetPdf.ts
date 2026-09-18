@@ -3,11 +3,11 @@
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawCheck, drawCross, drawDash } from '@/common/pdf/marks'
-import { drawTurnLog, twoColGeom } from '@/common/pdf/turnLog'
+import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import type { DuetPrintModel, Mark, PrintCell } from './model'
 
 /**
- * codenamesduet's print-to-PDF — the **turn-log body family** (docs/pdf.md): the
+ * codenamesduet's print-to-PDF — the **event-log body family** (docs/pdf.md): the
  * 5×5 board in the left column, the clue log beneath.
  *
  * The point of the printout is **thinking about clues away from a screen**, so
@@ -67,7 +67,7 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
   let y = colTop + Math.ceil(m.cells.length / COLS) * (cellH + CELL_GAP) + 6
   y = drawLegend(doc, m, leftX, y, colW) + 12
 
-  drawTurnLog(pd, {
+  drawEventLog(pd, {
     startY: y,
     // A duet turn IS a clue plus what it got, so the column is "Clue".
     moveLabel: 'Clue',

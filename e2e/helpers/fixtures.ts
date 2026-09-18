@@ -777,7 +777,7 @@ export async function createWordleGame(
 
 /**
  * Seed `n` accepted guesses on a wordle game so a test loads a board that already
- * has turn-log rows (for the turn-history viewer). Picks `n` distinct legal words —
+ * has event-log rows (for the turn-history viewer). Picks `n` distinct legal words —
  * real 5-letter words of difficulty ≤ the game's `legal_guess` band, EXCLUDING the
  * hidden target so the game stays mid-play (a correct guess would end it) — then
  * submits each through `wordle.submit_guess` as the player (the same path the FE
@@ -824,7 +824,7 @@ export async function seedWordleGuesses(
 
 /**
  * Commit one waffle swap through the real RPC, so a game loads with a populated
- * turn log (a `#N` handle for the history viewer). Swapping two ALREADY-CORRECT
+ * event log (a `#N` handle for the history viewer). Swapping two ALREADY-CORRECT
  * cells makes the board worse without solving it, so the game stays mid-play with
  * exactly one logged swap — the state a history spec wants. The default board
  * (createWaffleGame) has correct 'c'/'d' at positions 2/3.

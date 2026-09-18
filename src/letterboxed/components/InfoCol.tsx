@@ -12,7 +12,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { BOARD_SIZE } from '../lib/board'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import type { EventRow } from '../hooks/useGame'
 import shared from '@/common/game-page/playArea.module.css'
@@ -241,7 +241,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         events={events}
         players={players}
         selfId={selfId}

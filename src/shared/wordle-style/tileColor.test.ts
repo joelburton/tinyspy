@@ -41,7 +41,7 @@ describe('tileColor', () => {
 const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
 const INDEXED_BY_TILE_COLOR: [file: string, classes: readonly string[]][] = [
   ['wordle/components/Board.module.css', [...JUDGED, 'blank']],
-  ['wordle/components/GameTurnLog.module.css', [...JUDGED, 'blank']],
+  ['wordle/components/GameEventLog.module.css', [...JUDGED, 'blank']],
   ['waffle/components/Board.module.css', [...JUDGED, 'blank']],
   ['shared/onscreen-keyboard/GuessKeyboard.module.css', JUDGED],
 ]

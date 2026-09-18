@@ -11,7 +11,7 @@ import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingM
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -24,7 +24,7 @@ import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { Placement } from '../lib/play'
 import type { RankedMove } from '../lib/rank'
-import { useGame, type PlayRow } from '../hooks/useGame'
+import { useGame, type EventRow } from '../hooks/useGame'
 import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
 import { BoardCol, type HistoryTarget } from './BoardCol'
@@ -655,7 +655,7 @@ type Suggested =
 
 /** One opponent move as a terse peer line for the global header — the actor
  *  leads it, drawn by the pill, so this is what follows their name. */
-function peerMoveText(p: PlayRow): string {
+function peerMoveText(p: EventRow): string {
   if (p.kind === 'word') {
     const w = (p.words ?? [])[0]?.toUpperCase() ?? ''
     return `played ${w} (+${p.score ?? 0})`
@@ -667,7 +667,7 @@ function peerMoveText(p: PlayRow): string {
 
 /** SPIKE: format one play for the print moves table (a second copy of BoardCol's
  *  `historyLabelFor`, minus the `#N` and the name — see todo.md). */
-function moveText(p: PlayRow): string {
+function moveText(p: EventRow): string {
   if (p.kind === 'word') {
     const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
     return `+${p.score ?? 0} ${words}`

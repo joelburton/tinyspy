@@ -5,7 +5,7 @@ import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** Empty lit-tile set — a stable reference so a live render never rings a tile. */

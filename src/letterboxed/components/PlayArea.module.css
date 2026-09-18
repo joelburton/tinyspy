@@ -144,7 +144,7 @@
 }
 
 /* A titled block in the info column — today only the revealed solution wears
- * it (the chain lives above the board, the move log is the shared TurnLog). */
+ * it (the chain lives above the board, the move log is the shared EventLog). */
 /* @@ */ .chainBlock {
   display: flex;
   flex-direction: column;
@@ -260,8 +260,8 @@
   color: var(--letterboxed-seed);
 }
 
-/* ── Turn log ──────────────────────────────────────────────
- * Rows compose the shared <TurnLog> table; only the move text is ours.
+/* ── Event log ──────────────────────────────────────────────
+ * Rows compose the shared <EventLog> table; only the move text is ours.
  *
  * BOTH kinds render at full --page-text-color. An earlier version muted the
  * retreats, which broke the standing rule that real values keep full text

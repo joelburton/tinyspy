@@ -10,7 +10,7 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
 import styles from './Board.module.css'
 

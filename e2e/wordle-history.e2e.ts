@@ -7,7 +7,7 @@ import { boardReady } from './helpers/ready'
 
 /**
  * Turn-history viewer for wordle — the feature added on the (still monolithic)
- * PlayArea. Clicking a turn-log #N replays that turn on the board: the guess rows up
+ * PlayArea. Clicking a event-log #N replays that turn on the board: the guess rows up
  * to that turn shown, that turn's row ringed in the history blue (over its g/y/x
  * colors), the board wearing the viewing frame, and a description banner over the below-board
  * region (covering the keyboard). These are real layout/overlay properties jsdom
@@ -16,7 +16,7 @@ import { boardReady } from './helpers/ready'
  *
  * A SOLO coop game (one player) so there's no presence-pause to manage, and the log
  * shows my own board (so the #N handles are live). Two guesses are seeded up front
- * (through the real RPC), so the page loads with a populated turn log.
+ * (through the real RPC), so the page loads with a populated event log.
  */
 const boardHeight = async (page: Page): Promise<number> => {
   const box = await page.locator('[data-board]').boundingBox()

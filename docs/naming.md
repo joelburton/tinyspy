@@ -139,7 +139,7 @@ Every game declares the alias even when it's a pure re-export, because cross-gam
 **Variable naming follows context, not type:**
 
 - Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameModal's pickers): variable name is `members`, type is `Member[]`.
-- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GameTurnLog props): variable name is `players`, type is `Player[]`.
+- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GameEventLog props): variable name is `players`, type is `Player[]`.
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
 
@@ -216,7 +216,7 @@ log is justified, and we're making it pink for this game because …"*.
 | | the surface | a difference there is |
 |---|---|---|
 | **tuned** | a game's board and its pieces | **expected.** Fitted to the game, wildly different between games, and standardizing it is not a goal |
-| **justified** | game chrome — the info column, and the furniture AROUND the board | **allowed, and it owes a reason** in the file. Standard in general (the turn-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
+| **justified** | game chrome — the info column, and the furniture AROUND the board | **allowed, and it owes a reason** in the file. Standard in general (the event-log frame, the setup disclosures), with named exceptions where a game genuinely differs (psychicnum's status line can't read like spellingbee's) |
 | **locked** | everything non-game — menus, dialogs, buttons, the homepage, the club page | **a bug**, until someone says otherwise. Not fatal, but it wastes lines and attention for nothing |
 
 `chrome` was considered for the middle and rejected: this codebase already uses

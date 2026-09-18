@@ -169,7 +169,7 @@ const VOCABULARIES: Vocabulary[] = [
       // it is a lozenge that grows with its digits, so it took `--radius-round`.)
       'src/common/buttons/ShuffleButton.module.css': ['999px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
-      'src/common/turn-log/TurnLog.module.css': ['3px'],
+      'src/common/event-log/EventLog.module.css': ['3px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '4px'],
     },
     fix:
@@ -292,8 +292,8 @@ const VOCABULARIES: Vocabulary[] = [
       // purpose (the reason is written in the module), so this row records
       // where they went rather than pretending they are new decisions.
       'src/common/lists/SelectionList.module.css': ['0.6rem', '0.85rem'],
-      'src/common/turn-log/historyViewer.module.css': ['0.6rem'],
-      'src/common/turn-log/TurnLog.module.css': ['0.5rem', '-1px', '-3px'],
+      'src/common/event-log/historyViewer.module.css': ['0.6rem'],
+      'src/common/event-log/EventLog.module.css': ['0.5rem', '-1px', '-3px'],
       'src/common/word-list/WordList.module.css': ['0.5rem', '16px', '7px'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
@@ -362,9 +362,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
       'src/common/lists/FilterSelect.module.css': ['0.8rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.95rem'],
-      'src/common/turn-log/historyViewer.module.css': ['1rem'],
-      'src/common/turn-log/TurnLog.module.css': ['0.9rem'],
-      'src/common/turn-log/gameTurnLog.module.css': ['1rem'], //  `.primary`, the row's lead value
+      'src/common/event-log/historyViewer.module.css': ['1rem'],
+      'src/common/event-log/EventLog.module.css': ['0.9rem'],
+      'src/common/event-log/gameEventLog.module.css': ['1rem'], //  `.primary`, the row's lead value
       'src/common/word-list/WordList.module.css': ['17px'],
       'src/common/info-sheet/MobileStatusBar.module.css': ['0.95rem'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
@@ -407,7 +407,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupNextPuzzleSection.module.css': ['1.4'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['1'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],
-      'src/common/turn-log/historyViewer.module.css': ['1'],
+      'src/common/event-log/historyViewer.module.css': ['1'],
       'src/common/game-page/playArea.module.css': ['1.1'],
       'src/shared/rank-ladder/Stats.module.css': ['1.2'],
       'src/common/devtools/PalettePage.module.css': ['1.35'],
@@ -515,8 +515,8 @@ const VOCABULARIES: Vocabulary[] = [
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/info-sheet/infoPanel.module.css': ['2px'],
-      'src/common/turn-log/historyViewer.module.css': ['2px'],
-      'src/common/turn-log/gameTurnLog.module.css': ['1px'], //   `.divider`, the between-turns line
+      'src/common/event-log/historyViewer.module.css': ['2px'],
+      'src/common/event-log/gameEventLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
       'src/common/game-page/playArea.module.css': ['1px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],

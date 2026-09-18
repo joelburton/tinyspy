@@ -8,15 +8,15 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import type { Player, PlayerRow, EventRow } from '../hooks/useGame'
+import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
- * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Every
+ * OpponentStrip (compete) → action row → help → setup disclosure → event log. Every
  * command is a BOUND ACTION the PlayArea handed down (`actHint`, `actEndGame`, …),
  * so this column places buttons and decides nothing about them — an action that
  * does not apply here draws nothing, which is how one row serves coop and compete.
@@ -89,7 +89,7 @@ export function InfoCol({
    *  worth teaching either way. */
   actHint: BoundAction
   /** Mid-game cheat: hand over the answer word for one board word (the amber
-   *  bare-eye glyph). Logs to the turn log like a hint does. */
+   *  bare-eye glyph). Logs to the event log like a hint does. */
   actSpoiler: BoundAction
   /** Ring the three secrets at game-over — or un-ring them. A local display
    *  toggle shared with the menu twin; nothing is written, no peer affected. It
@@ -114,8 +114,8 @@ export function InfoCol({
   setupRows: SetupRow[]
   /** The number of board tiles (setup echo). */
 
-  // ── Turn-history log (GameTurnLog) ──
-  guesses: GuessRow[]
+  // ── Turn-history log (GameEventLog) ──
+  guesses: EventRow[]
   /** Terminal yet? The log's player picker uses it to distinguish an opponent's
    *  RLS-hidden rows (during play) from a genuinely empty log (at terminal). */
   isTerminal: boolean
@@ -148,7 +148,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       {/* The non-log info column — the shared named readouts, in the canonical order
           (docs/playarea.md → Info-column readouts): STATE → OpponentStrip (compete) →
-          ACTIONS → HELP → SETUP disclosure, then the turn log below. */}
+          ACTIONS → HELP → SETUP disclosure, then the event log below. */}
       <div className={shared.noShrinkRow}>
         {/* State — shown in both play and terminal. The same `<StateLine>` the
             mobile status bar renders above the board (BoardCol), so the two
@@ -199,7 +199,7 @@ export function InfoCol({
             leaving last. */}
         <InfoActionsRow message={rowMessage}>
           {/* Hint = a clue (common.words.hint); Spoiler = the answer word
-              itself. Both log to the turn log, cost nothing — and both wear the
+              itself. Both log to the event log, cost nothing — and both wear the
               registry's caution tone (amber); the lightbulb-vs-bare-eye glyph is
               what separates them. The boxed-eye Reveal below is a different
               thing: the whole solution, and only once nobody can still play. */}
@@ -243,7 +243,7 @@ export function InfoCol({
             line. Below the action row, per the InfoCol order. */}
         {isStillPlaying && myTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
-        {/* Setup — shown in BOTH states, behind a disclosure, LAST before the turn log
+        {/* Setup — shown in BOTH states, behind a disclosure, LAST before the event log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
         <SetupDisclosure>
@@ -255,7 +255,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         guesses={guesses}
         players={players}
         selfId={selfId}

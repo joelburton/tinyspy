@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 

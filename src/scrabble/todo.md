@@ -101,7 +101,7 @@
 - **A raw `<button>` takes focus on click**, where every `StandardButton`
   suppresses it: the AI suggestion rows (`InfoCol.tsx`). (The history banner's ✕
   was the other one; it left this game on 2026-09-16 when the banner became the
-  shared `common/turn-log/HistoryBanner`, so it is one button in one place now.)
+  shared `common/event-log/HistoryBanner`, so it is one button in one place now.)
   The suggestion row is the one that lingers — clicking it
   stages the move and the list stays up, so the row keeps focus and the next
   Enter re-activates it natively. Nothing on a play surface should hold focus

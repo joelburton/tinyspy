@@ -21,15 +21,15 @@ import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { historyBoard, evaluatePlay, type Placement } from '../lib/play'
 import type { SharedMovePayload } from '../hooks/useSharedMove'
-import type { ScrabbleGame, PlayerRow, PlayRow } from '../hooks/useGame'
+import type { ScrabbleGame, PlayerRow, EventRow } from '../hooks/useGame'
 import { Board, type Cursor, type Tentative } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -83,7 +83,7 @@ const NO_TENT: Map<number, Tentative> = new Map()
  *  this as its snapshot's `historyLabel`; scrabble builds it here because `plays`
  *  already lives in this column. */
 function historyLabelFor(
-  p: PlayRow,
+  p: EventRow,
   n0: number,
   nameOf: (id: string | null) => string,
 ): string {
@@ -228,7 +228,7 @@ export function BoardCol({
   localFeedbackSlot: FeedbackSlot
 
   // ── Board viewer (state owned by PlayArea; this renders the snapshot) ──
-  plays: PlayRow[]
+  plays: EventRow[]
   // The read-only overlay open on the board (a past turn OR a teammate's shared
   // move), or null when live.
   historyTarget: HistoryTarget | null
@@ -741,7 +741,7 @@ export function BoardCol({
       return
     } else if (res.type === 'ok' && res.data.result === 'passed') {
       // Nothing to say: the turn hands on, and the seat strip redraws from the
-      // games row. The pass is in the turn log either way.
+      // games row. The pass is in the event log either way.
       return
     } else {
       reportUnhandled('pass_turn', res)
@@ -867,11 +867,11 @@ export function BoardCol({
   // moves, which is the sequence this viewer replays. (The log beside it
   // numbers whatever its player filter is showing, so the two can differ once
   // a filter is on; each names the list it belongs to.)
-  const historyPlayIndex = historyTurn
+  const historyEventIndex = historyTurn
     ? plays.findIndex((p) => p.id === historyTurn.id)
     : -1
-  const historyPlayRow: PlayRow | null =
-    historyPlayIndex >= 0 ? plays[historyPlayIndex] : null
+  const historyEventRow: EventRow | null =
+    historyEventIndex >= 0 ? plays[historyEventIndex] : null
   const renderBoard = historyTurn ? historyBoard(plays, historyTurn.id) : board
   // The previewed move's tiles, as a tentative map over the live board (stable ref
   // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
@@ -882,8 +882,8 @@ export function BoardCol({
     return m
   }, [peerPreview])
   const historyLitCells = historyTurn
-    ? historyPlayRow?.kind === 'word'
-      ? new Set((historyPlayRow.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
+    ? historyEventRow?.kind === 'word'
+      ? new Set((historyEventRow.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
       : NO_CELLS
     : peerPreview
       ? new Set(peerPreview.placements.map((pl) => cellIndex(pl.x, pl.y)))
@@ -920,7 +920,7 @@ export function BoardCol({
               stays mounted underneath, so `staged` is preserved. Its label is
               either a past turn's summary or a teammate's shared move, which is
               why this one is markup and not a string. */}
-          {isViewingHistory && (historyPlayRow || peerPreview) && (
+          {isViewingHistory && (historyEventRow || peerPreview) && (
             <HistoryBanner
               onExit={onExitHistory}
               label={
@@ -933,7 +933,7 @@ export function BoardCol({
                       : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
                   </>
                 ) : (
-                  historyLabelFor(historyPlayRow!, historyPlayIndex + 1, nameOf)
+                  historyLabelFor(historyEventRow!, historyEventIndex + 1, nameOf)
                 )
               }
             />

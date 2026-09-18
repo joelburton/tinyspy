@@ -11,17 +11,17 @@ import {
   type PremiumType,
 } from '../lib/board'
 import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
-import { drawTurnLog, twoColGeom, type TurnRow } from '@/common/pdf/turnLog'
+import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
 
 /**
  * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
- * the frame (header / save) + `turnLog` (the newspaper 2-column move flow). All that's
+ * the frame (header / save) + `eventLog` (the newspaper 2-column move flow). All that's
  * scrabble-specific is the board + rack. It reuses the pure board logic (premiumAt /
  * LETTER_VALUES / …) but draws its own print-tuned board rather than the on-screen
  * `<Board>` (CSS-modules + pointer handlers, print-hostile).
  *
  * The board + rack sit at the top of the LEFT column; the moves flow down under them
- * (via `turnLog`) and continue in the RIGHT column, then onto further pages.
+ * (via `eventLog`) and continue in the RIGHT column, then onto further pages.
  */
 
 /** The print payload — plain data, built by the caller from the live game state, so
@@ -78,7 +78,7 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
   }
 
   // ── Moves: the shared newspaper turn flow (labeled "Move") ──
-  drawTurnLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup, mode: m.mode })
+  drawEventLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup, mode: m.mode })
 
   savePrint(pd, m, 'scrabble')
 }

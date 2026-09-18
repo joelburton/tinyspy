@@ -65,7 +65,7 @@ eslint blocks it from importing `src/<game>/`.
 must change together; neither works alone).
 
 **The scope: alias when the import leaves its own top-level folder, relative
-within it.** A game reaching the shell writes `@/common/turn-log/TurnLog`; one
+within it.** A game reaching the shell writes `@/common/event-log/EventLog`; one
 file in `common/chat/` reaching another writes `./chatUnread`; `common/chat/`
 reaching `common/supabase/` writes `../supabase/db`. Root files (`main.tsx`,
 `App.tsx`, `gametypes.ts`) stay relative — they are in no top-level folder and
@@ -293,7 +293,7 @@ area is audited. No sweep.
 | `timer` | the game clock |
 | `toasts` | the bottom-right stack |
 | `tooltips` | the tooltip host |
-| `turn-log` | the chronological history readout and its viewer |
+| `event-log` | the chronological history readout and its viewer |
 | `utils` | simple logic helpers with no feature — plain functions only, no hooks |
 | `web-storage` | `localStorage` and `sessionStorage`, wrapped so a browser that blocks them can't throw |
 | `word-entry` | the typed-word box and its row |

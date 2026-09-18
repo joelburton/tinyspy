@@ -6,7 +6,7 @@ import type { PrintDoc } from './frame'
  * Lay a page out as **N side-by-side player tracks**, each getting its own
  * board and its own log.
  *
- * Why this exists rather than reusing `turnLog.ts`'s two-column newspaper flow:
+ * Why this exists rather than reusing `eventLog.ts`'s two-column newspaper flow:
  * that flow is ONE stream wrapping from column to column, which is right when a
  * log is just long. It's wrong for compete in wordle and waffle, where each
  * player has a **separate board** and a log that belongs to it — a wrapped

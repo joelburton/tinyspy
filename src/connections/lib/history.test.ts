@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'
 import type { Board } from './board'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 const BOARD: Board = {
   categories: [
@@ -27,7 +27,7 @@ const BOARD: Board = {
   ],
 }
 
-function g(o: Partial<GuessRow>): GuessRow {
+function g(o: Partial<EventRow>): EventRow {
   return {
     id: 1, user_id: 'u', tiles: ['apple', 'pear', 'plum', 'lime'],
     outcome: 'lost', result: 'wrong', matched: false, matched_category_rank: null, created_at: '2026-06-12T18:00:00Z', ...o,
@@ -35,7 +35,7 @@ function g(o: Partial<GuessRow>): GuessRow {
 }
 
 // Turn 0: correct FRUIT (rank 0). Turn 1: a wrong guess. Turn 2: correct METALS (rank 1).
-const GUESSES: GuessRow[] = [
+const GUESSES: EventRow[] = [
   g({ tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0 }),
   g({ tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
   g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 1 }),

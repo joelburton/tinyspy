@@ -11,7 +11,7 @@ import type { CodenamesduetSetup } from '../lib/setup'
 import type { ClueRow } from '../hooks/useClues'
 import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './InfoCol.module.css'
@@ -20,7 +20,7 @@ import styles from './InfoCol.module.css'
  * codenamesduet's info column — near-zero state, an arrangement of the shared
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * agent/turn state readout → finished-player banners → action row → help → setup
- * disclosure → turn log. codenamesduet has NO opponent strip (peer status rides the
+ * disclosure → event log. codenamesduet has NO opponent strip (peer status rides the
  * GamePage header pill) and its finished-player banners sit right under the state
  * line they explain. Every command arrives as a bound action this column places; the
  * one callback up is `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other
@@ -100,7 +100,7 @@ export function InfoCol({
   /** The player seated as the first clue-giver (setup echo). */
   firstClueGiver: Player | undefined
 
-  // ── Turn-history log (GameTurnLog) ──
+  // ── Turn-history log (GameEventLog) ──
   clues: ClueRow[]
   guesses: GuessRow[]
   players: Player[]
@@ -115,7 +115,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       {/* Info-column readouts in the shared canonical order (docs/playarea.md
           → Info-column readouts): STATE → [no opponent strip — peer status rides the header
-          pill] → ACTIONS → HELP → SETUP disclosure, then the turn log below.
+          pill] → ACTIONS → HELP → SETUP disclosure, then the event log below.
           codenamesduet's finished-player banners are a loud live-state announcement,
           so they sit right under the state line. */}
       <div className={shared.noShrinkRow}>
@@ -196,7 +196,7 @@ export function InfoCol({
           </p>
         )}
 
-        {/* Setup — a disclosure, LAST before the turn log (closed by default so it
+        {/* Setup — a disclosure, LAST before the event log (closed by default so it
             doesn't claim space; opening it grows the slot, the one allowed exception
             since it's closable). */}
         <SetupDisclosure>
@@ -208,7 +208,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog
+      <GameEventLog
         clues={clues}
         guesses={guesses}
         players={players}

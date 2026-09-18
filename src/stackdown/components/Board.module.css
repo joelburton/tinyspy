@@ -19,7 +19,7 @@
      straight on the page, which is light enough to take a shadow — and a real
      color under a dark theme, where an alpha black over a near-black page moves
      nothing. An evident border defines the board area either way (the same 2px
-     frame as the turn-log / word-list boxes). */
+     frame as the event-log / word-list boxes). */
   background: var(--board-ground-color);
   border: 2px solid var(--page-divider-color);
   border-radius: var(--radius-lg);

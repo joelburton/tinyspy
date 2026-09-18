@@ -40,7 +40,7 @@
     /* No extra top padding now that the ✕ is gone from the corner. */
     padding: 1rem;
     /* A FLEX COLUMN, so the info column inside can be given the sheet's height
-     * to divide up — that's what lets its turn log / word list scroll INSIDE
+     * to divide up — that's what lets its event log / word list scroll INSIDE
      * its own bordered box instead of growing tall and making the whole sheet
      * scroll. (`.infoCol` is itself a flex column whose log is `flex: 1;
      * min-height: 0`, but that only bounds anything if the column has a

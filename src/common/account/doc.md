@@ -48,7 +48,7 @@ editing my profile" is not worth restoring across a navigation.
 has no update policy or grant, so a plain write from the frontend cannot reach
 it; the change is one RPC. When the RPC answers, the dialog tells the shared
 profile store what the server now holds, and every reader repaints at once:
-the menu dot, the players strip, the turn log. The picker itself is not this
+the menu dot, the players strip, the event log. The picker itself is not this
 folder's — it is `fields/ColorChoiceField`, a field like any other, shared with
 the first-run claim screen so the choice looks the same whether you are making
 it for the first time or changing your mind; the palette it offers has eight

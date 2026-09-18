@@ -20,7 +20,7 @@
   gap: 0.5rem;
 }
 
-/* The card heading — a plain label over the list, matching the shared TurnLog's
+/* The card heading — a plain label over the list, matching the shared EventLog's
  * heading. (The live "X / Y words" count belongs in the info-column state line,
  * not here — it would duplicate it.) */
 /* The box's interior: a padded flex row around the column-major list, clipped so

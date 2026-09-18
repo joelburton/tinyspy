@@ -673,7 +673,7 @@ teammate's commit still resets your in-progress staging (the stackdown-style "fi
 commit wins").
 
 **Turn viewer.** scrabble uses the shared turn-history viewer — the `#N`
-`<TurnLogNumber>` handle (not the whole row), the history frame + banner, and the
+`<EventLogNumber>` handle (not the whole row), the history frame + banner, and the
 ✕ / click / any-key / opponent-move exits are all common mechanics, documented in
 [playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer).
 scrabble's snapshot semantics: the board swaps to the **replayed historical state**
@@ -730,11 +730,11 @@ board rotation) — never shared, never persisted, doesn't pause.
   dragged blank's letter on drop — a real `<BlockingModal>` since 2026-09-10, so
   it has the tab ring, Escape and panel tier every other modal has; its 26
   letters are not actions, being answers to a question this panel asks rather
-  than commands the page offers), `GameTurnLog` (the move log on the shared
-  `<TurnLog>` — one `<tr>` per play: an outcome bar whose color is
+  than commands the page offers), `GameEventLog` (the move log on the shared
+  `<EventLog>` — one `<tr>` per play: an outcome bar whose color is
   `lib/answer.ts`'s (see below), the move in `.main` [`+score WORD…`], the actor's
   `<ActorDot>`; words click-to-define via the common `DefinitionPopover`. The
-  header carries the shared "whose moves?" picker (`useTurnLogPlayerPicker`),
+  header carries the shared "whose moves?" picker (`useEventLogPlayerPicker`),
   bent twice for scrabble: it defaults to the aggregate in BOTH modes
   (`competeSharesOneGame` — even compete is one public board, so "All" is what
   you're looking at), and **AI seats are pickable people**, keyed by the synthetic
@@ -749,7 +749,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   `gameId`. Also takes the board to show — live, a `historyBoard` history snapshot,
   OR a coop teammate's shared move — the `HistoryTarget` union it switches on; and owns
   the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
-  button + the GameTurnLog), `PlayArea` (the thin coordinator: `useGame`, the shared
+  button + the GameEventLog), `PlayArea` (the thin coordinator: `useGame`, the shared
   below-board feedback slot [both columns show into it], the coop `useSharedMove`
   transport, the terminal message + the compete-win `CelebrationBlockingModal`, and the
   board-viewer state), `SetupForm`

@@ -13,7 +13,7 @@ import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import type { EventRow } from '../hooks/useGame'
 import { Counts } from './Counts'
 import { countsFor } from '../lib/readouts'
-import { GameTurnLog } from './GameTurnLog'
+import { GameEventLog } from './GameEventLog'
 import { LastSet } from './LastSet'
 import shared from '@/common/game-page/playArea.module.css'
 
@@ -32,7 +32,7 @@ type Props = {
   /** Cards still undealt. */
   deckLeft: number
   lastClaim: EventRow | null
-  /** Every event — the turn log's rows. */
+  /** Every event — the event log's rows. */
   events: EventRow[]
   // ── Per-player (compete strip, and the coop terminal breakdown) ──
   players: GamePlayer[]
@@ -44,7 +44,7 @@ type Props = {
    *  it carries its own gray "No hints when competing" face. */
   actHint: BoundAction
   hintsUsed: number
-  // ── Turn log ──
+  // ── Event log ──
   historyId: number | null
   onShowHistory: (index: number | null) => void
   // ── Actions ──
@@ -188,7 +188,7 @@ export function InfoCol({
           the log's player filter is PULLED by whoever went looking. Coop should
           not end on a scoreboard nobody asked for. It scrolls inside its own
           box, so a growing log never moves anything above it. */}
-      <GameTurnLog
+      <GameEventLog
         events={events}
         players={players}
         selfId={selfId}

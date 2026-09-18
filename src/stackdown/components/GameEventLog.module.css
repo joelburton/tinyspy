@@ -1,0 +1,32 @@
+/* cs-unmet */
+
+/* stackdown's submission log lives on the shared <EventLog> now (panel, scroll
+ * box, table, outcome bars, #n / word / who columns all come from
+ * EventLog.module.css). Only the bits unique to stackdown's rows remain here. */
+
+
+/* A turn is opened on the board viewer by clicking its "#N" handle (the shared
+ * <EventLogNumber>), not the whole row — so the row carries no click affordance, and
+ * the "currently viewing" ring lives on that handle
+ * (common/event-log/historyViewer.module.css → .historyNumber). */
+
+/* An invalid attempt — struck through and dimmed (the red bar carries the
+ * "rejected" signal). */
+/* @@ */ .invalidWord {
+  text-decoration: line-through;
+  color: var(--page-text-muted-color);
+}
+
+/* The "not a word" tag on an invalid attempt. */
+/* @@ */ .tag {
+  font-size: 0.75rem;
+  color: var(--outcomes-lost-ink-color);
+}
+
+/* A logged cheat request row ("Hint: <clue>" / "Spoiler: <WORD>"). Normal
+ * weight + full text color — it's information the player asked for, not an
+ * error, so it reads plainly (the amber outcome bar already marks it as a cheat
+ * request). */
+/* @@ */ .request {
+  color: var(--page-text-color);
+}

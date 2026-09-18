@@ -354,7 +354,7 @@ fourth is cleared — `EAGLE`, `EAGLE-TABLE`, `EAGLE-TABLE-PLANS`,
 `EAGLE-TABLE-PLANS…`. The club list reads a coop game's progress at a glance,
 and the final value persists into history (`end_game` doesn't touch the title).
 This reveals nothing new — coop's cleared words are shared and already on the
-GameTurnLog panel. The formula is `stackdown._found_title(solution, n)`.
+GameEventLog panel. The formula is `stackdown._found_title(solution, n)`.
 
 **Compete** keeps the create-time "New game". Its found words are hidden from
 the opponent (same board, same hidden solution, raced independently — only
@@ -462,7 +462,7 @@ pill.
   EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
   scrabble's `historyBoard`; keyed by **log position** (the `#N` the log shows), not
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
-  across a shared coop log. Clicking a `GameTurnLog` row's `#N` opens that turn on the
+  across a shared coop log. Clicking a `GameEventLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +
   keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
@@ -511,22 +511,22 @@ pill.
   player's own just-accepted word, in `lib/answer.ts`'s word for it. The flash
   carries plain letters, not tile ids, because an accepted word's tiles have
   already left the board),
-  `GameTurnLog` (the info-column submission log — heading "Turns" — rendered on
-  the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar,
+  `GameEventLog` (the info-column submission log — heading "Turns" — rendered on
+  the shared `<EventLog>`: a `<tr>` per submission with the shared outcome bar,
   whose word comes from `lib/answer.ts` — see **The one outcome decision** below.
   Valid words are clickable to define, invalid attempts are struck through and
   tagged, and a cheat request shows the text it revealed ("Hint: <clue>" /
   "Spoiler: <WORD>"); every row names its actor via the shared `<ActorDot>`, in
   both modes. The header carries the shared "whose turns?" picker
-  (`useTurnLogPlayerPicker` — Team/All + each player); in compete an opponent's
+  (`useEventLogPlayerPicker` — Team/All + each player); in compete an opponent's
   rows are RLS-hidden during play and open at terminal, which the picker's empty
-  text says. Each row's `#N` is the shared `<TurnLogNumber>` history handle, live
+  text says. Each row's `#N` is the shared `<EventLogNumber>` history handle, live
   only while the rows on show ARE the board's sequence — the viewer indexes by
   POSITION, so a filtered row 3 isn't the board's turn 3 — see `lib/history.ts`), `BoardCol` (the board + WordEntry input engine + the local
   feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
   `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  as bound actions, help, setup, the asked-for words reveal, and the GameTurnLog
+  as bound actions, help, setup, the asked-for words reveal, and the GameEventLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
   + the history `historyId`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the

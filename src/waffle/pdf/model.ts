@@ -1,10 +1,10 @@
 // cs-fixed-outcome-fix
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
-import type { TurnRow } from '@/common/pdf/turnLog'
+import type { TurnRow } from '@/common/pdf/eventLog'
 import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { coord, isHole } from '../lib/waffle'
-import type { SwapRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the waffle print model — the pure half, away from jsPDF.
@@ -64,7 +64,7 @@ export function buildWafflePrintModel(o: {
     solved: boolean
   }[]
   /** Every swap the viewer can see. Compete mid-game: only their own. */
-  swaps: SwapRow[]
+  swaps: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
   /** The six words, from the gated view — null until the server releases them. */
@@ -79,13 +79,13 @@ export function buildWafflePrintModel(o: {
 }): WafflePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
-  const swapText = (s: SwapRow) =>
+  const swapText = (s: EventRow) =>
     `${s.letter_a.toUpperCase()} (${coord(s.pos_a)}) <-> ${s.letter_b.toUpperCase()} (${coord(s.pos_b)})`
 
   const track = (
     who: string,
     p: { board: string | null; colors: string | null; swaps_used: number; solved: boolean },
-    swaps: SwapRow[],
+    swaps: EventRow[],
     logNames: boolean,
   ): PrintTrack => ({
     who,

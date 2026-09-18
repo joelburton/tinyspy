@@ -1,9 +1,9 @@
 # event-log — the frontend vocabulary, and turn history in compete
 
-**Status: NOT STARTED.** Agreed with Joel 2026-09-17. The last of three; see
-[events.md](events.md) for the framing and the deploy rule. **Both phases here
-depend on every game's events table existing**, so this plan starts when
-events.md finishes.
+**Status: phase A built, awaiting review; B and C are left.** Agreed with Joel
+2026-09-17. The last of three; see [events.md](events.md) for the framing and
+the deploy rule. **Both phases here depend on every game's events table
+existing**, so this plan started when events.md finished.
 
 This is where the task that started the whole conversation finally lands:
 `history-always-available`, which was §3's next area and is now phase B of this
@@ -45,6 +45,35 @@ What it covers, as far as an opening grep shows:
 
 `turn-log` is a closed, blessed area, so this sweep re-opens eleven blessed files
 plus every game's import. Worth one commit of its own.
+
+> **Built 2026-09-17.** `src/common/turn-log/` → `src/common/event-log/`, with
+> `TurnLog.tsx` → `EventLog.tsx`, `gameTurnLog.module.css` →
+> `gameEventLog.module.css`, `useTurnLogPlayerPicker` →
+> `useEventLogPlayerPicker`, the three atoms (`EventLogOutcomeBar`,
+> `EventLogNumber`, `EventLogActor`), eleven `GameTurnLog.tsx` files and their
+> stylesheets, the `.turnLog*` CSS classes, and the row types — `GuessRow` →
+> `EventRow` in four games (codenamesduet keeps its `GuessRow`: its table is
+> still `guesses`), plus `PlayRow`, `SwapRow` and `SubmissionRow`.
+>
+> **Two things the opening grep had missed.** `src/common/pdf/turnLog.ts`
+> exports `drawTurnLog` and is the printed log's half of the same vocabulary; it
+> is `pdf/eventLog.ts` with `drawEventLog` now. Its `TurnRow` type stays — it is
+> a row of the PRINTED log, whose per-game heading ("Turns", "Moves", "Guesses")
+> §A keeps. And an e2e selector, `[class*="turnLogBox"]`, which the cssClasses
+> guard caught: a spec waiting for a class that no longer exists fails on a
+> timeout that reads like flake.
+>
+> **A rename's collateral, worth recording because it is invisible to a
+> compiler in prose and fatal in code:** `s/turn log/event log/` over the repo
+> rewrote `return logOut` to `reevent logOut` inside a test. Two lessons —
+> a whole-word sweep needs `perl`, since BSD `sed` has no `\b` (it matched
+> nothing and the first pass silently did nothing at all), and a prose sweep
+> needs a scan for the word it just invented.
+>
+> Two stale claims in the folder's `doc.md` were fixed on the way past, one of
+> them made stale by THIS sprint: scrabble no longer "names a turn by a
+> game-wide ordinal" — it names a row by its id. The `boardIsShown` passages
+> §F.3 lists are phase B's and are untouched.
 
 ## B. history-always-available
 

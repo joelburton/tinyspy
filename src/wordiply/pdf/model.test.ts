@@ -13,9 +13,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { buildWordiplyPrintModel } from './model'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
-const row = (over: Partial<GuessRow> & { word: string }): GuessRow => ({
+const row = (over: Partial<EventRow> & { word: string }): EventRow => ({
   id: 1,
   game_id: 'g1',
   user_id: 'u1',
@@ -36,7 +36,7 @@ const base = {
   mode: 'coop' as const,
   isTerminal: false,
   solutionRevealed: false,
-  guesses: [] as GuessRow[],
+  guesses: [] as EventRow[],
   players: [
     { user_id: 'u1', username: 'me' },
     { user_id: 'u2', username: 'moth' },
@@ -87,7 +87,7 @@ describe('buildWordiplyPrintModel — the terminal-only rule', () => {
   })
 })
 
-describe('buildWordiplyPrintModel — the turn log', () => {
+describe('buildWordiplyPrintModel — the event log', () => {
   it('prints rejects alongside accepted guesses, each with its reason', () => {
     const m = buildWordiplyPrintModel({
       ...base,

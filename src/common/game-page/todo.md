@@ -70,12 +70,12 @@
   that was doing that is gone.
 
   The wrapper itself stays, and is now `.noShrinkRow` rather than
-  `.actionSlot` — it holds every row of the column except the turn log / word
+  `.actionSlot` — it holds every row of the column except the event log / word
   list, of which the action row is one, and what they share is that none of
   them is the one squeezed when the column runs short. It earns its place because
   flex shrinking is negotiated between siblings: with it, `.infoCol` has two
   children and "the log gives" is structural; without it the rule would be
-  `.infoCol > * { flex-shrink: 0 }` against `TurnLog`'s `flex: 1` at equal
+  `.infoCol > * { flex-shrink: 0 }` against `EventLog`'s `flex: 1` at equal
   specificity, decided by module import order.
 
   **What this leaves owed, per game:** the row-level reservations the

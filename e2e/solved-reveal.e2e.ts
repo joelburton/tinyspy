@@ -119,7 +119,7 @@ test('strands: a coop win names the words unasked', async ({ browser }) => {
   // The words are named without anyone asking — the payoff the reveal adds
   // over a consumed board, since a board draws paths and never spellings.
   await expect(page.getByText('Words:')).toBeVisible({ timeout: 8000 })
-  // `.first()`: the spangram appears in the Words line AND in the turn log,
+  // `.first()`: the spangram appears in the Words line AND in the event log,
   // which is itself a small proof the line isn't just echoing the log.
   const spangram = game.words.find((w) => w.isSpangram)!
   await expect(

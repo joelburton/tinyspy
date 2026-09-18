@@ -107,7 +107,7 @@ export function useGame(gameId: string, selfId: string): {
   players: StrandsPlayer[]
   /** The caller's own row — the hint bar and solved flag the UI acts on. */
   me: StrandsPlayer | null
-  /** EVERY row — the turn log wants the rejects and the spent hints too. */
+  /** EVERY row — the event log wants the rejects and the spent hints too. */
   events: EventRow[]
   /** Just the found theme words + spangram: the board's persistent paths. */
   found: EventRow[]

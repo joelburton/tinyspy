@@ -12,9 +12,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildWordlePrintModel } from './model'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 
-const g = (over: Partial<GuessRow> & Pick<GuessRow, 'guess' | 'colors'>): GuessRow => ({
+const g = (over: Partial<EventRow> & Pick<EventRow, 'guess' | 'colors'>): EventRow => ({
   user_id: 'u1', id: 1, is_correct: false, ...over,
 })
 
@@ -22,7 +22,7 @@ const base = {
   brand: 'Wordle', gameTitle: 'Board 1', date: '1 Jan 2026',
   mode: 'compete' as const, isTerminal: false,
   maxGuesses: 6, wordLength: 5,
-  guesses: [] as GuessRow[],
+  guesses: [] as EventRow[],
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
   selfId: 'u1',
   target: 'crane',

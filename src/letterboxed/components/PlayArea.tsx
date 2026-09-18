@@ -20,7 +20,7 @@ import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { historyChainAt, historyLabelAt } from '../lib/history'
@@ -302,7 +302,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── The hint ladder (coop only) ───────────────────────
   // The search runs HERE, over the board's shipped word list — see lib/solve.ts
   // for why that list ships at all. The server is told only that a rung was
-  // taken, so the turn log agrees with what happened.
+  // taken, so the event log agrees with what happened.
   //
   // Two buttons, two rungs of the shared hint ladder (docs/ui.md → button
   // iconography): HINT describes the word, SPOILER hands it over. Both are
@@ -394,7 +394,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // entry's slot until the player has read it, and a keystroke can't take
       // it away by accident (docs/ui.md → Feedback pill).
       //
-      // A failed log is shown, not swallowed: the turn log keeps the hint's
+      // A failed log is shown, not swallowed: the event log keeps the hint's
       // CONTENT ("Hint: 8 letters: ADG") only when the write SUCCEEDS, so a
       // not-ok goes up over the hint. Nothing is lost by that: the four
       // answers below are one race that only fires once the game is over (a
@@ -411,7 +411,7 @@ export function PlayArea(ctx: GamePageCtx) {
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'logged') {
-        // The hint's row arrives in the turn log by subscription. The hint
+        // The hint's row arrives in the event log by subscription. The hint
         // above stands, which is the whole of what a successful log owes anyone.
         return
       } else {

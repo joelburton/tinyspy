@@ -11,9 +11,9 @@ import type { FlashKind } from '../lib/flash'
 import { Board } from './Board'
 import { Counts } from './Counts'
 import { countsFor } from '../lib/readouts'
-import { HistoryBanner } from '@/common/turn-log/HistoryBanner'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
-import history from '@/common/turn-log/historyViewer.module.css'
+import history from '@/common/event-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {

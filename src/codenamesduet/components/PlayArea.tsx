@@ -15,7 +15,7 @@ import { db } from '../db'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
-import { useHistoryViewer } from '@/common/turn-log/useHistoryViewer'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildDuetPrintModel } from '../pdf/model'
@@ -55,7 +55,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *       - Action row: End game while playing; at terminal the bold
  *         outcome line + a compact Back-to-club button. Fixed minimum height so
  *         swapping between them doesn't shift the log below.
- *       - GameTurnLog: the shared TurnLog table, scrolls internally.
+ *       - GameEventLog: the shared EventLog table, scrolls internally.
  *
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
  * lives on `<GamePage>` above this component.
@@ -304,7 +304,7 @@ export function PlayArea({
   // HERE, in the coordinator, because BOTH columns show into it: BoardCol's
   // guess dispatch and clue panel (a rejected guess / clue / pass) AND
   // InfoCol's End (a failed end-game). It's NOT-OK-ONLY (a successful guess
-  // shows on the board + turn log), plus the terminal verdict.
+  // shows on the board + event log), plus the terminal verdict.
   const localFeedbackSlot = useFeedbackSlot('local')
   // Any key is the player's next move → dismiss a gesture-cleared message. The
   // dispatcher's field gate keeps a keystroke aimed at the clue field from
@@ -312,7 +312,7 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a turn-log row to replay that turn's board (the reveal state after that
+  // Click a event-log row to replay that turn's board (the reveal state after that
   // turn's guesses, with those cells ringed in the history blue). Keyed by turn_number
   // — one clue per turn, a stable game-wide ordinal (like scrabble's seq). Feature
   // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol
