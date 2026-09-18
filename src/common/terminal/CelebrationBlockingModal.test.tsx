@@ -8,15 +8,17 @@ import { CelebrationBlockingModal } from './CelebrationBlockingModal'
  * The dialog is presentational, and the Esc that dismisses it belongs to the
  * shared panel registry rather than to this component — which is why the test
  * presses the key for real instead of asserting a handler. Sound stays off
- * (jsdom has no media playback). These lock what a game relies on: the default
- * and the overridden text render, Esc and the close button dismiss, and the
- * optional primary action fires.
+ * (jsdom has no media playback). These lock what a game relies on: the title and
+ * body render, a game that gives no body gets no sub-line, Esc and the close
+ * button dismiss, and the optional primary action fires.
  */
 describe('CelebrationBlockingModal', () => {
-  it('renders the default title and body', () => {
-    render(<CelebrationBlockingModal onClose={() => {}} playSound={false} />)
+  it('renders the title alone when no body is given', () => {
+    const { container } = render(<CelebrationBlockingModal onClose={() => {}} playSound={false} />)
     expect(screen.getByText('Congratulations!')).toBeInTheDocument()
-    expect(screen.getByText('You solved the puzzle.')).toBeInTheDocument()
+    // Not an empty sub-line: the <p> isn't rendered at all, so the card is the
+    // title and the buttons. Four games take this shape.
+    expect(container.querySelector('p')).toBeNull()
     expect(screen.getByRole('button', { name: 'Nice!' })).toBeInTheDocument()
   })
 

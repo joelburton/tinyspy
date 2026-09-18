@@ -12,7 +12,8 @@ const CONFETTI = ['🎉', '🎊', '✨', '🥳', '🎈', '⭐']
 type Props = {
   // Headline. Defaults to a generic win message.
   title?: string
-  // Sub-line under the headline.
+  // Sub-line under the headline. Omit it and the card is title + confetti: there
+  // is no default, because no one sentence is true of every game's win.
   body?: string
   // Dismiss the dialog — Esc or a button, never the scrim; see `BlockingModal`.
   onClose: () => void
@@ -46,7 +47,7 @@ type Props = {
  */
 export function CelebrationBlockingModal({
   title = 'Congratulations!',
-  body = 'You solved the puzzle.',
+  body,
   onClose,
   primary,
   playSound = true,
@@ -124,7 +125,7 @@ export function CelebrationBlockingModal({
           ))}
         </div>
         <h2 className={styles.title}>{title}</h2>
-        <p className={styles.subline}>{body}</p>
+        {body && <p className={styles.subline}>{body}</p>}
       </div>
     </BlockingModal>
   )

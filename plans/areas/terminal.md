@@ -4,14 +4,14 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, twelve worked.** Roster
+**Status: OPEN — audited 2026-09-18, fourteen findings, thirteen worked.** Roster
 agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
 after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
 Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
-(2026-09-18, Joel: *"do the prose pass"*), **F-11 answered as (a)** — the code
-is right and the three sentences were fixed — and **F-12 as (a)**, the title
-dropping to h2's size. Two findings still wait for a decision: F-13 the
-defaults, F-14 scrabble's lowercased verb.
+(2026-09-18, Joel: *"do the prose pass"*), and **F-11, F-12 and F-13 all
+answered as (a)** — the celebration is a `modal-blocking` and the docs say so,
+the title takes h2's size, and `body` has no default. **F-14 is the one finding
+left**, plus the `title`-required rider recorded under F-13.
 
 ## The roster
 
@@ -316,7 +316,7 @@ being written. The second citation the audit had not named: `base.css`'s own
 heading-block comment gives this component as its h2 example too, alongside
 `docs/ui.md` — both are true again rather than one of them being fixed.
 
-### F-terminal-13 · `defaults-are-decisions` · `title` defaults to a string every caller replaces, and `body` to a sentence that is false for scrabble
+### F-terminal-13 · `defaults-are-decisions` · `title` defaults to a string every caller replaces, and `body` to a sentence that is false for scrabble — WORKED as (a)
 
 `title = 'Congratulations!'` — all fourteen callers pass a title; the default
 is dead. `body = 'You solved the puzzle.'` — four callers pass none: waffle,
@@ -334,6 +334,20 @@ this one is wrong at one of its four sites.
   area to write when it opens (its `todo.md`).
 - **(c) a default true of every win** — "You won." under "You win! 🎉" says
   it twice.
+
+**Joel: *"a"*.** `body` has no default and the `<p>` renders only when a game
+gives one, so the four callers that pass none — waffle, wordle, letterboxed,
+scrabble — show confetti + title + buttons. Scrabble's "You solved the puzzle."
+is gone with no edit in scrabble; the other three lost a line that repeated
+their own title. The spacing did not move: `.subline`'s bottom margin collapses
+with `modalActions`'s `margin-top: var(--spacer-1)`, the larger of the two, so
+the gap above the buttons is the same 1.5rem with the sub-line or without it.
+No game doc quoted the removed sentence.
+
+**The `title` rider is NOT settled and nothing was done to it.** All fourteen
+callers pass a title, so its `'Congratulations!'` default is dead; whether the
+prop becomes required was raised alongside (a) and Joel answered the body
+question only.
 
 ### F-terminal-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased
 
@@ -394,10 +408,10 @@ wrong about it.
 
 ## Predicted test breaks
 
-- F-13 (a): `CelebrationBlockingModal.test.tsx` → *renders the default title
-  and body* expects "You solved the puzzle."; it becomes a test that no
-  sub-line renders without a body. (The name lost the banned word in the prose
-  pass, F-4.)
+- F-13 (a), and this is what happened: `CelebrationBlockingModal.test.tsx` →
+  *renders the default title and body* is now *renders the title alone when no
+  body is given*, asserting the `<p>` is absent rather than empty. Nothing else
+  in the repo referenced the removed sentence.
 - F-12, F-11 (a): none — no unit test measures the title, and every dialog
   query keys on the inner `role="dialog"`, which no option moves.
 - F-11 (b): the four e2e specs and two PlayArea tests above still find the
