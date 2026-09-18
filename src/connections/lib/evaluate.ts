@@ -7,7 +7,7 @@ import type { Category, CategoryRank } from './board'
  * rank, name and tiles), `oneAway` (exactly 3 of the 4 belong to one category),
  * or `wrong`.
  *
- * **In the WIRE word**, which is what `connections.guesses.result` stores and
+ * **In the WIRE word**, which is what `connections.events.result` stores and
  * what `submit_guess` takes — so a verdict travels from the evaluator to the
  * column with no translation step in between. What each is WORTH is
  * `lib/answer.ts`'s to say, and every surface asks it rather than this.

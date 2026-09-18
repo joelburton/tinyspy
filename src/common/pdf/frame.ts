@@ -10,7 +10,7 @@ export type { SetupRow }
  * à-la-carte primitives common to ALL printable games — the shade palette, the
  * document + page geometry, the `Brand: title` header, the "Setup" block, text
  * fitting, and the save. A game's `print<Game>Pdf` composes these with its OWN board
- * renderer + body (a event log via `eventLog.ts`, or a word list via `wordColumns.ts`).
+ * renderer + body (an event log via `eventLog.ts`, or a word list via `wordColumns.ts`).
  *
  * Deliberately a toolkit, not a template: the games' body layouts differ too much
  * (a 2-column newspaper turn flow vs. a board + side-setup + word columns) to share a

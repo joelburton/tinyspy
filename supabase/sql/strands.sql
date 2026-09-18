@@ -204,14 +204,14 @@ grant select on strands.players_state to authenticated;
 -- wordwheel/spellingbee use:
 --
 --   coop            everyone in the club sees every event. A deliberate ruling:
---                   the turn log is the team's shared record of what has been
+--                   the event log is the team's shared record of what has been
 --                   tried, and hiding a peer's rejects would make it lie.
 --   own rows        you always see your own (compete's board is yours).
 --   is_terminal     the post-game reveal, so the log can be compared afterwards.
 --
 -- The compete arm is what keeps WORD COUNTS private: an opponent's finds are
 -- their business until the race is over. It's also what makes the shared
--- turn-log picker's empty line honest — "Hidden until game ends" rather than
+-- event-log picker's empty line honest — "Hidden until game ends" rather than
 -- "Nothing yet".
 --
 -- HINT rows ride the same three branches, and want no fourth: a hint is shared
@@ -872,7 +872,7 @@ revoke execute on function strands._maybe_finish_compete(uuid, boolean) from pub
 --
 -- HARD vs SOFT rejects. A structurally impossible path (off-board,
 -- non-adjacent, self-crossing) RAISES: the FE's reducer cannot produce one, so
--- it means a broken or hostile client, and logging it would pollute a turn log
+-- it means a broken or hostile client, and logging it would pollute an event log
 -- that players read. A path through a SPENT tile also raises, but with one
 -- honest route in: a coop submit in flight while a peer's find lands can cross
 -- tiles the sender didn't yet see consumed. That window is realtime-lag sized,
@@ -1365,7 +1365,7 @@ begin
 
   -- Log it. Deliberately ONE row attributed to the caller, NOT one per player
   -- the way the counters above fan out in coop: a shared pool still has a
-  -- single person who decided to cash it, and the turn log records what
+  -- single person who decided to cash it, and the event log records what
   -- happened, not who it happened to.
   --
   -- `path` carries the same canonical coords the players row just took, so the

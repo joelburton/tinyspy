@@ -15,7 +15,7 @@
 --       coop:    ada sees bea's guesses and vice versa
 --       compete: each player sees ONLY their own guesses DURING
 --                play, and everyone's once the game is terminal
---                (what the turn log's "whose turns?" picker reads)
+--                (what the event log's "whose turns?" picker reads)
 --   - players table is club-wide visible in BOTH modes (the
 --     "opponents see my budget but not my guesses" property)
 --
@@ -200,7 +200,7 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- The during-play gate (tests 4-6) is the real rule: an
 -- opponent's guesses are their strategy. Once the game has ENDED
--- there's nothing left to protect, and the turn log's "whose
+-- there's nothing left to protect, and the event log's "whose
 -- turns?" picker exists precisely to read the other player's game
 -- back — so guesses_select carries an `or cg.is_terminal` arm
 -- (2026-08-02, matching stackdown / connections / waffle).

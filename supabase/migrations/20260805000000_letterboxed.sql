@@ -256,7 +256,7 @@ create index letterboxed_players_game_id_idx on letterboxed.players (game_id);
 -- Every move that happened, in order, including the retreats. A chain
 -- can DEAD-END — the tail letter may have no playable continuation — so
 -- undo is a first-class move rather than an error path, and logging it
--- (instead of deleting the played row) is what lets the turn log show
+-- (instead of deleting the played row) is what lets the event log show
 -- the retreat and lets the history viewer stay a FOLD over events
 -- rather than a reconstruction. Same call strands makes, and the reason
 -- its table is `events` and not `guesses`.
@@ -293,7 +293,7 @@ create table letterboxed.events (
   word text,
 
   -- How many of the twelve letters the chain covered AFTER this event.
-  -- Derivable from the chain, but stored because the turn log shows it
+  -- Derivable from the chain, but stored because the event log shows it
   -- on every line ("TRACE — +3 letters (5 left)") and compete's
   -- timeout resolution ranks on exactly this number.
   letters_covered int not null check (letters_covered between 0 and 12),
@@ -325,7 +325,7 @@ alter table letterboxed.events enable row level security;
 --     row(s) peers refetch on. Its UPDATE is also what announces a
 --     replay_board (the replay's events DELETEs alone would not:
 --     postgres_changes filters don't reliably match deletes).
---   - events is the turn log, appended on every move.
+--   - events is the event log, appended on every move.
 --   - games never changes mid-play; its binding is quiet today and kept
 --     so any future write to it wakes clients rather than silently not.
 --

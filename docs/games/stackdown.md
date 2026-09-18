@@ -150,7 +150,7 @@ lookup, and adding one would only couple runtime validation to the generator's
 exact word list ("pin runtime to the same list or get phantom forks") for no benefit.
 
 **Word case.** Words are stored **lowercase** everywhere — `boards.words`,
-`games.solution`, and the logged `submissions.word` — matching `common.words`
+`games.solution`, and the logged `events.word` — matching `common.words`
 and the app's "store lowercase, display uppercase" convention; the FE uppercases
 for display. Tile `letter`s stay **uppercase** (they're board glyphs, rendered
 as-is), so `submit_word` lowercases the letters it reads off the tiles before
@@ -271,7 +271,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   stackdown doesn't pass).
   So the `stackdown_compete | ended — manual end` labels row is server-reachable
   but has no FE button today — same posture as scrabble.
-- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `submissions` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
+- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `events` row (words AND the hint/reveal cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
 - **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 - **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
   envelope carrying `{result: 'reveal', word}` — the next solution word the
@@ -298,7 +298,8 @@ creation, so it's self-contained; `board_id` is provenance only.
   <WORD>"; the stored `kind` stays `'reveal'` — renaming it would be a migration
   for a label) so the ask persists in the game log; deduped
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
-  the games-row `for update` lock (for a collision-free `seq`).
+  the games-row `for update` lock, which is what keeps two coop players from
+  clearing the same word.
 - **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
   carrying `{result: 'hint', hint}` — the next word's clue
   (`common.words.hint`, which points at the word without naming it) — under an
@@ -312,7 +313,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   — the buttons' tooltip copy, since a menu has room to say which word it acts
   on), which is where their lightbulb and bare-eye glyphs get named ([ui.md →
   the menu is the legend](../ui.md#button-iconography)). Logs a `kind='hint'` request row
-  storing the clue text (shown in the log as "Hint: <clue>") the same way. Both requests ride the submissions RLS, so a
+  storing the clue text (shown in the log as "Hint: <clue>") the same way. Both requests ride the events RLS, so a
   coop request shows to everyone and a compete one only to the requester.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
@@ -381,7 +382,7 @@ Every turn stackdown can produce is one of four answers — `accepted`,
 `invalid`, `hint`, `reveal` — and `lib/answer.ts` is the only place that says
 what each is worth. `ANSWER_OUTCOME` maps the four onto the outcome vocabulary
 (`won` · `lost` · `warning` · `lost`), and `answerOf(row)` reads a
-`submissions` row's facts back into an answer, taking `kind` before `valid`
+`events` row's facts back into an answer, taking `kind` before `valid`
 because a request row leaves `valid` null.
 
 Everything that reads a ROW indexes that table: the log bar, a teammate's tiles
@@ -460,13 +461,12 @@ pill.
   **strictly before** it — so the viewed turn's own word is still ON the board (ringed
   green) and the stack is *fuller* than live — plus a kind-aware description ("entered
   EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
-  scrabble's `historyBoard`; keyed by the **row's id** (the `#N` the log shows counts the rows on show), not
-  `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
-  across a shared coop log. Clicking a `GameEventLog` row's `#N` opens that turn on the
+  scrabble's `historyBoard`; keyed by the **row's id** (the `#N` the log shows counts the rows on show), which
+  is chronological across a shared coop log and unambiguous under any filter. Clicking a `GameEventLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +
   keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
-  postgres-changes on `games_state` / `players` / `submissions` (no Broadcast).
+  postgres-changes on `games_state` / `players` / `events` (no Broadcast).
   The board the player sees is `game.tiles` minus `removedTileIds`
   (valid-submission tiles, plus a brief optimistic hold so an accepted word
   doesn't flash back during the realtime round-trip) minus `currentWord` (the
@@ -475,14 +475,14 @@ pill.
   parallel; `append` / `retract` / `clear` / `commit` are now just a local
   reducer's actions (`commit` still distinct from `clear` for the
   submitter's optimistic tile-hold). Sharing happens entirely through the
-  `submissions` rows: coop RLS shows everyone's, so a teammate's accepted word
+  `events` rows: coop RLS shows everyone's, so a teammate's accepted word
   reaches you via the realtime refetch (board + history). If that refetch shows
   a tile you were mid-building with is now gone (a teammate claimed it), `load()`
   resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
   shared Broadcast room that needed a stable name is gone.
 - **Peer narration** (coop-only) is the SHARED `common/hooks/feedback/usePeerFeedback`,
-  wired inline in PlayArea — no game-local hook. It diffs the `submissions` list
-  (via `keyOf: (user_id, seq)`), bootstrapping quietly on the first loaded render so
+  wired inline in PlayArea — no game-local hook. It diffs the `events` list
+  (via `keyOf: (id)`), bootstrapping quietly on the first loaded render so
   a reconnect doesn't replay the backlog. Each *new* teammate submission fires a
   **global** header feedback pill — carrying the teammate's identity disc (`● moth
   found SCARE` [won] / `● moth tried FOOFS` [lost] / `● moth revealed a hint`
@@ -586,7 +586,7 @@ it delegates — the full matrix lives in `common/concede_test.sql`), `replay`
 rejected — incl. the stackdown-specific bit: the club-list title goes back to
 `'New game'`, since a replayed coop title would spoil the board it just reset),
 `rls` (the row-visibility policies: the club-member gates on `games` /
-`players`, and the load-bearing mode-aware `submissions` policy — coop
+`players`, and the load-bearing mode-aware `events` policy — coop
 club-readable, compete own-rows-only until terminal reveals opponents' words).
 A shared fixture board
 lives in `setup.psql` — which **deletes any library boards first** so
@@ -608,7 +608,7 @@ trip, tiles bounced back, pill) without depending on which letters are on top.
 ## 6. Printing the board (PDF)
 
 `src/stackdown/pdf/` — a **"Print board (PDF)"** GamePage menu item, the tenth
-game to print (docs/pdf.md). Turn-log family: the stack in the left column, the
+game to print (docs/pdf.md). Event-log family: the stack in the left column, the
 word log beneath.
 
 **The stack prints almost for free**, because `pdf.md`'s "every surface is white"

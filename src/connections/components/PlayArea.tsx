@@ -195,7 +195,7 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a event-log #N to replay that turn (the bands matched before it + this
+  // Click an event-log #N to replay that turn (the bands matched before it + this
   // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
   // Keyed by log position. Exit is intrinsic to the hook (a click anywhere, the
   // banner ✕, or any key — the hook binds `act-exit-history` itself, and the

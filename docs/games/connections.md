@@ -755,7 +755,7 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 ## Printing the board (PDF)
 
 `src/connections/pdf/` — a **"Print board (PDF)"** GamePage menu item, the ninth
-game to print (docs/pdf.md). Turn-log family: the board in the left column, the
+game to print (docs/pdf.md). Event-log family: the board in the left column, the
 guess log beneath.
 
 Two deliberate changes from the screen, both required by

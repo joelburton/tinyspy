@@ -229,7 +229,7 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
      mode-aware **dedup**. Dictionary legality is **trusted from the FE** (shipped list),
      exactly as wordwheel trusts its FE. A guess that fails a guard returns `{ok:false,
      reason}` and records nothing.
-  3. **Insert** the guess (next `seq`), recompute this track's leaderboard entry,
+  3. **Insert** the guess, recompute this track's leaderboard entry,
      check the **end condition**, and if met transition to terminal + (compete) **resolve the
      winner via the formula**. Return `{ok:true, length, guesses_used, is_terminal, ...}` —
      `length` (the one live readout); `length_score` / `letter_count` are returned only on the
@@ -634,9 +634,9 @@ What prints:
 
 Two details that fall out of the log carrying rejects:
 
-- **Rows are numbered by log position, not `seq`.** Rejects have no `seq` (they
-  occupy no board row), and a printed wordiply has no board for the numbers to line
-  up with anyway — `#3` means "the third thing that happened".
+- **Rows are numbered by log position, not by anything stored.** A reject occupies
+  no board row, and a printed wordiply has no board for the numbers to line up with
+  anyway — `#3` means "the third thing that happened".
 - **Accepted vs rejected reads in black and white** without a mark, because the text
   already says it (`HANGARS (7)` vs `ARQQQQQ — not a word`). psychicnum needs drawn
   ✓/✗ shapes because its meaning is color-only; this doesn't. Keep it that way.

@@ -34,7 +34,7 @@ type Props = {
  * once.
  *
  * **Each is named in the order it draws**, which is the whole way to tell them
- * apart: `<ActorDot>` is actor-then-dot ("moth ●"), what a event-log row wants
+ * apart: `<ActorDot>` is actor-then-dot ("moth ●"), what an event-log row wants
  * with its discs lined up in a column; `<DotActor>` is dot-then-actor
  * ("● moth is guessing"), what a sentence wants.
  *

@@ -5,7 +5,7 @@
 -- ============================================================
 -- The hint itself is computed on the client and never stored: the board is
 -- face-up, so there is nothing to look up and no private column to mask. What
--- the server does is charge the asker and write the EVENT, so the turn log can
+-- the server does is charge the asker and write the EVENT, so the event log can
 -- show who asked for what.
 --
 -- Which means the cards arrive FROM the client, and are checked — not against

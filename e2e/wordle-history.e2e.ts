@@ -7,7 +7,7 @@ import { boardReady } from './helpers/ready'
 
 /**
  * Turn-history viewer for wordle — the feature added on the (still monolithic)
- * PlayArea. Clicking a event-log #N replays that turn on the board: the guess rows up
+ * PlayArea. Clicking an event-log #N replays that turn on the board: the guess rows up
  * to that turn shown, that turn's row ringed in the history blue (over its g/y/x
  * colors), the board wearing the viewing frame, and a description banner over the below-board
  * region (covering the keyboard). These are real layout/overlay properties jsdom

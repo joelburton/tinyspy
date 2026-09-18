@@ -106,7 +106,7 @@ export function PlayArea({
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a event-log #N to replay that turn's board (the guess rows up to that turn,
+  // Click an event-log #N to replay that turn's board (the guess rows up to that turn,
   // with that turn's row ringed in the history blue). Keyed by log position. Exit is
   // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
   // BoardCol freezes its capture while viewing, so the viewer's own any-key

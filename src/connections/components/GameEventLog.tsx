@@ -36,7 +36,7 @@ type Props = {
  * connections's event log — its guesses rendered with the shared `<EventLog>`
  * table (same chrome psychicnum uses, so a player reads the same log shape
  * across games). (Named GameEventLog, not GuessHistory — see EventLog.tsx on why
- * a event-log row isn't "a guess" in the shared vocabulary, even though here it
+ * an event-log row isn't "a guess" in the shared vocabulary, even though here it
  * happens to be.)
  *
  * Stateless and presentational. connections renders its own **two-`<tr>`** turn

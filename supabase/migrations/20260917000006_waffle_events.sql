@@ -17,7 +17,7 @@
 --   `created_at`  swapped_at, under the name every events table uses.
 --
 -- `seq` GOES. It was the swapper's own 1-based count, doing three jobs: part
--- of the key, the read order, and the number the turn log printed. The key
+-- of the key, the read order, and the number the event log printed. The key
 -- and the order are `id` now. The live count is `waffle.players.swaps_used`,
 -- which is what the budget strip has always read; what the log prints becomes
 -- the row's position in the list being shown, which is the same number in the

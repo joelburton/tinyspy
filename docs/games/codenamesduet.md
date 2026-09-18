@@ -641,13 +641,13 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 - [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
 - [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: the form declares its two inputs (count + word) as its tab ring, so Tab and Shift+Tab toggle between them and nowhere else — without it, Tab walks off onto the event-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
-- [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a event-log row replays that turn's board (the reveal state after that turn's guesses, the history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
+- [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking an event-log row replays that turn's board (the reveal state after that turn's guesses, the history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
 - [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 
 ## Printing the board (PDF)
 
 `src/codenamesduet/pdf/` — a **"Print board (PDF)"** GamePage menu item, the
-eleventh and last game to print (docs/pdf.md). Turn-log family: the 5×5 board in
+eleventh and last game to print (docs/pdf.md). Event-log family: the 5×5 board in
 the left column, the clue log beneath.
 
 **It exists to be thought about away from a screen**, which drives the one place

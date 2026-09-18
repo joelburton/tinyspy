@@ -2,7 +2,7 @@
 
 An **outcome** is how a thing turned out — the verdict on a move, or on a
 move-like thing. It is one word, drawn from a closed list, and it is the same
-word wherever that verdict is shown: a feedback pill, a event-log bar, a board
+word wherever that verdict is shown: a feedback pill, an event-log bar, a board
 tile, a server's answer.
 
 That sameness is the point. A pill reporting a won game and a board showing one

@@ -261,7 +261,7 @@ create index strands_players_game_id_idx on strands.players (game_id);
 -- genuinely cannot be derived (the capped bar, the spend count, the
 -- active hint) lives as columns on strands.players.
 --
--- Every submission is logged, including the rejects — the turn log
+-- Every submission is logged, including the rejects — the event log
 -- shows good and bad alike, and "what did we already try?" is the
 -- point of keeping them.
 --
@@ -269,11 +269,11 @@ create index strands_players_game_id_idx on strands.players (game_id);
 -- too. That is the whole reason for `kind`: the two rows are both
 -- things that HAPPENED, in one ordered stream, but only one of them
 -- is a guess with a verdict. Keeping them in one table is what lets
--- the turn log stay a single sequence — the history viewer addresses
--- a turn by POSITION in the displayed rows (see src/strands/lib/
--- history.ts), so a second table would force a timestamp merge on
--- every render and leave cross-table ties nondeterministic.
--- (scrabble.plays does the same with kind in ('word','exchange',…).)
+-- the event log stay a single sequence — the history viewer names a
+-- turn by that row's own id (see src/strands/lib/history.ts), so a
+-- second table would force a timestamp merge on every render and leave
+-- cross-table ties nondeterministic.
+-- (scrabble's log does the same with kind in ('word','exchange',…).)
 --
 -- `path` is the only column BOTH kinds carry, and it means the same
 -- thing in each: the cells this row is about. For a guess it is the

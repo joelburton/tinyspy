@@ -6,8 +6,9 @@ import { useBoundAction } from '../actions/useBoundAction'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
-  // The turn currently open on the board (a game-wide `seq`, or a log index), or
-  // null = live. Wire to each `<EventLogNumber>`'s `isOpenInHistory`.
+  // The turn currently open on the board (the events row's own id, or the
+  // game-wide ordinal scrabble and codenamesduet key by), or null = live. Wire to
+  // each `<EventLogNumber>`'s `isOpenInHistory`.
   historyId: Id | null
   // A ref tracking `historyId`, for stable-closure handlers that must read the
   // current value WITHOUT re-subscribing (e.g. scrabble's board-drag pointerdown,

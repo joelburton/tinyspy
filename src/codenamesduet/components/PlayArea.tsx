@@ -312,7 +312,7 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a event-log row to replay that turn's board (the reveal state after that
+  // Click an event-log row to replay that turn's board (the reveal state after that
   // turn's guesses, with those cells ringed in the history blue). Keyed by turn_number
   // — one clue per turn, a stable game-wide ordinal (like scrabble's seq). Feature
   // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol

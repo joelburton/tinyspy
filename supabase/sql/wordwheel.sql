@@ -79,7 +79,7 @@ create policy games_select on wordwheel.games
 --
 -- Club membership is the outer gate; the mode/visibility
 -- discrimination is the inner condition. Mirrors the
--- connections.guesses_select shape.
+-- connections.events_select shape.
 drop policy if exists found_words_select on wordwheel.found_words;
 create policy found_words_select on wordwheel.found_words
   for select to authenticated

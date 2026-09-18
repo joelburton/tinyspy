@@ -175,7 +175,7 @@ create table psychicnum.guesses (
   -- 'guess'  = a real guess (counts toward finding the secrets, colors the
   --            board tile green/red, can't be repeated).
   -- 'reveal' = the player asked to reveal an answer: request_reveal picks an
-  --            unfound secret and logs the WORD here (shown in the turn log).
+  --            unfound secret and logs the WORD here (shown in the event log).
   -- 'hint'   = the player asked for a hint: request_hint picks an unfound
   --            secret and logs its CLUE (from common.words.hint) here.
   -- Neither helper finds the secret, colors a tile, or blocks re-guessing —

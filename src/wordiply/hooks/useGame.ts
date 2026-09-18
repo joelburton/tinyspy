@@ -42,11 +42,11 @@ export type WordiplyGame = {
 }
 
 /**
- * One row of `wordiply.guesses` — the TURN log, so this is any submission,
- * accepted or rejected. `valid` splits them: `false` rows carry a `reason` and
- * have no `seq` (they occupy no board slot). Only valid rows score, fill the
- * five board rows, or spend budget; the log shows both. See the migration's
- * table header for why rejects are stored.
+ * One row of `wordiply.events` — the event log, so this is any submission,
+ * accepted or rejected. `valid` splits them: a `false` row carries a `reason`
+ * and occupies no board slot. Only valid rows score, fill the five board rows,
+ * or spend budget; the log shows both. See the migration's table header for why
+ * rejects are stored.
  */
 export type EventRow = {
   id: number
@@ -67,9 +67,9 @@ export type EventRow = {
  *     (base + word lists never change; terminal lives on common.games), so
  *     the legal list isn't re-downloaded on every guess.
  *   - **guesses refetches on realtime events.** Every guess flows through
- *     `wordiply.submit_guess`, which appends a `guesses` row that
+ *     `wordiply.submit_guess`, which appends an `events` row that
  *     propagates to peers via postgres-changes. The `games` subscription is
- *     there for replay_board's realtime TOUCH (replay DELETEs guesses rows,
+ *     there for replay_board's realtime TOUCH (replay DELETEs events rows,
  *     which realtime filters don't reliably match).
  */
 export function useGame(gameId: string): {

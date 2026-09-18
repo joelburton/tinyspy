@@ -140,7 +140,7 @@ select is(
 -- ============================================================
 -- (7)–(10) The spend is LOGGED — strands.events, kind='hint'
 -- ============================================================
--- A spent hint is a turn-log row: it is the one thing besides a find that
+-- A spent hint is an event-log row: it is the one thing besides a find that
 -- changes the board, and in compete it IS the ranking metric.
 
 -- ONE row, and this is the case worth pinning: the counters above fan out to

@@ -3,7 +3,7 @@
 import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
- * What a guess was — the three values `connections.guesses.result` stores, and
+ * What a guess was — the three values `connections.events.result` stores, and
  * the only place in the frontend that names them.
  *
  * Unusually for this roster, the FRONTEND decides which one a guess is: the

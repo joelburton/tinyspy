@@ -15,7 +15,7 @@
 -- Also pinned: the hint bar CAPS (a deliberate rule, not an overflow bug),
 -- duplicates earn nothing, and structurally impossible paths RAISE rather than
 -- being logged — the FE reducer can't produce one, so it means a broken or
--- hostile client, and a turn log that players read shouldn't fill with them.
+-- hostile client, and an event log that players read shouldn't fill with them.
 
 begin;
 
@@ -231,7 +231,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (18) Rejects are logged; the turn log tells the whole story
+-- (18) Rejects are logged; the event log tells the whole story
 -- ============================================================
 
 select is(

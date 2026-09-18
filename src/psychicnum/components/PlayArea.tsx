@@ -377,7 +377,7 @@ export function PlayArea({
   }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click a event-log #N to replay that turn's board (the tiles decided up to that
+  // Click an event-log #N to replay that turn's board (the tiles decided up to that
   // turn, with that turn's guessed tile ringed history-blue). Keyed by log
   // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
   // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds

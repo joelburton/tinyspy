@@ -109,12 +109,12 @@ create table wordiply.games (
 create index wordiply_games_club_handle_idx on wordiply.games (club_handle);
 
 -- ============================================================
--- wordiply.guesses — the TURN LOG (accepted and rejected alike)
+-- wordiply.guesses — the EVENT LOG (accepted and rejected alike)
 -- ============================================================
 -- One row per submitted guess, valid or not. This table is the log of
--- TURNS, not of scored words — the same shape psychicnum.guesses
--- (`is_correct`) and connections.guesses (`result`) use, and everything
--- that computes a SCORE filters `where valid`.
+-- EVENTS, not of scored words — the same shape psychicnum's and
+-- connections' logs use (`is_correct` / `result`), and everything that
+-- computes a SCORE filters `where valid`.
 --
 -- Why rejects are stored at all (2026-08-02):
 --   1. In coop the reject pill is local, so three players independently try
@@ -139,7 +139,7 @@ create index wordiply_games_club_handle_idx on wordiply.games (club_handle);
 -- seq is the ACCEPTED-guess index, 1..5 within the track — coop shares one
 -- 1..5 across the team; compete gives each player their own. It's null on a
 -- rejected row: rejects don't occupy a board slot, and letting them advance
--- seq would put row 7 on a five-row board. The turn LOG orders by
+-- seq would put row 7 on a five-row board. The EVENT LOG orders by
 -- guessed_at, which needs no integer.
 --
 -- The backstop unique (game_id, user_id, word) catches a same-player

@@ -137,7 +137,7 @@ export {
   // connections' mistakes; reusable for any limited-attempts counter.
   SquareX as IconStrikeUsed,
   SquareDashed as IconStrikeOpen,
-  // Word-outcome marks: a event-log row's verdict, as a GLYPH. First used by
+  // Word-outcome marks: an event-log row's verdict, as a GLYPH. First used by
   // strands' event log, and deliberately named for the OUTCOME rather than for
   // that game ("the best find" / "a find" / "accepted" / "rejected"), so any
   // word game's log can reuse the same four.

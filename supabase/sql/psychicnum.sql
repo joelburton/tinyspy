@@ -53,7 +53,7 @@ create policy players_select on psychicnum.players
 -- back in: `is_terminal` lives on common.games and there's no
 -- point denormalizing a flag that flips mid-game.
 --
--- Why compete opens at terminal (2026-08-02): the turn log grew
+-- Why compete opens at terminal (2026-08-02): the event log grew
 -- the shared "whose turns?" picker, and its whole value in compete
 -- is the post-game read-through — "how did moth spend their
 -- budget?". Hiding an opponent's guesses DURING play is the real
@@ -886,7 +886,7 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- ============================================================
 -- Reveals one of the player's (compete) / team's (coop) unfound
 -- secret WORDS — the answer. Logged as a `kind = 'spoiler'` row so
--- it flows into the turn log over realtime (red), and so coop
+-- it flows into the event log over realtime (red), and so coop
 -- teammates get a "X revealed a word" pill (in compete the events
 -- RLS scopes the row to the caller — spoilers are private there).
 -- Costs no budget and does NOT find the secret: it just shows it, so
@@ -1310,7 +1310,7 @@ grant execute on function psychicnum.end_game(uuid) to authenticated;
 -- No realtime touch needed: the players update + guesses delete wake
 -- useGame (subscribed to psychicnum.{games,players,guesses}), and
 -- reset_game's common.games write wakes useCommonGame — so the board,
--- turn log, and terminal state all reset live for every player.
+-- event log, and terminal state all reset live for every player.
 drop function if exists psychicnum.replay_board(uuid);
 
 create or replace function psychicnum.replay_board(target_game uuid)

@@ -694,7 +694,7 @@ revoke execute on function wordiply._finish_compete(uuid, text, boolean) from pu
 --   3. mode-aware dedup
 --   4. records the guess, updates status, and checks the end condition
 --      (coop: team's 5th guess; compete: every active player has spent 5).
--- Every submission is RECORDED, valid or not — this table is the turn log
+-- Every submission is RECORDED, valid or not — this table is the event log
 -- (see the wordiply.events header). `fe_legal` is the FE's dictionary
 -- verdict: false means "I checked the shipped legal list and this isn't on
 -- it". Trusting that is no weaker than trusting its accepts, which we

@@ -552,7 +552,7 @@
 /* Each tone carries both forms: `--verdict-tone` for a ring around a group (the
  * legible-on-white 800 tier, since a ring is a thin line on the page), and
  * `--verdict-fill` for a piece — the 400 tier, WHICH IS THE COLOR THAT ANSWER'S
- * TURN-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
+ * EVENT-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
 /* @@ */ .verdictLost {

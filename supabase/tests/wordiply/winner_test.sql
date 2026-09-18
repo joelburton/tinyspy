@@ -354,7 +354,7 @@ select is(
   (select count(*) from wordiply.events
     where game_id = (select id from g7) and not valid),
   3::bigint,
-  'rejects: all three are still in the turn log'
+  'rejects: all three are still in the event log'
 );
 
 -- ============================================================

@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * Turn-history viewer for codenamesduet — the feature added on the monolithic
  * PlayArea ahead of the BoardCol/InfoCol decomposition (docs/playarea.md).
  *
- * Clicking a event-log row replays that turn's board: the reveal state after that
+ * Clicking an event-log row replays that turn's board: the reveal state after that
  * turn's guesses, the whole board wearing the history frame, the turn's own
  * cells ringed, and a description banner overlaying the below-board slot. These are
  * real layout/overlay properties jsdom can't see (`getBoundingClientRect` is all

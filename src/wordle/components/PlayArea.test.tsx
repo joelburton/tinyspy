@@ -133,7 +133,7 @@ beforeEach(() => {
 })
 
 describe('wordle PlayArea — render smoke', () => {
-  it('renders the board + a event-log row in coop play', () => {
+  it('renders the board + an event-log row in coop play', () => {
     // A landed guess exercises the GameEventLog row (squares + who cell), not
     // just the empty state.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [

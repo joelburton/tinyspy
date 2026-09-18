@@ -5,7 +5,7 @@
  * the game-context superset that adds how their game ended.
  *
  * Reach for this whenever you render a person: a chat sender, a club roster
- * row, a player in an OpponentStrip, a name in a event log. `Member` is the
+ * row, a player in an OpponentStrip, a name in an event log. `Member` is the
  * three fields you always need; `GamePlayer` adds the three that only exist
  * once someone is seated in a game.
  *

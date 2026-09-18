@@ -58,7 +58,7 @@ create policy games_select on connections.games
 --             rule exists to stop you learning the answer while you can
 --             still use it; once the game is over there's nothing left to
 --             protect, and comparing lines afterwards is most of the fun.
---             This is what backs the turn log's "whose guesses?" picker,
+--             This is what backs the event log's "whose guesses?" picker,
 --             which is empty for an opponent until the game ends. Same
 --             shape wordle and wordiply already use.
 --
@@ -996,7 +996,7 @@ begin
   -- selection is a shared union, so two players can Submit the identical 4
   -- tiles at once; the games-row lock serializes us, so this SELECT sees the
   -- first transaction's committed row. Without it one wrong guess costs TWO
-  -- of the four mistakes (possibly the losing one) plus a duplicate turn-log
+  -- of the four mistakes (possibly the losing one) plus a duplicate event-log
   -- row. Scope: coop = anyone's prior guess, compete = the caller's own. The
   -- FE already blocks repeats ("You already tried that"); this is the
   -- authoritative, race-safe backstop. (Each guess is 4 distinct tiles, so

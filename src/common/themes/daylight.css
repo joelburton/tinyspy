@@ -487,7 +487,7 @@
      two places; them diverging would be the bug.
 
      The two tones that look least like a board's — `noted` and `error`
-     — are outcomes for a reason each: a event log wants to say "a turn
+     — are outcomes for a reason each: an event log wants to say "a turn
      that counts without being a verdict", and a move can break rather
      than lose.
 
@@ -638,7 +638,7 @@
 
   /* ══ WORDLE INK ═════════════════════════════════════════════════
      The ink each judged letter surface carries — a board tile, a
-     keycap and a event-log square alike. The FILLS are in fixed.css and
+     keycap and an event-log square alike. The FILLS are in fixed.css and
      no theme touches them; this is the half that has to move, because
      it is half of a contrast whose other half is the page.
 

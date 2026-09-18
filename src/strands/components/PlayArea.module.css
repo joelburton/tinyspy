@@ -26,7 +26,7 @@
    * compose the shared `.responsiveInfoCol` — that one is for the three
    * WORD-LIST games (spellingbee / wordwheel / boggle), whose multi-column list
    * genuinely wants 22–53rem. strands' info column holds a clue, a progress
-   * line and a event log, and handing it 53rem just strands the board in a
+   * line and an event log, and handing it 53rem just strands the board in a
    * corner. The scaffold has no default on purpose, so declaring it is
    * mandatory: leave it out and --avail-w is invalid at computed-value time,
    * which silently collapses the board to zero height rather than erroring. */

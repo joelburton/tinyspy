@@ -136,7 +136,7 @@ select throws_ok(
 -- The privacy is a GAME RULE, not etiquette: a peer's oneAway guess plus the
 -- public board would hand you the answer while you can still use it. Once the
 -- game is over there's nothing left to protect, and comparing lines afterwards
--- is most of the fun — which is what the turn log's "whose guesses?" picker
+-- is most of the fun — which is what the event log's "whose guesses?" picker
 -- shows. Same shape wordle already uses.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

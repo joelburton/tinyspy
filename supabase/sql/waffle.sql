@@ -1212,7 +1212,7 @@ grant execute on function waffle.end_game(uuid) to authenticated;
 -- No realtime touch needed (unlike end_game, which writes only
 -- common.games): the players update + swaps delete wake useGame
 -- (subscribed to waffle.{games,players,events}), and reset_game's
--- common.games write wakes useCommonGame — so the board, turn log,
+-- common.games write wakes useCommonGame — so the board, event log,
 -- and terminal state all reset live for every player.
 drop function if exists waffle.replay_board(uuid);
 

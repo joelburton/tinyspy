@@ -8,7 +8,7 @@ wrong. Where definitions live, how they are fetched, and the curation RPCs are
 
 ## Intro to area
 
-Every word game shows real dictionary words: a event log, a found-words list, a
+Every word game shows real dictionary words: an event log, a found-words list, a
 revealed answer. A player who meets an unfamiliar one wants to know what it
 means without leaving the game, so the app makes the word itself the control:
 click it and a card appears beneath it with the definition. Nothing about that

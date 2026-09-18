@@ -99,9 +99,10 @@ select is(
 -- ============================================================
 -- (2) Free-guard rejections: RECORDED as invalid, spend NO budget
 -- ============================================================
--- Since 2026-08-02 `guesses` is the TURN LOG, so a rejection lands a row with
--- valid=false + its reason. What it must NOT do is spend budget or take a
--- board slot — the scores and the five rows are valid-only.
+-- `wordiply.events` is the EVENT LOG (Joel's ruling, 2026-08-02: the rejects
+-- are kept), so a rejection lands a row with valid=false + its reason. What it
+-- must NOT do is spend budget or take a board slot — the scores and the five
+-- rows are valid-only.
 
 -- too_short: a word not longer than the base ('ar' is exactly base length).
 -- `fe_legal false` because this is `recordReject`'s call: the FE has already

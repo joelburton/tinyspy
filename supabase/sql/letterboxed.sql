@@ -78,7 +78,7 @@ create policy players_select on letterboxed.players
     )
   );
 
--- events is the turn log, and in compete it IS the private data (every
+-- events is the event log, and in compete it IS the private data (every
 -- row names a word). Three OR branches inside the EXISTS, in evaluation
 -- order — the same shape wordwheel.found_words_select uses:
 --
@@ -1309,7 +1309,7 @@ grant execute on function letterboxed.clear_chain(uuid) to authenticated;
 -- so a breadth-first search over (letters-used, tail-letter) finds a
 -- word on a shortest path to covering all twelve in ~40 lines of
 -- TypeScript. The server's only job is to remember that a hint or a
--- spoiler was taken, so the turn log agrees with what happened.
+-- spoiler was taken, so the event log agrees with what happened.
 --
 -- `kind` separates the two rungs: 'hint' gave the word's SHAPE, 'spoiler'
 -- gave the word. The log is the only record of either, which is why they
@@ -1368,7 +1368,7 @@ begin
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who
   -- took a rung, not what the team's position is. Nothing RENDERS it —
-  -- the turn log is what players read — but it stays as the cheap
+  -- the event log is what players read — but it stays as the cheap
   -- per-player tally the log would otherwise have to be folded to get.
   update letterboxed.players
      set hints_used = hints_used + 1

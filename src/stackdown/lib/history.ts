@@ -1,9 +1,9 @@
 // cs-unmet
 
 /**
- * stackdown — the turn-history replay. Given the submission log and the
- * position of a turn within it, reconstruct what the board looked like *at the
- * moment that turn was about to be played*, plus how to describe the turn.
+ * stackdown — the turn-history replay. Given the event log and the id of a row in
+ * it, reconstruct what the board looked like *at the moment that turn was about to
+ * be played*, plus how to describe the turn.
  *
  * This is the removal-based twin of scrabble's `historyBoard`. scrabble *adds*
  * tiles each turn, so its replay folds placements onto an empty grid; stackdown
@@ -13,21 +13,15 @@
  * unit-tested, so the PlayArea can hand `<Board>` a historical snapshot the same
  * way it hands it the live one.
  *
- * **Why a position, not a `seq`.** scrabble identifies a turn by `seq` because its
- * `seq` is a single game-wide ordinal (one shared, turn-based board). stackdown's
- * `submissions.seq` is the *submitter's own* 1-based ordinal (PK is
- * `(game_id, user_id, seq)`), so in coop — where the log interleaves every
- * player's submissions over one shared board — a bare `seq` is ambiguous (two
- * players each have a seq 1) and, worse, `seq` order isn't the shared board's
- * chronological order. So we identify a turn by its **index in the
- * submitted_at-sorted log** the caller already holds (coop = the shared log,
- * compete = the caller's own). That index is what the log shows as "#N", it's
- * unambiguous in both modes, and it IS chronological — exactly what a
- * shared-board replay needs. The log is append-only, so a realtime refetch never
- * shifts an existing row's index.
+ * **A turn is named by its row's id**, and this resolves that id against the list
+ * it is handed (coop = the shared log, compete = the caller's own). `stackdown.events`
+ * is keyed by a `bigint identity` in insert order, so the id is chronological across
+ * a shared coop board and unambiguous under any filter the log applies — which is
+ * why the `#N` a row shows (its place in the rows on screen) and the handle it
+ * carries are two different values.
  *
- * The key boundary is **strictly before**: the snapshot for the turn at `index`
- * removes tiles cleared by valid words at positions `< index`, NOT `≤ index`. That
+ * The key boundary is **strictly before**: the snapshot for the viewed turn
+ * removes tiles cleared by valid words at earlier positions, not including its own. That
  * leaves the viewed turn's own word still ON the board — which is exactly what we
  * want, because we then ring those tiles green ("this is the word this turn
  * played"), the same green scrabble uses for a turn's placements.
@@ -37,7 +31,7 @@
  */
 
 /**
- * The submission fields the replay needs — a structural subset of the hook's
+ * The event fields the replay needs — a structural subset of the hook's
  * `EventRow` (kept local so this lib stays free of any React/hook import).
  * A `word` submission carries the `tile_ids` it cleared and a `valid` verdict; a
  * `hint` / `spoiler` request carries neither (its `tile_ids` is null).
@@ -54,8 +48,8 @@ export interface Submission {
 
 export interface HistorySnapshot {
   /** Tiles gone from the board as of the START of this turn — the union of
-   *  `tile_ids` from every VALID word at a position strictly before `index`. Feed
-   *  straight to `<Board offBoard>`. */
+   *  `tile_ids` from every VALID word at a position strictly before the viewed
+   *  row's. Feed straight to `<Board offBoard>`. */
   offBoard: Set<number>
   /** Tiles to ring green: this turn's OWN word tiles, but only when the turn is a
    *  valid word (a hint / reveal / rejected attempt cleared nothing, so this is

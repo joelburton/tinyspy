@@ -745,7 +745,7 @@ wrong.
 
 ## Word definitions (click-to-define + lookup)
 
-A shared definition lookup, available to every word game. Two affordances: **click a word** on a surface that shows one (a `WordList` row, a event-log row, a revealed answer) to get a popover, and an app-global **shortcut key** (`~`) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen. The `~` shortcut works on every "real" page (any ClubPage / GamePage, not just word games), the same as `?` for the menu and `/` for chat — see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts).
+A shared definition lookup, available to every word game. Two affordances: **click a word** on a surface that shows one (a `WordList` row, an event-log row, a revealed answer) to get a popover, and an app-global **shortcut key** (`~`) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen. The `~` shortcut works on every "real" page (any ClubPage / GamePage, not just word games), the same as `?` for the menu and `/` for chat — see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts).
 
 Below the definition, `DefinitionView` also shows a small muted line of the word's **categorization** from `common.words` — difficulty `band N`, the dialects it's valid in (`US/CA/UK/AU`), any `slur-N` / `crude-N` level, and `wordle`-list membership — for any in-list word (even one with no definition text).
 

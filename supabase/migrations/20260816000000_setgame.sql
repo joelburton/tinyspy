@@ -128,7 +128,7 @@ create table setgame.players (
   sets_found int not null default 0 check (sets_found >= 0),
 
   -- Hints this player cashed. Per-player rather than a game total so the
-  -- turn log can say WHO asked; the info column shows the sum, which is
+  -- event log can say WHO asked; the info column shows the sum, which is
   -- what "everyone gets charged" means. Stays zero in compete, where
   -- hints are banned outright (free generative help would decide a race).
   --
@@ -148,7 +148,7 @@ create index setgame_players_game_id_idx on setgame.players (game_id);
 -- ============================================================
 -- setgame.events — the append-only game log
 -- ============================================================
--- Every claim and every hint, in order. Feeds the turn log, the
+-- Every claim and every hint, in order. Feeds the event log, the
 -- last-set panel, the per-player counts and the history viewer.
 --
 -- `events` rather than `claims`, and `kind` rather than an `is_hint`
@@ -161,7 +161,7 @@ create index setgame_players_game_id_idx on setgame.players (game_id);
 -- compete game, and correct here: the cards were face-up on a shared
 -- table and everyone watched them leave. Knowing which three a rival
 -- took says nothing about what is coming, because nothing about the
--- future is on this table. The turn log and the last-set panel both show
+-- future is on this table. The event log and the last-set panel both show
 -- everyone's rows in both modes for the same reason.
 --
 -- `id` is an identity bigint because ORDER IS THE STATE: the last claim
@@ -225,7 +225,7 @@ alter table setgame.events enable row level security;
 -- subscribes to postgres_changes on each:
 --   - games carries the board itself; every claim rewrites it.
 --   - players carries the counts the compete strip reads.
---   - events is the turn log, appended on every claim and hint.
+--   - events is the event log, appended on every claim and hint.
 --
 -- Publishing all three is NOT optional tidiness: Realtime authorizes a
 -- channel's postgres_changes bindings at JOIN time and rejects the

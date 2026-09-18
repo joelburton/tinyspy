@@ -6,7 +6,7 @@ import { ANSWER_OUTCOME } from './answer'
 /**
  * connections' one outcome decision.
  *
- * A `connections.guesses.result` value is already a key here, so there is no
+ * A `connections.events.result` value is already a key here, so there is no
  * facts-to-answer step to test — what this pins is the table, against the SQL
  * half in `supabase/tests/connections/gameplay_test.sql`, which asserts
  * `submit_guess` names each case in the wire word and carries the matching

@@ -40,7 +40,7 @@ const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
  * **It logs rejects too**, which is what makes it worth having: the reject pill
  * is local, so without this three players independently try the same non-word
  * and nobody can see it happened. Cross-player memory is the part that can't be
- * done client-side. `wordiply.guesses` is the event log — see its table header.
+ * done client-side. `wordiply.events` is the event log — see its table header.
  *
  * Row anatomy, using the shared atoms:
  *   - **outcome bar** — `won` for an accepted guess; `lost` for a structural
