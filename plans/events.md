@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: through letterboxed (awaiting review); setgame and strands finish phase 3.** Agreed with Joel
+**Status: through setgame (awaiting review); strands finishes phase 3.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -520,6 +520,25 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 > happened to coincide with a kind. `ANSWER_OUTCOME` is only ever indexed by a
 > row's `kind`, never by an envelope's `result`, so the two vocabularies do not
 > meet.
+
+> **setgame built 2026-09-17** —
+> `supabase/migrations/20260917000003_setgame_events.sql`, one column and
+> nothing else. A claim is a turn; a hint is not, and its `_require_turn` gate
+> is not evidence to the contrary — `record_hint` never advances, because
+> asking is part of the asker's own turn.
+>
+> Rehearsed on production's rows, the biggest log in the roster: **14,897
+> events — 14,426 claims, 471 hints** — took_turn true on every claim and false
+> on every hint. No frontend change at all: the table's name, key, timestamp
+> and kinds were already what they are.
+>
+> **A flake in `create_game_test.sql` fixed on the way past**, since it is this
+> game's and it was failing here: it asserted the opening board holds exactly
+> twelve cards, but `create_game` deals to a PLAYABLE board, so the ~3.4% of
+> shuffles whose first twelve hold no set open at fifteen. `hint_test.sql` had
+> already been through this and says so in a comment; `create_game_test.sql`
+> had not. It now asserts the contract — a multiple of three, at least twelve,
+> and a set on the table.
 
 **Phase 4** — connections, waffle, wordiply: rename, add `kind`, drop `seq`.
 

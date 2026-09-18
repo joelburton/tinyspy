@@ -18,7 +18,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(11);
+select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -63,6 +63,14 @@ select is(
 select is(
   (select kind from setgame.events where game_id = (select id from g) order by id desc limit 1),
   'hint', 'the ask lands in the log beside the claims');
+-- A hint is part of the asker's turn rather than one of its own — which is why
+-- record_hint is gated by _require_turn and yet never advances. Asking three
+-- times is how a stuck player finishes their own turn, not a way to spend
+-- someone else's.
+select is(
+  (select took_turn from setgame.events
+    where game_id = (select id from g) order by id desc limit 1),
+  false, 'a hint spends no turn');
 -- Asserted as an IDENTITY, not against the number 12. A hint changes no cards,
 -- so the row's snapshot must BE the live board — which is both a stronger claim
 -- and a stable one. Twelve was a lucky-deal assumption: create_game runs the

@@ -138,10 +138,18 @@ select is(
   'setgame_coop',
   'a coop game registers as setgame_coop in common.games'
 );
-select is(
-  (select array_length(board, 1) from setgame.games where id = (select id from g)),
-  12,
-  'the opening board holds twelve cards'
+-- Twelve is the usual opening, not a guaranteed one, and asserting the number
+-- made this file fail on about one run in twenty-nine: create_game deals to a
+-- PLAYABLE board, so the ~3.4% of shuffles whose first twelve hold no set open
+-- at fifteen. (hint_test.sql had to drop the same assumption.) What is always
+-- true is the contract — a multiple of three, at least twelve, and a set on
+-- the table for somebody to find.
+select ok(
+  (select array_length(board, 1) >= 12
+      and array_length(board, 1) % 3 = 0
+      and setgame._find_set(board) is not null
+     from setgame.games where id = (select id from g)),
+  'the opening board is playable — twelve or more cards, with a set on it'
 );
 
 -- ============================================================

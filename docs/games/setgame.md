@@ -91,6 +91,7 @@ setgame.games_state  the view the FE reads: board, deck_left
                      (= deck size - deck_pos), never `deck`
 setgame.players   game_id, user_id, sets_found, hints_used
 setgame.events    id, game_id, user_id, kind ('claim' | 'hint'),
+                  took_turn boolean,   -- true on a claim, false on a hint
                   cards smallint[1..3], board_after smallint[], created_at
 ```
 

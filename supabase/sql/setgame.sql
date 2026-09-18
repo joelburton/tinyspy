@@ -676,8 +676,10 @@ begin
 
   -- `board_after` is what makes the history viewer a lookup rather than a
   -- replay of the deal rule — see the events table comment in the migration.
-  insert into setgame.events (game_id, user_id, kind, cards, board_after)
-  values (target_game, caller_id, 'claim', cards, new_board);
+  -- A claim is the move here, so it spends a go — the one that empties the
+  -- deck included. Only an accepted claim reaches this line.
+  insert into setgame.events (game_id, user_id, kind, cards, board_after, took_turn)
+  values (target_game, caller_id, 'claim', cards, new_board, true);
 
   update setgame.players
      set sets_found = sets_found + 1
@@ -841,8 +843,10 @@ begin
    where game_id = target_game and user_id = caller_id
   returning hints_used into v_used;
 
-  insert into setgame.events (game_id, user_id, kind, cards, board_after)
-  values (target_game, caller_id, 'hint', cards, g_row.board);
+  -- A hint is part of the asker's turn rather than one of its own, which is
+  -- the same thing the missing `_advance_turn` above says.
+  insert into setgame.events (game_id, user_id, kind, cards, board_after, took_turn)
+  values (target_game, caller_id, 'hint', cards, g_row.board, false);
 
   -- `result` NAMES the answer, and `hints_used` is the count this call just
   -- moved. The name is here even though this is the function's only `ok` today:

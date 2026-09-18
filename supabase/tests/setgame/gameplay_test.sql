@@ -14,7 +14,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(19);
+select plan(20);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -153,6 +153,13 @@ select is(
 select is(
   (select count(*)::int from setgame.events where kind = 'claim' and game_id = (select id from g)),
   1, 'exactly one claim is on the log');
+
+-- A claim is the move, so it spends one of the claimer's goes. (The hint's
+-- other half of this rule is in hint_test.sql, where the hint row is.)
+select is(
+  (select took_turn from setgame.events
+    where game_id = (select id from g) order by id desc limit 1),
+  true, 'a claim spends a turn');
 
 select * from finish();
 rollback;
