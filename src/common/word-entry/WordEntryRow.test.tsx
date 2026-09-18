@@ -1,4 +1,4 @@
-// cs-audited-word-entry
+// cs-blessed-word-entry
 
 /**
  * The word-entry row draws the two things it is: a take-back and a commit.

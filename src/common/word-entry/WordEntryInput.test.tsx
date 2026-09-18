@@ -1,4 +1,4 @@
-// cs-audited-word-entry
+// cs-blessed-word-entry
 
 /**
  * The three rules the input owns, none of which any other test looks at.

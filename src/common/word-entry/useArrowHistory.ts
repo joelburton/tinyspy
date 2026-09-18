@@ -1,4 +1,4 @@
-// cs-audited-word-entry
+// cs-blessed-word-entry
 
 import { useBoundAction, type ActionState } from '../actions/useBoundAction'
 

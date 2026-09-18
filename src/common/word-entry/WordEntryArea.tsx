@@ -1,4 +1,4 @@
-// cs-audited-word-entry
+// cs-blessed-word-entry
 
 import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'

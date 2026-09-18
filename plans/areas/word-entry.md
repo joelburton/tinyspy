@@ -4,13 +4,13 @@ The folders it reads: `word-entry`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — all eleven findings worked 2026-09-18, all three components
-renamed, and the closing re-read done the same day: six more findings
-(F-word-entry-12 to 17), all worked.** Roster
-agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
-word-entry area (it's not the next, but we're taking this one out of order)"*);
-§3's next in sequence is row 42, `word-list`. Ten files
-`cs-audited-word-entry`.
+**Status: CLOSED 2026-09-18, blessed** (Joel: *"make files in this area as
+blessed, close it, then commit"*) — **all seventeen findings worked**: eleven
+from the reading, six from the closing re-read (F-word-entry-12 to 17), and all
+three components renamed along the way. Roster agreed and stamped 2026-09-18;
+taken OUT OF ORDER at Joel's ask (*"open word-entry area (it's not the next, but
+we're taking this one out of order)"*); §3's next in sequence is row 42,
+`word-list`. Ten files `cs-blessed-word-entry`.
 
 ## The roster
 
@@ -715,5 +715,7 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 - [x] the whole area re-read in one sitting after the last group — 2026-09-18,
       F-word-entry-12 to 17
 - [x] the folder's `doc.md` Intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file —
+      its one item closed against itself (F-word-entry-8), and what this area
+      handed on went to `common/actions/todo.md` (F-word-entry-7)
+- [x] every file on the roster blessed — ten `cs-blessed-word-entry`, 2026-09-18

@@ -1,4 +1,4 @@
-// cs-audited-word-entry
+// cs-blessed-word-entry
 
 /**
  * Tests for the history arrows: ArrowUp recalls the last entry, ArrowDown
