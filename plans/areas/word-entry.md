@@ -4,8 +4,8 @@ The folders it reads: `word-entry`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3) and F-4 … F-9 worked 2026-09-18, and all three components renamed.** Roster
+**Status: OPEN — all eleven findings worked 2026-09-18, and all three
+components renamed.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -17,8 +17,10 @@ word-entry area (it's not the next, but we're taking this one out of order)"*);
 own two docs (not stamped; the script's scope is files with a first-line
 comment):
 
-- `WordEntryInput.tsx` · `WordEntryInput.module.css` — where the typed word
-  appears. No `<input>`; keystrokes come off the window
+- `WordEntryInput.tsx` · `WordEntryInput.module.css` ·
+  `WordEntryInput.test.tsx` — where the typed word appears. No `<input>`;
+  keystrokes come off the window. The test was WRITTEN by this area
+  (F-word-entry-11) and joins the roster stamped
 - `WordEntryArea.tsx` · `WordEntryArea.test.tsx` — the whole control: the row,
   the capture keyboard, the arrows, and the feedback swap
 - `WordEntryRow.tsx` · `WordEntryRow.module.css` · `WordEntryRow.test.tsx` —
@@ -497,7 +499,7 @@ declared-ahead) but is not what my framing implied.
 **Planted:** writing `0.05em` back into `.box` fails the letter-spacing guard by
 name.
 
-### F-word-entry-10 · `move-row-test-fixture` · `WordEntryRow.test` hand-rolls the fixture that names it
+### F-word-entry-10 · `move-row-test-fixture` · `WordEntryRow.test` hand-rolls the fixture that names it — WORKED
 
 `WordEntryRow.test.tsx`'s `action(id)` builds `{ id, spec: ACTIONS[id], run:
 vi.fn(), describe, pending: false }` — which is `boundActionFixture` from
@@ -505,7 +507,12 @@ vi.fn(), describe, pending: false }` — which is `boundActionFixture` from
 docstring lists *"a `<WordEntryRow>`'s two keys"* as the case it exists for. The
 fixture postdates the test. Use it; no decision in it.
 
-### F-word-entry-11 · `entrybox-untested` · The box has no test of its own
+**Shipped:** the local helper is gone, the two call sites take
+`boundActionFixture`, and the now-unused `vi` import went with it. The fixture's
+optional `describe` override means a future case — what the row draws for a
+hidden action — needs no second helper.
+
+### F-word-entry-11 · `entrybox-untested` · The box has no test of its own — WORKED
 
 `WordEntryInput` owns three rules — the caret shows only while the game owns the
 keyboard AND something is typed; the value wrapper is unconditional whichever
@@ -516,6 +523,18 @@ by three e2e files, and none looks at the caret. A file per unit: an
 `WordEntryInput.test.tsx` covering the three rules, the caret gate driven by focusing
 an `<input>` (jsdom fires `focusin`, which is what `useGameHasKeyboard`
 tracks). Mechanical once F-word-entry-2's docstring says what the box owns.
+
+**Shipped as `WordEntryInput.test.tsx`**, eight cases in two blocks. The caret
+is selected by its `aria-hidden` rather than its class, because `css: false`
+under vitest makes a module a proxy that fabricates any key asked of it — a
+class assertion would prove nothing about the stylesheet. Beyond the three
+rules, one case covers the way back: focus falling to `<body>` (clicking the
+board) returns the keyboard to the game, and the caret with it.
+
+**Planted, all three rules at once** — dropping the keyboard gate, making the
+value wrapper conditional on `children`, and dropping the
+`placeholder !== undefined` check failed exactly three cases, one per rule, and
+no others.
 
 ## Notes
 

@@ -9,22 +9,9 @@
  * person looking at the row would notice.
  */
 import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { WordEntryRow } from './WordEntryRow'
-import type { BoundAction } from '../actions/useBoundAction'
-import { ACTIONS, type ActionId } from '../actions/registry'
-
-/** A binding as a surface sees one — the registry's real half, a stub's live
- *  half, so what is under test is what the row draws. */
-function action(id: ActionId): BoundAction {
-  return {
-    id,
-    spec: ACTIONS[id],
-    run: vi.fn(),
-    describe: () => ({ state: 'active' }),
-    pending: false,
-  }
-}
+import { boundActionFixture } from '../actions/boundAction.fixture'
 
 /** Which lucide glyph an element drew, e.g. 'delete'. */
 const glyphIn = (el: Element | null) =>
@@ -33,7 +20,7 @@ const glyphIn = (el: Element | null) =>
 describe('WordEntryRow', () => {
   it('draws each action its own glyph, never the generic square', () => {
     const { container } = render(
-      <WordEntryRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
+      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit-entry')}>
         <span>cat</span>
       </WordEntryRow>,
     )
@@ -46,7 +33,7 @@ describe('WordEntryRow', () => {
 
   it('puts the entry between them, take-back first', () => {
     const { container } = render(
-      <WordEntryRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
+      <WordEntryRow actDelete={boundActionFixture('act-delete-last')} actSubmit={boundActionFixture('act-submit-entry')}>
         <span>cat</span>
       </WordEntryRow>,
     )
