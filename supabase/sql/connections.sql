@@ -62,21 +62,21 @@ create policy games_select on connections.games
 --             which is empty for an opponent until the game ends. Same
 --             shape wordle and wordiply already use.
 --
--- guesses.mode is read directly from the row — denormalized expressly to
+-- events.mode is read directly from the row — denormalized expressly to
 -- avoid a join on every visibility check. The terminal arm does need the
 -- common.games join (is_terminal lives there, not on the per-game row).
-drop policy if exists guesses_select on connections.guesses;
-create policy guesses_select on connections.guesses
+drop policy if exists events_select on connections.events;
+create policy events_select on connections.events
   for select to authenticated
   using (
     exists (
       select 1 from connections.games g
        join common.games cg on cg.id = g.id
-       where g.id = guesses.game_id
+       where g.id = events.game_id
          and common.is_club_member(g.club_handle)
          and (
-               guesses.mode = 'coop'
-            or guesses.user_id = (select auth.uid())
+               events.mode = 'coop'
+            or events.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )
@@ -98,7 +98,7 @@ create policy players_select on connections.players
   );
 
 grant select on connections.games to authenticated;
-grant select on connections.guesses to authenticated;
+grant select on connections.events to authenticated;
 grant select on connections.players to authenticated;
 
 -- ============================================================
@@ -715,7 +715,7 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 -- on mode.
 --
 -- Coop branch:
---   - correct → insert guesses row (mode=coop, partial unique
+--   - correct → insert events row (mode=coop, partial unique
 --     catches dup-race); count(*) of correct rows; 4 → won.
 --   - wrong/oneAway → insert row; UPDATE every players row
 --     mistake_count++; if mistake_count >= 4 → lost.
@@ -866,10 +866,11 @@ begin
     -- races: in coop a peer beat us to this rank; in compete the
     -- same player double-submitted. Either way, no-op.
     begin
-      insert into connections.guesses
-        (game_id, user_id, tiles, result, matched_category_rank, mode)
+      insert into connections.events
+        (game_id, user_id, kind, tiles, result, matched_category_rank, mode, took_turn)
       values
-        (target_game, caller_id, tiles, result, matched_category_rank, g_row.mode);
+        (target_game, caller_id, 'guess', tiles, result, matched_category_rank,
+         g_row.mode, true);
     exception when unique_violation then
       -- PN300 — a RACE, and the textbook one (Joel, 2026-08-29). The rank was
       -- taken between this caller's read and their insert: in coop by a peer
@@ -891,7 +892,7 @@ begin
     -- compete opponent strip can show race progress (the "Found" metric).
     -- Computed once here; the compete win check below reuses caller_matched.
     select count(*) into caller_matched
-      from connections.guesses gu
+      from connections.events gu
      where gu.game_id = target_game
        and gu.user_id = caller_id
        and gu.result = 'correct';
@@ -902,7 +903,7 @@ begin
     if g_row.mode = 'coop' then
       -- Coop win check: 4 correct rows total ⇒ won.
       select count(*) into matched_count
-        from connections.guesses gu
+        from connections.events gu
        where gu.game_id = target_game and gu.result = 'correct';
 
       if matched_count >= 4 then
@@ -1001,9 +1002,9 @@ begin
   -- authoritative, race-safe backstop. (Each guess is 4 distinct tiles, so
   -- mutual containment `@>`/`<@` is exact set-equality.)
   -- `submit_guess.tiles` qualifies the function PARAMETER: bare `tiles` is
-  -- ambiguous against `connections.guesses.tiles` inside this query.
+  -- ambiguous against `connections.events.tiles` inside this query.
   if exists (
-    select 1 from connections.guesses gu
+    select 1 from connections.events gu
      where gu.game_id = target_game
        and (g_row.mode = 'coop' or gu.user_id = caller_id)
        and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
@@ -1017,7 +1018,7 @@ begin
     -- this caller's local dup-check and their insert — another player's action
     -- arriving by subscription, a window not theirs to close. Compete: the
     -- caller's own repeat, which looks like the doc's third row but is not,
-    -- because the board unlocks on the RPC's reply while `guesses` updates by
+    -- because the board unlocks on the RPC's reply while `events` updates by
     -- subscription — so a fast second submit outruns its own row.
     --
     -- The words are the FE's own, verbatim from the local dup-check it backs
@@ -1027,10 +1028,11 @@ begin
       detail = 'this tile set was already guessed (coop: by anyone; compete: by the caller)';
   end if;
 
-  insert into connections.guesses
-    (game_id, user_id, tiles, result, matched_category_rank, mode)
+  -- A miss is still the player having a go — the fourth mistake included.
+  insert into connections.events
+    (game_id, user_id, kind, tiles, result, matched_category_rank, mode, took_turn)
   values
-    (target_game, caller_id, tiles, result, null, g_row.mode);
+    (target_game, caller_id, 'guess', tiles, result, null, g_row.mode, true);
 
   if g_row.mode = 'coop' then
     -- Lock-step increment across every player row. Reading any
@@ -1047,7 +1049,7 @@ begin
      limit 1;
 
     select count(*) into matched_count
-      from connections.guesses gu
+      from connections.events gu
      where gu.game_id = target_game and gu.result = 'correct';
 
     if caller_mistakes >= 4 then
@@ -1248,7 +1250,7 @@ begin
     -- Coop final snapshot: mistake_count + matched_count for the
     -- listing label.
     select count(*) into matched_count
-      from connections.guesses gu
+      from connections.events gu
      where gu.game_id = target_game and gu.result = 'correct';
     select mistake_count into caller_mistakes
       from connections.players
@@ -1387,9 +1389,9 @@ begin
   -- termination path differs from submit_guess/submit_timeout.
   --
   -- submit_guess and submit_timeout each also write a connections
-  -- table (guesses / players) on their way to common.end_game, so
+  -- table (events / players) on their way to common.end_game, so
   -- the FE's useGame subscription (postgres_changes on
-  -- connections.{games,guesses,players}) wakes up naturally. end_game
+  -- connections.{games,events,players}) wakes up naturally. end_game
   -- writes ONLY common.games via common.end_game — no connections-
   -- schema write — so without this touch the FE would never
   -- refetch and the terminal verdict would never render until a reload.
@@ -1455,8 +1457,8 @@ grant execute on function connections.end_game(uuid) to authenticated;
 -- (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays
 -- null.
 --
--- No realtime touch needed: the players update + guesses delete wake useGame
--- (subscribed to connections.{games,players,guesses}), and reset_game's
+-- No realtime touch needed: the players update + events delete wake useGame
+-- (subscribed to connections.{games,players,events}), and reset_game's
 -- common.games write wakes useCommonGame.
 drop function if exists connections.replay_board(uuid);
 
@@ -1492,7 +1494,7 @@ begin
          matched_count = 0
    where game_id = target_game;
 
-  delete from connections.guesses where game_id = target_game;
+  delete from connections.events where game_id = target_game;
 
   update common.games
      set current_turn_user_id = (

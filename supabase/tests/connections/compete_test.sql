@@ -182,7 +182,7 @@ select connections.submit_guess(
 
 reset role;
 select is(
-  (select count(*) from connections.guesses
+  (select count(*) from connections.events
     where game_id = (select id from g)
       and matched_category_rank = 1
       and result = 'correct'),
@@ -209,7 +209,7 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select count(*) from connections.guesses
+  (select count(*) from connections.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid
       and matched_category_rank = 1
@@ -416,7 +416,7 @@ select connections.submit_guess((select id from g4),
 -- Ada sees her own guess only.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from g4)),
+  (select count(*) from connections.events where game_id = (select id from g4)),
   1::bigint,
   'rls (compete): ada sees only her own guess (1 row)'
 );
@@ -424,7 +424,7 @@ select is(
 -- Cade sees nothing (made no guesses).
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from g4)),
+  (select count(*) from connections.events where game_id = (select id from g4)),
   0::bigint,
   'rls (compete): cade with no guesses sees zero rows'
 );
@@ -442,7 +442,7 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from connections.players where game_id = (select id from g4))
-  + (select count(*) from connections.guesses where game_id = (select id from g4))
+  + (select count(*) from connections.events where game_id = (select id from g4))
   + (select count(*) from connections.games where id = (select id from g4)),
   0::bigint,
   'rls (compete): non-club-member sees zero rows across all three tables'

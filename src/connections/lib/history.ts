@@ -17,8 +17,8 @@
  * because we then ring + tint those 4 in the turn's outcome color ("this is the
  * group this turn guessed, and here's how it went").
  *
- * **Keyed by log position** (guesses have no per-turn ordinal; ordered by
- * `guessed_at`). The log renders "#N" = position.
+ * **Keyed by log position** (a guess has no per-turn ordinal; the rows come
+ * ordered by `id`). The log renders "#N" = position.
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  * Compete's `guesses` are RLS-scoped to the caller, so a compete viewer replays only
@@ -63,7 +63,7 @@ export function historySnapshot(
     if (!g.matched || g.matched_category_rank == null) continue
     const cat = categoryByRank.get(g.matched_category_rank)
     if (!cat) continue
-    matched.push({ rank: cat.rank, name: cat.name, tiles: cat.tiles, matched_at: g.guessed_at })
+    matched.push({ rank: cat.rank, name: cat.name, tiles: cat.tiles, matched_at: g.created_at })
     for (const t of cat.tiles) matchedTiles.add(t)
   }
   const tiles = board.tileOrder.filter((t) => !matchedTiles.has(t))

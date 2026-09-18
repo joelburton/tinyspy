@@ -50,7 +50,7 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 | **category** | One of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere — see the watch list in [`naming.md`](../naming.md)). |
 | **rank** | The difficulty index 0..3 of a category — yellow / green / blue / purple in NYT's palette. Named `rank` rather than `level` because `level` overloads with puzzle-difficulty levels, app-routing levels, and other meanings the codebase shouldn't pre-commit. Different concept from spellingbee's `rank` (player progress); the per-game scope disambiguates. |
 | **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle) should reuse the same word. Not "member" — that already means a person in a club. |
-| **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `connections.guesses` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
+| **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `connections.events` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
 | **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule in [`naming.md`](../naming.md). |
 
 ## Scope (current state)
@@ -85,7 +85,7 @@ Unlike codenamesduet and psychicnum — where the server holds a secret and vali
 ### The one outcome decision (`lib/answer.ts`)
 
 A guess is one of three answers — `correct`, `oneAway`, `wrong`, the values
-`connections.guesses.result` stores — and `lib/answer.ts` says what each is
+`connections.events.result` stores — and `lib/answer.ts` says what each is
 worth: `won`, `near`, `lost`. `near` is the vocabulary's own word for the middle
 one ("close, one away, nearly right", which `docs/outcomes.md` defines with this
 very case in mind), and that is why the three wire words exist rather than being
@@ -110,7 +110,7 @@ field did both jobs and the field built for the word sat empty.
 The rule this follows is [outcomes.md → One event, one
 outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
-**What stays server-authoritative regardless:** atomic mutations of shared state. The mistake-count increment and the `play_state` terminal flip need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychicnum. One-correct-per-rank idempotency comes from two mode-aware **partial unique indexes** on `connections.guesses` (the schema section below has the exact predicates) — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
+**What stays server-authoritative regardless:** atomic mutations of shared state. The mistake-count increment and the `play_state` terminal flip need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychicnum. One-correct-per-rank idempotency comes from two mode-aware **partial unique indexes** on `connections.events` (the schema section below has the exact predicates) — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
 **If connections ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_category_rank` parameters from `submit_guess` (the envelope's `outcome` would then be the server's own word rather than an echo of the caller's). The architectural shape is small enough that the future-proofing is conceptual, not structural. Compete is where this matters first.
 
@@ -123,7 +123,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 | `puzzles` | The source-of-truth puzzle archive. One row per NYT Connections puzzle, with `source_id` (the NYT puzzle number, as text), `puzzle_date`, and `categories` jsonb (matching the games.board.categories shape). Imported via `gmake g-connections-puzzles`. Publicly readable. Distinct from `games.board` — puzzles stay pristine; games copy from them. See [Puzzles](#puzzles) below. |
 | `games` | One row per playthrough. `club_handle` (not null) ties to `common.clubs`. `puzzle_id` is a **soft, provenance-only FK** — nullable, `on delete set null` — because everything to play AND identify the game is copied onto the row (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)). `mode` (text, `coop` or `compete`) is denormalized for RLS branching — same pattern as `psychicnum.games.mode`. `board` jsonb holds the puzzle's categories + this game's shuffled tileOrder; `puzzle_date` is the frozen copy of `puzzles.puzzle_date` (provenance — "which daily puzzle"; same name on both sides since 2026-08-01, when the puzzles column stopped being called `nyt_date` — the vendor doesn't belong in an identifier, and crosswords already keeps NYT provenance inside `meta`). Both publicly readable. Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player **mistake** + **found** tracking. One row per `(game_id, user_id)` with `mistake_count int default 0` and `matched_count int default 0` (the player's own categories found — public, so a compete opponent strip can show race progress; mirrors `psychicnum.players.found_secrets_count`). In coop, mistake rows update in lock-step; in compete, only the guesser's increments. Created at game-start, seeded to 0. Per-player outcome (`won` / `lost`) goes on `common.game_players.result` at game-end. |
-| `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. `mode` (text) is denormalized from `games.mode` so the mode-aware partial unique indexes (below) can filter without a subquery, and the mode-aware RLS policy can branch without a join. Two partial unique indexes enforce idempotency: `(game_id, matched_category_rank) where result='correct' and mode='coop'` in coop; `(game_id, user_id, matched_category_rank) where result='correct' and mode='compete'` in compete (each player can independently solve every category). |
+| `events` | Append-only log of every submission, keyed by a `bigint identity` and read `order by id`. `kind` is `'guess'` — the only one this game has — and `took_turn` is true on every row: the table holds accepted guesses only, and an accepted guess is the player having a go. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. `mode` (text) is denormalized from `games.mode` so the mode-aware partial unique indexes (below) can filter without a subquery, and the mode-aware RLS policy can branch without a join. Two partial unique indexes enforce idempotency: `(game_id, matched_category_rank) where result='correct' and mode='coop'` in coop; `(game_id, user_id, matched_category_rank) where result='correct' and mode='compete'` in compete (each player can independently solve every category). |
 
 ### `board` jsonb shape
 
@@ -165,7 +165,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`connections.games.mode`**                  | `'coop'`                                                    | `'compete'`                                                          |
 | **manifest `numberOfPlayers`**             | `[1, 6]` (solo OK)                                          | `[2, 6]` (needs ≥1 opponent)                                         |
 | **`connections.players.mistake_count` per row**| Always equal across rows (lock-step decrement)             | Independent per row (only the guesser's row increments)              |
-| **`connections.guesses` RLS**                 | Club-wide visible                                           | Caller-only — `using (... and guesses.user_id = auth.uid())`         |
+| **`connections.events` RLS**                 | Club-wide visible                                           | Caller-only — `using (... and events.user_id = auth.uid())`          |
 | **`connections.players` RLS**                 | Club-wide visible                                           | Club-wide visible (same — opponents see each other's mistake counts) |
 | **correct-row partial unique index**       | `(game_id, matched_category_rank)` — one match per rank per game | `(game_id, user_id, matched_category_rank)` — one match per rank PER PLAYER per game |
 | **`submit_guess` correct-guess terminal**  | 4 total correct rows → `play_state='won'`, all `{won: true}` | Caller's 4th correct → `play_state='won_compete'`, caller `{won: true}`, others `{won: false}` |
@@ -179,7 +179,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 The shape that's the same in both modes:
 - The `connections.games` table (modulo the `mode` value).
 - The `connections.players` table structure (one row per player; only the update mechanics differ).
-- The `connections.guesses` table rows (modulo the `mode` denorm + RLS).
+- The `connections.events` table rows (modulo the `mode` denorm + RLS).
 - The setup blob (`ConnectionsSetup = CoopTurnSetup & { puzzleId, timer }` — the coop-style fields ride along; the default includes `coop_style: 'free-for-all'`) — same fields, same defaults.
 - The `board` jsonb stays publicly readable in both modes (FE-knows holds — see below).
 - `common.games.title` formula and the per-game `common.game_players.result` shape.
@@ -340,26 +340,26 @@ Terminal transitions in `submit_guess`, `submit_timeout`, and `end_game` write `
 
 ## Row-level security
 
-All three tables (`games`, `players`, `guesses`) have RLS enabled.
+All three tables (`games`, `players`, `events`) have RLS enabled.
 
 - **`games`** + **`players`** are club-wide visible: `using (common.is_club_member(club_handle))` (games) / EXISTS via `connections.games` join (players). Every club member sees every player's mistake_count in both modes — that's the "opponents see remaining mistakes but not guesses" property.
 
-- **`guesses`** is mode-aware, mirroring `psychicnum.events_select`:
+- **`events`** is mode-aware, mirroring `psychicnum.events_select`:
 
   ```sql
-  create policy guesses_select on connections.guesses
+  create policy events_select on connections.events
     for select to authenticated
     using (
       exists (
         select 1 from connections.games g
-         where g.id = guesses.game_id
+         where g.id = events.game_id
            and common.is_club_member(g.club_handle)
-           and (guesses.mode = 'coop' or guesses.user_id = auth.uid())
+           and (events.mode = 'coop' or events.user_id = auth.uid())
       )
     );
   ```
 
-  Coop: any club member sees any guess. Compete: club members only see their own guesses. The `guesses.mode` denorm is what lets the policy branch without joining to `connections.games` on every visibility check.
+  Coop: any club member sees any guess. Compete: club members only see their own guesses. The `events.mode` denorm is what lets the policy branch without joining to `connections.games` on every visibility check.
 
 No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPCs.
 

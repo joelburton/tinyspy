@@ -85,7 +85,7 @@ select set_eq(
       -- connections
       ('connections', 'games'),
       ('connections', 'players'),
-      ('connections', 'guesses'),
+      ('connections', 'events'),
       -- spellingbee (makeFoundWordsGame)
       ('spellingbee', 'games'),
       ('spellingbee', 'found_words'),

@@ -214,7 +214,7 @@ export function PlayArea({
   usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
-    keyOf: (g) => g.id,
+    keyOf: (g) => String(g.id),
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → the local slot
       const member = memberById(players, g.user_id)

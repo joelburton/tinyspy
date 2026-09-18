@@ -49,7 +49,7 @@ select (connections.create_game(
   pg_temp.connections_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
--- A wrong guess so there's a row in connections.guesses for dee
+-- A wrong guess so there's a row in connections.events for dee
 -- not to see.
 select connections.submit_guess(
   (select id from g),
@@ -68,7 +68,7 @@ select is(
 );
 
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from g)),
+  (select count(*) from connections.events where game_id = (select id from g)),
   1::bigint,
   'sanity: ada sees the guess she just made'
 );
@@ -86,7 +86,7 @@ select is(
 );
 
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from g)),
+  (select count(*) from connections.events where game_id = (select id from g)),
   0::bigint,
   'dee cannot SELECT connections guesses for a club she is outside'
 );
@@ -118,14 +118,15 @@ select pg_temp.envelope_is(
 -- through the security-definer RPCs only.
 
 select throws_ok(
-  $$ insert into connections.guesses (game_id, user_id, tiles, result)
+  $$ insert into connections.events (game_id, user_id, kind, tiles, result)
      values ((select id from g),
              'dee44444-4444-4444-4444-444444444444',
+             'guess',
              array['X','Y','Z','W'],
              'wrong') $$,
   '42501',
-  'permission denied for table guesses',
-  'direct INSERT into connections.guesses is blocked (no grant on authenticated)'
+  'permission denied for table events',
+  'direct INSERT into connections.events is blocked (no grant on authenticated)'
 );
 
 -- ============================================================
@@ -156,7 +157,7 @@ select connections.submit_guess(
 -- Mid-game: ada sees only her own.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from cg)),
+  (select count(*) from connections.events where game_id = (select id from cg)),
   1::bigint,
   'compete mid-game: a player sees only their OWN guesses'
 );
@@ -166,14 +167,14 @@ select is(
 select connections.end_game((select id from cg));
 
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from cg)),
+  (select count(*) from connections.events where game_id = (select id from cg)),
   2::bigint,
   'compete AT TERMINAL: everyone''s guesses open up'
 );
 
 -- …and the opponent's row is the one that appeared, not a duplicate of mine.
 select is(
-  (select count(distinct user_id) from connections.guesses where game_id = (select id from cg)),
+  (select count(distinct user_id) from connections.events where game_id = (select id from cg)),
   2::bigint,
   'compete at terminal: both players'' rows are visible'
 );
@@ -182,7 +183,7 @@ select is(
 -- club, not to the world.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*) from connections.guesses where game_id = (select id from cg)),
+  (select count(*) from connections.events where game_id = (select id from cg)),
   0::bigint,
   'compete at terminal: a non-member still sees nothing'
 );

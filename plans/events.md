@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: phase 3 done (strands awaiting review); phase 4 next — connections, waffle, wordiply.** Agreed with Joel
+**Status: six of ten done (connections awaiting review); waffle and wordiply finish phase 4.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -565,6 +565,24 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 > which now reads as the opposite of its `took_turn`. It says "Logged as a row".
 
 **Phase 4** — connections, waffle, wordiply: rename, add `kind`, drop `seq`.
+
+> **connections built 2026-09-17** —
+> `supabase/migrations/20260917000005_connections_events.sql`: the rename with
+> its constraints and BOTH partial unique indexes, uuid → bigint, `created_at`,
+> a one-value `kind`, and `took_turn` true on every row. 126 production rows
+> renumbered 1..126 over 34 games.
+>
+> `mode` stays, exactly as §2 says: the two partial unique indexes filter on it
+> and a partial index predicate cannot contain a subquery, so the column is what
+> lets those indexes exist. They are the race-idempotency enforcers, and their
+> names moved with the table.
+>
+> The frontend is the first one where the log's timestamp had a SECOND reader:
+> `useGame` projects `guessed_at` into a matched category's `matched_at`, and
+> `lib/history.ts` does the same in its fold. Both read `created_at` now.
+> connections also hand-rolls its three `postgres_changes` handlers rather than
+> using the shared factory, so its table name lives in a different place from
+> every other game's.
 
 **Phase 5** — stackdown and scrabble. Last because scrabble carries the
 `leftovers` rename and is the game whose `user_id` cannot be `not null` until

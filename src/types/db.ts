@@ -1092,6 +1092,53 @@ export type Database = {
   }
   connections: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          matched_category_rank: number | null
+          mode: string
+          result: string
+          tiles: string[]
+          took_turn: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          matched_category_rank?: number | null
+          mode: string
+          result: string
+          tiles: string[]
+          took_turn?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          matched_category_rank?: number | null
+          mode?: string
+          result?: string
+          tiles?: string[]
+          took_turn?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           board: Json
@@ -1133,47 +1180,6 @@ export type Database = {
             columns: ["puzzle_id"]
             isOneToOne: false
             referencedRelation: "puzzles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          id: string
-          matched_category_rank: number | null
-          mode: string
-          result: string
-          tiles: string[]
-          user_id: string
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          id?: string
-          matched_category_rank?: number | null
-          mode: string
-          result: string
-          tiles: string[]
-          user_id: string
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          id?: string
-          matched_category_rank?: number | null
-          mode?: string
-          result?: string
-          tiles?: string[]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]

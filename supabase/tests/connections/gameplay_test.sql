@@ -31,7 +31,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(23);
+select plan(24);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -190,12 +190,23 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select count(*) from connections.guesses
+  (select count(*) from connections.events
     where game_id = (select id from g)
       and result = 'correct'
       and matched_category_rank = 0),
   1::bigint,
   'submit_guess: correct guess inserts one correct row at rank 0'
+);
+
+-- Every row in this table is an accepted guess, and an accepted guess is the
+-- player having a go — the fourth group and the fourth mistake included. A
+-- repeat of a tile set already tried is refused before any insert, so there is
+-- no row here that spent nothing.
+select is(
+  (select array_agg(distinct kind || ':' || took_turn) from connections.events
+    where game_id = (select id from g)),
+  array['guess:true'],
+  'every row is a guess that spent a turn'
 );
 
 -- ============================================================
@@ -215,7 +226,7 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select count(*) from connections.guesses
+  (select count(*) from connections.events
     where game_id = (select id from g)
       and result = 'correct'
       and matched_category_rank = 0),

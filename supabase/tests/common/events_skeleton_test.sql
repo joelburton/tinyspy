@@ -49,7 +49,7 @@ create temporary table roster (schema text, log_table text, converted boolean);
 insert into roster values
   ('psychicnum',  'events',      true),
   ('wordle',      'events',      true),
-  ('connections', 'guesses',     false),
+  ('connections', 'events',      true),
   ('waffle',      'swaps',       false),
   ('wordiply',    'guesses',     false),
   ('stackdown',   'submissions', false),

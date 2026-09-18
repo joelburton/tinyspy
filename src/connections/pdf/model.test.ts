@@ -30,12 +30,12 @@ const matched = (rank: 0 | 1 | 2 | 3): MatchedCategory => ({
 })
 
 const guess = (over: Partial<GuessRow> = {}): GuessRow => ({
-  id: 'g1',
+  id: 1,
   user_id: 'u1',
   tiles: ['ALPHA', 'ANGEL', 'APPLE', 'BANANA'],
   outcome: 'lost', result: 'wrong', matched: false,
   matched_category_rank: null,
-  guessed_at: '2026-01-01T00:00:00Z',
+  created_at: '2026-01-01T00:00:00Z',
   ...over,
 })
 
@@ -118,7 +118,7 @@ describe('buildConnectionsPrintModel — the log', () => {
 
   it('keeps the other two verdicts terse — the move column holds ~38 chars', () => {
     const t = team({
-      guesses: [guess({ outcome: 'near', result: 'oneAway', matched: false }), guess({ id: 'g2', outcome: 'lost', result: 'wrong', matched: false })],
+      guesses: [guess({ outcome: 'near', result: 'oneAway', matched: false }), guess({ id: 2, outcome: 'lost', result: 'wrong', matched: false })],
     })
     expect(t.turns[0].text).toMatch(/^1 away: /)
     expect(t.turns[1].text).toMatch(/^miss: /)
@@ -129,16 +129,16 @@ describe('buildConnectionsPrintModel — the log', () => {
   })
 
   it('names the guesser on every coop row', () => {
-    const t = team({ guesses: [guess(), guess({ id: 'g2', user_id: 'u2' })] })
+    const t = team({ guesses: [guess(), guess({ id: 2, user_id: 'u2' })] })
     expect(t.turns.map((x) => x.who)).toEqual(['me', 'moth'])
   })
 })
 
 describe('buildConnectionsPrintModel — compete splits per player', () => {
   const gs = [
-    guess({ id: 'a', user_id: 'u1', outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0, tiles: CATS[0].tiles }),
-    guess({ id: 'b', user_id: 'u2', outcome: 'won', result: 'correct', matched: true, matched_category_rank: 2, tiles: CATS[2].tiles }),
-    guess({ id: 'c', user_id: 'u2', outcome: 'lost', result: 'wrong', matched: false }),
+    guess({ id: 1, user_id: 'u1', outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0, tiles: CATS[0].tiles }),
+    guess({ id: 2, user_id: 'u2', outcome: 'won', result: 'correct', matched: true, matched_category_rank: 2, tiles: CATS[2].tiles }),
+    guess({ id: 3, user_id: 'u2', outcome: 'lost', result: 'wrong', matched: false }),
   ]
 
   it('at terminal: one track per player, each with only their own earned bands', () => {

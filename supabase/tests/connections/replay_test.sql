@@ -56,7 +56,7 @@ reset role;
 
 select ok((select is_terminal from common.games where id = (select id from g1)),
   'coop: precondition — four mistakes ended the game');
-select is((select count(*) from connections.guesses where game_id = (select id from g1)),
+select is((select count(*) from connections.events where game_id = (select id from g1)),
   5::bigint, 'coop: precondition — five guesses are logged (one correct)');
 
 update common.timers set ticks = 99 where game_id = (select id from g1);
@@ -72,7 +72,7 @@ select is((select play_state from common.games where id = (select id from g1)),
   'playing', 'coop: replay → play_state back to playing');
 select ok((select not is_terminal from common.games where id = (select id from g1)),
   'coop: replay → is_terminal cleared');
-select is((select count(*) from connections.guesses where game_id = (select id from g1)),
+select is((select count(*) from connections.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the guess log is cleared (so no category is matched)');
 select is(
   (select count(*) from connections.players

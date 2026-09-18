@@ -39,7 +39,9 @@ type GameRow = Pick<
 >
 
 export type GuessRow = {
-  id: string
+  /** The row's own id, and the order of play: the database hands them out in
+   *  the order the rows were written, which is what the read below orders by. */
+  id: number
   user_id: string
   tiles: string[]
   /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, which
@@ -58,7 +60,7 @@ export type GuessRow = {
    *  confusion the seam exists to end. */
   matched: boolean
   matched_category_rank: number | null
-  guessed_at: string
+  created_at: string
 }
 
 /** One row from `connections.players` — per-player mistake counter
@@ -248,12 +250,12 @@ export function useGame(
         ),
         readRows(
           db
-            .from('guesses')
+            .from('events')
             .select(
-              'id, user_id, tiles, result, matched_category_rank, guessed_at',
+              'id, user_id, tiles, result, matched_category_rank, created_at',
             )
             .eq('game_id', gameId)
-            .order('guessed_at', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
         readRows(
           db
@@ -318,7 +320,7 @@ export function useGame(
             result,
             matched: result === 'correct',
             matched_category_rank: g.matched_category_rank,
-            guessed_at: g.guessed_at,
+            created_at: g.created_at,
           }
         }),
       )
@@ -350,7 +352,7 @@ export function useGame(
       )
       ch.on(
         'postgres_changes',
-        { event: '*', schema: 'connections', table: 'guesses', filter: `game_id=eq.${gameId}` },
+        { event: '*', schema: 'connections', table: 'events', filter: `game_id=eq.${gameId}` },
         load,
       )
       ch.on(
@@ -471,7 +473,7 @@ export function useGame(
         rank: cat.rank,
         name: cat.name,
         tiles: cat.tiles,
-        matched_at: g.guessed_at,
+        matched_at: g.created_at,
       })
     }
   }

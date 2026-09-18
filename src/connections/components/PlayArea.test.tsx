@@ -489,12 +489,12 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       game: game('coop'),
       guesses: [
         {
-          id: 'g1',
+          id: 1,
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
           outcome: 'lost', result: 'wrong', matched: false,
           matched_category_rank: null,
-          guessed_at: '2026-06-15T00:01:00Z',
+          created_at: '2026-06-15T00:01:00Z',
         },
       ],
       selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
@@ -516,12 +516,12 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       game: game('coop'),
       guesses: [
         {
-          id: 'g1',
+          id: 1,
           user_id: 'u1',
           tiles: ['a', 'b', 'e', 'i'],
           outcome: 'lost', result: 'wrong', matched: false,
           matched_category_rank: null,
-          guessed_at: '2026-06-15T00:01:00Z',
+          created_at: '2026-06-15T00:01:00Z',
         },
       ],
       selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
@@ -544,13 +544,13 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
    * moves" and "Check what a RESTART does to a mark".
    */
   describe('the mark dies when the board moves under it', () => {
-    const wrongGuess = (id: string, userId: string) => ({
+    const wrongGuess = (id: number, userId: string) => ({
       id,
       user_id: userId,
       tiles: ['a', 'b', 'e', 'i'],
       outcome: 'lost' as const, result: 'wrong' as const, matched: false,
       matched_category_rank: null,
-      guessed_at: '2026-06-15T00:01:00Z',
+      created_at: '2026-06-15T00:01:00Z',
     })
     /** Submit a wrong guess in a two-player coop game and confirm it landed. */
     async function guessWrongly(ctx: GamePageCtx) {
@@ -575,7 +575,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       // it had been read.
       h.result = loaded({
         game: game('coop'),
-        guesses: [wrongGuess('g1', 'u1')],
+        guesses: [wrongGuess(1, 'u1')],
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
@@ -596,7 +596,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       // whole table.
       h.result = loaded({
         game: game('coop'),
-        guesses: [{ ...wrongGuess('g2', 'u2'), tiles: ['c', 'd', 'f', 'g'] }],
+        guesses: [{ ...wrongGuess(2, 'u2'), tiles: ['c', 'd', 'f', 'g'] }],
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
@@ -612,7 +612,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
       h.result = loaded({
         game: game('coop'),
-        guesses: [{ ...wrongGuess('g2', 'u2'), outcome: 'won' as const, result: 'correct' as const, matched: true }],
+        guesses: [{ ...wrongGuess(2, 'u2'), outcome: 'won' as const, result: 'correct' as const, matched: true }],
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
@@ -677,13 +677,14 @@ describe('connections PlayArea — a failed load is not a missing game', () => {
 })
 
 describe('connections PlayArea — attention', () => {
+  let nextId = 1
   const correctGuess = (userId: string) => ({
-    id: `g-${userId}`,
+    id: nextId++,
     user_id: userId,
     tiles: ['a', 'b', 'c', 'd'],
     outcome: 'won' as const, result: 'correct' as const, matched: true,
     matched_category_rank: 0,
-    guessed_at: '2026-06-15T00:01:00Z',
+    created_at: '2026-06-15T00:01:00Z',
   })
   const redBand: MatchedCategory = {
     rank: 0,

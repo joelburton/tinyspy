@@ -558,7 +558,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 `wordiply.guesses` is the **turn log**, not a list of scored words: every
 submission lands a row, accepted or not. `valid` splits them, and everything that
 computes a score filters `where valid`. That's the same shape
-`psychicnum.events` (`is_correct`) and `connections.guesses` (`result`) use.
+`psychicnum.events` (`is_correct`) and `connections.events` (`result`) use.
 
 **Why store rejects** (2026-08-02). Two reasons, both coop-shaped:
 

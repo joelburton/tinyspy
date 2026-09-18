@@ -29,8 +29,8 @@ const BOARD: Board = {
 
 function g(o: Partial<GuessRow>): GuessRow {
   return {
-    id: 'id', user_id: 'u', tiles: ['apple', 'pear', 'plum', 'lime'],
-    outcome: 'lost', result: 'wrong', matched: false, matched_category_rank: null, guessed_at: '2026-06-12T18:00:00Z', ...o,
+    id: 1, user_id: 'u', tiles: ['apple', 'pear', 'plum', 'lime'],
+    outcome: 'lost', result: 'wrong', matched: false, matched_category_rank: null, created_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
 
