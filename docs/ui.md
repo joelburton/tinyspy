@@ -361,8 +361,8 @@ in `FloatingPanel.tsx`; this is what it means:
 |---|---|---|---|---|---|
 | `companion` | something you keep NEARBY while you play — open it, keep it open, put it where you want: the scratchpad, a setter's note, a clue explainer, help | no | yes | yes, position and size in one entry | **always** — a rule. Every one genuinely benefits from being sized in both axes, and they are the only floating panels you can drag shut |
 | `dialog` | a question that can wait: the anagram finder, word lookup, edit-word | no | yes | position, yes — that is what "opens where you left it" means | case by case; all of ours fit their content today, which is a fact about these three, not the family |
-| `modal-normal` | a question worth thinking or talking about: setup, edit profile, the celebration | yes, light | yes — to see the board while filling a form | no — a fresh task each time, so it centers | case by case, same reason |
-| `modal-blocking` | the world stops. Answer it now; nothing underneath is live: confirm end game, crosswords' jump-to-number | yes, dark | **no** | no | never — a rule |
+| `modal-normal` | a question worth thinking or talking about: setup, edit profile | yes, light | yes — to see the board while filling a form | no — a fresh task each time, so it centers | case by case, same reason |
+| `modal-blocking` | the world stops. Deal with it now and it is gone: confirm end game, scrabble's blank picker, crosswords' jump-to-number — and the [win celebration](../src/common/terminal/CelebrationBlockingModal.tsx), which asks nothing but is the same shape, a card over a dimmed board you dismiss to get back to the game | yes, dark | **no** | no | never — a rule |
 | `modal-fault` | as blocking, but strictly above it — an error must be readable mid-question. Escape is swallowed, so a fault cannot be closed by accident, and nothing under it closes either | yes, dark | **no** | no | never — a rule |
 
 **Immovability is the visible signal**, and a better teacher than a scrim
@@ -473,13 +473,11 @@ The full ladder, and the satellites that attach to a layer rather than
 occupying one (a scrim, a dropdown, a tooltip), are in
 [code-conventions.md → The z- layers](code-conventions.md#the-z--layers).
 
-**Two panels stay off the shell on purpose.** The
-[`<CelebrationBlockingModal>`](../src/common/terminal/CelebrationBlockingModal.tsx)
-is a hand-rolled fixed scrim with a small card and no media query, so it stays
-a small card over a dimmed board at every size, phone included — that is the
-look Joel wants, and "the modal family should share the shell" would hand it
-the full-screen phone sheet and silently delete the decision. Scrabble's blank
-picker is the other, and it is a todo, not a decision.
+**One panel is still off the shell, and that is a todo rather than a decision.**
+Crosswords' `CrosswordsNumberJumpBlockingModal` is a hand-rolled `position:
+fixed` box with its own scrim, tab ring and Escape. It already reads
+`--z-modal-blocking`, so converting it moves no layer; what the shell would take
+over is those three.
 
 ## Real forms, and everything else
 

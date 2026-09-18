@@ -43,8 +43,8 @@ type Props = {
  * states something, and `FaultModal` is this one tier up. Reach for the shell
  * itself when the body is something else entirely — crosswords' jump-to-number.
  *
- * NOT for a modal you can move: that is a `modal-normal` (setup, edit profile,
- * the celebration), and its drag is the point.
+ * NOT for a modal you can move: that is a `modal-normal` (setup, edit profile),
+ * and its drag is the point.
  */
 export function BlockingModal({
   title,

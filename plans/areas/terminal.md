@@ -4,13 +4,14 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, ten worked.** Roster
+**Status: OPEN — audited 2026-09-18, fourteen findings, eleven worked.** Roster
 agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
 after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
 Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
-(2026-09-18, Joel: *"do the prose pass"*); four findings wait for a decision
-(F-11 to F-14), and none of them was pre-empted — the `.title` size, the
-family, the defaults and scrabble's lowercased verb all still read as they did.
+(2026-09-18, Joel: *"do the prose pass"*), and **F-11 answered as (a)** — the
+code is right and the three sentences were fixed. Three findings still wait for
+a decision: F-12 the `.title` size, F-13 the defaults, F-14 scrabble's
+lowercased verb. The prose pass pre-empted none of them.
 
 ## The roster
 
@@ -230,7 +231,7 @@ fires on mount; why the verb lives here and not beside `Member`), and a
 `## Details` carrying the render tree above. `common/terminal` then comes off
 `INTROS_OWED`.
 
-### F-terminal-11 · `which-family` · The celebration is a `modal-blocking` in code and a `modal-normal` in three durable sentences
+### F-terminal-11 · `which-family` · The celebration is a `modal-blocking` in code and a `modal-normal` in three durable sentences — WORKED as (a)
 
 In code it renders `<BlockingModal>` with the default family — `modal-blocking`:
 dark scrim, immovable, a card on a phone — since `d7a0952a` (2026-08-25, "the
@@ -267,6 +268,24 @@ sentences say otherwise:
   `Extract<PanelFamily, 'modal-blocking' | 'modal-fault'>`, narrowed on purpose
   ("a movable blocking modal is the one thing the category cannot be"), so (b)
   means leaving that shell for `<FloatingPanel>` and rebuilding the footer row.
+
+**Joel: *"f11: the code is right, so a."*** The three sentences were fixed, and
+working them turned up that the ui.md paragraph had rotted in BOTH halves:
+
+- the families table moves the celebration from the `modal-normal` row to
+  `modal-blocking`, where the row now says what a celebration has in common
+  with a confirm — deal with it now and it is gone — rather than implying the
+  family is only for questions;
+- *"Two panels stay off the shell on purpose"* named scrabble's blank picker as
+  the second, and that stopped being true on 2026-09-10, when it became a
+  `<BlockingModal>` (its own docstring says so). The one panel still
+  hand-rolled is crosswords' `CrosswordsNumberJumpBlockingModal`, which the
+  paragraph now names, as a todo rather than a decision — the same thing
+  `src/crosswords/todo.md` already holds. Nothing durable was lost with the
+  deleted sentences: the card-at-every-size decision is carried by the family
+  table's own "cards, not windows" paragraph and by the component's docstring;
+- `BlockingModal.tsx`'s docstring drops the celebration from its
+  `modal-normal` list (blessed file, prose only).
 
 ### F-terminal-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size
 
