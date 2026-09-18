@@ -34,6 +34,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
+import { memberById } from '@/common/members/memberList'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -692,7 +693,23 @@ export function PlayArea({
   // `historyId` indexes `logWords` — the same chronological list the GameEventLog log
   // shows — so coop replays the shared board and compete the caller's own, for free.
   // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
-  const historySnap = historyId !== null ? historySnapshot(logWords, historyId) : null
+  //
+  // WHOSE board it replays is the row's own author's. Mid-game compete that is
+  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
+  // arrive, and a `#N` on one of theirs replays THEIR stack. Coop is one shared
+  // board, so the filter is a no-op there.
+  const historyRow = historyId !== null ? submissions.find((s) => s.id === historyId) : undefined
+  const historyRows =
+    isCompete && historyRow
+      ? submissions.filter((s) => s.user_id === historyRow.user_id)
+      : logWords
+  const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board.
+  const historyActor =
+    isCompete && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(players, historyRow.user_id)
+      : undefined
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -702,6 +719,7 @@ export function PlayArea({
         historyLitTiles={historySnap ? historySnap.historyLitTiles : NO_TILES}
         readOnly={isViewingHistory || !canPlay}
         historyLabel={historySnap ? historySnap.historyLabel : null}
+        historyActor={historyActor}
         onExitHistory={exitHistory}
         currentWord={currentWord}
         appendTile={appendTile}

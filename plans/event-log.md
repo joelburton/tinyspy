@@ -1,6 +1,6 @@
 # event-log — the frontend vocabulary, and turn history in compete
 
-**Status: A built; B's re-keying built, B.4 (compete history) not started; C left.** Agreed with Joel
+**Status: A, B and C are built. What is left is §D's verification.** Agreed with Joel
 2026-09-17. The last of three; see [events.md](events.md) for the framing and
 the deploy rule. **Both phases here depend on every game's events table
 existing**, so this plan started when events.md finished.
@@ -255,8 +255,27 @@ with the seven call sites in front of you.
 > The fixtures all use ids that are NOT 0, 1, 2 — a builder that still indexed
 > would have passed the old assertions unchanged.
 >
-> **B.4 is not started.** It needs §E.3 answered first: what the `<HistoryBanner>`
-> says when the board on screen is someone else's.
+> **B.4 built 2026-09-17 — compete history.** At a compete terminal, `#N` on an
+> opponent's row now replays THEIR board. The PlayArea resolves the row first
+> (`rows.find((r) => r.id === historyId)`) and folds the rows of whoever wrote it,
+> so the snapshot is built from that player's own sequence rather than the
+> viewer's; live, and in coop, it folds exactly what it folded before.
+>
+> **The banner names the actor** — §E.3 answered, Joel: *"just the dotactor +
+> usual label, like: '● moth: GUESS 3'. we never apostrophize player names."* So
+> `<HistoryBanner>` gained an optional `actor`, rendering `<DotActor show="both">`
+> and `': '` ahead of the game's own label, and **nothing else changed** — no new
+> surface, no per-game wording.
+>
+> **The actor is compete-only, and only for someone else's row.** Coop is one
+> shared board: naming a teammate there would claim the board belongs to them
+> when everyone played it. waffle's coop viewer test is what caught that.
+>
+> Seven games carry the fold (psychicnum, wordle, connections, letterboxed,
+> waffle, stackdown, strands) plus wordiply from §C. The other three need
+> nothing: setgame's board is one contended table and every row stores its own
+> `board_after`; scrabble's label already names the player; codenamesduet is out
+> of this sprint and addresses a `turn_number`.
 
 ## C. wordiply gets a viewer
 
@@ -279,6 +298,24 @@ It is genuinely new work, not a re-keying:
 **This phase may be deferred past all three plans** without holding anything up
 — it is the only one that may. Joel: *"this can be after-these-plans if that
 makes sense."*
+
+> **Built 2026-09-17.** `src/wordiply/lib/history.ts` (new, pure, unit-tested),
+> the `#N` handle in its `GameEventLog`, and `useHistoryViewer` +
+> `<HistoryBanner>` + the shared `.historyFrame` wired through `PlayArea` →
+> `BoardCol` → `GuessBoard`.
+>
+> **The rejects are what make it worth having**, which was not obvious when the
+> plan called it "pretty much useless". An accepted word replays the board you
+> are already looking at — five slots, all visible. A REJECT is on no board at
+> all, and opening its `#N` is the only way to see the table as it stood when
+> that word was tried. So the builder folds the rows INCLUDING rejects to find
+> the one addressed, and fills a slot only per accepted word. `PlayArea` hands it
+> `myRows` (mine, rejects included) rather than `myGuesses` (mine, accepted) —
+> the first version passed the latter and a reject's handle replayed an empty
+> board, because the row being addressed was not in the list.
+>
+> `<GuessBoard>` gained `data-board`, because the log beside it shows the same
+> words and a spec asking "what is on the board" needs to be able to say so.
 
 ## D. Verification
 
@@ -313,12 +350,14 @@ is gitignored and unrelated).
 
 ## E. Open
 
-1. **`boardIsShown`'s new name** (§B.5).
+1. ~~**`boardIsShown`'s new name** (§B.5).~~ **MOOT, answered by B.2/B.3**: the
+   flag is deleted, so there is no name to pick.
 2. ~~**Whether a compete log offers `#N` on an opponent's row mid-game.**~~
    **MOOT, ruled 2026-09-17** (§F.7): the row never renders, so there is nothing
    to put a handle on.
-3. **The `<HistoryBanner>` label's wording** for someone else's board — "moth's
-   board · GUESS 3"? Sketch it before the phase, not during.
+3. ~~**The `<HistoryBanner>` label's wording** for someone else's board.~~
+   **RULED 2026-09-17**, Joel: the DotActor and the game's usual label, `●
+   moth: GUESS 3`. Player names are never apostrophized.
 
 ## F. Review notes — 2026-09-17 (FEEDBACK, not rulings)
 

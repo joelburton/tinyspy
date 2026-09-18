@@ -457,11 +457,27 @@ export function PlayArea({
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
 
   // When a past turn is open, `historySnap` is that turn's board (the guess rows
-  // up to it, the last one ringed); else null = live. `myGuesses` is exactly the board
-  // BoardCol shows (coop team / compete self), and the log only hangs its #N handles on
-  // THAT board — so `historyId` indexes `myGuesses` 1:1. Stable: a later realtime guess
-  // only grows the log past `historyId`, so a past turn holds.
-  const historySnap = isViewingHistory && historyId !== null ? historySnapshot(myGuesses, historyId) : null
+  // up to it, the last one ringed); else null = live.
+  //
+  // WHOSE board it replays is the row's own author's. Mid-game compete that is
+  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
+  // arrive, and a `#N` on one of theirs replays THEIR board: six rows of
+  // somebody else's game, which is the whole point of opening it. Coop is one
+  // shared board, so the filter is a no-op there.
+  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRows =
+    isCompete && historyRow
+      ? guesses.filter((g) => g.user_id === historyRow.user_id)
+      : guesses
+  const historySnap =
+    isViewingHistory && historyId !== null ? historySnapshot(historyRows, historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board, so a teammate's row replays the
+  // board you are already looking at.
+  const historyActor =
+    isCompete && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(members, historyRow.user_id)
+      : undefined
 
   // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
   // state. `readOnly` (glossary): the board is inert when there's no self row, the
@@ -489,6 +505,7 @@ export function PlayArea({
         // ── Board to render (live rows + the history snapshot) ──
         rows={rows}
         historySnap={historySnap}
+        historyActor={historyActor}
         maxGuesses={game.max_guesses}
         brand={brand}
         // ── History viewer ──

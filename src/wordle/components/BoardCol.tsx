@@ -14,6 +14,7 @@ import type { HistorySnapshotRow, HistorySnapshot } from '../lib/history'
 import { Board } from './Board'
 import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -74,6 +75,7 @@ export function BoardCol({
   //    this column picks live-vs-snapshot) ──
   rows,
   historySnap,
+  historyActor,
   maxGuesses,
   brand,
   // ── History viewer (its banner lives in the below-board region) ──
@@ -96,6 +98,9 @@ export function BoardCol({
   // when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
   // it.
   historySnap: HistorySnapshot | null
+  /** Whose board is on screen, when it is not the viewer's own — at terminal a
+   *  compete log can open an opponent's row. */
+  historyActor?: Actor | null
   maxGuesses: number
   // Brand name (manifest) for the grid's screen-reader label.
   brand: string
@@ -339,7 +344,13 @@ export function BoardCol({
             is open — the feedback slot + the keyboard stay mounted underneath, their
             capture frozen, and the banner covers the keyboard so a stray key can't
             type. */}
-        {isViewingHistory && historySnap && <HistoryBanner label={historySnap.historyLabel} onExit={onExitHistory} />}
+        {isViewingHistory && historySnap && (
+          <HistoryBanner
+            label={historySnap.historyLabel}
+            actor={historyActor}
+            onExit={onExitHistory}
+          />
+        )}
         <div className={shared.localFeedback}>
           <FeedbackPill slot={localFeedbackSlot} />
         </div>

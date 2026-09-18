@@ -595,7 +595,25 @@ export function PlayArea({
   // When a past turn is open, `historySnap` is that turn's board (else null =
   // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
   // a later realtime guess only grows the log past historyId, so a past turn holds.
-  const historySnap = historyId !== null ? historySnapshot(guesses, historyId) : null
+  //
+  // WHOSE board it replays is the row's own author's. Mid-game compete that is
+  // always me (RLS shows me nothing else), but at TERMINAL every player's rows
+  // arrive, and a `#N` on one of theirs has to fold THEIR guesses — folding the
+  // whole table would draw a board nobody ever played. Coop is one shared board,
+  // so the filter is a no-op there.
+  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRows =
+    game?.mode === 'compete' && historyRow
+      ? guesses.filter((g) => g.user_id === historyRow.user_id)
+      : guesses
+  const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board, so a teammate's row replays the
+  // board you are already looking at and there is no "whose" to answer.
+  const historyActor =
+    game?.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(players, historyRow.user_id)
+      : undefined
 
   // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
   // correct guesses are visible); compete = the caller's own count.
@@ -638,6 +656,7 @@ export function PlayArea({
         historyLitWord={historySnap?.historyLitWord ?? null}
         // ── History viewer ──
         historyLabel={historySnap?.historyLabel ?? null}
+        historyActor={historyActor}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}

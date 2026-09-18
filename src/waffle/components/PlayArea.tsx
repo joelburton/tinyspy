@@ -17,6 +17,7 @@ import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
+import { memberById } from '@/common/members/memberList'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -547,10 +548,26 @@ export function PlayArea({
   const replaySwaps = isCompete
     ? swaps.filter((sw) => sw.user_id === session.user.id)
     : swaps
+
+  // WHOSE board the viewer replays is the row's own author's. Mid-game compete
+  // that is always me — RLS shows me nothing else — but at TERMINAL every
+  // player's rows arrive, and a `#N` on one of theirs replays THEIR board from
+  // the same scramble, which is the whole point of opening it.
+  const historyRow = historyId !== null ? swaps.find((sw) => sw.id === historyId) : undefined
+  const historySwaps =
+    isCompete && historyRow
+      ? swaps.filter((sw) => sw.user_id === historyRow.user_id)
+      : replaySwaps
   const historySnap =
     historyId !== null
-      ? historySnapshot(game.scramble, game.solution, replaySwaps, historyId)
+      ? historySnapshot(game.scramble, game.solution, historySwaps, historyId)
       : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board.
+  const historyActor =
+    isCompete && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(players, historyRow.user_id)
+      : undefined
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
   // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the
@@ -626,6 +643,7 @@ export function PlayArea({
         readOnly={readOnly}
         historyLitTiles={historySnap?.historyLitTiles}
         historyLabel={historySnap ? historySnap.historyLabel : null}
+        historyActor={historyActor}
         onExitHistory={exitHistory}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}

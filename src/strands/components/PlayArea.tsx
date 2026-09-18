@@ -31,6 +31,7 @@ import { clickTile, typeLetter, type Trace } from '../lib/trace'
 import { hintShortfallText } from '../lib/hintCopy'
 import { historySnapshot } from '../lib/history'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
+import { memberById } from '@/common/members/memberList'
 import { useGame } from '../hooks/useGame'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
@@ -816,9 +817,27 @@ export function PlayArea(ctx: GamePageCtx) {
     isSpangram: f.result === 'spangram',
   }))
 
-  // The replayed board, or null when live. A one-liner because strands' board
-  // only accumulates — see lib/history.
-  const historySnap = historyViewer.historyId !== null ? historySnapshot(historyRows, historyViewer.historyId) : null
+  // The replayed board, or null when live. strands' board only accumulates —
+  // see lib/history.
+  //
+  // WHOSE board it replays is the row's own author's. Mid-game compete that is
+  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
+  // arrive, and a `#N` on one of theirs replays THEIR board. Coop is one shared
+  // board, so the filter is a no-op there.
+  const historyRow =
+    historyViewer.historyId !== null
+      ? events.find((e) => e.id === historyViewer.historyId)
+      : undefined
+  const viewedRows =
+    isCompete && historyRow ? events.filter((e) => e.user_id === historyRow.user_id) : historyRows
+  const historySnap =
+    historyViewer.historyId !== null ? historySnapshot(viewedRows, historyViewer.historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared board.
+  const historyActor =
+    isCompete && historyRow && historyRow.user_id !== selfId
+      ? memberById(players, historyRow.user_id)
+      : undefined
   // The words nobody found, drawn as gray lines — ONLY while this viewer is
   // asking for them. `game.solution` arrives at terminal (is_terminal lifts the
   // shield), so mid-game this is empty by construction; after that it's empty
@@ -864,6 +883,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // would irreversibly spend a hint.
         historyLitTiles={historySnap?.historyLitTiles ?? []}
         historyLabel={historySnap?.historyLabel ?? null}
+        historyActor={historyActor}
         onExitHistory={historyViewer.exitHistory}
         // The word being traced. Shares its slot with the feedback pill — you
         // are either building a word or reading what the last one did.

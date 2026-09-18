@@ -63,6 +63,7 @@ export function BoardCol({
   historyLitWord,
   // ── History viewer (its overlay lives in the below-board region) ──
   historyLabel,
+  historyActor,
   onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
@@ -93,6 +94,9 @@ export function BoardCol({
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
   historyLabel: string | null
+  /** Whose board is on screen, when it is not the viewer's own — a compete log
+   *  at terminal can open an opponent's row. */
+  historyActor?: Actor | null
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
@@ -306,7 +310,7 @@ export function BoardCol({
           {/* The shared banner overlays this slot while a past turn is open — the
               entry / pill stays mounted underneath, its capture frozen. */}
           {isViewingHistory && (
-            <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+            <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
           )}
           {/* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
               Submit + the capture keyboard). `bigEntry` bumps the entry font

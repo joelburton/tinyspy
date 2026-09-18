@@ -5,6 +5,7 @@ import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import history from '@/common/event-log/historyViewer.module.css'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
 
@@ -33,6 +34,7 @@ export function GuessBoard({
   showActive,
   held = null,
   flash = null,
+  isViewingHistory = false,
 }: {
   base: string
   guesses: CompletedGuess[]
@@ -47,6 +49,9 @@ export function GuessBoard({
   /** The answer on whichever row its word is in, for a beat: a teammate's word
    *  is already a landed row, mine may still be the held one. */
   flash?: AnnouncedMark<{ word: string; outcome: Outcome }> | null
+  /** A past row is open: the board wears the shared history frame and the rows
+   *  drawn are that moment's, not the live ones. */
+  isViewingHistory?: boolean
 }) {
   // The answer marks the row its word is IN, and MY row wins: guessing a word
   // again is answered where I just typed it, not on the row it landed in four
@@ -67,7 +72,10 @@ export function GuessBoard({
     )
 
   return (
-    <ol className={styles.board}>
+    // data-board: the stable handle a spec uses to ask what the BOARD holds,
+    // since the event log beside it shows the same words (the repo's
+    // [data-board] / [data-cell] convention).
+    <ol className={cls(styles.board, isViewingHistory && history.historyFrame)} data-board>
       {Array.from({ length: MAX_GUESSES }, (_, i) => {
         if (held && i === guesses.length) {
           return (

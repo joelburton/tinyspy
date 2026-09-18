@@ -121,18 +121,20 @@ The legal predicate (`wordiply.matching_words`) excludes slang / slurs / crude w
 (1..6). Word **length is NOT capped** — a long best word like `compartmentalizations` is a
 legitimate target. Instead the edge builder throws out over-generous bases (see §5).
 
-### A event log, but no history viewer
+### The event log, and what its history viewer is for
 
 wordiply **does** have a `GameEventLog` (added 2026-08-02, making it the eighth). The five
 board lines show *what* was guessed but not *who* guessed it, which coop can't get any
 other way — and the log is also where **rejected** guesses live, so the team can see that
 someone already tried a word. See [§7b](#7b-the-event-log--and-why-rejects-are-stored).
 
-It has **no `useHistoryViewer`**, deliberately, and won't get one: the mechanism replays
-board state as of turn N, and wordiply's board is five rows all visible at once — "replay
-turn 3" would mean "look at rows 1-3, which are already on your screen". The seven
-history-viewer games all have earlier state that later moves overwrite; wordiply hides
-nothing. (See docs/playarea.md.)
+It has a **`useHistoryViewer`** too, and what makes it worth having here is the
+rejects. Replaying an *accepted* word shows you the board you are already looking at —
+five rows, all visible at once, nothing hidden. But a reject is on no board at all, and
+opening its `#N` is the only way to see the table as it stood when that word was tried.
+So the builder ([`lib/history.ts`](../../src/wordiply/lib/history.ts)) folds the rows
+**including** the rejects to find the one addressed, and fills a slot only per accepted
+word.
 
 ---
 
@@ -724,9 +726,8 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").
 - **RPC helpers:** `makeRpcDispatcher`, `invokeStartGameEdgeFn`.
-- **Not applicable:** `useHistoryViewer` (there is a event log but no history viewer — see
-  "A event log, but no history viewer" above), `WordList` (the
-  board rows are the words), PDF print (candidate but deferred — see below).
+- **Not applicable:** `WordList` (the board rows are the words), PDF print (candidate but
+  deferred — see below).
 
 ---
 

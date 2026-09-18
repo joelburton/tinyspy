@@ -14,6 +14,7 @@ import {
   estimateChainRows,
 } from '../lib/chainRows'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -46,6 +47,7 @@ export function BoardCol({
   chain,
   liveChain,
   historyLabel,
+  historyActor,
   onExitHistory,
   draft,
   onDraftChange,
@@ -71,6 +73,8 @@ export function BoardCol({
   // The viewed move's one-line description (drives the banner + the frame), or
   // null when live.
   historyLabel: string | null
+  /** Whose chain is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   onExitHistory: () => void
   // ── Entry ──
   // The word this player just had refused, with its replay nonce — the board
@@ -237,7 +241,7 @@ export function BoardCol({
         )}
       >
         {isViewingHistory && (
-          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
         <EntryRow
           value={word}

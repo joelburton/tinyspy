@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import { EventLog, EventLogActor, EventLogOutcomeBar } from '@/common/event-log/EventLog'
+import { EventLog, EventLogActor, EventLogNumber, EventLogOutcomeBar } from '@/common/event-log/EventLog'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
@@ -20,6 +20,9 @@ type Props = {
   mode: 'coop' | 'compete'
   /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
   isTerminal: boolean
+  /** The row open in the board viewer, or null. */
+  historyId: number | null
+  onShowHistory: (id: number) => void
 }
 
 /** What each rejected row says, in the log's terse voice. The pill that fired
@@ -54,13 +57,15 @@ const REJECT_LABEL: Record<NonNullable<EventRow['reason']>, string> = {
  *     live readout; scores stay terminal-only). A reject shows why instead.
  *   - **who** — the actor's `<ActorDot>`, right-aligned so the discs line up.
  *
- * **No `#N` handle.** The seven history-viewer games make the number clickable
- * to replay the board at that turn; wordiply has no viewer and doesn't want one
- * — its board is five rows all visible at once, so "replay turn 3" would just be
- * "look at rows 1-3, which are already on your screen". Rejects also have no
- * `seq` (they occupy no board row), so there'd be nothing to number them with.
+ * **The `#N` handle**, like every other log. Its board is five rows all visible
+ * at once, so replaying an ACCEPTED word shows you what you can already see —
+ * but most of this log is REJECTS, and they are on no board at all. Opening one
+ * is the only way to see the table as it stood when that word was tried, which
+ * is the question the log exists to answer.
  */
-export function GameEventLog({ guesses, players, selfId, mode, isTerminal }: Props) {
+export function GameEventLog({
+  guesses, players, selfId, mode, isTerminal, historyId, onShowHistory,
+}: Props) {
   const eventLogPicker = useEventLogPlayerPicker<EventRow>({
     players,
     selfId,
@@ -73,10 +78,17 @@ export function GameEventLog({ guesses, players, selfId, mode, isTerminal }: Pro
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
-      {shown.map((g) => (
+      {shown.map((g, i) => (
         <tr key={g.id} className={gameEventLog.divider}>
           <EventLogOutcomeBar
             outcome={ANSWER_OUTCOME[g.valid ? 'accepted' : (g.reason ?? 'not_a_word')]}
+          />
+          {/* The number counts the rows on show; the handle carries the row's
+              own id. */}
+          <EventLogNumber
+            n={i + 1}
+            isOpenInHistory={historyId === g.id}
+            onShowHistory={() => onShowHistory(g.id)}
           />
           <td className={gameEventLog.main}>
             {g.valid ? (

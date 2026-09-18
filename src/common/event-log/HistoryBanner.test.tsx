@@ -20,6 +20,24 @@ describe('HistoryBanner', () => {
     expect(screen.getByText('Cleared CLEAR').tagName).toBe('EM')
   })
 
+  it("names the actor before the label when the board is someone else's", () => {
+    // Compete at terminal: a `#N` on an opponent's row replays THEIR board, so
+    // the banner has to say whose it is. "moth: GUESS 3" — never "moth's board".
+    render(
+      <HistoryBanner label="GUESS 3" actor={{ username: 'moth', color: 'teal' }} onExit={() => {}} />,
+    )
+
+    expect(screen.getByText('moth')).toBeInTheDocument()
+    expect(screen.getByText(/GUESS 3/)).toBeInTheDocument()
+    expect(document.querySelector('[data-history-banner]')?.textContent).toBe('moth: GUESS 3✕')
+  })
+
+  it('names nobody when the board on screen is the viewer\'s own', () => {
+    render(<HistoryBanner label="GUESS 3" onExit={() => {}} />)
+
+    expect(document.querySelector('[data-history-banner]')?.textContent).toBe('GUESS 3✕')
+  })
+
   it('exits when the banner itself is clicked — the whole strip is the target', async () => {
     const onExit = vi.fn()
     render(<HistoryBanner label="Cleared CLEAR" onExit={onExit} />)

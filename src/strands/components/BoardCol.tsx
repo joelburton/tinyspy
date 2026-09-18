@@ -11,6 +11,7 @@ import { EntryBox } from '@/common/word-entry/EntryBox'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -29,6 +30,8 @@ type Props = {
   // What the banner says about the viewed turn — NULL when live, which is what
   // "am I viewing history?" is derived from (docs/playarea.md → Prop conventions).
   historyLabel: string | null
+  /** Whose board is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   onExitHistory: () => void
   // The word being traced, as text. Empty when nothing is selected.
   echo: string
@@ -74,6 +77,7 @@ export function BoardCol({
   disabled,
   historyLitTiles,
   historyLabel,
+  historyActor,
   onExitHistory,
   echo,
   actDelete,
@@ -115,7 +119,7 @@ export function BoardCol({
           connections / psychicnum make. */}
       <div className={cls(styles.echoSlot, isViewingHistory && history.historyBannerHost)}>
         {isViewingHistory ? (
-          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         ) : top !== null ? (
           <FeedbackPill slot={localFeedbackSlot} />
         ) : (

@@ -99,8 +99,8 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // The turn-history viewer: click a log row to see the table as it stood just
-  // after that event. Keyed by log POSITION rather than by event id, which is
-  // what `historySnapshot` indexes.
+  // after that event. Keyed by the row's own id — the board is one shared table
+  // here, so any row replays whoever played it.
   const historyViewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()

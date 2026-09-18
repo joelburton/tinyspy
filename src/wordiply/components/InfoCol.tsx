@@ -61,6 +61,8 @@ export function InfoCol({
   // ── Setup disclosure ──
   setupRows,
   allGuesses,
+  historyId,
+  onShowHistory,
 }: {
   isCompete: boolean
   isTerminal: boolean
@@ -125,6 +127,9 @@ export function InfoCol({
   /** EVERY row for the event log — rejects included. Distinct from the accepted
    *  guesses the board + the readouts above are built from. */
   allGuesses: EventRow[]
+  /** The row open in the board viewer, or null — the log rings its own `#N`. */
+  historyId: number | null
+  onShowHistory: (id: number) => void
 }) {
   return (
     <div className={shared.infoCol}>
@@ -247,6 +252,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
+        historyId={historyId}
+        onShowHistory={onShowHistory}
       />
     </div>
   )

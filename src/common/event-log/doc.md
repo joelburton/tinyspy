@@ -41,6 +41,13 @@ applied, which from your seat is honest. The link is the row's own id, resolved
 by the builder against the list it is folding. Two lists, two lookups, and a
 filter can move one without touching the other.
 
+That is also what makes compete history work: at a compete terminal a `#N` on an
+opponent's row replays THEIR board, because the game resolves the row first and
+folds the rows of whoever wrote it. The banner then says whose board it is —
+`<HistoryBanner>`'s optional `actor`, drawn as the DotActor ahead of the game's
+usual label. It is passed only in compete, and only for a row that is not yours:
+coop is one shared board.
+
 ## Details
 
 **It is a `<table>`, and that is the point.** A game that uses the same columns
@@ -54,10 +61,10 @@ a game's own class, which is why the default sits on `:where(.eventLogTable) td`
 **What stays the game's, on the viewer's side of the seam.** How a snapshot is
 computed from the open turn (the board shape differs per game, and it is derived
 after the loading guard where the log lives); how a row is identified, which is
-why the hook is generic — scrabble names one by the row's own id and
-codenamesduet by a turn number, everyone else by position in the log; and where
-the banner hangs,
-since the below-board region each game gives it is its own.
+why the hook is generic — scrabble names one by its game-wide `seq` and
+codenamesduet by a turn number, everyone else by the events row's own id; and
+where the banner hangs, since the below-board region each game gives it is its
+own.
 
 **Every handle is live, and that is new.** The log used to carry a
 `boardIsShown` flag: picking one player out of a shared coop log narrowed the
@@ -129,6 +136,7 @@ GameEventLog                           the GAME's file, one per log game
 
 PlayArea                              holds useHistoryViewer — the one flag
 ├── BoardCol → Board                  wears `.historyFrame` while viewing history
-│   └── HistoryBanner                 the game gives it a label and exitHistory
+│   └── HistoryBanner                 the game gives it a label, exitHistory, and
+│                                      in compete the row author's actor
 └── InfoCol → GameEventLog             historyId + onShowHistory back to the hook
 ```

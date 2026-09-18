@@ -835,7 +835,8 @@ everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
 The viewer is one shared machine (`useHistoryViewer` + the `#N` handle + the shared
 exit paths — see [What building it taught us](#what-building-it-taught-us)). What
 stays per-game is **snapshot computation** (each game's `lib/history.ts`) and **turn
-identity** (a game-wide ordinal vs a log position). The variations that matter when
+identity** — which is the row's own id everywhere now except codenamesduet,
+whose log is a table of turns and addresses a `turn_number`. The variations that matter when
 adding a viewer to a new game:
 
 - **stackdown** — keyed by the **row's id**; **strictly-before** snapshot: the board
@@ -873,6 +874,12 @@ adding a viewer to a new game:
   deal rule on the FE would be a second implementation of the subtlest logic in
   that game, with nothing testing that the two agree. `historyLitCards` = the viewed
   event's own cards, which for a hint row is one, two or three of them.
+- **wordiply** — keyed by the **row's id**, and the only viewer whose point is the
+  rows that are NOT on the board. Its five slots are all visible at once, so
+  replaying an accepted word shows what you can already see; a REJECT is on no
+  board, and opening its `#N` is the only way to see the table as it stood when
+  that word was tried. So `lib/history.ts` folds the rows *including* rejects to
+  find the one addressed, and fills a slot only per accepted word.
 - **letterboxed** — keyed by the **row's id**; **inclusive** fold over the event
   stream (`historyChainAt` in `lib/history.ts`: played pushes, undone pops, cleared
   empties, help rows change nothing) — the log records retreats precisely so this
@@ -892,6 +899,19 @@ UX is uniform (and matches across the history games): enter by clicking a turn's
 handle; the input freezes and the board shows the historical state; any interaction
 (keystroke / click anywhere / the banner ✕) returns to live; works at terminal too
 (reviewing the finished board is a prime use).
+
+**In compete, a `#N` can open someone else's board, and the banner says whose.**
+At terminal an opponent's rows are visible (mid-game the RLS arm hides them, so
+there is no handle to click), and reading a finished wordle as six lines of text
+when the app can draw it as a board is the gap this closes. The PlayArea resolves
+the row first and folds *that player's* rows, so the snapshot is built from their
+sequence rather than yours; `<HistoryBanner>` then takes an `actor` and reads
+`● moth: GUESS 3` — the DotActor, then the game's own label, which is otherwise
+unchanged. The actor is passed **only** in compete and **only** for a row that
+isn't yours: coop is one shared board, and naming a teammate there would claim a
+board everyone played on. Three games pass no actor at all — setgame's table is
+contended (every row stores its own `board_after`), scrabble's label already names
+the player, and codenamesduet addresses a `turn_number`.
 
 ## Prop conventions for the columns
 
@@ -947,8 +967,9 @@ already knew. Drift here causes real head-scratching.
     instead because its condition is *broader* (per-player-board race: solved / out of
     swaps / conceded); the different name flags the different meaning. Don't "unify"
     these — the split is the point.
-  - **Same name, different id, on purpose:** `historyId` is a log position in
-    most games and a stable `seq` / `turn_number` in scrabble / codenamesduet. The
+  - **Same name, different id, on purpose:** `historyId` is the events row's own
+    id in most games and a stable `seq` / `turn_number` in scrabble /
+    codenamesduet. The
     hook is generic over `Id`, so the name is shared and what it indexes is each
     game's `lib/history` (scrabble's `historyBoard`). The viewed turn's marks are
     `historyLit…` everywhere — `historyLitTiles` in stackdown and waffle alike,

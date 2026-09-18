@@ -16,6 +16,7 @@ import { ANSWER_OUTCOME } from '../lib/answer'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 
@@ -47,6 +48,7 @@ export function BoardCol({
   historyLitTiles,
   readOnly,
   historyLabel,
+  historyActor,
   onExitHistory,
   currentWord,
   appendTile,
@@ -76,6 +78,8 @@ export function BoardCol({
   // The viewed turn's label (it drives the banner and the viewing frame), or null
   // when live.
   historyLabel: string | null
+  /** Whose board is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   // Return to the live board (a board/banner click, the ✕, or any keystroke).
   onExitHistory: () => void
 
@@ -243,7 +247,9 @@ export function BoardCol({
         {/* The shared banner overlays the whole below-board region while a past
             turn is open — the WordEntry + feedback stay mounted underneath, so the
             built-up word survives the trip. */}
-        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
+        {isViewingHistory && (
+          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
+        )}
         {/* The shared move row (docs/playarea.md → Text entry) around the five
             slots. stackdown can't use <EntryRow> — its "entry" is a grid of
             picked-up TILES, so EntryRow's capture keyboard, arrow-history and

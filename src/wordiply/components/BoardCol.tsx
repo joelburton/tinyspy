@@ -8,6 +8,8 @@ import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { useArrowHistory } from '@/common/word-entry/useArrowHistory'
 import { GuessBoard } from './GuessBoard'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
@@ -41,6 +43,9 @@ export function BoardCol({
   isTerminal,
   held,
   flash,
+  isViewingHistory,
+  historyLabel,
+  onExitHistory,
 }: {
   base: string
   guesses: { word: string; length: number }[]
@@ -63,6 +68,11 @@ export function BoardCol({
   entryDisabled: boolean
   /** Game over for everyone: the keyboard leaves and the slot takes its place. */
   isTerminal: boolean
+  /** A past row is open in the viewer: the board wears the history frame and the
+   *  banner overlays the input area, which stays mounted underneath. */
+  isViewingHistory: boolean
+  historyLabel: string
+  onExitHistory: () => void
 }) {
   // On-screen key → append/backspace (updater form, so it reads the latest
   // word); each edit dismisses a sticky reject.
@@ -99,12 +109,21 @@ export function BoardCol({
         base={base}
         guesses={guesses}
         activeWord={word}
-        showActive={!entryDisabled}
-        held={held}
-        flash={flash}
+        // Nothing is being typed into a past board — the live entry row would
+        // otherwise draw over the moment being replayed.
+        showActive={!entryDisabled && !isViewingHistory}
+        held={isViewingHistory ? null : held}
+        flash={isViewingHistory ? null : flash}
+        isViewingHistory={isViewingHistory}
       />
 
-      <div className={styles.inputArea}>
+      {/* The shared banner overlays the input area while a past row is open —
+          the keyboard and the pill stay mounted underneath, frozen to the eye
+          (the viewer's click-away and keystroke exits do the rest). */}
+      <div className={cls(styles.inputArea, isViewingHistory && history.historyBannerHost)}>
+        {isViewingHistory && (
+          <HistoryBanner label={historyLabel} onExit={onExitHistory} />
+        )}
         {isTerminal ? (
           <div className={styles.verdictSlot}>
             <FeedbackPill slot={localFeedbackSlot} />

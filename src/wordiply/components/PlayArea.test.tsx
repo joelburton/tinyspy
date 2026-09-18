@@ -13,7 +13,7 @@
  * needed; everything else renders real.
  */
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -392,6 +392,37 @@ describe('wordiply PlayArea — event log', () => {
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     // Two players in COMPETE would list them; a coop pair is one shared "Team".
     expect(screen.getByRole('button', { name: /whose guesses/i })).toBeInTheDocument()
+  })
+
+  it("opening a REJECT's #N shows the board without it — the one thing this viewer is for", async () => {
+    const user = userEvent.setup()
+    h.result = {
+      game: loadedGame(),
+      // CART landed, ARQQQ was refused, MARTS landed after it.
+      guesses: [guess('cart', 1), reject('arqqq', 2), guess('marts', 3)],
+      loading: false,
+    }
+    render(<PlayArea {...makeCtx()} />)
+
+    // Asked of the BOARD, not the page: the log shows the same words. And by
+    // each row's length badge, because the board draws a word with its starter
+    // letters in a nested span (<DimmedBaseWord>), so plain text never matches.
+    const board = () => document.querySelector('[data-board]') as HTMLElement
+    const lengths = () =>
+      within(board())
+        .queryAllByLabelText(/letters$/)
+        .map((el) => el.textContent)
+
+    // Live: CART (4) and MARTS (5) are both down.
+    expect(lengths()).toEqual(['4', '5'])
+
+    // The reject is row 2 of the log — the number counts the rows on show.
+    await user.click(screen.getByText('#2'))
+
+    // The board is the moment ARQQQ was tried: CART down, MARTS not yet.
+    expect(lengths()).toEqual(['4'])
+    // …and the banner names what that row was.
+    expect(screen.getByText('ARQQQ — not a word')).toBeInTheDocument()
   })
 })
 

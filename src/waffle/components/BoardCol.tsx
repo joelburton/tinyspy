@@ -7,6 +7,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Board } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 
@@ -26,6 +27,7 @@ export function BoardCol({
   readOnly,
   historyLitTiles,
   historyLabel,
+  historyActor,
   onExitHistory,
   onSwap,
   pendingSwap,
@@ -56,6 +58,8 @@ export function BoardCol({
   // The viewed swap's description while inspecting history (drives the banner + the
   // gray-blue frame), or null when live.
   historyLabel: string | null
+  /** Whose board is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   // Return to the live board (a board/banner click, or the ✕).
   onExitHistory: () => void
 
@@ -112,7 +116,9 @@ export function BoardCol({
       <div className={styles.belowBoard}>
         {/* While inspecting a past swap the shared banner overlays this region,
             naming the swap. */}
-        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
+        {isViewingHistory && (
+          <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
+        )}
         {/* No below-board move controls: waffle's input is swapping tiles on the
             board itself, so `.moveArea` is empty. */}
         <div className={styles.moveArea} />

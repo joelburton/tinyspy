@@ -9,6 +9,8 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame, type EventRow } from '../hooks/useGame'
+import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
+import { historySnapshot } from '../lib/history'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
@@ -122,7 +124,26 @@ export function PlayArea(ctx: GamePageCtx) {
         : validGuesses,
     [validGuesses, game?.mode, session.user.id],
   )
+  // The same rows INCLUDING the rejects — what the viewer folds. A reject fills
+  // no board slot but IS a row you can open, and the builder needs it in the
+  // list to find it at all.
+  const myRows = useMemo<EventRow[]>(
+    () =>
+      game?.mode === 'compete'
+        ? guesses.filter((g) => g.user_id === session.user.id)
+        : guesses,
+    [guesses, game?.mode, session.user.id],
+  )
   const boardRows = useMemo(() => myGuesses.map((g) => ({ word: g.word, length: g.length })), [myGuesses])
+
+  // The board viewer. wordiply's board is five rows all on screen, so replaying
+  // an ACCEPTED word shows what you can already see — but most of this log is
+  // REJECTS, which are on no board at all, and opening one is the only way to
+  // see the table as it stood when that word was tried. The list it folds is
+  // `myRows`, the board being looked at with its rejects, which in compete is
+  // mine alone.
+  // (Above the loading guard, like every other hook here.)
+  const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
   const guessesUsed = boardRows.length
   const longest = boardRows.reduce((m, g) => Math.max(m, g.length), 0)
   const letters = boardRows.reduce((s, g) => s + g.length, 0)
@@ -549,12 +570,16 @@ export function PlayArea(ctx: GamePageCtx) {
   const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.length_score ?? 0]))
 
   const active = !isTerminal && !myConceded && guessesUsed < MAX_GUESSES
+  const historySnap = historyId !== null ? historySnapshot(myRows, historyId) : null
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         base={base}
-        guesses={boardRows}
+        guesses={historySnap?.rows ?? boardRows}
+        isViewingHistory={historySnap !== null}
+        historyLabel={historySnap?.historyLabel ?? ''}
+        onExitHistory={exitHistory}
         // `!isMyTurn` folds in turn-order (coop only): a waiting player's entry
         // freezes. Always true for free-for-all / solo.
         entryDisabled={!active || !isMyTurn}
@@ -575,6 +600,8 @@ export function PlayArea(ctx: GamePageCtx) {
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           allGuesses={guesses}
+          historyId={historyId}
+          onShowHistory={showHistory}
           isCompete={isCompete}
           isTerminal={isTerminal}
           over={over}

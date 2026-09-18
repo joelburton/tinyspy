@@ -584,9 +584,26 @@ export function PlayArea({
 
   // When a past turn is open, `historySnap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
-  // the outcome color). Keyed by log position; a later realtime guess only grows the
-  // log past historyId, so a past turn holds.
-  const historySnap = historyId !== null ? historySnapshot(guesses, game.board, historyId) : null
+  // the outcome color). Addressed by the row's id; a later realtime guess only grows
+  // the log past it, so a past turn holds.
+  //
+  // WHOSE board it replays is the row's own author's. Mid-game compete that is
+  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
+  // arrive, and a `#N` on one of theirs replays THEIR grid. Coop is one shared
+  // board, so the filter is a no-op there.
+  const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
+  const historyRows =
+    game.mode === 'compete' && historyRow
+      ? guesses.filter((g) => g.user_id === historyRow.user_id)
+      : guesses
+  const historySnap =
+    historyId !== null ? historySnapshot(historyRows, game.board, historyId) : null
+  // Named only when the board on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared grid.
+  const historyActor =
+    game.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(players, historyRow.user_id)
+      : undefined
 
   // tile → user_id mapping. In coop this carries every peer's
   // contribution; in compete it only ever has the caller's tiles
@@ -619,6 +636,7 @@ export function PlayArea({
         unmatched={unmatched}
         solutionShown={solutionShown}
         historySnap={historySnap}
+        historyActor={historyActor}
         showInput={showInput}
         isMyTurn={isMyTurn}
         notMyTurn={waiting}

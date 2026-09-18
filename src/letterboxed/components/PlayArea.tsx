@@ -21,6 +21,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
+import { memberById } from '@/common/members/memberList'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { historyChainAt, historyLabelAt } from '../lib/history'
@@ -701,11 +702,27 @@ export function PlayArea(ctx: GamePageCtx) {
   const boardRows =
     game.mode === 'compete' ? events.filter((e) => e.user_id === session.user.id) : events
 
+  // WHOSE chain the viewer replays is the row's own author's. Mid-game compete
+  // that is always me — RLS shows me nothing else — but at TERMINAL every
+  // player's rows arrive, and a `#N` on one of theirs replays THEIR chain. Coop
+  // is one shared chain, so the filter is a no-op there.
+  const historyRow = historyId !== null ? events.find((e) => e.id === historyId) : undefined
+  const historyRows =
+    game.mode === 'compete' && historyRow
+      ? events.filter((e) => e.user_id === historyRow.user_id)
+      : boardRows
+
   // The chain the BOARD shows: a past move's while viewing, the live one
   // otherwise. Folding rather than reconstructing — see lib/history.ts.
-  const shownChain = isViewingHistory && historyId !== null ? historyChainAt(boardRows, historyId) : chain
+  const shownChain = isViewingHistory && historyId !== null ? historyChainAt(historyRows, historyId) : chain
   const historyLabel =
-    isViewingHistory && historyId !== null ? historyLabelAt(boardRows, historyId) : null
+    isViewingHistory && historyId !== null ? historyLabelAt(historyRows, historyId) : null
+  // Named only when the chain on screen is not the viewer's own — which only
+  // compete can be. Coop is one shared chain.
+  const historyActor =
+    game.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+      ? memberById(players, historyRow.user_id)
+      : undefined
 
   // TWO different gates, and conflating them is a bug: a full chain freezes the
   // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
@@ -728,6 +745,7 @@ export function PlayArea(ctx: GamePageCtx) {
         chain={shownChain}
         liveChain={chain}
         historyLabel={historyLabel}
+        historyActor={historyActor}
         onExitHistory={exitHistory}
         draft={draft}
         onDraftChange={editDraft}

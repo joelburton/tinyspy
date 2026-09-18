@@ -28,6 +28,7 @@ import type { Category } from '../lib/board'
 import type { HistorySnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -79,6 +80,7 @@ export function BoardCol({
   unmatched,
   solutionShown,
   historySnap,
+  historyActor,
   showInput,
   isMyTurn,
   notMyTurn,
@@ -116,6 +118,8 @@ export function BoardCol({
   solutionShown: boolean
   // The viewed turn's snapshot, or null when live — PlayArea reconstructs it.
   historySnap: HistorySnapshot | null
+  /** Whose board is on screen, when it is not the viewer's own. */
+  historyActor?: Actor | null
   // May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
   // Participant-level (terminal / eliminated / conceded) — NOT turn-aware.
   showInput: boolean
@@ -517,7 +521,13 @@ export function BoardCol({
           banner overlays it. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
-          {isViewingHistory && historySnap && <HistoryBanner label={historySnap.historyLabel} onExit={onExitHistory} />}
+          {isViewingHistory && historySnap && (
+            <HistoryBanner
+              label={historySnap.historyLabel}
+              actor={historyActor}
+              onExit={onExitHistory}
+            />
+          )}
           {/* One slot, one pill: whatever ranks highest in it. A tap on a
               gesture-cleared result dismisses it, and the ring above leaves
               with it — the two are one message, so they end together. */}
