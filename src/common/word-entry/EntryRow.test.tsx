@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-entry
 
 import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-entry
 
 /**
  * The move row draws the two things it is: a take-back and a commit.

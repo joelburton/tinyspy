@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-entry
 
 import type { ReactNode } from 'react'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'

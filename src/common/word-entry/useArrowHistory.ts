@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-entry
 
 import { useBoundAction } from '../actions/useBoundAction'
 
