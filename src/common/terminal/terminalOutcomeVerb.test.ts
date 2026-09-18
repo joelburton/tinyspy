@@ -1,4 +1,4 @@
-// cs-audited-terminal
+// cs-blessed-terminal
 
 import { describe, expect, it } from 'vitest'
 import { terminalOutcomeVerb } from './terminalOutcomeVerb'

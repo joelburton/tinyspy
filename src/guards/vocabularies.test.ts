@@ -276,7 +276,7 @@ const VOCABULARIES: Vocabulary[] = [
       // traveled to the component that draws the rule, and none of them grew.
       'src/common/setup-form/SetupSection.module.css': ['0.75rem'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.3rem'],
-      'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
+      'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1rem'],
       // The caret's breath — the gap between the last glyph and the drawn
       // bar. RECORDED, not unconverted (Joel, 2026-09-18): the ramp's

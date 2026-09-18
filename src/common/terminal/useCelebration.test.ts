@@ -1,4 +1,4 @@
-// cs-audited-terminal
+// cs-blessed-terminal
 
 /**
  * Tests for useCelebration — the one-shot "celebrate at the moment of the win"

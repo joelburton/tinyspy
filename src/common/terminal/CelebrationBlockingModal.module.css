@@ -1,4 +1,4 @@
-/* cs-audited-terminal */
+/* cs-blessed-terminal */
 
 /* Celebratory modal — confetti over the shared card. The scrim, the surface,
    the radius, the shadow and the centering are all `<BlockingModal>`'s; what
@@ -29,8 +29,8 @@
   gap: 0.3rem;
   font-size: 2.4rem;
   line-height: 1;
-  margin-bottom: 1rem;
-  margin-top: 1rem;
+  margin-bottom: var(--spacer-2);
+  margin-top: var(--spacer-2);
   /* Keeps tall emoji descenders from cropping the card padding. The jump
      rises ABOVE this box (no overflow clipping anywhere up the card). */
   height: 2.6rem;

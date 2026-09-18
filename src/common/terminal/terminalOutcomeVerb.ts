@@ -1,4 +1,4 @@
-// cs-audited-terminal
+// cs-blessed-terminal
 
 import type { GamePlayer } from '../members/member'
 

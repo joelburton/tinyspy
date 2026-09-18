@@ -4,16 +4,20 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, ALL FOURTEEN worked.** Roster
-agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
-after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
-Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
-(2026-09-18, Joel: *"do the prose pass"*), and **F-11 to F-14 all answered as
-(a)** — the celebration is a `modal-blocking` and the docs say so, the title
-takes h2's size, `body` has no default, and the verb's docstring stops claiming
-a form the call sites do not keep. **Every finding is worked.** What is left is
-the close: the whole-area re-read, and the blessing, which is Joel's. One thing
-recorded and not done: the `title`-required rider under F-13.
+**Status: CLOSED 2026-09-18, blessed** (Joel: *"bless the files in this
+area"*) — seven files `cs-blessed-terminal`, and **all fourteen findings
+worked**: ten prose in one pass, then F-11 to F-14 one at a time, every one
+answered as (a). Roster agreed and stamped 2026-09-18 (Joel: *"list is good"*);
+taken out of order after `word-entry`, so §3's next in sequence is row 42,
+`word-list`.
+
+**No closing re-read happened** — Joel read the files and blessed them after
+F-14, and made his own edits first (`91e67ce8` "Tweaking celebration modal",
+`64bf03bd` "Tweak comments"). What those changed is under Notes, including the
+one thing they leave open: the celebration's heading is an `<h1>` now, so
+neither `base.css` nor `docs/ui.md` says any more what level a dialog title
+takes when it is this one. The `title`-required rider under F-13 is the other
+open item.
 
 ## The roster
 
@@ -394,6 +398,32 @@ area's call; their own areas have the files open.
 
 ## Notes
 
+- **Joel's own edits at the blessing** (`91e67ce8`, `64bf03bd`), recorded
+  because two of them move what this file says:
+  - the title is an **`<h1>`** with its class dropped, so it takes the element's
+    1.5rem and the `.title` rule is gone from the stylesheet. That answers F-12
+    a third way — not an h2 at h1's size, and not an h2, but an h1. Both places
+    that gave this component as their **h2** example stopped: Joel's call for
+    `base.css` (*"base.css doesn't need an example of what an h2 is for; remove
+    that comment"* — the whole example column for that one level is gone), and
+    `docs/ui.md`'s heading table dropped the name, which was simply false there.
+    **Neither now says what level a modal title takes at all** — listing it
+    under h1 would contradict that level's stated meaning ("the PAGE's title"),
+    and that is a ruling nobody has made.
+  - `.confetti` gained a 1rem margin top and bottom, `.subline` lost its
+    1.4rem, and the shared `modalActions` row went `--spacer-1` → `--spacer-2`
+    (1.5rem → 1rem above every dialog's buttons, app-wide).
+  - "Nice!" takes `fullWidth`.
+  - the verb's docstring lost its "the capitalized word is the form this
+    returns" paragraph and the `member.ts` pointer; `useCelebration`'s rule 3
+    stopped naming waffle.
+- **Two conformance fixes those edits needed**, made here so the blessing is
+  not on a red tree: `<h1 className={styles.title}>` was a member the module no
+  longer defines (`cssClasses` fails on it — it resolves to `undefined` and the
+  class silently vanishes), so the className is gone; and `.confetti`'s two
+  `1rem` literals became `var(--spacer-2)`, the same value, with this file's
+  pending row in `vocabularies.test.ts` trimmed to the one literal it still
+  writes. Neither changes a pixel.
 - **`role="dialog" aria-label={title}` on the inner `.content` div is the
   test handle.** `FloatingPanel` sets no role, so this is the only dialog role
   in the tree, and `spellingbee-coop-win`, `wordwheel-coop-win`,

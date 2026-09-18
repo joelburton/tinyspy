@@ -1,4 +1,4 @@
-// cs-audited-terminal
+// cs-blessed-terminal
 
 import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'
@@ -125,7 +125,7 @@ export function CelebrationBlockingModal({
             </span>
           ))}
         </div>
-        <h1 className={styles.title}>{title}</h1>
+        <h1>{title}</h1>
         {body && <p className={styles.subline}>{body}</p>}
       </div>
     </BlockingModal>

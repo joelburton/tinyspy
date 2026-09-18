@@ -1,4 +1,4 @@
-// cs-audited-terminal
+// cs-blessed-terminal
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'

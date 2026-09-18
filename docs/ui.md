@@ -1685,7 +1685,7 @@ takes no class to be the right size.
 | | meaning | size | margin |
 |---|---|---|---|
 | `h1` | the **page's** title — "Create a club", the club's name, the home greeting, every error screen | `1.5rem` | `0 0 1rem` |
-| `h2` | a **dialog or notice** title — CelebrationBlockingModal, DeviceBlockNotice | `1.25rem` | `1.25rem` |
+| `h2` | a **dialog or notice** title — DeviceBlockNotice | `1.25rem` | `1.25rem` |
 | `h3` | a **section** heading — "Your clubs", "Start a new game", the info column's panels | `1.15rem` | `1.15rem` |
 | `h4` | a **subsection** inside prose — a game's Help | `1rem` | `1rem` |
 
