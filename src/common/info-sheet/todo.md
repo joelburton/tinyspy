@@ -47,7 +47,10 @@
   info-sheet *"the chrome its panels share"*, while the readout kinds
   (`.infoState` / `.infoHelp` / `.infoActions`) live in
   `game-page`. Either the table's claim is wrong or the family is in the wrong
-  folder. Same question in `terminal` and `word-entry`.
+  folder. (`word-entry` answered its own half of this: it wears that sheet's
+  `.localFeedback` on purpose, a lowercase stylesheet name being the repo's
+  mark for one meant to be read by others. `terminal` imports no stylesheet but
+  its own.)
 
 ## Someday
 

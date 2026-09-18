@@ -5,13 +5,15 @@ import { describe, expect, it, vi } from 'vitest'
 import { CelebrationBlockingModal } from './CelebrationBlockingModal'
 
 /**
- * The dialog is mostly presentational + an Esc handler. We keep sound off in
- * tests (jsdom has no media playback); these lock the contract a future
- * consumer relies on: default/overridden copy renders, Esc and the close
- * button dismiss, and the optional primary action fires.
+ * The dialog is presentational, and the Esc that dismisses it belongs to the
+ * shared panel registry rather than to this component — which is why the test
+ * presses the key for real instead of asserting a handler. Sound stays off
+ * (jsdom has no media playback). These lock what a game relies on: the default
+ * and the overridden text render, Esc and the close button dismiss, and the
+ * optional primary action fires.
  */
 describe('CelebrationBlockingModal', () => {
-  it('renders default copy', () => {
+  it('renders the default title and body', () => {
     render(<CelebrationBlockingModal onClose={() => {}} playSound={false} />)
     expect(screen.getByText('Congratulations!')).toBeInTheDocument()
     expect(screen.getByText('You solved the puzzle.')).toBeInTheDocument()

@@ -5,7 +5,7 @@ import { terminalOutcomeVerb } from './terminalOutcomeVerb'
 import type { GamePlayer } from '../members/member'
 
 /**
- * The whole truth table for the OpponentStrip's terminal verb.
+ * The whole truth table for the compete strip's terminal verb.
  *
  * Three branches whose ORDER is the contract, so these pin every branch
  * INCLUDING the two that are easy to lose: an absent member, and the

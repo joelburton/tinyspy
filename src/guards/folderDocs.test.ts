@@ -81,7 +81,6 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
 const INTROS_OWED: string[] = [
   'common/info-sheet',
   'common/pdf', 'common/reveal',
-  'common/terminal',
   'common/word-list',
   'shared/bee-games', 'shared/board-cursor', 'shared/dict-trie',
   'shared/grid-and-drag', 'shared/onscreen-keyboard', 'shared/rank-ladder',

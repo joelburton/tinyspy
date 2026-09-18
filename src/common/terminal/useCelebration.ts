@@ -24,10 +24,6 @@ import { useState } from 'react'
  * PlayArea). Anything that arrives later flips false→true after mount and pops
  * confetti at someone merely reviewing a finished game.
  *
- * Effect-free previous-render pattern: state is adjusted DURING render behind a
- * transition guard — React's endorsed "storing information from previous
- * renders" shape.
- *
  * Usage:
  *
  *     const { show, close } = useCelebration(mode === 'coop' && playState === 'won')
@@ -40,6 +36,10 @@ export function useCelebration(won: boolean): {
 } {
   const [show, setShow] = useState(false)
 
+  // Detected during render (React's endorsed "storing information from previous
+  // renders" shape, and the house rule against setState in effects), which is
+  // also what makes rule 1 fall out for free: `prevWon` seeds from the first
+  // value, so a game that is already won has no transition to notice.
   const [prevWon, setPrevWon] = useState(won)
   if (won !== prevWon) {
     setPrevWon(won)

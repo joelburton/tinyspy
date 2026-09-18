@@ -1,23 +1,16 @@
 /* cs-audited-terminal */
 
-/* Celebratory modal — confetti over the shared card. Its whole job is the
-   festive moment, and what is left in this file is only that: the scrim, the
-   surface, the radius, the shadow and the centering all come from
-   `<BlockingModal>` now, which is why the `.backdrop` and `.card` rules that
-   used to open this file are gone.
+/* Celebratory modal — confetti over the shared card. The scrim, the surface,
+   the radius, the shadow and the centering are all `<BlockingModal>`'s; what
+   this file holds is the festive moment.
 
-   ⚠️ ONE THING WAS LOST in that move, deliberately and not silently: the card
-   used to scale up on mount (`cardIn`, 0.85 → 1). It cannot ride the content
-   instead, because `transform` does not change layout height — `fitContent`
-   would size the shell to the finished content while the content grew into it,
-   so the box would sit still with its contents inflating inside. Making the
-   SHELL animate would give every blocking modal a scale-up, including the
-   confirms, which is a decision nobody has made. The confetti's own entrance —
-   the part that reads as celebration — is untouched. */
+   ⚠️ The card itself has no entrance, and cannot take one from its content:
+   `transform` does not change layout height, so `fitContent` would size the
+   shell to the finished content while the content grew into it — the box
+   sitting still with its contents inflating inside. Animating the SHELL would
+   give every blocking modal a scale-up, the confirms included. The confetti's
+   entrance is the celebration. */
 
-/* Confetti row above the title. Each emoji bounces in with a small stagger
-   (animationDelay set inline) plus a continuous JUMP — the per-piece stagger
-   turns the shared keyframes into a rolling wave across the row. */
 /* Centering, plus the one thing this card needs that the others don't: HEADROOM.
    The confetti pieces jump ABOVE their own box (`.piece`'s `pieceJump` lifts
    0.4em, and `pieceIn` drops in from 1.6em higher still), so the card family's
@@ -27,6 +20,9 @@
   padding-top: 0.5rem;
 }
 
+/* Confetti row above the title. Each emoji bounces in with a small stagger
+   (animationDelay set inline) plus a continuous JUMP — the per-piece stagger
+   turns the shared keyframes into a rolling wave across the row. */
 /* @@ */ .confetti {
   display: flex;
   justify-content: center;
@@ -61,12 +57,10 @@
   80%      { transform: translateY(0) rotate(-4deg); }
 }
 
-/* ⚠️ An <h2> rendering at h1's size. `1.5rem` is exactly what base.css gives
-   h1, and h2's declared size is 1.25rem — so this is the one place the level
-   and the size disagree. It may be earned: a celebration's title is the loudest
-   thing on screen at that moment. But it should be a decision, and today it is
-   a leftover from when h2's browser default was also 1.5rem. Settle it at the
-   first game's audit (todo.md): either drop to the h2 size, or
+/* ⚠️ An <h2> rendering at h1's size: `1.5rem` is exactly what base.css gives
+   h1, where h2 is 1.25rem — so here the level and the size disagree. It may be
+   earned, a celebration's title being the loudest thing on screen at that
+   moment, but it should be a decision. Open in todo.md: drop to the h2 size, or
    keep it and say why here. */
 /* @@ */ .title {
   margin: 0.2rem 0 0.3rem;
@@ -79,18 +73,8 @@
   color: var(--page-text-muted-color);
 }
 
-/* `.actions` is gone: the button row is `<BlockingModal>`'s `actions` slot now,
-   which right-aligns them in a row where this stacked them in a column. That is
-   a visible change and the intended one — a celebration is not special enough to
-   arrange its buttons differently from every other card (Joel, 2026-08-25). */
-
-/* THE CELEBRATION'S BUTTONS ARE JUST BUTTONS. This module
-   used to give them roomier padding and a heavier label on the primary, on the
-   grounds that a win is a bigger moment — and it also kept a private copy of the
-   shared focus ring, flagged here since 2026-08-21 as something that shouldn't
-   exist. All three are gone: they are `<StandardButton>`s now and take the
-   standard treatment, ring included.
-
-   Visible consequence, accepted when the rule was set: this dialog's buttons are
-   smaller than they were. If a chunkier button is ever wanted it becomes a prop
-   on the standard button, not a local rule here. */
+/* THE CELEBRATION'S BUTTONS ARE JUST BUTTONS. They are `<StandardButton>`s in
+   `<BlockingModal>`'s `actions` slot, and this file styles none of them: a win
+   is not special enough to arrange or size its buttons differently from every
+   other card. If a chunkier button is ever wanted it becomes a prop on the
+   standard button, not a local rule here. */

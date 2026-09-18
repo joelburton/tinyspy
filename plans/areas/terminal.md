@@ -4,11 +4,13 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, none worked.** Roster
+**Status: OPEN — audited 2026-09-18, fourteen findings, ten worked.** Roster
 agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
 after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
-Seven files `cs-audited-terminal`. The prose pass (F-1 to F-10) is next; four
-findings wait for a decision (F-11 to F-14).
+Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
+(2026-09-18, Joel: *"do the prose pass"*); four findings wait for a decision
+(F-11 to F-14), and none of them was pre-empted — the `.title` size, the
+family, the defaults and scrabble's lowercased verb all still read as they did.
 
 ## The roster
 
@@ -78,11 +80,11 @@ The folder's tests are green (4 files, 16 tests); `tsc -b` is clean.
 
 ## Findings
 
-*(`F-terminal-1 · slug · title`, one heading each; a status prefix when it has
-one, no prefix means OPEN. F-1 to F-10 are the prose pass; F-11 to F-14 wait
-for a decision.)*
+*(`F-terminal-1 · slug · title`, one heading each, with its status after it when
+it has one; no status means OPEN. F-1 to F-10 are the prose pass; F-11 to F-14
+wait for a decision.)*
 
-### F-terminal-1 · `props-take-double-slash` · Five props wear `/**`
+### F-terminal-1 · `props-take-double-slash` · Five props wear `/**` — WORKED
 
 `CelebrationBlockingModal`'s `Props` marks every member — `title`, `body`,
 `onClose`, `primary`, `playSound` — with `/**`. §4 → The docstring marker: a
@@ -92,7 +94,7 @@ restates the shell's scrim rule ("the backdrop is deliberately NOT
 click-to-close") — that is `BlockingModal`'s decision ("see-and-acknowledge"),
 so one clause and a pointer.
 
-### F-terminal-2 · `docstring-archaeology-and-a-plan-cite` · The component's docstring narrates its history and cites §20
+### F-terminal-2 · `docstring-archaeology-and-a-plan-cite` · The component's docstring narrates its history and cites §20 — WORKED
 
 Three paragraphs of the docstring are not for a caller:
 
@@ -119,7 +121,7 @@ The JSX comment on the title ("not something a structural move should quietly
 settle") narrates the move; the reason the h2 is rendered here rather than
 passed to the shell — the confetti has to come above it — is the keep.
 
-### F-terminal-3 · `stylesheet-narrates-what-left` · The stylesheet's comments are mostly about rules that are gone
+### F-terminal-3 · `stylesheet-narrates-what-left` · The stylesheet's comments are mostly about rules that are gone — WORKED
 
 `CelebrationBlockingModal.module.css`, top to bottom:
 
@@ -142,7 +144,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   with attributions, on rules that no longer exist. What survives is one line:
   the buttons are `<StandardButton>`s and this file styles none of them.
 
-### F-terminal-4 · `test-headers` · The two test docstrings describe a component that no longer exists, and count wrong
+### F-terminal-4 · `test-headers` · The two test docstrings describe a component that no longer exists, and count wrong — WORKED
 
 - `CelebrationBlockingModal.test.tsx`: *"mostly presentational + an Esc
   handler"* — it has no Escape handler of its own (the shell's registry
@@ -154,7 +156,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   and then four numbered items. *"waffle's coop win is the first consumer"* —
   "the first" is a claim that rots, and archaeology besides.
 
-### F-terminal-5 · `verb-docstring` · `terminalOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale
+### F-terminal-5 · `verb-docstring` · `terminalOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale — WORKED
 
 - Two `/**` blocks, file-level and function-level, both opening with
   "reach for this"; one function, one docstring.
@@ -174,7 +176,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   scrabble prints it in its own score cell inside the strip's `metricFor`, so
   the sentence holds if it says the compete strip's cell.
 
-### F-terminal-6 · `hook-docstring-carries-the-body` · `useCelebration`'s docstring explains why the body is written the way it is
+### F-terminal-6 · `hook-docstring-carries-the-body` · `useCelebration`'s docstring explains why the body is written the way it is — WORKED
 
 *"Effect-free previous-render pattern: state is adjusted DURING render behind
 a transition guard — React's endorsed 'storing information from previous
@@ -183,7 +185,7 @@ it defends, as `//` — exactly where `useTurnStartFlash` (its named twin) puts
 the same sentence. The three rules and the load-bearing paragraph about rule 1
 are for the caller and stay.
 
-### F-terminal-7 · `ui-md-census` · `docs/ui.md → Terminal results` counts the celebrating games, and counts wrong
+### F-terminal-7 · `ui-md-census` · `docs/ui.md → Terminal results` counts the celebrating games, and counts wrong — WORKED
 
 *"Fifteen of sixteen games celebrate; wordiply has no win state to
 celebrate"* — fourteen do; setgame has no celebration either. *"Scrabble and
@@ -196,7 +198,7 @@ winner) and drops the roll call. Same pass: `docs/deferred.md`'s *"`useCelebrati
 is tone-agnostic"* — the hook knows nothing about the outcome; "tone" is the
 chrome word (docs/outcomes.md), not an outcome's.
 
-### F-terminal-8 · `todo-item-already-done` · `todo.md`'s second item describes a rule that left the stylesheet 2026-08-25
+### F-terminal-8 · `todo-item-already-done` · `todo.md`'s second item describes a rule that left the stylesheet 2026-08-25 — WORKED
 
 *"`CelebrationBlockingModal`'s `.button:focus-visible` re-declares the shared
 ring."* — there is no `.button` rule in the file. `git grep` at `66a8791d`
@@ -207,7 +209,7 @@ names had left — and this file's own Notes repeated it unverified at the
 opening. A shipped todo is deleted; the stylesheet's paragraph about it is
 F-3's.
 
-### F-terminal-9 · `info-sheet-todo-stale-pointer` · `info-sheet/todo.md` says "Same question in `terminal`"
+### F-terminal-9 · `info-sheet-todo-stale-pointer` · `info-sheet/todo.md` says "Same question in `terminal`" — WORKED
 
 Its `TurnStatusLine` item asks whether a folder should import another folder's
 readout stylesheet and ends *"Same question in `terminal` and `word-entry`."*
@@ -217,7 +219,7 @@ It was true while `InfoActionsRow` lived here and read
 stylesheet but its own. The three words come out. (`word-entry` answered its
 half as F-word-entry-8.)
 
-### F-terminal-10 · `doc-md` · `doc.md` is three sentences about `terminalMessage` and names neither the hook nor the verb
+### F-terminal-10 · `doc-md` · `doc.md` is three sentences about `terminalMessage` and names neither the hook nor the verb — WORKED
 
 The lede describes the one file that is NOT on this roster and says nothing of
 `useCelebration`, `CelebrationBlockingModal` or `terminalOutcomeVerb`. Owed:
@@ -261,6 +263,10 @@ sentences say otherwise:
   light dim, and becomes a full-page sheet on a phone. Rename to
   `CelebrationModal` (the grammar marks blocking and fault, not normal), and
   the "small card at every size" sentence is deleted as a decision reversed.
+  Note the cost is not a prop: `BlockingModal`'s `family` is
+  `Extract<PanelFamily, 'modal-blocking' | 'modal-fault'>`, narrowed on purpose
+  ("a movable blocking modal is the one thing the category cannot be"), so (b)
+  means leaving that shell for `<FloatingPanel>` and rebuilding the footer row.
 
 ### F-terminal-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size
 
@@ -324,7 +330,8 @@ wrong about it.
   test handle.** `FloatingPanel` sets no role, so this is the only dialog role
   in the tree, and `spellingbee-coop-win`, `wordwheel-coop-win`,
   `bananagrams.e2e` and the waffle / wordle `PlayArea.test` all query
-  `getByRole('dialog', { name })`. Kept; the prose pass adds a `//` saying so.
+  `getByRole('dialog', { name })`. Kept, and the prose pass added a `//`
+  saying so.
 - **The hook is the `useState` shape, not the ref shape**, so the StrictMode
   render-phase-edge failure does not apply: `setPrevWon` during render is
   React's "storing information from previous renders" pattern, which the
@@ -335,6 +342,20 @@ wrong about it.
   back to Joel this round.
 - **What `todo.md` handed the area** (its first read): two items, both the
   stylesheet — the h2 size (F-12) and the focus ring (F-8, already gone).
+- **Three judgment calls in the prose pass**, all of them to avoid answering an
+  open finding by accident. (1) The stylesheet's `.title` comment keeps a short
+  form of the question — the level and the size disagree, open in `todo.md` —
+  because F-12 is still open and deleting the comment would settle it silently;
+  the archaeology and the handoff to "the first game's audit" are gone. (2) The
+  component docstring says it rides the shared `<BlockingModal>` and why a card
+  suits a celebration, but names no family, so F-11 lands in one place. (3) The
+  verb docstring's wrong scrabble example became the two SHAPES with no game
+  named (`Won at 40`, `Won · 12`), which is true today and survives F-14 either
+  way; its "the capitalized word is the only form" sentence is untouched, being
+  the claim F-14 decides.
+- **`doc.md` was written now rather than at the close**, because F-10 is a prose
+  finding. The closing re-read still owns it: four findings are unresolved and
+  two of them (the family, the defaults) could change what it should say.
 - Dates in this file come from `git log`: the shell move `d7a0952a`
   2026-08-25; the ring's departure between `66a8791d` 2026-08-18 and
   `a8a8587e` 2026-08-25; the ui.md harvest `303d5233` 2026-09-04; the
@@ -343,9 +364,10 @@ wrong about it.
 
 ## Predicted test breaks
 
-- F-13 (a): `CelebrationBlockingModal.test.tsx` → *renders default copy*
-  expects "You solved the puzzle."; it becomes a test that no sub-line renders
-  without a body (and its name loses the banned word, F-4).
+- F-13 (a): `CelebrationBlockingModal.test.tsx` → *renders the default title
+  and body* expects "You solved the puzzle."; it becomes a test that no
+  sub-line renders without a body. (The name lost the banned word in the prose
+  pass, F-4.)
 - F-12, F-11 (a): none — no unit test measures the title, and every dialog
   query keys on the inner `role="dialog"`, which no option moves.
 - F-11 (b): the four e2e specs and two PlayArea tests above still find the
@@ -354,6 +376,8 @@ wrong about it.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [x] the folder's `doc.md` written (lede + `## Intro to area` + `## Details`
+      with the render tree); its row is off `INTROS_OWED` — re-read at the close,
+      since F-11 and F-13 could change what it should say
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
