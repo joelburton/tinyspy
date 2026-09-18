@@ -142,7 +142,7 @@ deploy).
 | `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognizes a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
 | `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
-| `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
+| `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Keyed by a `bigint identity`, read `order by id`. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. `took_turn` is true for a trace that found something — `theme`, `spangram` or `hint_word` — and false for a duplicate, a too-short path, a word the dictionary lacks, and a hint. Only state that can't be derived lives as columns — on `players`, above. |
 
 `solution` shape:
 
@@ -325,12 +325,12 @@ connecting line**, so the player still works out the order.
 - **One hint at a time.** A second is refused while one is unsolved; the board
   can only ring one word legibly.
 - **Not turn-gated.** Spending is a decision about a team resource, not a move.
-- **Logged as a turn.** `spend_hint` writes one `events` row (`kind = 'hint'`),
-  so a spent hint takes an ordinary numbered position in the log — a `warning`
-  bar, a lightbulb glyph, "Hint used" where a word would be, and a live `#N`
-  that replays its ring. **One row, attributed to whoever cashed it**, even in
-  coop where the counters fan out to every player: a shared pool still has a
-  single person who decided to spend it.
+- **It goes in the log.** `spend_hint` writes one `events` row (`kind = 'hint'`,
+  `took_turn` false), and the log shows it: a `warning` bar, a lightbulb glyph,
+  "Hint used" where a word would be, and a live `#N` that replays its ring.
+  **One row, attributed to whoever cashed it**, even in coop where the counters
+  fan out to every player: a shared pool still has a single person who decided
+  to spend it.
 
 ---
 

@@ -54,7 +54,7 @@ insert into roster values
   ('wordiply',    'guesses',     false),
   ('stackdown',   'submissions', false),
   ('scrabble',    'plays',       false),
-  ('strands',     'events',      false),
+  ('strands',     'events',      true),
   ('letterboxed', 'events',      true),
   ('setgame',     'events',      true);
 

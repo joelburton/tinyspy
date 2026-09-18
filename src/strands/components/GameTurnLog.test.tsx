@@ -31,13 +31,13 @@ const PLAYERS = [
 let n = 0
 const guess = (word: string, result: GuessResult): EventRow => ({
   kind: 'guess',
-  id: `e${n++}`, game_id: 'g', user_id: ADA, word, path: [[0, 0]],
+  id: n++, game_id: 'g', user_id: ADA, word, path: [[0, 0]],
   result, created_at: '2026-01-01',
 })
 
 const hint = (): EventRow => ({
   kind: 'hint',
-  id: `e${n++}`, game_id: 'g', user_id: ADA, word: null, path: [[1, 0], [1, 1]],
+  id: n++, game_id: 'g', user_id: ADA, word: null, path: [[1, 0], [1, 1]],
   result: null, created_at: '2026-01-01',
 })
 

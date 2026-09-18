@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: through setgame (awaiting review); strands finishes phase 3.** Agreed with Joel
+**Status: phase 3 done (strands awaiting review); phase 4 next — connections, waffle, wordiply.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -539,6 +539,30 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 > already been through this and says so in a comment; `create_game_test.sql`
 > had not. It now asserts the contract — a multiple of three, at least twelve,
 > and a set on the table.
+
+> **strands built 2026-09-17** —
+> `supabase/migrations/20260917000004_strands_events.sql`: uuid → bigint
+> identity, `took_turn`, the `kind` default dropped, and the `(game_id)` read
+> index replaced by `(game_id, id)`. The partial unique index that enforces
+> found-once is untouched.
+>
+> Rehearsed on production's rows: **366 events** renumbered 1..366 — 168 theme,
+> 28 spangram, 108 hint_word (all turns), against 7 duplicate, 21 invalid, 12
+> too-short and 22 hints (none).
+>
+> **The migration's own statement order caught a real bug, which is what it is
+> for.** `set took_turn = (result in ('theme','spangram','hint_word'))` leaves
+> NULL on a hint row, because `result` is NULL there and `null in (…)` is NULL
+> rather than false. The `set not null` refused it. Had the column been added
+> `not null default false` — the shorter way — the 22 hint rows would have
+> taken the default silently and the bug would have looked exactly like the
+> right answer. §9's order is now load-bearing rather than merely careful.
+>
+> Two other things the phase turned up: `supabase/tests/strands/rls_test.sql`
+> inserts into the log directly (to prove a player cannot) and relied on the
+> `kind` default, so it names its kind now; and `docs/games/strands.md` called a
+> spent hint "**Logged as a turn**" meaning it takes a numbered row in the log —
+> which now reads as the opposite of its `took_turn`. It says "Logged as a row".
 
 **Phase 4** — connections, waffle, wordiply: rename, add `kind`, drop `seq`.
 

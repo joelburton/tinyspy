@@ -1565,6 +1565,7 @@ export type Database = {
           id: number
           kind: string
           letters_covered: number
+          took_turn: boolean
           user_id: string
           word: string | null
         }
@@ -1574,6 +1575,7 @@ export type Database = {
           id?: never
           kind: string
           letters_covered: number
+          took_turn?: boolean
           user_id: string
           word?: string | null
         }
@@ -1583,6 +1585,7 @@ export type Database = {
           id?: never
           kind?: string
           letters_covered?: number
+          took_turn?: boolean
           user_id?: string
           word?: string | null
         }
@@ -2417,6 +2420,7 @@ export type Database = {
           game_id: string
           id: number
           kind: string
+          took_turn: boolean
           user_id: string
         }
         Insert: {
@@ -2426,6 +2430,7 @@ export type Database = {
           game_id: string
           id?: never
           kind: string
+          took_turn?: boolean
           user_id: string
         }
         Update: {
@@ -2435,6 +2440,7 @@ export type Database = {
           game_id?: string
           id?: never
           kind?: string
+          took_turn?: boolean
           user_id?: string
         }
         Relationships: [
@@ -3029,30 +3035,33 @@ export type Database = {
         Row: {
           created_at: string
           game_id: string
-          id: string
+          id: number
           kind: string
           path: Json
           result: string | null
+          took_turn: boolean
           user_id: string
           word: string | null
         }
         Insert: {
           created_at?: string
           game_id: string
-          id?: string
-          kind?: string
+          id?: never
+          kind: string
           path: Json
           result?: string | null
+          took_turn?: boolean
           user_id: string
           word?: string | null
         }
         Update: {
           created_at?: string
           game_id?: string
-          id?: string
+          id?: never
           kind?: string
           path?: Json
           result?: string | null
+          took_turn?: boolean
           user_id?: string
           word?: string | null
         }

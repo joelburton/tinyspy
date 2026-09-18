@@ -1097,8 +1097,13 @@ begin
 
   -- `kind` spelled out rather than left to its default: the table holds hints
   -- too, so which kind this row is belongs at the call site.
-  insert into strands.events (game_id, user_id, kind, word, path, result)
-  values (target_game, caller_id, 'guess', v_word, norm_path, v_result);
+  -- A trace that FOUND something is a turn; a duplicate, a too-short path and
+  -- a word the dictionary does not have are misfires. The game already
+  -- declines to punish those, and the column records that rather than
+  -- re-deriving it at every read.
+  insert into strands.events (game_id, user_id, kind, word, path, result, took_turn)
+  values (target_game, caller_id, 'guess', v_word, norm_path, v_result,
+          v_result in ('theme', 'spangram', 'hint_word'));
 
   -- ─── Counters ────────────────────────────────────────────
   if v_result = 'hint_word' then
@@ -1368,8 +1373,8 @@ begin
   -- reason this is stored at all. `word` stays null: a hint has never said its
   -- word, and putting it here would say it in the one place that outlives the
   -- reveal being retired.
-  insert into strands.events (game_id, user_id, kind, path)
-  values (target_game, caller_id, 'hint', coords);
+  insert into strands.events (game_id, user_id, kind, path, took_turn)
+  values (target_game, caller_id, 'hint', coords, false);
 
   -- `warning`, the word a hint wears everywhere: spending one is neither good nor
   -- bad play, and coloring it would adjudicate something the player did not do

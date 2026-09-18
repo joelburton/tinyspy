@@ -175,8 +175,8 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ insert into strands.events (game_id, user_id, word, path, result)
-            values (%L, %L, 'ZZQA', '[[0,0]]'::jsonb, 'hint_word') $$,
+  format($$ insert into strands.events (game_id, user_id, kind, word, path, result)
+            values (%L, %L, 'guess', 'ZZQA', '[[0,0]]'::jsonb, 'hint_word') $$,
          (select id from game), 'ada11111-1111-1111-1111-111111111111'),
   '42501',
   null,

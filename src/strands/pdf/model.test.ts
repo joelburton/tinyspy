@@ -28,14 +28,14 @@ const state = (user_id: string, hints_spent: number): StrandsPlayer => ({
 let n = 0
 const guess = (user_id: string, word: string, result: GuessResult): EventRow => ({
   kind: 'guess',
-  id: `g${n++}`, game_id: 'g', user_id, word, path: [[0, 0], [0, 1]],
+  id: n++, game_id: 'g', user_id, word, path: [[0, 0], [0, 1]],
   result, created_at: '2026-01-01',
 })
 
 /** A spent hint — no word, no verdict, but coords like every other row. */
 const hint = (user_id: string): EventRow => ({
   kind: 'hint',
-  id: `g${n++}`, game_id: 'g', user_id, word: null, path: [[7, 0], [7, 1]],
+  id: n++, game_id: 'g', user_id, word: null, path: [[7, 0], [7, 1]],
   result: null, created_at: '2026-01-01',
 })
 

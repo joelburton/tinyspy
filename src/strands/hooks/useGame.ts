@@ -13,7 +13,10 @@ export type GuessResult =
 
 /** What every `strands.events` row carries, whatever kind it is. */
 type EventBase = {
-  id: string
+  /** The row's own id, and the order of play — the database hands them out in
+   *  the order the rows were written, which is what the read orders by. Two
+   *  rows written in one transaction tie on `created_at`. */
+  id: number
   game_id: string
   user_id: string
   /** The cells this row is about: a guess's traced route, or a hint's revealed
@@ -163,7 +166,7 @@ export function useGame(gameId: string, selfId: string): {
             .from('events')
             .select('id, game_id, user_id, kind, word, path, result, created_at')
             .eq('game_id', gameId)
-            .order('created_at', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
         readRows(
           db

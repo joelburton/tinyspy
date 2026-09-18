@@ -337,7 +337,7 @@ describe('strands PlayArea — a letter extends the trace', () => {
   it('is gray while a past turn is open — the press belongs to the viewer', async () => {
     const user = userEvent.setup()
     const turn: EventRow = {
-      kind: 'guess', id: 'e1', game_id: 'g1', user_id: 'u1', word: 'ALPHA',
+      kind: 'guess', id: 1, game_id: 'g1', user_id: 'u1', word: 'ALPHA',
       path: [[1, 0], [1, 1]], result: 'theme', created_at: '2026-06-01T00:00:00Z',
     }
     h.result = loaded({ events: [turn], found: [] })

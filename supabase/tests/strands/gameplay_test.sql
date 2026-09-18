@@ -21,7 +21,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(27);
+select plan(28);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -239,6 +239,16 @@ select is(
     where game_id = (select id from game) and result in ('invalid','duplicate')),
   3::bigint,
   'soft rejects ARE logged (2 invalid + 1 duplicate) — the log records what was tried'
+);
+
+-- …and logged as what they were: a trace that FOUND something spent a turn, a
+-- misfire did not. The game already declines to punish a miss, and `took_turn`
+-- is where that judgment is written down rather than re-derived per reader.
+select is(
+  (select array_agg(distinct result order by result) from strands.events
+    where game_id = (select id from game) and took_turn),
+  array['hint_word', 'spangram', 'theme'],
+  'took_turn is the traces that found something, and only those'
 );
 
 -- ============================================================
